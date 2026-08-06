@@ -573,6 +573,143 @@ export const REWARDS = {
   },
 
   // ─────────────────────────────────────────────────────────────────────────
+  // TRAINING MILESTONES — server-only award families
+  //
+  // These families were previously paid via direct add_diamonds_to_balance
+  // calls with uncatalogued transaction_types, making them invisible to every
+  // cap and to the 2.5M platform circuit breaker.
+  //
+  // All are serverOnly — they are NEVER claimable from the browser. The eight
+  // server routes call award_diamonds_v2 directly with the service-role client.
+  //
+  // Per-family monthly ceilings (Dan's decisions, 2026-08-06):
+  //   streak_reward    1,000 ◆/month — milestone itself is the natural ceiling
+  //   daily_bonus      3,750 ◆/month — own line; 125/day × 30
+  //   training_reward  1,500 ◆/month — small per-session; 50/day × 30
+  //   achievement      1,000 ◆/month — DB-driven amounts
+  //   challenge        1,000 ◆/month — DB-driven amounts
+  //   tournament_prize uncapped        — prize pool integrity; breaker still counts it
+  //
+  // IMPORTANT: if you change monthlyDiamondCap here you MUST also update the
+  // corresponding row in diamond_reward_catalog (migration + apply). The SQL
+  // function reads the table, not this file.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  streak_reward: {
+    key: 'streak_reward',
+    label: 'Training Streak Milestone',
+    description:
+      'Milestone reward for maintaining a consecutive training streak — up to 10,000 ◆ for a 365-day run.',
+    diamonds: 0,                // variable; server passes amount in metadata.streak_diamonds
+    maxDiamonds: 10000,
+    monthlyDiamondCap: 1000,   // $10/user/month ceiling; 10k milestone defers whole if over budget
+    category: 'training',
+    countsTowardDailyCap: false,
+    lifetime: false,
+    oncePerTarget: true,        // p_target_id = `streak_<userId>_<milestoneDays>` — one claim per milestone
+    icon: 'Flame',
+    gate: 'free',
+    serverOnly: true,
+    verifyNote:
+      'Awarded by pages/api/training/streak.js after confirming the milestone has not been claimed. Amount passed in metadata.streak_diamonds.',
+  },
+
+  daily_bonus: {
+    key: 'daily_bonus',
+    label: 'Daily Training Bonus',
+    description:
+      'Daily login training bonus — base plus consecutive-streak multiplier, up to 125 ◆/day.',
+    diamonds: 0,                // variable; server passes amount in metadata.bonus_diamonds
+    maxDiamonds: 125,
+    monthlyDiamondCap: 3750,   // 125/day × 30; own budget, not the 110 daily cap
+    category: 'training',
+    countsTowardDailyCap: false,
+    lifetime: false,
+    maxPerDay: 1,
+    icon: 'CalendarDays',
+    gate: 'free',
+    serverOnly: true,
+    verifyNote:
+      'Awarded by pages/api/training/daily-bonus.js, idempotency-keyed to user+date. Amount passed in metadata.bonus_diamonds.',
+  },
+
+  training_reward: {
+    key: 'training_reward',
+    label: 'Training Session Reward',
+    description:
+      'Per-session training reward for completing a GTO training level or the Hand of the Day.',
+    diamonds: 0,                // variable (8–25 ◆ per session); server passes amount in metadata.reward_diamonds
+    maxDiamonds: 50,
+    monthlyDiamondCap: 1500,   // 50/day × 30 generous headroom; own budget
+    category: 'training',
+    countsTowardDailyCap: false,
+    lifetime: false,
+    icon: 'GraduationCap',
+    gate: 'free',
+    serverOnly: true,
+    verifyNote:
+      'Awarded by pages/api/training/save-progress.js, save-session.js (speed bonus) and hand-of-the-day.js. Amount passed in metadata.reward_diamonds.',
+  },
+
+  achievement: {
+    key: 'achievement',
+    label: 'Achievement Unlocked',
+    description:
+      'One-time reward for unlocking a training achievement. Amount is DB-driven.',
+    diamonds: 0,                // variable; server passes amount in metadata.achievement_diamonds
+    maxDiamonds: 500,
+    monthlyDiamondCap: 1000,   // $10/user/month across all achievements
+    category: 'training',
+    countsTowardDailyCap: false,
+    lifetime: false,
+    oncePerTarget: true,        // p_target_id = achievement_id — one claim per achievement per user
+    icon: 'Trophy',
+    gate: 'free',
+    serverOnly: true,
+    verifyNote:
+      'Awarded by pages/api/training/achievements.js after DB confirms first-unlock. Amount passed in metadata.achievement_diamonds.',
+  },
+
+  challenge: {
+    key: 'challenge',
+    label: 'Challenge Completed',
+    description:
+      'Reward for completing a recurring training challenge. Amount is DB-driven.',
+    diamonds: 0,                // variable; server passes amount in metadata.challenge_diamonds
+    maxDiamonds: 500,
+    monthlyDiamondCap: 1000,   // $10/user/month across all challenges
+    category: 'training',
+    countsTowardDailyCap: false,
+    lifetime: false,
+    icon: 'Swords',
+    gate: 'free',
+    serverOnly: true,
+    verifyNote:
+      'Awarded by pages/api/training/challenges.js after DB confirms completion and idempotency. Amount passed in metadata.challenge_diamonds.',
+  },
+
+  tournament_prize: {
+    key: 'tournament_prize',
+    label: 'Trivia Tournament Prize',
+    description:
+      'Prize for placing in a Smarter.Poker trivia tournament. Amount determined by prize pool.',
+    diamonds: 0,                // variable prize pool; server passes amount in metadata.prize_diamonds
+    maxDiamonds: 10000,
+    // monthlyDiamondCap intentionally absent — uncapped per Dan's decision 2026-08-06.
+    // The 2.5M platform circuit breaker (PLATFORM_MONTHLY_BUDGET) still applies
+    // because the route now flows through award_diamonds_v2.
+    category: 'training',
+    countsTowardDailyCap: false,
+    lifetime: false,
+    oncePerTarget: true,        // p_target_id = `<tournamentId>_<userId>` — one prize per tournament placement
+    icon: 'Medal',
+    gate: 'free',
+    serverOnly: true,
+    verifyNote:
+      'Awarded by pages/api/trivia/tournament-lifecycle.js after tournament_participants row is locked. Amount passed in metadata.prize_diamonds.',
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
   // SECRET
   // ─────────────────────────────────────────────────────────────────────────
   easter_egg: {

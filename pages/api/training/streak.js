@@ -12,6 +12,7 @@ import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { safeAward } from '../../../src/lib/rewards/awardGuard';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -286,19 +287,27 @@ export default async function handler(req, res) {
                   return res.status(409).json({ success: false, error: 'Already claimed (concurrent request)' });
               }
 
-              // Award diamonds via logging RPC
-              // Note: Supabase RPC returns {data, error} and does NOT throw on RPC errors.
-              // Capture the error explicitly and roll back the milestone claim so the user
-              // can retry instead of being locked out with no diamonds.
-              const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+              // Award via award_diamonds_v2 (streak_reward catalog key).
+              // Variable amount is passed in metadata.streak_diamonds so the SQL
+              // function can apply the per-family 1,000 ◆/month ceiling and the
+              // 2.5M platform circuit breaker — neither of which the old
+              // add_diamonds_to_balance call respected.
+              // Idempotency key: streak_<userId>_<milestoneDays> matches the
+              // catalog's once_per_target = true guard.
+              const { ok: rpcOk, error: rpcErr } = await safeAward(supabase, {
                   p_user_id: userId,
-                  p_amount: milestone.diamonds,
-                  p_type: 'streak_reward',
-                  p_description: `${milestone.name} — ${milestone.diamonds}diamonds reward`,
-                  p_reference_id: `streak_${userId}_${milestoneDays}`
+                  p_action_key: 'streak_reward',
+                  p_reference_id: `streak_${userId}_${milestoneDays}`,
+                  p_target_id: `streak_${userId}_${milestoneDays}`,
+                  p_metadata: {
+                      streak_diamonds: milestone.diamonds,
+                      milestone_name: milestone.name,
+                      milestone_days: milestoneDays,
+                      _source: 'api/training/streak',
+                  },
               });
 
-              if (rpcErr) {
+              if (!rpcOk) {
                   // Roll back the milestone claim by removing milestoneDays from the array.
                   // Without this, the optimistic-lock check above would forever say
                   // "already claimed" and the user would never get their diamonds.
@@ -312,7 +321,7 @@ export default async function handler(req, res) {
                   } catch (rbErr) {
                       console.warn('[Streak] Rollback of milestone claim failed:', rbErr?.message || rbErr);
                   }
-                  console.warn('[Streak] Diamond RPC failed (rolled back so user can retry):', rpcErr);
+                  console.warn('[Streak] award_diamonds_v2 failed (rolled back so user can retry):', rpcErr);
                   return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
               }
 

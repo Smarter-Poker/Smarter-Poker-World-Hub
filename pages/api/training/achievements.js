@@ -11,6 +11,7 @@ import { notifyAchievementUnlock } from '../../../src/utils/trainingNotification
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { safeAward } from '../../../src/lib/rewards/awardGuard';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -197,15 +198,25 @@ export default async function handler(req, res) {
                       // would prevent any retry.
                       let diamondCreditFailed = false;
                       if (def.diamond_reward > 0) {
-                          const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                          // Award via award_diamonds_v2 (achievement catalog key).
+                          // Amount passed in metadata.achievement_diamonds;
+                          // 1,000 ◆/month family ceiling + platform breaker apply.
+                          // once_per_target = true on the catalog row prevents
+                          // double-payment even on retry, so the rollback here
+                          // is belt-and-suspenders.
+                          const { ok: rpcOk, error: rpcErr } = await safeAward(supabase, {
                               p_user_id: userId,
-                              p_amount: def.diamond_reward,
-                              p_type: 'achievement',
-                              p_description: `${def.name} achievement — ${def.diamond_reward}diamonds`,
-                              p_reference_id: def.id
+                              p_action_key: 'achievement',
+                              p_reference_id: `achievement_${userId}_${def.id}`,
+                              p_target_id: def.id,
+                              p_metadata: {
+                                  achievement_diamonds: def.diamond_reward,
+                                  achievement_name: def.name,
+                                  _source: 'api/training/achievements',
+                              },
                           });
 
-                          if (rpcErr) {
+                          if (!rpcOk) {
                               // Roll back the achievement upsert so the user can retry.
                               try {
                                   const { error: err_training_user_achievements_2blu4 } = await supabase

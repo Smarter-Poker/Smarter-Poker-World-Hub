@@ -27,6 +27,7 @@ import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { getMasteryGate } from '../../../src/guards/MasteryGate';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { safeAward } from '../../../src/lib/rewards/awardGuard';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -259,18 +260,26 @@ export default async function handler(req, res) {
               let _diamondsAwardError = null;
               if (diamondsEarned > 0) {
                   try {
-                      const { error: rpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
+                      // Award via award_diamonds_v2 (training_reward catalog key).
+                      // Amount passed in metadata.reward_diamonds; 1,500 ◆/month family ceiling applies.
+                      const { ok: rpcOk, data: rpcData, error: rpcErr } = await safeAward(getSupabase(), {
                           p_user_id: userId,
-                          p_amount: diamondsEarned,
-                          p_type: 'training_reward',
-                          p_description: `Training: ${gameId} L${level} — ${diamondsEarned}diamonds`,
-                          p_reference_id: `progress_${userId}_${gameId}_${level}_${new Date().toISOString().slice(0, 10)}`
+                          p_action_key: 'training_reward',
+                          p_reference_id: `progress_${userId}_${gameId}_${level}_${new Date().toISOString().slice(0, 10)}`,
+                          p_metadata: {
+                              reward_diamonds: diamondsEarned,
+                              game_id: gameId,
+                              level,
+                              _source: 'api/training/save-progress',
+                          },
                       });
-                      if (rpcErr) {
-                          console.warn('[SaveProgress] Diamond RPC error:', rpcErr.message);
-                          _diamondsAwardError = rpcErr.message;
+                      if (!rpcOk) {
+                          console.warn('[SaveProgress] award_diamonds_v2 error (existing-progress branch):', rpcErr);
+                          _diamondsAwardError = rpcErr?.message || String(rpcErr);
                       } else {
-                          _diamondsActuallyAwarded = diamondsEarned;
+                          const result = rpcData && typeof rpcData === 'object' ? rpcData : {};
+                          _diamondsActuallyAwarded = result.success ? (Number(result.awarded) || 0) : 0;
+                          if (!result.success) _diamondsAwardError = result.reason || 'capped';
                       }
                   } catch (e) {
                       console.warn('[SaveProgress] Diamond award threw:', e.message);
@@ -335,18 +344,25 @@ export default async function handler(req, res) {
               let _diamondsAwardError2 = null;
               if (diamondsEarned > 0) {
                   try {
-                      const { error: rpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
+                      // Award via award_diamonds_v2 (training_reward catalog key) — new-progress branch.
+                      const { ok: rpcOk, data: rpcData, error: rpcErr } = await safeAward(getSupabase(), {
                           p_user_id: userId,
-                          p_amount: diamondsEarned,
-                          p_type: 'training_reward',
-                          p_description: `Training: ${gameId} L${level} — ${diamondsEarned}diamonds`,
-                          p_reference_id: `progress_${userId}_${gameId}_${level}_${new Date().toISOString().slice(0, 10)}`
+                          p_action_key: 'training_reward',
+                          p_reference_id: `progress_${userId}_${gameId}_${level}_${new Date().toISOString().slice(0, 10)}`,
+                          p_metadata: {
+                              reward_diamonds: diamondsEarned,
+                              game_id: gameId,
+                              level,
+                              _source: 'api/training/save-progress',
+                          },
                       });
-                      if (rpcErr) {
-                          console.warn('[SaveProgress] Diamond RPC error:', rpcErr.message);
-                          _diamondsAwardError2 = rpcErr.message;
+                      if (!rpcOk) {
+                          console.warn('[SaveProgress] award_diamonds_v2 error (new-progress branch):', rpcErr);
+                          _diamondsAwardError2 = rpcErr?.message || String(rpcErr);
                       } else {
-                          _diamondsActuallyAwarded2 = diamondsEarned;
+                          const result = rpcData && typeof rpcData === 'object' ? rpcData : {};
+                          _diamondsActuallyAwarded2 = result.success ? (Number(result.awarded) || 0) : 0;
+                          if (!result.success) _diamondsAwardError2 = result.reason || 'capped';
                       }
                   } catch (e) {
                       console.warn('[SaveProgress] Diamond award threw:', e.message);

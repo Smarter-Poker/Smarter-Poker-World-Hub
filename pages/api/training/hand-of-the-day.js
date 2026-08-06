@@ -11,6 +11,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { safeAward } from '../../../src/lib/rewards/awardGuard';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -270,17 +271,26 @@ export default async function handler(req, res) {
         // via the same RPC save-progress uses, only on first completion.
         let diamondsEarned = 0;
         if (!alreadyCompleted) {
-          const { error: rpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
+          // Award via award_diamonds_v2 (training_reward catalog key).
+          // Amount passed in metadata.reward_diamonds; 1,500 ◆/month family ceiling applies.
+          const HOTD_DIAMONDS = 25;
+          const { ok: rpcOk, data: rpcData } = await safeAward(getSupabase(), {
             p_user_id: userId,
-            p_amount: 25,
-            p_type: 'training_reward',
-            p_description: `Hand of the Day: ${dailyId}`,
+            p_action_key: 'training_reward',
             p_reference_id: `hotd_${userId}_${dailyId}`,
+            p_target_id: `hotd_${dailyId}`,
+            p_metadata: {
+              reward_diamonds: HOTD_DIAMONDS,
+              source_type: 'hand_of_the_day',
+              daily_id: dailyId,
+              _source: 'api/training/hand-of-the-day',
+            },
           });
-          if (rpcErr) {
-            console.warn('[HandOfTheDay] Diamond credit failed:', rpcErr.message);
+          if (rpcOk) {
+            const result = rpcData && typeof rpcData === 'object' ? rpcData : {};
+            diamondsEarned = result.success ? (Number(result.awarded) || 0) : 0;
           } else {
-            diamondsEarned = 25;
+            console.warn('[HandOfTheDay] award_diamonds_v2 failed:', rpcOk);
           }
         }
 

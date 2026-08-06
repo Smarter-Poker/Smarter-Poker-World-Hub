@@ -13,6 +13,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { safeAward } from '../../../src/lib/rewards/awardGuard';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -225,45 +226,29 @@ export default async function handler(req, res) {
           let speedBonusAwarded = 0;
           if (safeSpeedBonus > 0) {
               try {
-                  // Use RPC to atomically increment diamonds.
-                  // Phase 63: was using `speed_..._${Date.now()}` — per-millisecond
-                  // means every retry/replay credits AGAIN. Combined with the
-                  // 50-diamond cap, a user could spam save-session 100x and
-                  // grab 5000 free diamonds. Now buckets to per-(user, game,
-                  // level, day) so the user gets at most one speed bonus per
-                  // level per UTC day. DB dedups identical retries.
+                  // Award via award_diamonds_v2 (training_reward catalog key).
+                  // Amount passed in metadata.reward_diamonds. Idempotency key
+                  // bucketed to per-(user, game, level, UTC-day) so replays and
+                  // network retries don't double-credit. The 1,500 ◆/month family
+                  // ceiling and 2.5M platform breaker are enforced by the SQL function.
                   const _dayBucket = Math.floor(Date.now() / 86400000);
-                  const { error: rpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
+                  const { ok: rpcOk } = await safeAward(getSupabase(), {
                       p_user_id: userId,
-                      p_amount: safeSpeedBonus,
-                      p_type: 'speed_bonus',
-                      p_description: `Speed bonus: ${parsedGameId} — ${safeSpeedBonus}diamonds`,
-                      p_reference_id: `speed_${userId}_${parsedGameId}_${level || 0}_${_dayBucket}`
+                      p_action_key: 'training_reward',
+                      p_reference_id: `speed_${userId}_${parsedGameId}_${level || 0}_${_dayBucket}`,
+                      p_metadata: {
+                          reward_diamonds: safeSpeedBonus,
+                          source_type: 'speed_bonus',
+                          game_id: parsedGameId,
+                          level: level || 0,
+                          _source: 'api/training/save-session',
+                      },
                   });
 
-                  if (rpcErr) {
-                      // ═══════════════════════════════════════════════════════
-                      // REMOVED 2026-08-06: a "fallback" that wrote
-                      // profiles.diamond_balance directly.
-                      //
-                      // Three things were wrong with it. It wrote the VESTIGIAL
-                      // column: `diamonds` is the authoritative balance that
-                      // award_diamonds_v2, getBalance(), the header and the
-                      // store all read, and writing only diamond_balance
-                      // re-creates the exact drift that put those two columns
-                      // ~508k diamonds apart historically (see the STEP 10
-                      // comment in award_diamonds_v2, which writes both in one
-                      // UPDATE for this reason). It wrote no ledger row, so the
-                      // diamonds existed with no audit trail and were invisible
-                      // to every cap. And it then set speedBonusAwarded, so the
-                      // API told the player they had been paid.
-                      //
-                      // Failing honestly is better than paying into a column
-                      // nobody reads and claiming success.
-                      // ═══════════════════════════════════════════════════════
-                      console.warn('[SaveSession] speed bonus RPC failed, no diamonds awarded:', rpcErr.message);
-                  } else {
+                  if (rpcOk) {
                       speedBonusAwarded = safeSpeedBonus;
+                  } else {
+                      console.warn('[SaveSession] award_diamonds_v2 failed — no diamonds awarded');
                   }
 
                   console.info(`[SaveSession] Speed bonus diamonds awarded: ${speedBonusAwarded}`);

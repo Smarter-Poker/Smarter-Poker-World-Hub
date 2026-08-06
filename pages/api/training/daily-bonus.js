@@ -10,6 +10,7 @@ import { notifyDailyBonus } from '../../../src/utils/trainingNotifications';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { safeAward } from '../../../src/lib/rewards/awardGuard';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
@@ -182,25 +183,25 @@ export default async function handler(req, res) {
                   throw claimInsertErr;
               }
 
-              // Award diamonds via logging RPC
-              // Note: Supabase RPC returns {data, error} and does NOT throw — the previous
-              // try/catch never caught RPC failures, so a failed credit silently told the
-              // user "+150diamonds claimed!" while no diamonds landed in their balance.
-              // Stable reference_id closes the retry-double-credit window: if the
-              // RPC commits but the response delivery fails (network drop / 502),
-              // the rollback path lets the user retry — without a stable
-              // reference_id the second call would have no dedup and double-credit.
-              const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+              // Award via award_diamonds_v2 (daily_bonus catalog key).
+              // Variable amount is passed in metadata.bonus_diamonds.
+              // The 3,750 ◆/month per-family ceiling and 2.5M platform breaker
+              // are enforced by the SQL function; the old add_diamonds_to_balance
+              // call bypassed both.
+              const { ok: rpcOk, error: rpcErr } = await safeAward(supabase, {
                   p_user_id: userId,
-                  p_amount: totalBonus,
-                  p_type: 'daily_bonus',
-                  p_description: streakBonus > 0
-                      ? `Daily bonus (${BASE_DAILY_BONUS}diamonds) + ${currentStreak}-day streak bonus (${streakBonus}diamonds)`
-                      : `Daily training bonus — ${totalBonus}diamonds`,
-                  p_reference_id: `daily_bonus_${userId}_${today}`
+                  p_action_key: 'daily_bonus',
+                  p_reference_id: `daily_bonus_${userId}_${today}`,
+                  p_metadata: {
+                      bonus_diamonds: totalBonus,
+                      base_bonus: BASE_DAILY_BONUS,
+                      streak_bonus: streakBonus,
+                      streak_day: currentStreak,
+                      _source: 'api/training/daily-bonus',
+                  },
               });
 
-              if (rpcErr) {
+              if (!rpcOk) {
                   // Roll back the daily-bonus claim row so the user can retry. The unique
                   // constraint on (user_id, bonus_date) would otherwise lock them out.
                   try {

@@ -12,6 +12,7 @@ import { notifyChallengeComplete } from '../../../src/utils/trainingNotification
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { safeAward } from '../../../src/lib/rewards/awardGuard';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -445,15 +446,23 @@ export default async function handler(req, res) {
               // leave claimed=true with no diamonds awarded, locking the user out.
               const reward = progress.training_challenge_definitions?.diamond_reward || 0;
               if (reward > 0) {
-                  const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                  // Award via award_diamonds_v2 (challenge catalog key).
+                  // Amount passed in metadata.challenge_diamonds;
+                  // 1,000 ◆/month family ceiling + platform breaker apply.
+                  const { ok: rpcOk, error: rpcErr } = await safeAward(supabase, {
                       p_user_id: userId,
-                      p_amount: reward,
-                      p_type: 'challenge',
-                      p_description: `${progress.training_challenge_definitions?.name || 'Challenge'} completed — ${reward}diamonds`,
-                      p_reference_id: `challenge_${challengeId}_${periodKey}`
+                      p_action_key: 'challenge',
+                      p_reference_id: `challenge_${challengeId}_${periodKey}`,
+                      p_target_id: `${challengeId}_${periodKey}`,
+                      p_metadata: {
+                          challenge_diamonds: reward,
+                          challenge_name: progress.training_challenge_definitions?.name || 'Challenge',
+                          period_key: periodKey,
+                          _source: 'api/training/challenges',
+                      },
                   });
 
-                  if (rpcErr) {
+                  if (!rpcOk) {
                       // Roll back the claimed flag so the user can retry.
                       try {
                           const { error: err_training_user_challenges_hyjo3 } = await supabase
