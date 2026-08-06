@@ -1666,6 +1666,15 @@ function UniversalDynamicTable({
 
     // ═══ MOBILE RESPONSIVE DETECTION ═══
     const [isMobile, setIsMobile] = React.useState(false);
+    // GTOW parity #48. `isMobile` breaks at 768px, which is the TABLET break —
+    // it is the right threshold for shrinking card and avatar furniture and the
+    // wrong one for the top bar, which only actually runs out of room near
+    // 480px. Measured on production at 375px: the right-hand cluster was 299px
+    // wide starting at x=147, so it ran 71px past the viewport (hero avatar and
+    // the SIMPLE/FULL toggle were both off screen) and the absolutely-centred
+    // title landed on top of the RNG and TRAIN chips. `isNarrow` is the phone
+    // break, measured against that failure rather than guessed.
+    const [isNarrow, setIsNarrow] = React.useState(false);
     // ═══ PHASE 16: VIEWPORT SCALE-LOCK — continuous scaling, never repositioning ═══
     const DESIGN_WIDTH = 420; // fixed design canvas width
     const [scaleFactor, setScaleFactor] = React.useState(1);
@@ -1673,6 +1682,7 @@ function UniversalDynamicTable({
         const check = () => {
             const vw = window.innerWidth;
             setIsMobile(vw < 768);
+            setIsNarrow(vw < 480);
             // Scale factor: ratio of viewport to design width, capped at 1.0 (never upscale)
             setScaleFactor(Math.min(vw / DESIGN_WIDTH, 1));
         };
@@ -2881,9 +2891,16 @@ function UniversalDynamicTable({
         const potH = Math.max(11, ui(15)) + ui(4) + ui(5) + 6;
         const lo = topRowBottom + potH / 2 + 3;
         const hi = boardTop - potH / 2 - 3;
-        // When the gap is too small to hold the pill at all, split it: half a
-        // pill of overlap on each side beats all of it on one.
-        const centre = lo > hi ? (topRowBottom + boardTop) / 2 : Math.min(Math.max(0.29 * h, lo), hi);
+        // #48: "split the overlap" was the wrong call. Half a pill of overlap on
+        // each side is still overlap, and at 375px it landed the POT/SPR badge
+        // squarely on the BTN nameplate's stack line — the villain's "100 bb"
+        // was unreadable, which is a number the player has to act on. When the
+        // gap above the board genuinely cannot hold the pill, move the pill
+        // BELOW the board instead, where the felt is empty on every table size.
+        const boardBottom = 0.38 * h + ui(70) / 2;
+        const centre = lo > hi
+            ? boardBottom + potH / 2 + ui(6)
+            : Math.min(Math.max(0.29 * h, lo), hi);
         return (centre / h) * 100;
     }, [feltBox.h, ui]);
 
@@ -3016,23 +3033,30 @@ function UniversalDynamicTable({
                 and the only way out of a session was a floating "Quit" chip
                 pinned over the top-left corner of the felt; that chip is gone
                 and this pill is the exit. */}
-            <div style={styles.topBar}>
+            <div style={{ ...styles.topBar, ...(isNarrow ? styles.topBarNarrow : null) }}>
                 <div style={styles.topBarLeft}>
                     {onExit && (
                         <button
                             onClick={onExit}
                             aria-label="Back to Training"
-                            style={styles.backPill}
+                            style={{ ...styles.backPill, ...(isNarrow ? styles.backPillNarrow : null) }}
                         >
                             <span style={styles.backPillArrow}>←</span>
-                            Back to Training
+                            {/* #48: the words cost 101px of a 375px bar. The arrow
+                                alone is the same control and the aria-label above
+                                still names it for a screen reader. */}
+                            {!isNarrow && 'Back to Training'}
                         </button>
                     )}
                 </div>
                 {/* Centred on the BAR, not between its neighbours, so the title
-                    does not drift when the left or right cluster changes width. */}
-                <div style={styles.topBarTitle}>{gameTitle || 'GTO Training'}</div>
-                <div style={styles.topBarRight}>
+                    does not drift when the left or right cluster changes width.
+                    #48: absolute centring is only safe while the side clusters
+                    leave the middle free. On a phone they do not, so the title
+                    becomes an ordinary flex child that ellipsizes instead of a
+                    free-floating layer that lands on top of the mode chips. */}
+                <div style={{ ...styles.topBarTitle, ...(isNarrow ? styles.topBarTitleNarrow : null) }}>{gameTitle || 'GTO Training'}</div>
+                <div style={{ ...styles.topBarRight, ...(isNarrow ? styles.topBarRightNarrow : null) }}>
                     {/* The MEDIUM difficulty chip and the SOLVER/AI data-source chip
                         were build diagnostics wearing gameplay HUD clothing: a
                         player deciding whether to call cannot act on either, and
@@ -3146,7 +3170,10 @@ function UniversalDynamicTable({
                     <div style={styles.xpPill}>
                         <span style={styles.xpPillIcon}>◆</span>
                         <span style={{ ...styles.xpPillValue, color: scoreColor }}>{formatSignedScore(gtowScore)}</span>
-                        <span style={styles.pillCaption}>SCORE</span>
+                        {/* #48: the caption is a label for a number that already
+                            carries a gold diamond and a signed percentage. On a
+                            phone that redundancy costs the avatar its slot. */}
+                        {!isNarrow && <span style={styles.pillCaption}>SCORE</span>}
                     </div>
                     {/* CYAN PILL — the template's diamonds slot. Streak lives on
                         in the session rail and the toast; the question counter
@@ -3158,16 +3185,23 @@ function UniversalDynamicTable({
                             <div style={styles.gemPill}>
                                 <span style={styles.gemPillIcon}>◇</span>
                                 <span style={{ ...styles.xpPillValue, color: accColor }}>{gtowAccuracy}%</span>
-                                <span style={styles.pillCaption}>ACC</span>
+                                {!isNarrow && <span style={styles.pillCaption}>ACC</span>}
                             </div>
                         );
                     })()}
                     {/* PLAYER AVATAR — same portrait component the seats use, so
                         a missing asset degrades to a monogram disc instead of a
-                        broken image. */}
-                    <div style={styles.topBarAvatar}>
-                        <SeatAvatar src={heroAvatar} label={playerName || 'HERO'} fontSize={13} />
-                    </div>
+                        broken image.
+                        #48: dropped on a phone. It is the only purely decorative
+                        item in the bar — hero's portrait is already on the felt
+                        at the hero seat — and it was the element being pushed off
+                        the right edge, so removing it is what buys the rest of
+                        the cluster room to fit rather than to overflow. */}
+                    {!isNarrow && (
+                        <div style={styles.topBarAvatar}>
+                            <SeatAvatar src={heroAvatar} label={playerName || 'HERO'} fontSize={13} />
+                        </div>
+                    )}
                     {/* PHASE 9: Simplified Mode Toggle */}
                     <motion.button
                         onClick={toggleSimplifiedMode}
@@ -3350,7 +3384,10 @@ function UniversalDynamicTable({
                         <div style={{
                             position: 'absolute',
                             top: 0,
-                            right: 46,
+                            // #48: the gear disc starts at right:8 and is 32
+                            // wide, so right:46 left a 6px gap that read as the
+                            // two controls touching. 52 separates them.
+                            right: 52,
                             padding: '3px 8px',
                             borderRadius: 6,
                             background: 'rgba(0,212,255,0.08)',
@@ -3656,7 +3693,15 @@ function UniversalDynamicTable({
                                             position: 'absolute',
                                             left: '100%',
                                             bottom: -ui(3),
-                                            marginLeft: -ui(13),
+                                            // #48 / Dan's note "cards need to be
+                                            // next to the hero box, not above
+                                            // it": they were already beside it,
+                                            // but a 13px pull-back plus the -9deg
+                                            // rake put the first card on top of
+                                            // the name and the stack line. A 3px
+                                            // tuck still reads as one cluster
+                                            // without covering either number.
+                                            marginLeft: -ui(3),
                                             display: 'flex',
                                             alignItems: 'flex-end',
                                             zIndex: 6,
@@ -4281,7 +4326,9 @@ function UniversalDynamicTable({
                         animate={{ opacity: [0.5, 1, 0.5] }}
                         transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
                         style={{
-                            position: 'absolute', top: -20, left: '50%',
+                            // #48: inside the bar's reserved top padding, not
+                            // hanging over the element above it.
+                            position: 'absolute', top: 3, left: '50%',
                             x: '-50%',
                             fontSize: 10, fontWeight: 800, letterSpacing: 2,
                             color: 'var(--sp-accent-cyan)', textTransform: 'uppercase',
@@ -6080,11 +6127,18 @@ const styles = {
         zIndex: 6,
     },
 
+    // #48: 12px of side padding on a 375px bar is 24px the content cannot use.
+    topBarNarrow: {
+        padding: '8px 8px',
+        gap: 6,
+    },
+
     topBarLeft: {
         display: 'flex',
         alignItems: 'center',
         gap: 8,
         zIndex: 1,
+        flexShrink: 0,
     },
 
     topBarRight: {
@@ -6092,6 +6146,14 @@ const styles = {
         alignItems: 'center',
         gap: 8,
         zIndex: 1,
+    },
+
+    // #48: the cluster used to be unshrinkable, so it grew straight off the
+    // right edge instead of competing with the title for the space available.
+    topBarRightNarrow: {
+        gap: 5,
+        flexShrink: 1,
+        minWidth: 0,
     },
 
     // The exit. Replaces the floating "Quit" chip that used to sit over the felt.
@@ -6110,6 +6172,12 @@ const styles = {
         cursor: 'pointer',
         whiteSpace: 'nowrap',
         fontFamily: "'Inter', -apple-system, sans-serif",
+    },
+
+    // #48: icon-only on a phone. Same tap target, same aria-label, 101px back.
+    backPillNarrow: {
+        padding: '6px 11px',
+        gap: 0,
     },
 
     backPillArrow: {
@@ -6138,6 +6206,21 @@ const styles = {
         textOverflow: 'ellipsis',
         pointerEvents: 'none',
         zIndex: 0,
+    },
+
+    // #48: on a phone the title stops being a free-floating centred layer and
+    // becomes the flex child that absorbs whatever width the two clusters leave.
+    // It ellipsizes rather than overlapping, which is the only behaviour that
+    // cannot collide no matter what the side clusters do.
+    topBarTitleNarrow: {
+        position: 'static',
+        transform: 'none',
+        flex: '1 1 auto',
+        minWidth: 0,
+        maxWidth: 'none',
+        textAlign: 'center',
+        fontSize: 10,
+        letterSpacing: 1,
     },
 
     // Gold pill (template: XP) and cyan pill (template: diamonds).
@@ -6814,13 +6897,18 @@ const styles = {
 
     countdownSlot: {
         position: 'absolute',
-        left: 0,
+        // #48: mirrors the question pill's inset so the two corner items sit on
+        // the same margin instead of one hugging the edge and one not.
+        left: 10,
         bottom: 10,
     },
 
     questionOfPill: {
         position: 'absolute',
-        right: 0,
+        // #48: measured at 375px the pill's right edge landed exactly on the
+        // viewport edge, so its border and glow were shaved off and it read as
+        // clipped rather than placed. An inset is what makes it look deliberate.
+        right: 10,
         bottom: 16,
         padding: '6px 12px',
         borderRadius: 8,
@@ -7043,7 +7131,12 @@ const styles = {
     actionBar: {
         display: 'grid',
         gap: 8,
-        padding: '10px 12px 12px',
+        // #48: the "YOUR ACTION" indicator is absolutely positioned against this
+        // bar and used to hang ABOVE it at top:-20, straight through whatever
+        // sat there — measured on production it overlapped the hint text by 7px.
+        // Reserving the strip inside the bar's own padding is the only placement
+        // that cannot collide with a sibling whose height it does not control.
+        padding: '22px 12px 12px',
         flexShrink: 0,
     },
 
