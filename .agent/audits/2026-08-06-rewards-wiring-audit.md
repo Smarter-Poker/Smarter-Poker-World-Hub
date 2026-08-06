@@ -133,11 +133,30 @@ Actual spend through uncapped types in the last 60 days: **5,630 ◆ ($56)** —
 `tournament_prize` 4,600, `bonus` 1,000, `trivia_run` 20, `training_reward` 10.
 Modest today; the exposure is the ceiling, not the current burn.
 
-**Why this was not fixed here:** adding catalog rows makes these count toward
-the 110/day cap, which would clamp a 10,000 ◆ streak milestone to 110 and burn
-it — the exact bug just fixed for eggs. The right answer needs a decision per
-reward: does it count toward the cap, or does it get its own budget line like
-eggs and referrals? That is pricing, so it is yours.
+**Why this was not fixed here:** naively adding catalog rows makes these count
+toward the 110/day cap, which would clamp a 10,000 ◆ streak milestone to 110
+and burn it — the exact bug just fixed for eggs.
+
+**Recommended design for whoever picks this up.** Do not try to force these
+into the daily cap. Copy the pattern that now works for eggs:
+
+1. Give each family its own budget line — `counts_toward_daily_cap = false`
+   plus a per-family monthly ceiling, the way `easter_egg` and the referral
+   actions already work. Milestone payouts stay intact.
+2. Make the awards **all-or-nothing** against that ceiling, as
+   `20260805210000` did for eggs, so a big milestone is deferred whole rather
+   than part-paid and its `reference_id` burned.
+3. Route the eight routes through `award_diamonds_v2` rather than
+   `add_diamonds_to_balance`, passing the variable amount in metadata exactly
+   as eggs pass `egg_diamonds`. That is what brings them inside the 2,500,000 ◆
+   platform circuit breaker, which today they neither respect nor increment.
+
+Step 3 is the one that matters most: right now a runaway loop in any of these
+routes cannot trip the breaker, because the breaker only counts what
+`award_diamonds_v2` writes.
+
+The per-family ceilings are pricing, so they are Dan's. Everything else is
+mechanical.
 
 ### B. Two users were shortchanged by the egg bug
 `47965354…` got 105 ◆ for `millionaire` (400 ◆) and `3bb71bfe…` got 105 ◆ for
@@ -155,13 +174,24 @@ price), `first_training_session`, `training_level_complete`, `gto_chart_study`,
 advertised on `/hub/diamond-store`. Wiring them is straightforward once the
 prices are confirmed.
 
-### D. Store copy advertises 67 eggs; 25 are earnable
-`UNVERIFIABLE_EGGS` documents the other 42 honestly in code, but
-`pages/hub/diamond-store.js` still says "Discover 67 Hidden Achievements".
-Either the copy should reflect what is currently earnable, or the telemetry
-gets built. The cheapest additions: `road_tripper` (needs a venue→state join),
-`data_miner` (export logging), `the_optimizer` (now plausible via
-`leak_review_state`).
+### D. Store copy advertises 67 eggs — RESOLVED 2026-08-06 (`6b7c0d95`)
+Three more verifiers shipped, taking earnable eggs from 25 to **28**:
+`road_tripper` (`venue_reviews` → `poker_venues.state`, three distinct states),
+`the_collector` (distinct `table_id` in `user_theme_settings`) and
+`the_optimizer` (a leak with `resolved_at` that `leak_review_state` closed in
+one attempt — possible only because migration `20260805000000` created that
+table today).
+
+The store now states both numbers: 67 across 6 categories, 28 unlockable today.
+The count comes from `src/lib/rewards/eggCoverage.js`, a list-only module so
+printing it does not drag 28 database queries into the client bundle, and a
+test asserts the list and the registry agree in both directions — adding a
+verifier without updating the list fails the suite rather than quietly making
+the copy wrong again.
+
+Remaining 39 are still documented in `UNVERIFIABLE_EGGS` with the telemetry
+each needs. `data_miner` (hand-history export logging) and `zero_leak`
+(hands-since-last-leak counter) are the next cheapest.
 
 ### E. `/api/rewards/progress.js` is orphaned
 430 lines, zero callers. Read-only, no money at risk. Wire or delete.
@@ -172,7 +202,7 @@ gets built. The cheapest additions: `road_tripper` (needs a venue→state join),
 
 - `node node_modules/typescript/bin/tsc --noEmit` — exit 0
 - `node ./_chk.cjs <every changed file>` — 0 parse failures
-- `node --test src/lib/rewards/__tests__/eggVerifiers.test.mjs` — 33/33
+- `node --test src/lib/rewards/__tests__/eggVerifiers.test.mjs` — 37/37
 - `node --test src/lib/rewards/__tests__/transferMath.test.mjs` — 63/63
 - Catalog drift script against production — 26 actions, no drift
 - Migration post-apply assertions incl. that `authenticated`/`anon` still
