@@ -150,6 +150,12 @@ export default async function handler(req, res) {
               classification_counts: classificationCounts || {},
               trainer_config: trainerConfig || null,
               avg_ev_loss_per_hand: avgEVLossPerHand || 0,
+              // roadmap #28 — this value has been computed, exported, and
+              // forwarded through five layers since the metric shipped, and
+              // was destructured above only to be dropped here because the
+              // column did not exist. Added by migration
+              // 20260806171246_training_sessions_avg_ev_loss_per_mistake.
+              avg_ev_loss_per_mistake: avgEVLossPerMistake || 0,
               avg_frequency_diff: avgFrequencyDiff || 0,
               created_at: now,
           };

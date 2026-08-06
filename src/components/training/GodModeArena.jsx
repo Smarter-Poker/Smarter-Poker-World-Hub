@@ -4055,6 +4055,29 @@ function GodModeArenaInner({
               <div style={styles.summaryValue}>-{Math.abs(avgEVLossPerHand).toFixed(2)}</div>
               <div style={styles.summaryLabel}>EV Loss/Hand</div>
             </div>
+            <div style={styles.summaryItem}>
+              {/* roadmap #28 — GTO Wizard reports THREE EV aggregates: total,
+                  per hand, and per MISTAKE. Only the first two were on screen.
+                  Per-mistake is the one that separates "rare but catastrophic"
+                  from "frequent but cheap" — two players can post an identical
+                  EV Loss/Hand and need opposite coaching. */}
+              <div style={{ ...styles.summaryValue, color: '#f97316' }}>
+                -{Math.abs(avgEVLossPerMistake).toFixed(2)}
+              </div>
+              <div style={styles.summaryLabel}>EV Loss/Mistake</div>
+            </div>
+            <div style={styles.summaryItem}>
+              {/* roadmap #41 — avgFrequencyDiff has been computed, persisted to
+                  training_sessions.avg_frequency_diff, and selected back by
+                  get-sessions since it shipped, but had no render site at all.
+                  It is how far your action mix sat from the solver's, in
+                  percentage points; unlike EV loss, lower is better even on
+                  hands you got "right". */}
+              <div style={{ ...styles.summaryValue, color: '#38bdf8' }}>
+                {Math.abs(avgFrequencyDiff).toFixed(1)}%
+              </div>
+              <div style={styles.summaryLabel}>Freq Diff</div>
+            </div>
           </div>
 
           {/* TAB NAVIGATION */}
@@ -13085,8 +13108,13 @@ const styles = {
 
   // Summary row
   summaryRow: {
-    display: 'flex',
-    justifyContent: 'space-around',
+    // roadmap #28/#41 grew this from four tiles to six. `space-around` on a
+    // non-wrapping flex row crushed the two longest labels ("EV Loss/Mistake",
+    // "Freq Diff") into overlap at 375px, so it is a 3-column grid now:
+    // 3x2 on mobile, still a single tidy band on desktop.
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '14px 4px',
     padding: '16px 0',
     borderTop: '1px solid rgba(255,255,255,0.06)',
     borderBottom: '1px solid rgba(255,255,255,0.06)',

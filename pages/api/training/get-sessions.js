@@ -52,7 +52,7 @@ export default async function handler(req, res) {
           if (sessionId) {
               const { data: session, error: detailErr } = await getSupabase()
                   .from('training_sessions')
-                  .select('id, game_id, game_name, gtow_score, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, hand_history, position_stats, classification_counts, avg_ev_loss_per_hand, avg_frequency_diff, trainer_config, created_at')
+                  .select('id, game_id, game_name, gtow_score, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, hand_history, position_stats, classification_counts, avg_ev_loss_per_hand, avg_ev_loss_per_mistake, avg_frequency_diff, trainer_config, created_at')
                   .eq('user_id', user.id)
                   .eq('id', sessionId)
                   .maybeSingle();
