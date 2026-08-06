@@ -88,10 +88,10 @@ function genUUID() {
 
 // Modes this page runs through the server-authoritative grading flow
 // (session-start / session-answer / session-submit) instead of the
-// client-keyed correct_index flow. Ships EMPTY so production behavior is
-// unchanged — flip to ['arcade'] after browser test. Until then the only
-// activation path is the explicit ?serverGrading=1 query escape hatch.
-const SERVER_GRADED_PAGE_MODES = new Set([]);
+// client-keyed correct_index flow. 'arcade' is live as of 2026-08-05;
+// the remaining modes adopt one at a time. The explicit ?serverGrading=1
+// query escape hatch stays available for modes not yet flipped.
+const SERVER_GRADED_PAGE_MODES = new Set(['arcade']);
 
 // Yesterday in America/Chicago as YYYY-MM-DD (streak-continuation check)
 function getYesterdayCST() {
