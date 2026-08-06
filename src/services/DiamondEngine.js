@@ -6,10 +6,11 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { busEmit } from '../engine/EventBus';
+import supabase from '../lib/supabase';
 
 class DiamondEngineSupabase {
     constructor() {
-        this.supabase = null;
+        this.supabase = supabase;
         this.userId = null;
         this._cachedBalance = null;
         this._cachedVIP = null;
@@ -22,14 +23,6 @@ class DiamondEngineSupabase {
         if (typeof window === 'undefined') return;
 
         this.userId = userId;
-
-        // Create Supabase client
-        if (!this.supabase) {
-            this.supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-            );
-        }
     }
 
     /**
@@ -93,8 +86,8 @@ class DiamondEngineSupabase {
                     // Try to include session token for authenticated call
                     const headers = {};
                     try {
-                        const { data: { session } } = await this.supabase.auth.getSession();
-                        if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+                        const token = require('../lib/authUtils').getAccessToken();
+                        if (token) headers['Authorization'] = `Bearer ${token}`;
                     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     const resp = await fetch(`/api/vip/check-status?userId=${this.userId}`, { signal: controller.signal, headers });
                     clearTimeout(timeoutId);
