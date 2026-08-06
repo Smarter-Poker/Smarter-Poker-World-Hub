@@ -3336,15 +3336,33 @@ function GodModeArenaInner({
   // and stays out of the way whenever the table's own countdown owns pacing.
   useEffect(() => {
     if (!autoAdvance || !showFeedback || gameComplete) return;
-    if (trainerConfig?.feedbackRule === 'every') return;
-    const delay = Number(trainerConfig?.autoAdvanceDelayMs) > 0
+    const rule = trainerConfig?.feedbackRule || 'mistakes';
+    if (rule === 'every') return;
+
+    // #6, second half. This is a SECOND auto-advance path: UniversalDynamicTable
+    // runs its own countdown from the same trainerConfig, and the two did not
+    // share rules. UDT stops on an inaccuracy under 'mistakes' and NEVER
+    // advances a wrong answer or a blunder under any rule -- "the player should
+    // study the feedback" is the entire point of the setting. This effect
+    // advanced everything the moment the rule was not 'every', and with both
+    // mounted the earlier timeout wins, so on the multi-table screen a blunder's
+    // feedback was pulled off the felt while UDT was deliberately holding it
+    // there. Mirror UDT's classification rules exactly rather than racing them.
+    const good = lastClassification === 'best' || lastClassification === 'correct';
+    if (rule === 'mistakes' && !good) return;
+    if (!good && lastClassification !== 'inaccuracy') return;
+
+    // #5: the delay is the player's Game speed choice, and an inaccuracy gets
+    // double the reading time -- again matching UDT rather than diverging.
+    const base = Number(trainerConfig?.autoAdvanceDelayMs) > 0
       ? Number(trainerConfig.autoAdvanceDelayMs)
-      : 800;
+      : 3000;
+    const delay = lastClassification === 'inaccuracy' ? Math.round(base * 2) : base;
     const timerId = setTimeout(() => {
       nextQuestion();
     }, delay);
     return () => clearTimeout(timerId);
-  }, [autoAdvance, showFeedback, gameComplete, nextQuestion, trainerConfig]);
+  }, [autoAdvance, showFeedback, gameComplete, nextQuestion, trainerConfig, lastClassification]);
 
   // Pause timer during feedback
   useEffect(() => {

@@ -35,6 +35,12 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
 // `?timer=` in a bookmarked URL cannot reach the arena as an unknown key.
 const TIMER_MODES = { relaxed: 1, standard: 1, quick: 1, blitz: 1 };
 
+// Same treatment for the other two setup-modal vocabularies that reach the
+// arena through the query string. SPEED_OPTIONS and FEEDBACK_OPTIONS in
+// SessionSetupModal are the source of these id sets.
+const SPEED_MODES = { normal: 1, fast: 1, turbo: 1 };
+const FEEDBACK_RULES = { every: 1, mistakes: 1 };
+
 const MULTI_TABLE_GAMES = [
   { id: 'cash-002', name: '3-Bet Pots' },
   { id: 'cash-003', name: 'Continuation Betting' },
@@ -169,10 +175,26 @@ export default function MultiTablePage() {
     // the query string too, otherwise picking "Close only" and then 2 tables
     // silently reverted to the unfiltered set.
     handSelection: typeof router.query.handSelection === 'string' ? router.query.handSelection : 'all',
+    // GTOW parity #9 and #6: the game-speed and feedback-rule choices were the
+    // last two setup-modal settings that did not survive the hop to this route.
+    // The single-table path forwards both; this one forwarded neither, so
+    // picking Turbo and "Every action" and then 2 tables silently reverted to
+    // Normal and "On mistakes". Same shape as the hand-selection defect above:
+    // the control exists, the engine reads it, and the value never arrives.
+    // Both are whitelisted rather than passed through, because speed resolves
+    // to a DELAY -- an unknown key would land on the 3000ms Normal branch by
+    // accident rather than by decision.
+    speed: Object.prototype.hasOwnProperty.call(SPEED_MODES, router.query.speed)
+      ? router.query.speed
+      : 'normal',
+    feedbackRule: Object.prototype.hasOwnProperty.call(FEEDBACK_RULES, router.query.feedbackRule)
+      ? router.query.feedbackRule
+      : 'mistakes',
     // Deliberately NOT `tables` — each arena here is a single table. The
     // wrapper's own multi-table branch was removed in this same change because
     // it rendered N identical copies of one drill.
-  }), [router.query.difficulty, router.query.timer, router.query.handSelection, isAutoAdvance]);
+  }), [router.query.difficulty, router.query.timer, router.query.handSelection,
+       router.query.speed, router.query.feedbackRule, isAutoAdvance]);
 
   // The tables actually on screen, and which one currently owns the keyboard
   // and the confetti canvas. `focusedGameId` starts null so that it does not

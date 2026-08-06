@@ -184,6 +184,13 @@ export default function TrainingPage() {
           ...(prefs?.timer ? { timer: prefs.timer } : {}),
           ...(prefs?.autoAdvanceUI ? { autoAdvance: prefs.autoAdvanceUI !== 'off' ? '1' : '0' } : {}),
           ...(prefs?.handSelection ? { handSelection: prefs.handSelection } : {}),
+          // GTOW parity #9 / #6: the arena derives its Auto New Hand delay from
+          // `speed` and its pause behaviour from `feedbackRule`. The single-table
+          // branch below forwards both; this branch dropped them, so every
+          // multi-table session ran Normal speed and "On mistakes" no matter what
+          // the player chose one screen earlier.
+          ...(prefs?.speed ? { speed: prefs.speed } : {}),
+          ...(prefs?.feedbackRule ? { feedbackRule: prefs.feedbackRule } : {}),
         },
       });
       return;
