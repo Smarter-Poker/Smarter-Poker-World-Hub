@@ -53,6 +53,7 @@ export default function VenueDetailPage() {
   const [reviews, setReviews] = useState([]);
   const [reviewsTotal, setReviewsTotal] = useState(0);
   const [liveGames, setLiveGames] = useState([]);
+  const [venueTournaments, setVenueTournaments] = useState([]); // today's tournaments (from enriched venue payload)
   const [socialPageSlug, setSocialPageSlug] = useState(null); // linked social page slug/id
 
   const fetchData = useCallback(async () => {
@@ -83,6 +84,7 @@ export default function VenueDetailPage() {
 
       if (venueData.success || venueData.venue) {
         setVenue(venueData.venue || venueData.data?.venue);
+        setVenueTournaments(venueData.data?.todaysTournaments || []);
       }
       if (gamesData.success) {
         setGames(gamesData.data?.games || []);
@@ -204,6 +206,42 @@ export default function VenueDetailPage() {
             <Users className="w-6 h-6" />
             Check In
           </button>
+
+          {/* Today's Tournaments — taps into the public live clock */}
+          {venueTournaments.length > 0 && (
+            <div className="cmd-panel overflow-hidden">
+              <div className="p-4 border-b border-[#4A5E78] flex items-center gap-2">
+                <Zap className="w-5 h-5 text-[#22D3EE]" />
+                <h2 className="font-semibold text-white">Today's Tournaments</h2>
+              </div>
+              <div className="divide-y divide-[#4A5E78]">
+                {venueTournaments.map((t) => {
+                  const isLive = ['running', 'paused', 'final_table'].includes(t.status);
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => router.push(`/hub/commander/tournament/${t.id}/clock`)}
+                      className="w-full flex items-center justify-between p-4 text-left hover:bg-[#132240] transition-colors"
+                    >
+                      <div>
+                        <p className="font-medium text-white">{t.name}</p>
+                        <p className="text-sm text-[#64748B]">
+                          ${t.buyin_amount || 0}{t.buyin_fee ? ` + $${t.buyin_fee}` : ''} {t.tournament_type ? String(t.tournament_type).toUpperCase() : ''}
+                        </p>
+                      </div>
+                      {isLive ? (
+                        <span className="text-xs font-semibold text-[#10B981] border border-[#10B981] rounded px-2 py-1">LIVE</span>
+                      ) : (
+                        <span className="text-xs text-[#64748B]">
+                          {t.scheduled_start ? new Date(t.scheduled_start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Edit Social Page — shown when a linked social page exists */}
           {socialPageSlug && (
