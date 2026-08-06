@@ -92,6 +92,19 @@ const AUTO_ADVANCE_OPTIONS = [
   { id: 'off', label: 'Manual',        desc: 'You advance' },
 ];
 
+// GTOW parity #7 — HAND SELECTION.
+// The filter itself already existed: `applyHandSelection` in
+// src/hooks/useGTOTrainer.js reads `trainerConfig.handSelection` and drops
+// trivial spots or keeps only close ones. Nothing in the UI ever set it, so
+// the engine work sat dead behind a value that was permanently undefined.
+// The ids below are the exact vocabulary that function expects — 'all',
+// 'no-trivial', 'close'. Do not rename one side without the other.
+const HAND_SELECTION_OPTIONS = [
+  { id: 'all',        label: 'All hands',   desc: 'Nothing filtered' },
+  { id: 'no-trivial', label: 'Skip trivial', desc: 'Drop pure spots' },
+  { id: 'close',      label: 'Close only',  desc: 'Tight decisions' },
+];
+
 
 function readPrefs(gameId) {
   if (typeof window === 'undefined') return null;
@@ -143,6 +156,7 @@ export default function SessionSetupModal({
   const [tables,     setTables]     = useState(saved.tables     || '1');
   const [feedbackRule,  setFeedbackRule]  = useState(saved.feedbackRule  || 'mistakes');
   const [autoAdvanceUI, setAutoAdvanceUI] = useState(saved.autoAdvanceUI || 'on');
+  const [handSelection, setHandSelection] = useState(saved.handSelection || 'all');
 
   const [stats,       setStats]       = useState(null);
   const [lastSession, setLastSession] = useState(null);
@@ -197,10 +211,11 @@ export default function SessionSetupModal({
       tables,
       feedbackRule,
       autoAdvanceUI,
+      handSelection,
     };
     if (gameId) writePrefs(gameId, prefs);
     onStart?.({ game, ...prefs });
-  }, [game, gameId, difficulty, timer, mode, scope, speed, tables, feedbackRule, autoAdvanceUI, onStart]);
+  }, [game, gameId, difficulty, timer, mode, scope, speed, tables, feedbackRule, autoAdvanceUI, handSelection, onStart]);
 
   if (!isOpen || !game) return null;
 
@@ -334,6 +349,12 @@ export default function SessionSetupModal({
         <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
           <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Hand advance</legend>
           <PillRow options={AUTO_ADVANCE_OPTIONS} value={autoAdvanceUI} onChange={setAutoAdvanceUI} name="autoAdvanceUI" />
+        </fieldset>
+
+        {/* HAND SELECTION — GTOW parity #7 */}
+        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
+          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Hand selection</legend>
+          <PillRow options={HAND_SELECTION_OPTIONS} value={handSelection} onChange={setHandSelection} name="handSelection" />
         </fieldset>
 
         {/* CTA */}

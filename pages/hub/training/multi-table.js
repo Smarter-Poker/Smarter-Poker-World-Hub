@@ -125,10 +125,14 @@ export default function MultiTablePage() {
     timer: typeof router.query.timer === 'string' ? router.query.timer : 'off',
     mode: 'standard',
     autoAdvance: isAutoAdvance,
+    // GTOW parity #7: the hand-selection filter has to survive the hop through
+    // the query string too, otherwise picking "Close only" and then 2 tables
+    // silently reverted to the unfiltered set.
+    handSelection: typeof router.query.handSelection === 'string' ? router.query.handSelection : 'all',
     // Deliberately NOT `tables` — each arena here is a single table. The
     // wrapper's own multi-table branch was removed in this same change because
     // it rendered N identical copies of one drill.
-  }), [router.query.difficulty, router.query.timer, isAutoAdvance]);
+  }), [router.query.difficulty, router.query.timer, router.query.handSelection, isAutoAdvance]);
 
   // The tables actually on screen, and which one currently owns the keyboard
   // and the confetti canvas. `focusedGameId` starts null so that it does not

@@ -183,6 +183,7 @@ export default function TrainingPage() {
           ...(prefs?.difficulty ? { difficulty: prefs.difficulty } : {}),
           ...(prefs?.timer ? { timer: prefs.timer } : {}),
           ...(prefs?.autoAdvanceUI ? { autoAdvance: prefs.autoAdvanceUI !== 'off' ? '1' : '0' } : {}),
+          ...(prefs?.handSelection ? { handSelection: prefs.handSelection } : {}),
         },
       });
       return;
@@ -199,7 +200,12 @@ export default function TrainingPage() {
       // must survive into the arena. These used to be dropped here and then
       // hardcoded downstream.
       feedbackRule: prefs.feedbackRule,
-      autoAdvance: prefs.autoAdvanceUI !== 'off'
+      autoAdvance: prefs.autoAdvanceUI !== 'off',
+      // GTOW parity #7: `applyHandSelection` in useGTOTrainer reads
+      // trainerConfig.handSelection. Dropping it here is what kept the filter
+      // dead — the hook received undefined and returned the unfiltered set on
+      // every session regardless of what the player picked.
+      handSelection: prefs.handSelection
     } : null);
     setSetupGame(null);
     setShowArena(true);
