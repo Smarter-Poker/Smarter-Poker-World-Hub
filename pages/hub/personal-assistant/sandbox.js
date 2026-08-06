@@ -1768,9 +1768,9 @@ export default function VirtualSandbox() {
     try {
       if (!getAuthUser()) { setTemplatesStatus('signed-out'); return; }
       setTemplatesStatus('loading');
-      const { data: { session } } = await supabase.auth.getSession();
+      const token = getAccessToken();
       const r = await fetch('/api/assistant/sandbox/sandbox-templates', {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!r.ok) throw new Error(`Request failed (${r.status})`);
       const json = await r.json();
@@ -1788,10 +1788,10 @@ export default function VirtualSandbox() {
       || `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} ${board.flop.length ? `on ${board.flop.join('')}` : 'preflop'}`;
     try {
       if (!getAuthUser()) { toast.error('Sign in to save templates'); return; }
-      const { data: { session } } = await supabase.auth.getSession();
+      const token = getAccessToken();
       const r = await fetch('/api/assistant/sandbox/sandbox-templates', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           name: label,
           scenario: { heroHand, heroPosition, heroStack, gameType, board, villains, actionHistory, potSize },
@@ -1813,10 +1813,10 @@ export default function VirtualSandbox() {
     const prev = templates;
     setTemplates(list => list.filter(t => t.id !== id)); // optimistic
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const token = getAccessToken();
       const r = await fetch('/api/assistant/sandbox/sandbox-templates', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id }),
       });
       if (!r.ok) throw new Error(`Request failed (${r.status})`);
@@ -1833,9 +1833,9 @@ export default function VirtualSandbox() {
     try {
       if (!getAuthUser()) { setLeakStatsStatus('signed-out'); return; }
       setLeakStatsStatus('loading');
-      const { data: { session } } = await supabase.auth.getSession();
+      const token = getAccessToken();
       const r = await fetch('/api/assistant/sandbox/sandbox-analytics', {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!r.ok) throw new Error(`Request failed (${r.status})`);
       setLeakStats(await r.json());
@@ -1853,10 +1853,10 @@ export default function VirtualSandbox() {
     try {
       if (!getAuthUser()) return;
       const optimalLabel = freshData?.optimalAction?.label || null;
-      const { data: { session } } = await supabase.auth.getSession();
+      const token = getAccessToken();
       fetch('/api/assistant/sandbox/sandbox-analytics', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           position: heroPosition,
           street: streetOverride || currentStreet,
