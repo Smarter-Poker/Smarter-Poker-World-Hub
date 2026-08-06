@@ -1011,3 +1011,27 @@ test('resolutionProgress: retired record reports mastered even with junk history
     assert.equal(p.percent, 100);
     assert.equal(p.stage, 'mastered');
 });
+
+test('gradeReview: measured evDelta nudges ease within its tight bound', () => {
+    const base = initialReview({ id: 'leak-ev' }, T0);
+    const outcome = { correct: 7, total: 10 }; // 'pass' band -> EASE_DELTA 0
+
+    const plain = gradeReview(base, outcome, T0);
+    const improving = gradeReview(base, { ...outcome, evDelta: -1 }, T0);   // leak costs less now
+    const worsening = gradeReview(base, { ...outcome, evDelta: 1 }, T0);    // leak costs more now
+    const hostileUp = gradeReview(base, { ...outcome, evDelta: -10000 }, T0);
+    const hostileDn = gradeReview(base, { ...outcome, evDelta: 10000 }, T0);
+
+    assert.ok(improving.ease > plain.ease, 'a falling measured cost must nudge ease up');
+    assert.ok(worsening.ease < plain.ease, 'a rising measured cost must nudge ease down');
+    // Corroborating evidence, never the primary signal: bound is +/-0.15.
+    assert.ok(Math.abs(improving.ease - plain.ease) <= 0.15 + 1e-9);
+    assert.ok(Math.abs(hostileUp.ease - plain.ease) <= 0.15 + 1e-9, 'hostile negative delta stays inside the nudge bound');
+    assert.ok(Math.abs(hostileDn.ease - plain.ease) <= 0.15 + 1e-9, 'hostile positive delta stays inside the nudge bound');
+    // And it lands in the history entry so the progress strip can show it.
+    assert.equal(improving.history[improving.history.length - 1].evDelta, -1);
+    // normaliseHistoryEntry stores "absent" as 0/null (pre-existing) — either
+    // way it must never invent a non-zero delta that was not measured.
+    const absent = plain.history[plain.history.length - 1].evDelta;
+    assert.ok(absent === null || absent === 0, `absent evDelta must be null/0, got ${absent}`);
+});
