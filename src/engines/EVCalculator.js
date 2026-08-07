@@ -68,7 +68,7 @@ export function calculateActionEVs(params) {
 
         // EV of raise (simplified: assume opponent folds X% and calls Y%)
         const raiseAmount = Math.min(currentBet * 3, effectiveStack);
-        const foldEquity = _estimateFoldEquity(madeHand, street, raiseAmount, potSize);
+        const foldEquity = estimateFoldEquity(madeHand, street, raiseAmount, potSize);
         const potIfCalled = potSize + raiseAmount + raiseAmount;
         actions.raise = {
             ev: foldEquity * potSize + (1 - foldEquity) * (equity * potIfCalled - (1 - equity) * raiseAmount),
@@ -76,9 +76,24 @@ export function calculateActionEVs(params) {
         };
     } else {
         // Not facing a bet
-        // EV of check = equity * pot (simplified — we still get pot share)
+        // EV of check. Checking does not build the pot, so hero's share of it is
+        // worth less than his raw equity -- but 0.6 was far too harsh a haircut
+        // and it was applied identically in and out of position, which is the
+        // part that actually distorted the model.
+        //
+        // Checking IN position closes the action and buys a free card with the
+        // last word still to come; checking OUT of position invites a bet hero
+        // must then answer with no information. The same hand, the same board,
+        // the same equity is simply worth more IP. Collapsing that to one number
+        // made every OOP check look better than it is and every IP check worse,
+        // and because EV loss is scored against the best action, it mis-graded
+        // both directions at once.
+        //
+        // Calibration: IP 0.85, OOP 0.72 (mean 0.785, the single-number 0.78 the
+        // model would use if position were unavailable).
+        const checkDiscount = position === 'IP' ? 0.85 : 0.72;
         actions.check = {
-            ev: equity * potSize * 0.6, // Discount: checking doesn't build the pot
+            ev: equity * potSize * checkDiscount,
             frequency: 0,
         };
 
@@ -93,7 +108,7 @@ export function calculateActionEVs(params) {
             const betAmount = potSize * fraction;
             if (betAmount > effectiveStack) continue;
 
-            const foldEquity = _estimateFoldEquity(madeHand, street, betAmount, potSize);
+            const foldEquity = estimateFoldEquity(madeHand, street, betAmount, potSize);
             const potIfCalled = potSize + betAmount * 2;
 
             actions[key] = {
@@ -148,21 +163,42 @@ export function calculateActionEVs(params) {
 }
 
 /**
- * Estimate fold equity based on hand strength, street, and bet size.
+ * Estimate fold equity from the price the bet offers and the street.
+ *
+ * Exported because it is the calibrated quantity in this module and the only
+ * way to observe it from outside was to invert it back out of a bet's EV. That
+ * inversion divides by `potSize - calledEV`, which amplifies the rounding in
+ * the `equity` this module returns for display, so two hands with genuinely
+ * identical fold equity read several points apart. A calibration assertion
+ * that cannot measure its own subject to better than the effect it is testing
+ * for is not an assertion. Pure function, no state, no side effects.
  */
-function _estimateFoldEquity(madeHand, street, betAmount, potSize) {
-    // Base fold equity by street (opponents fold less on later streets)
-    const baseFold = street === 'flop' ? 0.45
-        : street === 'turn' ? 0.40
-        : 0.35; // river
+export function estimateFoldEquity(_madeHand, street, betAmount, potSize) {
+    // Anchored on MINIMUM DEFENCE FREQUENCY rather than a per-street constant
+    // scaled by bet size. MDF says a defender facing a bet of B into a pot of P
+    // must continue with P/(P+B) of his range to stop a pure bluff profiting,
+    // so the fold share is B/(P+B). That is not a tuning parameter -- it falls
+    // out of the bet's own price, which is exactly the quantity the old
+    // `baseFold * (betAmount / potSize)` was trying to approximate and got
+    // wrong at both ends: a 33% bet returned 0.45 * 0.33 = 0.15 against an MDF
+    // fold share of 0.25, and a pot-sized bet hit the 1.5 cap and overshot.
+    //
+    // Street enters as a tilt on the anchor, not as the anchor itself. Ranges
+    // are widest on the flop and fold a little more than the price demands;
+    // by the river they are condensed and defend a little tighter than it.
+    const mdfFold = betAmount / (potSize + betAmount);
+    const streetTilt = street === 'flop' ? 1.10
+        : street === 'turn' ? 1.00
+        : 0.90; // river
 
-    // Larger bets generate more fold equity
-    const sizeMultiplier = Math.min(1.5, betAmount / potSize);
+    // `strengthAdjust` is deliberately gone. It moved fold equity by hero's OWN
+    // hand strength, which the opponent cannot see -- a model that folds the
+    // villain more often because hero happens to hold a good hand is not
+    // estimating fold equity, it is leaking hero's cards into the villain's
+    // decision. Its only real effect was to inflate value bets and deflate
+    // bluffs, the two cases the metric exists to separate.
 
-    // Boards with fewer draws = more fold equity
-    const strengthAdjust = madeHand.strength > 0.5 ? 0.05 : -0.05;
-
-    return Math.max(0.10, Math.min(0.80, baseFold * sizeMultiplier + strengthAdjust));
+    return Math.max(0.05, Math.min(0.75, mdfFold * streetTilt));
 }
 
 // ●● EV Loss Calculation ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
