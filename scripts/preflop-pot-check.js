@@ -233,6 +233,40 @@ check('#16 postflop: no explicit pot still falls back to the committed sum', () 
     return pot === 6 || 'got ' + pot;
 });
 
+// -------------------------------------------------------------------------
+// roadmap #14 -- the chip badge in front of a seat.
+//
+// committedFor reads `amount` off a recorded action and only then falls back
+// to the first number in the action TEXT. DeterministicGTOEngine's
+// buildActionDescription writes PROSE ("CO bets into BTN") with no number in
+// it, so before this fix every seat on every postflop spot committed 0 and the
+// badge -- fully built and positioned -- could never render. These three lock
+// the mechanism: prose commits nothing, a structured amount commits exactly
+// that amount, and neither disturbs the POT pill postflop.
+// -------------------------------------------------------------------------
+
+check('#14 postflop: a PROSE action with no number commits 0 (the old bug)', () => {
+    const actions = [{ position: 'CO', action: 'CO bets into BTN' }];
+    const seat = SEATS9.find(s2 => s2.name === 'CO') || { name: 'CO' };
+    const c = committedFor(seat, actions, false);
+    return c === 0 || 'got ' + c;
+});
+
+check('#14 postflop: an action carrying `amount` commits exactly that amount', () => {
+    const actions = [{ position: 'CO', action: 'CO bets into BTN', amount: 4 }];
+    const seat = SEATS9.find(s2 => s2.name === 'CO') || { name: 'CO' };
+    const c = committedFor(seat, actions, false);
+    return c === 4 || 'got ' + c;
+});
+
+check('#14 postflop: adding the amount leaves an explicit POT untouched', () => {
+    const actions = [{ position: 'CO', action: 'CO bets into BTN', amount: 4 }];
+    const pot = computeDisplayPot({
+        scenarioPot: 12, streetLabel: 'FLOP', seats: SEATS9, actionHistory: actions,
+    });
+    return pot === 12 || 'got ' + pot;
+});
+
 console.log('\n---------------------------------------------');
 console.log('PASS ' + PASS + '   FAIL ' + FAIL + '   TOTAL ' + (PASS + FAIL));
 process.exit(FAIL > 0 ? 1 : 0);

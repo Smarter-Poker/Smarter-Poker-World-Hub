@@ -223,18 +223,76 @@ High/Low mode.
     with plate (193, 430) reading "BTN / 100 bb". Rotation is therefore
     hero-relative, not seat-index-relative.
 13. **Dealer button per the position LAW.** DONE.
-14. **Chip stack in front of every seat with money committed.** BUILT — code
-    confirmed 2026-08-06, screen-observation deferred to a spot that can show
-    it. The renderer is real and hero is included:
-    `UniversalDynamicTable.jsx:3971-4036` maps every seat through
-    `committedFor(seat, actionHistory, isPreflopStreet)`
-    (`games/potMath.js:18`), and places the badge at
-    `CHIP_STACK_POSITIONS[key]` (`:626-636`), which has a `hero` slot
-    (47.70 / 71.82) alongside v1..v8 — so this is not villain-only. The 430x932
-    dump of `cash-001` showed NO chip badge, and that is correct behaviour, not
-    a defect: the spot was a FLOP with "Villain checks", and postflop
-    `committedFor` returns 0 for a checking seat, so nobody had money in front
-    of them on that street. Needs a facing-a-bet spot to observe.
+14. **Chip stack in front of every seat with money committed.** PLUMBING
+    FIXED 2026-08-07; the badge still cannot light up, and the reason is a
+    CONTENT gap of the same shape as #16 and #18 -- not a felt bug.
+
+    The felt was never at fault. `UniversalDynamicTable.jsx:3971-4036` maps
+    every seat through `committedFor(seat, actionHistory, isPreflopStreet)`
+    (`games/potMath.js:18`) and places the badge at `CHIP_STACK_POSITIONS[key]`
+    (`:626-636`), which has a `hero` slot (47.70 / 71.82) alongside v1..v8 --
+    so this is not villain-only.
+
+    THE MEASUREMENT that broke the 2026-08-06 "needs a facing-a-bet spot"
+    theory: a harness driven onto `cash-007` ("3-Bet Pots"), which deals
+    facing-bet spots, probed the felt eight consecutive times and returned
+    `{"chips":[],"pot":"6","spr":"16.7"}` every time, with the pot frozen.
+    Not one chip badge on any spot.
+
+    THE CAUSE, read out of source: `committedFor` resolves an amount through
+    `potMath.amountOf`, which reads `entry.amount` and otherwise falls back to
+    the first number in the action TEXT. `scenario.action` is built by
+    `DeterministicGTOEngine.buildActionDescription` (`:1970-2012`) and is PROSE
+    with no number in it -- "CO bets into BTN", "BTN checks to BB", "First to
+    act". So `committedFor` returned 0 for every seat on every postflop spot and
+    the badge, fully built and positioned per
+    `DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md`, has never once rendered on any
+    spot in the product's history.
+
+    Notably the size was not missing, only discarded: `buildQuestionText`
+    (`:2084-2101`) already calls `_inferVillainBetSize` and PRINTS the size to
+    the player ("CO bets 4bb (66% pot)"). It was computed and thrown away.
+
+    THE FIX (shipped): the engine now emits `scenario.villainBet` as a NUMBER
+    from a new `_villainBetBB`, and `UniversalDynamicTable`'s `actionHistory`
+    memo attaches it as `amount` on the built entry, so `amountOf` has
+    something structured to read. `_villainBetBB` takes the size from the
+    solver's own data only -- the terminal bet token of `strategy_matrix.node`,
+    or a percent-of-pot token in the scenario hash -- and returns 0 when
+    neither exists. It never invents a plausible-looking bet; that is exactly
+    the class of defect #16 was, because a fabricated value is worse than an
+    absent one -- it looks like data. Three assertions in
+    `scripts/preflop-pot-check.js` (now PASS 21) lock the mechanism: prose
+    commits 0, a structured `amount` commits exactly that amount, and neither
+    disturbs the POT pill postflop.
+
+    WHY IT STILL DOES NOT RENDER, measured 2026-08-07 against production
+    `solved_spots_gold`: no row carries a bet size in any form.
+
+    - Scenario hashes are shaped `<street>_<gametype>_<pos>_<depth>bb_<board>`
+      (`river_cash_UTG_150bb_AhKhJd9sKs`) with no `_b##` segment, and the table
+      has no bet-size column -- its columns are exactly `id`, `scenario_hash`,
+      `game_type`, `stack_depth`, `street`, `strategy_matrix`, `created_at`,
+      `strategy_matrix_v2`, `solved_v2_at`.
+    - `strategy_matrix.node` does carry a PioSOLVER line
+      (`r:0:c:b488:c:Qh:c`), but of the rows that have one, ZERO match
+      `b[0-9]+$` -- the harvester only stored nodes where hero acts FIRST. A
+      line ending in `c` or a card means hero faces a check, and a checking
+      seat correctly has nothing in front of it.
+    - Roughly two thirds of rows do carry `f` in `strategy_matrix.actions` and
+      so resolve to `hero_faces_bet`, but their action set is the sizeless
+      `["b16","c","b45","f"]` shape, with no `node` and no `source`.
+
+    So the villain's bet size does not exist anywhere in the solved data today.
+    The engine even says so out loud elsewhere: `_getPotOddsMath` (`:3701`)
+    carries the comment "Without exact bet size, we provide general pot odds
+    guidance" and falls back to equity rules of thumb.
+
+    CLOSING CONDITION: the badge lights up with no further UI work the moment
+    the Phase A re-solve stores facing-bet nodes (a `node` ending in `b<amount>`
+    alongside `pot`), because the plumbing above is already in place and
+    unit-locked. Until then this stays open as a CONTENT gap, tracked with #16
+    and #18.
 
 14a. **`committedFor` read only a seat's FIRST action.** FIXED 2026-08-06,
     found while confirming #14. `committedFor` used `.find`, so a seat with more
@@ -455,7 +513,57 @@ High/Low mode.
     "FULL ANALYSIS" disclosure at (175,974). Caveat retained: many deeper
     coaching notes are dead code comparing free-text hand strength against
     snake_case enums, so the SHALLOW notes are what actually renders.
-34. **Mistake review at session end.** BUILT.
+34. **Mistake review at session end.** DONE -- screen-measured 2026-08-07,
+    production smarter.poker, iPhone context at 430x932, `cash-001`, a full
+    20-question / 32-decision session driven to the summary.
+
+    The review lives on the HANDS tab, in `<div id="hand-replay-section">`
+    (`GodModeArena.jsx:5938`), and the `Mistakes Only` toggle that filters it
+    sits on the OVERVIEW tab (`:5575`) -- a deliberate split, but the reason
+    two earlier harness runs reported the list "missing". With the toggle
+    engaged the control read `Mistakes Only (20)` and the section rendered,
+    verbatim off the element (first six of twenty entries):
+
+        HAND REPLAY
+        List  Detail  All
+        1  warning Blunder    BTN flop Th9h   Bet -> Check   -0.4
+        2  warning Blunder    BB  flop As2s   Bet -> Check   -0.5
+        3  warning Blunder    BB  turn As2s   Bet -> Check
+                              (top pair, weak kicker + nut flush draw)  -0.8
+        4  warning Blunder    BB  flop 7h6h   Bet -> Check   -0.5
+        5  warning Blunder    BB  turn 7h6h   Bet -> Check (weak flush draw)  -0.8
+        6  warning Blunder    BB  flop QhJh   Bet -> Check   -0.6
+
+    Every field GTO Wizard's mistake review carries is present: severity tier,
+    hero position, STREET, hero's exact holding, the move played versus the
+    solver's move, the EV loss in bb, and a hand-strength annotation on the
+    spots where one applies. The list scrolled cleanly (max 406) and re-read
+    identically at the bottom, so nothing is clipped. `PAGE_ERRORS=[]`.
+
+    Two things this measurement specifically proves, because both were live
+    suspicions:
+
+    (a) It is keyed per DECISION, not per hand. Entries 2/3 and 4/5 are the
+        same question at `flop` then `turn` (`BBflopAs2s` / `BBturnAs2s`), and
+        the run logged 32 decisions across 20 questions. Anything keyed off
+        `questionNumber` alone would have collapsed each multi-street hand to
+        one row and shown at most 20 of the 32.
+
+    (b) The flat-spread read is correct here. Street, position and holding all
+        render, and those live in the spread `...handData`, not under an
+        `h.handData` key -- a `h.handData.street` read would have printed
+        `undefined` in all twenty rows.
+
+    A HARNESS defect was found and fixed to get this measurement, recorded so
+    it is not rediscovered: `clickExact` scans `button, [role="tab"], div,
+    span, a` and accepts any match >= 8x8px, and the summary HEADER carries a
+    stat label whose exact textContent is also "Hands". Clicking it matched a
+    38x16 span at y=-1970 instead of the 64x44 tab at y=584, so the tab never
+    changed and `#hand-replay-section` was never mounted -- while the same
+    helper hit `Analysis` correctly, which is why the failure looked
+    product-shaped. Fix: scroll the scroller to 0 first, then require
+    `height >= 30 && width >= 24 && y >= -50`, and take the lowest-y candidate.
+
 
 ### Info panel
 
@@ -506,8 +614,8 @@ High/Low mode.
     0bb" — and DAILY TREND renders an axis spanning 2026-05-07 to 2026-07-19.
     Header aggregates alongside them: 8 SESSIONS, 117 QUESTIONS, 84% ACCURACY,
     13% BEST RATE, 45% GTO PROXIMITY.
-40. **Pot-type breakdown.** GAP -> FIXED 2026-08-06, awaiting a rendered
-    session-summary measurement. The 2026-07-26 status said "Verified in
+40. **Pot-type breakdown.** DONE -- screen-measured 2026-08-07, after being
+    FIXED 2026-08-06. The 2026-07-26 status said "Verified in
     source", and reading the SOURCE is exactly how the claim survived: the
     component was correct and had never once executed. THREE independent
     defects were stacked:
@@ -533,8 +641,28 @@ High/Low mode.
     bucket to 'UNK' and every weak spot to 'general' in the end-of-session
     summary. `PositionStatsPanel.jsx:30` already had the correct defensive
     pattern (`const hd = entry.handData || entry;`); the other two consumers did
-    not. Status stays short of DONE until a 20-question session is driven to the
-    summary screen and real SRP / 3BP / 4BP+ counts are read off it.
+    THE MEASUREMENT (2026-08-07, production smarter.poker, iPhone context at
+    430x932, `cash-001`, 20 questions / 35 decisions driven to the summary).
+    The block renders on the ANALYSIS tab inside the "Data & History" accordion
+    and reads, verbatim off the element:
+
+        POT-TYPE ACCURACY
+        SRP (35)   39%
+        3BP (0)    0%
+        4BP+ (0)   0%
+
+    35 is the decision count the harness actually played, so the card is
+    counting real hands rather than defaulting -- the exact failure mode (b)
+    would have produced. All 35 bucketed SRP because `cash-001` deals only
+    single-raised pots; a 3-bet-pool game is what moves the other two buckets.
+
+    A FOURTH defect was found in the harness, not the product, and is recorded
+    here because it invalidated two earlier "verified" runs: `AnalysisSection`
+    styles its title span `textTransform: 'uppercase'`, and **`innerText` is
+    the RENDERED text and honours text-transform while `textContent` does
+    not** -- so a button whose title prop is literally `Data & History` reports
+    `innerText === "DATA & HISTORY"` and any `.includes("Data & History")`
+    match fails. Match styled labels on `textContent`, case-insensitively.
 41. **Frequency-difference metric.** DONE — screen-measured 2026-08-06. The
     summary rendered **73.3%** FREQ DIFF on the aggressive-bias session,
     against 37.9% on the mixed-bias session driven earlier the same day. The

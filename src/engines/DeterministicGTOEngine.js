@@ -1669,6 +1669,19 @@ export class DeterministicGTOEngine {
                 villainPosition,
                 villainStack: scenario.stack_depth || 100,
                 action: this.buildActionDescription(validActions, scenario.street, heroPosition, villainPosition),
+                // roadmap #14 -- the chip badge in front of a seat is driven by
+                // potMath.committedFor, which reads a NUMBER off the recorded
+                // action. `action` above is prose and carries none of them
+                // ("CO bets into BTN"), so committedFor returned 0 for every
+                // seat on every postflop spot and the badge -- fully built,
+                // positioned per DEALER_BUTTON_AND_CHIP_POSITIONS_LAW -- has
+                // never once rendered. The size is not missing: buildQuestionText
+                // already infers it from the scenario hash and PRINTS it to the
+                // player ("CO bets 4bb (66% pot)"). It was simply never handed
+                // to the felt. Same number, same source, now structured.
+                villainBet: nodeType === 'hero_faces_bet'
+                    ? this._villainBetBB(scenario, estimatedPot)
+                    : 0,
                 nodeType,  // Phase 22: use already-computed node type
                 context: extractScenarioContext(scenario.scenario_hash, scenario.street, heroPosition, villainPosition),
                 isMixedStrategy,
@@ -2125,6 +2138,73 @@ export class DeterministicGTOEngine {
      * PIO scenario hashes often encode the bet sizes in the node path, e.g.:
      *   "BTN_vs_BB_SRP_Flop_b33_call_Turn_b66" → villain bet 66% pot on turn
      */
+    /**
+     * roadmap #14: the bet hero is facing, as a NUMBER, so the felt can draw
+     * chips with it. The chip badge is driven by potMath.committedFor, which
+     * reads `amount` off a recorded action and otherwise falls back to the
+     * first number in the action TEXT -- and buildActionDescription only ever
+     * writes prose ("CO bets into BTN"), so every seat committed 0 and the
+     * badge could never render. This is the missing number.
+     *
+     * Deliberately narrow. Two sources, both the solver's own: the terminal
+     * bet token of `strategy_matrix.node`, and a percent-of-pot token in the
+     * scenario hash (the same token _inferVillainBetSize already renders as
+     * prose to the player). Neither present -> 0, and the felt draws no chips,
+     * which is the honest answer. Inventing a plausible-looking bet is exactly
+     * the class of defect roadmap #16 was: a fabricated value is worse than an
+     * absent one, because it looks like data.
+     *
+     * MEASURED 2026-08-07 against production `solved_spots_gold`: NO row
+     * currently carries either token. Scenario hashes are shaped
+     * `<street>_<gametype>_<pos>_<depth>bb_<board>` with no `_b##` segment, and
+     * of the rows that do carry a `node` path, zero match `b[0-9]+$` -- the
+     * harvester only stored nodes where hero acts first. So this returns 0 for
+     * every row in production today and the badge stays dark on a facing-bet
+     * spot. That is a CONTENT gap of the same shape as #16 and #18, not a felt
+     * bug: the plumbing below is what makes the badge light up the moment a
+     * re-solve stores facing-bet nodes.
+     *
+     * An all-in is not sized here either. The hash says "allin" without saying
+     * how deep, and the stack the villain shoved is the villain's stack, not a
+     * fraction of the pot -- that belongs to a caller that knows the depth.
+     */
+    _villainBetBB(scenario, pot) {
+        if (!scenario || !pot || pot <= 0) return 0;
+
+        // SOURCE 1 -- the solver's own node path. PioSOLVER writes the line that
+        // reached this decision into strategy_matrix.node, e.g.
+        // "r:0:c:b488:c:Qh:c". A trailing bet token means hero is looking at
+        // that bet RIGHT NOW; a trailing "c" or a card means hero faces a check
+        // and nobody has chips out. Anything other than a terminal bet is not a
+        // bet hero faces, so only the terminal token counts. These amounts are
+        // absolute chips in the solver's own units, which is the same unit the
+        // matrix's own `pot` is written in -- so they are rebased onto the pot
+        // the felt is actually showing rather than used raw.
+        const sm = scenario.strategy_matrix || {};
+        const node = typeof sm.node === 'string' ? sm.node : '';
+        const tail = node.match(/b(\d+)$/);
+        if (tail) {
+            const chips = parseInt(tail[1], 10);
+            const solverPot = Number(sm.pot);
+            if (isFinite(chips) && chips > 0) {
+                if (isFinite(solverPot) && solverPot > 0) {
+                    return Math.round(((chips / solverPot) * pot) * 10) / 10;
+                }
+                return Math.round(chips * 10) / 10;
+            }
+        }
+
+        // SOURCE 2 -- a percent-of-pot token in the scenario hash (`_b66`), the
+        // same token _inferVillainBetSize already renders as prose to the player.
+        const betPatterns = String(scenario.scenario_hash || '').toLowerCase().match(/[_.]b(\d+)/g);
+        if (!betPatterns || betPatterns.length === 0) return 0;
+        const pctMatch = betPatterns[betPatterns.length - 1].match(/b(\d+)/);
+        if (!pctMatch) return 0;
+        const pct = parseInt(pctMatch[1], 10);
+        if (!isFinite(pct) || pct <= 0) return 0;
+        return Math.round(((pct / 100) * pot) * 10) / 10;
+    }
+
     _inferVillainBetSize(scenarioHash, solverActions, pot) {
         if (!scenarioHash) return null;
         const hash = scenarioHash.toLowerCase();

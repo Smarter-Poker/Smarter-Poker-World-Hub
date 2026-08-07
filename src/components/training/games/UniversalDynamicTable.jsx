@@ -2386,7 +2386,16 @@ function UniversalDynamicTable({
         // Build from available data
         const built = [];
         if (villainAction) {
-            built.push({ position: villainPosition, action: villainAction });
+            // roadmap #14 -- carry the SIZE, not just the sentence. committedFor
+            // reads `amount` first and only then falls back to the first number
+            // in the action text; `action` is prose ("CO bets into BTN") and has
+            // no number in it, so without this every seat committed 0 and the
+            // chip badge never drew. `villainBet` is the number the engine
+            // already printed to the player in the question text.
+            const bet = Number(scen.villainBet) || 0;
+            built.push(bet > 0
+                ? { position: villainPosition, action: villainAction, amount: bet }
+                : { position: villainPosition, action: villainAction });
         }
         return built;
     }, [question?.scenario, villainAction, villainPosition]);
