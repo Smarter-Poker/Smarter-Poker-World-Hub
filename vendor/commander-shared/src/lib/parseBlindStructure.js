@@ -36,4 +36,8 @@ function parsePayoutStructure(raw) {
   return [];
 }
 
-module.exports = { parseBlindStructure, parsePayoutStructure };
+// ESM exports — this file previously used `module.exports`, but the package is
+// declared "type": "module", so bundlers parsed it as ESM and produced ZERO
+// exports (named imports silently resolved to undefined at runtime).
+export { parseBlindStructure, parsePayoutStructure };
+export default { parseBlindStructure, parsePayoutStructure };
