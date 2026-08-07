@@ -14,6 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { PvPMatch, MATCH_FORMATS, calculateRatingChange, getRankTier } from '../../../src/engines/PvPMatchEngine';
@@ -88,9 +89,32 @@ function PlayerCard({ player, isReady, isSelf }) {
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 32,
+              overflow: 'hidden',
+              position: 'relative',
             }}
           >
-            {isSelf ? '●' : '»'}
+            <img
+              src={resolveAvatarDisplay(player.avatar, player.id || player.name || (isSelf ? 'self' : 'opp'))}
+              alt={player.name || 'Player'}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const g = e.currentTarget.nextSibling;
+                if (g) g.style.display = 'flex';
+              }}
+            />
+            <span
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'none',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 32,
+              }}
+            >
+              {isSelf ? '●' : '»'}
+            </span>
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 4 }}>
             {player.name || 'Player'}
@@ -450,8 +474,10 @@ export default function PvPLobbyPage() {
     try {
       const user = getAuthUser();
       const displayName = user?.user?.user_metadata?.display_name || user?.user_metadata?.display_name;
-      if (displayName) {
-        setCurrentUser({ name: displayName, rating: 1200 });
+      const avatarUrl = user?.user?.user_metadata?.avatar_url || user?.user_metadata?.avatar_url || null;
+      const uid = user?.user?.id || user?.id || null;
+      if (displayName || avatarUrl || uid) {
+        setCurrentUser({ name: displayName || 'You', rating: 1200, avatar: avatarUrl, id: uid });
       }
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     // Set online count client-side only to avoid hydration mismatch
