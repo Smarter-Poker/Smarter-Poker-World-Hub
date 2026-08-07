@@ -249,7 +249,13 @@ export class PIOQueryService {
             // ═══════════════════════════════════════════════════════════════
             // CASH GAMES (25) - Use hu_cash for flop training
             // ═══════════════════════════════════════════════════════════════
-            'cash-001': { id: 'cash-001', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Preflop Mastery
+            // roadmap #16 -- `pioStreet` is read by DeterministicGTOEngine to route a
+            // game to the preflop generator. It was read in exactly one place and
+            // written in none, so cash-001 -- titled "Preflop Mastery" -- dealt only
+            // flop and turn spots (measured on production 2026-08-07: 20 questions,
+            // zero preflop). This is the flag that makes the preflop generator, which
+            // has worked the whole time, actually reachable.
+            'cash-001': { id: 'cash-001', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100, pioStreet: 'preflop' }, // Preflop Mastery
             'cash-002': { id: 'cash-002', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // C-Bet Clinic
             'cash-003': { id: 'cash-003', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Barrel Strategy
             'cash-004': { id: 'cash-004', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Value Extraction

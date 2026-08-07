@@ -428,18 +428,37 @@ export class DeterministicGTOEngine {
             return batch[0] || null;
         }
 
+        // ═══ PREFLOP (roadmap #16): a game that declares itself preflop gets
+        // preflop spots, FIRST, not as a fallback ═══
+        //
+        // generateFromLocalSolverRanges has existed and worked the whole time --
+        // it emits `street: 'preflop'`, `boardCards: []`, real solver
+        // frequencies and per-action EVs across six spot types. It was simply
+        // unreachable: the only call site was the fallback below, gated on
+        // `gameConfig.pioStreet === 'preflop'`, and `pioStreet` was never
+        // written by any config in the repo. So `cash-001` -- titled "Preflop
+        // Mastery" -- dealt nothing but flop and turn spots (measured on
+        // production 2026-08-07: 20 questions, every one postflop).
+        //
+        // The old gate ran solved-spots first and only fell back on an empty
+        // result. That is backwards for a game whose whole subject is preflop:
+        // hu_cash has plenty of postflop rows, so the fallback could never
+        // fire. Checked here, before the L8+ postflop route as well, because a
+        // preflop game must stay preflop at every level.
+        if (gameConfig.pioStreet === 'preflop') {
+            return this.generateFromLocalSolverRanges(gameConfig, level);
+        }
+
         // ═══ POSTFLOP L8+: Route to PostflopScenarioGenerator (non-ICM sources) ═══
         if (level >= 8 && source !== 'ICMIZER') {
             return this.generateFromPostflopEngine(gameConfig, level, seenIds);
         }
 
         if (source === 'PioSOLVER') {
-            const question = await this.generateFromSolvedSpots(gameConfig, level, seenIds);
-            // Fallback: if no PIO data and game is preflop-focused, use local solver ranges
-            if (!question && gameConfig.pioStreet === 'preflop') {
-                return this.generateFromLocalSolverRanges(gameConfig, level);
-            }
-            return question;
+            // Preflop games returned above, so this is a postflop game and the
+            // old `!question && pioStreet === 'preflop'` fallback here could
+            // never fire by construction.
+            return await this.generateFromSolvedSpots(gameConfig, level, seenIds);
         } else if (source === 'ICMIZER') {
             return this.generateFromCharts(gameConfig, level, seenIds);
         }
@@ -1000,6 +1019,37 @@ export class DeterministicGTOEngine {
         // ═══ SCENARIO (psychology + table selection): deterministic question bank ═══
         if (gameConfig.sourceOfTruth === 'SCENARIO' || gameConfig.engine === 'SCENARIO') {
             return this.generateScenarioBatch({ gameId, level, count, seenIds });
+        }
+
+        // ═══ PREFLOP (roadmap #16) ═══
+        // The batch twin of the branch in generateQuestion. This is the one the
+        // arena actually calls (batch-preload -> generateBatch), so without it
+        // the single-question route above would be reachable and the arena
+        // still would not deal a preflop spot.
+        //
+        // generateFromLocalSolverRanges picks its spot and its hand randomly,
+        // so a naive loop repeats itself. Dedupe on the tuple that defines a
+        // distinct DECISION -- spot type, both seats, and hero's holding --
+        // rather than on the id, which carries a Date.now() that makes every
+        // row look unique while the question underneath is identical. The
+        // attempt ceiling keeps a small pool (a short stack depth has fewer
+        // reachable spots) from spinning instead of returning what it has.
+        if (gameConfig.pioStreet === 'preflop') {
+            const preflopQuestions = [];
+            const seenCombos = new Set();
+            const maxAttempts = Math.max(count * 12, 60);
+            for (let attempt = 0; attempt < maxAttempts && preflopQuestions.length < count; attempt++) {
+                const q = this.generateFromLocalSolverRanges(gameConfig, level);
+                if (!q) break;
+                const sc = q.scenario || {};
+                const combo = `${sc.spotType}|${sc.heroPosition}|${sc.villainPosition}|${q.heroHand}`;
+                if (seenCombos.has(combo)) continue;
+                seenCombos.add(combo);
+                // Date.now() alone collides inside a tight loop.
+                q.id = `${q.id}_${preflopQuestions.length}`;
+                preflopQuestions.push(q);
+            }
+            return preflopQuestions;
         }
 
         // ═══ POSTFLOP L8+: Route to PostflopScenarioGenerator (non-ICM sources) ═══

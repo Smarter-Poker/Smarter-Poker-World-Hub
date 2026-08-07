@@ -267,6 +267,90 @@ check('#14 postflop: adding the amount leaves an explicit POT untouched', () => 
     return pot === 12 || 'got ' + pot;
 });
 
-console.log('\n---------------------------------------------');
-console.log('PASS ' + PASS + '   FAIL ' + FAIL + '   TOTAL ' + (PASS + FAIL));
-process.exit(FAIL > 0 ? 1 : 0);
+// -------------------------------------------------------------------------
+// roadmap #16 -- the arena must be able to DEAL a preflop spot.
+//
+// The felt and the preloader were fixed on 2026-08-06, but the content
+// pipeline still could not produce a preflop question: the only producer,
+// DeterministicGTOEngine.generateFromLocalSolverRanges, was reachable solely
+// through a fallback gated on `gameConfig.pioStreet === 'preflop'`, and no
+// config in the repo ever wrote `pioStreet`. cash-001 -- "Preflop Mastery" --
+// dealt nothing but flop and turn.
+//
+// These lock the route open. If a future edit drops the flag or reorders the
+// branch, the batch stops being preflop and this fails loudly rather than the
+// game quietly reverting to postflop.
+// -------------------------------------------------------------------------
+
+const { pioQueryService } = require(path.join(ROOT, 'src/services/PIOQueryService.js'));
+const { deterministicEngine } = require(path.join(ROOT, 'src/engines/DeterministicGTOEngine.js'));
+
+console.log('\n=== Preflop route: the arena can deal a preflop spot ===');
+
+check('#16 cash-001 declares pioStreet: preflop', () => {
+    const cfg = pioQueryService.getGameConfig('cash-001');
+    return (cfg && cfg.pioStreet === 'preflop') || 'got ' + JSON.stringify(cfg && cfg.pioStreet);
+});
+
+check('#16 the route is opt-in -- a postflop game carries no pioStreet', () => {
+    const cfg = pioQueryService.getGameConfig('cash-007');
+    return (cfg && cfg.pioStreet === undefined) || 'got ' + JSON.stringify(cfg && cfg.pioStreet);
+});
+
+check('#16 the preflop generator produces a usable question', () => {
+    const cfg = pioQueryService.getGameConfig('cash-001');
+    const q = deterministicEngine.generateFromLocalSolverRanges(cfg, 3);
+    if (!q) return 'returned null';
+    if (!q.scenario || q.scenario.street !== 'preflop') return 'street ' + (q.scenario && q.scenario.street);
+    if (!Array.isArray(q.boardCards) || q.boardCards.length !== 0) return 'boardCards ' + JSON.stringify(q.boardCards);
+    if (!(q.scenario.pot > 0)) return 'pot ' + q.scenario.pot;
+    if (!Array.isArray(q.options) || q.options.length < 2) return 'options ' + JSON.stringify(q.options);
+    return true;
+});
+
+const summarize = () => {
+    console.log('\n---------------------------------------------');
+    console.log('PASS ' + PASS + '   FAIL ' + FAIL + '   TOTAL ' + (PASS + FAIL));
+    process.exit(FAIL > 0 ? 1 : 0);
+};
+
+// generateBatch is async -- the only assertion in this file that has to be.
+// It is the path the arena actually takes (batch-preload -> generateBatch), so
+// asserting the single-question generator alone would not prove the arena is
+// fixed.
+(async () => {
+    const cfg = pioQueryService.getGameConfig('cash-001');
+    let batch = null;
+    let err = null;
+    try {
+        batch = await deterministicEngine.generateBatch({
+            gameId: 'cash-001', level: 3, count: 20, gameConfig: cfg,
+            difficulty: 'standard', seenIds: [],
+        });
+    } catch (e) { err = e; }
+
+    check('#16 generateBatch fills a whole 20-question session preflop', () => {
+        if (err) return 'threw: ' + err.message;
+        if (!Array.isArray(batch)) return 'not an array';
+        if (batch.length !== 20) return 'length ' + batch.length;
+        const offStreet = batch.filter(q => !q.scenario || q.scenario.street !== 'preflop');
+        if (offStreet.length) return offStreet.length + ' questions not preflop';
+        const boarded = batch.filter(q => !Array.isArray(q.boardCards) || q.boardCards.length !== 0);
+        if (boarded.length) return boarded.length + ' questions carry board cards';
+        return true;
+    });
+
+    check('#16 generateBatch does not repeat a decision inside one session', () => {
+        if (err || !Array.isArray(batch)) return 'no batch';
+        const ids = new Set(batch.map(q => q.id));
+        if (ids.size !== batch.length) return 'duplicate ids: ' + ids.size + '/' + batch.length;
+        const combos = new Set(batch.map((q) => {
+            const sc = q.scenario || {};
+            return sc.spotType + '|' + sc.heroPosition + '|' + sc.villainPosition + '|' + q.heroHand;
+        }));
+        if (combos.size !== batch.length) return 'duplicate decisions: ' + combos.size + '/' + batch.length;
+        return true;
+    });
+
+    summarize();
+})();
