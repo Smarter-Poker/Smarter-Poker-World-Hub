@@ -265,10 +265,11 @@ export default function ProfilePage() {
     })();
 
     const { fetchUser, handleAvatarUpload, handleCoverPhotoUpload, handleCoverPhotoRemove, handleSave } = useProfileHandlers({
-        user, profile, setProfile, originalProfile, setOriginalProfile,
+        user, setUser, profile, setProfile, originalProfile, setOriginalProfile,
         setMessage, setAvatarUploadPhase, setCoverUploadPhase,
-        setSaving, setSavePhase, undoTimerRef, setUndoSnapshot,
+        setSaving, setSavePhase, undoTimerRef, undoSnapshot, setUndoSnapshot,
         setUserPhotos, setUserReels, setUserLives, setLoading, supabase,
+        setSocialStats, setFriends, usernameStatus,
         isDirty, coverEditorOpen, setCoverEditorOpen
     });
 

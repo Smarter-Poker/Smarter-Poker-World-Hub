@@ -1,14 +1,16 @@
 import { getProfileJwt, compressImage } from './utils';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
+import { MAX_UPLOAD_SIZE } from './constants';
 import { busEmit } from '../../../src/engine/EventBus';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 import { claimReward } from '../../../src/lib/claimReward';
 
 export function useProfileHandlers({
-    user, profile, setProfile, originalProfile, setOriginalProfile,
+    user, setUser, profile, setProfile, originalProfile, setOriginalProfile,
     setMessage, setAvatarUploadPhase, setCoverUploadPhase,
-    setSaving, setSavePhase, undoTimerRef, setUndoSnapshot,
+    setSaving, setSavePhase, undoTimerRef, undoSnapshot, setUndoSnapshot,
     setUserPhotos, setUserReels, setUserLives, setLoading, supabase,
+    setSocialStats, setFriends, usernameStatus,
     isDirty, coverEditorOpen, setCoverEditorOpen
 }) {
 
