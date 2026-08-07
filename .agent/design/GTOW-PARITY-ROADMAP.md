@@ -223,76 +223,37 @@ High/Low mode.
     with plate (193, 430) reading "BTN / 100 bb". Rotation is therefore
     hero-relative, not seat-index-relative.
 13. **Dealer button per the position LAW.** DONE.
-14. **Chip stack in front of every seat with money committed.** PLUMBING
-    FIXED 2026-08-07; the badge still cannot light up, and the reason is a
-    CONTENT gap of the same shape as #16 and #18 -- not a felt bug.
+14. **Chip stack in front of every seat with money committed.** DONE ON
+    PREFLOP, screen-measured 2026-08-07, production smarter.poker at
+    `9e945718`, 430x932, `cash-001`. The badge had never rendered once in the
+    product's history. It renders now:
 
-    The felt was never at fault. `UniversalDynamicTable.jsx:3971-4036` maps
-    every seat through `committedFor(seat, actionHistory, isPreflopStreet)`
-    (`games/potMath.js:18`) and places the badge at `CHIP_STACK_POSITIONS[key]`
-    (`:626-636`), which has a `hero` slot (47.70 / 71.82) alongside v1..v8 --
-    so this is not villain-only.
+        SPOT hero=SB villain=BTN pot=4.5  chips=[{"t":"0.5","x":206,"y":519}]
+        SPOT hero=BB villain=SB  pot=4.5  chips=[{"t":"0.5",...},{"t":"1",...}]
+        SPOT hero=UTG villain=BB pot=1.5  chips=[{"t":"1","x":271,"y":437}]
 
-    THE MEASUREMENT that broke the 2026-08-06 "needs a facing-a-bet spot"
-    theory: a harness driven onto `cash-007` ("3-Bet Pots"), which deals
-    facing-bet spots, probed the felt eight consecutive times and returned
-    `{"chips":[],"pot":"6","spr":"16.7"}` every time, with the pot frozen.
-    Not one chip badge on any spot.
+    Visible in the screenshot as a gold chip disc reading `0.5` sitting between
+    hero's seat and the pot, in its `DEALER_BUTTON_AND_CHIP_POSITIONS_LAW`
+    slot. Both blinds render together when hero and villain occupy them.
 
-    THE CAUSE, read out of source: `committedFor` resolves an amount through
-    `potMath.amountOf`, which reads `entry.amount` and otherwise falls back to
-    the first number in the action TEXT. `scenario.action` is built by
-    `DeterministicGTOEngine.buildActionDescription` (`:1970-2012`) and is PROSE
-    with no number in it -- "CO bets into BTN", "BTN checks to BB", "First to
-    act". So `committedFor` returned 0 for every seat on every postflop spot and
-    the badge, fully built and positioned per
-    `DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md`, has never once rendered on any
-    spot in the product's history.
+    What unblocked it was not more plumbing. `potMath.postedBlind` credits
+    SB 0.5 / BB 1 from the seat NAME alone, with no action history required --
+    so the badge only ever needed a spot where a blind is at the table, and
+    until #16 shipped, the arena could not deal one. The chip work recorded
+    below (`14a`, and the `villainBet` plumbing in `c7d0585a`) was necessary
+    and is unchanged; this is the screen it was waiting for.
 
-    Notably the size was not missing, only discarded: `buildQuestionText`
-    (`:2084-2101`) already calls `_inferVillainBetSize` and PRINTS the size to
-    the player ("CO bets 4bb (66% pot)"). It was computed and thrown away.
+    **The postflop half remains a CONTENT gap and is not closed by this.**
+    `scenario.action` is prose built by `buildActionDescription` ("CO bets into
+    BTN") and carries no number, so `committedFor` returns 0 for every seat on
+    every postflop spot. `_villainBetBB` reads a facing-bet node off
+    `strategy_matrix.node` when one exists and returns 0 rather than
+    fabricating -- and measured against `solved_spots_gold` on 2026-08-07,
+    `select ... where node ~ 'b[0-9]+$'` over 3000 node-carrying rows returned
+    `[]`. Not one solved row ends in a bet. Closing the postflop half is Phase
+    A solver work: the machines must store facing-bet nodes with their `pot`,
+    or the badge stays dark postflop permanently.
 
-    THE FIX (shipped): the engine now emits `scenario.villainBet` as a NUMBER
-    from a new `_villainBetBB`, and `UniversalDynamicTable`'s `actionHistory`
-    memo attaches it as `amount` on the built entry, so `amountOf` has
-    something structured to read. `_villainBetBB` takes the size from the
-    solver's own data only -- the terminal bet token of `strategy_matrix.node`,
-    or a percent-of-pot token in the scenario hash -- and returns 0 when
-    neither exists. It never invents a plausible-looking bet; that is exactly
-    the class of defect #16 was, because a fabricated value is worse than an
-    absent one -- it looks like data. Three assertions in
-    `scripts/preflop-pot-check.js` (now PASS 21) lock the mechanism: prose
-    commits 0, a structured `amount` commits exactly that amount, and neither
-    disturbs the POT pill postflop.
-
-    WHY IT STILL DOES NOT RENDER, measured 2026-08-07 against production
-    `solved_spots_gold`: no row carries a bet size in any form.
-
-    - Scenario hashes are shaped `<street>_<gametype>_<pos>_<depth>bb_<board>`
-      (`river_cash_UTG_150bb_AhKhJd9sKs`) with no `_b##` segment, and the table
-      has no bet-size column -- its columns are exactly `id`, `scenario_hash`,
-      `game_type`, `stack_depth`, `street`, `strategy_matrix`, `created_at`,
-      `strategy_matrix_v2`, `solved_v2_at`.
-    - `strategy_matrix.node` does carry a PioSOLVER line
-      (`r:0:c:b488:c:Qh:c`), but of the rows that have one, ZERO match
-      `b[0-9]+$` -- the harvester only stored nodes where hero acts FIRST. A
-      line ending in `c` or a card means hero faces a check, and a checking
-      seat correctly has nothing in front of it.
-    - Roughly two thirds of rows do carry `f` in `strategy_matrix.actions` and
-      so resolve to `hero_faces_bet`, but their action set is the sizeless
-      `["b16","c","b45","f"]` shape, with no `node` and no `source`.
-
-    So the villain's bet size does not exist anywhere in the solved data today.
-    The engine even says so out loud elsewhere: `_getPotOddsMath` (`:3701`)
-    carries the comment "Without exact bet size, we provide general pot odds
-    guidance" and falls back to equity rules of thumb.
-
-    CLOSING CONDITION: the badge lights up with no further UI work the moment
-    the Phase A re-solve stores facing-bet nodes (a `node` ending in `b<amount>`
-    alongside `pot`), because the plumbing above is already in place and
-    unit-locked. Until then this stays open as a CONTENT gap, tracked with #16
-    and #18.
 
 14a. **`committedFor` read only a seat's FIRST action.** FIXED 2026-08-06,
     found while confirming #14. `committedFor` used `.find`, so a seat with more
@@ -419,23 +380,70 @@ High/Low mode.
     decorative constant beside the other -- which is the whole point of the
     item. A fabricated stack would not have divided cleanly into the pot the
     panel was already showing.
-18. **Folded villains grey out rather than vanish.** BUILT IN THE FELT,
-    UNREACHABLE IN THE CONTENT PIPELINE — same shape as #16, established
-    2026-08-06. The grey-out is implemented three times over in
-    `UniversalDynamicTable.jsx`: `villainFolded` (`:3554-3556`) drives the seat
-    wrapper to `opacity: 0.42` (`:3672`), the avatar disc to
-    `filter: grayscale(100%) brightness(0.5)` (`:3705`), and the face-down
-    hole cards to the same filter at `opacity: 0.6` (`:3865-3880`) — visible,
-    greyed, not unmounted. **No arena scenario can ever set it.** Every
-    generator emits two scalar seats and no roster: `heroPosition` /
-    `villainPosition` at `DeterministicGTOEngine.js:537-538, 1666-1669,
-    1774-1775`, hard-mapped one-villain-per-hero at `get-question.js:404-412`,
-    and defaulted to BTN/BB at `batch-preload.js:415-419`. No scenario carries
-    `folded`, `playersInHand`, or a players array at all. `PLAYER_COUNT_MAP.js`
-    exists but `getPlayerCount` has zero importers — dead data. The squeeze
-    pool's idea of multiway is the literal STRING `villainPos: 'multiway'`
-    (`DeterministicGTOEngine.js:861-878`), inside the same dead path as #16.
-    Closing #18 for real means a multiway scenario model, not a felt change.
+18. **Folded villains grey out rather than vanish.** DONE -- screen-measured
+    2026-08-07, production smarter.poker at `9e945718`, iPhone context at
+    430x932, `cash-001`. A squeeze spot renders as a genuine multiway table:
+
+        CO opens and BTN calls. You are in SB with AJs. Squeeze or fold?
+        SB - VS CO - PREFLOP
+        UTG  100bb  [FOLD]  greyed avatar, greyed face-down cards
+        HJ   100bb  [FOLD]  greyed
+        CO   100bb  [OPEN]  full colour, red face-down cards
+        BTN  100bb  [CALL]  full colour, dealer button
+        KINGFISH 100bb  chip 0.5  A(spade) J(spade)
+        POT 8.5 BB    SPR: 11.8
+
+    Measured opacities in the same run, read off the seat wrappers: folded
+    seats 0.42, live seats 1. Sixteen consecutive spots, `PAGE_ERRORS=[]`.
+
+    **The recorded blocker was wrong, and the way it was wrong is the lesson.**
+    This entry previously said closing #18 "means a multiway scenario model,
+    not a felt change". The felt half was right -- the grey-out is built three
+    times over and needed nothing. The roster half was not: the seat filter at
+    `:3574` shows any seat that appears in `actionHistory`, and `villainFolded`
+    reads the same array. There was never a roster to build. What was missing
+    was a HISTORY, and preflop is the one street where a truthful one can be
+    derived rather than invented, because the spot type states the sequence
+    exactly.
+
+    Two changes, both in `DeterministicGTOEngine`:
+
+    (a) The squeeze pool was putting the literal string `'multiway'` in the
+        villain seat, and the felt drew a player plate reading MULTIWAY --
+        observed on production the moment the #16 preflop route went live. The
+        range key already names both villains: `BTN_vs_UTG_open_MP_call` is
+        hero BTN, UTG opened, MP called. The opener is now the villain seat,
+        the caller is carried as an extra actor so the table draws him, and the
+        question reads "CO opens and BTN calls" instead of "There's an open and
+        a call."
+
+    (b) `_preflopActionHistory` derives the rest. The villain's own action is
+        recorded only when the villain is a real seat acting BEFORE hero -- the
+        RFI pool names BB as the villain purely to say who is being opened
+        into, and BB has not acted, so marking him would be a lie about the
+        hand. Everyone seated before hero who is not a named actor folded,
+        which the spot definition forces. Anyone seated AFTER hero is left off
+        entirely: they have neither folded nor acted, and a fold entry would
+        grey out a player who is still live.
+
+    Nothing in the history carries an amount, and that is load-bearing rather
+    than incidental. `amountOf` returns 0 for a fold and 0 for an action with
+    no number, and `committedFor` still credits the posted blind by seat name,
+    so the history cannot move a chip badge or the POT pill by a single big
+    blind. One of the five assertions pins exactly that, comparing
+    `committedFor` across all seven seats with and without the history and
+    requiring equality.
+
+    Known cosmetic gap, deliberately not chased: `MP` is derived as a fold but
+    draws no plate, because `scenario.gameType` is `'cash_6max'` and
+    `playerCount` (`UniversalDynamicTable.jsx:2284`) tests for `'6max'` or
+    `'cash'` -- neither matches, so these spots render on the NINE-max ring.
+    Six of the seven modelled seats land on it. Correcting the ring is not a
+    one-word change: the 6-max seat map has no `HJ`, and the 3-bet and RFI
+    ranges both use HJ, so switching would drop a hero through
+    `getHeroSeatIndex`'s `?? 0` onto the BTN seat -- the exact defect fixed in
+    `c2c5cad682` and warned about in the comment directly above `playerCount`.
+
 19. **Avatar must not float mid-table.** DONE — screen-measured 2026-08-06
     by the same run that proved #30, which is the measurement that closes this
     one too: with the feedback panel OPEN the entire felt stayed on screen,
