@@ -17,6 +17,7 @@ applyDeterministicEnginePatches(deterministicEngine);
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
 import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
+import { filterRowsToDeclaredStreet } from '../../../src/lib/training/declaredStreet';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ●● Deterministic hash for seeded fallback data (avoids Math.random in data gen) ●●
@@ -126,7 +127,17 @@ export default async function handler(req, res) {
           // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           // Filter out already-seen questions, but never drop below the
           // requested count — repeats beat 404s.
-          const rows = (questions || []).slice(0, questionCount * 3);
+          // roadmap #16 -- a game that DECLARES a street does not get served
+          // cached rows of a different one. The cache is read first by design,
+          // so without this the engine's street routing is unreachable in
+          // production: cash-001 declares preflop, its cache holds 25 postflop
+          // rows per level, 25 > the 20 a session asks for, and the engine
+          // branch below never ran. Games that declare no street are untouched.
+          const declaredCfg = pioQueryService.getGameConfig(gameId);
+          const rows = filterRowsToDeclaredStreet(
+              (questions || []).slice(0, questionCount * 3),
+              declaredCfg,
+          );
           const fresh = seenIds.size > 0
               ? rows.filter((r) => !seenIds.has(r.id) && !seenIds.has(r.question_data?.id))
               : rows;
@@ -141,7 +152,7 @@ export default async function handler(req, res) {
           let solverQuestions = [];
 
           if (cachedQuestions.length < questionCount) {
-              const pioConfig = pioQueryService.getGameConfig(gameId);
+              const pioConfig = declaredCfg;
               const gameCfg = getGameCfg(gameId);
 
               // ●●● SOLVER SCENARIO MAP: Route game to correct solver levels/spots ●●●

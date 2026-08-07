@@ -24,6 +24,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming, reconcileAnswerKey, selectServedOptions } from '../../../src/utils/trainingApiUtils';
 import { heroActsFirstPostflop } from '../../../src/engines/positionOrder';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { filterRowsToDeclaredStreet } from '../../../src/lib/training/declaredStreet';
 
 // ── Deterministic hash for seeded fallback data ──
 function hashSeed(str) {
@@ -142,18 +143,28 @@ export default async function handler(req, res) {
           .not('question_id', 'in', `(${seenQuestionIds.join(',') || 'null'})`)
           .limit(10);
 
-        if (cachedQuestions && cachedQuestions.length > 0) {
-          const randomIndex = Math.floor(Math.random() * cachedQuestions.length);
+        // roadmap #16 -- same declared-street rule the batch route applies. The
+        // cache is the primary source here too (Phase 92 reorder), so a game
+        // that declares a street must not be handed a cached row of another
+        // one; when the filter empties the pool the engine path below runs,
+        // which is the correct source for a declaration the cache predates.
+        const eligibleCached = filterRowsToDeclaredStreet(
+          cachedQuestions,
+          pioQueryService.getGameConfig(gameId),
+        );
+
+        if (eligibleCached && eligibleCached.length > 0) {
+          const randomIndex = Math.floor(Math.random() * eligibleCached.length);
           // Enrich cached questions that were generated before GTO fields were added
           question = enrichLegacyCachedQuestion(
-            cachedQuestions[randomIndex].question_data,
+            eligibleCached[randomIndex].question_data,
             gameConfig,
             parseInt(level, 10),
             gameType
           );
 
           // Increment times_used (getSupabase().raw() doesn't exist in JS SDK v2)
-          const questionId = cachedQuestions[randomIndex].question_id;
+          const questionId = eligibleCached[randomIndex].question_id;
           const { data: currentQ } = await getSupabase()
             .from('training_question_cache')
             .select('times_used')

@@ -284,6 +284,7 @@ check('#14 postflop: adding the amount leaves an explicit POT untouched', () => 
 
 const { pioQueryService } = require(path.join(ROOT, 'src/services/PIOQueryService.js'));
 const { deterministicEngine } = require(path.join(ROOT, 'src/engines/DeterministicGTOEngine.js'));
+const { filterRowsToDeclaredStreet, declaredStreetOf, streetOfCachedRow } = require(path.join(ROOT, 'src/lib/training/declaredStreet.js'));
 
 console.log('\n=== Preflop route: the arena can deal a preflop spot ===');
 
@@ -350,6 +351,50 @@ const summarize = () => {
         }));
         if (combos.size !== batch.length) return 'duplicate decisions: ' + combos.size + '/' + batch.length;
         return true;
+    });
+
+    // ---- the cache-first bypass (roadmap #16, second half) -----------------
+    // Wiring the engine was necessary and not sufficient. Both question routes
+    // read training_question_cache FIRST and only consult the engine on a miss,
+    // so a game whose cache was seeded before the declaration existed keeps
+    // serving the old street forever. Measured on production 2026-08-07 with
+    // b300c280 live: batch-preload returned {"flop":20} because cash-001's
+    // cache holds 25 postflop rows per level and 25 > the 20 a session asks
+    // for. These lock the filter that closes that bypass.
+    const PRE = { question_data: { scenario: { street: 'preflop' } } };
+    const FLOP = { question_data: { scenario: { street: 'flop' } } };
+    const BARE = { question_data: { scenario: {} } };
+
+    check('#16 a declaring game does not get cached rows of another street', () => {
+        const out = filterRowsToDeclaredStreet([PRE, FLOP, FLOP, PRE], cfg);
+        if (out.length !== 2) return 'kept ' + out.length + ' of 4';
+        if (out.some(r => streetOfCachedRow(r) !== 'preflop')) return 'kept a non-preflop row';
+        return true;
+    });
+
+    check('#16 the filter empties the pool rather than serving the wrong street', () => {
+        // This is the case that matters in production -- cash-001's cache is
+        // 100% postflop, so the correct outcome is zero eligible rows, which
+        // hands the request to the engine via the existing cache-miss path.
+        const out = filterRowsToDeclaredStreet([FLOP, FLOP, FLOP], cfg);
+        return out.length === 0 || 'kept ' + out.length;
+    });
+
+    check('#16 a game that declares no street keeps every cached row', () => {
+        const postflopCfg = pioQueryService.getGameConfig('cash-007');
+        if (declaredStreetOf(postflopCfg) !== null) return 'cash-007 declares a street';
+        const rows = [PRE, FLOP, BARE];
+        const out = filterRowsToDeclaredStreet(rows, postflopCfg);
+        return out === rows || 'did not pass the array through untouched';
+    });
+
+    check('#16 a cached row with no street recorded is kept, not dropped', () => {
+        // Absence is not contradiction. Older seeding migrations did not always
+        // write the field; dropping those rows would empty the cache for games
+        // that are serving correctly today.
+        const out = filterRowsToDeclaredStreet([BARE, FLOP], cfg);
+        if (out.length !== 1) return 'kept ' + out.length + ' of 2';
+        return streetOfCachedRow(out[0]) === null || 'kept the wrong row';
     });
 
     summarize();
