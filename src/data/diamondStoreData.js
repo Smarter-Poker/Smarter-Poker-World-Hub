@@ -218,6 +218,34 @@ export const EASTER_EGG_COUNTS = Object.keys(EGG_CATEGORIES).reduce((acc, key) =
     return acc;
 }, {});
 
+/**
+ * The largest single-egg payout in the catalog, in diamonds.
+ *
+ * This file's own header has prescribed `biggestEggValue()` since the egg
+ * budget was raised to 1,000 -- "the biggest egg in the catalog pays 500, use
+ * biggestEggValue(), not the budget, in copy" -- but the function was never
+ * written. `pages/hub/diamond-store.js` imported it anyway (line 56) and called
+ * it in the FAQ copy, so the page could not build: the import resolved to
+ * undefined and the call threw. Restoring the export is what makes that page
+ * compile again.
+ *
+ * Derived from the catalog on every call, never a typed-in number -- which is
+ * the entire reason the header insists on this function rather than the budget
+ * constant. The two are different quantities that happen to look alike: the
+ * budget is what ALL eggs share in a month, the biggest egg is what ONE pays.
+ * Quoting the budget in per-egg copy overstates the prize by 2x today, and
+ * would drift further the moment either number moves.
+ */
+export function biggestEggValue() {
+    const eggs = listEasterEggs() || [];
+    let max = 0;
+    for (const e of eggs) {
+        const d = Number(e && e.diamonds);
+        if (isFinite(d) && d > max) max = d;
+    }
+    return max;
+}
+
 /** The raw catalog entries, if a component needs something not projected here. */
 export { REWARDS as CATALOG_REWARDS, CATALOG_EASTER_EGGS };
 

@@ -65,11 +65,18 @@ import styles from '../../src/components/diamond-store/diamondStoreStyles';
 
 // ───────────────────────────────────────────────────────────────────────────
 // DERIVED ECONOMY COPY HELPERS
-// 1 💎 = $0.01. The daily cap is measured AFTER the share-streak multiplier,
+// 1 diamond = $0.01. The daily cap is measured AFTER the share-streak multiplier,
 // so the multiplier makes the cap EASIER TO REACH and never raises it.
 // ───────────────────────────────────────────────────────────────────────────
 const EGG_CATEGORY_COUNT = Object.keys(EGG_CATEGORY_LABELS).length;
 const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+
+// Immutable Rule 7 forbids a bare emoji anywhere in a source file: the SWC
+// compiler chokes on one and the Vercel build dies. This page carried ten of
+// them in FAQ and cap copy. The compliant form is an escaped surrogate pair,
+// declared once here rather than repeated inline -- it renders identically and
+// keeps the copy readable.
+const GEM = '\uD83D\uDC8E';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN DIAMOND STORE PAGE
@@ -1140,7 +1147,7 @@ export default function DiamondStorePage() {
                                                 <h3 style={styles.overviewCardTitle}>Diamond Rewards</h3>
                                                 <p style={styles.overviewCardText}>
                                                     Earn Diamonds Through Daily Logins, Training, Social Engagement, And Referrals.
-                                                    <strong style={{ color: '#00ff88' }}> Daily Cap: {DAILY_CAP.free} 💎 ({DAILY_CAP.vip} VIP)</strong> — Up To {fmt(MONTHLY_CAP.free)} 💎 A Month Free, {fmt(MONTHLY_CAP.vip)} 💎 VIP.
+                                                    <strong style={{ color: '#00ff88' }}> Daily Cap: {DAILY_CAP.free} {GEM} ({DAILY_CAP.vip} VIP)</strong> — Up To {fmt(MONTHLY_CAP.free)} {GEM} A Month Free, {fmt(MONTHLY_CAP.vip)} {GEM} VIP.
                                                     Share Streak Multipliers Help You Reach The Cap Faster — They Never Raise It.
                                                 </p>
                                             </div>
@@ -1212,7 +1219,7 @@ export default function DiamondStorePage() {
                                                 <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                                                 <p style={styles.overviewCardText}>
                                                     Discover <strong>{TOTAL_EASTER_EGGS} Hidden Achievements</strong> Across {EGG_CATEGORY_COUNT} Categories.
-                                                    From Performance To Legacy Milestones — Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} 💎 A Month On Top Of Your Normal Cap. {EARNABLE_EGG_COUNT} Are Live Now.
+                                                    From Performance To Legacy Milestones — Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On Top Of Your Normal Cap. {EARNABLE_EGG_COUNT} Are Live Now.
                                                 </p>
                                             </div>
                                         </div>
@@ -1270,8 +1277,8 @@ export default function DiamondStorePage() {
                                             </div>
                                         </div>
                                         <p style={styles.introText}>
-                                            The Cap Is Measured After Your Share Streak Multiplier — Multipliers Help You Reach {DAILY_CAP.free} 💎 A Day With Less Work, They Never Raise It.
-                                            Easter Eggs Draw On A Separate {EASTER_EGG_MONTHLY_CAP} 💎 Per Month Budget On Top. 1 💎 = $0.01, So {fmt(MONTHLY_CAP.free)} 💎 A Month = ${(MONTHLY_CAP.free / 100).toFixed(0)}.
+                                            The Cap Is Measured After Your Share Streak Multiplier — Multipliers Help You Reach {DAILY_CAP.free} {GEM} A Day With Less Work, They Never Raise It.
+                                            Easter Eggs Draw On A Separate {EASTER_EGG_MONTHLY_CAP} {GEM} Per Month Budget On Top. 1 {GEM} = $0.01, So {fmt(MONTHLY_CAP.free)} {GEM} A Month = ${(MONTHLY_CAP.free / 100).toFixed(0)}.
                                         </p>
 
                                         {/* Standard Rewards List */}
@@ -1301,7 +1308,7 @@ export default function DiamondStorePage() {
                                         <h2 style={styles.earnTitle}>Easter Eggs - {TOTAL_EASTER_EGGS} Hidden Achievements</h2>
                                         <p style={styles.introText}>
                                             {TOTAL_EASTER_EGGS} Hidden Achievements Across {EGG_CATEGORY_COUNT} Categories — {EARNABLE_EGG_COUNT} Are Unlockable Today, The Rest Arrive As Tracking Expands.
-                                            Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} 💎 A Month On Top Of Your Normal Daily Cap, And The Biggest Single Egg Pays {biggestEggValue()} 💎.
+                                            Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On Top Of Your Normal Daily Cap, And The Biggest Single Egg Pays {biggestEggValue()} {GEM}.
                                         </p>
 
                                         {/* Performance Category */}
