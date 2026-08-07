@@ -669,7 +669,15 @@ export class DeterministicGTOEngine {
                     actions[id] = freq;
                     gtoFrequencies[id] = Math.round(freq * 100);
                 }
-                options.push({ id, label, frequency: Math.round(freq * 100) });
+                // roadmap #16 -- `text` is the option contract the whole app
+                // reads: reconcileAnswerKey grades and re-narrates off
+                // `option.text`, selectServedOptions emits {id, text}, and
+                // batch-preload normalizes with `opt.text || String(opt)` --
+                // which on a label-only option stringifies the object and
+                // served the player a button reading "[object Object]",
+                // observed on the wire. `label` is kept alongside it because
+                // this generator's own explanation builder reads it.
+                options.push({ id, text: label, label, frequency: Math.round(freq * 100) });
                 if (freq > maxFreq) { maxFreq = freq; correctAction = id; correctLabel = label; }
             }
 
@@ -683,7 +691,18 @@ export class DeterministicGTOEngine {
                 }
             }
 
-            const heroCards = this._handNotationToCards(hand);
+            // roadmap #16 -- parseHandToCards, the SAME helper the other two
+            // generators use (see the postflop and chart paths below). The old
+            // private _handNotationToCards returned [{rank,suit}] objects while
+            // every consumer in the app treats a card as the two-character
+            // string 'Ah'. getCardPath's guard is `card.length < 2`, and an
+            // object's .length is undefined, so `undefined < 2` is false and
+            // the object sailed straight past it into `card[0].toLowerCase()`.
+            // That threw inside the hero-card map and took the whole felt down:
+            // "Arena Crash Detected -- Cannot read properties of undefined
+            // (reading 'toLowerCase')", measured on production 2026-08-07 the
+            // first time a preflop question ever reached the table.
+            const heroCards = parseHandToCards(hand);
             const isMixed = actionLabels.some(a => {
                 const f = freqs[a.solver] || 0;
                 return f > 0.05 && f < 0.95;
@@ -981,19 +1000,6 @@ export class DeterministicGTOEngine {
     /**
      * Convert hand notation (e.g., "AKs", "TT", "Q9o") to card objects.
      */
-    _handNotationToCards(hand) {
-        if (!hand) return [];
-        if (hand.length === 2) {
-            return [{ rank: hand[0], suit: 'h' }, { rank: hand[1], suit: 's' }];
-        }
-        if (hand.length === 3) {
-            const r1 = hand[0], r2 = hand[1], flag = hand[2];
-            if (flag === 's') return [{ rank: r1, suit: 's' }, { rank: r2, suit: 's' }];
-            return [{ rank: r1, suit: 'h' }, { rank: r2, suit: 'd' }];
-        }
-        return [{ rank: hand[0] || 'A', suit: 'h' }, { rank: hand[1] || 'K', suit: 's' }];
-    }
-
     /**
      * Generate a batch of SCENARIO (psychology / table-selection) questions
      * from the deterministic psychology question bank. No DB, no AI, no

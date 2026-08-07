@@ -397,5 +397,52 @@ const summarize = () => {
         return streetOfCachedRow(out[0]) === null || 'kept the wrong row';
     });
 
+    // ---- the felt contract (roadmap #16, third half) -----------------------
+    // The route was reachable and the wire was correct -- batch-preload
+    // returned {"preflop":20}, withBoard:0 -- and the arena still showed
+    // "Arena Crash Detected: Cannot read properties of undefined (reading
+    // 'toLowerCase')". A generator that had never once been consumed by the
+    // felt was emitting two fields in shapes nothing downstream accepts.
+    check('#16 hero cards are card strings the felt can index, not objects', () => {
+        if (err || !Array.isArray(batch)) return 'no batch';
+        for (const q of batch) {
+            const hc = q.heroCards;
+            if (!Array.isArray(hc) || hc.length !== 2) return 'heroCards is not a pair';
+            for (const c of hc) {
+                // getCardPath guards on `card.length < 2`. An object's .length
+                // is undefined and `undefined < 2` is false, so an object slips
+                // past the guard and then throws on card[0].toLowerCase().
+                if (typeof c !== 'string') return 'card is ' + typeof c + ', not a string';
+                if (c.length !== 2) return 'card "' + c + '" is not two characters';
+                if (!/^[2-9TJQKA][hdcs]$/.test(c)) return 'card "' + c + '" is not rank+suit';
+            }
+        }
+        return true;
+    });
+
+    check('#16 every answer option carries the `text` the app grades and renders on', () => {
+        if (err || !Array.isArray(batch)) return 'no batch';
+        for (const q of batch) {
+            if (!Array.isArray(q.options) || q.options.length === 0) return 'no options';
+            for (const o of q.options) {
+                if (typeof o.text !== 'string' || !o.text) return 'option ' + o.id + ' has no text';
+                // batch-preload normalizes with `opt.text || String(opt)`, so a
+                // label-only option reaches the player as this exact string.
+                if (o.text === '[object Object]') return 'option ' + o.id + ' stringified';
+            }
+        }
+        return true;
+    });
+
+    check('#16 the correct answer resolves to a served option', () => {
+        if (err || !Array.isArray(batch)) return 'no batch';
+        for (const q of batch) {
+            const ids = new Set((q.options || []).map(o => o.id));
+            if (!ids.has(q.correctAnswer)) return 'correctAnswer ' + q.correctAnswer + ' not among options';
+            if (typeof q.correctAnswerText !== 'string' || !q.correctAnswerText) return 'no correctAnswerText';
+        }
+        return true;
+    });
+
     summarize();
 })();
