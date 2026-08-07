@@ -320,49 +320,97 @@ High/Low mode.
     `/cards/diamonds_4.png` (233,494) — matching the prompt's
     "Flop: [2s 2d 4d]" exactly. No fourth or fifth card element exists in the
     DOM at that street, so this is a real clamp and not an opacity trick.
-16. **Pot includes blinds preflop.** PARTIALLY FIXED 2026-08-06 — the felt
-    and the preloader are now correct; the CONTENT PIPELINE still cannot reach
-    a preflop spot. Established 2026-08-06 by reading the generator, and
-    this is a content gap, not a UI gap. `committedFor(..., isPreflop)` does
-    credit the blinds (`potMath.js:33-37`: SB / BTN-SB -> 0.5, BB -> 1) and
-    `computeDisplayPot` sums it, so were a preflop spot ever dealt the pot
-    would include them. **The arena cannot deal one.** The only producer of
-    `street: 'preflop'` is `DeterministicGTOEngine.generateFromLocalSolverRanges`
-    (`:705`), reachable only through the branch at `:436-442` gated on
-    `gameConfig.pioStreet === 'preflop'` — and no game config anywhere sets
-    `pioStreet`; `PIOQueryService.getGameConfig` (`:247+`) emits only
-    `{ id, sourceOfTruth, pioGameType, pioStackDepth }`. That function is also
-    unreachable from `generateBatch` (`:997`), which is what the arena calls.
-    Genuinely-preflop push/fold ICM drills were worse than absent: they arrive
-    with `boardCards: []`, `batch-preload.js` FABRICATED three deterministic
-    board cards for any boardless non-psychology question, and the street
-    backfill immediately below it had no `preflop` branch at all — so zero real
-    board cards fell through the `3 -> flop / 4 -> turn` ladder to **`'river'`**,
-    then took the default 12bb pot. A preflop drill was therefore served to the
-    player as a RIVER decision on an invented board. That half is **FIXED and
-    shipped 2026-08-06 (`d6e0bded`)**: the declared street is read once, before
-    both fabrications, and vetoes them; the street is resolved BEFORE the pot
-    default so a boardless spot defaults to 1.5bb rather than 12.
+16. **Pot includes blinds preflop.** DONE -- screen-measured 2026-08-07,
+    production smarter.poker at `d3998aa6`, iPhone context at 430x932,
+    `cash-001` at level 1. The felt reads:
 
-    `computeDisplayPot` was changed in the same commit to take
-    `max(explicit, committed)` on PREFLOP instead of letting an explicit pot win
-    outright. Postflop, explicit must still win — the committed sum covers only
-    the CURRENT street, so trusting it would silently drop every earlier
-    street's money. Preflop there is no earlier street, so the committed sum is
-    complete by construction and can only improve on a stale or defaulted
-    field. Without this the 1.5 stamped above would survive UTG opening to 2.5,
-    and every EV-loss-as-percent-of-pot readout would divide by the wrong
-    number. Five assertions in `scripts/preflop-pot-check.js` pin both
-    directions (defaulted 1.5 loses to real chips; 1.5 survives when nobody has
-    acted; a larger explicit pot still wins; postflop explicit always wins;
-    postflop with no explicit pot still falls back to the sum) — PASS 18 FAIL 0.
+        PREFLOP BLUEPRINT
+        You opened from CO with J3o and face a 3-Bet. What do you do?
+        CO - VS 3BETTOR - PREFLOP
+        POT 4.5 BB     SPR: 22.2
+        [three empty board slots]
+        KINGFISH 100bb  J(spade) 3(heart)
+        YOUR ACTION:  FOLD | RAISE | CALL
+        Question 1 of 20
 
-    **The item does not close.** The mis-serving is gone, but the arena still
-    cannot DEAL a preflop spot, so there is no screen on which to observe a
-    correct one. Closing #16 for real means making
-    `generateFromLocalSolverRanges` reachable — a `pioStreet` that some game
-    config actually sets, and a path to it from `generateBatch` — not touching
-    the felt or the preloader again.
+    Eight consecutive spots measured, `PAGE_ERRORS=[]`, question number
+    advancing once per hand (1..8) because a preflop question is a single
+    decision. Pots read 4.5bb in 3-bet spots and 1.5bb in RFI spots -- both
+    blinds-inclusive, which is the item's actual subject.
+
+    Off the wire in the same run, ahead of any rendering:
+
+        WIRE=[{"ep":"batch-preload","status":200,"n":20,
+               "streets":{"preflop":20},"withBoard":0}]
+
+    Closing this took FOUR shipped commits, and the three that were not the
+    obvious one are the interesting part. Each was found only because the
+    previous fix was measured against the screen rather than assumed.
+
+    (a) `c7d0585a` / `b300c280` -- the dead flag. `pioStreet` was READ in
+        exactly one place (`DeterministicGTOEngine.js:439`) and WRITTEN by no
+        config anywhere in the repo. `cash-001` therefore routed to the
+        postflop generator and dealt 20/20 postflop questions. The preflop
+        generator had worked the entire time and was simply unreachable. Fixed
+        by declaring `pioStreet: 'preflop'` on `cash-001` and routing to the
+        generator FIRST -- ahead of the L8+ postflop route, not as a fallback
+        behind it, because a game whose subject is preflop must stay preflop at
+        every level -- with the same branch added to `generateBatch`, which is
+        the path the arena actually takes.
+
+    (b) `68fdbc2f` -- the cache-first bypass. Every gate passed and production
+        still dealt flop: `batch-preload` returned `{"flop":20}`. Both question
+        routes read `training_question_cache` FIRST by design (Phase 92: cache
+        rows carry the pedagogical rebalancing fresh generation loses) and
+        consult the engine only on a MISS. `cash-001`'s cache holds 25 rows per
+        level across ten levels, 250 in total, every one postflop -- and 25 is
+        more than the 20 a session asks for, so the branch holding the fix
+        never executed once. `src/lib/training/declaredStreet.js` closes it:
+        when, and only when, a game DECLARES a street, cached rows of a
+        different street are not eligible. A game declaring nothing gets its
+        array passed through by reference; a row with no street recorded is
+        KEPT (absence is not contradiction, and older seeding migrations did
+        not always write the field); an emptied pool falls to the existing
+        cache-miss path. Self-healing, not a purge -- reseed the cache with
+        matching rows later and cache-first resumes with no code change.
+
+    (c) `d3998aa6` -- two output-contract defects in a generator that had never
+        once been consumed by the felt. Symptom: **Arena Crash Detected --
+        Cannot read properties of undefined (reading 'toLowerCase')**.
+        `heroCards` were `[{rank,suit}]` objects while every consumer treats a
+        card as the string `'Ah'`; `getCardPath`'s guard is `card.length < 2`,
+        an object's `.length` is `undefined`, and `undefined < 2` is FALSE, so
+        the object sailed past the guard into `card[0].toLowerCase()`. A guard
+        that reads as a length check does not reject a non-string -- it waves
+        one through. And `options` carried `label` but not `text`, the field
+        the whole app grades and renders on, so `batch-preload`'s
+        `opt.text || String(opt)` served three buttons reading
+        `"[object Object]"`.
+
+    The felt and preloader work recorded previously still stands unchanged:
+    `committedFor(..., isPreflop)` credits the blinds (`potMath.js:33-37`),
+    `d6e0bded`'s street veto reads the declared street before fabricating
+    boards or defaulting the pot, and `computeDisplayPot` takes
+    `max(explicit, committed)` on PREFLOP only -- postflop the committed sum
+    covers just the current street, so trusting it would drop every earlier
+    street's money.
+
+    `scripts/preflop-pot-check.js` is now **PASS 33 FAIL 0**, up from 18. The
+    twelve added here assert contracts rather than symptoms: `generateBatch`
+    fills a whole 20-question session preflop with no board cards and no
+    repeated decision; the declared-street filter empties a wrong-street pool
+    rather than serving from it, passes a non-declaring game through
+    untouched, and keeps street-less rows; every hero card is a two-character
+    rank+suit string; every option carries a non-empty `text` that is not the
+    stringified-object marker; the correct answer resolves to a served option.
+
+    **The lesson worth keeping.** Three of these four fixes passed every unit
+    gate while production was still wrong, and each was caught only by loading
+    the screen. A cache in front of the code under test, a guard that admits
+    the wrong type instead of rejecting it, and a field name that differs from
+    the one every consumer reads are all invisible to a green test suite. This
+    is the entry to point at when someone proposes closing an item on a
+    passing gate alone.
 17. **Villain shows a real stack, not a fabricated one.** DONE —
     screen-measured 2026-08-06 on `cash-001` at 430x932. The felt rendered
     `KingFish / 100 bb` for hero and `BB / 100 bb` for the villain against a
