@@ -645,7 +645,7 @@ export class DeterministicGTOEngine {
 
             // Pick random spot — bias toward harder spot types at higher effective levels
             const spot = this._pickAdaptiveSpot(spotPool, effectiveLevel);
-            const { spotData, heroPos, villainPos, spotType, nodeType, actionLabels, contextText, questionText } = spot;
+            const { spotData, heroPos, villainPos, spotType, nodeType, actionLabels, contextText, questionText, villainActionVerb, extraActors } = spot;
 
             // Pick a hand with intelligent weighting:
             // ~50% chance: hand from the range (raise/call > 5%) — tests inclusion knowledge
@@ -754,6 +754,13 @@ export class DeterministicGTOEngine {
                     context: contextText,
                     isMixedStrategy: isMixed,
                     spotType,
+                    // roadmap #18 -- see _preflopActionHistory. Amount-free by
+                    // construction, so it moves no chips and no pot; it only
+                    // tells the felt which seats are in the hand and which are
+                    // out, which is the whole of what the item asks for.
+                    actionHistory: this._preflopActionHistory({
+                        heroPos, villainPos, villainActionVerb, extraActors,
+                    }),
                 },
                 question: questionText(hand),
                 options,
@@ -790,6 +797,69 @@ export class DeterministicGTOEngine {
      * ALL LEVELS get ALL spot types — no content gating by level.
      * Level progression only affects mastery threshold (85%/90%).
      */
+    /**
+     * The preflop action that has already happened, as seat-addressed entries.
+     *
+     * roadmap #18. The grey-out is built three times over in the felt
+     * (`villainFolded` -> opacity 0.42, the avatar to grayscale, the hole cards
+     * to the same filter) and the seat filter shows any seat that appears in
+     * `actionHistory` -- so the item never needed a new roster model, only a
+     * history. What it needed was a history that is DERIVED rather than
+     * invented, and preflop is the one street where that is possible: the spot
+     * type states the sequence exactly.
+     *
+     * Nothing here carries an amount. `potMath.amountOf` returns 0 for a fold
+     * and 0 for an action with no number, and `committedFor` still credits the
+     * posted blind by seat name, so adding this history cannot move a chip
+     * badge or the POT pill by a single big blind. The only thing it changes is
+     * which seats the felt draws, and how.
+     *
+     * PREFLOP_ORDER is the position set this solver data actually models --
+     * read off the range keys themselves (RFI covers UTG..SB, the 3-bet keys
+     * include HJ, BB defends). Deriving folds from a wider table would put
+     * players at the felt the solve never had.
+     */
+    _preflopActionHistory({ heroPos, villainPos, villainActionVerb, extraActors }) {
+        const ORDER = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+        const idx = (p) => ORDER.indexOf(String(p || '').toUpperCase());
+        const heroAt = idx(heroPos);
+        if (heroAt < 0) return [];
+
+        const history = [];
+        const acted = new Set();
+
+        // The villain's own action, but only when the villain is a real seat
+        // AND acts before hero. RFI names BB as the villain purely to say who
+        // is being opened into -- BB has not acted, and marking him would be a
+        // lie about the hand.
+        const vAt = idx(villainPos);
+        if (vAt >= 0 && vAt < heroAt && villainActionVerb) {
+            history.push({ position: ORDER[vAt], action: villainActionVerb });
+            acted.add(ORDER[vAt]);
+        }
+        for (const extra of extraActors || []) {
+            const eAt = idx(extra && extra.position);
+            if (eAt < 0 || eAt >= heroAt || acted.has(ORDER[eAt])) continue;
+            history.push({ position: ORDER[eAt], action: extra.action || 'CALL' });
+            acted.add(ORDER[eAt]);
+        }
+
+        // Everyone seated before hero who did not act, folded. This is forced by
+        // the spot definition, not assumed: "action folds to you" for an RFI,
+        // and for every other type hero is facing exactly the actors named
+        // above, so anyone earlier who is not one of them is out of the hand.
+        // A seat AFTER hero is still to act and is deliberately left off -- it
+        // has neither folded nor acted, and claiming either would be false.
+        const folds = [];
+        for (let i = 0; i < heroAt; i++) {
+            if (acted.has(ORDER[i])) continue;
+            folds.push({ position: ORDER[i], action: 'FOLD' });
+        }
+
+        // Seat order, not discovery order, so the felt reads like a hand.
+        return [...folds, ...history].sort((a, b) => idx(a.position) - idx(b.position));
+    }
+
     _buildPreflopSpotPool(level, stackDepth) {
         const pool = [];
         const rfiPositions = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'];
@@ -824,6 +894,7 @@ export class DeterministicGTOEngine {
                 spotData: data,
                 heroPos: pos,
                 villainPos: villain,
+                villainActionVerb: 'OPEN',
                 spotType: '3bet',
                 nodeType: 'preflop_3bet',
                 actionLabels: [
@@ -843,6 +914,7 @@ export class DeterministicGTOEngine {
                 spotData: data,
                 heroPos: 'BB',
                 villainPos: villain,
+                villainActionVerb: 'OPEN',
                 spotType: 'bb_defense',
                 nodeType: 'preflop_bb_defense',
                 actionLabels: [
@@ -863,6 +935,7 @@ export class DeterministicGTOEngine {
                 spotData: data,
                 heroPos: pos,
                 villainPos: '3bettor',
+                villainActionVerb: '3-BET',
                 spotType: '4bet',
                 nodeType: 'preflop_4bet',
                 actionLabels: [
@@ -884,6 +957,7 @@ export class DeterministicGTOEngine {
                 spotData: data,
                 heroPos: pos,
                 villainPos: villain,
+                villainActionVerb: 'OPEN',
                 spotType: 'cold_call',
                 nodeType: 'preflop_cold_call',
                 actionLabels: [
@@ -897,21 +971,37 @@ export class DeterministicGTOEngine {
 
         // ─── Squeeze (level 5+) ──────────────────────────────────────
         for (const [key, data] of Object.entries(SOLVER_SQZ || {})) {
-            const readable = key.replace(/_/g, ' ').replace('vs', 'vs').replace('open', 'open,');
+            // roadmap #18 -- the key already names BOTH villains
+            // ("BTN_vs_UTG_open_MP_call" = hero BTN, UTG opened, MP called).
+            // This threw them away and put the literal string 'multiway' in the
+            // villain seat, so the felt drew a player labelled MULTIWAY --
+            // observed on production 2026-08-07 once the preflop route went
+            // live. The opener is the seat hero is responding to; the caller is
+            // a second real player and is carried through as an extra actor so
+            // the table can draw him.
+            const m = key.match(/^([A-Za-z0-9+]+)_vs_([A-Za-z0-9+]+)_open_([A-Za-z0-9+]+)_call$/);
             const parts = key.split('_vs_');
-            const pos = parts[0];
+            const pos = m ? m[1] : parts[0];
+            const opener = m ? m[2] : 'opener';
+            const caller = m ? m[3] : null;
             pool.push({
                 spotData: data,
                 heroPos: pos,
-                villainPos: 'multiway',
+                villainPos: opener,
+                extraActors: caller ? [{ position: caller, action: 'CALL' }] : [],
+                villainActionVerb: 'OPEN',
                 spotType: 'squeeze',
                 nodeType: 'preflop_squeeze',
                 actionLabels: [
                     { solver: 'raise', id: 'r', label: 'Squeeze' },
                     { solver: 'fold', id: 'f', label: 'Fold' },
                 ],
-                contextText: `Squeeze: ${readable}`,
-                questionText: (hand) => `There's an open and a call. You are in ${pos} with ${hand}. Squeeze or fold?`,
+                contextText: caller
+                    ? `Squeeze: ${opener} opens, ${caller} calls`
+                    : `Squeeze vs ${opener}`,
+                questionText: (hand) => (caller
+                    ? `${opener} opens and ${caller} calls. You are in ${pos} with ${hand}. Squeeze or fold?`
+                    : `${opener} opens. You are in ${pos} with ${hand}. Squeeze or fold?`),
             });
         }
 

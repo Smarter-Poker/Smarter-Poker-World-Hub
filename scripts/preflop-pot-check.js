@@ -444,5 +444,82 @@ const summarize = () => {
         return true;
     });
 
+    // ---- roadmap #18: folded seats are named, not vanished -----------------
+    check('#18 no seat is labelled with a non-position placeholder', () => {
+        if (err || !Array.isArray(batch)) return 'no batch';
+        for (const q of batch) {
+            const v = String(q.scenario?.villainPosition || '');
+            // 'multiway' was a literal string in the squeeze pool and reached
+            // the felt as a seat plate reading MULTIWAY, observed on production.
+            if (/^multiway$/i.test(v)) return 'villain seat is "' + v + '"';
+        }
+        return true;
+    });
+
+    check('#18 every preflop spot carries a derived action history', () => {
+        if (err || !Array.isArray(batch)) return 'no batch';
+        const ORDER = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+        for (const q of batch) {
+            const h = q.scenario?.actionHistory;
+            if (!Array.isArray(h)) return 'no actionHistory';
+            for (const e of h) {
+                if (!ORDER.includes(e.position)) return 'unknown seat ' + e.position;
+                // Amount-free by construction: an amount here would be invented
+                // and would move both the chip badges and the POT pill.
+                if (e.amount != null || e.size != null || e.bb != null) return 'entry carries an amount';
+                if (!/^(FOLD|CALL|OPEN|3-BET)$/.test(e.action)) return 'odd action ' + e.action;
+            }
+        }
+        return true;
+    });
+
+    check('#18 nobody seated after hero is claimed to have acted', () => {
+        if (err || !Array.isArray(batch)) return 'no batch';
+        const ORDER = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+        for (const q of batch) {
+            const heroAt = ORDER.indexOf(q.scenario.heroPosition);
+            if (heroAt < 0) continue;
+            for (const e of q.scenario.actionHistory || []) {
+                // A seat after hero has neither folded nor acted. Claiming
+                // either would be false, and a fold entry would also grey out a
+                // player who is still live.
+                if (ORDER.indexOf(e.position) >= heroAt) return e.position + ' acts after hero ' + q.scenario.heroPosition;
+            }
+        }
+        return true;
+    });
+
+    check('#18 an RFI folds everyone before hero and marks nobody else', () => {
+        if (err || !Array.isArray(batch)) return 'no batch';
+        const ORDER = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+        const rfi = batch.filter(q => q.scenario?.spotType === 'rfi');
+        for (const q of rfi) {
+            const heroAt = ORDER.indexOf(q.scenario.heroPosition);
+            const h = q.scenario.actionHistory || [];
+            if (h.length !== heroAt) return 'hero ' + q.scenario.heroPosition + ' has ' + h.length + ' entries, expected ' + heroAt;
+            if (h.some(e => e.action !== 'FOLD')) return 'an RFI records a non-fold';
+            // The RFI pool names BB as the villain purely to say who is being
+            // opened into. BB has not acted and must not appear.
+            if (h.some(e => e.position === 'BB')) return 'BB marked as having acted';
+        }
+        return true;
+    });
+
+    check('#18 the action history never moves a chip or the pot', () => {
+        if (err || !Array.isArray(batch)) return 'no batch';
+        for (const q of batch) {
+            const sc = q.scenario;
+            const seats = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'].map(n => ({ name: n }));
+            for (const seat of seats) {
+                const withHistory = committedFor(seat, sc.actionHistory || [], true);
+                const without = committedFor(seat, [], true);
+                if (withHistory !== without) {
+                    return seat.name + ' committed ' + withHistory + ' with history vs ' + without + ' without';
+                }
+            }
+        }
+        return true;
+    });
+
     summarize();
 })();
