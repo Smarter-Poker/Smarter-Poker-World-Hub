@@ -262,8 +262,9 @@ High/Low mode.
     `/cards/diamonds_4.png` (233,494) — matching the prompt's
     "Flop: [2s 2d 4d]" exactly. No fourth or fifth card element exists in the
     DOM at that street, so this is a real clamp and not an opacity trick.
-16. **Pot includes blinds preflop.** BUILT IN THE FELT, UNREACHABLE IN THE
-    CONTENT PIPELINE — established 2026-08-06 by reading the generator, and
+16. **Pot includes blinds preflop.** PARTIALLY FIXED 2026-08-06 — the felt
+    and the preloader are now correct; the CONTENT PIPELINE still cannot reach
+    a preflop spot. Established 2026-08-06 by reading the generator, and
     this is a content gap, not a UI gap. `committedFor(..., isPreflop)` does
     credit the blinds (`potMath.js:33-37`: SB / BTN-SB -> 0.5, BB -> 1) and
     `computeDisplayPot` sums it, so were a preflop spot ever dealt the pot
@@ -274,13 +275,44 @@ High/Low mode.
     `pioStreet`; `PIOQueryService.getGameConfig` (`:247+`) emits only
     `{ id, sourceOfTruth, pioGameType, pioStackDepth }`. That function is also
     unreachable from `generateBatch` (`:997`), which is what the arena calls.
-    Genuinely-preflop push/fold ICM drills are worse than absent: they arrive
-    with `boardCards: []` and `batch-preload.js:282-297` FABRICATES three
-    deterministic board cards, after which the backfill at `:420-423` stamps
-    them `'flop'`. A preflop drill is therefore served to the player as a flop
-    spot with an invented board. Closing #16 for real means making preflop
-    reachable, not touching the felt.
-17. **Villain shows a real stack, not a fabricated one.** BUILT.
+    Genuinely-preflop push/fold ICM drills were worse than absent: they arrive
+    with `boardCards: []`, `batch-preload.js` FABRICATED three deterministic
+    board cards for any boardless non-psychology question, and the street
+    backfill immediately below it had no `preflop` branch at all — so zero real
+    board cards fell through the `3 -> flop / 4 -> turn` ladder to **`'river'`**,
+    then took the default 12bb pot. A preflop drill was therefore served to the
+    player as a RIVER decision on an invented board. That half is **FIXED and
+    shipped 2026-08-06 (`d6e0bded`)**: the declared street is read once, before
+    both fabrications, and vetoes them; the street is resolved BEFORE the pot
+    default so a boardless spot defaults to 1.5bb rather than 12.
+
+    `computeDisplayPot` was changed in the same commit to take
+    `max(explicit, committed)` on PREFLOP instead of letting an explicit pot win
+    outright. Postflop, explicit must still win — the committed sum covers only
+    the CURRENT street, so trusting it would silently drop every earlier
+    street's money. Preflop there is no earlier street, so the committed sum is
+    complete by construction and can only improve on a stale or defaulted
+    field. Without this the 1.5 stamped above would survive UTG opening to 2.5,
+    and every EV-loss-as-percent-of-pot readout would divide by the wrong
+    number. Five assertions in `scripts/preflop-pot-check.js` pin both
+    directions (defaulted 1.5 loses to real chips; 1.5 survives when nobody has
+    acted; a larger explicit pot still wins; postflop explicit always wins;
+    postflop with no explicit pot still falls back to the sum) — PASS 18 FAIL 0.
+
+    **The item does not close.** The mis-serving is gone, but the arena still
+    cannot DEAL a preflop spot, so there is no screen on which to observe a
+    correct one. Closing #16 for real means making
+    `generateFromLocalSolverRanges` reachable — a `pioStreet` that some game
+    config actually sets, and a path to it from `generateBatch` — not touching
+    the felt or the preloader again.
+17. **Villain shows a real stack, not a fabricated one.** DONE —
+    screen-measured 2026-08-06 on `cash-001` at 430x932. The felt rendered
+    `KingFish / 100 bb` for hero and `BB / 100 bb` for the villain against a
+    POT of `6` and an `SPR: 16.7` chip. 100/6 = 16.67, so the seat stacks and
+    the SPR readout are computed from the same number rather than one being a
+    decorative constant beside the other -- which is the whole point of the
+    item. A fabricated stack would not have divided cleanly into the pot the
+    panel was already showing.
 18. **Folded villains grey out rather than vanish.** BUILT IN THE FELT,
     UNREACHABLE IN THE CONTENT PIPELINE — same shape as #16, established
     2026-08-06. The grey-out is implemented three times over in
@@ -298,7 +330,12 @@ High/Low mode.
     pool's idea of multiway is the literal STRING `villainPos: 'multiway'`
     (`DeterministicGTOEngine.js:861-878`), inside the same dead path as #16.
     Closing #18 for real means a multiway scenario model, not a felt change.
-19. **Avatar must not float mid-table.** BUILT 2026-07-26 — root cause was
+19. **Avatar must not float mid-table.** DONE — screen-measured 2026-08-06
+    by the same run that proved #30, which is the measurement that closes this
+    one too: with the feedback panel OPEN the entire felt stayed on screen,
+    shifted up ~48px, rather than clipping. Clipping was the mechanism that
+    stranded hero's avatar mid-view, so a non-clipping open is direct evidence
+    the strand cannot recur. Root cause was
     `tableArea` being `flex:1` + `overflow:hidden` around a `flexShrink:0`
     child with a 1/1.45 aspect ratio: opening the feedback panel CLIPPED the
     felt instead of scaling it, stranding hero's avatar mid-view. The table now
@@ -325,7 +362,15 @@ High/Low mode.
     at (274,122). Correct renders a single check. Also renamed the tiers to
     GTOW's own terminology: 'Correct Move' was labelled 'Excellent', which is
     not a tier name in the reference product.
-25. **GTOW Score -100..+100.** BUILT 2026-07-26 — unblocked and done. The
+25. **GTOW Score -100..+100.** DONE — screen-measured 2026-08-06. The
+    signed range was only ever half-proved: every prior session scored
+    POSITIVE, so the negative half of the scale had never been rendered and a
+    clamp-to-zero bug would have been invisible. A 20-question production
+    session was driven with the action choice pinned to the aggressive option
+    on every decision (18 BLUNDER / 3 INACCURACY / 5 CORRECT / 9 BEST) and the
+    summary rendered **-13%** under GTOW SCORE, grade **F**, "Review
+    Fundamentals". Negative scores render, and the transform is live in
+    production, not just in a unit test. The
     blocker was data, not code: the classification weights already run 1.0
     (BEST) .. 0.0 (BLUNDER), so signed = w*200-100 is an exact linear remap and
     stored history converts losslessly with v*2-100. Migrations
@@ -350,9 +395,39 @@ High/Low mode.
 27. **EV loss as % of pot.** DONE 2026-07-26 — the engine formula was fixed
     earlier; the value was computed and then displayed nowhere. The feedback
     banner now shows both units, e.g. `-0.50 bb (8.3% pot)`.
-28. **Average loss per mistake.** BUILT — corrected during cross-reference:
-    `avgEVLossPerMistake` already existed in useGTOWScore and is threaded
-    through the arena. The roadmap's original GAP status was wrong.
+28. **Average loss per mistake.** DONE — screen-measured 2026-08-06. The
+    tile rendered **-0.75** EV LOSS/MISTAKE beside **21** MISTAKES and
+    **-15.7** EV LOSS (BB); 15.7 / 21 = 0.7476, so the number on screen is the
+    real quotient of the two numbers next to it and not a placeholder.
+    Corrected earlier during cross-reference: `avgEVLossPerMistake` already
+    existed in useGTOWScore and is threaded through the arena, so the roadmap's
+    original GAP status was wrong.
+
+28a. **`handsPlayed` counted DECISIONS, not hands.** FIXED and shipped
+    2026-08-06 (`d6e0bded`), found while measuring #28 — the same screen that
+    proved #28 disproved the tile beside it. The summary rendered **20** HANDS,
+    **-15.7** EV LOSS and **-0.45** EV LOSS/HAND. 15.7/20 is 0.79, not 0.45;
+    15.7/35 is 0.45. Two tiles were dividing by different denominators and
+    only one of them was the hand count.
+
+    Root cause is the multi-street model wearing a disguise. `useGTOTrainer`
+    passed ``handId: currentQuestion.id || `q_${level}_${questionNumber}```,
+    which READS as a per-hand identity and is not one: `advanceToNextStreet`
+    replaces the whole question object (`nextQ = data.question` straight off
+    `/api/training/next-street`), so `currentQuestion.id` is a per-DECISION id.
+    `useGTOWScore.recordMove` increments `handsPlayed` on every change of that
+    key, so a 20-question session whose hands ran flop -> turn -> river counted
+    35 "hands" while the tile beside it printed `totalQuestions`.
+
+    This is the inverse of the five `[questionNumber]` effect bugs fixed
+    earlier: there, code keyed off a per-hand counter when it needed
+    per-decision. Here it keyed off a per-decision id when it needed per-hand.
+    The law generalises — **`questionNumber` is the ONLY value in this hook
+    that advances once per hand.** `nextQuestion` increments it and
+    `advanceToNextStreet` deliberately never touches it. Anything that must be
+    per-hand keys off `questionNumber` and nothing else; anything that must be
+    per-decision uses the `decisionKey` composite. An id that merely looks
+    stable is not evidence that it is.
 29. **Feedback waits for the player.** DONE — auto-advance defaulted on at 2s,
     which is why explanations vanished before they could be read.
 30. **Feedback inline; hand stays visible.** DONE — screen-measured 2026-08-06,
@@ -460,7 +535,12 @@ High/Low mode.
     pattern (`const hd = entry.handData || entry;`); the other two consumers did
     not. Status stays short of DONE until a 20-question session is driven to the
     summary screen and real SRP / 3BP / 4BP+ counts are read off it.
-41. **Frequency-difference metric.** BUILT.
+41. **Frequency-difference metric.** DONE — screen-measured 2026-08-06. The
+    summary rendered **73.3%** FREQ DIFF on the aggressive-bias session,
+    against 37.9% on the mixed-bias session driven earlier the same day. The
+    metric moves with how far the player's action distribution sits from the
+    solver's, which is what it is for; a hardcoded or always-zero readout would
+    not have differed between two sessions on the same game.
 42. **Leaderboard populates.** DONE — the writer targeted a table shape that
     does not exist, so every write failed silently. Screen-verified 2026-08-06:
     `/hub/leaderboards` renders real rows ("1 D Danimal Bekavac @danimal 4 pts,
@@ -601,6 +681,40 @@ working build look broken or a broken build look fine.
    "take the first legal control" came back BEST MOVE ten times, leaving the
    "a mistake must never auto-advance" half of #6 unmeasured. Alternating
    passive/aggressive produced two blunders and an inaccuracy in twelve hands.
+8. **`window` is NOT the scroller on the session-summary screen.** Four
+   `window.scrollTo(0, k*700)` calls all reported `scrollY = 0` and the run
+   concluded, wrongly, that two items were missing. The summary scrolls an inner
+   `div` (measured: `scrollHeight 3844` against `clientHeight 863`, while
+   `window` reads 932/932). Find the deepest element with
+   `scrollHeight - clientHeight >= 80`, an `overflowY` of `auto|scroll`, and a
+   height >= 200, then drive its `scrollTop`.
+9. **The summary screen is TABBED, not scrolled.** `reviewTab` defaults to
+   `'overview'`; the mistake review (`<HandReplayViewer>`) is inside the `hands`
+   block and the pot-type breakdown (`<LifetimeStatsCard>`) is inside `analysis`.
+   Neither is below the fold — they are not in the document. Worse, the
+   `Mistakes Only (N)` toggle that FILTERS the replay lives on `overview`, a
+   different tab from the list it filters, so the sequence is: flip the toggle on
+   Overview, THEN switch to Hands.
+10. **Nav chips must be matched EXACTLY, never by prefix.** The tab bar carries
+   ~160 chips with real prefix collisions — "Overview"/"Overbet",
+   "Analysis"/"Analytics", "3-Bet"/"3B Def" — and "Squeeze" appears twice. A
+   prefix matcher silently clicks the wrong one. (The SETUP screen is the
+   opposite case: its controls concatenate label + sublabel into
+   "RelaxedNo timer", so those need prefix matching. Different screens, opposite
+   rules.)
+11. **A collapsed `AnalysisSection` renders `{open && ...}` — its children are
+   not in the DOM at all.** Six accordions live on the Analysis tab and only two
+   ("Player Rating & Overview", "Leak Detection") open by default. The pot-type
+   row sits inside "Data & History" (`defaultOpen={false}`), so a run that
+   scrolled that tab to its true maximum still found nothing and reported a
+   working feature as missing. The collapse is deliberate progressive
+   disclosure, not a bug: the harness expands the section, the source does not
+   change its default.
+12. **`document.body.innerText.slice(0, N)` is worthless on the summary
+   screen.** The ~160-entry nav chip bar sits between the header stats and the
+   tab body, so 1800 characters never once reached the content being measured.
+   Read the target ELEMENT instead — the replay is wrapped in
+   `<div id="hand-replay-section">` precisely so it can be addressed.
 
 ---
 
