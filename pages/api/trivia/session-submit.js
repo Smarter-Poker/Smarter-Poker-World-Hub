@@ -49,7 +49,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { serviceClient, deterministicOptionOrder, optionOrderSeed } from './tournament-lifecycle';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
-import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
+import { getTodayStartCST, getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import { calculateDiamonds, DAILY_DIAMOND_CAPS, getModeConfig } from '../../../src/lib/trivia/triviaEngine';
 import { computeStakePot, ARCADE_MAX_RUN_PAYOUT, CASH_OUT_MIN_ANSWERED } from '../../../src/lib/trivia/arcadeStakes';
 
@@ -327,6 +327,40 @@ export default async function handler(req, res) {
             return res.status(code).json({ success: false, error: award.error || 'award_rejected' });
         }
 
+        // --- DAILY COMPLETION BONUS (server-paid) ------------------------
+        // Finishing the whole daily roster has always paid +10 on top of the
+        // run reward, once per CST day. The client used to credit it and no
+        // longer can (the browser credit RPC lost authenticated EXECUTE on
+        // 2026-08-03), so it is paid here. Idempotent by construction: the
+        // reference id embeds the CST date and add_diamonds_to_balance
+        // dedups on reference ids, so a retry, a resubmit race, or a second
+        // run today all collapse to the one credit. Paid on top of the
+        // mode's daily cap on purpose - that is the historic behavior
+        // (capped run reward + flat completion bonus).
+        let dailyBonusAwarded = 0;
+        let bonusBalance = null;
+        if (mode === 'daily' && total >= 10) {
+            try {
+                const { data: bonusRes, error: bonusErr } = await sb.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: 10,
+                    p_type: 'trivia_daily_bonus',
+                    p_description: 'Daily trivia completion bonus',
+                    p_reference_id: `trivia_daily_bonus_${userId}_${getTodayCST()}`,
+                });
+                if (bonusErr) {
+                    console.warn('[trivia session-submit] daily bonus credit failed:', bonusErr.message || bonusErr);
+                } else if (bonusRes && bonusRes.success !== false) {
+                    // success:false is the dedup answer - the bonus was
+                    // already paid today, so this run reports 0 extra.
+                    dailyBonusAwarded = 10;
+                    bonusBalance = bonusRes.new_balance ?? null;
+                }
+            } catch (e) {
+                console.warn('[trivia session-submit] daily bonus credit threw:', e?.message || e);
+            }
+        }
+
         res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
         return res.status(200).json({
             success: true,
@@ -336,7 +370,8 @@ export default async function handler(req, res) {
             total,
             score,
             diamondsAwarded: diamonds,
-            newBalance: award?.new_balance ?? null,
+            dailyBonusAwarded,
+            newBalance: bonusBalance ?? award?.new_balance ?? null,
             perQuestion,
         });
     } catch (e) {

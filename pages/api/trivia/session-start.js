@@ -49,6 +49,7 @@ import {
     DEFAULT_QUALITY_FLOOR
 } from '../../../src/lib/triviaQuestionLoader';
 import { getModeConfig, getCategoriesForMode, ALL_CATEGORIES } from '../../../src/lib/trivia/triviaEngine';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
 /**
  * Allow-list of playable modes AND the per-mode ceiling on questions in one
@@ -120,33 +121,65 @@ export default async function handler(req, res) {
             ? difficulty
             : undefined;
 
+        // --- DAILY: THE SHARED ROSTER, NOT A PRIVATE DRAW ----------------
+        // Daily's product promise is that every player answers the SAME
+        // questions (one roster per CST day, tagged daily_date/order_index
+        // by the generate-trivia cron) and competes on one comparable
+        // leaderboard. The generic pool draw below deals each player a
+        // private random set, which silently broke that promise when daily
+        // adopted server grading. Serve the tagged roster when it exists;
+        // top up from the pool only when a day's roster is short (degraded,
+        // but playable). Personal seen-history is deliberately NOT applied
+        // to the shared roster - the roster IS the day's content.
+        let picked = [];
+        if (mode === 'daily') {
+            const { data: rosterRows, error: rosterErr } = await sb
+                .from('trivia_questions')
+                .select('id, question, options, category, difficulty')
+                .eq('daily_date', getTodayCST())
+                .gte('quality_score', DEFAULT_QUALITY_FLOOR)
+                .order('order_index', { ascending: true })
+                .order('id', { ascending: true })
+                .limit(wanted);
+            if (rosterErr) {
+                console.warn('[trivia session-start] daily roster query failed:', rosterErr.message || rosterErr);
+            }
+            picked = (rosterRows || []).filter(q => q
+                && typeof q.id === 'string'
+                && Array.isArray(q.options)
+                && q.options.length >= 2);
+        }
+
         // --- LOAD THE POOL WITHOUT ANSWERS -------------------------------
         // loadQuestionsForUser() has no withoutAnswers option and its RPC fast
         // path returns whatever get_unseen_questions selects (which includes
         // the key), so this route drives the loader's lower-level pieces
         // instead: the same 60-day cross-mode exclusion, the same quality
         // floor, the same degradation ladder - but the no-answer column set.
-        const { ids: excludeIds } = await getSeenHistory(sb, userId, {});
-        const pool = await fetchRandomQuestionPool(sb, {
-            category: categories,
-            difficulty: diff,
-            pageSize: Math.max(200, wanted * 5),
-            minQuality: DEFAULT_QUALITY_FLOOR,
-            excludeIds,
-            want: wanted,
-            attempts: 3,
-            withoutAnswers: true,
-        });
+        if (picked.length < wanted) {
+            const { ids: excludeIds } = await getSeenHistory(sb, userId, {});
+            const pool = await fetchRandomQuestionPool(sb, {
+                category: categories,
+                difficulty: diff,
+                pageSize: Math.max(200, wanted * 5),
+                minQuality: DEFAULT_QUALITY_FLOOR,
+                excludeIds,
+                want: wanted,
+                attempts: 3,
+                withoutAnswers: true,
+            });
 
-        const ordered = filterAndShuffle(pool, excludeIds, wanted, {
-            minQualityScore: DEFAULT_QUALITY_FLOOR,
-        });
-        const picked = ordered
-            .filter(q => q
+            const ordered = filterAndShuffle(pool, excludeIds, wanted, {
+                minQualityScore: DEFAULT_QUALITY_FLOOR,
+            });
+            const already = new Set(picked.map(q => q.id));
+            const fill = ordered.filter(q => q
                 && typeof q.id === 'string'
+                && !already.has(q.id)
                 && Array.isArray(q.options)
-                && q.options.length >= 2)
-            .slice(0, wanted);
+                && q.options.length >= 2);
+            picked = [...picked, ...fill].slice(0, wanted);
+        }
 
         if (picked.length === 0) {
             return res.status(503).json({ success: false, error: 'no_questions_available' });
