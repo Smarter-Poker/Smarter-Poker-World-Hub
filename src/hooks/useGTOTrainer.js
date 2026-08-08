@@ -840,6 +840,39 @@ export default function useGTOTrainer(
         console.warn('[App] Handled exception:', e?.message || e);
       }
 
+      // SESSION ANALYTICS FIX (2026-08-08): _sessionStats.history was NEVER
+      // populated — ~20 engine analysis methods (mistake clusters, EV-loss
+      // heatmap, concept mastery, quick-fire review cards, streak analysis,
+      // the comprehensive session report...) all read it and all returned
+      // null/empty in every session ever played. Record the graded decision
+      // in the exact shape those consumers destructure. Action fields carry
+      // the human-readable option text because getExploitativeAdjustments /
+      // getBettingSizeAnalysis pattern-match on words like 'fold' and '50%'.
+      try {
+        deterministicEngine.recordSessionHand({
+          correct: isCorrect,
+          classification: moveResult.classification,
+          evLoss: moveResult.evLoss || 0,
+          street: scenario.street || null,
+          nodeType: scenario.nodeType || '',
+          action: selectedText,
+          selectedAction: selectedText,
+          correctAction: correctText,
+          handCategory: currentQuestion.handCategory || '',
+          frequencies: frequencies || null,
+          heroPosition: scenario.heroPosition || scenario.position || null,
+          // Real texture classification from the board when one exists;
+          // preflop spots stay null rather than inventing a texture.
+          texture:
+            scenario.boardTexture?.description ||
+            (Array.isArray(scenario.board) && scenario.board.length >= 3
+              ? deterministicEngine.classifyBoardTexture(scenario.board)?.desc || null
+              : null),
+        });
+      } catch (e) {
+        console.warn('[App] Handled exception:', e?.message || e);
+      }
+
       // Phase 76: Record mistake pattern for dynamic explanation depth
       try {
         deterministicEngine.recordMistakePattern({
@@ -1750,6 +1783,10 @@ export default function useGTOTrainer(
     setEffectiveQuestionsPerLevel(baseQuestionsPerLevel); // Reset to original count
     // Reset per-session scoring + tracking state
     gtowScoring.resetScore();
+    // Keep the engine-side session accumulator (_sessionStats.history) in
+    // step with the hook's — otherwise a retry's review screen would mix
+    // two sessions' histories.
+    try { deterministicEngine.resetSessionDifficulty(); } catch (_) {}
     mistakeQuestionsRef.current = [];
     adaptiveCheckpointRef.current = 5;
     prefetchTriggeredRef.current = false;
@@ -1786,6 +1823,7 @@ export default function useGTOTrainer(
 
     // Reset scoring for the retrain session
     gtowScoring.resetScore();
+    try { deterministicEngine.resetSessionDifficulty(); } catch (_) {}
     // Clear the mistakes ref so this retrain session tracks fresh mistakes
     mistakeQuestionsRef.current = [];
 
@@ -1808,6 +1846,10 @@ export default function useGTOTrainer(
     setEffectiveQuestionsPerLevel(baseQuestionsPerLevel); // Reset to original count
     // Reset per-session scoring + tracking state
     gtowScoring.resetScore();
+    // Keep the engine-side session accumulator (_sessionStats.history) in
+    // step with the hook's — otherwise a retry's review screen would mix
+    // two sessions' histories.
+    try { deterministicEngine.resetSessionDifficulty(); } catch (_) {}
     mistakeQuestionsRef.current = [];
     adaptiveCheckpointRef.current = 5;
     prefetchTriggeredRef.current = false;

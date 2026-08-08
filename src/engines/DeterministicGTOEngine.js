@@ -5204,7 +5204,58 @@ export class DeterministicGTOEngine {
     }
 
     resetSessionDifficulty() {
-        this._sessionStats = { correct: 0, total: 0, recentWindow: [] };
+        this._sessionStats = { correct: 0, total: 0, recentWindow: [], history: [], evLoss: 0 };
+    }
+
+    /**
+     * SESSION ANALYTICS FIX (2026-08-08): populate _sessionStats.history.
+     *
+     * Roughly twenty analysis methods in this file (getConceptMasteryReport,
+     * getMistakeClusters, getEVLossHeatmap, getQuickFireReviewCards,
+     * getRunningActionFrequencies, getStreakAnalysis, getComprehensiveSessionReport,
+     * ...) read `this._sessionStats.history` and every one of them returned
+     * null/empty forever, because NOTHING ever pushed to it. The trainer only
+     * called updateSessionDifficulty(isCorrect), which counts but does not
+     * record. This is the write half of that dead pipeline.
+     *
+     * Called by useGTOTrainer at the moment an answer is graded, right after
+     * updateSessionDifficulty. The record shape is exactly what the consumer
+     * methods destructure: `correct`, `classification`, `evLoss`, `street`,
+     * `nodeType`, `action`/`selectedAction` (human-readable action text —
+     * getExploitativeAdjustments and getBettingSizeAnalysis run
+     * .includes('fold') / .includes('50%') on it), `correctAction`,
+     * `handCategory`, `frequencies` (action -> % map), `heroPosition`/
+     * `position`, `texture`. Fields that are genuinely unknown at grade time
+     * stay null and their consumers keep degrading gracefully rather than
+     * being fed junk.
+     *
+     * Also accumulates the `_sessionStats.evLoss` scalar that
+     * getComprehensiveSessionReport reads for its overview totals.
+     */
+    recordSessionHand(record = {}) {
+        if (!this._sessionStats) {
+            this._sessionStats = { correct: 0, total: 0, recentWindow: [], history: [], evLoss: 0 };
+        }
+        if (!this._sessionStats.history) this._sessionStats.history = [];
+        if (!Number.isFinite(this._sessionStats.evLoss)) this._sessionStats.evLoss = 0;
+        const evLoss = Number.isFinite(record.evLoss) ? record.evLoss : 0;
+        this._sessionStats.evLoss = Math.round((this._sessionStats.evLoss + evLoss) * 100) / 100;
+        this._sessionStats.history.push({
+            correct: !!record.correct,
+            classification: record.classification || null,
+            evLoss,
+            street: record.street || null,
+            nodeType: record.nodeType || '',
+            action: record.action || '',
+            selectedAction: record.selectedAction || record.action || '',
+            correctAction: record.correctAction || '',
+            handCategory: record.handCategory || '',
+            frequencies: record.frequencies || null,
+            heroPosition: record.heroPosition || null,
+            position: record.heroPosition || null,
+            texture: record.texture || null,
+            timestamp: Date.now(),
+        });
     }
 
     getStreetForLevel(level) {
@@ -10425,7 +10476,7 @@ export class DeterministicGTOEngine {
      * - Version info
      */
     resetSession() {
-        this._sessionStats = { total: 0, correct: 0 };
+        this._sessionStats = { total: 0, correct: 0, recentWindow: [], history: [], evLoss: 0 };
         this._mistakeTracker = {};
         this._recentResults = [];
         this._deviationTracker = null;
