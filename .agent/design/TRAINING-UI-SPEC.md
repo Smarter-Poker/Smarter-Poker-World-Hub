@@ -133,7 +133,41 @@ furniture, or free the container and let the furniture bleed onto the HUD above
 and the stats strip below. Neither is acceptable. The felt must reserve room
 for its own furniture, and shrink to fit rather than push past its edges.
 
-### 4.1 HUD budget (binding)
+### 4.1 Height-constrained viewports: the oval flattens (binding, 2026-08-08)
+
+The reference silhouette (`training-table-template.png`) fixes the felt at a
+1/1.45 portrait oval, and that ratio governs every normal viewport. But on a
+short screen (360x640: ~356px of page chrome) locking the ratio starves the
+oval's own width — the felt landed at 161x233 with `feltScale` bottomed at its
+0.58 floor, the top seat row touched the board, and at 320px the five board
+cards were wider than the felt itself.
+
+**The call (owner-delegated): when height-constrained, the oval flattens.**
+
+- While the locked-ratio `feltScale` would be **>= 0.68**, the aspect is the
+  template's **1/1.45 exactly** — no drift at normal sizes.
+- Below 0.68 the aspect interpolates linearly, reaching **1/1.12 at a
+  locked-ratio scale of 0.52 and clamping there**. Still portrait, never
+  landscape. Measured gain: felt area +31% at 360x640, +32% at 320x568, and
+  the board fits with margin at both.
+- The aspect is a pure function of the table AREA's measured box (never of the
+  felt's own box — that would feed the resize observer its own output), so it
+  cannot oscillate. Seat/button/chip coordinates are percentages of the felt
+  and survive the reshape untouched; the hero-relative rotation contract
+  (`((abs - heroSeatIndex) % playerCount + playerCount) % playerCount`) is not
+  involved.
+- Constants and replayed math live in `feltAspect` (UniversalDynamicTable) and
+  are asserted in `scripts/table-geometry-check.js` (flatten section, plus
+  320x568 in the standard sweep — its clamp windows were EMPTY at the locked
+  ratio).
+
+**Dropping seats is forbidden.** The alternative fix — "cap to 6-max when
+`feltScale <= 0.65`" — shipped once and was reverted for cause: it re-broke
+the dealer-button rotation and hid villains with chips committed in the pot.
+A seat with money in front of it is game state, not furniture. Never
+reintroduce it.
+
+### 4.2 HUD budget (binding)
 
 Between the question and the felt there is **one** rail. Not two, not six.
 
