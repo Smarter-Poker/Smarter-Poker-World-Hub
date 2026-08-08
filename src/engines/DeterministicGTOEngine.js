@@ -1908,12 +1908,39 @@ export class DeterministicGTOEngine {
 
         const heroHand = hands[Math.floor(Math.random() * hands.length)];
         const handData = handMatrix[heroHand];
-        const pushFreq = handData?.push || handData?.shove || 0;
-        const correctAction = pushFreq > 0.5 ? 'push' : 'fold';
+
+        // memory_charts_gold holds TWO node types, distinguishable by matrix
+        // keys: open-shove charts store { push|shove, fold } and BB-defence
+        // charts (villain_action 'sb_push') store { call, fold }. The old code
+        // only read push/shove, so every hand in a call-node chart fell through
+        // to `|| 0` and graded as a 100% fold — including AA. It then rendered
+        // the node as "Push or Fold?", which is not even the decision the
+        // chart answers. 2026-03 cache rows generated that way were purged by
+        // migration 20260806*; do not reintroduce the bug.
+        const isCallNode = (handData && handData.call !== undefined)
+            || chart.villain_action === 'sb_push';
+        const yesFreqRaw = isCallNode
+            ? handData?.call
+            : (handData?.push ?? handData?.shove);
+        const yesFreq = Number(yesFreqRaw);
+        // A hand whose frequency this code cannot READ is not a fold — it is
+        // an unusable row. Refusing beats fabricating an answer.
+        if (!Number.isFinite(yesFreq)) return null;
+
+        const yesId = isCallNode ? 'call' : 'push';
+        const yesText = isCallNode ? 'Call All-In' : 'Push All-In';
+        const correctAction = yesFreq > 0.5 ? yesId : 'fold';
+
+        const VILLAIN_ACTION_TEXT = {
+            fold_to_hero: 'Folded to you',
+            sb_push: 'SB shoves all-in',
+        };
+        const villainActionText = VILLAIN_ACTION_TEXT[chart.villain_action]
+            || chart.villain_action || 'Folded to you';
 
         const gtoFrequencies = {
-            push: Math.round(pushFreq * 100),
-            fold: Math.round((1 - pushFreq) * 100),
+            [yesId]: Math.round(yesFreq * 100),
+            fold: Math.round((1 - yesFreq) * 100),
         };
 
         return {
@@ -1924,24 +1951,24 @@ export class DeterministicGTOEngine {
                 stackDepth: chart.stack_depth,
                 heroPosition: chart.hero_position || chart.position || 'BTN',
                 heroStack: chart.stack_depth || 15,
-                villainPosition: 'BB',
+                villainPosition: isCallNode ? 'SB' : 'BB',
                 villainStack: chart.stack_depth || 15,
                 pot: 1.5,
                 board: '',
-                action: chart.villain_action || 'Folded to you',
+                action: villainActionText,
                 heroHand,
-                isMixedStrategy: pushFreq > 0.1 && pushFreq < 0.9,
+                isMixedStrategy: yesFreq > 0.1 && yesFreq < 0.9,
             },
             heroCards: parseHandToCards(heroHand),
             boardCards: [],  // Push/fold games are preflop — no board
-            question: `${chart.hero_position || 'BTN'} with ${heroHand} at ${chart.stack_depth}BB. ${chart.villain_action || 'Folded to you'}. Push or Fold?`,
+            question: `${chart.hero_position || 'BTN'} with ${heroHand} at ${chart.stack_depth}BB. ${villainActionText}. ${isCallNode ? 'Call or Fold?' : 'Push or Fold?'}`,
             options: [
-                { id: 'push', text: 'Push All-In', frequency: gtoFrequencies.push },
+                { id: yesId, text: yesText, frequency: gtoFrequencies[yesId] },
                 { id: 'fold', text: 'Fold', frequency: gtoFrequencies.fold },
             ],
             correctAnswer: correctAction,
-            correctAnswerText: correctAction === 'push' ? 'Push All-In' : 'Fold',
-            frequencies: { push: pushFreq, fold: 1 - pushFreq },
+            correctAnswerText: correctAction === 'fold' ? 'Fold' : yesText,
+            frequencies: { [yesId]: yesFreq, fold: 1 - yesFreq },
             gtoFrequencies,
             // Charts have no real EV data — zero out so the client falls back
             // to simulated EV loss instead of treating frequency as EV.
@@ -1951,7 +1978,7 @@ export class DeterministicGTOEngine {
                 handEVs: null,
                 heroHand,
             },
-            explanation: this.buildChartExplanation(heroHand, chart, pushFreq, correctAction),
+            explanation: this.buildChartExplanation(heroHand, chart, yesFreq, correctAction, isCallNode),
             difficulty: level,
             heroHand,
         };
@@ -4749,8 +4776,8 @@ export class DeterministicGTOEngine {
         }
     }
 
-    buildChartExplanation(heroHand, chart, pushFreq, correctAction) {
-        const pct = (pushFreq * 100).toFixed(0);
+    buildChartExplanation(heroHand, chart, yesFreq, correctAction, isCallNode = false) {
+        const pct = (yesFreq * 100).toFixed(0);
         const pos = chart.hero_position || chart.position || 'BTN';
         const stack = chart.stack_depth || 15;
 
@@ -4759,6 +4786,21 @@ export class DeterministicGTOEngine {
         const isPair = r1 === r2;
         const isSuited = heroHand.length >= 3 && heroHand[2] === 's';
         const isHighCard = ['A', 'K', 'Q'].includes(r1);
+
+        // ── Call node (BB defending vs an SB shove) — no fold equity exists,
+        // so the shove-flavoured reasons below would be nonsense here.
+        if (isCallNode) {
+            if (correctAction === 'call') {
+                let reason = '';
+                if (isPair) reason = 'Pocket pairs realise their full equity all-in — no reverse implied odds.';
+                else if (isHighCard) reason = 'High-card hands dominate enough of the shoving range to call profitably.';
+                else if (isSuited) reason = 'The pot odds an all-in lays make this suited hand a profitable call.';
+                else reason = 'Against a wide shoving range, the price makes this call profitable.';
+                return `ICM: ${heroHand} is a ${pct}% call from ${pos} at ${stack}BB facing the shove. ${reason}`;
+            }
+            return `ICM: ${heroHand} is only a ${pct}% call from ${pos} at ${stack}BB facing the shove. `
+                + `You have no fold equity when calling — the hand must win at showdown often enough, and this one doesn't.`;
+        }
 
         if (correctAction === 'push') {
             let reason = '';
