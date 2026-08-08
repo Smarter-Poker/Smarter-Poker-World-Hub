@@ -206,12 +206,40 @@ async function handleCheckoutCompleted(session) {
 
             // Set VIP on profile and link Stripe customer
             if (metadata?.user_id) {
+                // ═══════════════════════════════════════════════════════════
+                // vip_expires_at MUST be written here.
+                //
+                // /api/vip/check-status — the platform's single truth function
+                // for "is this user VIP" — requires is_vip = true AND
+                // (vip_tier = 'lifetime' OR vip_expires_at > now). A NULL
+                // expiry on a non-lifetime tier is DELIBERATELY read as
+                // expired, because "no end date" is not "never ends".
+                //
+                // This block previously set is_vip and vip_tier and never the
+                // expiry, and nothing downstream backfilled it, so a paying
+                // $19.99/mo or $199.99/yr subscriber got isVip:false from every
+                // gate and was skipped by the 500 ◆ monthly stipend cron for
+                // exactly that reason. Money taken, nothing granted. Nobody has
+                // hit it yet only because no Stripe subscription has completed:
+                // 0 profiles currently have a paid tier with a null expiry.
+                //
+                // current_period_end is seconds since epoch. The fallback keeps
+                // a paying customer VIP for a period rather than instantly
+                // lapsed if Stripe ever omits it.
+                // ═══════════════════════════════════════════════════════════
+                const tier = metadata.vip_tier || 'monthly';
+                const periodEnd = Number(subscription?.current_period_end);
+                const expiresAt = Number.isFinite(periodEnd) && periodEnd > 0
+                    ? new Date(periodEnd * 1000).toISOString()
+                    : new Date(Date.now() + (tier === 'annual' || tier === 'yearly' ? 365 : 31) * 86400000).toISOString();
+
                 const { error: err_profiles_yhokl } = await getSupabase()
                   .from('profiles')
                   .update({
                         stripe_customer_id: customer,
                         is_vip: true,
-                        vip_tier: metadata.vip_tier || 'monthly',
+                        vip_tier: tier,
+                        vip_expires_at: expiresAt,
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', metadata.user_id);
@@ -246,7 +274,9 @@ async function handleSubscriptionUpdate(subscription) {
     // Get user ID from customer
     const { data: profile } = await getSupabase()
         .from('profiles')
-        .select('id, vip_expires_at')
+        // vip_tier is read so a renewal cannot silently downgrade an annual
+        // subscriber to 'monthly' when Stripe metadata does not carry the tier.
+        .select('id, vip_expires_at, vip_tier')
         .eq('stripe_customer_id', customer)
         .maybeSingle();
 
@@ -283,9 +313,21 @@ async function handleSubscriptionUpdate(subscription) {
     // A separately purchased daily pass (vip_expires_at in the future) is respected.
     const isActiveStatus = status === 'active' || status === 'trialing';
     if (isActiveStatus) {
+        // Push vip_expires_at forward on every renewal. is_vip alone is not
+        // enough for /api/vip/check-status: it also requires an expiry in the
+        // future, so syncing only the flag would leave a paying subscriber
+        // reading as lapsed the moment their first period ended. The tier is
+        // written too, so a plan change (monthly -> annual) is reflected rather
+        // than leaving the profile on a stale tier.
+        const renewalExpiry = new Date(current_period_end * 1000).toISOString();
         const { error: vipSyncErr } = await getSupabase()
             .from('profiles')
-            .update({ is_vip: true, updated_at: new Date().toISOString() })
+            .update({
+                is_vip: true,
+                vip_tier: metadata?.vip_tier || profile.vip_tier || 'monthly',
+                vip_expires_at: renewalExpiry,
+                updated_at: new Date().toISOString(),
+            })
             .eq('id', profile.id);
         if (vipSyncErr) console.warn('[stripe-webhook] Failed to sync is_vip=true for', profile.id, vipSyncErr.message);
     } else {

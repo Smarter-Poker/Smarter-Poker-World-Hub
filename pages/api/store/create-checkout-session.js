@@ -503,12 +503,39 @@ export default async function handler(req, res) {
                   }
               }
 
-              // Build line items using server price where available, client price otherwise
+              // ═══════════════════════════════════════════════════════════════
+              // Every merchandise line MUST resolve to a catalog row. There is
+              // no client-priced path any more.
+              //
+              // SECURITY (2026-08-06): items with no `id` were accepted and
+              // priced from the request body, bounded only by a $0.50–$500
+              // sanity band. That was survivable while the storefront always
+              // sent ids — but MerchStore.jsx required a UUID to treat a value
+              // as a catalog id, and merchandise_items.id is TEXT holding slugs
+              // ('hoodie-neural'), so it sent NO id for any real product and
+              // every merch purchase was priced by the browser. A $199.99 chip
+              // set went through at $0.50. Rejecting unpriceable items closes
+              // both halves: the storefront now sends slugs, and anything the
+              // catalog does not recognise is refused rather than trusted.
+              // ═══════════════════════════════════════════════════════════════
+              const unpriceable = items.find((item) => !item.id || !catalogPrices[item.id]);
+              if (unpriceable) {
+                  console.warn(`[Checkout] Rejected unpriceable item "${unpriceable.name}" from ${user.id}`);
+                  return res.status(400).json({
+                      success: false,
+                      error: {
+                          code: 'ITEM_NOT_FOUND',
+                          message: `Item "${String(unpriceable.name || 'unknown').slice(0, 80)}" is no longer available`,
+                      },
+                  });
+              }
+
+              // Build line items from the SERVER price, always.
               const resolvedItems = items.map(item => {
-                  const catalog = item.id ? catalogPrices[item.id] : null;
+                  const catalog = catalogPrices[item.id];
                   return {
-                      name: catalog ? catalog.name : String(item.name).slice(0, 200),
-                      price: catalog ? parseFloat(catalog.price_usd) : parseFloat(item.price),
+                      name: catalog.name,
+                      price: parseFloat(catalog.price_usd),
                       image: catalog?.image_url || item.image || null,
                       description: item.description ? String(item.description).slice(0, 500) : undefined,
                       quantity: Math.min(Math.max(parseInt(item.quantity) || 1, 1), 10),

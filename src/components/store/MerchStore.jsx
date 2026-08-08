@@ -80,12 +80,21 @@ function firstBoolean(candidates) {
     return null;
 }
 
-// A catalog id is only usable as a merchandise_items primary key when it looks
-// like a uuid — the static fallback rows use slugs ('hoodie-neural'), and
-// sending a slug as `id` makes the server's `.in('id', …)` lookup fail and the
-// whole order get rejected as "no longer available".
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const isCatalogId = (v) => typeof v === 'string' && UUID_RE.test(v.trim());
+// A catalog id is any non-empty string, because merchandise_items.id is TEXT
+// and production rows are slugs — 'hoodie-neural', 'card-protector-gold',
+// 'chip-set-500'.
+//
+// SECURITY (2026-08-06): this used to require a UUID, on the assumption that
+// slugs were only ever static fallback rows. The assumption was inverted — the
+// real catalog is slugs, so isCatalogId() returned false for EVERY product,
+// `catalogId` was null on every line item, and buildLineItem() sent
+// { name, price, quantity } with no id. Both checkout endpoints then priced
+// from that client-supplied `price`, so a $199.99 chip set could be bought for
+// $0.50, or 19,999 ◆ for 50 ◆. The server-side price oracle was live and
+// correct the whole time; nothing ever reached it from this component.
+// pages/hub/diamond-store/cart.js passed the slug through unmodified and was
+// therefore repriced correctly, which is why the two storefronts disagreed.
+const isCatalogId = (v) => typeof v === 'string' && v.trim().length > 0;
 
 // ── Normalisation ─────────────────────────────────────────────────────────
 // The catalog endpoint is owned by another agent and is not deployed yet, so
