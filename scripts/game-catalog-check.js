@@ -77,6 +77,7 @@ const { LEVEL_REGISTRY } = require(path.join(ROOT, 'src/config/LevelRegistry.ts'
 const { DeterministicGTOEngine } = require(path.join(ROOT, 'src/engines/DeterministicGTOEngine.js'));
 const { applyDeterministicEnginePatches } = require(path.join(ROOT, 'src/engines/deterministicEnginePatches.js'));
 const { heroActsFirstPostflop } = require(path.join(ROOT, 'src/engines/positionOrder.js'));
+const { getPsychologyGameIds } = require(path.join(ROOT, 'src/data/psychologyQuestionBank.js'));
 
 // -- tallies ----------------------------------------------------------------
 let PASS = 0;
@@ -329,6 +330,18 @@ async function main() {
     for (const api of ['pages/api/training/batch-preload.js', 'pages/api/training/get-question.js']) {
         const src = fs.readFileSync(path.join(ROOT, api), 'utf8');
         ok(/Math\.min\(12,\s*Math\.max\(1,/.test(src), api + ' clamps level to 12 (not 10)');
+    }
+
+    // Every SCENARIO-routed game must own a dedicated bank bucket. The bank
+    // silently serves a general pool for unknown ids, which would mask a
+    // renamed/missing bucket -- the exact mechanism behind the 2026-07
+    // zero-question psychology audit finding.
+    const bankIds = new Set(getPsychologyGameIds());
+    for (const g of TRAINING_LIBRARY) {
+        const cfg = pioQueryService.getGameConfig(g.id);
+        if (cfg && cfg.sourceOfTruth === 'SCENARIO') {
+            ok(bankIds.has(g.id), '[' + g.id + '] has a dedicated psychology-bank bucket');
+        }
     }
 
     const engine = new DeterministicGTOEngine();
