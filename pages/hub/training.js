@@ -107,6 +107,10 @@ export default function TrainingPage() {
 
   // Real data from RPC + Jarvis API — no hardcoded fallbacks
   const { stats, statsLoading, recommendation, recommendationLoading } = useTrainingDashboard(authUser);
+  // Lifetime cross-session progress: real training_sessions rows +
+  // training_answers position aggregates. Empty history renders an honest
+  // "No sessions yet" — never invented numbers.
+  const { lifetimeSessions, positionAccuracy, progressLoading } = useLifetimeProgress(authUser);
   const biggestLeak = useMemo(() => leakAnalyzer.getBiggest?.(authUser?.id) ?? null, [authUser]);
   // Use the real recommendation when available; null otherwise (UI handles empty state)
   const jarvisPick = recommendation;
@@ -365,6 +369,18 @@ export default function TrainingPage() {
                     : null}
                 />
               </div>
+            </section>
+
+            <section aria-labelledby="prog-h">
+              <div className="sp-section-head">
+                <h2 id="prog-h" className="sp-section-title">Progress</h2>
+              </div>
+              <ProgressBlock
+                sessions={lifetimeSessions}
+                positionAccuracy={positionAccuracy}
+                loading={progressLoading}
+                signedIn={Boolean(authUser?.id)}
+              />
             </section>
 
             <section aria-labelledby="lib-h">
@@ -652,6 +668,146 @@ function ArenaSkeleton() {
 }
 
 /**
+ * ProgressBlock — compact lifetime progress: signed GTOW score sparkline
+ * across recent sessions, lifetime accuracy by position, and a sessions
+ * list (date · game · score · accuracy · EV loss). All values come from
+ * /api/training/get-sessions and /api/training/analytics; scores are
+ * score_scale-normalized server-side (gtow_score_signed, -100..+100).
+ */
+function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
+  if (loading) {
+    return <div className="sp-progress" aria-busy="true"><span className="sp-progress-note">Loading progress…</span></div>;
+  }
+  const rows = sessions || [];
+  if (!signedIn || rows.length === 0) {
+    return (
+      <div className="sp-progress sp-progress-blank">
+        <span className="sp-progress-note">
+          {signedIn
+            ? 'No sessions yet — finish a drill and your score trend, position accuracy and history will build here.'
+            : 'Sign in and finish a drill to start building your progress history.'}
+        </span>
+      </div>
+    );
+  }
+
+  const signedScore = (r) =>
+    r.gtow_score_signed != null
+      ? r.gtow_score_signed
+      : r.gtow_score == null
+        ? 0
+        : (r.score_scale === 2 ? r.gtow_score : r.gtow_score * 2 - 100);
+
+  // rows arrive newest-first; sparkline reads left → right chronologically
+  const chrono = [...rows].reverse();
+  const sparkData = chrono.map(r => ({
+    value: Math.max(0, Math.min(1, (signedScore(r) + 100) / 200)),
+    miss: r.level_passed === false,
+  }));
+
+  const POS_ORDER = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+  const posRows = POS_ORDER
+    .map(pos => ({ pos, ...(positionAccuracy?.[pos] || {}) }))
+    .filter(r => (r.total || 0) > 0);
+
+  const barColor = (acc) => acc >= 75 ? 'var(--sp-good)' : acc >= 55 ? 'var(--sp-warn)' : 'var(--sp-bad)';
+  const fmtScore = (v) => { const n = Math.round(v); return n > 0 ? `+${n}` : `${n}`; };
+
+  return (
+    <div className="sp-progress">
+      <div className="sp-progress-grid">
+        <div>
+          <div className="sp-progress-label">GTOW score · last {chrono.length} sessions</div>
+          <Sparkline data={sparkData} />
+          <div className="sp-progress-meta">
+            Latest <b className="sp-num">{fmtScore(signedScore(rows[0]))}</b>
+            {rows[0]?.created_at ? ` · ${new Date(rows[0].created_at).toLocaleDateString()}` : ''}
+          </div>
+        </div>
+        <div>
+          <div className="sp-progress-label">Accuracy by position · lifetime</div>
+          {posRows.length === 0 ? (
+            <div className="sp-progress-note">No per-position data recorded yet.</div>
+          ) : posRows.map(r => {
+            const acc = r.total > 0 ? Math.round((r.correct / r.total) * 100) : 0;
+            return (
+              <div key={r.pos} className="sp-prow">
+                <span className="sp-prow-pos">{r.pos}</span>
+                <span className="sp-prow-track"><span className="sp-prow-fill" style={{ width: `${acc}%`, background: barColor(acc) }} /></span>
+                <span className="sp-prow-val sp-num">{acc}%</span>
+                <span className="sp-prow-n">{r.total}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="sp-progress-label" style={{ marginTop: 14 }}>Recent sessions</div>
+      <ul className="sp-plist">
+        {rows.slice(0, 6).map((r, i) => (
+          <li key={r.id || i} className="sp-plist-row">
+            <span className="sp-plist-date">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</span>
+            <span className="sp-plist-game">{r.game_name || r.game_id || 'Training'}</span>
+            <span className="sp-plist-score sp-num" style={{ color: signedScore(r) >= 50 ? 'var(--sp-good)' : signedScore(r) >= 0 ? 'var(--sp-warn)' : 'var(--sp-bad)' }}>
+              {fmtScore(signedScore(r))}
+            </span>
+            <span className="sp-plist-acc sp-num">{r.accuracy != null ? `${Math.round(r.accuracy)}%` : '—'}</span>
+            <span className="sp-plist-ev sp-num">-{Number(r.total_ev_loss || 0).toFixed(1)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * useLifetimeProgress — recent training_sessions rows (score_scale
+ * normalized server-side) + lifetime position accuracy from
+ * training_answers via /api/training/analytics.
+ */
+function useLifetimeProgress(authUser) {
+  const [lifetimeSessions, setLifetimeSessions] = useState(null);
+  const [positionAccuracy, setPositionAccuracy] = useState(null);
+  const [progressLoading, setProgressLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!authUser?.id) {
+        setProgressLoading(false);
+        return;
+      }
+      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      try {
+        const r = await fetch('/api/training/get-sessions?limit=10', { headers });
+        if (!r.ok) throw new Error(`get-sessions ${r.status}`);
+        const json = await r.json();
+        if (!cancelled && json.success) setLifetimeSessions(json.sessions || []);
+      } catch (e) {
+        if (!cancelled) console.warn('[Training] get-sessions fetch failed:', e?.message || e);
+      }
+
+      try {
+        const r = await fetch('/api/training/analytics?days=365&type=breakdown', { headers });
+        if (!r.ok) throw new Error(`analytics ${r.status}`);
+        const json = await r.json();
+        if (!cancelled && json.success) setPositionAccuracy(json.positionAccuracy || null);
+      } catch (e) {
+        if (!cancelled) console.warn('[Training] analytics fetch failed:', e?.message || e);
+      }
+
+      if (!cancelled) setProgressLoading(false);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [authUser?.id]);
+
+  return { lifetimeSessions, positionAccuracy, progressLoading };
+}
+
+/**
  * useTrainingDashboard — single source of truth for the dashboard surface.
  * Pulls aggregated weekly stats from /api/training/weekly-stats (RPC-backed)
  * and the recommended drill from /api/training/recommendations (Jarvis).
@@ -831,6 +987,29 @@ function GlobalStyle() {
       .sp-spark { display: flex; align-items: flex-end; gap: 3px; height: 32px; margin-top: 8px; }
       .sp-spark span { display: block; width: 10px; border-radius: 2px; background: rgba(245,158,11,0.4); }
       .sp-spark span.sp-spark-miss { background: var(--sp-bad); }
+
+      .sp-progress { background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); padding: 16px; }
+      .sp-progress-blank { border-style: dashed; text-align: center; padding: 32px 16px; }
+      .sp-progress-note { color: var(--sp-ink-2); font-size: 13px; }
+      .sp-progress-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+      @media (max-width: 720px) { .sp-progress-grid { grid-template-columns: 1fr; } }
+      .sp-progress-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sp-ink-3); margin-bottom: 8px; }
+      .sp-progress-meta { margin-top: 6px; font-size: 12px; color: var(--sp-ink-2); }
+      .sp-progress-meta b { color: var(--sp-ink-0); }
+      .sp-prow { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+      .sp-prow-pos { width: 32px; flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--sp-ink-1); }
+      .sp-prow-track { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.05); overflow: hidden; }
+      .sp-prow-fill { display: block; height: 100%; border-radius: 3px; }
+      .sp-prow-val { width: 38px; text-align: right; font-size: 11px; font-weight: 700; color: var(--sp-ink-0); }
+      .sp-prow-n { width: 34px; text-align: right; font-size: 10px; color: var(--sp-ink-3); }
+      .sp-plist { list-style: none; margin: 0; padding: 0; }
+      .sp-plist-row { display: flex; align-items: center; gap: 10px; padding: 7px 2px; border-bottom: 1px solid var(--sp-line); font-size: 12px; }
+      .sp-plist-row:last-child { border-bottom: none; }
+      .sp-plist-date { width: 78px; flex-shrink: 0; color: var(--sp-ink-3); font-size: 11px; }
+      .sp-plist-game { flex: 1; color: var(--sp-ink-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .sp-plist-score { width: 42px; text-align: right; font-weight: 700; }
+      .sp-plist-acc { width: 40px; text-align: right; color: var(--sp-ink-0); }
+      .sp-plist-ev { width: 48px; text-align: right; color: var(--sp-bad); }
 
       .sp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
       @media (max-width: 720px) { .sp-stats { grid-template-columns: repeat(2, 1fr); } }
