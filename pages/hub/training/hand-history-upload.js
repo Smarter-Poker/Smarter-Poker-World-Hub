@@ -312,9 +312,12 @@ function _flattenActions(hand) {
     for (const a of streetData.actions) {
       actions.push({
         player: a.player || 'Unknown',
-        action: (a.action || 'checks').toLowerCase(),
+        // A parse gap must not fabricate a check — 'unknown' matches no
+        // coaching rule, so downstream rules naturally skip it.
+        action: (a.action || 'unknown').toLowerCase(),
         amount: a.amount || 0,
         isHero: a.player === heroName,
+        street,
       });
     }
   }
@@ -438,7 +441,11 @@ function gradeHand(hand) {
     const calls = heroActions.filter((a) => a.action === 'calls').length;
     const raises = heroActions.filter((a) => a.action === 'raises' || a.action === 'bets').length;
     const checks = heroActions.filter((a) => a.action === 'checks').length;
-    const potSize = Math.max(hand?.pot || 0, 1);
+    // A failed pot parse must not fabricate a 1bb pot — when the pot is
+    // unknown (0), pot-relative sizing rules are skipped and no pot-scaled
+    // EV loss is attributed.
+    const potSize = hand?.pot || 0;
+    const potKnown = potSize > 0;
 
     // Determine street depth for classification
     const street =
@@ -489,7 +496,9 @@ function gradeHand(hand) {
     }
 
     // ── RULE 3: Oversized bets on dry boards ──────────────────────
-    const bigBets = heroActions.filter((a) => (a?.amount || 0) > potSize * 0.8);
+    const bigBets = potKnown
+      ? heroActions.filter((a) => (a?.amount || 0) > potSize * 0.8)
+      : [];
     if (bigBets.length > 0 && board.length >= 3) {
       const betPct = Math.round(((bigBets[0].amount || 0) / potSize) * 100);
       tips.push({
@@ -532,10 +541,12 @@ function gradeHand(hand) {
     }
 
     // ── RULE 7 (NEW): Min-raise / undersized bet detection ──────────
-    const smallBets = heroActions.filter((a) => {
-      const amt = a?.amount || 0;
-      return (a.action === 'raises' || a.action === 'bets') && amt > 0 && amt < potSize * 0.25;
-    });
+    const smallBets = potKnown
+      ? heroActions.filter((a) => {
+          const amt = a?.amount || 0;
+          return (a.action === 'raises' || a.action === 'bets') && amt > 0 && amt < potSize * 0.25;
+        })
+      : [];
     if (smallBets.length > 0 && board.length >= 3) {
       tips.push({
         text: 'Undersized bet detected — min-betting gives villain great pot odds to continue. Use at least 25-33% pot sizing',
@@ -560,11 +571,20 @@ function gradeHand(hand) {
       const lastAction = heroActions[heroActions.length - 1];
       const previousCalls = heroActions.slice(0, -1).filter((a) => a.action === 'calls' || a.action === 'raises').length;
       if (lastAction?.action === 'folds' && previousCalls >= 2) {
-        const riverBet = actions.filter((a) => !a.isHero && board.length >= 5).pop();
+        // Only actions tagged as river count — the old filter used the
+        // per-hand constant board.length and grabbed villain's last action
+        // of the whole hand. Untagged (inline-parsed) actions stay unknown.
+        const riverBet = actions.filter((a) => !a.isHero && a.street === 'river').pop();
         const riverBetSize = riverBet?.amount || 0;
-        const potOdds = riverBetSize > 0 ? Math.round((riverBetSize / (potSize + riverBetSize)) * 100) : 0;
+        const potOdds =
+          potKnown && riverBetSize > 0
+            ? Math.round((riverBetSize / (potSize + riverBetSize)) * 100)
+            : null;
         tips.push({
-          text: `Folded river after calling 2+ streets — you needed ${potOdds}% equity to call. Verify you don't have enough showdown value or blockers`,
+          text:
+            potOdds !== null
+              ? `Folded river after calling 2+ streets — you needed ${potOdds}% equity to call. Verify you don't have enough showdown value or blockers`
+              : `Folded river after calling 2+ streets — verify you don't have enough showdown value or blockers before giving up the pot`,
           type: 'warning',
         });
         score -= 15;
