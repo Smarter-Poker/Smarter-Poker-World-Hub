@@ -1,24 +1,35 @@
 /**
  * AVATAR LIBRARY CHECK
  * ---------------------------------------------------------------------------
- * WHAT THIS IS: a resolution sweep over every villain portrait the trainer felt
- * can draw. It reads the REAL avatar catalogue (src/data/AVATAR_LIBRARY.js) and
- * lifts the REAL selection functions out of UniversalDynamicTable.jsx -- they
- * are plain JS with no JSX in them, so they can be evaluated verbatim rather
- * than re-implemented here. Nothing below is a paraphrase of the shipping code;
- * a drift between the two would have to be a drift in the file itself.
+ * WHAT THIS IS: a resolution sweep over every seat portrait the app's three
+ * felts can draw -- UniversalDynamicTable.jsx (the trainer), TrainingGameTable
+ * .jsx (the golden-template training felt) and LivePokerTable.jsx (the real-
+ * money/club felt). All three now share one selection module,
+ * src/data/AVATAR_LIBRARY.js. It reads the REAL avatar catalogue and lifts
+ * the REAL selection functions out of src/lib/tableAvatars.js, plus the REAL
+ * wiring functions out of TrainingGameTable.jsx and LivePokerTable.jsx --
+ * they are plain JS with no JSX in them, so they can be evaluated verbatim
+ * rather than re-implemented here. Nothing below is a paraphrase of the
+ * shipping code; a drift between the two would have to be a drift in the
+ * files themselves.
  *
  * WHAT IT ASSERTS:
  *   - every image path the library can yield resolves to a file under public/
  *   - the pool is deduped BY PATH, so no two entries carry the same portrait
- *   - selection is DETERMINISTIC: one hand key always deals one cast
+ *   - selection is DETERMINISTIC: one hand/question/table key always deals
+ *     one cast
  *   - selection is DISTINCT: no two seats at a table share a face, and no
- *     villain wears hero's
- *   - the library, not a hardcoded nine, is what the table draws from
+ *     villain/fallback wears hero's or the viewer's own
+ *   - none of the three components hardcodes its own avatar array anymore --
+ *     all three draw from the shared library
+ *   - LivePokerTable: a real player's own avatarUrl always wins over the
+ *     library fallback, and the viewer's own account avatar is withheld from
+ *     every other seat's fallback
  *
- * WHY IT EXISTS: SeatAvatar degrades a missing asset to a monogram disc and
- * says nothing. A broken path is therefore invisible in review and nearly
- * invisible in play -- which is how vip_pirate.png stayed broken.
+ * WHY IT EXISTS: SeatAvatar (and LivePokerTable's <img onError>) degrade a
+ * missing asset to a monogram disc / silent fallback. A broken path is
+ * therefore invisible in review and nearly invisible in play -- which is how
+ * vip_pirate.png stayed broken.
  *
  *   node scripts/avatar-library-check.js
  */
@@ -29,10 +40,10 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const LIBRARY_FILE = path.join(ROOT, 'src/data/AVATAR_LIBRARY.js');
+const SHARED_FILE = path.join(ROOT, 'src/lib/tableAvatars.js');
 const TABLE_FILE = path.join(ROOT, 'src/components/training/games/UniversalDynamicTable.jsx');
-// de98ecb75a moved the pool/dealer out of the component into a shared lib —
-// the shipping selection code is lifted from there now.
-const AVATARS_LIB_FILE = path.join(ROOT, 'src/lib/tableAvatars.js');
+const TRAINING_TABLE_FILE = path.join(ROOT, 'src/components/poker/TrainingGameTable.jsx');
+const LIVE_TABLE_FILE = path.join(ROOT, 'src/components/poker/LivePokerTable.jsx');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 
 let PASS = 0, FAIL = 0;
@@ -69,17 +80,10 @@ function extractArrayLiteral(source, declaration) {
     throw new Error('unterminated array for ' + declaration);
 }
 
-// eslint-disable-next-line no-new-func
-const AVATAR_LIBRARY = new Function('return ' + extractArrayLiteral(librarySource, 'export const AVATAR_LIBRARY'))();
-
-// -- lift the shipping selection code out of the component -------------------
-const tableSource = fs.readFileSync(TABLE_FILE, 'utf8');
-const avatarsLibSource = fs.readFileSync(AVATARS_LIB_FILE, 'utf8');
-
-function extractFunction(source, name) {
+function extractFunction(source, name, fileLabel) {
     const marker = 'function ' + name + '(';
     const start = source.indexOf(marker);
-    if (start < 0) throw new Error('could not find function ' + name);
+    if (start < 0) throw new Error('could not find function ' + name + ' in ' + fileLabel);
     const open = source.indexOf('{', source.indexOf(')', start));
     let depth = 0;
     for (let i = open; i < source.length; i++) {
@@ -90,35 +94,48 @@ function extractFunction(source, name) {
             if (depth === 0) return source.slice(start, i + 1);
         }
     }
-    throw new Error('unterminated function ' + name);
+    throw new Error('unterminated function ' + name + ' in ' + fileLabel);
 }
 
-const HERO_DEFAULT_AVATAR = (() => {
-    const m = /const HERO_DEFAULT_AVATAR = '([^']+)'/.exec(avatarsLibSource);
-    if (!m) throw new Error('HERO_DEFAULT_AVATAR not found in src/lib/tableAvatars.js');
-    return m[1];
-})();
+// eslint-disable-next-line no-new-func
+const AVATAR_LIBRARY = new Function('return ' + extractArrayLiteral(librarySource, 'export const AVATAR_LIBRARY'))();
 
-// The pool builder is an IIFE in the component; take it verbatim too.
-const poolLiteral = (() => {
-    const start = avatarsLibSource.indexOf('const VILLAIN_AVATAR_POOL = (() => {');
-    if (start < 0) throw new Error('VILLAIN_AVATAR_POOL not found in src/lib/tableAvatars.js');
-    const end = avatarsLibSource.indexOf('})();', start);
-    if (end < 0) throw new Error('unterminated VILLAIN_AVATAR_POOL');
-    return avatarsLibSource.slice(start, end + 5);
-})();
+// -- lift the shared selection module verbatim --------------------------------
+// src/lib/tableAvatars.js is the one place VILLAIN_AVATAR_POOL, hashHandKey,
+// seededRandom and dealSeatAvatars are defined now. Strip its own import of
+// AVATAR_LIBRARY and its `export` keywords so the rest runs as a plain script
+// with AVATAR_LIBRARY supplied as an argument -- everything else is untouched.
+const sharedSource = fs.readFileSync(SHARED_FILE, 'utf8');
+
+const SHARED_IMPORT_LINE = "import { AVATAR_LIBRARY } from '../data/AVATAR_LIBRARY';";
+if (!sharedSource.includes(SHARED_IMPORT_LINE)) {
+    throw new Error('expected import line not found in ' + SHARED_FILE + ' -- update the anchor');
+}
+const sharedBody = sharedSource
+    .replace(SHARED_IMPORT_LINE, '')
+    .replace(/export (const|function)/g, '$1');
 
 const shipped = new Function('AVATAR_LIBRARY', [
-    poolLiteral,
-    "const HERO_DEFAULT_AVATAR = " + JSON.stringify(HERO_DEFAULT_AVATAR) + ";",
-    extractFunction(avatarsLibSource, 'hashHandKey'),
-    extractFunction(avatarsLibSource, 'seededRandom'),
-    extractFunction(avatarsLibSource, 'dealSeatAvatars'),
-    'return { VILLAIN_AVATAR_POOL, dealSeatAvatars, hashHandKey };',
+    sharedBody,
+    'return { VILLAIN_AVATAR_POOL, HERO_DEFAULT_AVATAR, dealSeatAvatars, hashHandKey, seededRandom };',
 ].join('\n'))(AVATAR_LIBRARY);
 
 const POOL = shipped.VILLAIN_AVATAR_POOL;
 const dealSeatAvatars = shipped.dealSeatAvatars;
+const HERO_DEFAULT_AVATAR = shipped.HERO_DEFAULT_AVATAR;
+
+// -- the three felts that consume the shared module ---------------------------
+const tableSource = fs.readFileSync(TABLE_FILE, 'utf8');
+const trainingTableSource = fs.readFileSync(TRAINING_TABLE_FILE, 'utf8');
+const liveTableSource = fs.readFileSync(LIVE_TABLE_FILE, 'utf8');
+
+// LivePokerTable's own wiring (resolveTableAvatar / buildSeatFallbackAvatars)
+// is plain JS too -- lift it verbatim, same rule as everything else here.
+const liveShipped = new Function('dealSeatAvatars', 'HERO_DEFAULT_AVATAR', [
+    extractFunction(liveTableSource, 'resolveTableAvatar', 'LivePokerTable.jsx'),
+    extractFunction(liveTableSource, 'buildSeatFallbackAvatars', 'LivePokerTable.jsx'),
+    'return { resolveTableAvatar, buildSeatFallbackAvatars };',
+].join('\n'))(dealSeatAvatars, HERO_DEFAULT_AVATAR);
 
 console.log('\n=== The catalogue ===');
 
@@ -127,10 +144,9 @@ check('AVATAR_LIBRARY parsed and is non-trivial', () => {
     return AVATAR_LIBRARY.length >= 70 || 'only ' + AVATAR_LIBRARY.length + ' entries';
 });
 
-check('the trainer draws from the library, not a hardcoded nine', () => {
+check('the trainer draws from the shared library, not a hardcoded nine', () => {
     if (/const AVATARS = \[/.test(tableSource)) return 'the hardcoded AVATARS array is still there';
-    if (!/from '\.\.\/\.\.\/\.\.\/lib\/tableAvatars'/.test(tableSource)) return 'the table does not import the shared avatar lib';
-    if (!/from '\.\.\/data\/AVATAR_LIBRARY'/.test(avatarsLibSource)) return 'tableAvatars.js does not import AVATAR_LIBRARY';
+    if (!/from '\.\.\/\.\.\/\.\.\/lib\/tableAvatars'/.test(tableSource)) return 'src/lib/tableAvatars is not imported';
     return true;
 });
 
@@ -177,7 +193,7 @@ check('the pool is deduped BY PATH', () => {
 check('the pool is large enough to seat a full 9-max table', () =>
     POOL.length >= 9 || 'only ' + POOL.length + ' portraits');
 
-console.log('\n=== Selection is deterministic and distinct ===');
+console.log('\n=== Selection is deterministic and distinct (shared dealSeatAvatars) ===');
 
 const KEYS = ['q-1', 'q-2', 'scenario-abc', 'BTNvsBB-77', '', 'q-42', 'deadbeef-1234', 'q-999'];
 const COUNTS = [2, 3, 6, 9];
@@ -193,11 +209,8 @@ check('the same hand key always deals the same cast', () => {
     return true;
 });
 
-check('no Math.random anywhere in the portrait path', () => {
-    // Comments stripped first -- the prose above dealSeatAvatars says the words
-    // "Math.random" on purpose, and matching that would be matching the docs.
-    const region = tableSource
-        .slice(tableSource.indexOf('const VILLAIN_AVATAR_POOL'), tableSource.indexOf('// Seat portrait.'))
+check('no Math.random anywhere in src/lib/tableAvatars.js', () => {
+    const region = sharedSource
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n');
     return !/Math\.random/.test(region) || 'Math.random is in the selection code';
@@ -264,6 +277,135 @@ const reach = (() => {
 check('every portrait in the pool is reachable', () => {
     const unreached = POOL.filter(p => !reach.has(p) && p !== HERO_DEFAULT_AVATAR);
     return unreached.length === 0 || unreached.length + ' never dealt: ' + unreached.join(', ');
+});
+
+console.log('\n=== TrainingGameTable.jsx (migrated off its hardcoded nine) ===');
+
+check('TrainingGameTable draws from the shared library, not a hardcoded map', () => {
+    if (/const AVATARS = \{/.test(trainingTableSource)) return 'the hardcoded AVATARS map is still there';
+    if (!/from '\.\.\/\.\.\/lib\/tableAvatars'/.test(trainingTableSource)) return 'tableAvatars module is not imported';
+    if (!/dealSeatAvatars\(handAvatarKey, SEATS\.length/.test(trainingTableSource)) return 'dealSeatAvatars is not called with SEATS.length';
+    return true;
+});
+
+check('TrainingGameTable seats a full 9-seat felt', () => {
+    const start = trainingTableSource.indexOf('const SEATS = [');
+    if (start < 0) return 'SEATS array not found';
+    const end = trainingTableSource.indexOf('];', start);
+    const block = trainingTableSource.slice(start, end);
+    const count = (block.match(/\{ id:/g) || []).length;
+    return count === 9 || 'expected 9 seats, found ' + count;
+});
+
+check('no Math.random near TrainingGameTable avatar wiring', () => {
+    const start = trainingTableSource.indexOf('const handAvatarKey');
+    const end = trainingTableSource.indexOf('return (', start);
+    if (start < 0 || end < 0) return 'avatar wiring region not found';
+    const region = trainingTableSource.slice(start, end);
+    return !/Math\.random/.test(region) || 'Math.random found near avatar selection';
+});
+
+check('the same question always deals the same TrainingGameTable cast', () => {
+    const titles = ['ICM FUNDAMENTALS', 'GTO Training', ''];
+    const qns = [1, 2, 7, 20];
+    for (const t of titles) {
+        for (const q of qns) {
+            const key = t + '|' + q;
+            const a = dealSeatAvatars(key, 9, HERO_DEFAULT_AVATAR).join('|');
+            const b = dealSeatAvatars(key, 9, HERO_DEFAULT_AVATAR).join('|');
+            if (a !== b) return 'key ' + JSON.stringify(key) + ' dealt two different casts';
+        }
+    }
+    return true;
+});
+
+check('TrainingGameTable 9-seat deals are distinct and every path resolves', () => {
+    for (let q = 1; q <= 30; q++) {
+        const cast = dealSeatAvatars('ICM FUNDAMENTALS|' + q, 9, HERO_DEFAULT_AVATAR);
+        if (cast.length !== 9) return 'question ' + q + ': expected 9 portraits, got ' + cast.length;
+        if (new Set(cast).size !== cast.length) return 'question ' + q + ' repeated a face';
+        for (const p of cast) {
+            if (!fs.existsSync(path.join(PUBLIC_DIR, p.replace(/^\//, '')))) return p + ' missing on disk';
+        }
+    }
+    return true;
+});
+
+console.log('\n=== LivePokerTable.jsx (migrated off its hardcoded ten) ===');
+
+check('LivePokerTable draws fallback portraits from the shared library, not a hardcoded ten', () => {
+    if (/const FALLBACK_TABLE_AVATARS = \[/.test(liveTableSource)) return 'the hardcoded FALLBACK_TABLE_AVATARS array is still there';
+    if (!/from '\.\.\/\.\.\/lib\/tableAvatars'/.test(liveTableSource)) return 'tableAvatars module is not imported';
+    return true;
+});
+
+check("a real player's own avatarUrl always wins over the library fallback", () => {
+    const cases = [
+        'http://example.com/a.png',
+        'https://cdn.example.com/b.jpg',
+        'data:image/png;base64,AAAA',
+    ];
+    for (const avatarUrl of cases) {
+        const got = liveShipped.resolveTableAvatar(avatarUrl, '/avatars/table/free_fox.png');
+        if (got !== avatarUrl) return avatarUrl + ' did not win over the fallback (got ' + got + ')';
+    }
+    // a library avatarUrl is remapped to its table-optimized twin, not dropped for the fallback
+    const libGot = liveShipped.resolveTableAvatar('/avatars/vip/dragon.png', '/avatars/table/free_fox.png');
+    if (libGot === '/avatars/table/free_fox.png') return 'a library avatarUrl fell through to the fallback';
+    if (!libGot.startsWith('/avatars/table/vip_')) return 'library avatarUrl was not mapped to its table-optimized version (' + libGot + ')';
+    return true;
+});
+
+check('a seat with no avatarUrl gets exactly its assigned fallback, not a random one', () => {
+    for (const [avatarUrl, fallback] of [[null, '/avatars/table/free_shark.png'], [undefined, '/avatars/vip/dragon.png'], ['', '/avatars/table/free_owl.png']]) {
+        const got = liveShipped.resolveTableAvatar(avatarUrl, fallback);
+        if (got !== fallback) return 'expected fallback ' + fallback + ', got ' + got;
+    }
+    return true;
+});
+
+check('buildSeatFallbackAvatars deals a distinct cast per table, every path resolving', () => {
+    for (const tableId of ['table-1', 'table-2', 42, null]) {
+        for (const maxSeats of [2, 6, 9]) {
+            const map = liveShipped.buildSeatFallbackAvatars(tableId, maxSeats, HERO_DEFAULT_AVATAR, -1);
+            const values = Object.values(map);
+            if (values.length !== maxSeats) return 'table ' + tableId + ' expected ' + maxSeats + ' seats, got ' + values.length;
+            if (new Set(values).size !== values.length) return 'table ' + tableId + ' repeated a fallback portrait';
+            for (const v of values) {
+                if (!fs.existsSync(path.join(PUBLIC_DIR, v.replace(/^\//, '')))) return v + ' missing on disk';
+            }
+        }
+    }
+    return true;
+});
+
+check('buildSeatFallbackAvatars is deterministic per tableId', () => {
+    for (const tableId of ['table-1', 'table-2', 77]) {
+        const a = JSON.stringify(liveShipped.buildSeatFallbackAvatars(tableId, 9, HERO_DEFAULT_AVATAR, -1));
+        const b = JSON.stringify(liveShipped.buildSeatFallbackAvatars(tableId, 9, HERO_DEFAULT_AVATAR, -1));
+        if (a !== b) return 'table ' + tableId + ' dealt two different fallback casts';
+    }
+    return true;
+});
+
+check("the viewer's own account avatar is reserved for their seat and withheld from every other seat", () => {
+    const heroFallback = '/avatars/vip/dragon.png';
+    for (const heroSeatIndex of [0, 3, 8]) {
+        const map = liveShipped.buildSeatFallbackAvatars('table-x', 9, heroFallback, heroSeatIndex);
+        if (map[heroSeatIndex] !== heroFallback) return 'hero seat ' + heroSeatIndex + ' did not get heroFallback';
+        for (let i = 0; i < 9; i++) {
+            if (i === heroSeatIndex) continue;
+            if (map[i] === heroFallback) return 'seat ' + i + ' was handed the viewer\'s own avatar';
+        }
+    }
+    return true;
+});
+
+check("when the viewer is not seated, nobody is handed their account avatar as a fallback", () => {
+    const heroFallback = '/avatars/vip/dragon.png';
+    const map = liveShipped.buildSeatFallbackAvatars('table-y', 9, heroFallback, -1);
+    const used = Object.values(map);
+    return !used.includes(heroFallback) || 'an unseated seat got the viewer\'s own avatar';
 });
 
 console.log('\n--- counts ---');

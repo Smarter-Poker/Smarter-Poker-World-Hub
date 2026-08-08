@@ -1840,7 +1840,13 @@ function resolveTableAvatar(avatarUrl, fallbackSrc) {
 // the pool entirely, so a stranger's empty-avatar seat can never end up
 // wearing the viewer's own chosen face.
 function buildSeatFallbackAvatars(tableId, maxSeats, heroFallback, heroSeatIndex) {
-  const cast = dealSeatAvatars('live-table-' + (tableId == null ? '' : tableId), maxSeats, heroFallback);
+  // Ask for one more portrait than there are seats: cast[0] is always
+  // heroFallback (reserved for the viewer's own seat, if any) and the
+  // remaining maxSeats entries cover every OTHER seat -- including the case
+  // where the viewer is not seated at all (heroSeatIndex === -1) and every
+  // one of the maxSeats seats needs its own distinct portrait with none of
+  // them borrowing the slot that would have been hero's.
+  const cast = dealSeatAvatars('live-table-' + (tableId == null ? '' : tableId), maxSeats + 1, heroFallback);
   const pool = cast.slice(1); // cast[0] === heroFallback; never assign it to another seat
   const map = {};
   let p = 0;
