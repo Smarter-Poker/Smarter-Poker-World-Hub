@@ -322,7 +322,10 @@ function parse888(text) {
     // street markers into PokerStars shape and parse line by line.
     result.actionHistory = parse888Actions(text, positionOf);
 
-    if (!result.heroPosition) result.heroPosition = 'BTN';
+    // Unknown stays unknown — fabricating a BTN seat made the caller's
+    // "position not detected" branch unreachable for 888 hands. Callers
+    // guard on null (ImportHHModal shows "not detected"; sandbox import
+    // keeps its current position).
     return result;
 }
 
