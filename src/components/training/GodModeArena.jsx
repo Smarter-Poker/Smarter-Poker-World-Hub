@@ -421,6 +421,9 @@ const QuizGauntlet = dynamic(() => import('../../../pages/hub/training/quiz-gaun
 import useGTOTrainer from '../../hooks/useGTOTrainer';
 import useSpacedRepetition from '../../hooks/useSpacedRepetition';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
+// SESSION ANALYTICS (2026-08-08): pure selectors over the one handHistory
+// accumulator — the same functions the session-analytics harness asserts.
+import { deriveTopLeaks } from '../../lib/sessionAnalytics';
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 import { getDiamondReward } from '../../config/trainingConfig';
 import { getLevel } from '../../config/LevelRegistry';
@@ -3944,12 +3947,12 @@ function GodModeArenaInner({
     const accuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
     const scoreColor = getArenaScoreColor(gtowScore);
 
-    // Count classification distribution
-    const classificationCounts = {};
-    Object.values(MOVE_CLASSIFICATIONS || {}).forEach((c) => (classificationCounts[c] = 0));
-    handHistory.forEach((h) => {
-      if (h.classification) classificationCounts[h.classification]++;
-    });
+    // Classification distribution — the SAME derived counts the in-hand
+    // session rail paints (useGTOWScore -> deriveClassificationCounts over
+    // handHistory). The review screen used to recount handHistory locally;
+    // identical math, but two code paths for one number is how screens drift.
+    const classificationCounts = gtowClassificationCounts;
+    const movesGraded = handHistory.length;
 
     return (
       <div style={styles.reviewContainer}>
@@ -4063,7 +4066,7 @@ function GodModeArenaInner({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 22 }}>{'\uD83D\uDC8E'}</span>
+                  <span style={{ fontSize: 22, color: '#fbbf24' }}>◆</span>
                   <div>
                     <div
                       style={{
@@ -4180,6 +4183,104 @@ function GodModeArenaInner({
               <div style={styles.summaryLabel}>Freq Diff</div>
             </div>
           </div>
+
+          {/* SESSION DISTRIBUTION BAR — the review-screen home of the data the
+              in-hand HUD gave up when six strips collapsed into one rail. Same
+              vocabulary as the rail: one segmented track, fill IS the quality
+              breakdown, best->blunder in the fixed classification colors. Same
+              accumulator too (deriveClassificationCounts over handHistory), so
+              this bar and the rail can never tell different stories. */}
+          {movesGraded > 0 && (() => {
+            const segments = [
+              { key: 'best', label: 'Best', color: '#22c55e', count: classificationCounts.best || 0 },
+              { key: 'correct', label: 'Correct', color: '#00d4ff', count: classificationCounts.correct || 0 },
+              { key: 'inaccuracy', label: 'Inaccuracy', color: '#fbbf24', count: classificationCounts.inaccuracy || 0 },
+              { key: 'wrong', label: 'Wrong', color: '#f97316', count: classificationCounts.wrong || 0 },
+              { key: 'blunder', label: 'Blunder', color: '#ef4444', count: classificationCounts.blunder || 0 },
+            ];
+            const lit = segments.filter((seg) => seg.count > 0);
+            return (
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    height: 14,
+                    borderRadius: 7,
+                    overflow: 'hidden',
+                    background: 'rgba(255,255,255,0.04)',
+                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  {lit.map((seg) => (
+                    <motion.div
+                      key={seg.key}
+                      initial={{ flexGrow: 0 }}
+                      animate={{ flexGrow: seg.count }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                      title={`${seg.label}: ${seg.count}`}
+                      style={{
+                        flexBasis: 0,
+                        height: '100%',
+                        background: seg.color,
+                        boxShadow: `0 0 8px ${seg.color}55`,
+                      }}
+                    />
+                  ))}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 6,
+                    marginTop: 8,
+                  }}
+                >
+                  {segments.map((seg) => (
+                    <div key={seg.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: '50%',
+                          background: seg.count > 0 ? seg.color : 'rgba(255,255,255,0.15)',
+                          display: 'inline-block',
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          color: seg.count > 0 ? '#cbd5e1' : '#475569',
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        {seg.label}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 800,
+                          color: seg.count > 0 ? seg.color : '#475569',
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        }}
+                      >
+                        {seg.count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* TAB NAVIGATION */}
           <div
@@ -5385,11 +5486,14 @@ function GodModeArenaInner({
                         }}
                       >
                         {classificationCounts[key] || 0}
-                        {totalQuestions > 0 && (
+                        {movesGraded > 0 && (
                           <span
                             style={{ fontSize: 9, fontWeight: 600, opacity: 0.6, marginLeft: 2 }}
                           >
-                            ({Math.round(((classificationCounts[key] || 0) / totalQuestions) * 100)}
+                            {/* divide by graded MOVES, not questions — a
+                                multi-street session grades several moves per
+                                question and these counts are per-move */}
+                            ({Math.round(((classificationCounts[key] || 0) / movesGraded) * 100)}
                             %)
                           </span>
                         )}
@@ -5486,6 +5590,142 @@ function GodModeArenaInner({
                   ))}
                 </div>
               )}
+
+              {/* MOST COSTLY SPOTS — the hands that paid for the session's EV
+                  loss, largest first, straight from the one handHistory
+                  accumulator via deriveTopLeaks (the same selector the
+                  session-analytics harness asserts). Each row: where you were,
+                  what you did, what the solver does, what it cost. */}
+              {(() => {
+                const leaks = deriveTopLeaks(handHistory, 5);
+                if (leaks.length === 0) return null;
+                const classColors = {
+                  inaccuracy: '#fbbf24',
+                  wrong: '#f97316',
+                  blunder: '#ef4444',
+                };
+                const streetColors = {
+                  preflop: '#a78bfa',
+                  flop: '#4ade80',
+                  turn: '#fb923c',
+                  river: '#f87171',
+                };
+                return (
+                  <div
+                    style={{
+                      marginBottom: 16,
+                      padding: '12px 14px',
+                      background: 'rgba(0,0,0,0.2)',
+                      borderRadius: 10,
+                      border: '1px solid rgba(239,68,68,0.12)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        marginBottom: 10,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 'bold',
+                          color: '#ef4444',
+                          textTransform: 'uppercase',
+                          letterSpacing: 1,
+                        }}
+                      >
+                        Most Costly Spots
+                      </div>
+                      <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                        -{totalEVLoss.toFixed(1)} BB total · -
+                        {Math.abs(avgEVLossPerMistake).toFixed(2)} BB/mistake
+                      </div>
+                    </div>
+                    {leaks.map((leak, idx) => {
+                      const cColor = classColors[leak.classification] || '#ef4444';
+                      return (
+                        <div
+                          key={`${leak.handNumber}-${idx}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '7px 8px',
+                            marginBottom: idx < leaks.length - 1 ? 4 : 0,
+                            borderRadius: 8,
+                            background: 'rgba(255,255,255,0.03)',
+                            borderLeft: `3px solid ${cColor}`,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 800,
+                              color: '#475569',
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                              minWidth: 18,
+                            }}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 700,
+                              color: '#94a3b8',
+                              minWidth: 30,
+                            }}
+                          >
+                            {leak.heroPosition || '—'}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 700,
+                              textTransform: 'capitalize',
+                              color: streetColors[(leak.street || '').toLowerCase()] || '#64748b',
+                              minWidth: 42,
+                            }}
+                          >
+                            {leak.street || '—'}
+                          </span>
+                          <span
+                            style={{
+                              flex: 1,
+                              fontSize: 10,
+                              color: '#cbd5e1',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <span style={{ color: cColor, fontWeight: 700 }}>
+                              ✕ {leak.action || '?'}
+                            </span>
+                            <span style={{ color: '#475569' }}> → </span>
+                            <span style={{ color: '#22c55e', fontWeight: 700 }}>
+                              ✓ {leak.correctAction || '?'}
+                            </span>
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: '#ef4444',
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                            }}
+                          >
+                            -{leak.evLoss.toFixed(2)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* F14: ACCURACY BY POSITION CHART */}
               <AccuracyByPositionChart handHistory={handHistory} />
