@@ -11364,15 +11364,29 @@ function GodModeArenaInner({
             </>
           )}
 
-          {/* ●●● TAB: ANALYTICS — Cross-Session Dashboard ●●● */}
+          {/* ●●● TAB: ANALYTICS — Cross-Session Dashboard ●●●
+              Was `sessionHistory={[]}` under a "sample data preview" label —
+              the read path was dead. Now fed from /api/training/analytics
+              (already fetched above as crossSessionAnalytics): scoreTrend
+              rows carry the signed, scale-normalized GTOW score per session
+              plus the answers-derived position/spot aggregates. */}
           {reviewTab === 'analytics' && (
-            <>
-              <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
-                Sample data preview - cross-session analytics will populate as you complete more
-                sessions
-              </div>
-              <CrossSessionAnalytics sessionHistory={[]} />
-            </>
+            <CrossSessionAnalytics
+              sessionHistory={(crossSessionAnalytics?.scoreTrend || []).map((t) => ({
+                id: t.id,
+                completedAt: t.date,
+                gtoScore: t.gtowScore,
+                handsPlayed: t.handsPlayed,
+                evLossTotal: t.evLoss,
+                evLossAvg: t.avgEvPerHand,
+                accuracy: t.accuracy,
+                gameId: t.gameId,
+                level: t.level,
+                passed: t.passed,
+              }))}
+              analytics={crossSessionAnalytics}
+              loading={analyticsLoading}
+            />
           )}
 
           {/* ●●● TAB: RANGE BUILDER ●●● */}

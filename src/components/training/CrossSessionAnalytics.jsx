@@ -10,8 +10,12 @@
  *   - Milestone badges (first 80+ score, 10-session streak, etc.)
  *   - Study volume chart (sessions/week, hands/week)
  *
- * Data flows from SessionTracker → localStorage persistence → this dashboard.
- * All analytics computed client-side from local session history.
+ * Data flows from training_sessions / training_answers via
+ * GET /api/training/analytics (useTrainingAnalytics) -> this dashboard.
+ * sessionHistory carries real per-session rows (signed GTOW scores,
+ * score_scale already normalized server-side); the optional `analytics`
+ * prop carries the answers-derived position/spot aggregates. A user with
+ * zero sessions sees an honest empty state -- never sample data.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
@@ -27,57 +31,6 @@ const TIME_RANGES = [
     { id: '90d', label: '90 Days', days: 90 },
     { id: 'all', label: 'All Time', days: 99999 },
 ];
-
-// ●● Simulated Session History ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// In production, this comes from SessionTracker via localStorage/Supabase.
-// We generate realistic sample data so the component renders meaningfully
-// even before the user has many sessions.
-
-function generateSampleSessions(realSessions = []) {
-    if (realSessions.length >= 5) return realSessions;
-
-    const now = Date.now();
-    const samples = [];
-    const positions = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
-    const spotTypes = ['cbet', 'checkraise', 'facing_bet', 'turn_barrel', 'river_vbet'];
-
-    for (let i = 0; i < 30; i++) {
-        const dayOffset = (30 - i) * 24 * 60 * 60 * 1000;
-        const baseScore = 55 + Math.min(25, i * 0.8) + (Math.random() * 12 - 6);
-        const handsPlayed = 15 + Math.floor(Math.random() * 10);
-
-        const moves = [];
-        for (let h = 0; h < handsPlayed; h++) {
-            const isCorrect = Math.random() < (baseScore / 100);
-            moves.push({
-                street: ['preflop', 'flop', 'turn', 'river'][Math.floor(Math.random() * 4)],
-                heroPosition: positions[Math.floor(Math.random() * positions.length)],
-                spotType: spotTypes[Math.floor(Math.random() * spotTypes.length)],
-                classification: isCorrect ? 'correct' : (Math.random() < 0.3 ? 'blunder' : 'mistake'),
-                evLoss: isCorrect ? 0 : (Math.random() * 3 + 0.2),
-                score: isCorrect ? 100 : (40 + Math.random() * 40),
-            });
-        }
-
-        const correctCount = moves.filter(m => m.classification === 'correct' || m.classification === 'best').length;
-
-        samples.push({
-            id: `sample-${i}`,
-            completedAt: new Date(now - dayOffset).toISOString(),
-            gtoScore: Math.round(baseScore),
-            handsPlayed,
-            evLossTotal: moves.reduce((s, m) => s + (m.evLoss || 0), 0),
-            evLossAvg: moves.reduce((s, m) => s + (m.evLoss || 0), 0) / handsPlayed,
-            accuracy: correctCount / handsPlayed,
-            grade: baseScore >= 80 ? 'A' : baseScore >= 65 ? 'B' : baseScore >= 50 ? 'C' : 'D',
-            moves,
-        });
-    }
-
-    return [...samples, ...realSessions].sort((a, b) =>
-        new Date(a.completedAt) - new Date(b.completedAt)
-    );
-}
 
 // ●● SVG Mini Line Chart ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
@@ -135,9 +88,22 @@ const MiniTrendChart = memo(({ data, color = '#22c55e', height = 60, valueKey = 
 
 // ●● Position Heatmap ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-const PositionHeatmap = memo(({ sessions }) => {
+const PositionHeatmap = memo(({ sessions, positionAccuracy }) => {
     const posData = useMemo(() => {
         const positions = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+        // Prefer the answers-derived aggregate from /api/training/analytics:
+        // it covers every recorded answer, not only sessions carrying moves.
+        if (positionAccuracy && positions.some(p => (positionAccuracy[p]?.total || 0) > 0)) {
+            return positions.map(p => {
+                const b = positionAccuracy[p] || { correct: 0, total: 0, evLoss: 0 };
+                return {
+                    position: p,
+                    accuracy: b.total > 0 ? b.correct / b.total : 0,
+                    evLoss: b.evLoss || 0,
+                    total: b.total || 0,
+                };
+            });
+        }
         const data = {};
         positions.forEach(p => { data[p] = { correct: 0, total: 0, evLoss: 0 }; });
 
@@ -157,7 +123,7 @@ const PositionHeatmap = memo(({ sessions }) => {
             evLoss: data[p].evLoss,
             total: data[p].total,
         }));
-    }, [sessions]);
+    }, [sessions, positionAccuracy]);
 
     return (
         <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
@@ -189,7 +155,7 @@ const PositionHeatmap = memo(({ sessions }) => {
 
 // ●● Spot Type Accuracy ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-const SpotTypeBreakdown = memo(({ sessions }) => {
+const SpotTypeBreakdown = memo(({ sessions, spotAccuracy }) => {
     const spotData = useMemo(() => {
         const spots = {
             cbet: { label: 'C-Bet', correct: 0, total: 0, color: '#3b82f6' },
@@ -199,17 +165,29 @@ const SpotTypeBreakdown = memo(({ sessions }) => {
             river_vbet: { label: 'River Value', correct: 0, total: 0, color: '#ef4444' },
         };
 
-        sessions.forEach(s => {
-            (s.moves || []).forEach(m => {
-                const spot = m.spotType || 'cbet';
-                if (!spots[spot]) return;
-                spots[spot].total++;
-                if (m.classification === 'correct' || m.classification === 'best') spots[spot].correct++;
+        // Prefer the answers-derived aggregate (keys arrive uppercased).
+        const apiEntries = spotAccuracy
+            ? Object.entries(spotAccuracy).filter(([k, b]) => spots[k.toLowerCase()] && b && b.total > 0)
+            : [];
+        if (apiEntries.length > 0) {
+            apiEntries.forEach(([key, b]) => {
+                const k = key.toLowerCase();
+                spots[k].total += b.total || 0;
+                spots[k].correct += b.correct || 0;
             });
-        });
+        } else {
+            sessions.forEach(s => {
+                (s.moves || []).forEach(m => {
+                    const spot = m.spotType || 'cbet';
+                    if (!spots[spot]) return;
+                    spots[spot].total++;
+                    if (m.classification === 'correct' || m.classification === 'best') spots[spot].correct++;
+                });
+            });
+        }
 
         return Object.values(spots || {}).filter(s => s.total > 0);
-    }, [sessions]);
+    }, [sessions, spotAccuracy]);
 
     if (spotData.length === 0) return null;
 
@@ -423,6 +401,49 @@ const StudyVolumeChart = memo(({ sessions, timeRange }) => {
     );
 });
 
+// ●● Recent Sessions List ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// date | game | signed GTOW score | accuracy | EV lost -- newest first.
+
+const RecentSessionsList = memo(({ sessions }) => {
+    const recent = [...sessions].slice(-8).reverse();
+    if (recent.length === 0) return null;
+    return (
+        <div>
+            {recent.map((s, i) => {
+                const score = Math.round(s.gtoScore ?? 0);
+                const scoreColor = score >= 50 ? '#22c55e' : score >= 0 ? '#f59e0b' : '#ef4444';
+                const accRaw = s.accuracy;
+                const acc = accRaw === null || accRaw === undefined
+                    ? null
+                    : Math.round(accRaw <= 1 ? accRaw * 100 : accRaw);
+                return (
+                    <div key={s.id || i} style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '5px 2px',
+                        borderBottom: i < recent.length - 1 ? '1px solid rgba(100,116,139,0.08)' : 'none',
+                    }}>
+                        <span style={{ fontSize: 9, color: '#64748b', width: 64, flexShrink: 0 }}>
+                            {s.completedAt ? new Date(s.completedAt).toLocaleDateString() : '—'}
+                        </span>
+                        <span style={{ flex: 1, fontSize: 10, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {s.gameName || s.gameId || 'Training'}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: scoreColor, fontFamily: "var(--font-orbitron), 'Orbitron', monospace", width: 38, textAlign: 'right' }}>
+                            {score > 0 ? `+${score}` : score}
+                        </span>
+                        <span style={{ fontSize: 10, color: '#e2e8f0', width: 34, textAlign: 'right' }}>
+                            {acc !== null ? `${acc}%` : '—'}
+                        </span>
+                        <span style={{ fontSize: 10, color: '#ef4444', width: 44, textAlign: 'right' }}>
+                            {`-${(s.evLossTotal || 0).toFixed(1)}`}
+                        </span>
+                    </div>
+                );
+            })}
+        </div>
+    );
+});
+
 // ●● Dashboard Section Wrapper ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const DashSection = memo(({ title, icon, children, color = '#94a3b8' }) => (
@@ -446,11 +467,17 @@ const DashSection = memo(({ title, icon, children, color = '#94a3b8' }) => (
 
 // ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-export default function CrossSessionAnalytics({ sessionHistory = [] }) {
+export default function CrossSessionAnalytics({ sessionHistory = [], analytics = null, loading = false }) {
     const [timeRange, setTimeRange] = useState(TIME_RANGES[1]); // 30d default
 
+    // Real sessions only -- no sample data, sorted ascending by completion.
     const sessions = useMemo(() =>
-        generateSampleSessions(sessionHistory), [sessionHistory]);
+        [...sessionHistory].sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt)),
+        [sessionHistory]);
+
+    // API-shaped history carries no per-hand moves; leak detection needs them.
+    const hasMoveData = useMemo(() =>
+        sessions.some(sess => (sess.moves || []).length > 0), [sessions]);
 
     // Filter by time range
     const filteredSessions = useMemo(() => {
@@ -565,7 +592,22 @@ export default function CrossSessionAnalytics({ sessionHistory = [] }) {
                 </div>
             )}
 
+            {/* Empty state -- zero sessions shows the truth, never fake numbers */}
+            {sessions.length === 0 && (
+                <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', marginBottom: 6 }}>
+                        {loading ? 'Loading session history\u2026' : 'No sessions yet'}
+                    </div>
+                    {!loading && (
+                        <div style={{ fontSize: 11, color: '#64748b' }}>
+                            Complete a training session and your score trend, position accuracy and session history will build here.
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Dashboard body */}
+            {sessions.length > 0 && (
             <div style={{ padding: 12 }}>
                 {/* GTO Score Trend */}
                 <DashSection title="GTO Score Trend" icon="▲" color="#22c55e">
@@ -587,12 +629,17 @@ export default function CrossSessionAnalytics({ sessionHistory = [] }) {
 
                 {/* Position Heatmap */}
                 <DashSection title="Position Accuracy" icon="◆" color="#3b82f6">
-                    <PositionHeatmap sessions={filteredSessions} />
+                    <PositionHeatmap sessions={filteredSessions} positionAccuracy={analytics?.positionAccuracy} />
                 </DashSection>
 
                 {/* Spot Type Breakdown */}
                 <DashSection title="Spot Accuracy" icon="●" color="#a855f7">
-                    <SpotTypeBreakdown sessions={filteredSessions} />
+                    <SpotTypeBreakdown sessions={filteredSessions} spotAccuracy={analytics?.spotAccuracy} />
+                </DashSection>
+
+                {/* Recent Sessions */}
+                <DashSection title="Recent Sessions" icon="■" color="#22d3ee">
+                    <RecentSessionsList sessions={filteredSessions} />
                 </DashSection>
 
                 {/* Study Volume */}
@@ -600,16 +647,20 @@ export default function CrossSessionAnalytics({ sessionHistory = [] }) {
                     <StudyVolumeChart sessions={filteredSessions} timeRange={timeRange} />
                 </DashSection>
 
-                {/* Leak Timeline */}
-                <DashSection title="Leak Detection" icon="○" color="#f59e0b">
-                    <LeakTimeline sessions={filteredSessions} />
-                </DashSection>
+                {/* Leak Timeline -- needs per-hand moves; hidden for
+                    API-shaped history where "no leaks" would be a lie */}
+                {hasMoveData && (
+                    <DashSection title="Leak Detection" icon="○" color="#f59e0b">
+                        <LeakTimeline sessions={filteredSessions} />
+                    </DashSection>
+                )}
 
                 {/* Milestones */}
                 <DashSection title="Milestones" icon="★" color="#f59e0b">
                     <MilestoneBadges sessions={filteredSessions} />
                 </DashSection>
             </div>
+            )}
         </div>
     );
 }
