@@ -807,6 +807,14 @@ export function generateAllPostflopScenarios() {
  */
 export function getPostflopScenariosForLevel(level) {
     const all = generateAllPostflopScenarios();
+    // Levels 11-12 (ELITE+ 'Elite Synthesis' and BOSS MODE in LevelRegistry,
+    // which declares 12 levels and whose L12 is 'all scenario types') have no
+    // street pool of their own. Before this branch they returned [], so every
+    // PioSOLVER game -- 82 of the 107 in TRAINING_LIBRARY -- generated ZERO
+    // engine questions at L11-12 and batch-preload 404'd whenever the cache
+    // was empty (measured by scripts/game-catalog-check.js, 2026-08-08).
+    // Synthesis levels serve the union of the flop, turn and river pools.
+    if (level > 10) return [...all[8], ...all[9], ...all[10]];
     return all[level] || [];
 }
 
