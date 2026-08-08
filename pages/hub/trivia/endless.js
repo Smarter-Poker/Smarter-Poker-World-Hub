@@ -38,7 +38,7 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import { Settings as SettingsIcon, Timer as TimerIcon, Zap as ZapIcon } from 'lucide-react';
 
-const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
+const GAME_ENTRY_COST = 0; // was 10 - free until this page adopts server grading; its reward RPC has been dead since 2026-08-03 (see triviaEngine.ts INTERIM FREE ENTRY)
 // Daily cap comes from triviaEngine so the lobby price and the payout ceiling
 // can never disagree. The local literal was 10 — the same as a single entry
 // fee, which made the mode net-negative by construction.
