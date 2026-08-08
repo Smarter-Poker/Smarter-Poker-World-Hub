@@ -663,12 +663,18 @@ async function generateForCategory(supabase, grok, category, quota, deadline) {
     // round trip.
     const settled = await Promise.all(plan.map(async ({ difficulty, count }, i) => {
         const topic = category.topics[(topicOffset + i) % category.topics.length];
-        // Over-request slightly: the validator is strict, and asking for a
-        // couple of spares is far cheaper than a second round trip.
+        // Over-request proportionally: the validator is strict and the
+        // normalized-text dedup bites hardest in narrow categories (a
+        // rule_knowledge quota of ~26 was netting ~18/day because the flat
+        // +2 spare could not absorb the rejects). Spare scales with the
+        // batch so short categories - which get the biggest batches from
+        // the adaptive planner - also get the most reject headroom, while
+        // healthy categories keep the old +2. Inserts stay capped at
+        // `count` (valid.slice below), so quotas are never exceeded.
         // FIX(parse-retry): throw/[] now gets ONE same-prompt retry (budget
         // permitting) before it is surfaced as a grok failure.
         const { candidates, error } = await generateBatchWithRetry(
-            grok, category, difficulty, count + 2, samples, topic, deadline
+            grok, category, difficulty, count + Math.max(2, Math.ceil(count * 0.5)), samples, topic, deadline
         );
         return { difficulty, count, candidates, error };
     }));
