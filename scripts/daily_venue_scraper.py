@@ -93,6 +93,33 @@ STATE_TZ = {
 
 log_path = LOG_DIR / f"daily_venue_scraper_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
+def _clear_dangling_asyncio_loop():
+    """CRITICAL: clear any dangling asyncio event loop before starting Playwright.
+
+    Scrapling's StealthySession.start() calls sync_playwright().start(), which
+    raises "Playwright Sync API inside the asyncio loop" if a loop is set on this
+    thread; threading.Timer callbacks and session recycling leave one behind.
+    Same guard as poker_series_scraper.create_session() and
+    tournament-schedule-daemon DaemonSessionManager.connect().
+    """
+    try:
+        import asyncio
+        try:
+            asyncio.get_running_loop()
+            # Inside a running loop we must not close it; just reset the policy.
+        except RuntimeError:
+            try:
+                _loop = asyncio.get_event_loop()
+                if not _loop.is_closed():
+                    _loop.close()
+            except RuntimeError:
+                pass  # no loop at all, which is what we want
+        asyncio.set_event_loop(None)
+        asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+    except Exception:
+        pass
+
+
 def log(msg):
     ts = datetime.now().strftime("%H:%M:%S")
     line = f"[{ts}] {msg}"
@@ -1488,6 +1515,7 @@ def main():
         log(f"{'='*70}\n")
         venues_attempted += len(venues)
 
+        _clear_dangling_asyncio_loop()
         session = StealthySession(headless=True, solve_cloudflare=True)
         session.start()
         session_start = time.time(); consecutive_fails = 0
@@ -1511,6 +1539,7 @@ def main():
                 log("  ⚡ Drift — restarting session")
                 try: session.close()
                 except: pass
+                _clear_dangling_asyncio_loop()
                 session = StealthySession(headless=True, solve_cloudflare=True)
                 session.start(); session_start = time.time(); wall_start = time.time(); consecutive_fails = 0
 
@@ -1518,6 +1547,7 @@ def main():
                 log("  🔄 6h refresh")
                 try: session.close()
                 except: pass
+                _clear_dangling_asyncio_loop()
                 session = StealthySession(headless=True, solve_cloudflare=True)
                 session.start(); session_start = time.time()
 
@@ -1525,6 +1555,7 @@ def main():
                 log(f"  ♻️  Recycle at #{i}")
                 try: session.close()
                 except: pass
+                _clear_dangling_asyncio_loop()
                 session = StealthySession(headless=True, solve_cloudflare=True)
                 session.start(); session_start = time.time(); consecutive_fails = 0
 
@@ -1549,6 +1580,7 @@ def main():
                 try: session.close()
                 except: pass
                 time.sleep(4)
+                _clear_dangling_asyncio_loop()
                 session = StealthySession(headless=True, solve_cloudflare=True)
                 session.start(); session_start = time.time(); consecutive_fails = 0
 

@@ -296,6 +296,24 @@ if [ -f "$SIM_HEARTBEAT" ]; then
   fi
 fi
 
+# Tournament pipeline: the daemon can be "running" yet upserting nothing -
+# exactly what happened 2026-08-01..08, when every StealthySession.start()
+# failed with "Playwright Sync API inside the asyncio loop": the heartbeat
+# stayed fresh, venues_done kept climbing, records_total stayed 0, and no new
+# tournament data arrived for a week. A fresh heartbeat is not health; records
+# are health.
+TOURN_HEARTBEAT="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/tournament-logs/heartbeat.json"
+if [ -f "$TOURN_HEARTBEAT" ]; then
+  t_done=$(python3 -c "import json;print(int(json.load(open('$TOURN_HEARTBEAT')).get('venues_done',0) or 0))" 2>/dev/null || echo 0)
+  t_records=$(python3 -c "import json;print(int(json.load(open('$TOURN_HEARTBEAT')).get('records_total',0) or 0))" 2>/dev/null || echo 0)
+  if [ "$t_done" -ge 50 ] && [ "$t_records" -eq 0 ]; then
+    log "  TournamentDaemon: ZERO RECORDS after ${t_done} venues - scraping is silently failing"
+    discord_alert "TournamentDaemon: processed ${t_done} venues but upserted 0 records - sessions are likely failing silently (grep tournament-logs for 'Playwright Sync API inside the asyncio loop')"
+  else
+    log "  TournamentDaemon: ${t_records} records across ${t_done} venues in current sweep"
+  fi
+fi
+
 if [ "$RECOVERY_FAILURES" -gt 0 ]; then
   log "Watchdog check complete — ${RECOVERY_FAILURES} recovery attempt(s) FAILED."
   exit 1

@@ -1674,6 +1674,30 @@ class DaemonSessionManager:
         if not _network_available():
             log("  [SESSION] connect() aborted — no network")
             return False
+        # CRITICAL: clear any dangling asyncio event loop before starting Playwright.
+        # Scrapling's StealthySession.start() calls sync_playwright().start(), which
+        # raises "Playwright Sync API inside the asyncio loop" if a loop is set on
+        # this thread. threading.Timer callbacks and prior cycles leave such a loop
+        # behind, after which EVERY connect() fails and the daemon scrapes nothing
+        # while still heartbeating (records_total=0). Same guard as
+        # poker_series_scraper.create_session() and pokeratlas-live-daemon.connect().
+        try:
+            import asyncio
+            try:
+                asyncio.get_running_loop()
+                # Inside a running loop we must not close it; just reset the policy.
+            except RuntimeError:
+                try:
+                    _loop = asyncio.get_event_loop()
+                    if not _loop.is_closed():
+                        _loop.close()
+                except RuntimeError:
+                    pass  # no loop at all, which is what we want
+            asyncio.set_event_loop(None)
+            asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+        except Exception as _loop_err:
+            log(f"  [SESSION] event loop cleanup skipped: {_loop_err}")
+
         wd = threading.Timer(60, _hard_kill_on_hang, args=('connect() hung',))
         wd.daemon = True; wd.start()
         try:
