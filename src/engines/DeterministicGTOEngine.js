@@ -13033,7 +13033,9 @@ export class DeterministicGTOEngine {
         if (action.includes('raise')) concepts.push('Aggression');
         if (cat.includes('draw') || cat.includes('flush') || cat.includes('oesd')) concepts.push('Draw Play');
         if (cat.includes('top pair') || cat.includes('overpair')) concepts.push('Strong Made Hands');
-        if (cat.includes('air') || cat.includes('no pair')) concepts.push('Bluffing');
+        // \bair\b, not includes('air'): 'air' is a substring of 'pair', so the
+        // plain includes() tagged every pair-category hand as a Bluffing spot.
+        if (/\bair\b/.test(cat) || cat.includes('no pair')) concepts.push('Bluffing');
         if (street === 'preflop') concepts.push('Preflop Strategy');
         if (nodeType.includes('blind')) concepts.push('Blind Defense');
         if (nodeType.includes('multi') || nodeType.includes('3way')) concepts.push('Multiway Pots');

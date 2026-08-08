@@ -236,6 +236,146 @@ check('engine: correct flag matches best/correct classifications (11 true)', () 
 check('cross-check: engine history and hook history derive identical distributions', () =>
     eq(deriveClassificationCounts(engineStub._sessionStats.history), counts));
 
+// -- 8. the engine analytics the review screen now surfaces ------------------
+// The Mistakes / Positions & Streets / Concepts review tabs (added 2026-08-08
+// in the 278-tab consolidation) render getMistakeClusters,
+// getCriticalHandHighlights, getStreakAnalysis, getEVLossHeatmap,
+// getPositionLeaderboard, getNodeTypeBreakdown and getConceptMasteryReport.
+// Lift each method verbatim and assert exact hand-computed numbers over the
+// same synthetic session. The stub mirrors the hook's write order —
+// updateSessionDifficulty(isCorrect) then recordSessionHand(...) per graded
+// hand (useGTOTrainer submitAnswer) — because getConceptMasteryReport gates
+// on _sessionStats.total, which only updateSessionDifficulty increments.
+const analyticsStub = {};
+const updateSessionDifficulty = new Function('return function ' + extractMethod(engineSource, 'updateSessionDifficulty'))();
+[
+    '_normalizeActionCategory', '_identifyHandConcepts',
+    'getMistakeClusters', 'getConceptMasteryReport', 'getStreakAnalysis',
+    'getCriticalHandHighlights', 'getNodeTypeBreakdown', 'getEVLossHeatmap',
+    'getPositionLeaderboard',
+].forEach((name) => {
+    // eslint-disable-next-line no-new-func
+    analyticsStub[name] = new Function('return function ' + extractMethod(engineSource, name))();
+});
+handHistory.forEach(h => {
+    const isCorrect = h.classification === 'best' || h.classification === 'correct';
+    updateSessionDifficulty.call(analyticsStub, isCorrect);
+    recordSessionHand.call(analyticsStub, {
+        correct: isCorrect,
+        classification: h.classification,
+        evLoss: h.evLoss,
+        street: h.street,
+        nodeType: 'srp',
+        action: h.action,
+        selectedAction: h.action,
+        correctAction: h.correctAction,
+        handCategory: 'top pair',
+        frequencies: { [h.correctAction]: 60 },
+        heroPosition: h.heroPosition,
+        texture: null,
+    });
+});
+
+// getMistakeClusters — the Mistakes tab's cluster list
+const mc = analyticsStub.getMistakeClusters();
+check('clusters: all 9 mistakes counted', () => eq(mc.totalMistakes, 9));
+check('clusters: 8 patterns, counts re-sum to every mistake', () =>
+    eq([mc.clusters.length, mc.clusters.reduce((s, c) => s + c.count, 0)], [8, 9]));
+check('clusters: top cluster is turn Check-instead-of-Bet, 2x, -2.4 BB, high', () => {
+    const c = mc.clusters[0];
+    return eq(
+        [c.street, c.userAction, c.solverAction, c.count, c.evLoss, c.severity],
+        ['turn', 'Check', 'Bet', 2, 2.4, 'high']
+    );
+});
+check('clusters: description renders verbatim for the UI', () =>
+    eq(mc.clusters[0].description, 'turn: You check instead of bet (2x, -2.40 BB)'));
+
+// getCriticalHandHighlights — the Mistakes tab's decisive-hand cards
+const ch = analyticsStub.getCriticalHandHighlights();
+check('critical: biggest mistakes are hands 5, 11, 7 (EV desc, 1.6-tie keeps order)', () =>
+    eq(ch.biggestMistakes.map(m => m.handNumber), [5, 11, 7]));
+check('critical: worst spot carries -3.5 BB; top-3 sum to 7.3', () =>
+    eq([ch.biggestMistakes[0].evLoss, ch.summaryEVLost], [3.5, 7.3]));
+check('critical: best decisions are hands 1 and 2, typed great_play', () =>
+    eq(ch.bestDecisions.map(b => [b.handNumber, b.type]), [[1, 'great_play'], [2, 'great_play']]));
+
+// getStreakAnalysis — the Mistakes tab's mental-game panel
+const sa = analyticsStub.getStreakAnalysis();
+check('streaks: alternating tail — best run 1, worst run 0, current 1 win', () =>
+    eq([sa.longestWinStreak, sa.longestLossStreak, sa.currentStreak, sa.currentStreakType],
+       [1, 0, 1, 'win']));
+check('streaks: perfect recovery — 9 rebounds, 0 repeats, tilt resistance 100', () =>
+    eq([sa.recoveryAfterMistake, sa.tiltAfterMistake, sa.tiltResistance], [9, 0, 100]));
+
+// getEVLossHeatmap — the Positions & Streets tab's grid
+const hm = analyticsStub.getEVLossHeatmap();
+check('heatmap: 6x4 grid, maxLoss 3.5, UTG flop is the only full-intensity cell', () => {
+    const hot = hm.cells.filter(c => c.intensity === 1);
+    return eq(
+        [hm.cells.length, hm.maxLoss, hot.length, hot[0].position, hot[0].street, hot[0].avgEVLoss],
+        [24, 3.5, 1, 'UTG', 'flop', 3.5]
+    );
+});
+check('heatmap: SB river pools 2 hands at avg 1.1', () => {
+    const c = hm.cells.find(x => x.position === 'SB' && x.street === 'river');
+    return eq([c.hands, c.totalEVLoss, c.avgEVLoss], [2, 2.2, 1.1]);
+});
+check('heatmap: cell hands and EV re-sum to the session totals (one story)', () => {
+    const hands = hm.cells.reduce((s, c) => s + c.hands, 0);
+    const evSum = Math.round(hm.cells.reduce((s, c) => s + c.totalEVLoss, 0) * 100) / 100;
+    return eq([hands, evSum], [20, ev.totalEVLoss]);
+});
+
+// getPositionLeaderboard — the Positions & Streets tab's ranked bars
+const lb = analyticsStub.getPositionLeaderboard();
+check('leaderboard: MP,BTN,UTG,CO,SB,BB graded A,B,B,C,D,D', () =>
+    eq(lb.leaderboard.map(r => [r.position, r.accuracy, r.grade]),
+       [['MP', 100, 'A'], ['BTN', 75, 'B'], ['UTG', 67, 'B'], ['CO', 50, 'C'], ['SB', 33, 'D'], ['BB', 0, 'D']]));
+check('leaderboard: best MP (leaked 0.07 BB), worst BB', () =>
+    eq([lb.bestPosition.position, lb.bestPosition.evLoss, lb.worstPosition.position],
+       ['MP', 0.07, 'BB']));
+
+// getNodeTypeBreakdown — the Positions & Streets tab's decision-type bars
+const nb = analyticsStub.getNodeTypeBreakdown();
+check('nodetype: single Srp node at 11/20 = 55%, avg -0.61 BB/hand', () =>
+    eq(nb.breakdown, [{ nodeType: 'Srp', total: 20, correct: 11, accuracy: 55, avgEVLoss: 0.61 }]));
+check('nodetype: the only node is also the weakest', () =>
+    eq(nb.weakestNodeType && nb.weakestNodeType.nodeType, 'Srp'));
+
+// getConceptMasteryReport — the Concepts tab's bars
+const cm = analyticsStub.getConceptMasteryReport();
+check('concepts: 5 concepts sorted weakest-first with exact accuracies', () =>
+    eq(cm.concepts.map(c => [c.name, c.accuracy]),
+       [['Aggression', 33], ['Strong Made Hands', 55], ['Preflop Strategy', 60], ['River Calling', 100], ['River Value', 100]]));
+check('concepts: Aggression is flagged struggling (1/3 with 3+ samples)', () => {
+    const a = cm.concepts[0];
+    return eq([a.correct, a.total, a.struggling, a.mastered], [1, 3, true, false]);
+});
+check('concepts: Strong Made Hands counts every hand — 11/20', () => {
+    const s = cm.concepts.find(c => c.name === 'Strong Made Hands');
+    return eq([s.correct, s.total], [11, 20]);
+});
+check('concepts: nothing mastered (no concept at 75%+ with 3+ samples)', () =>
+    eq([cm.masteredCount, cm.overallMastery, cm.weakestConcept.name, cm.strongestConcept.name],
+       [0, 0, 'Aggression', 'River Value']));
+check('concepts: top pair does NOT tag Bluffing (air is a substring of pair)', () => {
+    const tags = analyticsStub._identifyHandConcepts({ handCategory: 'top pair', street: 'flop', nodeType: 'srp', correctAction: 'Check' });
+    if (tags.indexOf('Bluffing') !== -1) return 'Bluffing leaked from the pair category';
+    return eq(tags.indexOf('Strong Made Hands') !== -1, true);
+});
+check('concepts: genuine air still tags Bluffing', () => {
+    const tags = analyticsStub._identifyHandConcepts({ handCategory: 'air', street: 'flop', nodeType: 'srp', correctAction: 'Check' });
+    return eq(tags.indexOf('Bluffing') !== -1, true);
+});
+check('concepts: report is gated on updateSessionDifficulty total, not history', () => {
+    const bare = { _sessionStats: { total: 2, correct: 1, history: analyticsStub._sessionStats.history } };
+    bare.getConceptMasteryReport = analyticsStub.getConceptMasteryReport;
+    bare._identifyHandConcepts = analyticsStub._identifyHandConcepts;
+    const r = bare.getConceptMasteryReport();
+    return eq([r.concepts.length, typeof r.message], [0, 'string']);
+});
+
 console.log('\n---------------------------------------------');
 console.log('PASS ' + PASS + '   FAIL ' + FAIL + '   TOTAL ' + (PASS + FAIL));
 process.exit(FAIL > 0 ? 1 : 0);
