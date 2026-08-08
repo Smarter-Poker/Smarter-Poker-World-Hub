@@ -861,6 +861,9 @@ function getHeroSeatIndex(heroPosition, playerCount) {
 function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = true, onTimeExpired = null, variant = 'ring', compact = false, resetKey = null }) {
     const [timeLeft, setTimeLeft] = React.useState(seconds);
     const expiredRef = React.useRef(false);
+    // Urgency pulse honours the OS "reduce motion" setting -- the old CSS
+    // `animation: pulse` blinked regardless of it.
+    const reduceMotion = useReducedMotion();
     const radius = 18;
     const circumference = 2 * Math.PI * radius;
 
@@ -914,7 +917,16 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
     const progress = timeLeft / seconds;
     const dashOffset = circumference * (1 - progress);
     const color = timeLeft > 30 ? 'var(--sp-accent-green)' : timeLeft > 10 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
-    const pulseClass = timeLeft <= 5 ? { animation: 'pulse 0.5s infinite' } : {};
+    // Under 5s the plate turns urgent: a framer-motion scale pulse, suppressed
+    // when the OS asks for reduced motion (the static red ring below still
+    // carries the urgency for those users).
+    const urgent = timeLeft <= 5;
+    const pulseAnim = urgent && !reduceMotion
+        ? { opacity: 1, scale: [1, 1.08, 1] }
+        : { opacity: 1, scale: 1 };
+    const pulseTransition = urgent && !reduceMotion
+        ? { duration: 0.55, repeat: Infinity, ease: 'easeInOut' }
+        : { duration: 0.2 };
 
     // PLATE — the template's clock: a large red number in a dark rounded
     // square outside the oval at the lower left. Nothing else on the felt is
@@ -923,7 +935,8 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
         return (
             <motion.div
                 initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
+                animate={pulseAnim}
+                transition={pulseTransition}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -932,9 +945,10 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
                     height: compact ? 42 : 62,
                     borderRadius: compact ? 10 : 14,
                     background: 'linear-gradient(180deg, rgba(24,24,28,0.96) 0%, rgba(10,10,13,0.98) 100%)',
-                    border: '1px solid rgba(255,255,255,0.10)',
-                    boxShadow: '0 8px 22px rgba(0,0,0,0.65)',
-                    ...pulseClass,
+                    border: urgent ? '1px solid rgba(239,68,68,0.55)' : '1px solid rgba(255,255,255,0.10)',
+                    boxShadow: urgent
+                        ? '0 8px 22px rgba(0,0,0,0.65), 0 0 18px rgba(239,68,68,0.35)'
+                        : '0 8px 22px rgba(0,0,0,0.65)',
                 }}
             >
                 <span style={{
@@ -955,8 +969,9 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', ...pulseClass }}
+            animate={pulseAnim}
+            transition={pulseTransition}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
             <svg width={44} height={44} viewBox="0 0 44 44">
                 {/* Background ring */}
@@ -1497,6 +1512,16 @@ function UniversalDynamicTable({
     getKeyConceptReminders = null,
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
+    // Synchronous double-grade latch. `selectedAnswer` alone cannot guard the
+    // submit path: state reads are per-render, and the timer's expiry callback
+    // fires out of setTimeout(0) with the PREVIOUS render's nulls -- so an
+    // answer clicked in the same tick the clock hit 0 was graded twice (the
+    // old double-answer window). A ref is read at call time, not render time.
+    const answerSubmittedRef = React.useRef(false);
+    // Which auto-action the expired clock took ('fold' | 'check'), or 'none'
+    // when the option list offered neither. Drives the TIME banner so a
+    // timeout is never graded silently as if the player chose the action.
+    const [timeExpired, setTimeExpired] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
     const [showWhyDrawer, setShowWhyDrawer] = React.useState(false);
     const [showRangeGrid, setShowRangeGrid] = React.useState(false);
@@ -2623,9 +2648,14 @@ function UniversalDynamicTable({
         : { fg: '#38bdf8', strong: 'rgba(56,189,248,0.45)', soft: 'rgba(56,189,248,0.15)', faint: 'rgba(56,189,248,0.08)', hairline: 'rgba(56,189,248,0.3)', glow: 'rgba(56,189,248,0.4)', label: 'LOW' };
 
     // Wrap handleAnswer to resolve grouped actions back to solver actions for scoring
-    const handleAnswerWithGrouping = useCallback((answerId) => {
-        // Guard against double-answers (mirrors the keyboard path's guard)
+    const handleAnswerWithGrouping = useCallback((answerId, extraMeta) => {
+        // Guard against double-answers (mirrors the keyboard path's guard).
+        // The ref is the authoritative latch: unlike the two state reads it is
+        // current even inside a stale closure, which is exactly what the timer
+        // expiry path is when it races a click (see answerSubmittedRef).
+        if (answerSubmittedRef.current) return;
         if (showFeedback || selectedAnswer) return;
+        answerSubmittedRef.current = true;
         // If using grouped/simple mode, resolve back to the best solver action
         let resolvedId = answerId;
         if (activeDifficultyMode !== 'standard' && difficultyActionMapping[answerId]) {
@@ -2640,7 +2670,7 @@ function UniversalDynamicTable({
         const rngMeta = rngMode && rngTargetAction
             ? { rngRoll, rngMode: rngHighLow, rngTargetActionId: rngTargetAction.id }
             : null;
-        if (onAnswer) onAnswer(resolvedId, { answerTimeSeconds: elapsed, ...(rngMeta || {}) });
+        if (onAnswer) onAnswer(resolvedId, { answerTimeSeconds: elapsed, ...(rngMeta || {}), ...(extraMeta || {}) });
         const gradedAgainst = rngMeta ? rngMeta.rngTargetActionId : correctAnswer;
         try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, isCorrect: resolvedId === gradedAgainst }); } catch (e) { console.warn('[App] Handled exception:', e); }
     }, [showFeedback, selectedAnswer, activeDifficultyMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer, rngMode, rngHighLow, rngRoll, rngTargetAction]);
@@ -2752,6 +2782,8 @@ function UniversalDynamicTable({
         setSelectedAnswer(null);
         setFeedbackCollapsed(false);
         setDeepAnalysisOpen(false);
+        answerSubmittedRef.current = false;
+        setTimeExpired(null);
     }, [decisionKey]);
 
     // ARENA_HAND_LOADED is a per-HAND event, so it stays keyed on the hand.
@@ -4229,21 +4261,48 @@ function UniversalDynamicTable({
                                 variant="plate"
                                 compact={isMobile}
                                 onTimeExpired={() => {
-                                    // BUG-04 FIX: Auto-submit worst option when timer expires
-                                    if (!showFeedback && !selectedAnswer && onAnswer) {
-                                        const opts = question?.options || [];
-                                        // Find fold option, or use the first option as fallback
-                                        const foldOpt = opts.find(o => /fold/i.test(o.text || o.label || ''));
-                                        const worstId = foldOpt ? (foldOpt.id || foldOpt) : (opts[0]?.id || opts[0]);
-                                        if (worstId) {
-                                            setSelectedAnswer(worstId);
-                                            onAnswer(worstId);
-                                            SoundEngine.play('wrong');
-                                        }
+                                    // Expiry takes the real passive action -- fold facing a
+                                    // bet, check when checking is free -- graded with the
+                                    // classification the solver gives THAT action, and the
+                                    // feedback banner says TIME so it is never passed off
+                                    // as the player's pick. The old handler fell back to
+                                    // opts[0], i.e. it silently graded the FIRST option the
+                                    // player never chose. It also called onAnswer directly,
+                                    // skipping the grouped-difficulty resolution and the
+                                    // double-answer latch; routing through
+                                    // handleAnswerWithGrouping closes the race where a
+                                    // click lands in the same tick as the clock hitting 0
+                                    // (this callback fires from setTimeout(0) with a stale
+                                    // closure -- only answerSubmittedRef is current here).
+                                    if (answerSubmittedRef.current || showFeedback || selectedAnswer) return;
+                                    const opts = displayOptions || [];
+                                    const pick = (re) => opts.find(o => re.test(o.text || o.label || ''));
+                                    const autoOpt = pick(/fold/i) || pick(/check/i);
+                                    if (autoOpt) {
+                                        setTimeExpired(/fold/i.test(autoOpt.text || autoOpt.label || '') ? 'fold' : 'check');
+                                        handleAnswerWithGrouping(autoOpt.id || autoOpt, { timedOut: true });
+                                        SoundEngine.play('wrong');
+                                    } else {
+                                        // No passive action exists (not a spot the engines
+                                        // produce). Mark the expiry visibly and leave the
+                                        // decision unanswered rather than invent a pick.
+                                        setTimeExpired('none');
                                     }
                                 }}
                             />
                         </div>
+                        {timeExpired === 'none' && !showFeedback && !selectedAnswer && (
+                            <div style={{
+                                position: 'absolute', bottom: isMobile ? 1 : 10, left: 0,
+                                padding: '4px 9px', borderRadius: 8,
+                                fontSize: 10, fontWeight: 800, letterSpacing: 0.8,
+                                color: 'var(--sp-accent-red)',
+                                border: '1px solid rgba(239,68,68,0.45)',
+                                background: 'rgba(20,10,10,0.92)',
+                            }}>
+                                TIME EXPIRED
+                            </div>
+                        )}
                         <div style={{ ...styles.questionOfPill, bottom: isMobile ? 3 : 16 }}>
                             Question {questionNumber} of {totalQuestions}
                         </div>
@@ -4946,11 +5005,22 @@ function UniversalDynamicTable({
                             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
                             justifyContent: 'center',
                         }}>
+                            {timeExpired && timeExpired !== 'none' && (
+                                <span style={{
+                                    fontSize: 10, fontWeight: 800, letterSpacing: 0.8,
+                                    color: 'var(--sp-accent-red)',
+                                    padding: '2px 7px', borderRadius: 5,
+                                    border: '1px solid rgba(239,68,68,0.45)',
+                                    background: 'rgba(239,68,68,0.10)',
+                                }}>
+                                    TIME — auto-{timeExpired === 'fold' ? 'folded' : 'checked'}
+                                </span>
+                            )}
                             <span style={{
                                 fontSize: 11, fontWeight: 600,
                                 color: feedbackResult === 'correct' ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                             }}>
-                                {feedbackResult === 'correct'? '✓': '✕'} You: {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
+                                {feedbackResult === 'correct'? '✓': '✕'} {timeExpired && timeExpired !== 'none' ? 'Clock' : 'You'}: {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
                             </span>
                             {selectedAnswer !== effectiveCorrectAnswer && (
                                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-accent-green)' }}>

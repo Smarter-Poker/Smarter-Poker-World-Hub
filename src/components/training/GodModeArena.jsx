@@ -3306,38 +3306,13 @@ function GodModeArenaInner({
   useEffect(() => {
     if (typeof window !== 'undefined') localStorage.setItem('gma_timer', timerMode);
   }, [timerMode]);
-  const [timerRemaining, setTimerRemaining] = useState(resolveTimerSeconds(timerMode));
-  const timerIntervalRef = useRef(null);
-
-  // Reset timer when new question loads
-  // NOTE: UDT's CountdownTimer now handles the visual countdown + auto-submit.
-  // This interval is only kept as a fallback for non-UDT game modes.
-  useEffect(() => {
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    // Skip if UDT CountdownTimer is handling the timer (GTO trainer modes)
-    if (trainerConfig?.timerEnabled || isTimerEnabled(timerMode)) return;
-    const duration = resolveTimerSeconds(timerMode);
-    if (!duration || !currentQuestion || showFeedback || gameComplete) return;
-    setTimerRemaining(duration);
-    timerIntervalRef.current = setInterval(() => {
-      setTimerRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerIntervalRef.current);
-          // Auto-submit timeout as wrong answer
-          if (currentQuestion?.options?.length > 0) {
-            const wrongOption = currentQuestion.options.find((o) => {
-              const id = o.id || o;
-              return id !== currentQuestion.correctAnswer;
-            });
-            if (wrongOption) submitAnswer(wrongOption.id || wrongOption);
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timerIntervalRef.current);
-  }, [timerMode, trainerConfig, currentQuestion, showFeedback, gameComplete, submitAnswer]);
+  // The in-hand countdown lives in UDT's CountdownTimer, fed timerSeconds /
+  // timerEnabled through trainerConfig below. A "fallback" interval used to
+  // sit here -- it was DEAD both ways (timer enabled: early return; timer
+  // disabled: duration 0, early return), and its expiry branch deliberately
+  // submitted a WRONG option the player never chose, silently. Removed rather
+  // than left to be resurrected by the next refactor; UDT's expiry path
+  // auto-folds/checks with the solver's own classification and says TIME.
 
   // ●●● AUTO-ADVANCE FOR MULTI-TABLE BLITZ ●●●
   // GTOW parity #29: this used to fire on a hardcoded 800ms regardless of the
@@ -3373,11 +3348,6 @@ function GodModeArenaInner({
     }, delay);
     return () => clearTimeout(timerId);
   }, [autoAdvance, showFeedback, gameComplete, nextQuestion, trainerConfig, lastClassification]);
-
-  // Pause timer during feedback
-  useEffect(() => {
-    if (showFeedback && timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-  }, [showFeedback]);
 
   // ●●● Phase 21: Game Phase State Machine ●●●
   // Skip the splash entirely when the caller already gathered the config.
