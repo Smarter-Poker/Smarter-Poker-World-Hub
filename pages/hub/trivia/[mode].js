@@ -903,7 +903,19 @@ export default function TriviaModePage() {
         // to silently forfeit the completion bonus for the whole day (the
         // daily_trivia_plays row was still written, making it unrecoverable).
         let dailyBonusDiamonds = 0;
-        if (firstDailyToday && questions.length >= 20) {
+        if (useServerPayout) {
+            // Server-graded runs: the server pays the completion bonus itself and
+            // reports the amount (/api/trivia/session-submit dailyBonusAwarded).
+            // The browser-side add_diamonds_to_balance credit has been dead since
+            // 2026-08-03, so the client must never compute (or try to credit) its
+            // own figure for a server-graded run - it only displays what was paid.
+            dailyBonusDiamonds = Number(serverResult?.dailyBonusAwarded) || 0;
+            if (dailyBonusDiamonds > 0) {
+                setDailyDiamondsClaimed(true);
+            }
+        } else if (firstDailyToday && questions.length >= (modeConfig?.questionsCount || 10)) {
+            // Threshold was a hard-coded 20 from the old roster size; the daily
+            // roster is now 10 questions, so ">= 20" could never pass.
             dailyBonusDiamonds = 10;
             setDailyDiamondsClaimed(true);
         }
@@ -1717,8 +1729,13 @@ export default function TriviaModePage() {
                                 showDailyBonusRow
                                 onSpinWheel={openPrizeWheel}
                                 showSpinButton={isPerfectScore && !showPrizeWheel && !wheelSpun}
-                                onDoubleOrNothing={result.diamondsEarned > 0 && !doubleAttempted ? openDoubleOrNothing : null}
-                                showDoubleButton={result.diamondsEarned > 0 && !showDoubleOrNothing && !doubleAttempted}
+                                onDoubleOrNothing={/* DISABLED: Double or Nothing pays through the
+                                    browser-side add_diamonds_to_balance RPC, which was revoked
+                                    2026-08-03 - a win could not be credited (and a loss could not
+                                    be collected). Disabled until it settles through a server
+                                    route. */
+                                    false && result.diamondsEarned > 0 && !doubleAttempted ? openDoubleOrNothing : null}
+                                showDoubleButton={false && result.diamondsEarned > 0 && !showDoubleOrNothing && !doubleAttempted}
                             />
 
                             {mode === 'arcade' && (
@@ -1773,8 +1790,13 @@ export default function TriviaModePage() {
                         onAccept / onAnswer / onDecline) — the previous
                         currentWinnings/onComplete props didn't exist, so the
                         modal showed 0 winnings, never paid out, and trapped
-                        the player on the result screen. */}
-                    {showDoubleOrNothing && (
+                        the player on the result screen.
+                        DISABLED: Double or Nothing pays through the browser-side
+                        add_diamonds_to_balance RPC, which was revoked 2026-08-03 -
+                        a win could not be credited (and a loss could not be
+                        collected). The false && guard keeps the wager unreachable
+                        until it settles through a server route. */}
+                    {false && showDoubleOrNothing && (
                         <DoubleOrNothing
                             question={doubleQuestion}
                             diamondsAtRisk={result?.diamondsEarned || 0}
