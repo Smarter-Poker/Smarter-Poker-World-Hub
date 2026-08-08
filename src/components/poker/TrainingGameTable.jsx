@@ -10,6 +10,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { dealSeatAvatars, HERO_DEFAULT_AVATAR } from '../../lib/tableAvatars';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SEAT POSITIONS — MASSIVE avatars ON the table edge
@@ -29,17 +30,11 @@ const SEATS = [
 
 const DEFAULT_STACKS = [45, 32, 28, 55, 41, 38, 62, 29, 51];
 
-const AVATARS = {
-    hero: '/avatars/table/free_fox.png',
-    v1: '/avatars/table/vip_viking_warrior.png',
-    v2: '/avatars/table/free_wizard.png',
-    v3: '/avatars/table/free_ninja.png',
-    v4: '/avatars/table/vip_wolf.png',
-    v5: '/avatars/table/vip_spartan.png',
-    v6: '/avatars/table/vip_pharaoh.png',
-    v7: '/avatars/table/free_cowboy.png',
-    v8: '/avatars/table/free_pirate.png',
-};
+// Seat portraits are dealt from the shared AVATAR_LIBRARY pool (see
+// src/lib/tableAvatars.js) rather than hardcoded here -- this used to be a
+// nine-entry map, so every training session sat the same nine characters at
+// the felt. TrainingGameTable#seatAvatars below deals a fresh, deterministic
+// cast per question.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CARD COMPONENT
@@ -75,7 +70,7 @@ function Card({ card, style = {} }) {
 // PLAYER SEAT — MASSIVE Avatar + Gold Badge
 // ═══════════════════════════════════════════════════════════════════════════
 
-function PlayerSeat({ seat, stack }) {
+function PlayerSeat({ seat, stack, avatarSrc }) {
     // MASSIVE avatars as in reference
     const size = seat.isHero ? 85 : 75;
 
@@ -96,7 +91,7 @@ function PlayerSeat({ seat, stack }) {
                 style={{ width: size, height: size * 1.15 }}
             >
                 <img
-                    src={AVATARS[seat.id]}
+                    src={avatarSrc}
                     alt={seat.name}
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     onError={(e) => { e.target.src = '/avatars/default.png'; }}
@@ -139,12 +134,25 @@ function TrainingGameTable({
     gameTitle = 'ICM FUNDAMENTALS',
     questionText = 'You Are On The Button (Last To Act). The Player To Your Right Bets 2.5BB. What Is Your Best Move?',
     diamonds = 500,
+    heroAvatarUrl = null,
     onFold,
     onCall,
     onRaise,
     onAllIn,
     onBack,
 }) {
+    // PORTRAITS FOR THIS QUESTION, hero-relative (SEATS[0] is hero). Seeded off
+    // the question's stable identity -- gameTitle + questionNumber -- so one
+    // question always shows one cast; a re-render, a street change or a
+    // remount all reproduce it exactly, and the next question deals a fresh
+    // set from the full library. Hero's chosen avatar (when supplied) is
+    // preferred for the hero seat and excluded from every villain seat.
+    const handAvatarKey = `${gameTitle}|${questionNumber}`;
+    const seatAvatars = React.useMemo(
+        () => dealSeatAvatars(handAvatarKey, SEATS.length, heroAvatarUrl || HERO_DEFAULT_AVATAR),
+        [handAvatarKey, heroAvatarUrl]
+    );
+
     return (
         <div style={{
             width: '100%',
@@ -323,7 +331,7 @@ function TrainingGameTable({
 
                 {/* PLAYER SEATS */}
                 {SEATS.map((seat, i) => (
-                    <PlayerSeat key={seat.id} seat={seat} stack={DEFAULT_STACKS[i]} />
+                    <PlayerSeat key={seat.id} seat={seat} stack={DEFAULT_STACKS[i]} avatarSrc={seatAvatars[i]} />
                 ))}
 
                 {/* HERO CARDS */}
