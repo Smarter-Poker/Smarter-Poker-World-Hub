@@ -15,6 +15,17 @@ import { useState, useCallback, useMemo, useRef } from 'react';
 // ═══ Phase GTO-CLONE: Import GTOScoreEngine for grade/diamond calculations ═══
 import { SessionScorer, getScoreGrade, getScoreColor, calculateSessionDiamonds } from '../engines/GTOScoreEngine';
 
+// ═══ SESSION ANALYTICS (2026-08-08): one accumulator, many readers ═══
+// The distribution / position / street / EV numbers shown on the in-hand
+// session rail and on the review screen are ALL derived from handHistory by
+// these pure functions — no parallel incremental counters to drift.
+import {
+    deriveClassificationCounts,
+    derivePositionAccuracy,
+    deriveStreetAccuracy,
+    deriveEVSummary,
+} from '../lib/sessionAnalytics';
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -395,25 +406,30 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
 
 export default function useGTOWScore() {
     const [handsPlayed, setHandsPlayed] = useState(0);
-    const [movesMade, setMovesMade] = useState(0);
-    const [mistakeCount, setMistakeCount] = useState(0);
-    const [totalEVLoss, setTotalEVLoss] = useState(0);
     const [totalScore, setTotalScore] = useState(0);
     const [maxPossibleScore, setMaxPossibleScore] = useState(0);
     const [totalFreqDiff, setTotalFreqDiff] = useState(0);
     const [handHistory, setHandHistory] = useState([]);
 
-    // ═══ Phase 36: Classification breakdown + streak tracking ═══
-    const [classificationCounts, setClassificationCounts] = useState({
-        best: 0, correct: 0, inaccuracy: 0, wrong: 0, blunder: 0,
-    });
+    // ═══ SESSION ANALYTICS (2026-08-08): movesMade / mistakeCount /
+    // totalEVLoss / classificationCounts used to be five separate pieces of
+    // state incremented alongside the handHistory push. Same data, two
+    // accumulators — the classic recipe for the rail and the review screen
+    // disagreeing. They are now DERIVED from handHistory, the one array
+    // recordMove appends to. deriveEVSummary replicates the old per-step
+    // cent rounding, so displayed values are bit-identical to before.
+    const evSummary = useMemo(() => deriveEVSummary(handHistory), [handHistory]);
+    const movesMade = evSummary.movesMade;
+    const mistakeCount = evSummary.mistakeCount;
+    const totalEVLoss = evSummary.totalEVLoss;
+    const classificationCounts = useMemo(
+        () => deriveClassificationCounts(handHistory), [handHistory]
+    );
+
+    // ═══ Phase 36: Streak tracking ═══
     const [currentStreak, setCurrentStreak] = useState(0);  // positive = correct streak, negative = mistake streak
     const [bestStreak, setBestStreak] = useState(0);
     const [lastClassification, setLastClassification] = useState(null);
-
-    // ═══ Phase 38: Position-based + street-based accuracy tracking ═══
-    const [positionStats, setPositionStats] = useState({});  // { 'BTN': { total: 0, correct: 0 }, ... }
-    const [streetStats, setStreetStats] = useState({});      // { 'flop': { total: 0, correct: 0 }, ... }
 
     // ═══ Phase GTO-CLONE: SessionScorer from GTOScoreEngine ═══
     const sessionScorerRef = useRef(new SessionScorer());
@@ -466,10 +482,8 @@ export default function useGTOWScore() {
         return Math.round((totalEVLoss / handsPlayed) * 100) / 100;
     }, [totalEVLoss, handsPlayed]);
 
-    const avgEVLossPerMistake = useMemo(() => {
-        if (mistakeCount === 0) return 0;
-        return Math.round((totalEVLoss / mistakeCount) * 100) / 100;
-    }, [totalEVLoss, mistakeCount]);
+    // Derived in deriveEVSummary — same accumulator as everything else.
+    const avgEVLossPerMistake = evSummary.avgEVLossPerMistake;
 
     const avgFrequencyDiff = useMemo(() => {
         if (movesMade === 0) return 0;
@@ -493,12 +507,6 @@ export default function useGTOWScore() {
             ? (config.scoreImpact.min + config.scoreImpact.max) / 2
             : 0;
 
-        const isMistake = [
-            MOVE_CLASSIFICATIONS.INACCURACY,
-            MOVE_CLASSIFICATIONS.WRONG,
-            MOVE_CLASSIFICATIONS.BLUNDER,
-        ].includes(classification);
-
         // Only increment handsPlayed when the hand id changes (multi-street
         // hands record one move per street but are still a single hand)
         const handKey = handData?.handId ?? handData?.scenarioHash ?? null;
@@ -506,18 +514,12 @@ export default function useGTOWScore() {
             setHandsPlayed(prev => prev + 1);
             lastHandIdRef.current = handKey;
         }
-        setMovesMade(prev => prev + 1);
-        if (isMistake) setMistakeCount(prev => prev + 1);
-        setTotalEVLoss(prev => Math.round((prev + evLoss) * 100) / 100);
         setTotalScore(prev => prev + scoreImpact);
         setMaxPossibleScore(prev => prev + CLASSIFICATION_CONFIG[MOVE_CLASSIFICATIONS.BEST].scoreImpact.max);
         setTotalFreqDiff(prev => prev + frequencyDiff);
 
-        // ═══ Phase 36: Track classification breakdown ═══
-        setClassificationCounts(prev => ({
-            ...prev,
-            [classification]: (prev[classification] || 0) + 1,
-        }));
+        // movesMade / mistakeCount / totalEVLoss / classificationCounts are
+        // now derived from the handHistory push below — one accumulator.
 
         // ═══ Phase 36: Track streaks ═══
         const isCorrectMove = classification === MOVE_CLASSIFICATIONS.BEST || classification === MOVE_CLASSIFICATIONS.CORRECT;
@@ -531,37 +533,8 @@ export default function useGTOWScore() {
         });
         setLastClassification(classification);
 
-        // ═══ Phase 38: Track position-based accuracy ═══
-        const position = handData?.heroPosition;
-        if (position) {
-            const normalizedPos = position.toUpperCase().replace(/[^A-Z]/g, '');
-            setPositionStats(prev => {
-                const existing = prev[normalizedPos] || { total: 0, correct: 0 };
-                return {
-                    ...prev,
-                    [normalizedPos]: {
-                        total: existing.total + 1,
-                        correct: existing.correct + (isCorrectMove ? 1 : 0),
-                    },
-                };
-            });
-        }
-
-        // ═══ Phase 38: Track street-based accuracy ═══
-        const street = handData?.street;
-        if (street) {
-            const normalizedStreet = street.toLowerCase();
-            setStreetStats(prev => {
-                const existing = prev[normalizedStreet] || { total: 0, correct: 0 };
-                return {
-                    ...prev,
-                    [normalizedStreet]: {
-                        total: existing.total + 1,
-                        correct: existing.correct + (isCorrectMove ? 1 : 0),
-                    },
-                };
-            });
-        }
+        // Phase 38 position/street accuracy is derived from the handHistory
+        // entry pushed below (heroPosition + street travel in handData).
 
         // Add to hand history
         setHandHistory(prev => [...prev, {
@@ -593,19 +566,13 @@ export default function useGTOWScore() {
      */
     const resetScore = useCallback(() => {
         setHandsPlayed(0);
-        setMovesMade(0);
-        setMistakeCount(0);
-        setTotalEVLoss(0);
         setTotalScore(0);
         setMaxPossibleScore(0);
         setTotalFreqDiff(0);
         setHandHistory([]);
-        setClassificationCounts({ best: 0, correct: 0, inaccuracy: 0, wrong: 0, blunder: 0 });
         setCurrentStreak(0);
         setBestStreak(0);
         setLastClassification(null);
-        setPositionStats({});
-        setStreetStats({});
         lastHandIdRef.current = null;
         // ═══ Phase GTO-CLONE: Reset SessionScorer ═══
         sessionScorerRef.current.reset();
@@ -619,27 +586,9 @@ export default function useGTOWScore() {
     }, [movesMade, classificationCounts]);
 
     // ═══ Phase 38: Derived position/street accuracy maps ═══
-    const positionAccuracy = useMemo(() => {
-        const result = {};
-        for (const [pos, stats] of Object.entries(positionStats || {})) {
-            result[pos] = {
-                ...stats,
-                accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
-            };
-        }
-        return result;
-    }, [positionStats]);
+    const positionAccuracy = useMemo(() => derivePositionAccuracy(handHistory), [handHistory]);
 
-    const streetAccuracy = useMemo(() => {
-        const result = {};
-        for (const [st, stats] of Object.entries(streetStats || {})) {
-            result[st] = {
-                ...stats,
-                accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
-            };
-        }
-        return result;
-    }, [streetStats]);
+    const streetAccuracy = useMemo(() => deriveStreetAccuracy(handHistory), [handHistory]);
 
     // ═══ Phase 38: Weakest position (lowest accuracy with enough samples) ═══
     const weakestPosition = useMemo(() => {
@@ -681,7 +630,7 @@ export default function useGTOWScore() {
                 count: passiveMistakes.length,
                 pct,
                 tip: `You're playing too passively — ${passiveMistakes.length} times you folded or checked when GTO says to bet or raise. Look for spots to apply more aggression, especially with draws and strong hands.`,
-                icon: '🐢',
+                icon: '▼',
             });
         }
 
@@ -701,7 +650,7 @@ export default function useGTOWScore() {
                 count: aggressiveMistakes.length,
                 pct,
                 tip: `You're over-aggressing — ${aggressiveMistakes.length} times you bet or raised when the solver prefers a passive line. Not every hand needs to be bet; many spots call for pot control or folding.`,
-                icon: '🔥',
+                icon: '▲',
             });
         }
 
@@ -730,7 +679,7 @@ export default function useGTOWScore() {
                     count: overCount,
                     pct: Math.round((overCount / mistakes.length) * 100),
                     tip: `You're consistently overbetting — ${overCount} times your sizing was larger than optimal. Smaller sizes often achieve the same goal while losing less when called by better hands.`,
-                    icon: '📏',
+                    icon: '↑',
                 });
             }
             if (underCount >= 2) {
@@ -740,7 +689,7 @@ export default function useGTOWScore() {
                     count: underCount,
                     pct: Math.round((underCount / mistakes.length) * 100),
                     tip: `You're consistently underbetting — ${underCount} times your sizing was smaller than optimal. Larger sizes build bigger pots with strong hands and generate more fold equity with bluffs.`,
-                    icon: '📏',
+                    icon: '↓',
                 });
             }
         }
@@ -761,7 +710,7 @@ export default function useGTOWScore() {
                 position: worstPos[0],
                 pct: Math.round((worstPos[1] / mistakes.length) * 100),
                 tip: `${Math.round((worstPos[1] / mistakes.length) * 100)}% of your mistakes happen from ${posName} (${worstPos[0]}). Focus on studying ${posName} ranges and adjust your strategy for this seat.`,
-                icon: '🪑',
+                icon: '■',
             });
         }
 
@@ -781,7 +730,7 @@ export default function useGTOWScore() {
                 street: worstStreet[0],
                 pct: Math.round((worstStreet[1] / mistakes.length) * 100),
                 tip: `Most of your mistakes (${worstStreet[1]}) happen on the ${streetName}. Work on ${streetName.toLowerCase()} decision-making — consider board texture changes and range narrowing.`,
-                icon: worstStreet[0] === 'river' ? '🌊' : worstStreet[0] === 'turn' ? '🔄' : '🃏',
+                icon: '→',
             });
         }
 
