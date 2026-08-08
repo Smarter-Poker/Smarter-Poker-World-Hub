@@ -32,6 +32,7 @@ import { PokerSoundManager } from './PokerSoundManager';
 import ThrowableEmojis from './ThrowableEmojis';
 import BBJTicker from './BBJTicker';
 import { getHandStrength } from '../../lib/handStrength';
+import { dealSeatAvatars, HERO_DEFAULT_AVATAR } from '../../lib/tableAvatars';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DESIGN TOKENS
@@ -1808,20 +1809,14 @@ let T = getActiveTheme();
 // AVATAR RESOLUTION — Maps user avatars to table-optimized images
 // ═══════════════════════════════════════════════════════════════════════════
 
-const FALLBACK_TABLE_AVATARS = [
-  '/avatars/table/free_shark.png',
-  '/avatars/table/free_lion.png',
-  '/avatars/table/free_owl.png',
-  '/avatars/table/free_fox.png',
-  '/avatars/table/free_ninja.png',
-  '/avatars/table/free_pirate.png',
-  '/avatars/table/free_samurai.png',
-  '/avatars/table/free_viking.png',
-  '/avatars/table/free_knight.png',
-  '/avatars/table/free_cowboy.png',
-];
-
-function resolveTableAvatar(avatarUrl, seatIndex = 0) {
+// Real player avatars always win here -- this only resolves what a seat shows
+// when nobody has picked one yet. The fallback used to be a hardcoded
+// ten-entry array indexed by seat position (so table N always dressed seat 3
+// as the same fox); it now draws a per-table cast from the shared
+// AVATAR_LIBRARY pool via dealSeatAvatars/tableAvatars.js -- see
+// buildSeatFallbackAvatars below, which deals that cast once per table and
+// hands each seat its assigned portrait through the `fallbackSrc` argument.
+function resolveTableAvatar(avatarUrl, fallbackSrc) {
   // Custom avatar (Supabase upload or external URL) — use directly
   if (avatarUrl && (avatarUrl.startsWith('http') || avatarUrl.startsWith('data:'))) {
     return avatarUrl;
@@ -1832,8 +1827,29 @@ function resolveTableAvatar(avatarUrl, seatIndex = 0) {
     const tier = avatarUrl.includes('/vip/') ? 'vip' : 'free';
     return `/avatars/table/${tier}_${filename}.png`;
   }
-  // Fallback: deterministic avatar based on seat index
-  return FALLBACK_TABLE_AVATARS[seatIndex % FALLBACK_TABLE_AVATARS.length];
+  // Fallback: this seat's assigned portrait from buildSeatFallbackAvatars
+  return fallbackSrc || HERO_DEFAULT_AVATAR;
+}
+
+// Deal a distinct, deterministic fallback portrait to every seat at a table
+// that has no real avatarUrl. Seeded on the table id, so the cast is stable
+// for the life of the table and does not reshuffle on every reconnect or
+// re-render. `heroFallback` -- the viewer's own account avatar, when it is a
+// library path -- is reserved for the viewer's own seat (if they are seated
+// and lack a resolvable avatarUrl there too) and is otherwise filtered out of
+// the pool entirely, so a stranger's empty-avatar seat can never end up
+// wearing the viewer's own chosen face.
+function buildSeatFallbackAvatars(tableId, maxSeats, heroFallback, heroSeatIndex) {
+  const cast = dealSeatAvatars('live-table-' + (tableId == null ? '' : tableId), maxSeats, heroFallback);
+  const pool = cast.slice(1); // cast[0] === heroFallback; never assign it to another seat
+  const map = {};
+  let p = 0;
+  for (let i = 0; i < maxSeats; i++) {
+    if (i === heroSeatIndex) { map[i] = heroFallback; continue; }
+    map[i] = pool.length ? pool[p % pool.length] : HERO_DEFAULT_AVATAR;
+    p++;
+  }
+  return map;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2142,6 +2158,7 @@ function PlayerSeat({
   cardSortMode = 'dealt',
   showHUD = false,
   fourColorDeck = false,
+  fallbackAvatar = null,
 }) {
   const { status, player, stack, holeCards: rawHoleCards, isFolded, invested } = seat;
   const isEmpty = status === 'empty' || status === 'reserved';
@@ -2174,7 +2191,7 @@ function PlayerSeat({
   const avatarSize = isHero ? 90 : 72;
 
   // Resolve avatar — uses pre-made library avatars with table-optimized versions
-  const resolvedAvatar = !isEmpty ? resolveTableAvatar(player?.avatarUrl, seat.seatIndex || 0) : null;
+  const resolvedAvatar = !isEmpty ? resolveTableAvatar(player?.avatarUrl, fallbackAvatar) : null;
 
   // Dynamic card width: scale down for Omaha variants
   const cardWidth = isHero
@@ -2426,8 +2443,8 @@ function PlayerSeat({
                   // Step 1: try original avatar path
                   e.target.src = player.avatarUrl;
                 } else if (errors <= 1) {
-                  // Step 2: deterministic seat fallback
-                  e.target.src = FALLBACK_TABLE_AVATARS[(seat.seatIndex || 0) % FALLBACK_TABLE_AVATARS.length];
+                  // Step 2: this seat's assigned deterministic fallback portrait
+                  e.target.src = fallbackAvatar || HERO_DEFAULT_AVATAR;
                 } else {
                   // Step 3: inline SVG — cannot fail
                   e.target.src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="%23374151"/><text x="40" y="52" text-anchor="middle" fill="white" font-size="32" font-family="sans-serif">' + ((player?.displayName || '?')[0] || '?').toUpperCase() + '</text></svg>')}`;
@@ -7335,6 +7352,19 @@ function LivePokerTable({
     }));
   }, [tableState, myCards, userId, maxSeats, positions]);
 
+  // Per-seat fallback portraits for players with no avatarUrl -- see
+  // buildSeatFallbackAvatars/resolveTableAvatar above. Dealt once per table
+  // (keyed on tableId), not per seat, so the whole cast at one table is
+  // distinct; the viewer's own account avatar (avatarUrl prop) is reserved
+  // for the viewer's own seat and withheld from everyone else's fallback.
+  const seatFallbackAvatars = useMemo(() => {
+    const heroFallback = (avatarUrl && avatarUrl.startsWith('/avatars/')) ? avatarUrl : HERO_DEFAULT_AVATAR;
+    const heroSeatIndex = seats.findIndex(
+      (s) => s.player?.id != null && String(s.player.id) === String(userId)
+    );
+    return buildSeatFallbackAvatars(tableId, maxSeats, heroFallback, heroSeatIndex);
+  }, [tableId, maxSeats, avatarUrl, seats, userId]);
+
   // ═══════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════
@@ -7515,6 +7545,7 @@ function LivePokerTable({
               cardSortMode={cardSortMode}
               showHUD={showHUD}
               fourColorDeck={fourColorDeck}
+              fallbackAvatar={seatFallbackAvatars[seat.seatIndex ?? i] ?? HERO_DEFAULT_AVATAR}
             />
           );
         })}
