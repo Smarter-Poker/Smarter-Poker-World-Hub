@@ -15,6 +15,62 @@ Status key: **DONE** verified · **BUILT** shipped but unverified on screen ·
 
 ---
 
+## Reconciliation — 2026-08-08
+
+**Tally: 50/50 numbered items DONE (plus sub-items 14a, 28a FIXED). 0 BUILT ·
+0 GAP · 0 BROKEN.** The "15 DONE / 30 BUILT / 2 GAP" tally still circulating in
+handoffs describes a pre-2026-08-06 revision of this file and must not be
+planned against; every item was promoted on measured evidence in the commits
+between `78034a5131` and `2532cecce2`. Two stale claims have now wasted agent
+time twice and are dead: streaks (#43) were wired 2026-07-26
+(`pages/api/training/streak.js` writes `training_streaks`; callers in
+`pages/hub/training/streaks.js` and `src/config/diamondRewards.js`), and the
+training_answers metadata migration landed long ago.
+
+Every item was re-verified against the code on 2026-08-08 (grep for the
+load-bearing symbol, not memory). Spot evidence, one pointer per cluster:
+
+- #1-2 `GodModeArena.jsx:initialConfig` honoured, no re-prompt
+- #3 `useGTOTrainer.js:gameMode` / `targetStreet`
+- #4 `SessionSetupModal.jsx` timebank tiers (No timer / 25 / 15 / 7)
+- #5, #9 `GodModeArena.jsx:autoAdvanceDelayMs` + `speed` mapping
+- #6 `SessionSetupModal.jsx` + `GodModeArena.jsx`: `feedbackRule`
+- #7 `SessionSetupModal.jsx` + `useGTOTrainer.js`: `handSelection`
+- #10 `pages/hub/training/multi-table.js`: N `GodModeArena` mounts,
+  single-column + tablist switcher below 700px
+- #11 `games/UniversalDynamicTable.jsx:questionText` rendered
+- #14/14a/#16 `games/potMath.js:committedFor` / `postedBlind`;
+  `src/lib/training/declaredStreet.js`
+- #25, #28 `useGTOWScore.js:score_scale`, `avgEVLossPerMistake`
+- #27 `UniversalDynamicTable.jsx:1227` renders `(N% pot)` beside bb
+- #34 `GodModeArena.jsx:#hand-replay-section`
+- #38, #49 `UniversalDynamicTable.jsx:rngTargetAction`, `decisionKey`
+- #40 `GodModeArena.jsx:11129` passes `handHistory` to `LifetimeStatsCard`;
+  `useGTOTrainer.js:deriveSpotType`
+- #42 `pages/api/training/leaderboard.js` + `useGTOWScore.js`:
+  `training_leaderboard`
+- #47 `src/lib/scrollLock.js` reference-counted lock
+- #50 `supabase/migrations/20260806_solved_spots_gold_next_street_index.sql`
+
+**Genuinely still open**, all documented inside their DONE entries and none of
+them blocking the item's own pass condition — do not re-open the items, work
+these directly:
+
+- #14 postflop chip badge is a CONTENT gap: no `solved_spots_gold` row ends in
+  a facing-bet node, so `_villainBetBB` correctly returns 0 postflop. Phase A
+  solver work, not felt work.
+- #18 cosmetic: `cash_6max` squeeze spots render on the 9-max ring
+  (`UniversalDynamicTable.jsx:playerCount` matches neither '6max' nor 'cash');
+  switching rings drops HJ and re-introduces the `c2c5cad682` seat bug, so it
+  needs a seat-map change, not a one-word fix.
+- #33 caveat: deeper coaching notes compare free-text hand strength against
+  snake_case enums and are dead; only the shallow notes render.
+- #10 residuals: `gma_difficulty`/`gma_timer` unnamespaced across tables; the
+  `BroadcastChannel` bus is not per-table; `training_leaderboard` update is a
+  read-modify-write and two tables finishing together can lose an increment.
+
+---
+
 ## Part A — Reference: what GTO Wizard actually does
 
 Sourced from GTO Wizard's own documentation, not assumed.
