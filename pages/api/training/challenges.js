@@ -181,10 +181,11 @@ export default async function handler(req, res) {
                   (userProgress || []).map(p => [`${p.challenge_id}-${p.period_key}`, p])
               );
 
-              // Parallel fetch: all 4 dynamic stats are independent
-              const [avgAccuracyWeekly, avgAccuracyMonthly, uniqueCategoriesMonthly, currentStreak] = await Promise.all([
+              // Parallel fetch: all 5 dynamic stats are independent
+              const [avgAccuracyWeekly, avgAccuracyMonthly, uniqueCategoriesWeekly, uniqueCategoriesMonthly, currentStreak] = await Promise.all([
                   getAverageAccuracy(supabase, userId, periods.weekly, true),
                   getAverageAccuracy(supabase, userId, periods.monthly, false),
+                  getUniqueCategoriesPlayed(supabase, userId, periods.weekly, true),
                   getUniqueCategoriesPlayed(supabase, userId, periods.monthly, false),
                   getCurrentStreak(supabase, userId)
               ]);
@@ -203,7 +204,9 @@ export default async function handler(req, res) {
                           progress = def.challenge_type === 'weekly' ? avgAccuracyWeekly : avgAccuracyMonthly;
                           break;
                       case 'unique_categories':
-                          progress = uniqueCategoriesMonthly;
+                          // Per-period, matching POST: a weekly unique_categories
+                          // challenge must count the weekly window, not monthly.
+                          progress = def.challenge_type === 'weekly' ? uniqueCategoriesWeekly : uniqueCategoriesMonthly;
                           break;
                       case 'streak_days':
                           progress = currentStreak;
