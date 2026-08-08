@@ -108,6 +108,26 @@ export default async function handler(req, res) {
             ? body.description.slice(0, 200)
             : source;
 
+        // Optional idempotency key. Callers that can retry — a PvP stake whose
+        // refund is keyed on the same reference, a Double-or-Nothing settlement
+        // — pass one so a repeat does not double-charge.
+        //
+        // ALWAYS namespaced with the authenticated user id. A client-chosen
+        // reference is otherwise a cross-user collision primitive: guess
+        // another player's key and your charge is silently deduped away as
+        // theirs, or theirs as yours.
+        let referenceId = null;
+        if (body.referenceId !== undefined && body.referenceId !== null) {
+            if (typeof body.referenceId !== 'string') {
+                return res.status(400).json({ success: false, error: 'referenceId must be a string' });
+            }
+            const raw = body.referenceId.trim();
+            if (!raw || raw.length > 120 || !/^[A-Za-z0-9_:.-]+$/.test(raw)) {
+                return res.status(400).json({ success: false, error: 'referenceId contains unsupported characters' });
+            }
+            referenceId = `spend:${userId}:${raw}`;
+        }
+
         // ── VIP plays free. Decided here, from the row, not from the client. ──
         // Same truth definition as /api/vip/check-status and award_diamonds_v2:
         // is_vip alone is not enough, expiry is enforced, and a non-lifetime
@@ -151,6 +171,7 @@ export default async function handler(req, res) {
             p_amount: amount,
             p_description: description,
             p_transaction_type: source,
+            p_reference_id: referenceId,
         });
 
         if (error) {
