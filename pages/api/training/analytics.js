@@ -72,13 +72,75 @@ function aggregateByField(answers, field) {
     return buckets;
 }
 
+// ●● Score-scale normalization ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// score_scale 2 = signed -100..+100 GTOW score (the current writer).
+// score_scale 1 or null = legacy unsigned 0..100 rows. Normalize on read:
+// signed = value * 2 - 100. Never mix the two scales in one series.
+function normalizeGtowScore(rawScore, scoreScale) {
+    if (rawScore === null || rawScore === undefined) return null;
+    const v = Number(rawScore) || 0;
+    return scoreScale === 2 ? v : v * 2 - 100;
+}
+
+// Signed GTOW score for one training_sessions row. Falls back to accuracy
+// (always 0..100, i.e. scale-1 shaped) when gtow_score was never written.
+function sessionSignedScore(s) {
+    const fromScore = normalizeGtowScore(s.gtow_score, s.score_scale);
+    if (fromScore !== null) return fromScore;
+    const fromAccuracy = normalizeGtowScore(s.accuracy, 1);
+    return fromAccuracy !== null ? fromAccuracy : 0;
+}
+
+// ●● Bucket answers + sessions by UTC day ●●●●●●●●●●●●●●●●●●●●●●●●
+// Day-granular trend of accuracy / EV loss (from training_answers) and
+// signed GTOW score (from training_sessions), sorted ascending by date.
+function buildDailyTrend(sessions, answers) {
+    const days = {};
+    const dayOf = (ts) => (typeof ts === 'string' ? ts.slice(0, 10) : '');
+    const bucket = (d) => {
+        if (!days[d]) days[d] = { date: d, hands: 0, correct: 0, evLoss: 0, sessions: 0, scoreSum: 0, scoreCount: 0 };
+        return days[d];
+    };
+    (answers || []).forEach(a => {
+        const d = dayOf(a.answered_at);
+        if (!d) return;
+        const b = bucket(d);
+        b.hands += 1;
+        if (a.is_correct) b.correct += 1;
+        b.evLoss += (a.ev_loss || 0);
+    });
+    (sessions || []).forEach(sess => {
+        const d = dayOf(sess.created_at);
+        if (!d) return;
+        const b = bucket(d);
+        b.sessions += 1;
+        b.scoreSum += sessionSignedScore(sess);
+        b.scoreCount += 1;
+    });
+    return Object.values(days || {})
+        .map(d => ({
+            date: d.date,
+            hands: d.hands,
+            sessions: d.sessions,
+            accuracy: d.hands > 0 ? Math.round((d.correct / d.hands) * 100) : null,
+            evLoss: parseFloat(d.evLoss.toFixed(3)),
+            avgEvLoss: d.hands > 0 ? parseFloat((d.evLoss / d.hands).toFixed(3)) : null,
+            gtowScoreAvg: d.scoreCount > 0 ? Math.round(d.scoreSum / d.scoreCount) : null,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 // ●● Build session score trend ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function buildScoreTrend(sessions) {
     return sessions
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
         .map(s => ({
+            id: s.id,
+            gameId: s.game_id,
             date: s.created_at,
-            gtowScore: s.gtow_score || s.accuracy || 0,
+            // Signed -100..+100 regardless of the row's score_scale
+            gtowScore: sessionSignedScore(s),
+            accuracy: s.accuracy === null || s.accuracy === undefined ? null : s.accuracy,
             handsPlayed: s.hands_played || 0,
             evLoss: s.total_ev_loss || 0,
             avgEvPerHand: s.hands_played > 0 ? parseFloat(((s.total_ev_loss || 0) / s.hands_played).toFixed(3)) : 0,
@@ -144,7 +206,7 @@ function computeMilestones(sessions, answers) {
     const totalHands = answers.length;
     const totalCorrect = answers.filter(a => a.is_correct).length;
     const overallAccuracy = totalHands > 0 ? Math.round((totalCorrect / totalHands) * 100) : 0;
-    const bestScore = sessions.length > 0 ? Math.max(...sessions.map(s => s.gtow_score || s.accuracy || 0)) : 0;
+    const bestScore = sessions.length > 0 ? Math.max(...sessions.map(sessionSignedScore)) : 0;
     const totalEvLoss = answers.reduce((sum, a) => sum + (a.ev_loss || 0), 0);
     const avgEvPerHand = totalHands > 0 ? parseFloat((totalEvLoss / totalHands).toFixed(3)) : 0;
 
@@ -161,8 +223,8 @@ function computeMilestones(sessions, answers) {
     // Rolling averages (last 5 vs previous 5)
     const last5 = sortedSessions.slice(0, 5);
     const prev5 = sortedSessions.slice(5, 10);
-    const last5Avg = last5.length > 0 ? Math.round(last5.reduce((s, x) => s + (x.gtow_score || x.accuracy || 0), 0) / last5.length) : 0;
-    const prev5Avg = prev5.length > 0 ? Math.round(prev5.reduce((s, x) => s + (x.gtow_score || x.accuracy || 0), 0) / prev5.length) : null;
+    const last5Avg = last5.length > 0 ? Math.round(last5.reduce((s, x) => s + sessionSignedScore(x), 0) / last5.length) : 0;
+    const prev5Avg = prev5.length > 0 ? Math.round(prev5.reduce((s, x) => s + sessionSignedScore(x), 0) / prev5.length) : null;
 
     // Classification totals
     const classificationTotals = {};
@@ -251,7 +313,7 @@ export default async function handler(req, res) {
             // ●●● Fetch sessions ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
             let sessQuery = getSupabase()
                 .from('training_sessions')
-                .select('id, game_id, gtow_score, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, classification_counts, created_at')
+                .select('id, game_id, gtow_score, score_scale, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, classification_counts, created_at')
                 .eq('user_id', user.id)
                 .gte('created_at', sinceDate)
                 .order('created_at', { ascending: false })
@@ -288,12 +350,15 @@ export default async function handler(req, res) {
             if (type === 'trends' || type === 'full') {
                 result.scoreTrend = buildScoreTrend(safeSessions);
                 result.classificationTrend = buildClassificationTrend(safeSessions);
+                result.dailyTrend = buildDailyTrend(safeSessions, safeAnswers);
             }
 
             if (type === 'breakdown' || type === 'full') {
                 result.positionAccuracy = aggregateByField(safeAnswers, 'hero_position');
                 result.streetAccuracy = aggregateByField(safeAnswers, 'street');
                 result.actionAccuracy = buildActionAccuracy(safeAnswers);
+                result.spotAccuracy = aggregateByField(safeAnswers, 'spot_type');
+                result.classificationBreakdown = aggregateByField(safeAnswers, 'classification');
             }
 
             if (type === 'mistakes' || type === 'full') {

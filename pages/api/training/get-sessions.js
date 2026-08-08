@@ -24,6 +24,15 @@ function getSupabase() {
     }
     return _supabase;
 }
+
+// score_scale 2 = signed -100..+100 GTOW score (current writer); scale 1 or
+// null = legacy unsigned 0..100. Normalize on read: signed = value * 2 - 100.
+function signedGtowScore(gtowScore, scoreScale) {
+    if (gtowScore === null || gtowScore === undefined) return null;
+    const v = Number(gtowScore) || 0;
+    return scoreScale === 2 ? v : v * 2 - 100;
+}
+
 export default async function handler(req, res) {
   try {
       withTiming(res);
@@ -52,7 +61,7 @@ export default async function handler(req, res) {
           if (sessionId) {
               const { data: session, error: detailErr } = await getSupabase()
                   .from('training_sessions')
-                  .select('id, game_id, game_name, gtow_score, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, hand_history, position_stats, classification_counts, avg_ev_loss_per_hand, avg_ev_loss_per_mistake, avg_frequency_diff, trainer_config, created_at')
+                  .select('id, game_id, game_name, gtow_score, score_scale, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, hand_history, position_stats, classification_counts, avg_ev_loss_per_hand, avg_ev_loss_per_mistake, avg_frequency_diff, trainer_config, created_at')
                   .eq('user_id', user.id)
                   .eq('id', sessionId)
                   .maybeSingle();
@@ -66,13 +75,16 @@ export default async function handler(req, res) {
                   return res.status(404).json({ success: false, error: 'Session not found' });
               }
 
-              return res.status(200).json({ success: true, session });
+              return res.status(200).json({
+                  success: true,
+                  session: { ...session, gtow_score_signed: signedGtowScore(session.gtow_score, session.score_scale) },
+              });
           }
 
           // Try training_sessions first (rich data — select only frontend-consumed columns)
           let query = getSupabase()
               .from('training_sessions')
-              .select('id, game_id, game_name, gtow_score, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, created_at')
+              .select('id, game_id, game_name, gtow_score, score_scale, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, created_at')
               .eq('user_id', user.id)
               .order('created_at', { ascending: false })
               .limit(boundedLimit);
@@ -85,7 +97,11 @@ export default async function handler(req, res) {
           const { data: sessions, error: sessErr } = await query;
 
           if (!sessErr && sessions && sessions.length > 0) {
-              return res.status(200).json({ success: true, sessions });
+              const withSigned = sessions.map(s => ({
+                  ...s,
+                  gtow_score_signed: signedGtowScore(s.gtow_score, s.score_scale),
+              }));
+              return res.status(200).json({ success: true, sessions: withSigned });
           }
 
           // Fallback to training_level_history
@@ -112,6 +128,8 @@ export default async function handler(req, res) {
               id: h.id,
               game_id: h.game_id,
               gtow_score: h.accuracy_percentage,
+              score_scale: 1,
+              gtow_score_signed: signedGtowScore(h.accuracy_percentage, 1),
               hands_played: h.questions_answered,
               total_ev_loss: 0,
               mistake_count: 0,
