@@ -8,10 +8,15 @@
  */
 
 import { getController } from '../../../../src/lib/poker-engine/GameController';
+// FIX (2026-08-08): supabaseServerClient is an ESM `export *` re-export. Requiring it
+// via CJS `require()` returned `undefined` for `createClient` under the current Next/
+// webpack interop, so `createClient(url,key)` at module load threw "n is not a function"
+// and 500'd every request to this route (54 errors / 9 users since 2026-08-03). Import
+// it as ESM like every other caller of this module does.
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 const { applyCors } = require('../../../../src/lib/cors');
 const { AntiCheat } = require('../../../../src/lib/poker-engine/AntiCheat');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
-const { createClient } = require('../../../../src/lib/supabaseServerClient');
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -23,11 +28,14 @@ function getSupabase() {
     }
     return _supabase;
 }
-// Reuse singleton anti-cheat (with supabase for DB persistence)
-// FIX: supabaseAdmin was undefined (never declared) → ReferenceError at module load → 500 on every request.
-// getSupabase() is the lazy singleton already declared above.
-if (!globalThis.__ANTI_CHEAT__) globalThis.__ANTI_CHEAT__ = new AntiCheat(getSupabase());
-const antiCheat = globalThis.__ANTI_CHEAT__;
+// Reuse singleton anti-cheat (with supabase for DB persistence).
+// Lazy getter — do NOT construct at module load: any throw here (e.g. a bad
+// supabase client) would crash the whole route on import. Instantiated on the
+// first request instead, mirroring getSupabase() above.
+function getAntiCheat() {
+    if (!globalThis.__ANTI_CHEAT__) globalThis.__ANTI_CHEAT__ = new AntiCheat(getSupabase());
+    return globalThis.__ANTI_CHEAT__;
+}
 
 
 
@@ -134,6 +142,7 @@ try {
       }
 
       // Rate limit check
+      const antiCheat = getAntiCheat();
       const rateCheck = antiCheat.validateAction(playerId, tableId);
       if (!rateCheck.allowed) {
         return res.status(429).json({ success: false, error: rateCheck.reason });
