@@ -38,6 +38,12 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
     const [streakFreezeAvailable, setStreakFreezeAvailable] = useState(false);
     const [doublePointsActive, setDoublePointsActive] = useState(false);
     const [eliminatedAction, setEliminatedAction] = useState(null);
+    // Mixed-frequency grading verdict for the CURRENT reveal. The reveal UI
+    // used to re-derive correctness as userAnswer === correctAction, which
+    // contradicts handleAnswer's >=25%-frequency tolerance: a graded-correct
+    // mixed action scored points and played the 'correct' sound while the
+    // banner showed 'Wrong! Should X' in red. One verdict, stored once.
+    const [lastAnswerCorrect, setLastAnswerCorrect] = useState(null);
     const availablePowerUps = getGamePowerUps('speed-drill');
 
     const INITIAL_TIME = 3000;
@@ -63,6 +69,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
         setMaxStreak(0);
         setLives(3);
         setUserAnswer(null);
+        setLastAnswerCorrect(null);
         setHandsPlayed(0);
         mistakesRef.current = [];
         setUsedPowerUps(new Set());
@@ -82,6 +89,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
         setTimeRemaining(newTimeLimit);
         setCurrentTimeLimit(newTimeLimit);
         setUserAnswer(null);
+        setLastAnswerCorrect(null);
         setEliminatedAction(null);
     }, [getRandomHand, streak]);
 
@@ -100,6 +108,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
         } else {
             isCorrect = action === currentHand.correctAction;
         }
+        setLastAnswerCorrect(isCorrect);
 
         if (isCorrect) {
             const multiplier = doublePointsActive ? 2 : 1;
@@ -268,7 +277,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                     >
                     <div style={{
                         width: 140, height: 100, background: 'linear-gradient(145deg, #1a1a2e, #16213e)',
-                        border: `3px solid ${gameState === 'revealed' ? (userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444') : '#00D4FF'}`,
+                        border: `3px solid ${gameState === 'revealed' ? (lastAnswerCorrect ? '#00ff88' : '#ff4444') : '#00D4FF'}`,
                         borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
                     }}>
@@ -280,10 +289,10 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                     </CircularTimer>
                     {gameState === 'revealed' && (
                         <div style={{ marginBottom: 16 }}>
-                            <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444', marginBottom: 12 }}>
-                                {userAnswer === currentHand.correctAction ? ` Correct! +${100 + (streak - 1) * 10}` : `✗ Wrong! Should ${currentHand.correctAction.toUpperCase()}`}
+                            <div style={{ fontSize: 18, fontWeight: 700, color: lastAnswerCorrect ? '#00ff88' : '#ff4444', marginBottom: 12 }}>
+                                {lastAnswerCorrect ? ` Correct! +${100 + (streak - 1) * 10}` : `✗ Wrong! Should ${currentHand.correctAction.toUpperCase()}`}
                             </div>
-                            {userAnswer !== currentHand.correctAction && (
+                            {!lastAnswerCorrect && (
                                 <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/gto-panels/panels/gto_${(currentHand.scenario?.position || 'utg').toLowerCase()}_${currentHand.correctAction}_${currentHand.scenario?.stackDepth || 100}bb.png`}
                                     alt="GTO Analysis" style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
                                     onError={(e) => { e.target.style.display = 'none'; }} />
