@@ -1667,16 +1667,25 @@ function UniversalDynamicTable({
     const FELT_DESIGN_H = 633;
     const tableRef = useRef(null);
     const [feltBox, setFeltBox] = React.useState({ w: FELT_DESIGN_W, h: FELT_DESIGN_H });
+    // The table AREA's content box (the felt's parent). Measured separately
+    // because the responsive aspect below must be a function of the space the
+    // oval is GIVEN, never of the box the oval already took -- deriving the
+    // aspect from feltBox would feed the observer its own output.
+    const [areaBox, setAreaBox] = React.useState({ w: 0, h: 0 });
     useEffect(() => {
         const el = tableRef.current;
         if (!el || typeof ResizeObserver === 'undefined') return undefined;
+        const area = el.parentElement;
         const ro = new ResizeObserver((entries) => {
             for (const e of entries) {
                 const r = e.contentRect;
-                if (r.width > 0 && r.height > 0) setFeltBox({ w: r.width, h: r.height });
+                if (r.width <= 0 || r.height <= 0) continue;
+                if (e.target === el) setFeltBox({ w: r.width, h: r.height });
+                else setAreaBox({ w: r.width, h: r.height });
             }
         });
         ro.observe(el);
+        if (area) ro.observe(area);
         return () => ro.disconnect();
     }, []);
 
@@ -1694,6 +1703,46 @@ function UniversalDynamicTable({
     // ui(px) -> px scaled to the measured felt. Use for EVERY fixed dimension
     // drawn inside styles.basicTable.
     const ui = useCallback((n) => Math.round(n * feltScale), [feltScale]);
+
+    // ═══ RESPONSIVE FELT ASPECT ═════════════════════════════════════════════
+    // On a height-starved viewport (360x640: ~356px of page chrome) the LOCKED
+    // 1/1.45 portrait oval starves its own width -- maxHeight wins, the felt
+    // lands at 161x233 and feltScale bottoms out at its 0.58 floor, so the
+    // floor-scaled furniture is drawn on a felt that kept shrinking under it.
+    // Measured: the top seat row touched the board and the five board cards
+    // were WIDER than the felt at 320px.
+    //
+    // The design call (owner-delegated, 2026-08-08): LET THE OVAL FLATTEN.
+    // When the height the area offers would force feltScale below FLATTEN_HI
+    // at the locked ratio, interpolate the aspect toward a flatter portrait
+    // oval so the oval reclaims the width the viewport actually has. Clamped
+    // at FELT_ASPECT_FLAT -- still portrait, never landscape, so the template
+    // silhouette (.agent/design/training-table-template.png) survives.
+    //
+    // The REJECTED alternative, for the record: capping the seat count ("show
+    // 6-max when feltScale <= 0.65") shipped once and was reverted for cause
+    // -- it re-broke the dealer-button rotation and hid villains who had chips
+    // committed in the pot. Seats are never dropped for layout reasons.
+    // See .agent/design/TRAINING-UI-SPEC.md ("Height-constrained viewports").
+    //
+    // `predicted` replays the locked-ratio layout arithmetic (basicTable is
+    // width 92% / maxWidth 440 / maxHeight 100% of the area, minus the 2.5px
+    // gold border each side), so the aspect is a pure function of the area
+    // box and cannot oscillate. Above FLATTEN_HI nothing changes: the felt
+    // keeps the template's exact 1/1.45.
+    const FELT_ASPECT_FULL = 1.45;
+    const FELT_ASPECT_FLAT = 1.12;
+    const FLATTEN_HI = 0.68;  // locked-ratio feltScale at/above this: no flatten
+    const FLATTEN_LO = 0.52;  // locked-ratio feltScale at/below this: fully flat
+    const feltAspect = useMemo(() => {
+        if (!areaBox.w || !areaBox.h) return FELT_ASPECT_FULL;
+        const availW = Math.min(areaBox.w * 0.92, 440);
+        const lockedW = Math.min(availW, areaBox.h / FELT_ASPECT_FULL) - 5;
+        const predicted = Math.min(1, lockedW / FELT_DESIGN_W);
+        if (predicted >= FLATTEN_HI) return FELT_ASPECT_FULL;
+        const t = Math.min(1, (FLATTEN_HI - predicted) / (FLATTEN_HI - FLATTEN_LO));
+        return FELT_ASPECT_FULL - t * (FELT_ASPECT_FULL - FELT_ASPECT_FLAT);
+    }, [areaBox.w, areaBox.h]);
 
     // Honour the OS "reduce motion" setting: no deal-in, no travel, no pulse.
     const reduceMotion = useReducedMotion();
@@ -3428,7 +3477,7 @@ function UniversalDynamicTable({
 
                 {/* PREMIUM RACETRACK TABLE — GoldenTemplateTable design */}
                 {/* NEW CUSTOM STANDALONE RACETRACK TABLE */}
-                <div ref={tableRef} style={styles.basicTable}>
+                <div ref={tableRef} style={{ ...styles.basicTable, aspectRatio: `1 / ${feltAspect}` }}>
 
                 {/* THE FELT — inset into the rail above. Purely decorative and
                     pointer-transparent; every seat, chip and card is drawn on

@@ -79,26 +79,52 @@ function check(name, fn) {
     else { FAIL++; console.log('  FAIL  ' + name + '  [' + detail + ']'); }
 }
 
-// Felt boxes the three target viewports can actually produce.
+// Felt boxes the target viewports can actually produce.
 //   .gto-trainer-container is max-width 800 at >=1200px, 900 at >=900px.
-//   styles.basicTable is width 92%, max-width 440, aspect 1/1.45, max-height 100%.
+//   styles.basicTable is width 92%, max-width 440, max-height 100%, and its
+//   aspect is RESPONSIVE since the flatten change: 1/1.45 at normal sizes,
+//   interpolating down to 1/1.12 when the area's height would force the
+//   locked-ratio feltScale below 0.68 (see feltAspect in the component).
 const CORNER_RAIL_BAND = 44; // styles: reserved under the felt when isMobile
-function feltFor(viewportW, tableAreaH) {
-    const containerW = viewportW >= 1200 ? Math.min(viewportW, 800)
+
+// -- lifted verbatim from UniversalDynamicTable (feltAspect) ----------------
+const FELT_ASPECT_FULL = 1.45;
+const FELT_ASPECT_FLAT = 1.12;
+const FLATTEN_HI = 0.68;
+const FLATTEN_LO = 0.52;
+function feltAspectFor(areaW, areaH) {
+    if (!areaW || !areaH) return FELT_ASPECT_FULL;
+    const availW = Math.min(areaW * 0.92, 440);
+    const lockedW = Math.min(availW, areaH / FELT_ASPECT_FULL) - 5;
+    const predicted = Math.min(1, lockedW / FELT_DESIGN_W);
+    if (predicted >= FLATTEN_HI) return FELT_ASPECT_FULL;
+    const t = Math.min(1, (FLATTEN_HI - predicted) / (FLATTEN_HI - FLATTEN_LO));
+    return FELT_ASPECT_FULL - t * (FELT_ASPECT_FULL - FELT_ASPECT_FLAT);
+}
+
+function containerWFor(viewportW) {
+    return viewportW >= 1200 ? Math.min(viewportW, 800)
         : viewportW >= 900 ? Math.min(viewportW, 900) : viewportW;
+}
+// aspectOverride lets the baseline comparisons below replay the pre-flatten
+// locked ratio; everything else uses the aspect the component would pick.
+function feltFor(viewportW, tableAreaH, aspectOverride) {
+    const containerW = containerWFor(viewportW);
     const isMobile = viewportW < 768;
     const usableH = tableAreaH - (isMobile ? CORNER_RAIL_BAND : 0);
+    const aspect = aspectOverride != null ? aspectOverride : feltAspectFor(containerW, usableH);
     const borderW = Math.min(containerW * 0.92, 440);
-    const borderH = Math.min(borderW * 1.45, usableH);
-    const w = Math.min(borderW, borderH / 1.45) - 5; // aspect ratio is preserved
-    const h = w * 1.45;
-    return { w, h, isMobile, containerW, tableAreaH };
+    const borderH = Math.min(borderW * aspect, usableH);
+    const w = Math.min(borderW, borderH / aspect) - 5;
+    const h = w * aspect;
+    return { w, h, isMobile, containerW, tableAreaH, aspect };
 }
 
 const VIEWPORTS = [
     { label: '1440x900', w: 1440, h: 900 },
     { label: '390x844', w: 390, h: 844 },
     { label: '360x640', w: 360, h: 640 },
+    { label: '320x568', w: 320, h: 568 },
 ];
 // Everything above and below the table on the page. Two rows of action buttons
 // is the tallest the bar gets at four options. The mobile column uses the
@@ -122,6 +148,7 @@ for (const vp of VIEWPORTS) {
         const felt = feltFor(vp.w, tableAreaH);
         const label = vp.label + ' ' + (count === 2 ? 'heads-up' : count + '-max');
         seen.push(label + ': felt ' + felt.w.toFixed(0) + 'x' + felt.h.toFixed(0)
+            + ' aspect 1/' + felt.aspect.toFixed(3)
             + ' scale ' + feltScaleFor(felt.w, felt.h).toFixed(3));
 
         check(label + ' -- every seat has a non-empty clamp window', () => {
@@ -337,6 +364,139 @@ for (const vp of VIEWPORTS) {
             return 'pill left ' + pillLeft.toFixed(0) + ' overlaps hero right ' + heroRight.toFixed(0)
                 + ' and does not clear it vertically (' + pillTopFromAreaBottom.toFixed(0)
                 + ' > ' + heroBottomFromAreaBottom.toFixed(0) + ')';
+        }
+        return true;
+    });
+}
+
+// ---------------------------------------------------------------------------
+// THE OVAL FLATTENS ON HEIGHT-CONSTRAINED SCREENS (design call, 2026-08-08)
+// ---------------------------------------------------------------------------
+// When the area's height would force the locked-ratio feltScale below 0.68,
+// the aspect interpolates from 1/1.45 toward 1/1.12 so the oval reclaims the
+// width the viewport has. Seats stay percentage-positioned, so nothing below
+// re-derives coordinates -- these checks compare the felt the flatten produces
+// against the felt the LOCKED ratio would have produced at the same viewport.
+// Seat-DROPPING is the forbidden alternative: the feltScale<=0.65 6-max cap
+// re-broke dealer-button rotation and hid villains with committed chips.
+
+console.log('\n=== Height-constrained: the oval flattens instead of dropping seats ===');
+
+check('normal viewports keep the template aspect exactly (1440x900, 390x844)', () => {
+    for (const vp of [{ w: 1440, h: 900 }, { w: 390, h: 844 }]) {
+        const tableAreaH = Math.max(140, vp.h - chromeFor(vp.w));
+        const felt = feltFor(vp.w, tableAreaH);
+        if (felt.aspect !== FELT_ASPECT_FULL) {
+            return vp.w + 'x' + vp.h + ' flattened to 1/' + felt.aspect.toFixed(3);
+        }
+    }
+    return true;
+});
+
+check('aspect is bounded [1.12, 1.45] and monotone in available height (sweep)', () => {
+    for (const vw of [320, 360, 390, 768, 1440]) {
+        let prev = null;
+        for (let areaH = 1000; areaH >= 80; areaH -= 4) {
+            const a = feltAspectFor(containerWFor(vw), areaH);
+            if (a < FELT_ASPECT_FLAT - 1e-9 || a > FELT_ASPECT_FULL + 1e-9) {
+                return 'vw ' + vw + ' areaH ' + areaH + ' aspect ' + a.toFixed(4) + ' out of bounds';
+            }
+            if (prev != null && a > prev + 1e-9) {
+                return 'vw ' + vw + ' areaH ' + areaH + ' aspect grew as height shrank';
+            }
+            prev = a;
+        }
+    }
+    return true;
+});
+
+for (const vp of [{ label: '360x640', w: 360, h: 640 }, { label: '320x568', w: 320, h: 568 }]) {
+    const tableAreaH = Math.max(140, vp.h - chromeFor(vp.w));
+    const flat = feltFor(vp.w, tableAreaH);
+    const locked = feltFor(vp.w, tableAreaH, FELT_ASPECT_FULL);
+    const ui = (n) => Math.round(n * feltScaleFor(flat.w, flat.h));
+    const uiL = (n) => Math.round(n * feltScaleFor(locked.w, locked.h));
+
+    check(vp.label + ' -- flatten engages and stays portrait', () => {
+        if (flat.aspect >= FELT_ASPECT_FULL) return 'aspect did not flatten: 1/' + flat.aspect.toFixed(3);
+        if (flat.aspect < FELT_ASPECT_FLAT - 1e-9) return 'aspect went past the portrait clamp: ' + flat.aspect.toFixed(3);
+        if (flat.h <= flat.w) return 'felt went landscape: ' + flat.w.toFixed(0) + 'x' + flat.h.toFixed(0);
+        return true;
+    });
+
+    check(vp.label + ' -- felt area strictly larger than the locked-ratio baseline', () => {
+        const areaFlat = flat.w * flat.h;
+        const areaLocked = locked.w * locked.h;
+        if (!(areaFlat > areaLocked * 1.15)) {
+            return 'area ' + areaFlat.toFixed(0) + ' vs locked ' + areaLocked.toFixed(0)
+                + ' (' + ((areaFlat / areaLocked - 1) * 100).toFixed(1) + '% gain, need >15%)';
+        }
+        seen.push(vp.label + ': flatten area gain '
+            + ((areaFlat / areaLocked - 1) * 100).toFixed(1) + '% ('
+            + locked.w.toFixed(0) + 'x' + locked.h.toFixed(0) + ' -> '
+            + flat.w.toFixed(0) + 'x' + flat.h.toFixed(0) + ')');
+        return true;
+    });
+
+    check(vp.label + ' -- the five-card board fits on the felt with margin', () => {
+        // Board strip: five cards at ui(34) with 3px gaps (m.boardCards).
+        const boardW = 5 * ui(34) + 4 * 3;
+        const margin = (flat.w - boardW) / 2;
+        const marginLocked = (locked.w - (5 * uiL(34) + 4 * 3)) / 2;
+        if (margin < 8) return 'margin ' + margin.toFixed(1) + 'px < 8px (board ' + boardW + ' on felt ' + flat.w.toFixed(0) + ')';
+        if (!(margin > marginLocked)) return 'margin did not improve: ' + margin.toFixed(1) + ' vs locked ' + marginLocked.toFixed(1);
+        return true;
+    });
+
+    check(vp.label + ' -- top-row/board seam: no worse than locked, sub-pixel at 360', () => {
+        const seam = (f, u) => {
+            const villainBoxH = u(52) + u(34) - u(8) + u(3) + u(35);
+            const topRowBottom = 0.15 * f.h + villainBoxH / 2;
+            const boardTop = 0.38 * f.h - u(70) / 2;
+            return topRowBottom - boardTop; // >0 means overlap
+        };
+        const oFlat = seam(flat, ui);
+        const oLocked = seam(locked, uiL);
+        if (oFlat > oLocked + 1e-6) return 'overlap grew: ' + oFlat.toFixed(2) + ' vs locked ' + oLocked.toFixed(2);
+        if (vp.w === 360 && oFlat >= 1) return 'overlap ' + oFlat.toFixed(2) + 'px >= 1px at 360x640';
+        return true;
+    });
+
+    check(vp.label + ' -- adjacent top-row nameplates (9-max UTG+1/MP, 24% apart)', () => {
+        const halfW = (f, u) => Math.max(u(52), u(78)) / 2 + 2;
+        const gapFlat = 0.24 * flat.w - 2 * halfW(flat, ui);
+        const gapLocked = 0.24 * locked.w - 2 * halfW(locked, uiL);
+        if (!(gapFlat > gapLocked)) return 'no improvement: gap ' + gapFlat.toFixed(1) + ' vs locked ' + gapLocked.toFixed(1);
+        if (vp.w === 360 && gapFlat <= 0) return 'nameplates still overlap at 360x640 by ' + (-gapFlat).toFixed(1) + 'px';
+        return true;
+    });
+
+    check(vp.label + ' -- POT pill: below-board branch clears the seam it used to split', () => {
+        // Replays the CURRENT potPlacement (#48 follow-up): when the gap above
+        // the board cannot hold the pill, its TOP edge anchors at the board's
+        // bottom -- zero overlap with board and top row by construction.
+        const villainBoxH = ui(52) + ui(34) - ui(8) + ui(3) + ui(35);
+        const topRowBottom = 0.15 * flat.h + villainBoxH / 2;
+        const boardTop = 0.38 * flat.h - ui(70) / 2;
+        const boardBottom = 0.38 * flat.h + ui(70) / 2;
+        const potH = Math.max(11, ui(15)) + ui(4) + ui(5) + 6;
+        const lo = topRowBottom + potH / 2 + 3;
+        const hi = boardTop - potH / 2 - 3;
+        if (lo <= hi) return true; // gap exists, pill sits in it, nothing to prove
+        const pillTop = boardBottom;
+        if (pillTop < boardBottom - 1e-6) return 'pill top ' + pillTop.toFixed(1) + ' is inside the board';
+        if (pillTop < topRowBottom) return 'pill top ' + pillTop.toFixed(1) + ' is inside the top row';
+        // Hero clearance below the board can only be asserted where it holds;
+        // at 320x568 the 41px pill grazes hero either way -- assert it does
+        // not get WORSE than the locked baseline there.
+        const pillRealH = 41; // measured POT+SPR pill at floor scale (#48)
+        const heroTop = (f, u) => 0.84 * f.h - (u(66) + u(34) - u(8)) / 2;
+        const intoHeroFlat = (pillTop + pillRealH) - heroTop(flat, ui);
+        const boardBottomL = 0.38 * locked.h + uiL(70) / 2;
+        const intoHeroLocked = (boardBottomL + pillRealH) - heroTop(locked, uiL);
+        if (vp.w === 360 && intoHeroFlat > 0) return 'pill runs ' + intoHeroFlat.toFixed(1) + 'px into hero at 360x640';
+        if (intoHeroFlat > Math.max(0, intoHeroLocked) + 1e-6) {
+            return 'pill-into-hero grew: ' + intoHeroFlat.toFixed(1) + ' vs locked ' + intoHeroLocked.toFixed(1);
         }
         return true;
     });
