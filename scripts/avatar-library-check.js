@@ -30,6 +30,9 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const LIBRARY_FILE = path.join(ROOT, 'src/data/AVATAR_LIBRARY.js');
 const TABLE_FILE = path.join(ROOT, 'src/components/training/games/UniversalDynamicTable.jsx');
+// de98ecb75a moved the pool/dealer out of the component into a shared lib —
+// the shipping selection code is lifted from there now.
+const AVATARS_LIB_FILE = path.join(ROOT, 'src/lib/tableAvatars.js');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 
 let PASS = 0, FAIL = 0;
@@ -71,11 +74,12 @@ const AVATAR_LIBRARY = new Function('return ' + extractArrayLiteral(librarySourc
 
 // -- lift the shipping selection code out of the component -------------------
 const tableSource = fs.readFileSync(TABLE_FILE, 'utf8');
+const avatarsLibSource = fs.readFileSync(AVATARS_LIB_FILE, 'utf8');
 
 function extractFunction(source, name) {
     const marker = 'function ' + name + '(';
     const start = source.indexOf(marker);
-    if (start < 0) throw new Error('could not find function ' + name + ' in ' + path.basename(TABLE_FILE));
+    if (start < 0) throw new Error('could not find function ' + name);
     const open = source.indexOf('{', source.indexOf(')', start));
     let depth = 0;
     for (let i = open; i < source.length; i++) {
@@ -90,26 +94,26 @@ function extractFunction(source, name) {
 }
 
 const HERO_DEFAULT_AVATAR = (() => {
-    const m = /const HERO_DEFAULT_AVATAR = '([^']+)'/.exec(tableSource);
-    if (!m) throw new Error('HERO_DEFAULT_AVATAR not found in the table component');
+    const m = /const HERO_DEFAULT_AVATAR = '([^']+)'/.exec(avatarsLibSource);
+    if (!m) throw new Error('HERO_DEFAULT_AVATAR not found in src/lib/tableAvatars.js');
     return m[1];
 })();
 
 // The pool builder is an IIFE in the component; take it verbatim too.
 const poolLiteral = (() => {
-    const start = tableSource.indexOf('const VILLAIN_AVATAR_POOL = (() => {');
-    if (start < 0) throw new Error('VILLAIN_AVATAR_POOL not found in the table component');
-    const end = tableSource.indexOf('})();', start);
+    const start = avatarsLibSource.indexOf('const VILLAIN_AVATAR_POOL = (() => {');
+    if (start < 0) throw new Error('VILLAIN_AVATAR_POOL not found in src/lib/tableAvatars.js');
+    const end = avatarsLibSource.indexOf('})();', start);
     if (end < 0) throw new Error('unterminated VILLAIN_AVATAR_POOL');
-    return tableSource.slice(start, end + 5);
+    return avatarsLibSource.slice(start, end + 5);
 })();
 
 const shipped = new Function('AVATAR_LIBRARY', [
     poolLiteral,
     "const HERO_DEFAULT_AVATAR = " + JSON.stringify(HERO_DEFAULT_AVATAR) + ";",
-    extractFunction(tableSource, 'hashHandKey'),
-    extractFunction(tableSource, 'seededRandom'),
-    extractFunction(tableSource, 'dealSeatAvatars'),
+    extractFunction(avatarsLibSource, 'hashHandKey'),
+    extractFunction(avatarsLibSource, 'seededRandom'),
+    extractFunction(avatarsLibSource, 'dealSeatAvatars'),
     'return { VILLAIN_AVATAR_POOL, dealSeatAvatars, hashHandKey };',
 ].join('\n'))(AVATAR_LIBRARY);
 
@@ -125,7 +129,8 @@ check('AVATAR_LIBRARY parsed and is non-trivial', () => {
 
 check('the trainer draws from the library, not a hardcoded nine', () => {
     if (/const AVATARS = \[/.test(tableSource)) return 'the hardcoded AVATARS array is still there';
-    if (!/from '\.\.\/\.\.\/\.\.\/data\/AVATAR_LIBRARY'/.test(tableSource)) return 'AVATAR_LIBRARY is not imported';
+    if (!/from '\.\.\/\.\.\/\.\.\/lib\/tableAvatars'/.test(tableSource)) return 'the table does not import the shared avatar lib';
+    if (!/from '\.\.\/data\/AVATAR_LIBRARY'/.test(avatarsLibSource)) return 'tableAvatars.js does not import AVATAR_LIBRARY';
     return true;
 });
 
