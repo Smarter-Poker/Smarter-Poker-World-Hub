@@ -4297,284 +4297,24 @@ function GodModeArenaInner({
             }}
           >
             {[
+              /* REVIEW NAV CONSOLIDATION (2026-08-08): this registry held 278
+                 tabs. 7 rendered session content; 271 rendered a single generic
+                 study-tool component with no session data (one, 'analytics',
+                 was an explicit sample-data placeholder). Those components'
+                 code still exists below — their nav entries are simply no
+                 longer rendered. A results screen is ~8 sections, not 278
+                 clipped tabs. 'ranges' + 'nodeinsp' content merged into the
+                 Solver tab; 'mistakes' / 'positions' / 'concepts' are new
+                 session-analytics sections fed by the engine history that
+                 came alive in fcd0f9fc74. */
               { id: 'overview', label: 'Overview' },
+              { id: 'mistakes', label: 'Mistakes' },
+              { id: 'positions', label: 'Positions & Streets' },
+              { id: 'concepts', label: 'Concepts' },
               { id: 'hands', label: 'Hands' },
               { id: 'solver', label: 'Solver' },
-              { id: 'analysis', label: 'Analysis' },
               { id: 'gametree', label: 'Game Tree' },
-              { id: 'ranges', label: 'Ranges' },
-              { id: 'builder', label: 'Builder' },
-              { id: 'boards', label: 'Boards' },
-              { id: 'icm', label: 'ICM' },
-              { id: 'multiway', label: 'Multiway' },
-              { id: 'opponents', label: 'Opponents' },
-              { id: '3bet', label: '3-Bet' },
-              { id: 'solutions', label: 'Solutions' },
-              { id: 'drills', label: 'Drills' },
-              { id: 'import', label: 'Import' },
-              { id: 'tournament', label: 'MTT' },
-              { id: 'postflop', label: 'Postflop' },
-              { id: 'sizing', label: 'Sizing' },
-              { id: 'curriculum', label: 'Study Plan' },
-              { id: 'reports', label: 'Reports' },
-              { id: 'equity', label: 'Equity' },
-              { id: 'nodelock', label: 'Node Lock' },
-              { id: 'quiz', label: 'Quiz' },
-              { id: 'compare', label: 'Compare' },
-              { id: 'rvr', label: 'RvR' },
-              { id: 'evtree', label: 'EV Tree' },
-              { id: 'bankroll', label: 'Bankroll' },
-              { id: 'spotfilter', label: 'Spot Filter' },
-              { id: 'hud', label: 'HUD' },
-              { id: 'notes', label: 'Notes' },
-              { id: 'leaks', label: 'Leaks' },
-              { id: 'dynamics', label: 'Dynamics' },
-              { id: 'runouts', label: 'Runouts' },
-              { id: 'mastery', label: 'Mastery' },
-              { id: 'mixed', label: 'Mixed' },
-              { id: 'replay', label: 'Replay' },
-              { id: 'textures', label: 'Textures' },
-              { id: 'charts', label: 'Charts' },
-              { id: 'strength', label: 'Strength' },
-              { id: 'exploits', label: 'Exploits' },
-              { id: 'chipev', label: 'ChipEV' },
-              { id: 'flopcat', label: 'Flop Cat' },
-              { id: 'potodds', label: 'Pot Odds' },
-              { id: 'stacks', label: 'Stacks' },
-              { id: 'bluffcat', label: 'Bluff Cat' },
-              { id: 'tilt', label: 'Tilt' },
-              { id: 'oracle', label: 'Oracle' },
-              { id: 'winrate', label: 'Win Rate' },
-              { id: 'posheat', label: 'Pos Heat' },
-              { id: 'goals', label: 'Goals' },
-              { id: 'rangemem', label: 'Range Mem' },
-              { id: 'multitable', label: 'Multi-Tbl' },
-              { id: 'cbet', label: 'C-Bet' },
-              { id: 'variance', label: 'Variance' },
-              { id: 'xraise', label: 'X-Raise' },
-              { id: 'handquiz', label: 'Hand Quiz' },
-              { id: 'rangelib', label: 'Range Lib' },
-              { id: 'boardquiz', label: 'Board Quiz' },
-              { id: 'posprofit', label: 'Pos Profit' },
-              { id: 'fticm', label: 'FT ICM' },
-              { id: 'overbet', label: 'Overbet' },
-              { id: 'headsup', label: 'Heads-Up' },
-              { id: 'timed', label: 'Timed' },
-              { id: 'squeeze', label: 'Squeeze' },
-              { id: 'float', label: 'Float' },
-              { id: 'blockers', label: 'Blockers' },
-              { id: 'tlife', label: 'MTT Life' },
-              { id: 'polar', label: 'Polarize' },
-              { id: 'thinval', label: 'Thin Value' },
-              { id: 'streets', label: 'Streets' },
-              { id: 'defense', label: 'Defense' },
-              { id: 'preflopsim', label: 'PF Sim' },
-              { id: 'spr', label: 'SPR' },
-              { id: 'blinddef', label: 'Blinds' },
-              { id: 'drawodds', label: 'Draw Odds' },
-              { id: 'foldeq', label: 'Fold Eq' },
-              { id: 'donk', label: 'Donk Bet' },
-              { id: 'mwstrat', label: 'MW Strat' },
-              { id: 'probe', label: 'Probe' },
-              { id: 'posquiz', label: 'Pos Quiz' },
-              { id: 'stackoff', label: 'Stack Off' },
-              { id: 'betpat', label: 'Bet Patterns' },
-              { id: 'turnbarrel', label: 'Turn Barrel' },
-              { id: 'shortstack', label: 'Short Stack' },
-              { id: 'rangebuild', label: 'Range Build' },
-              { id: 'capped', label: 'Capped' },
-              { id: 'bubble', label: 'Bubble' },
-              { id: 'handread', label: 'Hand Read' },
-              { id: 'geosizing', label: 'Geo Size' },
-              { id: 'massdata', label: 'Mass Data' },
-              { id: 'rivermatrix', label: 'River' },
-              { id: 'payjump', label: 'Pay Jumps' },
-              { id: 'xrsize', label: 'X/R Size' },
-              { id: 'cbetmatrix', label: 'C-Bet Map' },
-              { id: 'turnimpact', label: 'Turn Impact' },
-              { id: 'bvr', label: 'B:V Ratio' },
-              { id: 'slowplay', label: 'Slow Play' },
-              { id: 'kelly', label: 'Kelly' },
-              { id: 'pfequity', label: 'PF Equity' },
-              { id: 'glossary', label: 'Glossary' },
-              { id: 'potgeo', label: 'Pot Geo' },
-              { id: 'exploit', label: 'Exploit' },
-              { id: 'bluffcatch', label: 'Bluff Catch' },
-              { id: 'stackdepth', label: 'Depth' },
-              { id: 'xrstrat', label: 'X/R Strat' },
-              { id: 'obetrain', label: 'Overbet+' },
-              { id: 'msplan', label: 'MS Plan' },
-              { id: 'rvrsim', label: 'RvR Sim' },
-              { id: 'boardcov', label: 'Coverage' },
-              { id: 'fticmguide', label: 'FT ICM+' },
-              { id: 'leakfind', label: 'Leak Find' },
-              { id: 'hustrat', label: 'HU Strat' },
-              { id: '3bdef', label: '3B Def' },
-              { id: 'tiltfix', label: 'Tilt Fix' },
-              { id: 'eqreal', label: 'EQ Real' },
-              { id: 'combos', label: 'Combos' },
-              { id: 'sqzplay', label: 'Squeeze' },
-              { id: 'sessrev', label: 'Review+' },
-              { id: 'impodds', label: 'Implied' },
-              { id: 'posprof', label: 'Pos $' },
-              { id: 'cbguide', label: 'C-Bet+' },
-              { id: 'nutadv', label: 'Nut Adv' },
-              { id: 'pfchart', label: 'PF Chart' },
-              { id: 'mdfcalc', label: 'MDF' },
-              { id: '4bet', label: '4-Bet' },
-              { id: 'rivpol', label: 'Polarize+' },
-              { id: 'mttstage', label: 'MTT Stage' },
-              { id: 'betopt', label: 'Size Opt' },
-              { id: 'handrank', label: 'Rankings' },
-              { id: 'rngbal', label: 'Balance' },
-              { id: 'pfquiz', label: 'PF Quiz+' },
-              { id: 'seatsel', label: 'Seat Sel' },
-              { id: 'tribarrel', label: '3-Barrel' },
-              { id: 'potctrl', label: 'Pot Ctrl' },
-              { id: 'epguide', label: 'EP Guide' },
-              { id: 'chkbhd', label: 'Check IP' },
-              { id: 'blindbat', label: 'Blinds+' },
-              { id: 'rivsize', label: 'Riv Size' },
-              { id: 'tblimg', label: 'Image' },
-              { id: 'dblbarrel', label: '2-Barrel' },
-              { id: 'potcommit', label: 'Committed' },
-              { id: 'rngadv', label: 'Range Adv' },
-              { id: 'fishexp', label: 'Fish Exp' },
-              { id: 'smallball', label: 'Small Ball' },
-              { id: 'trapplay', label: 'Trap' },
-              { id: 'boardpair', label: 'Paired' },
-              { id: 'effstack', label: 'Eff Stack' },
-              { id: 'semibluff', label: 'Semi-Bluff' },
-              { id: 'valsize', label: 'Val Size' },
-              { id: 'opptend', label: 'Opp Tend' },
-              { id: 'mental', label: 'Mental' },
-              { id: 'pfllimp', label: 'Limp' },
-              { id: 'resteal', label: 'Resteal' },
-              { id: 'costrat', label: 'Cutoff' },
-              { id: 'btnplay', label: 'Button' },
-              { id: 'utgrange', label: 'UTG' },
-              { id: 'hjstrat', label: 'HiJack' },
-              { id: 'sbstrat', label: 'Sm Blind' },
-              { id: 'bbdef', label: 'BB Def' },
-              { id: 'floating', label: 'Float+' },
-              { id: 'probeblf', label: 'Probe' },
-              { id: 'xrtiming', label: 'X/R Time' },
-              { id: 'delaycb', label: 'Delay CB' },
-              { id: 'multitbl', label: 'Multi-Tbl+' },
-              { id: 'brmgmt', label: 'Bankroll+' },
-              { id: 'tblselect', label: 'Table Sel' },
-              { id: 'stakesldr', label: 'Stakes' },
-              { id: '3bpot', label: '3B Pot' },
-              { id: '4bpot', label: '4B Pot' },
-              { id: 'srpguide', label: 'SRP' },
-              { id: 'sqzpot', label: 'Sqz Pot' },
-              { id: 'turnxr', label: 'Turn X/R' },
-              { id: 'rivobet', label: 'Riv OB' },
-              { id: 'donkdef', label: 'Donk Def' },
-              { id: 'mergerng', label: 'Range Type' },
-              { id: 'balance', label: 'Balance+' },
-              { id: 'nodelockguide', label: 'Node Lock+' },
-              { id: 'polarizer', label: 'Polarizer' },
-              { id: 'eqbucket', label: 'EQ Bucket' },
-              { id: 'obbluff', label: 'OB Bluff' },
-              { id: 'valowned', label: 'Val Own' },
-              { id: 'chkcall', label: 'Chk-Call' },
-              { id: 'betfold', label: 'Bet-Fold' },
-              { id: 'potodds2', label: 'Pot Odds+' },
-              { id: 'drawplay', label: 'Draw Play' },
-              { id: 'nutblock', label: 'Nut Block' },
-              { id: 'cappeddet', label: 'Capped+' },
-              { id: 'mwcheck', label: 'MW Pot' },
-              { id: 'isoraise', label: 'Iso Raise' },
-              { id: 'latereg', label: 'Late Reg' },
-              { id: 'antesteal', label: 'Ante Steal' },
-              { id: 'turntex', label: 'Turn Tex' },
-              { id: 'rivimpact', label: 'Riv Impact' },
-              { id: 'rit', label: 'Run Twice' },
-              { id: 'allinev', label: 'AI EV' },
-              { id: 'pfagg', label: 'PF Agg' },
-              { id: 'pfmistake', label: 'PF Mistakes' },
-              { id: 'leakplug', label: 'Leak Plug' },
-              { id: 'wincond', label: 'Win Cond' },
-              { id: 'flopxr', label: 'Flop X/R' },
-              { id: 'trnprobe', label: 'Trn Probe' },
-              { id: 'rivbluff', label: 'Riv Catch' },
-              { id: 'posaware', label: 'Position+' },
-              { id: 'sbr', label: 'Stk:Blind' },
-              { id: 'pushfold', label: 'Push/Fold' },
-              { id: 'chipchop', label: 'Chip Chop' },
-              { id: 'icmdeal', label: 'ICM Deal' },
-              { id: 'mixedstrat', label: 'Mixed' },
-              { id: 'freqbench', label: 'Freq Bench' },
-              { id: 'indiff', label: 'Indiff' },
-              { id: 'gtoexp', label: 'GTO/Exp' },
-              { id: 'handcombo', label: 'Combos+' },
-              { id: 'rvr2', label: 'RvR+' },
-              { id: 'eqdist', label: 'EQ Dist' },
-              { id: 'evcalc', label: 'EV Calc' },
-              { id: 'sessrevtool', label: 'Sess Rev' },
-              { id: 'leakanal', label: 'Leak Ana' },
-              { id: 'studyplan', label: 'Study+' },
-              { id: 'progress', label: 'Progress' },
-              { id: 'msplan2', label: 'MS Plan+' },
-              { id: 'stkoff2', label: 'Stack Off+' },
-              { id: 'thinval2', label: 'Thin Val+' },
-              { id: 'revimpl', label: 'Rev Impl' },
-              { id: 'brdcov2', label: 'Board Cov+' },
-              { id: 'nodeanlys', label: 'Node Ana' },
-              { id: 'solvsimpl', label: 'Simplify' },
-              { id: 'rngviz', label: 'Range Viz' },
-              { id: 'livetell', label: 'Live Tell' },
-              { id: 'onlinetm', label: 'Timing' },
-              { id: 'betread', label: 'Bet Read' },
-              { id: 'plytype', label: 'Ply Type' },
-              { id: 'tourlife', label: 'Tour Life' },
-              { id: 'chiputl', label: 'Chip Util' },
-              { id: 'payouts', label: 'Payouts' },
-              { id: 'fieldsize', label: 'Field Size' },
-              { id: 'huadjust', label: 'HU Adjust' },
-              { id: '3handed', label: '3-Handed' },
-              { id: '6max', label: '6-Max' },
-              { id: 'fullring', label: 'Full Ring' },
-              { id: 'microstk', label: 'Micros' },
-              { id: 'midstk', label: 'Mid Stk' },
-              { id: 'highstk', label: 'High Stk' },
-              { id: 'nosebleed', label: 'Nosebleed' },
-              { id: 'plobasic', label: 'PLO' },
-              { id: 'plohands', label: 'PLO Hands' },
-              { id: 'plopf', label: 'PLO Post' },
-              { id: 'plodraw', label: 'PLO Draw' },
-              { id: 'spingo', label: 'Spin&Go' },
-              { id: 'sitgo', label: 'Sit&Go' },
-              { id: 'mttft', label: 'MTT FT' },
-              { id: 'mttearly', label: 'MTT Early' },
-              { id: 'cashbuyin', label: 'Buy-In' },
-              { id: 'cashvmtt', label: 'Cash/MTT' },
-              { id: 'onvlive', label: 'On/Live' },
-              { id: 'zoom', label: 'Zoom' },
-              { id: 'pkrmath', label: 'Math' },
-              { id: 'pkrpsych', label: 'Psych' },
-              { id: 'hhanalysis', label: 'HH Review' },
-              { id: 'warmup', label: 'Warm-Up' },
-              { id: 'gtoreport', label: 'GTO Report' },
-              { id: 'evcompare', label: 'EV Compare' },
-              { id: 'simpsolve', label: 'Simplified' },
-              { id: 'custsolve', label: 'Custom Solve' },
-              { id: 'aggflop', label: 'Flop Agg' },
-              { id: 'arena', label: 'Arena' },
-              { id: 'actfilter', label: 'Act Filter' },
-              { id: 'pko', label: 'PKO' },
-              { id: 'mwsolve', label: 'MW Solver' },
-              { id: 'deepstack', label: 'Deep 200bb' },
-              { id: 'handmatrix', label: 'Matrix' },
-              { id: 'horseai', label: 'Horse AI' },
-              { id: 'dailyquiz', label: 'Daily Quiz' },
-              { id: 'bookmark', label: 'Bookmark' },
-              { id: 'straddle', label: 'Straddle' },
-              { id: 'husng', label: 'HU SNG' },
-              { id: 'coach', label: 'Coach' },
-              { id: 'nodeinsp', label: 'Node Insp' },
-              { id: 'analytics', label: 'Analytics' },
+              { id: 'analysis', label: 'Deep Analysis' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -6170,6 +5910,1027 @@ function GodModeArenaInner({
                   <span style={{ fontSize: 14 }}>●</span> Ghost Replay — Review with GTO Line
                 </motion.button>
               )}
+            </>
+          )}
+
+          {/* ●●● TAB: MISTAKES — clusters, critical hands, mental game ●●●
+              Data source: DeterministicGTOEngine._sessionStats.history via the
+              useGTOTrainer wrappers. That history and the rail's handHistory
+              are written from the SAME moveResult at grade time (fcd0f9fc74),
+              and the engine's `correct` flag is defined as classification in
+              {best, correct} — so every count here agrees with the
+              distribution bar and EV summary above by construction. */}
+          {reviewTab === 'mistakes' && (
+            <>
+              {/* MISTAKE CLUSTERS — repeated error patterns, by kind */}
+              {(() => {
+                try {
+                  const mc = getMistakeClusters();
+                  const clusters = mc?.clusters || [];
+                  const totalMistakes = mc?.totalMistakes || 0;
+                  const sevColor = { critical: '#ef4444', high: '#f97316', medium: '#f59e0b' };
+                  const maxEV = clusters.reduce((m, c) => Math.max(m, c.evLoss || 0), 0) || 1;
+                  return (
+                    <div
+                      style={{
+                        marginBottom: 16,
+                        padding: 16,
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'baseline',
+                          marginBottom: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            color: '#00d4ff',
+                            textTransform: 'uppercase',
+                            letterSpacing: 1.5,
+                          }}
+                        >
+                          Mistake Clusters
+                        </div>
+                        <div style={{ fontSize: 10, color: '#64748b' }}>
+                          {totalMistakes} mistake{totalMistakes === 1 ? '' : 's'} this session
+                        </div>
+                      </div>
+                      {clusters.length === 0 ? (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: '#94a3b8',
+                            textAlign: 'center',
+                            padding: '10px 0',
+                          }}
+                        >
+                          {totalMistakes === 0
+                            ? '✓ No mistakes to cluster — clean session.'
+                            : 'Mistakes were one-offs — no repeated pattern formed.'}
+                        </div>
+                      ) : (
+                        clusters.map((c, i) => (
+                          <div key={i} style={{ marginBottom: 10 }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'baseline',
+                                gap: 8,
+                                marginBottom: 3,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  color: '#e2e8f0',
+                                  fontWeight: 600,
+                                  textTransform: 'capitalize',
+                                }}
+                              >
+                                {c.street} · {c.userAction}{' '}
+                                <span style={{ color: '#64748b', textTransform: 'none' }}>
+                                  instead of
+                                </span>{' '}
+                                {c.solverAction}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  color: sevColor[c.severity] || '#f59e0b',
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {c.count}× · -{(c.evLoss || 0).toFixed(2)} BB
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                height: 8,
+                                borderRadius: 4,
+                                background: 'rgba(255,255,255,0.04)',
+                                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: `${Math.max(6, Math.round(((c.evLoss || 0) / maxEV) * 100))}%`,
+                                  height: '100%',
+                                  borderRadius: 4,
+                                  background: sevColor[c.severity] || '#f59e0b',
+                                  boxShadow: `0 0 8px ${sevColor[c.severity] || '#f59e0b'}55`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  );
+                } catch (e) {
+                  return null;
+                }
+              })()}
+
+              {/* CRITICAL HANDS — the decisive hands of the session */}
+              {(() => {
+                try {
+                  const ch = getCriticalHandHighlights();
+                  if (!ch || ch.totalHighlights === 0) {
+                    return (
+                      <div
+                        style={{
+                          marginBottom: 16,
+                          padding: 16,
+                          borderRadius: 12,
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.07)',
+                          textAlign: 'center',
+                          fontSize: 11,
+                          color: '#94a3b8',
+                        }}
+                      >
+                        Critical-hand highlights unlock after 5 graded hands.
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      style={{
+                        marginBottom: 16,
+                        padding: 16,
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'baseline',
+                          marginBottom: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            color: '#00d4ff',
+                            textTransform: 'uppercase',
+                            letterSpacing: 1.5,
+                          }}
+                        >
+                          Critical Hands
+                        </div>
+                        {ch.summaryEVLost > 0 && (
+                          <div
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: '#ef4444',
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                            }}
+                          >
+                            -{ch.summaryEVLost.toFixed(2)} BB in the worst spots
+                          </div>
+                        )}
+                      </div>
+                      {(ch.biggestMistakes || []).map((m, i) => (
+                        <div
+                          key={`m${i}`}
+                          style={{
+                            marginBottom: 8,
+                            padding: '10px 12px',
+                            borderRadius: 10,
+                            background: 'rgba(0,0,0,0.25)',
+                            borderLeft: '3px solid #ef4444',
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'baseline',
+                              gap: 8,
+                            }}
+                          >
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#f8fafc' }}>
+                              Hand #{m.handNumber}
+                              <span
+                                style={{
+                                  color: '#64748b',
+                                  fontWeight: 600,
+                                  textTransform: 'capitalize',
+                                }}
+                              >
+                                {' '}
+                                · {m.position} · {m.street}
+                              </span>
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: '#ef4444',
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              -{(m.evLoss || 0).toFixed(2)} BB
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>
+                            {m.userAction}{' '}
+                            <span style={{ color: '#64748b' }}>→ solver wanted</span>{' '}
+                            <span style={{ color: '#22c55e', fontWeight: 700 }}>
+                              {m.correctAction}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {(ch.bestDecisions || []).map((b, i) => (
+                        <div
+                          key={`b${i}`}
+                          style={{
+                            marginBottom: 8,
+                            padding: '10px 12px',
+                            borderRadius: 10,
+                            background: 'rgba(0,0,0,0.25)',
+                            borderLeft: '3px solid #22c55e',
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'baseline',
+                              gap: 8,
+                            }}
+                          >
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#f8fafc' }}>
+                              Hand #{b.handNumber}
+                              <span
+                                style={{
+                                  color: '#64748b',
+                                  fontWeight: 600,
+                                  textTransform: 'capitalize',
+                                }}
+                              >
+                                {' '}
+                                · {b.position} · {b.street}
+                              </span>
+                            </span>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: '#22c55e' }}>
+                              ✓ {b.action}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>
+                            Correct in a tough spot — well played.
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                } catch (e) {
+                  return null;
+                }
+              })()}
+
+              {/* STREAK ANALYSIS — best run, worst run, tilt signature */}
+              {(() => {
+                try {
+                  const sa = getStreakAnalysis();
+                  if (!sa) {
+                    return (
+                      <div
+                        style={{
+                          marginBottom: 16,
+                          padding: 16,
+                          borderRadius: 12,
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.07)',
+                          textAlign: 'center',
+                          fontSize: 11,
+                          color: '#94a3b8',
+                        }}
+                      >
+                        Streak analysis unlocks after 5 graded hands.
+                      </div>
+                    );
+                  }
+                  const tiltColor =
+                    sa.tiltResistance >= 70
+                      ? '#22c55e'
+                      : sa.tiltResistance >= 50
+                        ? '#f59e0b'
+                        : '#ef4444';
+                  return (
+                    <div
+                      style={{
+                        marginBottom: 16,
+                        padding: 16,
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          color: '#00d4ff',
+                          textTransform: 'uppercase',
+                          letterSpacing: 1.5,
+                          marginBottom: 12,
+                        }}
+                      >
+                        Mental Game
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                        <div
+                          style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            padding: '10px 6px',
+                            borderRadius: 10,
+                            background: 'rgba(0,0,0,0.25)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 20,
+                              fontWeight: 900,
+                              color: '#22c55e',
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                            }}
+                          >
+                            ▲{sa.longestWinStreak}
+                          </div>
+                          <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700 }}>
+                            BEST RUN
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            padding: '10px 6px',
+                            borderRadius: 10,
+                            background: 'rgba(0,0,0,0.25)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 20,
+                              fontWeight: 900,
+                              color: '#ef4444',
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                            }}
+                          >
+                            ▼{sa.longestLossStreak}
+                          </div>
+                          <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700 }}>
+                            WORST RUN
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            padding: '10px 6px',
+                            borderRadius: 10,
+                            background: 'rgba(0,0,0,0.25)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 20,
+                              fontWeight: 900,
+                              color: sa.currentStreakType === 'win' ? '#22c55e' : '#ef4444',
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                            }}
+                          >
+                            {sa.currentStreak}
+                          </div>
+                          <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700 }}>
+                            {sa.currentStreakType === 'win' ? 'CURRENT RUN' : 'CURRENT SKID'}
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'baseline',
+                          marginBottom: 3,
+                        }}
+                      >
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#cbd5e1' }}>
+                          Tilt Resistance
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: tiltColor,
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                          }}
+                        >
+                          {sa.tiltResistance}%
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          height: 8,
+                          borderRadius: 4,
+                          background: 'rgba(255,255,255,0.04)',
+                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+                          overflow: 'hidden',
+                          marginBottom: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${sa.tiltResistance}%`,
+                            height: '100%',
+                            borderRadius: 4,
+                            background: tiltColor,
+                            boxShadow: `0 0 8px ${tiltColor}55`,
+                          }}
+                        />
+                      </div>
+                      {sa.tiltAfterMistake + sa.recoveryAfterMistake > 0 && (
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4 }}>
+                          After a miss: recovered {sa.recoveryAfterMistake}×, missed again{' '}
+                          {sa.tiltAfterMistake}×.
+                        </div>
+                      )}
+                      <div style={{ fontSize: 10, color: '#64748b', fontStyle: 'italic' }}>
+                        {sa.insight}
+                      </div>
+                    </div>
+                  );
+                } catch (e) {
+                  return null;
+                }
+              })()}
+            </>
+          )}
+
+          {/* ●●● TAB: POSITIONS & STREETS — EV heatmap, leaderboard, node types ●●● */}
+          {reviewTab === 'positions' && (
+            <>
+              {/* EV LOSS HEATMAP — position × street grid */}
+              {(() => {
+                try {
+                  const hm = getEVLossHeatmap();
+                  if (!hm) {
+                    return (
+                      <div
+                        style={{
+                          marginBottom: 16,
+                          padding: 16,
+                          borderRadius: 12,
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.07)',
+                          textAlign: 'center',
+                          fontSize: 11,
+                          color: '#94a3b8',
+                        }}
+                      >
+                        The EV-loss heatmap unlocks after 3 graded hands.
+                      </div>
+                    );
+                  }
+                  const cellFor = (p, s) =>
+                    hm.cells.find((c) => c.position === p && c.street === s);
+                  return (
+                    <div
+                      style={{
+                        marginBottom: 16,
+                        padding: 16,
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          color: '#00d4ff',
+                          textTransform: 'uppercase',
+                          letterSpacing: 1.5,
+                          marginBottom: 12,
+                        }}
+                      >
+                        Where the EV Went
+                      </div>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '44px repeat(4, 1fr)',
+                          gap: 4,
+                        }}
+                      >
+                        <div />
+                        {hm.streets.map((s) => (
+                          <div
+                            key={s}
+                            style={{
+                              textAlign: 'center',
+                              fontSize: 9,
+                              fontWeight: 700,
+                              color: '#64748b',
+                              textTransform: 'uppercase',
+                              letterSpacing: 0.5,
+                            }}
+                          >
+                            {s}
+                          </div>
+                        ))}
+                        {hm.positions.map((p) => (
+                          <React.Fragment key={p}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                fontSize: 10,
+                                fontWeight: 800,
+                                color: '#cbd5e1',
+                              }}
+                            >
+                              {p}
+                            </div>
+                            {hm.streets.map((s) => {
+                              const cell = cellFor(p, s);
+                              const hot = cell && cell.hands > 0 && cell.avgEVLoss > 0;
+                              return (
+                                <div
+                                  key={`${p}-${s}`}
+                                  title={
+                                    cell && cell.hands > 0
+                                      ? `${p} ${s}: ${cell.hands} hands, -${cell.totalEVLoss} BB total`
+                                      : `${p} ${s}: no hands`
+                                  }
+                                  style={{
+                                    textAlign: 'center',
+                                    padding: '8px 2px',
+                                    borderRadius: 6,
+                                    background: hot
+                                      ? `rgba(239,68,68,${0.1 + cell.intensity * 0.45})`
+                                      : 'rgba(255,255,255,0.02)',
+                                    border: hot
+                                      ? '1px solid rgba(239,68,68,0.25)'
+                                      : '1px solid rgba(255,255,255,0.04)',
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      fontSize: 11,
+                                      fontWeight: 800,
+                                      color:
+                                        cell && cell.hands > 0
+                                          ? hot
+                                            ? '#fecaca'
+                                            : '#22c55e'
+                                          : '#334155',
+                                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                                    }}
+                                  >
+                                    {cell && cell.hands > 0
+                                      ? hot
+                                        ? `-${cell.avgEVLoss.toFixed(2)}`
+                                        : '✓'
+                                      : '—'}
+                                  </div>
+                                  {cell && cell.hands > 0 && (
+                                    <div style={{ fontSize: 8, color: '#64748b' }}>
+                                      {cell.hands}h
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 9, color: '#64748b', marginTop: 8 }}>
+                        Avg BB lost per decision. Redder = costlier. ✓ = played at zero loss.
+                      </div>
+                    </div>
+                  );
+                } catch (e) {
+                  return null;
+                }
+              })()}
+
+              {/* POSITION LEADERBOARD */}
+              {(() => {
+                try {
+                  const lb = getPositionLeaderboard();
+                  if (!lb || !lb.leaderboard || lb.leaderboard.length === 0) return null;
+                  const gradeColor = { A: '#22c55e', B: '#00d4ff', C: '#f59e0b', D: '#ef4444' };
+                  return (
+                    <div
+                      style={{
+                        marginBottom: 16,
+                        padding: 16,
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          color: '#00d4ff',
+                          textTransform: 'uppercase',
+                          letterSpacing: 1.5,
+                          marginBottom: 12,
+                        }}
+                      >
+                        Position Leaderboard
+                      </div>
+                      {lb.leaderboard.map((row, i) => (
+                        <div
+                          key={row.position}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            marginBottom: 8,
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 34,
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: '#f8fafc',
+                            }}
+                          >
+                            {row.position}
+                          </span>
+                          <span
+                            style={{
+                              width: 18,
+                              height: 18,
+                              borderRadius: 5,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 10,
+                              fontWeight: 900,
+                              color: '#060912',
+                              background: gradeColor[row.grade] || '#94a3b8',
+                            }}
+                          >
+                            {row.grade}
+                          </span>
+                          <div
+                            style={{
+                              flex: 1,
+                              height: 8,
+                              borderRadius: 4,
+                              background: 'rgba(255,255,255,0.04)',
+                              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: `${row.accuracy}%`,
+                                height: '100%',
+                                borderRadius: 4,
+                                background: gradeColor[row.grade] || '#94a3b8',
+                                boxShadow: `0 0 8px ${gradeColor[row.grade] || '#94a3b8'}55`,
+                              }}
+                            />
+                          </div>
+                          <span
+                            style={{
+                              width: 88,
+                              textAlign: 'right',
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: '#cbd5e1',
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                            }}
+                          >
+                            {row.accuracy}%{' '}
+                            <span style={{ color: '#64748b' }}>
+                              {row.correct}/{row.total}
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                } catch (e) {
+                  return null;
+                }
+              })()}
+
+              {/* NODE-TYPE BREAKDOWN — accuracy by decision type */}
+              {(() => {
+                try {
+                  const nb = getNodeTypeBreakdown();
+                  if (!nb || !nb.breakdown || nb.breakdown.length === 0) {
+                    return (
+                      <div
+                        style={{
+                          marginBottom: 16,
+                          padding: 16,
+                          borderRadius: 12,
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.07)',
+                          textAlign: 'center',
+                          fontSize: 11,
+                          color: '#94a3b8',
+                        }}
+                      >
+                        Decision-type breakdown unlocks after 5 graded hands.
+                      </div>
+                    );
+                  }
+                  const accColor = (a) =>
+                    a >= 80 ? '#22c55e' : a >= 60 ? '#00d4ff' : a >= 40 ? '#f59e0b' : '#ef4444';
+                  return (
+                    <div
+                      style={{
+                        marginBottom: 16,
+                        padding: 16,
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          color: '#00d4ff',
+                          textTransform: 'uppercase',
+                          letterSpacing: 1.5,
+                          marginBottom: 12,
+                        }}
+                      >
+                        Accuracy by Decision Type
+                      </div>
+                      {nb.breakdown.map((n) => (
+                        <div key={n.nodeType} style={{ marginBottom: 10 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'baseline',
+                              gap: 8,
+                              marginBottom: 3,
+                            }}
+                          >
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0' }}>
+                              {n.nodeType}
+                              {nb.weakestNodeType &&
+                                nb.weakestNodeType.nodeType === n.nodeType && (
+                                  <span
+                                    style={{ color: '#ef4444', fontWeight: 800, marginLeft: 6 }}
+                                  >
+                                    ▼ weakest
+                                  </span>
+                                )}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: accColor(n.accuracy),
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {n.accuracy}%{' '}
+                              <span style={{ color: '#64748b', fontWeight: 600 }}>
+                                {n.correct}/{n.total}
+                                {n.avgEVLoss > 0 ? ` · -${n.avgEVLoss.toFixed(2)} BB/hand` : ''}
+                              </span>
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              height: 8,
+                              borderRadius: 4,
+                              background: 'rgba(255,255,255,0.04)',
+                              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: `${n.accuracy}%`,
+                                height: '100%',
+                                borderRadius: 4,
+                                background: accColor(n.accuracy),
+                                boxShadow: `0 0 8px ${accColor(n.accuracy)}55`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                } catch (e) {
+                  return null;
+                }
+              })()}
+            </>
+          )}
+
+          {/* ●●● TAB: CONCEPTS — mastery report as compact bars ●●● */}
+          {reviewTab === 'concepts' && (
+            <>
+              {(() => {
+                try {
+                  const cm = getConceptMasteryReport();
+                  if (!cm || !cm.concepts || cm.concepts.length === 0) {
+                    return (
+                      <div
+                        style={{
+                          marginBottom: 16,
+                          padding: 16,
+                          borderRadius: 12,
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.07)',
+                          textAlign: 'center',
+                          fontSize: 11,
+                          color: '#94a3b8',
+                        }}
+                      >
+                        Concept mastery unlocks after 3 graded hands.
+                      </div>
+                    );
+                  }
+                  const barColor = (c) =>
+                    c.mastered ? '#22c55e' : c.struggling ? '#ef4444' : '#00d4ff';
+                  return (
+                    <div
+                      style={{
+                        marginBottom: 16,
+                        padding: 16,
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'baseline',
+                          marginBottom: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            color: '#00d4ff',
+                            textTransform: 'uppercase',
+                            letterSpacing: 1.5,
+                          }}
+                        >
+                          Concept Mastery
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: '#f8fafc',
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                          }}
+                        >
+                          {cm.masteredCount}
+                          <span style={{ color: '#64748b', fontWeight: 600 }}>
+                            /{cm.totalConcepts} mastered
+                          </span>
+                        </div>
+                      </div>
+                      {cm.concepts.map((c) => (
+                        <div key={c.name} style={{ marginBottom: 10 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'baseline',
+                              gap: 8,
+                              marginBottom: 3,
+                            }}
+                          >
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0' }}>
+                              {c.name}
+                              {c.mastered && (
+                                <span style={{ color: '#f59e0b', marginLeft: 5 }}>★</span>
+                              )}
+                              {c.struggling && (
+                                <span
+                                  style={{ color: '#ef4444', fontWeight: 800, marginLeft: 5 }}
+                                >
+                                  ▼
+                                </span>
+                              )}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: barColor(c),
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {c.accuracy}%{' '}
+                              <span style={{ color: '#64748b', fontWeight: 600 }}>
+                                {c.correct}/{c.total}
+                              </span>
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              height: 8,
+                              borderRadius: 4,
+                              background: 'rgba(255,255,255,0.04)',
+                              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: `${Math.max(3, c.accuracy)}%`,
+                                height: '100%',
+                                borderRadius: 4,
+                                background: barColor(c),
+                                boxShadow: `0 0 8px ${barColor(c)}55`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      {cm.weakestConcept && cm.strongestConcept && (
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: 8,
+                            marginTop: 12,
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <span
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: 8,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: '#ef4444',
+                              background: 'rgba(239,68,68,0.1)',
+                              border: '1px solid rgba(239,68,68,0.25)',
+                            }}
+                          >
+                            Work on: {cm.weakestConcept.name}
+                          </span>
+                          <span
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: 8,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: '#22c55e',
+                              background: 'rgba(34,197,94,0.1)',
+                              border: '1px solid rgba(34,197,94,0.25)',
+                            }}
+                          >
+                            Strongest: {cm.strongestConcept.name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                } catch (e) {
+                  return null;
+                }
+              })()}
             </>
           )}
 
@@ -10564,7 +11325,8 @@ function GodModeArenaInner({
           )}
 
           {/* ●●● TAB: RANGES — Postflop Range Viewer ●●● */}
-          {reviewTab === 'ranges' && (
+          {/* merged into Solver during the 278-tab consolidation */}
+          {reviewTab === 'solver' && (
             <>
               <div
                 style={{
@@ -12256,7 +13018,8 @@ function GodModeArenaInner({
             </>
           )}
 
-          {reviewTab === 'nodeinsp' && (
+          {/* merged into Solver during the 278-tab consolidation */}
+          {reviewTab === 'solver' && (
             <>
               <StrategyNodeInspector />
             </>
