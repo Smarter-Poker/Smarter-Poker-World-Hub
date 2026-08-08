@@ -34,7 +34,7 @@ import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 
-const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
+const GAME_ENTRY_COST = 0; // was 10 - free until this page adopts server grading; its reward RPC has been dead since 2026-08-03 (see triviaEngine.ts INTERIM FREE ENTRY)
 // Cap comes from triviaEngine so the lobby and the payout can never disagree.
 // The local literal was 10 — below a single 10-diamond entry fee, which made
 // the mode net-negative by construction.

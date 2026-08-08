@@ -33,7 +33,7 @@ import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diam
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 
-const GAME_ENTRY_COST = 10; // diamonds per game for non-VIP
+const GAME_ENTRY_COST = 0; // was 10 - free until this page adopts server grading; its reward RPC has been dead since 2026-08-03 (see triviaEngine.ts INTERIM FREE ENTRY)
 
 // Phase 80: the cap lives in triviaEngine so the page, <TimeAttackGame>'s results
 // display and the shared clampToCap helper all agree. The old local value of 5 was

@@ -121,13 +121,26 @@ export const TRIVIA_MODES = {
     // gto.js, mixed.js, endless.js, survival-game.js, time-attack.js), which
     // takes precedence over the /hub/trivia/[mode] dynamic route. So no mode
     // gets charged twice by this change.
+    //
+    // INTERIM FREE ENTRY (2026-08-08): every mode below that still grades and
+    // credits itself in the browser is priced at 0. Their reward path calls
+    // supabase.rpc('add_diamonds_to_balance') directly, and EXECUTE on that
+    // RPC was revoked from `authenticated` on 2026-08-03 (migration
+    // 20260803140000) - so since then these modes charged a real 10-diamond
+    // entry through the working server spend path and then silently failed
+    // to pay ANY reward. Charging for a game that cannot pay out is not
+    // defensible, so entry is free until each page adopts the
+    // server-authoritative session flow (session-start / session-answer /
+    // session-submit - see arcade, which kept its price because it pays
+    // through award_trivia_run). Restore each price in the SAME commit that
+    // adopts server grading for that mode.
     survival: {
         id: 'survival',
         name: 'Survival Mode',
         description: 'Answer until you miss. Rewards stack!',
         questionsCount: 100, // Unlimited effectively
         timeLimit: null,
-        diamondCost: 10,
+        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
         diamondReward: 1, // Per correct answer
         perfectBonus: 0,
         icon: 'heart',
@@ -140,7 +153,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • MTT situations and decisions',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 10,
+        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'users',
@@ -152,7 +165,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • Deep stack scenarios and dynamics',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 10,
+        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'banknote',
@@ -164,7 +177,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • Tournament equity and $EV',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 10,
+        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'calculator',
@@ -176,7 +189,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • Solver-based scenarios',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 10,
+        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
         diamondReward: 8,
         perfectBonus: 15,
         icon: 'brain',
@@ -192,7 +205,7 @@ export const TRIVIA_MODES = {
         description: 'All Categories • Rotating Mix',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 10,
+        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'shuffle',
@@ -204,7 +217,7 @@ export const TRIVIA_MODES = {
         description: 'Keep Answering Until You Miss Three',
         questionsCount: 0,
         timeLimit: null,
-        diamondCost: 10,
+        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
         diamondReward: 1,
         perfectBonus: 0,
         icon: 'infinity',
@@ -216,7 +229,7 @@ export const TRIVIA_MODES = {
         description: 'As Many As You Can Before The Clock Runs Out',
         questionsCount: 0,
         timeLimit: 120,
-        diamondCost: 10,
+        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
         diamondReward: 1,
         perfectBonus: 0,
         icon: 'timer',
