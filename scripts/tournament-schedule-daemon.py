@@ -1554,6 +1554,12 @@ def flush_chunk(chunk_results: list, batch_id: str) -> int:
                 "scrape_source": vr.get("source",""),
                 "schedule_last_scraped_at": ts,
                 "last_scraped_at": ts,
+                # scrape_status was only ever stamped at seed time
+                # (seed-venues-from-json.js: 'ready'/'no_url'), so venues the
+                # daemon successfully scrapes via pokeratlas_slug candidates
+                # stayed labelled 'no_url'/'pending' forever and the coverage
+                # dashboards under-counted working venues by ~140.
+                "scrape_status": "complete",
             }):
                 # Only venues that returned data get their old rows retired.
                 deactivate_stale_rows(vr["vid"], batch_id)
