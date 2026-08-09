@@ -3281,6 +3281,11 @@ function GodModeArenaInner({
   });
   useEffect(() => {
     if (typeof window !== 'undefined') localStorage.setItem('gma_difficulty', difficulty);
+    // prefsScope: 'table' -- useGTOTrainer resolves difficulty from this
+    // table's own trainerConfig instead of the shared localStorage key, so a
+    // mid-game settings change must be pushed into trainerConfig to reach
+    // THIS table's engine.
+    setTrainerConfig((c) => (c ? { ...c, difficulty } : c));
   }, [difficulty]);
 
   // ●●● QW-2: TIMER MODE (relaxed/standard/quick/blitz) ●●●
@@ -3484,7 +3489,10 @@ function GodModeArenaInner({
   // Phase 8: Listen for adaptive difficulty changes
   useEffect(() => {
     const handler = (eventData) => {
-      const { from, to, direction } = eventData || {};
+      const { from, to, direction, gameId: fromGameId } = eventData || {};
+      // Multi-table: useGTOTrainer stamps gameId on the emission; without this
+      // filter every mounted table toasts table A's adaptive level change.
+      if (fromGameId && String(fromGameId) !== String(gameId)) return;
       setAdaptiveToast({
         message:
           direction === 'up'
@@ -3498,7 +3506,7 @@ function GodModeArenaInner({
     return () => {
       if (typeof unsub === 'function') unsub();
     };
-  }, []);
+  }, [gameId]);
 
   // Auto-transition to review when game completes + emit bus event
   useEffect(() => {
