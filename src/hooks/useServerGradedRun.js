@@ -3,8 +3,8 @@
  * ===========================================================================
  * WHAT THIS IS FOR
  *
- * Solo modes currently receive correct_index, grade themselves, and call
- * rpc('add_diamonds_to_balance') with an amount they chose - a mint button in
+ * Solo modes currently receive correct_index, grade themselves, and call the
+ * browser-side balance RPC with an amount they chose - a mint button in
  * devtools. /api/trivia/session-start and /api/trivia/session-submit replace
  * that flow. This hook is the client half, so each game page adopts the new
  * flow by swapping its loader + save call rather than by re-implementing the
@@ -46,8 +46,17 @@ import { useCallback, useRef, useState } from 'react';
  */
 export const SERVER_GRADING_ENABLED = true;
 
-/** Modes that pay out through their own settlement routes, never through this one. */
-const SELF_SETTLING_MODES = new Set(['pvp', 'tournaments']);
+/**
+ * Modes this hook refuses outright. Tournaments have their own full pipeline
+ * (tournament-round-questions / tournament-submit-round) and must never open
+ * a generic session.
+ *
+ * 'pvp' is deliberately NOT in this set: pvp runs its GRADING through these
+ * session routes (start with a matchId, per-tap answers, submit), and
+ * session-submit pays 0 for pvp BY DESIGN - sessions grade, payment happens
+ * in /api/trivia/pvp-settle-match from both players' server-graded counts.
+ */
+const SELF_SETTLING_MODES = new Set(['tournaments']);
 
 async function postJson(url, body, accessToken) {
     const headers = { 'Content-Type': 'application/json' };
@@ -90,16 +99,19 @@ export default function useServerGradedRun(mode, opts = {}) {
 
     const isEnabled = SERVER_GRADING_ENABLED && !SELF_SETTLING_MODES.has(mode);
 
-    const start = useCallback(async ({ count, category, difficulty } = {}) => {
+    const start = useCallback(async ({ count, category, difficulty, matchId } = {}) => {
         if (!isEnabled) throw new Error('server_grading_disabled');
         if (startingRef.current) return null;
         startingRef.current = true;
         setIsStarting(true);
         setError(null);
         try {
+            // matchId is pvp-only: it binds the session to a match row, makes
+            // the server share one roster between both players, and escrows
+            // the stake server-side.
             const json = await postJson(
                 '/api/trivia/session-start',
-                { mode, count, category, difficulty },
+                { mode, count, category, difficulty, matchId },
                 opts.accessToken
             );
             sessionRef.current = json.sessionId;
