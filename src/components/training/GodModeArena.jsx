@@ -2015,6 +2015,87 @@ function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, 
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// DRILL COUNTDOWN — leaf owner of the drill's 1Hz tick
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// PERF: the drill clock used to tick `drillState.timeLeft` via setDrillState,
+// and drillState lives in the top-level GodModeArena component -- so every
+// second of drill mode re-rendered the entire arena tree to repaint a 4px
+// bar and a two-digit number. The seconds now live here; the parent hears
+// from the clock exactly once, at expiry. The clock resets whenever
+// `questionKey` (the current drill question object) changes, which is the
+// same lifecycle the old `timeLeft: 10` writes implemented. onExpire is read
+// through a ref at fire time so the interval never calls a stale closure,
+// and fires at most once per question.
+function DrillCountdown({ questionKey, seconds = 10, onExpire }) {
+  const [timeLeft, setTimeLeft] = useState(seconds);
+  const onExpireRef = useRef(onExpire);
+  onExpireRef.current = onExpire;
+  const firedRef = useRef(false);
+  useEffect(() => {
+    setTimeLeft(seconds);
+    firedRef.current = false;
+    const id = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(id);
+          if (!firedRef.current) {
+            firedRef.current = true;
+            if (onExpireRef.current) onExpireRef.current();
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [questionKey, seconds]);
+
+  const timerPct = (timeLeft / seconds) * 100;
+  const timerColor = timeLeft > 5 ? '#22c55e' : timeLeft > 2 ? '#f59e0b' : '#ef4444';
+
+  return (
+    <>
+      {/* Timer bar */}
+      <div
+        style={{
+          width: '80%',
+          maxWidth: 300,
+          height: 4,
+          background: 'rgba(255,255,255,0.06)',
+          borderRadius: 2,
+          marginBottom: 20,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            width: `${timerPct}%`,
+            background: timerColor,
+            borderRadius: 2,
+            transition: 'width 1s linear, background 0.3s',
+          }}
+        />
+      </div>
+
+      {/* Timer number */}
+      <div
+        style={{
+          fontSize: 36,
+          fontWeight: 800,
+          color: timerColor,
+          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+          marginBottom: 16,
+          transition: 'color 0.3s',
+        }}
+      >
+        {timeLeft}
+      </div>
+    </>
+  );
+}
+
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // DRILL MODE — Rapid-fire yes/no GTO decisions with countdown timer
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
@@ -2028,7 +2109,7 @@ function DrillMode({
   onExit,
   timerRef,
 }) {
-  const { currentQ, answered, correct, streak, bestStreak, timeLeft, results } = drillState;
+  const { currentQ, answered, correct, streak, bestStreak, results } = drillState;
 
   // Generate first drill question
   useEffect(() => {
@@ -2063,31 +2144,24 @@ function DrillMode({
     setDrillState,
   ]);
 
-  // Countdown timer
-  useEffect(() => {
-    if (!currentQ) return;
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setDrillState((prev) => {
-        if (prev.timeLeft <= 1) {
-          clearInterval(timerRef.current);
-          // Time's up = wrong
-          return {
-            ...prev,
-            timeLeft: 0,
-            answered: prev.answered + 1,
-            streak: 0,
-            results: [...prev.results, { q: prev.currentQ?.q, correct: false, timedOut: true }],
-            currentQ: null, // triggers new question generation
-          };
-        }
-        return { ...prev, timeLeft: prev.timeLeft - 1 };
-      });
-    }, 1000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [currentQ, timerRef, setDrillState]);
+  // Countdown clock: DrillCountdown (a leaf) owns the 1Hz tick and calls up
+  // exactly once, at expiry. The `!prev.currentQ` guard replaces the old
+  // synchronous clearInterval-on-answer race guard: an expiry that lands in
+  // the same tick as an answer finds currentQ already null and does nothing.
+  const handleDrillExpire = useCallback(() => {
+    setDrillState((prev) => {
+      if (!prev.currentQ) return prev;
+      // Time's up = wrong
+      return {
+        ...prev,
+        timeLeft: 0,
+        answered: prev.answered + 1,
+        streak: 0,
+        results: [...prev.results, { q: prev.currentQ?.q, correct: false, timedOut: true }],
+        currentQ: null, // triggers new question generation
+      };
+    });
+  }, [setDrillState]);
 
   const handleAnswer = (answer) => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -2234,9 +2308,6 @@ function DrillMode({
     );
   }
 
-  const timerPct = (timeLeft / 10) * 100;
-  const timerColor = timeLeft > 5 ? '#22c55e' : timeLeft > 2 ? '#f59e0b' : '#ef4444';
-
   return (
     <div
       style={{
@@ -2255,42 +2326,8 @@ function DrillMode({
         <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>▲ {streak}</div>
       </div>
 
-      {/* Timer bar */}
-      <div
-        style={{
-          width: '80%',
-          maxWidth: 300,
-          height: 4,
-          background: 'rgba(255,255,255,0.06)',
-          borderRadius: 2,
-          marginBottom: 20,
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            height: '100%',
-            width: `${timerPct}%`,
-            background: timerColor,
-            borderRadius: 2,
-            transition: 'width 1s linear, background 0.3s',
-          }}
-        />
-      </div>
-
-      {/* Timer number */}
-      <div
-        style={{
-          fontSize: 36,
-          fontWeight: 800,
-          color: timerColor,
-          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-          marginBottom: 16,
-          transition: 'color 0.3s',
-        }}
-      >
-        {timeLeft}
-      </div>
+      {/* Timer bar + number — the leaf owns the tick (see DrillCountdown) */}
+      <DrillCountdown questionKey={currentQ} onExpire={handleDrillExpire} />
 
       {/* Hero Cards + Board (custom card images) */}
       {currentQuestion && (currentQuestion.heroCards || currentQuestion.scenario?.board) && (
@@ -3798,6 +3835,29 @@ function GodModeArenaInner({
     ? (importState.importedQuestion?.gtoFrequencies || null)
     : gtoFrequencies;
   const fxEvLoss = iqActive ? 0 : evLoss;
+
+  // PERF: UniversalDynamicTable is wrapped in React.memo, but three props at
+  // the GameUIRouter call sites were re-created on every GodModeArena render
+  // -- an inline `trainerConfig={{ ...trainerConfig, timerEnabled,
+  // timerSeconds }}` object and inline arrow functions for onConfigClick /
+  // onNextHand -- so the memo NEVER held: every arena re-render (a toast, a
+  // stat update, an achievement) re-rendered the entire table tree. These
+  // are the same values, with stable identities.
+  const resolvedTrainerConfig = useMemo(() => ({
+    ...trainerConfig,
+    // Merge GodModeArena timer settings if no custom config timer
+    timerEnabled: trainerConfig?.timerEnabled || isTimerEnabled(timerMode),
+    timerSeconds: trainerConfig?.timerSeconds || resolveTimerSeconds(timerMode),
+  }), [trainerConfig, timerMode]);
+  const handleConfigClick = useCallback(() => setShowConfigModal(true), []);
+  const handleDefaultNextHand = useCallback(() => {
+    if (importState.importedQuestion) {
+      setImportState((s) => ({ ...s, importedQuestion: null }));
+      setImportedFeedback(null);
+      return; // one-off imported hand; resume queue without skipping
+    }
+    nextQuestion();
+  }, [importState.importedQuestion, nextQuestion]);
 
   // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   // ERROR STATE — Graceful fallback when API fails (auth, network, etc.)
@@ -13893,13 +13953,8 @@ function GodModeArenaInner({
                   onExit={onExit}
                   difficultyLevel={computedDifficultyLevel}
                   // Settings gear — relocated to scenario description area
-                  onConfigClick={() => setShowConfigModal(true)}
-                  trainerConfig={{
-                    ...trainerConfig,
-                    // Merge GodModeArena timer settings if no custom config timer
-                    timerEnabled: trainerConfig?.timerEnabled || isTimerEnabled(timerMode),
-                    timerSeconds: trainerConfig?.timerSeconds || resolveTimerSeconds(timerMode),
-                  }}
+                  onConfigClick={handleConfigClick}
+                  trainerConfig={resolvedTrainerConfig}
                 />
               ) : null}
             </motion.div>
@@ -13961,14 +14016,7 @@ function GodModeArenaInner({
             weakestPosition={weakestPosition}
             // Phase 49: Live leak detection
             mistakePatterns={mistakePatterns}
-            onNextHand={() => {
-              if (importState.importedQuestion) {
-                setImportState((s) => ({ ...s, importedQuestion: null }));
-                setImportedFeedback(null);
-                return; // one-off imported hand; resume queue without skipping
-              }
-              nextQuestion();
-            }}
+            onNextHand={handleDefaultNextHand}
             isMultiStreetActive={isMultiStreetActive}
             currentStreet={currentStreet}
             dealingNextStreet={loading && isMultiStreetActive}
@@ -13978,11 +14026,7 @@ function GodModeArenaInner({
             // Phase 351+: Pre-decision hints
             getPreDecisionPreview={getPreDecisionPreview}
             getKeyConceptReminders={getKeyConceptReminders}
-            trainerConfig={{
-              ...trainerConfig,
-              timerEnabled: trainerConfig?.timerEnabled || isTimerEnabled(timerMode),
-              timerSeconds: trainerConfig?.timerSeconds || resolveTimerSeconds(timerMode),
-            }}
+            trainerConfig={resolvedTrainerConfig}
           />
         ) : null}
       </div>
