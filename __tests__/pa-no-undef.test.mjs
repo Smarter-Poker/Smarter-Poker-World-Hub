@@ -58,6 +58,7 @@ const TARGETS = [
     'pages/api/sandbox',
     'pages/api/assistant',
     'src/components/sandbox',
+    'src/components/jarvis/DashboardOverview.jsx',
     'src/components/ui/HamburgerMenu.jsx',
     'src/components/ui/BottomNavBar.jsx',
     'src/config/hamburgerMenus.js',
