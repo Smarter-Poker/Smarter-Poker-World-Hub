@@ -73,9 +73,18 @@ export default function DashboardOverview({ stats, isLoading }) {
         );
     }
 
+    // The stats API contract says consumers MUST surface isDemo — zeros shown
+    // to a signed-out visitor are not "their" numbers and must not read as such.
+    const isDemo = !!stats?.isDemo;
+
     return (
         <div style={styles.container}>
             <h2 style={styles.title}>Dashboard Overview</h2>
+            {isDemo && (
+                <p style={styles.demoNote}>
+                    Sample view — sign in to see your own sessions, hands and leaks.
+                </p>
+            )}
             <div style={styles.grid}>
                 {cards.map((card, index) => (
                     <motion.div
@@ -85,6 +94,12 @@ export default function DashboardOverview({ stats, isLoading }) {
                         transition={{ delay: index * 0.1 }}
                         whileHover={{ scale: 1.02, y: -4 }}
                         onClick={card.onClick}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${card.title}: ${formatValue(card)}. ${card.label}. View details.`}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.onClick(); }
+                        }}
                         style={{
                             ...styles.card,
                             borderColor: card.color + '40',
@@ -127,6 +142,16 @@ const styles = {
         fontWeight: 600,
         color: '#fff',
         marginBottom: 24,
+        fontFamily: 'Inter, sans-serif',
+    },
+    demoNote: {
+        fontSize: 13,
+        color: 'rgba(255, 214, 102, 0.9)',
+        background: 'rgba(255, 214, 102, 0.08)',
+        border: '1px solid rgba(255, 214, 102, 0.25)',
+        borderRadius: 8,
+        padding: '8px 12px',
+        margin: '-12px 0 20px',
         fontFamily: 'Inter, sans-serif',
     },
     grid: {

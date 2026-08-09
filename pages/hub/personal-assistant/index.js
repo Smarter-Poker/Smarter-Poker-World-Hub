@@ -30,20 +30,16 @@ export default function PersonalAssistantPage() {
   const { user } = useAvatar();
   const [mounted, setMounted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [hoveredZone, setHoveredZone] = useState(null);
 
   // ═══ ACTION GATE: Users can view the hub, but navigating to tools is gated ═══
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
   const menuConfig = getMenuConfig('hub-home', user, {}, {});
 
-
-  // Unmuting must happen inside a real user gesture — browsers block
-  // programmatic unmute of an autoplaying video.
-
-  // Real data hooks
+  // Real data hooks. `recentSessions` feeds the live overlays rendered inside
+  // the frame's info panels below — before those overlays existed the fetch
+  // was made and thrown away, and the panels were static paint.
   const { sessions: recentSessions, isLoading: sessionsLoading, refetch: refetchSessions } = useRecentSessions(5);
-  const { stats, isLoading: statsLoading } = useAssistantStats();
-  const isLoading = sessionsLoading;
+  const { stats, isLoading: statsLoading, isDemo: statsDemo } = useAssistantStats();
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -64,12 +60,14 @@ export default function PersonalAssistantPage() {
   // ─── Wave 3: Hand of the Day (W3-4) ─────────────────────────────────────
   const [dailyHand, setDailyHand] = useState(null);
   useEffect(() => {
+    let cancelled = false;
     fetch('/api/training/hand-of-the-day')
       .then(r => r.ok ? r.json() : null)
       .then(json => {
-        if (json?.hand) setDailyHand(json.hand);
+        if (!cancelled && json?.hand) setDailyHand(json.hand);
       })
       .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+    return () => { cancelled = true; };
   }, []);
 
   // ── Card-notation helpers ────────────────────────────────────────────────
@@ -128,6 +126,26 @@ export default function PersonalAssistantPage() {
     return isNaN(t.getTime()) ? String(d) : t.toLocaleDateString();
   };
 
+  // The most recent REAL session (demo rows can't be restored — they aren't
+  // rows). Drives both the Last Session overlay and its tap-to-restore.
+  const lastRealSession = (recentSessions || []).find(s => s && !s.isDemo && s.type === 'sandbox') || null;
+
+  // EV values are only shown when the analysis actually recorded one — the
+  // hook returns null otherwise, and null renders as an em dash, never 0.00.
+  const formatEv = (ev) => (typeof ev === 'number' && Number.isFinite(ev) ? `${ev.toFixed(2)} BB` : '—');
+
+  // Hotspots are the frame's tap targets — give keyboards and screen readers
+  // the same access the pointer has.
+  const hotspotA11y = (label, onActivate) => ({
+    role: 'button',
+    tabIndex: 0,
+    'aria-label': label,
+    onClick: onActivate,
+    onKeyDown: (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(); }
+    },
+  });
+
   if (!mounted) {
     return (
       <div style={S.loadingWrap}>
@@ -177,7 +195,7 @@ export default function PersonalAssistantPage() {
               ...S.hotspot,
               top: '23%', left: '8%', width: '40%', height: '35%',
             }}
-            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); }}
+            {...hotspotA11y('Virtual Sandbox — explore theoretical hands', () => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); })}
             title="Virtual Sandbox — Explore Theoretical Hands"
           />
 
@@ -188,7 +206,7 @@ export default function PersonalAssistantPage() {
               ...S.hotspot,
               top: '23%', left: '52%', width: '40%', height: '35%',
             }}
-            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
+            {...hotspotA11y('Leak Finder — track and improve your game', () => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); })}
             title="Leak Finder — Track and Improve Your Game"
           />
 
@@ -199,7 +217,7 @@ export default function PersonalAssistantPage() {
               ...S.hotspot,
               top: '60%', left: '8%', width: '40%', height: '11%',
             }}
-            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
+            {...hotspotA11y('Recent sessions — open the sandbox', () => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); })}
             title="Recent Sessions"
           />
 
@@ -210,19 +228,25 @@ export default function PersonalAssistantPage() {
               ...S.hotspot,
               top: '60%', left: '52%', width: '40%', height: '11%',
             }}
-            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
+            {...hotspotA11y('Leaks — open the Leak Finder', () => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); })}
             title="New Leaks"
           />
 
-          {/* ── HOTSPOT: Last Session ──────────────────────────── */}
+          {/* ── HOTSPOT: Last Session (tap restores it in the sandbox) ── */}
           <div
             id="hotspot-last-session"
             style={{
               ...S.hotspot,
               top: '74%', left: '8%', width: '40%', height: '11%',
             }}
-            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); }}
-            title="Last Session"
+            {...hotspotA11y(
+              lastRealSession ? `Restore last session: ${lastRealSession.title}` : 'Last session — open the sandbox',
+              () => {
+                if (lastRealSession) openSession(lastRealSession);
+                else if (guardAction()) router.push('/hub/personal-assistant/sandbox');
+              },
+            )}
+            title={lastRealSession ? `Restore: ${lastRealSession.title}` : 'Last Session'}
           />
 
           {/* ── HOTSPOT: Training Center ───────────────────────── */}
@@ -232,9 +256,64 @@ export default function PersonalAssistantPage() {
               ...S.hotspot,
               top: '74%', left: '52%', width: '40%', height: '11%',
             }}
-            onClick={() => { if (guardAction()) router.push('/hub/training'); }}
+            {...hotspotA11y('Training Center', () => { if (guardAction()) router.push('/hub/training'); })}
             title="Training Center"
           />
+
+          {/* ── LIVE PANEL OVERLAYS ──────────────────────────────────────
+              Real data drawn INSIDE the frame's info bands. pointerEvents
+              none: taps fall through to the hotspots above. Before these
+              existed, useRecentSessions was fetched and thrown away and the
+              bands were static paint. Nothing here fabricates: loading says
+              loading, empty says empty, demo rows say sample. */}
+
+          {/* Recent sessions band (left) */}
+          <div style={{ ...S.panelOverlay, top: '60%', left: '9%', width: '38%', height: '11%' }} aria-hidden="true">
+            {sessionsLoading ? (
+              <span style={S.panelDim}>Loading…</span>
+            ) : (recentSessions || []).length === 0 ? (
+              <span style={S.panelDim}>No sessions yet</span>
+            ) : (
+              (recentSessions || []).slice(0, 2).map(s => (
+                <div key={s.id} style={S.panelRow}>
+                  <span style={S.panelRowName}>{s.title}{s.isDemo ? ' (sample)' : ''}</span>
+                  <span style={{ ...S.panelRowEv, color: typeof s.evLoss === 'number' ? '#f87171' : '#65676B' }}>
+                    {formatEv(s.evLoss)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Leaks band (right) — fed by /api/assistant/stats */}
+          <div style={{ ...S.panelOverlay, top: '60%', left: '53%', width: '38%', height: '11%' }} aria-hidden="true">
+            {statsLoading ? (
+              <span style={S.panelDim}>Loading…</span>
+            ) : (
+              <div style={S.panelRow}>
+                <span style={S.panelRowName}>
+                  {(stats?.leaksFound || 0).toLocaleString()} active{statsDemo ? ' (sample)' : ''}
+                </span>
+                <span style={{ ...S.panelRowEv, color: '#4CAF50' }}>
+                  {(stats?.resolvedLeaks || 0).toLocaleString()} resolved
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Last session band (left) */}
+          <div style={{ ...S.panelOverlay, top: '74%', left: '9%', width: '38%', height: '11%' }} aria-hidden="true">
+            {sessionsLoading ? (
+              <span style={S.panelDim}>Loading…</span>
+            ) : lastRealSession ? (
+              <div style={S.panelRow}>
+                <span style={S.panelRowName}>{lastRealSession.title}</span>
+                <span style={{ ...S.panelRowEv, color: '#B0B3B8' }}>{formatSessionDate(lastRealSession.date)}</span>
+              </div>
+            ) : (
+              <span style={S.panelDim}>Nothing to restore yet</span>
+            )}
+          </div>
         </div>
 
         {/* Dashboard stat cards — fed by /api/assistant/stats */}
@@ -375,52 +454,51 @@ const S = {
     borderRadius: '50%',
   },
 
-  // ── Dynamic session overlay ─────────────────────────────────────────────
-  sessionOverlay: {
-    width: '100%',
-    height: '100%',
+  // ── Live panel overlays (inside the frame's info bands) ─────────────────
+  // pointerEvents none: the hotspot underneath owns the tap. aria-hidden:
+  // the hotspot's aria-label already narrates the band's meaning.
+  panelOverlay: {
+    position: 'absolute',
+    zIndex: 3,
+    pointerEvents: 'none',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
-    padding: '0 4% 3% 4%',
+    gap: 2,
+    padding: '0 2%',
     overflow: 'hidden',
+    boxSizing: 'border-box',
   },
-  sessionOverlayText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 14,
-    textAlign: 'center',
+  panelDim: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 'clamp(10px, 1.4vw, 13px)',
     fontFamily: 'Inter, sans-serif',
-  },
-  sessionOverlayList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
     overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
-  sessionOverlayRow: {
+  panelRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '4px 8px',
-    borderRadius: 4,
-    cursor: 'pointer',
+    gap: 8,
+    minWidth: 0,
   },
-  sessionRowHover: {
-    background: 'rgba(255,255,255,0.08)',
-  },
-  sessionRowName: {
-    fontSize: 13,
-    fontWeight: 500,
+  panelRowName: {
+    fontSize: 'clamp(10px, 1.5vw, 13px)',
+    fontWeight: 600,
     color: '#e2e8f0',
     fontFamily: 'Inter, sans-serif',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    maxWidth: '65%',
+    minWidth: 0,
   },
-  sessionRowEv: {
-    fontSize: 13,
+  panelRowEv: {
+    fontSize: 'clamp(10px, 1.4vw, 13px)',
     fontWeight: 700,
     fontFamily: 'Inter, sans-serif',
+    flexShrink: 0,
+    fontVariantNumeric: 'tabular-nums',
   },
 };
