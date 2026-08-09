@@ -107,7 +107,7 @@ export const TRIVIA_MODES = {
         icon: 'diamond',
         color: '#06b6d4'
     },
-    // ── ENTRY PRICING ──────────────────────────────────────────────────────
+    // ── ENTRY PRICING ────────────────────────────────────────────────────────
     // diamondCost is the SINGLE SOURCE OF TRUTH for what entering a mode
     // costs. It used to read 0 for every mode below while the charging code
     // (StrategyTrivia for mtt/cash/icm/gto, and each standalone page's local
@@ -217,7 +217,7 @@ export const TRIVIA_MODES = {
         description: 'Keep Answering Until You Miss Three',
         questionsCount: 0,
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - endless pays via award_trivia_run now
         diamondReward: 1,
         perfectBonus: 0,
         icon: 'infinity',
