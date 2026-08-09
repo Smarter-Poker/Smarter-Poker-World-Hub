@@ -153,7 +153,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • MTT situations and decisions',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - mtt pays via award_trivia_run now
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'users',
@@ -165,7 +165,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • Deep stack scenarios and dynamics',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - cash pays via award_trivia_run now
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'banknote',
@@ -177,7 +177,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • Tournament equity and $EV',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - icm pays via award_trivia_run now
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'calculator',
@@ -189,7 +189,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • Solver-based scenarios',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - gto pays via award_trivia_run now
         diamondReward: 8,
         perfectBonus: 15,
         icon: 'brain',
