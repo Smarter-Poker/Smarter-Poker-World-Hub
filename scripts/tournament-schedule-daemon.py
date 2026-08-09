@@ -76,10 +76,30 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 
 SUPABASE_URL = "https://kuklfnapbkmacvwxktbh.supabase.co"
-SUPABASE_KEY = os.environ.get(
-    "SUPABASE_SERVICE_ROLE_KEY",
-    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-)
+def _load_supabase_key():
+    """The old fallback chain read the SAME env var twice, so when a launcher
+    does not source .env.local the key silently becomes None and every
+    PostgREST call fails with urllib's 'expected string or bytes-like object'
+    (None header) - exactly what killed poker_series_scraper's writes.
+    Fall back to parsing .env.local; fail fast if still absent."""
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if key:
+        return key
+    env_file = PROJECT_ROOT / ".env.local"
+    try:
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("SUPABASE_SERVICE_ROLE_KEY="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    except OSError:
+        pass
+    return None
+
+SUPABASE_KEY = _load_supabase_key()
+if not SUPABASE_KEY:
+    print("FATAL: SUPABASE_SERVICE_ROLE_KEY not in environment or .env.local - "
+          "every DB write would silently fail. Exiting.", flush=True)
+    raise SystemExit(2)
 SB_HDRS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",

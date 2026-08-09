@@ -58,10 +58,30 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 
 SUPABASE_URL = "https://kuklfnapbkmacvwxktbh.supabase.co"
-SUPABASE_KEY = os.environ.get(
-    "SUPABASE_SERVICE_ROLE_KEY",
-    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-)
+def _load_supabase_key():
+    """launchd jobs do not inherit shell env; the old fallback chain read the
+    SAME env var twice, so a missing var became SUPABASE_KEY=None and every
+    PostgREST call failed with urllib's 'expected string or bytes-like object'
+    (None header) - 689 scraped event rows were dropped PER RUN with the
+    scrape itself reporting success. Fall back to parsing .env.local."""
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if key:
+        return key
+    env_file = PROJECT_ROOT / ".env.local"
+    try:
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("SUPABASE_SERVICE_ROLE_KEY="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    except OSError:
+        pass
+    return None
+
+SUPABASE_KEY = _load_supabase_key()
+if not SUPABASE_KEY:
+    print("FATAL: SUPABASE_SERVICE_ROLE_KEY not in environment or .env.local - "
+          "every DB write would silently fail. Exiting.", flush=True)
+    raise SystemExit(2)
 SB_HDRS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -560,6 +580,11 @@ def save_evidence(series_uid: str, data: dict):
     return str(path)
 
 # ── Scrapling CF-solve with 3x retry (per Scrapling skill Pattern 2) ──────────
+# Latest live session. fetch_with_retry publishes here when it has to replace
+# a dead session mid-retry, so callers can resynchronise instead of holding a
+# closed handle.
+CURRENT_SESSION = None
+
 def create_session():
     """Create a new StealthySession with network pre-check."""
     if not network_ok():
@@ -605,6 +630,7 @@ def fetch_with_retry(session, url: str, retries: int = 3, **kwargs) -> tuple:
     NEVER uses urllib/requests for data fetching.
     """
     resp = None
+    global CURRENT_SESSION
     for attempt in range(retries):
         try:
             # google_search=True routes via Google referrer — matches daily_venue_scraper approach
@@ -620,10 +646,15 @@ def fetch_with_retry(session, url: str, retries: int = 3, **kwargs) -> tuple:
             log(f"        [FETCH] Attempt {attempt+1}: {str(e)[:80]}")
             if attempt < retries - 1:
                 time.sleep(2 ** attempt)
-                # Restart session on failure (per skill)
+                # Restart session on failure (per skill). The recreated session
+                # MUST be published to CURRENT_SESSION: it used to be rebound only
+                # to this function's local, so the caller kept fetching on the
+                # closed session ("Context manager has been closed") and the next
+                # scheduled recycle crashed the whole cycle.
                 try: session.close()
                 except: pass
                 session = create_session()
+                CURRENT_SESSION = session
     status = getattr(resp, 'status', 0) if resp else 0
     return "", status, b"", ""
 
@@ -1935,6 +1966,7 @@ def load_enrich_series(filter_state: str = "", min_score: int = 60,
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 def main():
+    global CURRENT_SESSION
     p = argparse.ArgumentParser(description="Poker Series Event Scraper (Scrapling + Camoufox)")
     p.add_argument("--state",      default="",  help="Filter to single state (e.g. NV)")
     p.add_argument("--series",     default="",  help="Scrape a single series by slug")
@@ -2029,12 +2061,17 @@ def main():
             log(f"      UID: {series_uid[:60]}")
 
             # ── Session management ──────────────────────────────────────
+            # Resync with any replacement fetch_with_retry had to make - the
+            # local variable would otherwise still reference a closed session.
+            if CURRENT_SESSION is not None and CURRENT_SESSION is not session:
+                session = CURRENT_SESSION
             # Recycle every PAGE_RECYCLE series
             if i > 0 and i % PAGE_RECYCLE == 0:
                 log(f"  ♻️  Recycle at #{i}")
                 try: session.close()
                 except: pass
                 session = create_session()
+                CURRENT_SESSION = session
                 session_start = time.time()
                 consecutive_fails = 0
 
@@ -2105,6 +2142,7 @@ def main():
                 try: session.close()
                 except Exception: pass
                 session = create_session()
+                CURRENT_SESSION = session
                 session_start = time.time()
                 consecutive_fails = 0
 
@@ -2121,6 +2159,7 @@ def main():
                 except: pass
                 time.sleep(4)
                 session = create_session()
+                CURRENT_SESSION = session
                 session_start = time.time()
                 consecutive_fails = 0
 
