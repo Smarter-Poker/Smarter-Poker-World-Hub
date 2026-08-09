@@ -23,39 +23,21 @@ import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
-import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
+import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
-import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
+import { getDailyDiamondsEarned } from '../../../src/lib/trivia/diamondCap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 
-const GAME_ENTRY_COST = 0; // was 10 - free until this page adopts server grading; its reward RPC has been dead since 2026-08-03 (see triviaEngine.ts INTERIM FREE ENTRY)
+const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 // Cap comes from triviaEngine so the lobby and the payout can never disagree.
 // The local literal was 10 — below a single 10-diamond entry fee, which made
 // the mode net-negative by construction.
 const DAILY_DIAMOND_CAP = Number.isFinite(DAILY_DIAMOND_CAPS.mixed) ? DAILY_DIAMOND_CAPS.mixed : 40;
-
-/**
- * A fresh, unique reward reference per GAME. add_diamonds_to_balance dedups on
- * p_reference_id, so this must be unique across games but stable within one
- * (so a saving_error retry re-uses it instead of double-crediting).
- */
-function makeReferenceId(prefix, userId) {
-    let unique;
-    try {
-        unique = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
-            ? crypto.randomUUID()
-            : `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    } catch (e) {
-        unique = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    }
-    return `${prefix}_${userId || 'anon'}_${unique}`;
-}
 
 const CATEGORIES = [
     { id: 'poker_history', name: 'History', icon: Trophy, color: '#FFD700', dbCategories: ['poker_history', 'famous_hands', 'player_profiles', 'tournament_facts'] },
@@ -68,8 +50,17 @@ const CATEGORIES = [
     { id: 'gto_scenarios', name: 'GTO', icon: Brain, color: '#a855f7', dbCategories: ['gto_scenarios'] }
 ];
 
-const QUESTIONS_PER_SESSION = 21; // 3 per category, 7 categories
-const QUESTIONS_PER_CATEGORY = QUESTIONS_PER_SESSION / CATEGORIES.length; // 3
+// Server-dealt sessions draw across the mode's categories - the old exact
+// 3-per-category client-side deal is necessarily gone.
+const QUESTIONS_PER_SESSION = 21;
+
+// The server labels questions with db-level category names; map each one back
+// to the page's seven display groups so the per-category stat panels keep
+// working.
+function displayCategoryFor(dbCategory) {
+    const cat = CATEGORIES.find(c => c.dbCategories.includes(dbCategory));
+    return cat ? cat.id : 'poker_history';
+}
 
 export default function MixedModePage() {
     useTrainingBus('trivia-mixed');
@@ -83,54 +74,27 @@ export default function MixedModePage() {
     const [gameState, setGameState] = useState('loading'); // loading, ready, playing, results
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    // Ref forwarding: populated after useTriviaTimer runs so onAnswer can call
-    // timer controls even though timer is defined after this hook invocation.
-    const timerCtrlRef = useRef({});
+    // Server-authoritative run: /api/trivia/session-start deals (and permutes)
+    // the questions, session-answer grades each tap, session-submit caps and
+    // pays - the client never receives an answer key.
+    const serverRun = useServerGradedRun('mixed');
+    // Current question's server verdict (wasCorrect / correctDisplayIndex /
+    // explanation); null until session-answer resolves, cleared on advance.
+    const [verdict, setVerdict] = useState(null);
+    // Locks taps from the moment of the tap until the question advances, so a
+    // slow session-answer round-trip cannot accept a second answer.
+    const answerLockRef = useRef(false);
 
-    // TRAIN-WIRE-TRIVIA-HOOK-1 - shared trivia answer-state plumbing
-    const trivia = useTriviaQuestion(questions[currentQuestionIndex], {
-        onAnswer: ({ index, isCorrect }) => {
-            timerCtrlRef.current.stop?.();
-
-            const currentQuestion = questions[currentQuestionIndex];
-            const category = currentQuestion?.displayCategory || 'poker_history';
-
-            setCategoryStats(prev => ({
-                ...prev,
-                [category]: {
-                    answered: prev[category].answered + 1,
-                    correct: prev[category].correct + (isCorrect ? 1 : 0)
-                }
-            }));
-
-            if (isCorrect) {
-                setTotalCorrect(prev => prev + 1);
-                setDiamondsEarned(prev => prev + 1);
-                answersRef.current.push(true);
-                busEmit.decisionCorrect(totalCorrect + 1);
-            } else {
-                answersRef.current.push(false);
-                busEmit.decisionIncorrect(totalCorrect);
-                busEmit.screenShake('light');
-            }
-
-            setTimeout(() => {
-                if (currentQuestionIndex + 1 >= questions.length) {
-                    finishGame();
-                } else {
-                    setCurrentQuestionIndex(prev => prev + 1);
-                    trivia.reset();
-                    timerCtrlRef.current.reset?.();
-                }
-            }, 1200);
-        }
-    });
+    // TRAIN-WIRE-TRIVIA-HOOK-1 - shared trivia answer-state plumbing.
+    // Taps route through gradeAnswer() below instead of trivia.selectAnswer:
+    // the hook's local grading needs a client-side answer key this page no
+    // longer receives, so the reveal is driven through the hook's setters
+    // once the server verdict arrives.
+    const trivia = useTriviaQuestion(questions[currentQuestionIndex]);
     const { selectedAnswer, showResult } = trivia;
 
     // TRAIN-WIRE-TRIVIA-TIMER-1 - shared shot-clock hook
     const timer = useTriviaTimer({ initialTime: 24, showResult: trivia.showResult, gameState, onTimeout: handleTimeout });
-    // Sync ref so onAnswer callback (defined before timer) can call timer controls.
-    timerCtrlRef.current = { stop: () => timer.setIsTimerRunning(false), reset: timer.resetTimer };
 
     // Per-category stats for current session
     const [categoryStats, setCategoryStats] = useState({
@@ -152,7 +116,7 @@ export default function MixedModePage() {
     const [earnedTodayCap, setEarnedTodayCap] = useState(0); // diamonds earned today (for cap display)
     const [loadError, setLoadError] = useState(null);
     const [accessToken, setAccessToken] = useState(null); // for ReportQuestionButton
-    const answersRef = useRef([]); // Track per-question correctness
+    const answersRef = useRef([]); // per index: { questionId, displayIndex, wasCorrect } from the server verdict
 
     const isStartingRef = useRef(false); // Prevent double-click race
     const didInitRef = useRef(false); // Guard against double-init across dep re-fires
@@ -217,8 +181,8 @@ export default function MixedModePage() {
                 setEarnedTodayCap(earnedToday);
             } catch (e) { console.warn('[Mixed] Cap fetch failed:', e); }
 
-            // Load questions
-            await loadMixedQuestions(user.id);
+            // Questions are dealt by the server when a game starts - nothing
+            // to preload here.
             setGameState('ready');
         }
 
@@ -242,70 +206,119 @@ export default function MixedModePage() {
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
 
-    async function loadMixedQuestions(uid) {
+    // Per-answer server grading. Lock the tap immediately, record it with
+    // /api/trivia/session-answer (the first answer per question is BINDING
+    // server-side), then reveal from the verdict. A failed call unlocks so the
+    // player can re-tap - the endpoint is idempotent per question, so a retry
+    // cannot double-record.
+    async function gradeAnswer(displayIndex) {
+        if (answerLockRef.current || trivia.showResult) return;
+        const q = questions[currentQuestionIndex];
+        if (!q || typeof q.id !== 'string') return;
+        answerLockRef.current = true;
+        trivia.setSelectedAnswer(displayIndex); // instant visual lock on the tap
         try {
-            // 60-day non-repeat: GLOBAL exclusion (no mode filter) so a question
-            // answered in any other mode can't reappear here within 60 days;
-            // 2000-row limit covers an active player's full 60-day history.
-            const excludeIds = await getRecentlySeenIds(supabase, uid, 2000);
-
-
-            // Phase 55: random-offset fetch per category instead of "first 50"
-            // — was always pulling the same 50 rows per category every game.
-            const categoryResults = await Promise.all(
-                CATEGORIES.map(cat =>
-                    fetchRandomQuestionPool(supabase, { category: cat.dbCategories, pageSize: 50 })
-                        .then(data => {
-                            if (!data || data.length === 0) return [];
-                            // Phase 51: prefer high-quality questions in mixed/daily mode
-                            const available = filterAndShuffle(data, excludeIds, 5, { minQualityScore: 6, preferHighQuality: true });
-                            available.forEach(q => { q.displayCategory = cat.id; });
-                            return available;
-                        })
-                        .catch(e => { console.warn('[Mixed] cat fetch failed:', cat.id, e); return []; })
-                )
-            );
-            const allQuestions = categoryResults.flat();
-
-            // Interleave categories: H, R, P, MTT, Cash, ICM, GTO, H, R, P, ...
-            // 3 questions per category = the advertised 21-question session
-            // (the old `i < 5` loop silently built 35-question sessions).
-            const interleaved = [];
-            for (let i = 0; i < QUESTIONS_PER_CATEGORY; i++) {
-                for (let j = 0; j < CATEGORIES.length; j++) {
-                    const catQuestions = allQuestions.filter(q => q.displayCategory === CATEGORIES[j].id);
-                    if (catQuestions[i]) {
-                        interleaved.push(catQuestions[i]);
-                    }
-                }
-            }
-
-            setQuestions(shuffleOptions(interleaved));
-            return interleaved.length;
+            const v = await serverRun.answer({ questionId: q.id, displayIndex });
+            applyVerdict(q, displayIndex, v);
         } catch (e) {
-            console.warn('Failed to load mixed questions:', e);
-            return 0;
+            console.warn('[Mixed] Answer grading failed:', e?.message || e);
+            if (displayIndex < 0) {
+                // Timeout skip that could not reach the server: no re-tap is
+                // possible, so record it locally (session-submit still grades
+                // it server-side) and advance without a reveal.
+                recordAnswer(q, -1, false);
+                advanceOrFinish();
+            } else {
+                // Unlock and let the player re-tap.
+                trivia.setSelectedAnswer(null);
+                answerLockRef.current = false;
+            }
         }
+    }
+
+    // Side effects that used to key off the client-computed isCorrect now key
+    // off the server verdict.
+    function applyVerdict(q, displayIndex, v) {
+        timer.setIsTimerRunning(false);
+        setVerdict(v);
+        trivia.setShowResult(true);
+        recordAnswer(q, displayIndex, v?.wasCorrect === true);
+        advanceOrFinish();
+    }
+
+    function recordAnswer(q, displayIndex, wasCorrect) {
+        const category = q.displayCategory || 'poker_history';
+        setCategoryStats(prev => ({
+            ...prev,
+            [category]: {
+                answered: (prev[category]?.answered || 0) + 1,
+                correct: (prev[category]?.correct || 0) + (wasCorrect ? 1 : 0)
+            }
+        }));
+        answersRef.current[currentQuestionIndex] = { questionId: q.id, displayIndex, wasCorrect };
+        if (wasCorrect) {
+            setTotalCorrect(prev => prev + 1);
+            setDiamondsEarned(prev => prev + 1);
+            busEmit.decisionCorrect(totalCorrect + 1);
+        } else {
+            busEmit.decisionIncorrect(totalCorrect);
+            busEmit.screenShake('light');
+        }
+    }
+
+    function advanceOrFinish() {
+        setTimeout(() => {
+            if (currentQuestionIndex + 1 >= questions.length) {
+                finishGame();
+            } else {
+                setCurrentQuestionIndex(prev => prev + 1);
+                setVerdict(null);
+                trivia.reset();
+                answerLockRef.current = false;
+                timer.resetTimer();
+            }
+        }, 1200);
     }
 
     async function startGame() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
-        // NEVER charge for an empty game: if question loading failed or the
-        // pool came back empty, show an error state instead of taking 10
-        // diamonds for a game that can't render.
-        if (!questions || questions.length === 0) {
+        setLoadError(null);
+        setGameState('loading');
+
+        // Open the server session BEFORE any charge, so a start failure can
+        // never eat an entry fee. The server deals (and permutes) the
+        // questions - they are used VERBATIM, because reshuffling them or
+        // their options would break the display-index mapping the grader
+        // uses. The draw spans the mode's categories server-side.
+        let served;
+        try {
+            served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
+        } catch (e) {
+            console.warn('[Mixed] Server session start failed:', e?.message || e);
+            setLoadError('Could not start the game. Please try again in a moment.');
+            setGameState('error');
+            return;
+        }
+        if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
+            // NEVER charge for an empty game.
+            serverRun.reset();
             setLoadError('No questions are available right now. Please try again in a moment.');
             setGameState('error');
             return;
         }
+        // Tag each question with its display group so the per-category stat
+        // panels keep working against the server's db-level category names.
+        served.questions.forEach(q => { q.displayCategory = displayCategoryFor(q.category); });
 
         // NOTE: the `sessionStorage.trivia_paid` short-circuit is gone. Nothing
         // writes that flag any more, so all it could still do was let a stale
         // flag from an earlier session buy a free entry. Always charge.
 
-        // Per-game diamond gate (VIP bypass)
+        // Per-game diamond gate (VIP bypass). Charged only AFTER the session
+        // opened; every failure path abandons the session via serverRun.reset()
+        // (it expires server-side and pays nothing).
         if (!isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
             let freshBalance = userDiamonds;
@@ -321,31 +334,39 @@ export default function MixedModePage() {
                 }
 
                 if (freshBalance < GAME_ENTRY_COST) {
+                    serverRun.reset();
                     setShowOutOfDiamonds(true);
+                    setGameState('ready');
                     return;
                 }
 
                 const result = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_mixed');
                 if (!result.success) {
+                    serverRun.reset();
                     setShowOutOfDiamonds(true);
+                    setGameState('ready');
                     return;
                 }
                 if (result.balance !== undefined) setUserDiamonds(result.balance);
                 // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             } catch (e) {
                 console.warn('[Mixed] Diamond deduction failed:', e);
+                serverRun.reset();
                 setShowOutOfDiamonds(true);
+                setGameState('ready');
                 return;
             }
         }
+        setQuestions(served.questions);
         setCurrentQuestionIndex(0);
         trivia.reset();
+        setVerdict(null);
+        answerLockRef.current = false;
         setTotalCorrect(0);
         setDiamondsEarned(0);
         setCapReached(false);
-        awardedRef.current = null;
+        serverResultRef.current = null;
         savePhaseRef.current = 0;
-        newGameRewardRefId(); // unique reward reference for THIS game
         answersRef.current = [];
         setCategoryStats({
             poker_history: { answered: 0, correct: 0 },
@@ -365,21 +386,14 @@ export default function MixedModePage() {
 
     function handleTimeout() {
         timer.setIsTimerRunning(false);
-        trivia.selectAnswer(-1); // Wrong answer - delegates to shared hook
+        gradeAnswer(-1); // records a skip server-side and reveals the answer
     }
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
-    const savePhaseRef = useRef(0); // 0=none, 1=diamonds, 2=mastery, 3=history, 4=score
-    // Persists the ACTUAL awarded (cap-clamped) amount across saving_error
-    // retries — a local variable re-initialized to 0 on retry, so the score
-    // row recorded 0 diamonds even when the award had already gone through.
-    const awardedRef = useRef(null);
-    // Unique per-game reward reference (replaces the per-minute bucket).
-    const gameRewardRefIdRef = useRef(null);
-    const newGameRewardRefId = () => {
-        gameRewardRefIdRef.current = makeReferenceId('mixed_reward', userId);
-        return gameRewardRefIdRef.current;
-    };
+    const savePhaseRef = useRef(0); // 0=none, 1=settled, 2=mastery, 3=history, 4=score
+    // Server settlement result, kept in a ref so a saving_error retry re-uses
+    // the already-paid result instead of re-submitting a closed session.
+    const serverResultRef = useRef(null);
 
     async function finishGame() {
         timer.setIsTimerRunning(false);
@@ -390,58 +404,65 @@ export default function MixedModePage() {
             return;
         }
 
-        // Recompute from answersRef (always current) to avoid stale closure from setTimeout
-        const actualCorrect = answersRef.current.filter(Boolean).length;
-        const actualDiamonds = actualCorrect; // 1 diamond per correct answer
-
-        // Sync state for UI display
-        setTotalCorrect(actualCorrect);
-        setDiamondsEarned(actualDiamonds);
+        // Provisional client-side count, used ONLY for the saving_error copy -
+        // every number that persists below comes from the server settlement.
+        const provisionalCorrect = answersRef.current.filter(a => a && a.wasCorrect).length;
 
         try {
-            // Phase 1: Award diamonds (only if not already awarded)
+            // Phase 1: settle the run server-side (only if not already settled).
+            // The server grades from the answers it stored at tap time - the
+            // array below only fills in questions that never reached
+            // session-answer - then applies the daily cap and pays through a
+            // locked RPC. No client-side crediting, ever.
             if (savePhaseRef.current < 1) {
-                // Clamp to daily cap
-                const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'mixed');
-                setEarnedTodayCap(earnedToday);
-                const cappedDiamonds = clampToCap(earnedToday, actualDiamonds, DAILY_DIAMOND_CAP);
-                awardedRef.current = cappedDiamonds; // ref survives saving_error retries
-                if (cappedDiamonds > 0) {
-                    const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                        p_user_id: userId,
-                        p_amount: cappedDiamonds,
-                        p_type: 'mixed_reward',
-                        p_description: `Mixed mode — ${cappedDiamonds}💎`,
-                        // Per-GAME reference, minted in startGame(). The old
-                        // per-minute bucket (`Math.floor(Date.now()/60000)`)
-                        // meant a second game finished inside the same minute
-                        // reused the first game's reference, and
-                        // add_diamonds_to_balance deduped it away — the player
-                        // earned nothing and nothing surfaced the failure. The
-                        // reference is still STABLE within a game, so a
-                        // saving_error retry cannot double-credit.
-                        p_reference_id: gameRewardRefIdRef.current || newGameRewardRefId()
-                    });
-                    if (__rpcErr) throw __rpcErr;
+                const submitAnswers = questions.map((q, idx) => {
+                    const a = answersRef.current[idx];
+                    return {
+                        questionId: q.id,
+                        displayIndex: (a && Number.isInteger(a.displayIndex)) ? a.displayIndex : -1
+                    };
+                });
+                const result = await serverRun.submit(submitAnswers);
+                serverResultRef.current = result;
+                savePhaseRef.current = 1;
+
+                // Local balance from the server's post-award number, with a
+                // fresh profiles read as the fallback.
+                if (Number.isFinite(result?.newBalance)) {
+                    setUserDiamonds(result.newBalance);
+                } else {
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
-                    busEmit.diamondsEarned(cappedDiamonds, 'Mixed Mode');
+                }
+                if ((result?.diamondsAwarded || 0) > 0) {
+                    busEmit.diamondsEarned(result.diamondsAwarded, 'Mixed Mode');
                     busEmit.celebration('confetti');
                 }
-                savePhaseRef.current = 1;
             }
-            const actualAwarded = awardedRef.current ?? 0;
+            const settled = serverResultRef.current || {};
+            const awarded = Number.isFinite(settled.diamondsAwarded) ? settled.diamondsAwarded : 0;
+            const serverCorrect = Number.isFinite(settled.correct) ? settled.correct : provisionalCorrect;
+            const serverTotal = Number.isFinite(settled.total) ? settled.total : questions.length;
+            const serverScore = Number.isFinite(settled.score) ? settled.score : serverCorrect * 100;
 
-            // Phase 2: Update category mastery (only if not already updated)
+            // questionId -> wasCorrect from the server's per-question verdicts,
+            // for the mastery and history phases below.
+            const verdictMap = {};
+            (Array.isArray(settled.perQuestion) ? settled.perQuestion : []).forEach(pq => {
+                if (pq && typeof pq.questionId === 'string') verdictMap[pq.questionId] = pq.wasCorrect === true;
+            });
+
+            // Phase 2: Update category mastery (only if not already updated).
+            // Correctness comes from the server's verdicts - the client has no
+            // answer key to compare against.
             if (savePhaseRef.current < 2) {
                 const actualCategoryStats = {};
-                answersRef.current.forEach((wasCorrect, idx) => {
-                    const q = questions[idx];
-                    if (!q) return;
+                questions.forEach(q => {
+                    if (!q || q.id == null) return;
                     const cat = q.displayCategory || 'poker_history';
                     if (!actualCategoryStats[cat]) actualCategoryStats[cat] = { answered: 0, correct: 0 };
                     actualCategoryStats[cat].answered += 1;
-                    if (wasCorrect) actualCategoryStats[cat].correct += 1;
+                    if (verdictMap[q.id]) actualCategoryStats[cat].correct += 1;
                 });
 
                 for (const [category, stats] of Object.entries(actualCategoryStats || {})) {
@@ -499,18 +520,16 @@ export default function MixedModePage() {
             // Phase 59: filter null question_id (FK violation guard) + capture
             // upsert errors that were silently swallowed.
             if (savePhaseRef.current < 3) {
-                const answeredCount = answersRef.current.length;
-                if (answeredCount > 0) {
-                    const answeredQuestions = questions.slice(0, answeredCount);
-                    const historyRecords = answeredQuestions
-                        .filter(q => q && q.id != null)
-                        .map((q, idx) => ({
-                            user_id: userId,
-                            question_id: q.id,
-                            was_correct: answersRef.current[idx] || false,
-                            seen_at: new Date().toISOString(),
-                            mode: 'mixed'
-                        }));
+                const servedQuestions = questions.filter(q => q && q.id != null);
+                if (servedQuestions.length > 0) {
+                    // was_correct comes from the server's per-question verdicts
+                    const historyRecords = servedQuestions.map(q => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: verdictMap[q.id] === true,
+                        seen_at: new Date().toISOString(),
+                        mode: 'mixed'
+                    }));
 
                     if (historyRecords.length > 0) {
                         // FIX(audit #9): ignoreDuplicates:true => INSERT ... ON
@@ -538,17 +557,18 @@ export default function MixedModePage() {
                 savePhaseRef.current = 3;
             }
 
-            // Phase 4: Save score (only if not already saved).
-            // Capture insert error — supabase-js does NOT throw on DB errors.
+            // Phase 4: Save score with the SERVER numbers (only if not already
+            // saved). Capture insert error — supabase-js does NOT throw on DB
+            // errors.
             if (savePhaseRef.current < 4) {
                 const { error: scoreErr } = await supabase.from('trivia_scores').insert({
                     user_id: userId,
                     username: avatarUser?.username || avatarUser?.display_name || null,
                     mode: 'mixed',
-                    score: actualCorrect * 100,
-                    correct_count: actualCorrect,
-                    total_questions: questions.length,
-                    diamonds_earned: actualAwarded,
+                    score: serverScore,
+                    correct_count: serverCorrect,
+                    total_questions: serverTotal,
+                    diamonds_earned: awarded,
                     // Phase 73: CST-anchored play_date so leaderboard.js (which
                     // queries by CST today) finds same-day rows.
                     play_date: getTodayCST()
@@ -557,12 +577,14 @@ export default function MixedModePage() {
                 savePhaseRef.current = 4;
             }
 
-            // Success! Show the TRUE awarded amount on the results screen —
-            // previously it displayed the uncapped 1-per-correct count while
-            // the player actually received the cap-clamped amount.
-            setDiamondsEarned(actualAwarded);
-            setCapReached(actualAwarded < actualDiamonds);
-            setEarnedTodayCap(prev => Math.min(DAILY_DIAMOND_CAP, prev + actualAwarded));
+            // Success! The results screen shows the server-settled numbers -
+            // the award was already cap-clamped and paid server-side, so an
+            // award below the correct count means the daily cap absorbed the
+            // difference.
+            setTotalCorrect(serverCorrect);
+            setDiamondsEarned(awarded);
+            setCapReached(awarded < serverCorrect);
+            setEarnedTodayCap(prev => Math.min(DAILY_DIAMOND_CAP, prev + awarded));
 
             // Game saved — reset phase for next game
             setGameState('results');
@@ -571,7 +593,7 @@ export default function MixedModePage() {
         } catch (e) {
             console.warn('[Mixed] Failed to save results:', e);
             // Save failed (network drop) -> Provide Retry UI (savePhaseRef preserves progress)
-            setSaveErrorPayload({ actualCorrect, actualDiamonds });
+            setSaveErrorPayload({ actualCorrect: provisionalCorrect, actualDiamonds: provisionalCorrect });
             setGameState('saving_error');
         }
     }
@@ -583,19 +605,10 @@ export default function MixedModePage() {
         finishGame(); // savePhaseRef skips already-completed steps
     };
 
-    // Play Again — refetch a FRESH question set (the just-played questions are
-    // now in trivia_user_question_history, so they're excluded) BEFORE charging
-    // another entry fee. Restarting on the identical set the user answered
-    // seconds ago was both bad value and a memorization exploit.
+    // Play Again - the server deals a FRESH set for every session (the
+    // just-played questions are now in trivia_user_question_history), and
+    // startGame() opens the new session BEFORE charging another entry fee.
     async function playAgain() {
-        setGameState('loading');
-        setLoadError(null);
-        const count = await loadMixedQuestions(userId);
-        if (!count) {
-            setLoadError('No fresh questions are available right now. Please try again later.');
-            setGameState('error');
-            return;
-        }
         await startGame();
     }
 
@@ -682,12 +695,10 @@ export default function MixedModePage() {
                             <p style={{ margin: 0 }}>{loadError || 'Something went wrong loading the game.'}</p>
                             <div style={{ display: 'flex', gap: 12 }}>
                                 <button
-                                    onClick={async () => {
-                                        setGameState('loading');
-                                        setLoadError(null);
-                                        const n = await loadMixedQuestions(userId);
-                                        setGameState(n ? 'ready' : 'error');
-                                        if (!n) setLoadError('Still no questions available. Please try again later.');
+                                    onClick={() => {
+                                        // Retries the whole start; the entry fee
+                                        // is only charged after a session opens.
+                                        startGame();
                                     }}
                                     style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
                                 >
@@ -760,17 +771,17 @@ export default function MixedModePage() {
                                     index={idx}
                                     option={toTitleCase(option)}
                                     selectedAnswer={selectedAnswer}
-                                    correctIndex={currentQuestion.correct_index}
+                                    correctIndex={verdict ? verdict.correctDisplayIndex : null}
                                     showResult={showResult}
-                                    onSelect={trivia.selectAnswer}
+                                    onSelect={gradeAnswer}
                                   />
                                 ))}
                                 </div>
 
-                                {showResult && currentQuestion.explanation && (
+                                {showResult && verdict?.explanation && (
                                     <div className="explanation">
                                         <Lightbulb size={16} color="#00D4FF" style={{ flexShrink: 0, verticalAlign: 'text-bottom', marginRight: 6 }} />
-                                        {currentQuestion.explanation}
+                                        {verdict.explanation}
                                     </div>
                                 )}
                                 {showResult && (
