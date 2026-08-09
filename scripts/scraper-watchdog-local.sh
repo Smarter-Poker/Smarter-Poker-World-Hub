@@ -314,6 +314,32 @@ if [ -f "$TOURN_HEARTBEAT" ]; then
   fi
 fi
 
+# Tour stealth scraper: fires every 3 days via launchd; a heartbeat older than
+# 4 days means the job is unloaded or dying before its first tour. Records are
+# health here too - stops_found 0 across a full run means every schedule page
+# failed verification (likely Cloudflare regression) and deserves eyes.
+TOUR_HB="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/tour-logs/heartbeat.json"
+if [ -f "$TOUR_HB" ]; then
+  tour_age=$(python3 -c "
+import json,datetime
+hb=json.load(open('$TOUR_HB'))
+t=datetime.datetime.fromisoformat(hb['timestamp'])
+print(int((datetime.datetime.now(datetime.timezone.utc)-t).total_seconds()))" 2>/dev/null || echo 0)
+  tour_stops=$(python3 -c "import json;print(int(json.load(open('$TOUR_HB')).get('stops_found',0) or 0))" 2>/dev/null || echo 0)
+  tour_status=$(python3 -c "import json;print(json.load(open('$TOUR_HB')).get('status',''))" 2>/dev/null || echo "")
+  if [ "$tour_age" -gt 345600 ]; then
+    log "  TourScraper: STALE heartbeat ($((tour_age/3600))h old > 96h) - launchd job likely unloaded"
+    discord_alert "TourScraper: heartbeat $((tour_age/3600))h old - check launchctl list | grep tour-scraper"
+  elif [ "$tour_status" = "idle" ] && [ "$tour_stops" -eq 0 ]; then
+    log "  TourScraper: last run found ZERO stops across all tours - possible Cloudflare regression"
+    discord_alert "TourScraper: full run found 0 stops - every schedule page failed verification"
+  else
+    log "  TourScraper: OK (${tour_stops} stops, status=${tour_status}, $((tour_age/3600))h ago)"
+  fi
+else
+  log "  TourScraper: no heartbeat yet (job not loaded or never fired)"
+fi
+
 if [ "$RECOVERY_FAILURES" -gt 0 ]; then
   log "Watchdog check complete — ${RECOVERY_FAILURES} recovery attempt(s) FAILED."
   exit 1
