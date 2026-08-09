@@ -999,6 +999,62 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// AUTO-ADVANCE INDICATOR — leaf owner of the 50ms countdown tick
+// ═══════════════════════════════════════════════════════════════════════════
+// PERF: the remaining-ms state used to live at the top of
+// UniversalDynamicTable and was decremented every 50ms, so during every
+// auto-advance window the ENTIRE table tree re-rendered at 20Hz for the sake
+// of a 9px seconds label and a 3px progress bar inside the Next Hand button.
+// The tick now lives here: the parent stores only `autoAdvanceTotal` (set
+// once per feedback window) and the actual advance timeout; this leaf owns
+// the interval and is the only thing that re-renders per tick. Rendering is
+// byte-identical to the inline version, including the final-tick moment
+// where the 0s label and the SPACE hint briefly coexist.
+function AutoAdvanceIndicator({ total, isMultiStreetActive }) {
+    const [remaining, setRemaining] = React.useState(total ?? null);
+    React.useEffect(() => {
+        setRemaining(total ?? null);
+        if (total === null || total === undefined) return;
+        // Tick the countdown every 50ms for smooth visual
+        const tickInterval = setInterval(() => {
+            setRemaining(prev => {
+                if (prev === null || prev <= 0) return 0;
+                return prev - 50;
+            });
+        }, 50);
+        return () => clearInterval(tickInterval);
+    }, [total]);
+    return (
+        <>
+            {remaining !== null && total && (
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginLeft: 8, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                    {Math.max(0, Math.ceil(remaining / 1000))}s
+                </span>
+            )}
+            {!remaining && (
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginLeft: 8, fontWeight: 600 }}>SPACE</span>
+            )}
+            {/* Auto-advance progress bar */}
+            {remaining !== null && total && (
+                <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                    height: 3, borderRadius: '0 0 10px 10px', overflow: 'hidden',
+                    background: 'rgba(0,0,0,0.3)',
+                }}>
+                    <div style={{
+                        height: '100%',
+                        width: `${Math.max(0, (remaining / total) * 100)}%`,
+                        background: isMultiStreetActive ? 'var(--sp-accent-orange)' : 'var(--sp-accent-green)',
+                        transition: 'width 50ms linear',
+                        borderRadius: '0 0 10px 10px',
+                    }} />
+                </div>
+            )}
+        </>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // DETECT ACTION TYPE — Parse option text to determine poker action type
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -2812,12 +2868,13 @@ function UniversalDynamicTable({
 
     // Phase 22+: Smart auto-advance with countdown visual
     // Best/Correct: 2s. Inaccuracy: 4s. Wrong/Blunder: stays until user clicks.
-    const [autoAdvanceCountdown, setAutoAdvanceCountdown] = React.useState(null); // null = no countdown, number = ms remaining
+    // PERF: only the TOTAL lives here (one state write per feedback window).
+    // The 50ms remaining-time tick is owned by AutoAdvanceIndicator so the
+    // table tree no longer re-renders at 20Hz during auto-advance windows.
     const [autoAdvanceTotal, setAutoAdvanceTotal] = React.useState(null);
 
     useEffect(() => {
         if (!showFeedback || !onNextHand || !computedClassification) {
-            setAutoAdvanceCountdown(null);
             setAutoAdvanceTotal(null);
             return;
         }
@@ -2837,13 +2894,11 @@ function UniversalDynamicTable({
             || (trainerConfig?.autoAdvance === true ? 'auto' : 'every');
 
         if (feedbackRule === 'every') {
-            setAutoAdvanceCountdown(null);
             setAutoAdvanceTotal(null);
             return;
         }
         if (feedbackRule === 'mistakes' && isMistake) {
             // The whole point of this mode: stop and make the player read it.
-            setAutoAdvanceCountdown(null);
             setAutoAdvanceTotal(null);
             return;
         }
@@ -2863,30 +2918,17 @@ function UniversalDynamicTable({
 
         if (delay) {
             setAutoAdvanceTotal(delay);
-            setAutoAdvanceCountdown(delay);
-
-            // Tick the countdown every 50ms for smooth visual
-            const tickInterval = setInterval(() => {
-                setAutoAdvanceCountdown(prev => {
-                    if (prev === null || prev <= 0) return 0;
-                    return prev - 50;
-                });
-            }, 50);
 
             const timerId = setTimeout(() => {
-                setAutoAdvanceCountdown(null);
                 setAutoAdvanceTotal(null);
                 onNextHand();
             }, delay);
 
             return () => {
                 clearTimeout(timerId);
-                clearInterval(tickInterval);
-                setAutoAdvanceCountdown(null);
                 setAutoAdvanceTotal(null);
             };
         } else {
-            setAutoAdvanceCountdown(null);
             setAutoAdvanceTotal(null);
         }
     }, [showFeedback, computedClassification, onNextHand, trainerConfig?.autoAdvance]);
@@ -6084,30 +6126,12 @@ function UniversalDynamicTable({
                                     }}
                                 >
                                     {isMultiStreetActive ? 'Continue Hand →' : 'Next Hand →'}
-                                    {autoAdvanceCountdown !== null && autoAdvanceTotal && (
-                                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginLeft: 8, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                                            {Math.max(0, Math.ceil(autoAdvanceCountdown / 1000))}s
-                                        </span>
-                                    )}
-                                    {!autoAdvanceCountdown && (
-                                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginLeft: 8, fontWeight: 600 }}>SPACE</span>
-                                    )}
-                                    {/* Auto-advance progress bar */}
-                                    {autoAdvanceCountdown !== null && autoAdvanceTotal && (
-                                        <div style={{
-                                            position: 'absolute', bottom: 0, left: 0, right: 0,
-                                            height: 3, borderRadius: '0 0 10px 10px', overflow: 'hidden',
-                                            background: 'rgba(0,0,0,0.3)',
-                                        }}>
-                                            <div style={{
-                                                height: '100%',
-                                                width: `${Math.max(0, (autoAdvanceCountdown / autoAdvanceTotal) * 100)}%`,
-                                                background: isMultiStreetActive ? 'var(--sp-accent-orange)' : 'var(--sp-accent-green)',
-                                                transition: 'width 50ms linear',
-                                                borderRadius: '0 0 10px 10px',
-                                            }} />
-                                        </div>
-                                    )}
+                                    {/* PERF: seconds label + progress bar own their 50ms tick
+                                        in AutoAdvanceIndicator (see that component). */}
+                                    <AutoAdvanceIndicator
+                                        total={autoAdvanceTotal}
+                                        isMultiStreetActive={isMultiStreetActive}
+                                    />
                                 </motion.button>
                                 {!isMultiStreetActive && lastQuestionRef.current && (
                                     <motion.button
