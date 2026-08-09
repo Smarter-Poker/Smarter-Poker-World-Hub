@@ -1,7 +1,7 @@
 /**
  * /api/sandbox/create-share
  * W6-2: Short-link records for a sandbox state.
- * Table: sandbox_shared_scenarios (id, creator_id, state_json, view_count)
+ * Table: sandbox_shared_scenarios (id, creator_id, state_json, views, created_at)
  *
  * Methods:
  *   POST   — create a share link for the posted state_json (auth optional).
@@ -262,25 +262,30 @@ async function handleViewIncrement(req, res, supabase) {
     // Fallback for environments where the RPC was never deployed. Read-modify-
     // write races can undercount, which is acceptable for a view metric; every
     // error is swallowed so the beacon stays non-fatal.
+    //
+    // Column is `views` — production reality. The original fallback read a
+    // `view_count` column that has never existed, so its 42703 was swallowed
+    // on every call and (with the RPC also missing until migration
+    // 20260809010000) share views were never counted at all.
     try {
         const { data: row, error: readErr } = await supabase
             .from('sandbox_shared_scenarios')
-            .select('view_count')
+            .select('views')
             .eq('id', shareId)
             .maybeSingle();
 
         if (readErr || !row) return ack();
 
-        const next = (Number(row.view_count) || 0) + 1;
+        const next = (Number(row.views) || 0) + 1;
         const { error: writeErr } = await supabase
             .from('sandbox_shared_scenarios')
-            .update({ view_count: next })
+            .update({ views: next })
             .eq('id', shareId);
 
-        if (writeErr) console.warn('[create-share] view_count update failed:', writeErr.message);
+        if (writeErr) console.warn('[create-share] views update failed:', writeErr.message);
         return ack();
     } catch (e) {
-        console.warn('[create-share] view_count fallback threw:', e?.message || e);
+        console.warn('[create-share] views fallback threw:', e?.message || e);
         return ack();
     }
 }
