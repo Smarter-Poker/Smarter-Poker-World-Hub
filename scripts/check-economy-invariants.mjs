@@ -79,7 +79,7 @@ if (!Array.isArray(rows) || rows.length === 0) {
 }
 
 // Guard against the function being silently truncated to a couple of checks.
-const MIN_EXPECTED = 11;
+const MIN_EXPECTED = 12;
 if (rows.length < MIN_EXPECTED) {
     console.error(`[economy-invariants] only ${rows.length} invariants returned, expected at least ${MIN_EXPECTED}.`);
     console.error('[economy-invariants] Someone removed checks. That is itself the regression.');
