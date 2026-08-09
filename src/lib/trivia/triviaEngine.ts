@@ -140,7 +140,7 @@ export const TRIVIA_MODES = {
         description: 'Answer until you miss. Rewards stack!',
         questionsCount: 100, // Unlimited effectively
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - survival pays via award_trivia_run now
         diamondReward: 1, // Per correct answer
         perfectBonus: 0,
         icon: 'heart',
