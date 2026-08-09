@@ -1,6 +1,12 @@
 /**
  * TIME ATTACK GAME — 30 seconds, answer as many as possible
- * Speed creates adrenaline, 1 diamond per 3 correct (capped daily)
+ * Speed creates adrenaline, 1 diamond per correct answer (capped daily)
+ *
+ * Grading is server-authoritative: the page supplies an async serverGrader
+ * ({ questionId, displayIndex } -> verdict) backed by
+ * /api/trivia/session-answer, and the reveal is driven by the verdict's
+ * correctDisplayIndex. Served questions carry NO correct_index, so the
+ * component holds no answer key and cannot grade locally.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -15,8 +21,6 @@ import { getAccessToken } from '../../lib/authUtils';
 const GAME_DURATION = 30; // seconds
 // Single source of truth for the cap lives in triviaEngine.
 const DAILY_DIAMOND_CAP = DAILY_DIAMOND_CAPS?.['time-attack'] ?? 5;
-const DIAMONDS_PER_MILESTONE = 1;
-const MILESTONE_INTERVAL = 3; // Every 3 correct = 1 diamond
 const LOAD_MORE_THRESHOLD = 5;
 
 export default function TimeAttackGame({
@@ -27,7 +31,14 @@ export default function TimeAttackGame({
     // Optional: supabase access token for the per-question report button.
     // /api/trivia/report-question requires a Bearer token, so when the page
     // does not supply one we resolve it from the live session below.
-    userToken = null
+    userToken = null,
+    // Server-authoritative grader (same contract as TriviaGame's):
+    //   async ({questionId, displayIndex}) =>
+    //     {wasCorrect, correctDisplayIndex, explanation}
+    // Server-dealt questions have NO correct_index, so without a grader the
+    // component cannot grade at all - time-attack.js (the only consumer)
+    // always passes one; handleAnswer guards against a missing prop.
+    serverGrader = null
 }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [correctCount, setCorrectCount] = useState(0);
@@ -35,6 +46,9 @@ export default function TimeAttackGame({
     const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [isRevealing, setIsRevealing] = useState(false);
+    // Current question's server verdict; null while the session-answer call is
+    // in flight (nothing is revealed until it resolves), cleared on advance.
+    const [verdict, setVerdict] = useState(null);
     const [gameOver, setGameOver] = useState(false);
     const [diamondsEarned, setDiamondsEarned] = useState(0);
     const [fastAnswers, setFastAnswers] = useState(0);
@@ -128,11 +142,40 @@ export default function TimeAttackGame({
         setSelectedAnswer(answerIndex);
         setIsRevealing(true);
 
-        const isCorrect = answerIndex === currentQuestion.correct_index;
+        if (!serverGrader) {
+            // No grader means no grading: served questions carry no answer
+            // key. Release the tap instead of wedging the run - this only
+            // happens on a wiring mistake, never in normal play.
+            console.warn('[TimeAttackGame] serverGrader prop missing - cannot grade answer');
+            setSelectedAnswer(null);
+            setIsRevealing(false);
+            return;
+        }
 
-        // Quick reveal for speed.
-        // Phase 69: safeSetTimeout instead of setTimeout — was firing
-        // setState on unmounted parent.
+        // The tap locks instantly; every side effect waits for the server
+        // verdict. The first answer per question is binding server-side, so a
+        // failed call is safe to re-tap - a retry replays the stored verdict
+        // instead of double-recording.
+        serverGrader({ questionId: currentQuestion.id, displayIndex: answerIndex })
+            .then((v) => {
+                if (!_isMountedRef.current) return;
+                setVerdict(v);
+                resolveAnswer(v?.wasCorrect === true, answerTime);
+            })
+            .catch((err) => {
+                console.warn('[TimeAttackGame] serverGrader failed, unlocking for retry:', err?.message || err);
+                if (!_isMountedRef.current) return;
+                setSelectedAnswer(null);
+                setIsRevealing(false);
+            });
+    };
+
+    // Side effects + advance for a settled verdict. The reveal itself is
+    // driven by verdict.correctDisplayIndex in the render below; this runs
+    // the 400ms reveal window and then moves on.
+    // Phase 69: safeSetTimeout instead of setTimeout — was firing
+    // setState on unmounted parent.
+    const resolveAnswer = (isCorrect, answerTime) => {
         safeSetTimeout(() => {
             if (isCorrect) {
                 const newCorrect = correctCount + 1;
@@ -145,13 +188,11 @@ export default function TimeAttackGame({
                     setFastAnswers(prev => prev + 1);
                 }
 
-                // Check for diamond milestone
-                if (newCorrect % MILESTONE_INTERVAL === 0) {
-                    const potentialDiamonds = diamondsEarned + DIAMONDS_PER_MILESTONE;
-                    if (potentialDiamonds <= remainingCap) {
-                        setDiamondsEarned(potentialDiamonds);
-                    }
-                }
+                // Per-correct economy: 1 diamond per correct answer, matching
+                // calculateDiamonds' count-based branch. Display-clamped to
+                // what the daily cap can still pay; the real payout is capped
+                // server-side at submit.
+                setDiamondsEarned(prev => Math.min(remainingCap, prev + 1));
             } else {
                 setWrongCount(prev => prev + 1);
                 answersRef.current.push(false);
@@ -171,6 +212,7 @@ export default function TimeAttackGame({
             if (currentIndex < questions.length - 1) {
                 setCurrentIndex(prev => prev + 1);
                 setSelectedAnswer(null);
+                setVerdict(null);
                 setIsRevealing(false);
             } else {
                 setGameOver(true);
@@ -259,8 +301,11 @@ export default function TimeAttackGame({
                     <div className="answers-grid">
                         {currentQuestion.options.map((option, idx) => {
                             const isSelected = selectedAnswer === idx;
-                            const isCorrect = idx === currentQuestion.correct_index;
-                            const showResult = isRevealing;
+                            // Reveal comes from the server verdict - while the
+                            // grading call is in flight (verdict null) the tap
+                            // is locked but nothing is marked right or wrong.
+                            const isCorrect = verdict != null && idx === verdict.correctDisplayIndex;
+                            const showResult = isRevealing && verdict != null;
 
                             let className = 'answer-btn';
                             if (showResult) {

@@ -393,6 +393,17 @@ export function calculateDiamonds(
         return config.diamondReward + config.perfectBonus + timeBonus;
     }
 
+    // Count-based modes (endless / time-attack): 1 diamond per correct
+    // answer (config.diamondReward per correct). These modes never had a
+    // formula here - their pages computed per-correct payouts locally and
+    // credited them client-side, which went dark when the credit RPC was
+    // locked on 2026-08-03. The daily cap (DAILY_DIAMOND_CAPS) still binds
+    // wherever this is consumed (calculateCreditedDiamonds and
+    // /api/trivia/session-submit both clamp).
+    if (mode === 'endless' || mode === 'time-attack') {
+        return safeCorrect * (config.diamondReward || 1);
+    }
+
     // All other modes: Base reward + perfect bonus
     if (accuracy === 1.0) {
         return config.diamondReward + config.perfectBonus;
