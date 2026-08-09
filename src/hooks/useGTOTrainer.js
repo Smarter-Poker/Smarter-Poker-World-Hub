@@ -248,6 +248,34 @@ const TOTAL_LEVELS = TRAINING_CONFIG.totalLevels; // 12 (from LevelRegistry)
 // classifyMove returns lowercase classifications — compare in lowercase everywhere
 const MISTAKE_CLASSES = ['inaccuracy', 'wrong', 'blunder'];
 
+// ---------------------------------------------------------------------------
+// Multi-table residual (#10, shared prefs): 'gma_difficulty' is ONE
+// localStorage key shared by every mounted arena, and this hook re-reads it
+// every time a question is served. With N tables mounted, a difficulty change
+// on table A's settings panel leaked into tables B/C/D's engines on their next
+// deal. A caller that mounts several arenas at once (pages/hub/training/
+// multi-table.js) now passes prefsScope: 'table' in initialConfig; a
+// table-scoped mount resolves difficulty from its OWN config and never from
+// the shared key. Single-table mounts (no prefsScope) keep the localStorage
+// live-read so mid-game panel changes still take effect there.
+//
+// NOTE for the GodModeArena owner: for a table-scoped mount, the settings
+// panel's setDifficulty currently reaches this hook only through the shared
+// key we now ignore. To make a mid-game panel change land on ITS OWN table,
+// GodModeArena.jsx's difficulty-persist effect must also merge the value into
+// trainerConfig -- see the comment beside prefsScope in multi-table.js for
+// the exact replacement.
+// ---------------------------------------------------------------------------
+function resolveSharedDifficulty(trainerConfig) {
+  if (trainerConfig?.prefsScope === 'table') {
+    return trainerConfig?.difficulty || 'standard';
+  }
+  return (
+    (typeof localStorage !== 'undefined' ? localStorage.getItem('gma_difficulty') : null) ||
+    'standard'
+  );
+}
+
 export default function useGTOTrainer(
   gameId,
   engineType = 'PIO',
@@ -366,11 +394,7 @@ export default function useGTOTrainer(
    * same resolution order used everywhere a question is served.
    */
   const resolveDifficultyMode = useCallback(() => {
-    return (
-      trainerConfig?.difficultyMode ||
-      (typeof localStorage !== 'undefined' ? localStorage.getItem('gma_difficulty') : null) ||
-      'standard'
-    );
+    return trainerConfig?.difficultyMode || resolveSharedDifficulty(trainerConfig);
   }, [trainerConfig]);
 
   /**
@@ -1231,6 +1255,10 @@ export default function useGTOTrainer(
           setAdaptiveLevelChange({ from: level, to: newLevel, direction: 'up' });
           try {
             eventBus.emit('adaptiveDifficultyChange', {
+              // Multi-table residual (#10, bus scoping): without a table id in
+              // the envelope, every mounted GodModeArena's listener consumed
+              // this and toasted table A's adaptive change on tables B/C/D.
+              gameId,
               from: level,
               to: newLevel,
               direction: 'up',
@@ -1248,6 +1276,7 @@ export default function useGTOTrainer(
           setAdaptiveLevelChange({ from: level, to: newLevel, direction: 'down' });
           try {
             eventBus.emit('adaptiveDifficultyChange', {
+              gameId, // #10 bus scoping -- see the 'up' emission above
               from: level,
               to: newLevel,
               direction: 'down',
@@ -1265,6 +1294,7 @@ export default function useGTOTrainer(
         if (weakSpots.length > 0) {
           try {
             eventBus.emit('weakSpotAnalysis', {
+              gameId, // #10 bus scoping -- no listeners today, scoped for when one appears
               weakSpots,
               topWeakSpot: weakSpots[0],
               checkpoint: answeredSoFar,
@@ -1403,9 +1433,7 @@ export default function useGTOTrainer(
 
           // ═══ Phase GTO-CLONE: Apply difficulty mode ═══
           const diffMode2 =
-            trainerConfig?.difficultyMode ||
-            (typeof localStorage !== 'undefined' ? localStorage.getItem('gma_difficulty') : null) ||
-            'standard';
+            trainerConfig?.difficultyMode || resolveSharedDifficulty(trainerConfig);
           setCurrentQuestion(applyDifficultyToQuestion(nextQ, diffMode2));
           setCurrentStreet(data.street || hand.currentStreet);
           setShowFeedback(false);
@@ -1680,9 +1708,7 @@ export default function useGTOTrainer(
         // Serve next question from pre-loaded array (INSTANT)
         // ═══ Phase GTO-CLONE: Apply difficulty mode to simplify options ═══
         const diffMode =
-          trainerConfig?.difficultyMode ||
-          (typeof localStorage !== 'undefined' ? localStorage.getItem('gma_difficulty') : null) ||
-          'standard';
+          trainerConfig?.difficultyMode || resolveSharedDifficulty(trainerConfig);
         const nextQ = applyDifficultyToQuestion(preloadedQuestions[questionNumber], diffMode);
         setCurrentQuestion(nextQ);
         setQuestionNumber((prev) => prev + 1);

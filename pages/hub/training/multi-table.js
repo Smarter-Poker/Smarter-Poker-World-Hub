@@ -159,6 +159,40 @@ export default function MultiTablePage() {
   // asking for difficulty and timer a second time. Four tables meant four
   // splashes, each of which had to be dismissed before that table would deal.
   const arenaInitialConfig = useMemo(() => ({
+    // #10 residual, shared prefs: N arenas share the 'gma_difficulty'
+    // localStorage key, and useGTOTrainer re-reads it at question-serve time,
+    // so one table's mid-game difficulty change used to bleed into every other
+    // table's engine on its next deal. prefsScope: 'table' tells useGTOTrainer
+    // to resolve difficulty from THIS config and ignore the shared key.
+    //
+    // Per-pref decisions:
+    //   - difficulty: PER-TABLE (it shapes that table's questions) -- isolated
+    //     here via prefsScope.
+    //   - timer / speed / feedbackRule / handSelection / autoAdvance: already
+    //     per-table -- each flows through this config or per-mount state, with
+    //     no live-read of shared storage.
+    //   - the 'gma_difficulty' / 'gma_timer' localStorage keys remain a
+    //     cross-SESSION "last used" default read once at single-table mount;
+    //     that is genuinely global and intentionally left shared.
+    //
+    // Deferred to the GodModeArena.jsx owner (file under concurrent perf
+    // work; do not edit here) -- two changes to complete per-table behaviour:
+    //   1. src/components/training/GodModeArena.jsx, difficulty-persist effect
+    //      (currently `useEffect(() => { if (typeof window !== 'undefined')
+    //      localStorage.setItem('gma_difficulty', difficulty); },
+    //      [difficulty]);`): add
+    //      `setTrainerConfig((c) => (c ? { ...c, difficulty } : c));`
+    //      before the closing brace so a mid-game settings-panel change
+    //      reaches the table's own engine through trainerConfig (the hook now
+    //      prefers it under prefsScope: 'table').
+    //   2. Same file, 'adaptiveDifficultyChange' listener ("Phase 8" effect):
+    //      change `const { from, to, direction } = eventData || {};` to
+    //      `const { from, to, direction, gameId: fromGameId } = eventData || {};
+    //      if (fromGameId && String(fromGameId) !== String(gameId)) return;`
+    //      and the effect deps from [] to [gameId]. useGTOTrainer now stamps
+    //      gameId on the emission; without the filter every mounted table
+    //      still toasts table A's adaptive level change.
+    prefsScope: 'table',
     difficulty: typeof router.query.difficulty === 'string' ? router.query.difficulty : 'standard',
     // GTOW parity #4: 'off' is a value from the AUTO-ADVANCE vocabulary, not
     // the timebank one, which runs 'relaxed' | 'standard' | 'quick' | 'blitz'.
