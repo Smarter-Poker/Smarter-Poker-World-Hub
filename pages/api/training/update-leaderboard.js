@@ -4,6 +4,21 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Updates user's leaderboard stats after completing a training session
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+ *
+ * DEAD PATH -- INTENTIONALLY LEFT, PENDING REMOVAL (2026-08-09).
+ * Sole caller is src/components/training/GameSession.tsx, which no page or
+ * component imports (re-verified by grep: the only textual matches for
+ * "GameSession" outside that file are comments and GameSessionService, a
+ * different module). Nothing reaches this endpoint in production.
+ *
+ * The live leaderboard writer is pages/api/training/save-progress.js, which
+ * records through the atomic public.fn_training_leaderboard_record RPC
+ * (INSERT ... ON CONFLICT DO UPDATE). The read-modify-write below is the racy
+ * pattern that RPC replaced: two concurrent sessions read the same row and
+ * the second write clobbers the first. If this endpoint is ever revived it
+ * MUST switch to sb.rpc('fn_training_leaderboard_record', ...) with the same
+ * period keys (dailyKey ISO date, YYYY-W##, YYYY-MM, 'alltime') -- do not
+ * resurrect the SELECT -> compute -> UPDATE/INSERT below.
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';

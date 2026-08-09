@@ -49,6 +49,19 @@ export default async function handler(req, res) {
       }
 
       // POST: Update leaderboard entry after session
+      //
+      // DEAD WRITE PATH -- INTENTIONALLY LEFT, PENDING REMOVAL (2026-08-09).
+      // No client POSTs here: every fetch of /api/training/leaderboard in the
+      // repo is a GET (LeaderboardPanel.jsx, TrainingLeaderboard.tsx,
+      // hub/training/leaderboard.js, community-leaderboard.js -- verified by
+      // grep). The live writer is pages/api/training/save-progress.js, which
+      // now records through the atomic public.fn_training_leaderboard_record
+      // RPC. The per-period SELECT -> compute -> UPDATE/INSERT below is the
+      // racy read-modify-write that RPC replaced; it also rounds accuracy to
+      // whole percents where the RPC keeps two decimals, so reviving it would
+      // fork row shapes. If this branch is ever revived it MUST go through
+      // sb.rpc('fn_training_leaderboard_record', ...) with the same period
+      // keys instead.
       if (req.method === 'POST') {
           const bodySize = JSON.stringify(req.body || {}).length;
           if (bodySize > 10240) return res.status(413).json({ success: false, error: 'Request body too large' });
