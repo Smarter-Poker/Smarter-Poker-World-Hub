@@ -648,7 +648,9 @@ class PatternModel:
             for row in (vlt or []):
                 slug  = row.get('bravo_slug', '')
                 name  = row.get('venue_name', '')
-                if slug and name:
+                # Skip slug-echo names written by the old title-cased fallback;
+                # ingesting them is what made the corruption self-perpetuating.
+                if slug and name and not self._looks_like_slug_echo(name, slug):
                     self._venue_names[slug] = name
         except Exception as e:
             log.warning(f'  Could not fetch venue names from venue_live_tables: '
@@ -663,8 +665,54 @@ class PatternModel:
     def get_pattern(self, slug: str, game: str) -> Optional[dict]:
         return self._patterns.get((slug, game))
 
+    # Source prefixes baked into bravo_slug by the ingest side ('pa-' =
+    # PokerAtlas). They are provenance, NOT part of the venue's name.
+    _SLUG_SOURCE_PREFIXES = ('pa-', 'bravo-')
+
+    @staticmethod
+    def humanize_slug(slug: str) -> str:
+        """Turn a bravo_slug into a readable venue name.
+
+        The old fallback was slug.replace('-', ' ').title(), which produced
+        'Pa Aria Casino' for pa-aria-casino and 'Pa Beau Rivage Resort Amp
+        Casino' for the HTML-entity-mangled pa-beau-rivage-resort-amp-casino.
+        Those strings were then written to venue_live_tables.venue_name and
+        read back by _load_venue_names on the next boot, so the corruption
+        was self-perpetuating - and it is why 134 of 149 live-cash venues
+        could not be joined to poker_venues at all.
+        """
+        s = (slug or '').strip().lower()
+        for pfx in PatternLibrary._SLUG_SOURCE_PREFIXES:
+            if s.startswith(pfx):
+                s = s[len(pfx):]
+                break
+        # '&' arrives HTML-escaped upstream and slugifies to '-amp-'.
+        s = s.replace('-amp-', '-and-')
+        words = [w for w in s.split('-') if w]
+        # Trailing bare "s" is a slugified possessive ("doc-amp-eddy-s" ->
+        # "Doc and Eddy's"), not a word.
+        out = []
+        for w in words:
+            if w == 's' and out:
+                out[-1] = out[-1] + "'s"
+            else:
+                out.append(w.title())
+        return ' '.join(out)
+
     def get_venue_name(self, slug: str) -> str:
-        return self._venue_names.get(slug, slug.replace('-', ' ').title())
+        name = self._venue_names.get(slug)
+        if name and not self._looks_like_slug_echo(name, slug):
+            return name
+        return self.humanize_slug(slug)
+
+    @staticmethod
+    def _looks_like_slug_echo(name: str, slug: str) -> bool:
+        """True when the stored name is just the raw slug title-cased - i.e. a
+        previously-written corrupt value we must not trust or propagate."""
+        if not name or not slug:
+            return False
+        norm = lambda x: ''.join(ch for ch in (x or '').lower() if ch.isalnum())
+        return norm(name) == norm(slug)
 
 
 # ═════════════════════════════════════════════════════════════════

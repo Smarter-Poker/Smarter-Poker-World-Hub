@@ -43,16 +43,24 @@ function cleanVenueName(str) {
     return result;
 }
 
-// Normalize venue name for fuzzy matching (strips punctuation, lowercases)
+// Normalize venue name for fuzzy matching (strips punctuation, lowercases).
+// Kept byte-identical in behaviour to venue-dedup.js normalizeForMatch so the
+// two surfaces agree on a key - they must, or a venue matches on one page and
+// not the other. Strips the slug source prefix ("pa-") and repairs "amp" (an
+// HTML-escaped "&" that was slugified); without those two rules only 15 of 149
+// live-cash venues could be joined to poker_venues.
 function normalizeForMatch(name) {
     if (!name) return '';
-    return name.toLowerCase()
+    let out = String(name).toLowerCase()
         .replace(/&/g, 'and')
         .replace(/'/g, '')
         .replace(/-/g, ' ')
         .replace(/[^a-z0-9 ]/g, '')
         .replace(/\s+/g, ' ')
         .trim();
+    out = out.replace(/^(?:pa|bravo) /, '');
+    out = out.replace(/(^| )amp( |$)/g, '$1and$2');
+    return out.replace(/\s+/g, ' ').trim();
 }
 
 let _supabase = null;

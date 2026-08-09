@@ -66,16 +66,29 @@ const GENERIC_SUFFIXES = [
   'resort', 'casino', 'hotel', 'poker',
 ];
 
-/** Lowercase, punctuation-free form used for cross-source matching. */
+/** Lowercase, punctuation-free form used for cross-source matching.
+ *
+ * Also neutralises two artefacts of slug-derived venue names, which is what
+ * made 134 of 149 live-cash venues unjoinable to poker_venues:
+ *   - a leading source prefix ("pa-aria-casino" / "Pa Aria Casino" -> "aria
+ *     casino"). The prefix is provenance, not part of the venue's name.
+ *   - "amp" as a standalone word, the residue of an HTML-escaped "&" that was
+ *     slugified ("Beau Rivage Resort Amp Casino" -> "... and ...").
+ * Both are applied AFTER punctuation stripping so slug and display forms
+ * converge on the same key.
+ */
 export function normalizeForMatch(name) {
   if (!name) return '';
-  return String(name).toLowerCase()
+  let out = String(name).toLowerCase()
     .replace(/&/g, 'and')
     .replace(/'/g, '')
     .replace(/-/g, ' ')
     .replace(/[^a-z0-9 ]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+  out = out.replace(/^(?:pa|bravo) /, '');
+  out = out.replace(/(^| )amp( |$)/g, '$1and$2');
+  return out.replace(/\s+/g, ' ').trim();
 }
 
 /**
