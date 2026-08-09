@@ -22,8 +22,18 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * the two routes can never drift). It is ALSO persisted on the session row,
  * so grading does not depend on the algorithm staying byte-stable forever.
  *
- * Body: { mode, count?, category?, difficulty? }
+ * Body: { mode, count?, category?, difficulty?, matchId? }
  * Auth: Bearer token or session cookie (getServerUserWithFallback).
+ *
+ * -- PVP (mode 'pvp') -----------------------------------------------------
+ * PvP sessions are MATCH-BOUND: matchId is required and the roster is shared
+ * by both players (drawn server-side by whichever player starts first and
+ * persisted on the match row as bare question ids - never with the key).
+ * Starting a pvp session also ESCROWS the player's stake server-side with an
+ * idempotent reference (pvp_stake_<matchId>_<userId>); the browser-side
+ * deduction this replaces called a diamond RPC that lost authenticated
+ * EXECUTE on 2026-08-03. Sessions grade; /api/trivia/pvp-settle-match pays.
+ * See startPvpSession below.
  *
  * Returns:
  *   200 { success, sessionId, mode, questionCount, questions: [...] }
@@ -50,6 +60,11 @@ import {
 } from '../../../src/lib/triviaQuestionLoader';
 import { getModeConfig, getCategoriesForMode, ALL_CATEGORIES } from '../../../src/lib/trivia/triviaEngine';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import {
+    SESSION_LINK_COLUMNS,
+    PVP_MATCH_JOIN_WINDOW_MS,
+    extractRosterIds
+} from './pvp-settle-match';
 
 /**
  * Allow-list of playable modes AND the per-mode ceiling on questions in one
@@ -66,6 +81,308 @@ const MAX_QUESTIONS = {
 
 const DEFAULT_COUNT = 20;
 const VALID_DIFFICULTIES = new Set(['easy', 'medium', 'hard']);
+const PVP_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Canonical answer-free question rows for a fixed roster, in roster order.
+ * PvP serves the MATCH's stored roster (both players must face the same
+ * questions), so the generic pool draw does not apply here.
+ */
+async function fetchPvpRosterRows(sb, rosterIds) {
+    const ids = (Array.isArray(rosterIds) ? rosterIds : [])
+        .filter(id => typeof id === 'string' && PVP_UUID_RE.test(id));
+    if (ids.length === 0) return [];
+    const { data: rows, error } = await sb
+        .from('trivia_questions')
+        .select('id, question, options, category, difficulty')
+        .in('id', ids);
+    if (error) {
+        console.warn('[trivia session-start] pvp roster fetch failed:', error.message || error);
+        return [];
+    }
+    const byId = new Map((rows || []).map(r => [r.id, r]));
+    return ids
+        .map(id => byId.get(id))
+        .filter(q => q && typeof q.id === 'string' && Array.isArray(q.options) && q.options.length >= 2);
+}
+
+/**
+ * Serve an EXISTING pvp session (resume). The first session per player per
+ * match is binding - answers already recorded through session-answer stay
+ * binding - so a reconnecting client gets the same roster in the same stored
+ * display order rather than a fresh (re-rollable) draw.
+ */
+async function servePvpSession(res, sb, userId, match, sessionId, resumed) {
+    const { data: session, error } = await sb
+        .from('trivia_sessions')
+        .select('id, user_id, mode, status, question_ids, permutations')
+        .eq('id', sessionId)
+        .maybeSingle();
+    if (error) {
+        console.warn('[trivia session-start] pvp session load failed:', error.message || error);
+        return res.status(500).json({ success: false, error: 'session_load_failed' });
+    }
+    if (!session || session.user_id !== userId || session.mode !== 'pvp') {
+        return res.status(409).json({ success: false, error: 'session_link_invalid' });
+    }
+    if (session.status !== 'open') {
+        // The bound session was already graded (or expired) - this match has
+        // been played. No re-rolls.
+        return res.status(409).json({ success: false, error: 'already_played' });
+    }
+
+    const rows = await fetchPvpRosterRows(sb, session.question_ids);
+    if (rows.length === 0) {
+        return res.status(503).json({ success: false, error: 'no_questions_available' });
+    }
+    const stored = (session.permutations && typeof session.permutations === 'object')
+        ? session.permutations
+        : {};
+    const questions = rows.map(q => {
+        // Prefer the permutation persisted at serve time; recompute from the
+        // shared helper only if it is missing (same rule session-submit uses).
+        let order = Array.isArray(stored[q.id]) ? stored[q.id] : null;
+        if (!order) {
+            order = deterministicOptionOrder(q.options.length, optionOrderSeed(userId, session.id, q.id));
+        }
+        return {
+            id: q.id,
+            question: q.question,
+            options: order.map(i => q.options[i]),
+            category: q.category ?? null,
+            difficulty: q.difficulty ?? null,
+        };
+    });
+
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    return res.status(200).json({
+        success: true,
+        sessionId: session.id,
+        matchId: match.id,
+        mode: 'pvp',
+        resumed: resumed === true,
+        stake: Math.max(0, Math.floor(Number(match.stake_amount) || 0)),
+        questionCount: questions.length,
+        questions,
+    });
+}
+
+/**
+ * PvP session start: verify participation, share (or seed) the roster,
+ * escrow the stake, create + link the session. See the header for the flow;
+ * the load-bearing invariants are:
+ *
+ *   1. The roster is drawn SERVER-SIDE (first player to start seeds it with
+ *      an atomic questions-IS-NULL conditional write; the loser of that race
+ *      adopts the winner's roster). The client cannot hand-pick questions it
+ *      already knows.
+ *   2. The stake charge precedes session creation and uses the idempotent
+ *      reference pvp_stake_<matchId>_<userId>: retries dedup instead of
+ *      double-charging, and a charge whose session insert then failed is
+ *      finished by a retry (dedup -> proceed) or refunded by the pvp-settle
+ *      sweep, which probes that same reference. No refund path lives here on
+ *      purpose - refunding while the charge reference stays dedup-armed
+ *      would let a retry play with a refunded (free) stake.
+ *   3. The session link write is conditional on the column being NULL, so
+ *      the first session per player is binding and a double-start cannot
+ *      swap in a fresh roster after seeing verdicts.
+ */
+async function startPvpSession(req, res, sb, userId) {
+    const { matchId } = req.body || {};
+    if (typeof matchId !== 'string' || !PVP_UUID_RE.test(matchId)) {
+        return res.status(400).json({ success: false, error: 'pvp_requires_match_id' });
+    }
+
+    const { data: match, error: matchErr } = await sb
+        .from('trivia_pvp_matches')
+        .select('id, player1_id, player2_id, stake_amount, questions, status, challenger_id, opponent_id, created_at')
+        .eq('id', matchId)
+        .maybeSingle();
+    if (matchErr) {
+        console.warn('[trivia session-start] pvp match load failed:', matchErr.message || matchErr);
+        return res.status(500).json({ success: false, error: 'match_load_failed' });
+    }
+    if (!match) {
+        return res.status(404).json({ success: false, error: 'match_not_found' });
+    }
+    if (match.player1_id !== userId && match.player2_id !== userId) {
+        return res.status(403).json({ success: false, error: 'not_your_match' });
+    }
+    if (match.status !== 'active') {
+        return res.status(409).json({ success: false, error: 'match_not_active' });
+    }
+    const createdMs = match.created_at ? new Date(match.created_at).getTime() : NaN;
+    if (!Number.isFinite(createdMs) || Date.now() - createdMs > PVP_MATCH_JOIN_WINDOW_MS) {
+        // Too old to join - the pvp-settle sweep owns this row now.
+        return res.status(410).json({ success: false, error: 'match_expired' });
+    }
+
+    const isP1 = match.player1_id === userId;
+    const linkCol = isP1 ? SESSION_LINK_COLUMNS.p1 : SESSION_LINK_COLUMNS.p2;
+
+    // --- RESUME ------------------------------------------------------------
+    if (match[linkCol]) {
+        return servePvpSession(res, sb, userId, match, match[linkCol], true);
+    }
+
+    // --- ROSTER (shared; first starter seeds it atomically) ----------------
+    let rosterIds = extractRosterIds(match.questions);
+    if (rosterIds.length === 0) {
+        const wanted = MAX_QUESTIONS.pvp;
+        const { ids: excludeIds } = await getSeenHistory(sb, userId, {});
+        const pool = await fetchRandomQuestionPool(sb, {
+            pageSize: Math.max(200, wanted * 5),
+            minQuality: DEFAULT_QUALITY_FLOOR,
+            excludeIds,
+            want: wanted,
+            attempts: 3,
+            withoutAnswers: true,
+        });
+        const drawn = filterAndShuffle(pool, excludeIds, wanted, {
+            minQualityScore: DEFAULT_QUALITY_FLOOR,
+        })
+            .filter(q => q && typeof q.id === 'string' && Array.isArray(q.options) && q.options.length >= 2)
+            .map(q => q.id);
+        if (drawn.length === 0) {
+            return res.status(503).json({ success: false, error: 'no_questions_available' });
+        }
+
+        const { data: seeded, error: seedErr } = await sb
+            .from('trivia_pvp_matches')
+            .update({ questions: drawn })
+            .eq('id', match.id)
+            .is('questions', null)
+            .select('id');
+        if (seedErr) {
+            console.warn('[trivia session-start] pvp roster seed failed:', seedErr.message || seedErr);
+            return res.status(500).json({ success: false, error: 'roster_seed_failed' });
+        }
+        if (seeded && seeded.length > 0) {
+            rosterIds = drawn;
+        } else {
+            // The opponent seeded first - adopt their roster so both players
+            // face identical questions.
+            const { data: fresh } = await sb
+                .from('trivia_pvp_matches')
+                .select('questions')
+                .eq('id', match.id)
+                .maybeSingle();
+            rosterIds = extractRosterIds(fresh?.questions);
+            if (rosterIds.length === 0) {
+                return res.status(503).json({ success: false, error: 'no_questions_available' });
+            }
+        }
+    }
+
+    // --- STAKE ESCROW (idempotent; before the session exists) --------------
+    const stake = Math.max(0, Math.floor(Number(match.stake_amount) || 0));
+    if (stake > 0) {
+        const { data: charge, error: chargeErr } = await sb.rpc('add_diamonds_to_balance', {
+            p_user_id: userId,
+            p_amount: -stake,
+            p_type: 'pvp_stake',
+            p_description: `PvP stake - ${stake} diamonds entry (match ${match.id})`,
+            p_reference_id: `pvp_stake_${match.id}_${userId}`,
+        });
+        if (chargeErr) {
+            console.warn('[trivia session-start] pvp stake charge failed:', chargeErr.message || chargeErr);
+            return res.status(500).json({ success: false, error: 'stake_charge_failed' });
+        }
+        if (charge && charge.success === false && charge.duplicate !== true) {
+            // The RPC's only non-duplicate rejections are missing profile and
+            // insufficient balance; either way this player cannot fund the pot.
+            return res.status(402).json({ success: false, error: 'insufficient_diamonds' });
+        }
+        // duplicate === true: an earlier attempt charged and then died before
+        // the session/link writes - proceed and finish the job.
+    }
+
+    // --- SERVE + PERSIST ----------------------------------------------------
+    const picked = await fetchPvpRosterRows(sb, rosterIds);
+    if (picked.length === 0) {
+        // Charged but unservable roster: deliberately NO refund here (see the
+        // function comment) - a retry finishes the start, and an abandoned
+        // charge is refunded by the pvp-settle sweep.
+        return res.status(503).json({ success: false, error: 'no_questions_available' });
+    }
+
+    const sessionId = randomUUID();
+    const permutations = {};
+    const questions = picked.map(q => {
+        const order = deterministicOptionOrder(
+            q.options.length,
+            optionOrderSeed(userId, sessionId, q.id)
+        );
+        permutations[q.id] = order;
+        return {
+            id: q.id,
+            question: q.question,
+            options: order.map(i => q.options[i]),
+            category: q.category ?? null,
+            difficulty: q.difficulty ?? null,
+        };
+    });
+
+    const { error: insertErr } = await sb
+        .from('trivia_sessions')
+        .insert({
+            id: sessionId,
+            user_id: userId,
+            mode: 'pvp',
+            question_ids: picked.map(q => q.id),
+            permutations,
+            status: 'open',
+        });
+    if (insertErr) {
+        console.warn('[trivia session-start] pvp session insert failed:', insertErr.message || insertErr);
+        return res.status(500).json({ success: false, error: 'session_create_failed' });
+    }
+
+    // --- LINK (first session is binding) ------------------------------------
+    const { data: linked, error: linkErr } = await sb
+        .from('trivia_pvp_matches')
+        .update({ [linkCol]: sessionId })
+        .eq('id', match.id)
+        .is(linkCol, null)
+        .select('id');
+    if (linkErr || !linked || linked.length === 0) {
+        // Lost a same-player double-start race (or the write failed). Retire
+        // the orphan - it is unlinked, so it must not survive as an open
+        // grading claim - and serve whichever session won the link.
+        await sb
+            .from('trivia_sessions')
+            .update({ status: 'expired', submitted_at: new Date().toISOString() })
+            .eq('id', sessionId)
+            .eq('status', 'open');
+        const { data: fresh } = await sb
+            .from('trivia_pvp_matches')
+            .select('id, stake_amount, challenger_id, opponent_id')
+            .eq('id', match.id)
+            .maybeSingle();
+        const winningId = fresh ? fresh[linkCol] : null;
+        if (winningId) {
+            return servePvpSession(res, sb, userId, { ...match, ...fresh }, winningId, true);
+        }
+        console.warn('[trivia session-start] pvp session link failed:', linkErr?.message || 'no_winning_link');
+        return res.status(500).json({ success: false, error: 'session_link_failed' });
+    }
+
+    // Feed the 60-day no-repeat window. Fire-and-forget.
+    recordQuestionsSeen(sb, userId, picked.map(q => q.id), 'pvp')
+        .catch(e => console.warn('[trivia session-start] pvp history record failed:', e?.message || e));
+
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    return res.status(200).json({
+        success: true,
+        sessionId,
+        matchId: match.id,
+        mode: 'pvp',
+        resumed: false,
+        stake,
+        questionCount: questions.length,
+        questions,
+    });
+}
 
 /**
  * Narrow a client-supplied category filter to the categories this mode is
@@ -106,6 +423,11 @@ export default async function handler(req, res) {
                 error: 'invalid_mode',
                 allowed: Object.keys(MAX_QUESTIONS),
             });
+        }
+
+        // --- PVP: match-bound flow (shared roster + server stake escrow) --
+        if (mode === 'pvp') {
+            return await startPvpSession(req, res, sb, userId);
         }
 
         const modeCap = MAX_QUESTIONS[mode];
