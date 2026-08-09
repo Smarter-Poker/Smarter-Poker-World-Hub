@@ -39,7 +39,7 @@ const VENUE_ALIASES = {
   'PokerGO Studio': ['PokerGO', 'ARIA PokerGO Studio'],
   'Potawatomi Casino': ['Potawatomi Hotel & Casino', 'Potawatomi Casino Resort', 'Potawatomi Casino Hotel', 'Potawatomi Hotel and Casino'],
   'Greektown Casino': ['Hollywood Casino Greektown'],
-  'Bally\\'s Twin River Lincoln': ['Bally Twin River'],
+  'Bally\'s Twin River Lincoln': ['Bally Twin River'],
   'Palm Beach Kennel Club': ['Palm Beach Kennel Club Poker Series'],
   'Daytona Beach Racing and Card Club': ['Daytona Racing & Card Club'],
   'Wind Creek Bethlehem': ['Sands Bethlehem'],
