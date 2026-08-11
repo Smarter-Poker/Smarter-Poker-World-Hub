@@ -219,6 +219,55 @@ def _is_retryable_http(e: urllib.error.HTTPError) -> bool:
     return e.code >= 500
 
 
+# ── Provenance labelling ─────────────────────────────────────────────────────
+# These rows are MODELLED from weeks of historical observations - no page is
+# fetched. Labelling them 'scraped_verified' told every future consumer that a
+# generated number was a verified scrape. The honest value is 'simulated'.
+#
+# venue_live_tables.data_quality carries a CHECK constraint that historically
+# allowed only ('scraped_verified','stale','expired'). Migration
+# 20260809_widen_live_tables_data_quality.sql adds 'simulated'. Until that runs,
+# writing the honest value would be rejected and the cash-games surface would go
+# dark - so sb_insert detects the CHECK violation (SQLSTATE 23514), downgrades
+# once per process, and logs loudly. Safe to deploy before OR after the
+# migration; it corrects itself either way.
+#
+# NOTE: `source` deliberately stays 'bravo'. live-tables.js keys its
+# cross-source slug index on source=='bravo' and derives simulated-ness from
+# scrape_batch_id starting 'sim-' (isSimulatedRow), so changing source would
+# empty that index and break PokerAtlas->Bravo venue merging, while fixing
+# nothing the batch-id check does not already handle.
+SIM_DATA_QUALITY_HONEST   = 'simulated'
+SIM_DATA_QUALITY_FALLBACK = 'scraped_verified'
+_SIM_DQ_STATE = {'value': SIM_DATA_QUALITY_HONEST, 'downgraded': False}
+
+
+def sim_data_quality() -> str:
+    """Label to stamp on generated rows this cycle."""
+    return _SIM_DQ_STATE['value']
+
+
+def _downgrade_data_quality_if_needed(detail: str) -> bool:
+    """If a batch was rejected by the data_quality CHECK, fall back once.
+
+    Returns True when the caller should retry the chunk with the old label.
+    """
+    if _SIM_DQ_STATE['downgraded']:
+        return False
+    d = (detail or '').lower()
+    if '23514' in d or ('data_quality' in d and 'check' in d) or 'violates check constraint' in d:
+        _SIM_DQ_STATE['value'] = SIM_DATA_QUALITY_FALLBACK
+        _SIM_DQ_STATE['downgraded'] = True
+        log.error(
+            '  data_quality=%r rejected by the venue_live_tables CHECK constraint. '
+            'Falling back to %r for this process so cash games stay published. '
+            'RUN migration 20260809_widen_live_tables_data_quality.sql to allow the '
+            'honest label - until then these rows remain mislabelled as verified scrapes.',
+            SIM_DATA_QUALITY_HONEST, SIM_DATA_QUALITY_FALLBACK)
+        return True
+    return False
+
+
 def sb_insert(table: str, data: list, batch_size: int = 200) -> tuple:
     """
     INSERT rows into Supabase (not upsert).
@@ -237,6 +286,14 @@ def sb_insert(table: str, data: list, batch_size: int = 200) -> tuple:
     failed_chunks = 0
     for i in range(0, len(data), batch_size):
         chunk = data[i:i + batch_size]
+        # If an earlier chunk already tripped the CHECK downgrade, relabel this
+        # one BEFORE sending. Without this, every later chunk would still carry
+        # the honest label, be permanently rejected, and the cycle would lose
+        # most of its rows - the exact partial outage this function warns about.
+        if _SIM_DQ_STATE['downgraded']:
+            for _r in chunk:
+                if _r.get('data_quality') == SIM_DATA_QUALITY_HONEST:
+                    _r['data_quality'] = SIM_DATA_QUALITY_FALLBACK
         body = json.dumps(chunk).encode()
         chunk_no = i // batch_size + 1
         saved = False
@@ -256,6 +313,14 @@ def sb_insert(table: str, data: list, batch_size: int = 200) -> tuple:
             except urllib.error.HTTPError as e:
                 detail = _http_error_detail(e)
                 if not _is_retryable_http(e):
+                    # A data_quality CHECK rejection is recoverable: relabel and
+                    # replay this same chunk rather than losing the cycle.
+                    if _downgrade_data_quality_if_needed(detail):
+                        for _r in chunk:
+                            if _r.get('data_quality') == SIM_DATA_QUALITY_HONEST:
+                                _r['data_quality'] = SIM_DATA_QUALITY_FALLBACK
+                        body = json.dumps(chunk).encode()
+                        continue
                     log.error(f'  Batch {chunk_no} PERMANENTLY REJECTED: {detail}')
                     break
                 if attempt < 2:
@@ -989,7 +1054,8 @@ def generate_snapshot(model: PatternModel, now_utc: datetime,
                 # artifact that made a generated row look like a verified fetch.
                 'scrape_html_hash': None,
                 'scrape_batch_id':  batch_id,
-                'data_quality':     'scraped_verified',  # DB CHECK constraint requires this value
+                # Modelled, not observed - see SIM_DATA_QUALITY_HONEST above.
+                'data_quality':     sim_data_quality(),
                 'source':           'bravo',             # API gives Bravo priority over PA catalog
                 'buyin_range':      pat.get('buyin_range') or None,
                 'runs_schedule':    None,
