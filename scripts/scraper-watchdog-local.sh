@@ -114,6 +114,93 @@ job_pid() {
 # only claim a restart when one actually happened.
 # Returns 0 on verified restart, 1 otherwise.
 # ─────────────────────────────────────────────────────────────────────────────
+# ── Persistent failure tracking ──────────────────────────────────────────────
+# Every run was previously independent: a daemon that fails to restart on every
+# cycle produced the same single-line alert forever and nothing ever said "this
+# has been down for days". The PokerAtlas live daemon stopped writing
+# venue_live_history on 2026-08-01 and went unnoticed for 10 days that way,
+# starving the cash-games simulator of fresh training data.
+# We now persist a per-daemon failure streak and escalate on duration.
+WATCHDOG_STATE="$(dirname "$LOG_FILE")/watchdog-state.json"
+ESCALATE_AFTER=3          # consecutive failed recoveries before escalating
+DOWN_JOBS=""
+
+_state_get() {  # $1=job key, $2=field -> value (empty when unknown)
+  python3 -c "
+import json,sys
+try: d=json.load(open('$WATCHDOG_STATE'))
+except Exception: d={}
+print(d.get(sys.argv[1],{}).get(sys.argv[2],'') or '')
+" "$1" "$2" 2>/dev/null || echo ""
+}
+
+_state_fail() {  # $1=job key -> echoes the new streak count
+  python3 -c "
+import json,sys,time,os
+p='$WATCHDOG_STATE'
+try: d=json.load(open(p))
+except Exception: d={}
+k=sys.argv[1]
+e=d.get(k) or {}
+e['streak']=int(e.get('streak',0))+1
+e.setdefault('first_failed_at', int(time.time()))
+e['last_failed_at']=int(time.time())
+d[k]=e
+os.makedirs(os.path.dirname(p), exist_ok=True)
+tmp=p+'.tmp'
+json.dump(d, open(tmp,'w'), indent=2)
+os.replace(tmp,p)
+print(e['streak'])
+" "$1" 2>/dev/null || echo 1
+}
+
+_state_clear() {  # $1=job key -> echoes the streak it cleared (0 when none)
+  python3 -c "
+import json,sys,os
+p='$WATCHDOG_STATE'
+try: d=json.load(open(p))
+except Exception: d={}
+k=sys.argv[1]
+prev=int((d.get(k) or {}).get('streak',0))
+if k in d: del d[k]
+os.makedirs(os.path.dirname(p), exist_ok=True)
+tmp=p+'.tmp'
+json.dump(d, open(tmp,'w'), indent=2)
+os.replace(tmp,p)
+print(prev)
+" "$1" 2>/dev/null || echo 0
+}
+
+_down_duration() {  # $1=job key -> human duration since first failure
+  python3 -c "
+import json,sys,time
+try: d=json.load(open('$WATCHDOG_STATE'))
+except Exception: d={}
+f=(d.get(sys.argv[1]) or {}).get('first_failed_at')
+if not f: print('unknown'); raise SystemExit
+s=int(time.time())-int(f)
+print(f'{s//86400}d {(s%86400)//3600}h' if s>=86400 else f'{s//3600}h {(s%3600)//60}m')
+" "$1" 2>/dev/null || echo "unknown"
+}
+
+record_recovery_failure() {  # $1=name $2=plist $3=reason
+  local streak; streak="$(_state_fail "$2")"
+  local dur;    dur="$(_down_duration "$2")"
+  if [ "${streak:-1}" -ge "$ESCALATE_AFTER" ]; then
+    DOWN_JOBS="${DOWN_JOBS}\n    ${1} (${plist:-$2}): ${streak} consecutive failed recoveries, down ${dur}"
+    log "  ${1}: ESCALATION — ${streak} consecutive failed recoveries, DOWN ${dur} — $3"
+    discord_alert "ESCALATION ${1}: ${streak} consecutive failed recoveries, down ${dur}. Manual intervention needed (${3})."
+  fi
+}
+
+record_recovery_success() {  # $1=name $2=plist
+  local prev; prev="$(_state_clear "$2")"
+  if [ "${prev:-0}" -ge "$ESCALATE_AFTER" ]; then
+    log "  ${1}: RECOVERED after ${prev} consecutive failures"
+    discord_alert "${1}: RECOVERED after ${prev} consecutive failed recoveries"
+  fi
+}
+
 restart_daemon() {
   local name="$1"
   local plist="$2"
@@ -139,6 +226,7 @@ restart_daemon() {
       log "  ${name}: RESTART FAILED — plist file not found at ${plist_path}"
       RECOVERY_FAILURES=$((RECOVERY_FAILURES + 1))
       discord_alert "${name}: RESTART FAILED — plist missing at ${plist_path} (${reason})"
+      record_recovery_failure "$name" "$plist" "plist missing at ${plist_path}"
       return 1
     fi
   fi
@@ -150,6 +238,7 @@ restart_daemon() {
     log "  ${name}: RESTART FAILED — job still not loaded in launchd"
     RECOVERY_FAILURES=$((RECOVERY_FAILURES + 1))
     discord_alert "${name}: RESTART FAILED — job not loaded in launchd (${reason})"
+    record_recovery_failure "$name" "$plist" "job not loaded in launchd"
     return 1
   fi
 
@@ -159,9 +248,11 @@ restart_daemon() {
     log "  ${name}: RESTART FAILED — job loaded but no running PID (crash loop / throttled?)"
     RECOVERY_FAILURES=$((RECOVERY_FAILURES + 1))
     discord_alert "${name}: RESTART FAILED — no running PID after start (${reason})"
+    record_recovery_failure "$name" "$plist" "job loaded but no running PID (crash loop?)"
     return 1
   fi
 
+  record_recovery_success "$name" "$plist"
   log "  ${name}: restart verified — running as PID ${new_pid}"
   notify "${name}: restarted (${reason})"
   discord_alert "${name}: restarted, now PID ${new_pid} (${reason})"
@@ -338,6 +429,11 @@ print(int((datetime.datetime.now(datetime.timezone.utc)-t).total_seconds()))" 2>
   fi
 else
   log "  TourScraper: no heartbeat yet (job not loaded or never fired)"
+fi
+
+if [ -n "$DOWN_JOBS" ]; then
+  log "PERSISTENTLY DOWN (escalated):"
+  printf "%b\n" "$DOWN_JOBS" | while IFS= read -r l; do [ -n "$l" ] && log "$l"; done
 fi
 
 if [ "$RECOVERY_FAILURES" -gt 0 ]; then
