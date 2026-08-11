@@ -45,9 +45,23 @@ const ROUTES = {
 };
 
 export default async function handler(req, res) {
-  const segments = Array.isArray(req.query.path) ? req.query.path : [req.query.path].filter(Boolean);
-  const route = segments[0] || '';
-  const fn = ROUTES[route];
-  if (!fn) return res.status(404).json({ success: false, error: 'Unknown sandbox route' });
-  return fn(req, res);
+  // Every /api/sandbox/* request funnels through here, so this is the last
+  // place an unexpected throw can still become JSON. Without it, anything a
+  // sub-handler throws OUTSIDE its own try/catch — or that this dispatcher
+  // throws itself — reaches the client as Next's HTML 500 page, which every
+  // caller on this surface then fails to parse as JSON ("Unexpected token <").
+  try {
+    const segments = Array.isArray(req.query.path) ? req.query.path : [req.query.path].filter(Boolean);
+    const route = segments[0] || '';
+    const fn = ROUTES[route];
+    if (!fn) return res.status(404).json({ success: false, error: 'Unknown sandbox route' });
+    return await fn(req, res);
+  } catch (err) {
+    console.warn('[sandbox dispatcher] Unhandled error:', err?.message || err);
+    // A sub-handler may already have started the response; never double-send.
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+    return undefined;
+  }
 }

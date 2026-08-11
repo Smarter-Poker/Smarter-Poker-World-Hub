@@ -1070,6 +1070,21 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
+    // Rate limit FIRST — 30/min.
+    //
+    // This used to sit ~40 lines below, after JWT validation and the context
+    // authority check. Both hit the database, so every request in a flood
+    // bought one or two DB round-trips BEFORE the limiter that exists to stop
+    // it — on the single most expensive endpoint of this surface (solver
+    // queries plus a Grok fallback). A limiter has to run before the work it
+    // protects, so it runs here, ahead of everything.
+    const rl = rateLimit(req, LIMITS.write);
+    Object.entries(rl.headers || {}).forEach(([k, v]) => res.setHeader(k, v));
+    if (!rl.ok) {
+      if (rl.retryAfter) res.setHeader('Retry-After', String(rl.retryAfter));
+      return res.status(429).json({ success: false, error: 'Too many requests', retryAfter: rl.retryAfter });
+    }
+
     try {
       // JWT Authentication — optional for guest access
       let userId = null;
@@ -1108,13 +1123,7 @@ export default async function handler(req, res) {
         } catch (accessErr) { console.warn('[App] Handled exception:', accessErr?.message || accessErr); }
       }
 
-      // Rate limit — 30/min
-      const rl = rateLimit(req, LIMITS.write);
-      Object.entries(rl.headers || {}).forEach(([k, v]) => res.setHeader(k, v));
-      if (!rl.ok) {
-        if (rl.retryAfter) res.setHeader('Retry-After', String(rl.retryAfter));
-        return res.status(429).json({ success: false, error: 'Too many requests', retryAfter: rl.retryAfter });
-      }
+      // (Rate limiting happens at the top of the handler, before any DB work.)
 
       // Derived inputs must be computed BEFORE the cache lookup — they are part
       // of the cache identity.

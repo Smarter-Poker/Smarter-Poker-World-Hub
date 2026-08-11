@@ -10,6 +10,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { ARCHETYPE_CONFIG } from '../../../src/lib/sandbox/VillainArchetypeRanges';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -61,6 +62,11 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
+
+    // Rate limit before the DB read. The edge cache below is not a substitute:
+    // a unique query string per request bypasses the CDN and reaches this
+    // handler — and this endpoint needs no auth at all.
+    if (!applyRateLimit(req, res, LIMITS.read || { max: 60, windowMs: 60_000 })) return;
 
     // Villain archetypes are static reference data — safe to cache 1 hour at edge
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');

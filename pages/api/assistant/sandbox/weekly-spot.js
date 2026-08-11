@@ -4,6 +4,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { getTodayCST } from '../../../../src/lib/trivia/getTodayCST';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -71,11 +72,17 @@ const CURATED_SPOTS = [
 
 export default async function handler(req, res) {
   try {
-      const supabase = getSupabase();
-
       if (req.method !== 'GET') {
           return res.status(405).json({ error: 'Method not allowed' });
       }
+
+      // Rate limit before any DB work. The edge cache below only protects the
+      // DB for requests that actually hit the CDN — a unique query string per
+      // request busts it and reaches this handler every time, so the read
+      // bucket is the real floor for an unauthenticated endpoint.
+      if (!applyRateLimit(req, res, LIMITS.read || { max: 60, windowMs: 60_000 })) return;
+
+      const supabase = getSupabase();
 
       // Weekly spot is static, refreshed once/day — cache 1 hour at edge
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
