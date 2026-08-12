@@ -409,17 +409,6 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                         loading={cardIdx < 3 ? 'eager' : 'lazy'}
                                         decoding="async"
                                     />
-                                    <span className="mode-image-card__strip" aria-hidden>
-                                        <span className="mode-image-card__name" style={{ color: mode.color }}>{mode.name}</span>
-                                        <span className="mode-image-card__meta">
-                                            <span className="mode-chip">{costText}</span>
-                                            {rewardText && (
-                                                <span className="mode-chip reward">
-                                                    <Gem size={10} /> {rewardText}
-                                                </span>
-                                            )}
-                                        </span>
-                                    </span>
                                 </button>
                             );
                         }
@@ -720,48 +709,11 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     outline-offset: 3px;
                 }
 
-                /* Text strip: name + real entry cost / reward, so players can
-                   compare modes without memorizing the artwork. */
-                .mode-image-card__strip {
-                    position: absolute;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 4px;
-                    padding: 18px 10px 8px;
-                    background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0.85));
-                    pointer-events: none;
-                }
-                .mode-image-card__name {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 12px;
-                    font-weight: 700;
-                    letter-spacing: 0.03em;
-                    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-                }
-                .mode-image-card__meta {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 4px;
-                }
-                .mode-chip {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 3px;
-                    padding: 2px 7px;
-                    border-radius: 999px;
-                    background: rgba(255, 255, 255, 0.12);
-                    color: rgba(255, 255, 255, 0.85);
-                    font-size: 10px;
-                    font-weight: 600;
-                    white-space: nowrap;
-                }
-                .mode-chip.reward {
-                    background: rgba(35, 116, 225, 0.25);
-                    color: #9ecbff;
-                }
+                /* The mode artwork is self-contained - it carries its own
+                   title, subtitle and START affordance - so the lobby no
+                   longer paints a name/price strip over the bottom of it.
+                   Entry cost is still announced to screen readers via the
+                   card's aria-label, and confirmed in the entry popup. */
                 .mode-image-card:hover {
                     transform: translateY(-4px) scale(1.02);
                     box-shadow: 0 8px 30px rgba(35, 116, 225, 0.2);
