@@ -764,10 +764,6 @@ class PatternModel:
     def get_pattern(self, slug: str, game: str) -> Optional[dict]:
         return self._patterns.get((slug, game))
 
-    # Source prefixes baked into bravo_slug by the ingest side ('pa-' =
-    # PokerAtlas). They are provenance, NOT part of the venue's name.
-    _SLUG_SOURCE_PREFIXES = ('pa-', 'bravo-')
-
     @staticmethod
     def humanize_slug(slug: str) -> str:
         """Turn a bravo_slug into a readable venue name.
