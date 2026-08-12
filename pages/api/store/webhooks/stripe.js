@@ -77,6 +77,46 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: `Webhook Error: ${err.message}` });
       }
 
+      // ═════════════════════════════════════════════════════════════════════
+      // EVENT-LEVEL IDEMPOTENCY. Claim the event id before any handler runs.
+      //
+      // Stripe redelivers events — on 5xx, on timeout, and occasionally
+      // at-least-once with no failure at all — so "handled twice" is normal
+      // traffic rather than an edge case. Replay protection used to be
+      // per-handler compare-and-set only: the diamond credit CASes on
+      // status='pending', the refund on status='completed'. Those two are
+      // genuinely safe, but every FUTURE handler has to remember to invent its
+      // own guard, and one that forgets is a double-credit with nothing
+      // external to catch it.
+      //
+      // INSERT ... ON CONFLICT DO NOTHING returning zero rows means the id was
+      // already claimed. The primary key makes that atomic, so two concurrent
+      // deliveries of the same event cannot both win the claim.
+      //
+      // A claim failure is NOT treated as a replay: if the ledger write itself
+      // errors we fall through and process the event, because dropping a paid
+      // event is far worse than handling one twice through guards that already
+      // exist.
+      // ═════════════════════════════════════════════════════════════════════
+      if (event?.id) {
+          const { data: claimed, error: claimErr } = await getSupabase()
+              .from('stripe_webhook_events')
+              .insert({ event_id: event.id, event_type: event.type })
+              .select('event_id')
+              .maybeSingle();
+
+          if (claimErr && claimErr.code === '23505') {
+              console.info(`[stripe-webhook] duplicate delivery of ${event.id} (${event.type}) — already processed`);
+              return res.status(200).json({ received: true, duplicate: true });
+          }
+          if (claimErr) {
+              console.warn(`[stripe-webhook] could not claim event ${event.id}, processing anyway:`, claimErr.message);
+          } else if (!claimed) {
+              console.info(`[stripe-webhook] duplicate delivery of ${event.id} (${event.type}) — already processed`);
+              return res.status(200).json({ received: true, duplicate: true });
+          }
+      }
+
       // Handle the event
       try {
 
@@ -112,6 +152,17 @@ export default async function handler(req, res) {
           return res.status(200).json({ received: true });
       } catch (error) {
           console.warn('Webhook handler error:', error);
+          // Hand the claim back. This event did NOT complete, and Stripe will
+          // retry it — if the claim stayed, that retry would be dismissed as a
+          // duplicate and the work would never happen. A claim must only
+          // outlive a handler that actually succeeded.
+          if (event?.id) {
+              try {
+                  await getSupabase().from('stripe_webhook_events').delete().eq('event_id', event.id);
+              } catch (releaseErr) {
+                  console.error(`[stripe-webhook] FAILED TO RELEASE claim on ${event.id} — retries will be skipped:`, releaseErr?.message || releaseErr);
+              }
+          }
           return res.status(500).json({ error: 'Webhook handler failed' });
       }
 
