@@ -136,6 +136,29 @@ def log(msg: str):
     except Exception:
         pass
 
+ALERT_TOPIC = os.environ.get("SCRAPER_ALERT_TOPIC", "smarter-poker-scrapers")
+_ALERT_STREAK = 0
+
+def alert_push(msg: str):
+    """Fire-and-forget push alert (same ntfy channel scraper-runner.sh uses).
+
+    In daemon mode the process never exits, so a failing cycle produced no
+    non-zero exit for launchd to notice: the 2026-06/07 outage wrote 0 rows every
+    night for ~8 weeks while looking healthy. Cycle-level failures now page here.
+    Never raises -- alerting must not be able to kill a scrape.
+    """
+    try:
+        req = urllib.request.Request(
+            f"https://ntfy.sh/{ALERT_TOPIC}",
+            data=str(msg).encode()[:1000],
+            headers={"Title": "Smarter.Poker tournament daemon",
+                     "Priority": "high", "Tags": "warning,rotating_light"},
+            method="POST")
+        urllib.request.urlopen(req, timeout=5).read()
+    except Exception:
+        pass
+
+
 def write_heartbeat(cycle: int, venues_done: int, total_rec: int, batch_id: str,
                     status: str = "running", consecutive_failures: int = 0):
     """Heartbeat for scraper-watchdog-local.sh.
@@ -638,6 +661,22 @@ def sb_upsert(table: str, records: list) -> int:
     """
     global WRITE_FAILURES
     if not records: return 0
+    # PostgREST requires EVERY object in a bulk upsert to carry an identical key
+    # set; a heterogeneous batch is rejected whole with
+    #   PGRST102 "All object keys must match".
+    # The record builders emit different keys depending on which source matched
+    # (structured JSON vs heuristic parse vs PDF), so real batches were mixed and
+    # every one failed -- 0/851 rows written on 2026-08-12 even with a healthy
+    # browser session. Normalise to the union of keys, filling gaps with None so
+    # a missing key means NULL rather than dropping the row.
+    try:
+        key_union = set()
+        for r in records:
+            key_union.update(r.keys())
+        if any(len(r) != len(key_union) for r in records):
+            records = [{k: r.get(k) for k in key_union} for r in records]
+    except Exception as _norm_err:
+        log(f"  [UPSERT] key normalisation skipped: {str(_norm_err)[:80]}")
     try:
         url = f"{SUPABASE_URL}/rest/v1/{table}?on_conflict={urllib.parse.quote(ON_CONFLICT)}"
         hdrs = {**SB_HDRS, "Prefer": "resolution=merge-duplicates,return=representation"}
@@ -2231,7 +2270,7 @@ def run_enrichment_pass(dry_run: bool = False):
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():
-    global WRITE_FAILURES
+    global WRITE_FAILURES, _ALERT_STREAK
     p=argparse.ArgumentParser(description="5-Source Tournament Schedule Daemon")
     p.add_argument("--batch", type=int, default=0,
                    help="Run single batch N (25 venues) and exit. 0=daemon mode (all venues, loops).")
@@ -2440,6 +2479,21 @@ def main():
         log(f"CYCLE {cycle} DONE — {cycle_venues} venues processed, "
             f"{cycle_records} records upserted, {WRITE_FAILURES} write failures "
             f"[{cycle_status}]")
+
+        # Escalate: a silent zero-write cycle is exactly how the ~8-week outage
+        # hid. Page on every failed cycle and shout louder as the streak grows.
+        if cycle_failed:
+            _ALERT_STREAK += 1
+            alert_push(
+                f"Tournament daemon cycle {cycle} FAILED ({cycle_status}) — "
+                f"{cycle_venues} venues, {cycle_records} rows upserted, "
+                f"{WRITE_FAILURES} write failures. "
+                f"Consecutive failed cycles: {_ALERT_STREAK}.")
+            log(f"  [ALERT] failed cycle pushed to ntfy/{ALERT_TOPIC} (streak {_ALERT_STREAK})")
+        else:
+            if _ALERT_STREAK:
+                log(f"  [ALERT] recovered after {_ALERT_STREAK} failed cycle(s)")
+            _ALERT_STREAK = 0
 
         if args.batch:
             log("Batch mode — exiting."); sys.exit(1 if cycle_failed else 0)
