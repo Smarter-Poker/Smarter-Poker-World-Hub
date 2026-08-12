@@ -38,6 +38,52 @@ export default async function handler(req, res) {
       res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
       const { action = 'list' } = req.query;
 
+      // ═══ STATUS: relationship between the caller and ONE other user ═══
+      //
+      // Added 2026-08-12 (audit findings F-05 / dead-route sweep). Two
+      // separate surfaces needed "am I friends with this person?" and neither
+      // had an endpoint for it:
+      //   * pages/hub/venues/[id].js called /api/social/friends, which does
+      //     not exist — the friend button on every venue page was dead.
+      //   * pages/hub/home-games/[slug].js polled action=status, which was
+      //     never implemented, so friendState was permanently 'none'.
+      //
+      // Returns one of: 'friends' | 'pending_outgoing' | 'pending_incoming' |
+      // 'none'. Callers that only care about "is there a request in flight"
+      // can treat either pending_* as pending.
+      if (action === 'status') {
+        const targetUserId = (req.query.targetUserId || req.query.friend_id || '').trim();
+        if (!targetUserId) {
+          return res.status(400).json({ success: false, error: 'targetUserId is required' });
+        }
+        if (targetUserId === userId) {
+          return res.status(200).json({ success: true, data: { status: 'self' } });
+        }
+        try {
+          const { data: rows, error } = await getSupabase()
+            .from('friendships')
+            .select('user_id, friend_id, status')
+            .or(
+              `and(user_id.eq.${userId},friend_id.eq.${targetUserId}),` +
+              `and(user_id.eq.${targetUserId},friend_id.eq.${userId})`
+            )
+            .limit(2);
+          if (error) throw error;
+
+          let status = 'none';
+          for (const r of rows || []) {
+            if (r.status === 'accepted') { status = 'friends'; break; }
+            if (r.status === 'pending') {
+              status = r.user_id === userId ? 'pending_outgoing' : 'pending_incoming';
+            }
+          }
+          return res.status(200).json({ success: true, data: { status } });
+        } catch (error) {
+          console.warn('Friend status error:', error);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+        }
+      }
+
       // ═══ SEARCH: Server-side profile search (bypasses RLS) ═══
       if (action === 'search') {
         const q = (req.query.q || '').trim();

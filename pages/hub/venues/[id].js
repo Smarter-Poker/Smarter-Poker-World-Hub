@@ -1375,12 +1375,21 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         const u = getAuthUser();
         const tk = localStorage.getItem('smarter-poker-auth');
         if (!u || !tk) return;
-        const res = await fetch(`/api/social/friends?userId=${u.id}`);
+        // 2026-08-12: this called /api/social/friends, which has never
+        // existed — the friend button on every venue page was permanently
+        // dead (the response was discarded by the !res.ok guard, so it
+        // failed silently). Repointed at the real /api/friends route, which
+        // requires auth and now supports action=status.
+        const auth = JSON.parse(tk);
+        const res = await fetch(
+          `/api/friends?action=status&targetUserId=${encodeURIComponent(venue.owner_id)}`,
+          { headers: { Authorization: `Bearer ${auth.access_token}` } }
+        );
         if (!res.ok) return;
         const data = await res.json();
-        const friends = data.friends || [];
-        const isF = friends.some((f) => f.id === venue.owner_id && f.status === 'friends');
-        const isP = friends.some((f) => f.id === venue.owner_id && f.status === 'pending');
+        const status = data?.data?.status || 'none';
+        const isF = status === 'friends';
+        const isP = status === 'pending_outgoing' || status === 'pending_incoming';
         if (isF) setFriendState('friends');
         else if (isP) setFriendState('pending');
         else setFriendState('none');
@@ -1397,13 +1406,17 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       if (!u || !authRaw) { alert('You must be logged in to add friends.'); return; }
       setFriendBusy(true);
       const auth = JSON.parse(authRaw);
-      const res = await fetch('/api/social/friends', {
+      // 2026-08-12: was POSTing to the non-existent /api/social/friends with
+      // {action, targetUserId}. The real route is /api/friends and its
+      // contract is {friend_id} — sending the old body shape would have
+      // 400'd even once the URL was corrected.
+      const res = await fetch('/api/friends', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${auth.access_token}`
         },
-        body: JSON.stringify({ action: 'add', targetUserId: venue.owner_id })
+        body: JSON.stringify({ friend_id: venue.owner_id })
       });
       if (res.ok) setFriendState('pending');
       else alert('Failed to send friend request. You may already be friends.');

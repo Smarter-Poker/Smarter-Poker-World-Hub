@@ -65,7 +65,6 @@ const EXTS = ['.js', '.jsx', '.ts', '.tsx'];
 //
 // Do NOT add a route here to make the build green. A dead endpoint is the bug
 // this file exists to catch.
-//
 // Currently empty: the resolver already handles catch-all handlers (e.g.
 // /api/venues/record-geofence is served by pages/api/venues/[...slug].js), so
 // no route has needed a manual exemption yet. Keep it that way if you can.
@@ -103,9 +102,20 @@ const BASELINE_DEAD = {
   '/api/cron/horses-stories': 'horses/trigger-pipeline.js calls a handler that does not exist',
 
   // Genuine user-facing breakage.
-  '/api/user/profile': 'useSWR in pages/hub/commander/player-card.js — player card never loads data',
-  '/api/social/friends': 'GET+POST from pages/hub/venues/[id].js — friends list/add on venue pages is dead',
-  '/api/translate': 'fetched by src/hooks/useMessengerService.js — message translation is dead',
+  //
+  // FIXED 2026-08-12, removed from this list (kept here as a record of what
+  // the guard caught on its first run):
+  //   /api/user/profile   — handler created at pages/api/user/profile.js
+  //   /api/social/friends — never existed; both call sites in
+  //                         pages/hub/venues/[id].js repointed at the real
+  //                         /api/friends route, and the missing
+  //                         action=status was added to it.
+  //
+  // Still dead: an acknowledged placeholder. src/hooks/useMessengerService.js
+  // says "In production, this would call /api/translate" and the call is
+  // fully guarded — it try/catches and falls back to "[LANG] original text",
+  // so it degrades cleanly rather than breaking the messenger.
+  '/api/translate': 'acknowledged placeholder in useMessengerService.js; guarded with a graceful fallback',
 };
 
 const SENTINEL_ROUTES = ['/api/friends', '/api/check-access'];
