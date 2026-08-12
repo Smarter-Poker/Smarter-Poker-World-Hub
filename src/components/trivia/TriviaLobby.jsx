@@ -404,8 +404,8 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                         alt=""
                                         aria-hidden
                                         className="mode-image-card__img"
-                                        width={1024}
-                                        height={1024}
+                                        width={896}
+                                        height={1200}
                                         loading={cardIdx < 3 ? 'eager' : 'lazy'}
                                         decoding="async"
                                     />
