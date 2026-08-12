@@ -106,8 +106,16 @@ export async function getServerSideProps({ params, res, req }) {
       return { notFound: true };
     }
 
-    // Cache at the edge for 30s fresh / 180s stale-while-revalidate.
-    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=180');
+    // Cache at the edge for 30s fresh / 180s stale-while-revalidate — but ONLY
+    // for public groups. This header was previously set unconditionally, so a
+    // PRIVATE group's HTML was stored in a shared CDN cache (audit C-3b).
+    // Today's payload for a private group is reduced, but a public edge cache
+    // is one careless field addition away from broadcasting invite_code.
+    if (json.data?.group?.is_private) {
+      res.setHeader('Cache-Control', 'private, no-store');
+    } else {
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=180');
+    }
 
     return { props: { data: json.data, serverError: false } };
   } catch (err) {
@@ -953,14 +961,25 @@ export default function PublicHomeGamePage({ data, serverError }) {
 
   return (
     <>
+      {/*
+        INDEXING (audit 2026-08-12, finding C-3): `noindex` MUST be passed as a
+        prop here, never emitted as a sibling <meta name="robots"> below.
+
+        next/head de-duplicates <meta> by `name` and keeps the FIRST
+        occurrence. SEOHead renders before this page's own <Head>, and when
+        its `noindex` prop is falsy it unconditionally emits
+        "index, follow, max-image-preview:large, ...". So the child
+        "noindex, nofollow" tag was always discarded, and every PRIVATE home
+        group's page was served to Google with index,follow.
+      */}
       <SEOHead
         title={metaTitle}
         description={metaDesc}
         canonical={canonical}
         ogImage={page.cover_url || page.avatar_url || undefined}
+        noindex={!!group.is_private}
       />
       <Head>
-        {group.is_private && <meta name="robots" content="noindex, nofollow" />}
         {jsonLd.map((entry, i) => (
           <script
             key={i}
