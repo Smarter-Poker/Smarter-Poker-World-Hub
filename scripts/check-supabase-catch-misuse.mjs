@@ -41,10 +41,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * Known count at the time this check was introduced (2026-08-12), measured by
+ * Known count after the four cron probes were fixed (2026-08-12), measured by
  * this exact script. Ratchet DOWN as sites are fixed; never up.
  */
-const BASELINE = 51;
+const BASELINE = 49;
 
 const ROOTS = ['pages', 'src'];
 const SKIP_DIR = /node_modules|\.next|\.git/;
