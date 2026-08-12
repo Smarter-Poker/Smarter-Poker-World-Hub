@@ -530,6 +530,65 @@ export default async function handler(req, res) {
                   });
               }
 
+              // ═══════════════════════════════════════════════════════════════
+              // STOCK VALIDATION — dry run, no reservation.
+              //
+              // A Stripe session is not synchronous: minutes can pass before
+              // the customer pays, and most sessions are abandoned. Reserving
+              // here would let every abandoned cart hold inventory hostage, and
+              // nothing in this codebase expires sessions. So the card path
+              // VALIDATES now — fail fast rather than showing a payment page
+              // for something already sold out — and the webhook TAKES the
+              // stock when payment is confirmed.
+              //
+              // The residual race is deliberate: stock can sell out between
+              // here and payment. The webhook flags that order for review
+              // rather than silently shipping something that does not exist —
+              // rare, visible and correctable, which beats both an
+              // unfulfillable order and a permanent stock leak.
+              //
+              // This also enforces variant selection: an item with variants is
+              // refused without a variant_id, because guessing either
+              // mischarges the customer or ships the wrong size.
+              // ═══════════════════════════════════════════════════════════════
+              const stockCheckLines = items.map((item) => ({
+                  id: item.id,
+                  variant_id: item.variantId || item.variant_id || null,
+                  qty: Math.min(Math.max(parseInt(item.quantity) || 1, 1), 10),
+              }));
+
+              const { data: stockRaw, error: stockErr } = await getSupabase()
+                  .rpc('reserve_merch_order', { p_items: stockCheckLines, p_dry_run: true });
+
+              if (stockErr) {
+                  console.error('[Checkout] stock validation failed:', stockErr.message);
+                  return res.status(500).json({
+                      success: false,
+                      error: { code: 'STOCK_CHECK_FAILED', message: 'Could not verify availability' },
+                  });
+              }
+
+              const stockCheck = typeof stockRaw === 'string' ? JSON.parse(stockRaw) : stockRaw || {};
+              if (!stockCheck.success) {
+                  const reasons = {
+                      insufficient_stock: stockCheck.available > 0
+                          ? `Only ${stockCheck.available} left of that item`
+                          : 'That item just sold out',
+                      variant_required: 'Please choose a size or colour',
+                      variant_unavailable: 'That option is no longer available',
+                      variant_not_applicable: 'That item has no size or colour options',
+                      item_unavailable: 'That item is no longer available',
+                      unpriced_item: 'That item is not currently purchasable',
+                  };
+                  return res.status(400).json({
+                      success: false,
+                      error: {
+                          code: stockCheck.error === 'insufficient_stock' ? 'OUT_OF_STOCK' : 'ITEM_NOT_FOUND',
+                          message: reasons[stockCheck.error] || 'That item is no longer available',
+                      },
+                  });
+              }
+
               // Build line items from the SERVER price, always.
               const resolvedItems = items.map(item => {
                   const catalog = catalogPrices[item.id];

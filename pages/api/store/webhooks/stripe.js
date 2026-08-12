@@ -181,14 +181,80 @@ async function handleCheckoutCompleted(session) {
                 }
             }
         } else if (metadata?.type === 'merchandise' && metadata.order_id) {
-            // Update merchandise order
+            // ═══════════════════════════════════════════════════════════════
+            // TAKE THE STOCK. Payment is confirmed, so this is the moment the
+            // inventory actually leaves the shelf.
+            //
+            // create-checkout-session only VALIDATES availability (dry run):
+            // reserving there would let abandoned sessions hold stock forever
+            // and nothing expires them. Until 2026-08-08 neither end did
+            // anything at all, so card orders never decremented stock and
+            // physical goods could be oversold without limit.
+            // ═══════════════════════════════════════════════════════════════
+            let stockTaken = true;
+            try {
+                const { data: orderRow } = await getSupabase()
+                    .from('merchandise_orders')
+                    .select('items')
+                    .eq('id', metadata.order_id)
+                    .maybeSingle();
+
+                const lines = Array.isArray(orderRow?.items)
+                    ? orderRow.items
+                        .filter((l) => l && (l.id || l.catalogId))
+                        .map((l) => ({
+                            id: l.id || l.catalogId,
+                            variant_id: l.variantId || l.variant_id || null,
+                            qty: Math.min(Math.max(parseInt(l.quantity ?? l.qty) || 1, 1), 10),
+                        }))
+                    : [];
+
+                if (lines.length > 0) {
+                    const { data: resRaw, error: resErr } = await getSupabase()
+                        .rpc('reserve_merch_order', { p_items: lines });
+                    const reserved = typeof resRaw === 'string' ? JSON.parse(resRaw) : resRaw || {};
+                    if (resErr || !reserved.success) {
+                        stockTaken = false;
+                        console.error(
+                            `[stripe-webhook] STOCK NOT TAKEN for paid order ${metadata.order_id}:`,
+                            resErr?.message || reserved.error,
+                        );
+                    }
+                }
+            } catch (stockErr) {
+                stockTaken = false;
+                console.error(`[stripe-webhook] stock reservation threw for order ${metadata.order_id}:`, stockErr?.message || stockErr);
+            }
+
+            // A paid order whose stock could not be taken must NOT flow into
+            // normal fulfilment unreviewed. It is held at 'paid' — money
+            // received, not yet being fulfilled — instead of advancing to
+            // 'processing', with the reason recorded in metadata so it is
+            // queryable rather than living only in a log line.
+            //
+            // 'paid' is used deliberately rather than inventing a status:
+            // merchandise_orders_status_check permits only pending/processing/
+            // paid/completed/shipped/delivered/canceled/cancelled/failed/
+            // refunded. It is marked NOT VALID, which exempts pre-existing rows
+            // but STILL enforces new writes — so an invented value would throw
+            // here, and because this handler rethrows, Stripe would retry
+            // forever on an order the customer has already paid for.
+            const orderUpdate = {
+                status: stockTaken ? 'processing' : 'paid',
+                stripe_checkout_session_id: id,
+                updated_at: new Date().toISOString()
+            };
+            if (!stockTaken) {
+                orderUpdate.metadata = {
+                    needs_review: true,
+                    reason: 'stock_unavailable_at_payment',
+                    flagged_at: new Date().toISOString()
+                };
+            }
+
             const { error: err_merchandise_orders_16ujp } = await getSupabase()
               .from('merchandise_orders')
-              .update({
-                    status: 'processing',
-                    stripe_checkout_session_id: id,
-                    updated_at: new Date().toISOString()
-                })
+              .update(orderUpdate)
                 .eq('id', metadata.order_id);
             if (err_merchandise_orders_16ujp) {
                 // Paid order must not be silently lost — throw so the webhook
