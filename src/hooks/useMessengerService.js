@@ -1764,15 +1764,35 @@ ${messages.map(m =>
     const translateMessage = useCallback(async (messageId, targetLang = 'en') => {
         const msg = messages.find(m => m.id === messageId);
         if (!msg?.text) return null;
-        // Use browser-side translation API placeholder
-        // In production, this would call /api/translate
+        // 2026-08-12: /api/translate did not exist until now, so this always
+        // fell through to the `[ES] original text` fallback below — the
+        // language menu looked functional and never translated anything.
+        //
+        // Also switched GET -> POST. The old call put the body of a PRIVATE
+        // message into a query string, where it is recorded in CDN access
+        // logs, proxy logs and browser history. Message text goes in the
+        // request body; the endpoint deliberately rejects GET.
         try {
-            const resp = await fetch(`/api/translate?text=${encodeURIComponent(msg.text)}&target=${targetLang}`);
+            let token = null;
+            try {
+                const raw = localStorage.getItem('smarter-poker-auth');
+                token = raw ? JSON.parse(raw)?.access_token : null;
+            } catch (_e) { /* unauthenticated — endpoint will 401 */ }
+
+            const resp = await fetch('/api/translate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ text: msg.text, target: targetLang }),
+            });
             if (resp.ok) {
                 const { translated } = await resp.json();
-                return translated;
+                if (translated) return translated;
             }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+        // Fallback keeps the message readable if translation is unavailable.
         return `[${targetLang.toUpperCase()}] ${msg.text}`;
     }, [messages]);
 

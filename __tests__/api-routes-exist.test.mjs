@@ -104,21 +104,20 @@ const BASELINE_DEAD = {
 
   '/api/cron/horses-stories': 'horses/trigger-pipeline.js calls a handler that does not exist',
 
-  // Genuine user-facing breakage.
-  //
-  // FIXED 2026-08-12, removed from this list (kept here as a record of what
-  // the guard caught on its first run):
+  // Genuine user-facing breakage — ALL FIXED 2026-08-12. Kept as a record of
+  // what this guard caught on its first run:
   //   /api/user/profile   — handler created at pages/api/user/profile.js
   //   /api/social/friends — never existed; both call sites in
   //                         pages/hub/venues/[id].js repointed at the real
   //                         /api/friends route, and the missing
   //                         action=status was added to it.
+  //   /api/translate      — handler created at pages/api/translate.js; the
+  //                         messenger's 10-language menu had never
+  //                         translated anything, silently returning the
+  //                         user's own text with a "[ES] " prefix.
   //
-  // Still dead: an acknowledged placeholder. src/hooks/useMessengerService.js
-  // says "In production, this would call /api/translate" and the call is
-  // fully guarded — it try/catches and falls back to "[LANG] original text",
-  // so it degrades cleanly rather than breaking the messenger.
-  '/api/translate': 'acknowledged placeholder in useMessengerService.js; guarded with a graceful fallback',
+  // This test is what forced each removal: an entry that starts resolving
+  // fails the build until it is deleted, so the list cannot rot.
 };
 
 const SENTINEL_ROUTES = ['/api/friends', '/api/check-access'];
