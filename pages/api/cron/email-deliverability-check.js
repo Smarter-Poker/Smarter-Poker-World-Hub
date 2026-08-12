@@ -164,12 +164,26 @@ export default async function handler(req, res) {
     // Heartbeat
     const admin = getAdmin();
     if (admin) {
-        await admin.from('probe_heartbeats').insert({
+        // The heartbeat must never take the probe down with it.
+        //
+        // This was `.insert({...}).catch(() => null)`. Supabase's PostgREST
+        // builder is a THENABLE, not a Promise: it implements .then() but has
+        // no .catch(), so the call threw TypeError before the await ever ran —
+        // every day since 2026-06-17, per Vercel's runtime errors. The probe
+        // that exists to tell us when email delivery breaks was itself broken,
+        // silently, for two months.
+        //
+        // The builder returns { error } rather than rejecting, so the failure
+        // is read from the result instead of caught.
+        const { error: heartbeatErr } = await admin.from('probe_heartbeats').insert({
             probe_name: 'email-deliverability',
             status: failures.length > 0 ? 'failed' : 'ok',
             duration_ms: Date.now() - started,
             details: { results, failure_count: failures.length },
-        }).catch(() => null);
+        });
+        if (heartbeatErr) {
+            console.warn('[email-deliverability] heartbeat write failed:', heartbeatErr.message);
+        }
     }
 
     if (failures.length > 0) {
