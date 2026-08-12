@@ -74,7 +74,41 @@ for env_file in _env_priority:
 # CONFIG
 # ============================================================
 BASE_DIR = Path(__file__).resolve().parent.parent
-SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', 'https://kuklfnapbkmacvwxktbh.supabase.co')
+def _resolve_supabase_url(default_url):
+    """Return a TRUSTWORTHY Supabase URL.
+
+    NEXT_PUBLIC_SUPABASE_URL is read from .env.local, and that file is edited by
+    many hands. On 2026-08-01 a second definition -- NEXT_PUBLIC_SUPABASE_URL=
+    https://dummy.supabase.co -- was appended below the real one. Dotenv keeps
+    the LAST value, so every launchd daemon that read the variable started
+    resolving dummy.supabase.co, which does not exist: urllib raised
+    "[Errno 8] nodename nor servname provided, or not known", the dedup-index
+    load failed, and the daemon's own safety guard then skipped the write
+    entirely. venue_live_history and game_live_history took ZERO rows for 11
+    days while the scrape itself reported 11/11 regions and 147 venues -- a
+    silent outage that starved the cash-games simulator of training data.
+
+    A hostname is not a secret and there is exactly one correct value here, so
+    an obviously-wrong override is rejected rather than obeyed.
+    """
+    raw = (os.environ.get('NEXT_PUBLIC_SUPABASE_URL') or '').strip().strip('"').strip("'")
+    if not raw:
+        return default_url
+    host = raw.split('//')[-1].split('/')[0].lower()
+    if (not host.endswith('.supabase.co')) or host.startswith('dummy') or 'example' in host:
+        try:
+            log.error(
+                'ERROR_SUPABASE: refusing NEXT_PUBLIC_SUPABASE_URL=%r (host %r looks like a '
+                'placeholder) - falling back to %s. Fix the duplicate/dummy entry in .env.local.',
+                raw, host, default_url)
+        except Exception:
+            print('FATAL-ish: refusing placeholder NEXT_PUBLIC_SUPABASE_URL=%r; using %s'
+                  % (raw, default_url), flush=True)
+        return default_url
+    return raw
+
+
+SUPABASE_URL = _resolve_supabase_url('https://kuklfnapbkmacvwxktbh.supabase.co')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY') or os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 
 # ── STARTUP CREDENTIAL VALIDATION ──
