@@ -47,6 +47,14 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
+      // Hoisted so the catch below can hand reserved stock back. Declared at
+      // this scope on purpose: a `const` inside the try is invisible to the
+      // catch, so an exception thrown after the reservation — anywhere between
+      // the stock decrement and the response — would silently consume
+      // inventory that was never sold. diamond-transfer.js carries the same
+      // hoist for its compensating refund, for exactly this reason.
+      let releaseReservedStock = null;
+
       try {
           // Authenticate
           const authHeader = req.headers.authorization;
@@ -83,61 +91,87 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Items array required' });
           }
 
-          // SECURITY: Look up server-side prices from merchandise_items catalog.
-          // Items with an 'id' field are priced from the database.
-          // Items without an ID fall back to client price (sanity-checked).
-          const itemIds = items.map(i => i.id).filter(Boolean);
-          let catalogPrices = {};
-          if (itemIds.length > 0) {
-              const { data: catalogItems } = await getSupabase()
-                  .from('merchandise_items')
-                  .select('id, name, price_diamonds, price_usd, is_active')
-                  .in('id', itemIds)
-                  .eq('is_active', true);
-              if (catalogItems) {
-                  catalogItems.forEach(ci => { catalogPrices[ci.id] = ci; });
-              }
-              for (const item of items) {
-                  if (item.id && !catalogPrices[item.id]) {
-                      return res.status(400).json({ success: false, error: `Item "${item.name}" is no longer available` });
-                  }
-              }
+          // ═══════════════════════════════════════════════════════════════════
+          // PRICE AND STOCK ARE RESOLVED TOGETHER, SERVER-SIDE, ATOMICALLY.
+          //
+          // reserve_merch_order() validates every line against the catalog,
+          // resolves the authoritative price (variant price when the item has
+          // variants, item price otherwise), checks stock and decrements it —
+          // all under FOR UPDATE, in one call.
+          //
+          // It replaces a lookup that read merchandise_items only. Three
+          // defects closed at once:
+          //   * STOCK was never checked or decremented anywhere, so physical
+          //     goods (a 25-unit run of chip sets) could be oversold without
+          //     limit.
+          //   * VARIANT price and stock were never consulted — the variants
+          //     table was referenced by the catalog endpoint alone — so an XXL
+          //     was charged the base price and its stock never moved.
+          //   * The two compound: the apparel items carry item-level
+          //     stock = NULL because their real stock lives per variant, so an
+          //     item-only check reads exactly those as unlimited.
+          //
+          // Returning the priced lines from the same call that reserved them
+          // means the amount charged and the stock taken cannot disagree.
+          // ═══════════════════════════════════════════════════════════════════
+          const reserveLines = items.map((item) => ({
+              id: item.id,
+              variant_id: item.variantId || item.variant_id || null,
+              qty: Math.min(Math.max(parseInt(item.quantity) || 1, 1), 10),
+          }));
+
+          const { data: reserveRaw, error: reserveErr } = await getSupabase()
+              .rpc('reserve_merch_order', { p_items: reserveLines });
+
+          if (reserveErr) {
+              console.error('[DiamondPurchase] reserve_merch_order failed:', reserveErr.message);
+              return res.status(500).json({ success: false, error: 'Could not verify availability' });
           }
 
-          // ═══════════════════════════════════════════════════════════════════
-          // Every line MUST resolve to a catalog row — no client-priced path.
-          //
-          // SECURITY (2026-08-06): items without an `id` were priced from the
-          // request body. MerchStore.jsx required a UUID before it would treat
-          // a value as a catalog id, but merchandise_items.id is TEXT holding
-          // slugs ('hoodie-neural'), so it sent no id for any real product and
-          // every diamond merch purchase was priced by the browser — 19,999 ◆
-          // of goods for 50 ◆. Unrecognised items are now refused, not trusted.
-          // ═══════════════════════════════════════════════════════════════════
-          const unpriceable = items.find((item) => !item.id || !catalogPrices[item.id]);
-          if (unpriceable) {
-              console.warn(`[DiamondPurchase] Rejected unpriceable item "${unpriceable.name}" from ${user.id}`);
+          const reserve = typeof reserveRaw === 'string' ? JSON.parse(reserveRaw) : reserveRaw || {};
+          if (!reserve.success) {
+              // Map the reservation's reasons to something a shopper can act on.
+              const reasons = {
+                  insufficient_stock: reserve.available > 0
+                      ? `Only ${reserve.available} left of that item`
+                      : 'That item just sold out',
+                  variant_required: 'Please choose a size or colour',
+                  variant_unavailable: 'That option is no longer available',
+                  variant_not_applicable: 'That item has no size or colour options',
+                  item_unavailable: 'That item is no longer available',
+                  unpriced_item: 'That item is not currently purchasable',
+              };
               return res.status(400).json({
                   success: false,
-                  error: `Item "${String(unpriceable.name || 'unknown').slice(0, 80)}" is no longer available`,
+                  error: reasons[reserve.error] || 'That item is no longer available',
+                  code: reserve.error,
               });
           }
 
-          const resolvedItems = items.map(item => {
-              const catalog = catalogPrices[item.id];
-              return {
-                  id: item.id,
-                  name: catalog.name,
-                  priceUsd: parseFloat(catalog.price_usd),
-                  // `?? null` on purpose: a catalog row may legitimately price in
-                  // USD only, in which case the diamond cost is converted below.
-                  // 0 is NOT treated as a price — see the guard after this map.
-                  diamondPrice: Number(catalog.price_diamonds) > 0 ? Number(catalog.price_diamonds) : null,
-                  quantity: Math.min(Math.max(parseInt(item.quantity) || 1, 1), 10),
-              };
-          });
+          // Everything below prices from the RESERVED lines, never from the body.
+          const reservedLines = reserve.lines || [];
+          const resolvedItems = reservedLines.map((l) => ({
+              id: l.id,
+              variantId: l.variant_id || null,
+              name: l.name,
+              priceUsd: Number(l.price_usd),
+              diamondPrice: Number(l.price_diamonds) > 0 ? Number(l.price_diamonds) : null,
+              quantity: Number(l.qty),
+          }));
+
+          // From here on, any failure must hand the stock back.
+          const releaseStock = async (why) => {
+              const { error: relErr } = await getSupabase()
+                  .rpc('release_merch_order', { p_lines: reservedLines });
+              if (relErr) {
+                  // Loud: stock is now understated until someone reconciles it.
+                  console.error(`[DiamondPurchase] STOCK LEAK — release failed after ${why}:`, relErr.message);
+              }
+          };
+          releaseReservedStock = releaseStock;
 
           if (resolvedItems.some(i => !i.name || !Number.isFinite(i.priceUsd) || i.priceUsd <= 0)) {
+              await releaseStock('invalid resolved line');
               return res.status(400).json({ success: false, error: 'Invalid item data — all items must have a name and positive price' });
           }
 
@@ -148,6 +182,7 @@ export default async function handler(req, res) {
           for (const item of resolvedItems) {
               if (item.priceUsd < MIN_ITEM_PRICE_USD || item.priceUsd > MAX_SINGLE_ITEM_USD) {
                   console.error(`[DiamondPurchase] Catalog row "${item.id}" priced outside the sane band: $${item.priceUsd}`);
+                  await releaseStock('price outside sane band');
                   return res.status(400).json({
                       success: false,
                       error: `Item "${item.name}" is not currently purchasable`,
@@ -157,9 +192,11 @@ export default async function handler(req, res) {
 
           const totalUsd = resolvedItems.reduce((sum, item) => sum + (item.priceUsd * item.quantity), 0);
           if (totalUsd > MAX_ORDER_TOTAL_USD) {
+              await releaseStock('order over the total cap');
               return res.status(400).json({ success: false, error: `Maximum order total is $${MAX_ORDER_TOTAL_USD}` });
           }
-          // Diamond cost: use catalog diamond price if available, else convert from USD
+          // Diamond cost comes from the reserved lines. The USD conversion is
+          // only a fallback for a catalog row that prices in dollars alone.
           const diamondCost = resolvedItems.reduce((sum, item) => {
               const perUnit = item.diamondPrice !== null ? item.diamondPrice : Math.ceil(item.priceUsd * DIAMONDS_PER_DOLLAR);
               return sum + (perUnit * item.quantity);
@@ -173,12 +210,14 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (profileError || !profile) {
+              await releaseStock('profile read failed');
               return res.status(500).json({ success: false, error: 'Failed to fetch profile' });
           }
 
           const currentBalance = profile.diamonds ?? 0;
 
           if (currentBalance < diamondCost) {
+              await releaseStock('insufficient balance');
               return res.status(400).json({
                   success: false,
                   error: 'Insufficient diamonds',
@@ -226,11 +265,13 @@ export default async function handler(req, res) {
           });
 
           if (deductError) {
+              await releaseStock('diamond deduction errored');
               return res.status(500).json({ success: false, error: 'Failed to deduct diamonds' });
           }
           // The RPC reports business failures (e.g. insufficient balance under
           // concurrency) via its data payload — the pre-read check above is stale.
           if (deductResult && deductResult.success === false) {
+              await releaseStock('diamond deduction refused');
               return res.status(400).json({
                   success: false,
                   error: deductResult.error || 'Insufficient diamonds',
@@ -256,6 +297,10 @@ export default async function handler(req, res) {
           });
           if (orderErr) {
               console.warn('[DiamondPurchase] Failed to record merchandise order:', orderErr.message);
+              // Give the stock back as well as the diamonds — otherwise a
+              // failed order write quietly removes inventory that was never
+              // sold, and the shelf count drifts down with every failure.
+              await releaseStock('order insert failed');
               // Compensate: the user was charged but no order exists for fulfillment —
               // refund the diamonds instead of silently swallowing the purchase.
               const { error: refundErr } = await getSupabase().rpc('add_diamonds_to_balance', {
@@ -277,6 +322,10 @@ export default async function handler(req, res) {
           }
 
 
+          // Sale is complete and the order is recorded. Disarm the rollback so
+          // a later throw cannot hand back stock the customer has bought.
+          releaseReservedStock = null;
+
           return res.status(200).json({
               success: true,
               data: {
@@ -289,6 +338,11 @@ export default async function handler(req, res) {
 
       } catch (err) {
           console.warn('[DiamondPurchase] Error:', err);
+          // Anything thrown after the reservation would otherwise consume
+          // inventory for a sale that never completed.
+          if (releaseReservedStock) {
+              try { await releaseReservedStock('unhandled error'); } catch (_) { /* already logged */ }
+          }
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
