@@ -1687,48 +1687,52 @@ class DaemonSessionManager:
         self._session_dead = False
         self.consecutive_fetch_failures = 0
         self.last_connect_time = None
-        
+        self._loop = None
+        self._loop_thread = None
+
+    # ── Private asyncio loop, its own thread ──
+    # AsyncStealthySession uses async Playwright. Driving it from a dedicated loop
+    # thread means the daemon's main (sync) thread never has a running loop, so the
+    # old "Playwright Sync API inside the asyncio loop" failure cannot recur. This
+    # replaces the per-cycle loop-nulling guard, which failed whenever a loop was
+    # left running and left the daemon heartbeating with records_total=0.
+    def _ensure_loop(self):
+        import asyncio
+        if self._loop is not None and self._loop.is_running():
+            return
+        self._loop = asyncio.new_event_loop()
+        def _run_loop():
+            asyncio.set_event_loop(self._loop)
+            self._loop.run_forever()
+        self._loop_thread = threading.Thread(target=_run_loop, daemon=True)
+        self._loop_thread.start()
+
+    def _await(self, coro, timeout=120):
+        import asyncio
+        self._ensure_loop()
+        fut = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        return fut.result(timeout=timeout)
+
     def connect(self):
         # Self-heal a missing Playwright browser before launching a session.
         # Cheap when present (a path probe); downloads only when genuinely absent.
         if _browser_heal is not None:
             _browser_heal.ensure_browser(log=log)
 
-        from scrapling.fetchers import StealthySession
+        from scrapling.fetchers import AsyncStealthySession
         self.disconnect()
         _kill_zombie_browsers()
         if not _network_available():
             log("  [SESSION] connect() aborted — no network")
             return False
-        # CRITICAL: clear any dangling asyncio event loop before starting Playwright.
-        # Scrapling's StealthySession.start() calls sync_playwright().start(), which
-        # raises "Playwright Sync API inside the asyncio loop" if a loop is set on
-        # this thread. threading.Timer callbacks and prior cycles leave such a loop
-        # behind, after which EVERY connect() fails and the daemon scrapes nothing
-        # while still heartbeating (records_total=0). Same guard as
-        # poker_series_scraper.create_session() and pokeratlas-live-daemon.connect().
-        try:
-            import asyncio
-            try:
-                asyncio.get_running_loop()
-                # Inside a running loop we must not close it; just reset the policy.
-            except RuntimeError:
-                try:
-                    _loop = asyncio.get_event_loop()
-                    if not _loop.is_closed():
-                        _loop.close()
-                except RuntimeError:
-                    pass  # no loop at all, which is what we want
-            asyncio.set_event_loop(None)
-            asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
-        except Exception as _loop_err:
-            log(f"  [SESSION] event loop cleanup skipped: {_loop_err}")
-
-        wd = threading.Timer(60, _hard_kill_on_hang, args=('connect() hung',))
+        wd = threading.Timer(90, _hard_kill_on_hang, args=('connect() hung',))
         wd.daemon = True; wd.start()
         try:
-            self.session = StealthySession(headless=True, solve_cloudflare=True)
-            self.session.start()
+            async def _start():
+                s = AsyncStealthySession(headless=True, solve_cloudflare=True)
+                await s.start()
+                return s
+            self.session = self._await(_start(), timeout=90)
             self.last_connect_time = datetime.now(timezone.utc)
             self._session_dead = False
             self.consecutive_fetch_failures = 0
@@ -1736,7 +1740,7 @@ class DaemonSessionManager:
             return True
         except Exception as e:
             wd.cancel()
-            log(f"  [SESSION] StealthySession start failed: {str(e)[:120]}")
+            log(f"  [SESSION] AsyncStealthySession start failed: {str(e)[:120]}")
             self.disconnect()
             return False
 
@@ -1749,7 +1753,7 @@ class DaemonSessionManager:
 
     def disconnect(self):
         try:
-            if self.session: self.session.close()
+            if self.session: self._await(self.session.close(), timeout=30)
         except: pass
         finally:
             self.session = None; self._session_dead = False
@@ -1763,13 +1767,13 @@ class DaemonSessionManager:
             log(f"      [FETCH] No live browser session for {url[:60]}")
             return '' if html_only else None
         try:
-            resp = self.session.fetch(url, **kwargs)
+            resp = self._await(self.session.fetch(url, **kwargs), timeout=120)
             if getattr(resp, 'status', 0) != 200:
                 html = resp.html_content or (resp.body.decode('utf-8','ignore') if getattr(resp,'body',None) else '')
                 if 'Just a moment' in str(html) or 'security verification' in str(html):
                     kwargs['google_search'] = True
                     if self.connect():
-                        resp = self.session.fetch(url, **kwargs)
+                        resp = self._await(self.session.fetch(url, **kwargs), timeout=120)
                         if getattr(resp, 'status', 0) != 200: return ''
                     else: return ''
                 else: return ''
