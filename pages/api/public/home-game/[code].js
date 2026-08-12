@@ -115,8 +115,19 @@ export default async function handler(req, res) {
       // Dan-fix/tournament-buildout: include format + description so the
       // client can render tournaments separately.
       // Limit raised from 5 → 20 to surface a host's full upcoming schedule.
-      // NOTE: commander_home_games has no starting_stack/structure column —
-      // selecting them 42703's the query and silently empties this list.
+      // CORRECTED 2026-08-12: the note here previously claimed
+      // "commander_home_games has no starting_stack/structure column".
+      // That is FALSE — both columns exist in production (verified against
+      // information_schema on 2026-08-12). The stale note caused this route
+      // to omit them while its sibling
+      // pages/api/public/home-games/[slug].js selected them, so the two
+      // public endpoints returned different shapes for the same game and
+      // tournament cards served from THIS route labelled every event
+      // "Standard".
+      //
+      // The underlying warning is still worth heeding, just not here:
+      // selecting a column that does not exist 42703s the WHOLE query and
+      // silently empties the list. Confirm a column exists before adding it.
       //
       // Timezone safety: toISOString() is UTC, so from ~5pm local onward in
       // US timezones the UTC date is already tomorrow and tonight's game
@@ -132,6 +143,8 @@ export default async function handler(req, res) {
           game_type,
           stakes,
           format,
+          structure,
+          starting_stack,
           buyin_min,
           buyin_max,
           scheduled_date,

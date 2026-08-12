@@ -19,7 +19,7 @@
  *      avatar_url, cover_url, description,
  *      default_game_type, default_stakes, frequency, member_count,
  *      follower_count, post_count, view_count,
- *      home_group_id, invite_code, next_game_date, next_game_title,
+ *      home_group_id, next_game_date, next_game_title,
  *      host: { display_name, avatar_url } }
  *
  *  CDN-cached 60s fresh / 300s stale-while-revalidate.
@@ -174,7 +174,6 @@ export default async function handler(req, res) {
         games_hosted,
         cover_photo_url,
         profile_photo_url,
-        invite_code,
         club_code,
         owner_id,
         created_at,
@@ -363,7 +362,7 @@ export default async function handler(req, res) {
     });
 
     // ── 4. Shape response. Use social_page slug for canonical URL when present;
-    //      fall back to club_code/invite_code so the card never has a null href.
+    //      fall back to club_code so the card never has a null href.
     let out = groupList.map((g) => {
       const page = pageByGroupId[String(g.id)] || null;
       const next = nextByGroupId[g.id] || null;
@@ -400,7 +399,11 @@ export default async function handler(req, res) {
         id: g.id,
         slug: page?.slug || null,
         club_code: g.club_code || null,
-        invite_code: g.invite_code || null,
+        // invite_code REMOVED 2026-08-12 (audit M-1). It is the credential
+        // that redeems membership, and this endpoint is public, unauthenticated
+        // and CDN-cached — one request returned up to 100 of them. Consumers
+        // only ever used it as a URL fallback into /home-game/<code>, which
+        // resolves by club_code, so passing an invite_code there 404'd anyway.
         name: g.name,
         description: g.description || g.tagline || '',
         city: g.city || '',

@@ -508,7 +508,6 @@ export default function HomeGamesPage() {
                     id: g.id,
                     slug: g.slug,                       // canonical URL key
                     club_code: g.club_code,             // share fallback
-                    invite_code: g.invite_code,         // share fallback
                     name: g.name,
                     description: g.description,
                     city: g.city,
@@ -907,8 +906,6 @@ export default function HomeGamesPage() {
                                                         router.push('/hub/home-games/' + venue.slug);
                                                     } else if (venue?.club_code) {
                                                         router.push('/home-game/' + venue.club_code);
-                                                    } else if (venue?.invite_code) {
-                                                        router.push('/home-game/' + venue.invite_code);
                                                     }
                                                 }}
                                             />
@@ -973,8 +970,6 @@ export default function HomeGamesPage() {
                                                                 router.push('/hub/home-games/' + venue.slug);
                                                             } else if (venue?.club_code) {
                                                                 router.push('/home-game/' + venue.club_code);
-                                                            } else if (venue?.invite_code) {
-                                                                router.push('/home-game/' + venue.invite_code);
                                                             }
                                                         }}
                                                     />
