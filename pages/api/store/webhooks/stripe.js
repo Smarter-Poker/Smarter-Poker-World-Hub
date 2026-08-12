@@ -434,16 +434,37 @@ async function handleSubscriptionCanceled(subscription) {
         throw err_vip_subscriptions_s2gv2;
     }
 
-    // Also clear VIP status on profile
+    // Clear VIP on the profile — but NOT if a separately purchased pass is
+    // still running.
+    //
+    // This used to blanket-set is_vip=false and vip_tier=null for the whole
+    // stripe_customer_id with no expiry check, so a user who had ALSO bought a
+    // VIP pass with diamonds lost the pass they paid for the moment they
+    // cancelled an unrelated card subscription. handleSubscriptionUpdate
+    // already respects an active vip_expires_at for exactly this reason; the
+    // cancel path never got the same treatment.
     if (customer) {
+        const { data: profile } = await getSupabase()
+            .from('profiles')
+            .select('id, vip_expires_at, vip_tier')
+            .eq('stripe_customer_id', customer)
+            .maybeSingle();
+
+        const hasActivePaidPass = profile?.vip_tier === 'lifetime'
+            || (profile?.vip_expires_at && new Date(profile.vip_expires_at) > new Date());
+
+        const profileUpdate = hasActivePaidPass
+            // Record the cancellation, keep the entitlement they still own.
+            ? { vip_canceled_at: canceledAtIso, updated_at: new Date().toISOString() }
+            : { is_vip: false, vip_tier: null, vip_expires_at: null, vip_canceled_at: canceledAtIso, updated_at: new Date().toISOString() };
+
+        if (hasActivePaidPass) {
+            console.info(`[stripe-webhook] subscription ${id} cancelled but customer ${customer} keeps VIP until ${profile.vip_expires_at || 'lifetime'}`);
+        }
+
         const { error: err_profiles_odw9b } = await getSupabase()
           .from('profiles')
-          .update({
-                is_vip: false,
-                vip_tier: null,
-                vip_canceled_at: canceledAtIso,
-                updated_at: new Date().toISOString()
-            })
+          .update(profileUpdate)
             .eq('stripe_customer_id', customer);
         if (err_profiles_odw9b) {
             console.warn('[stripe-webhook] profile VIP revoke failed for customer', customer, '— Stripe will retry:', err_profiles_odw9b.message);
@@ -569,6 +590,58 @@ async function handleRefund(charge) {
                 console.warn('[stripe-webhook] refund deduct RPC failed for purchase', purchase.id, '— rolled back, Stripe will retry:', deductErr);
                 throw deductErr;
             }
+        }
+        return;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // MERCHANDISE refunds. handleRefund only ever looked at diamond_purchases,
+    // so a refunded merch order kept its 'processing' status forever and would
+    // still have been picked, packed and shipped — the customer got their money
+    // back AND the goods. The stock taken at payment was never returned either.
+    // ═══════════════════════════════════════════════════════════════════════
+    const { data: order } = await getSupabase()
+        .from('merchandise_orders')
+        .select('id, items, status')
+        .eq('stripe_payment_intent_id', payment_intent)
+        .maybeSingle();
+
+    if (!order) return;
+
+    // IDEMPOTENCY: compare-and-set. charge.refunded fires per refund and Stripe
+    // redelivers events, so an unconditional update would return stock twice.
+    const { data: lockedOrder, error: orderErr } = await getSupabase()
+        .from('merchandise_orders')
+        .update({ status: 'refunded', updated_at: new Date().toISOString() })
+        .eq('id', order.id)
+        .neq('status', 'refunded')
+        .select()
+        .maybeSingle();
+
+    if (orderErr) {
+        console.warn('[stripe-webhook] merch refund status update failed for order', order.id, '— Stripe will retry:', orderErr.message);
+        throw orderErr;
+    }
+    if (!lockedOrder) return; // already refunded
+
+    // Put the stock back. A refunded order did not consume inventory.
+    const lines = Array.isArray(order.items)
+        ? order.items
+            .filter((l) => l && (l.id || l.catalogId))
+            .map((l) => ({
+                id: l.id || l.catalogId,
+                variant_id: l.variantId || l.variant_id || null,
+                qty: Math.min(Math.max(parseInt(l.quantity ?? l.qty) || 1, 1), 10),
+            }))
+        : [];
+
+    if (lines.length > 0) {
+        const { error: relErr } = await getSupabase()
+            .rpc('release_merch_order', { p_lines: lines });
+        if (relErr) {
+            // Do not throw: the refund itself is recorded and correct. Stock is
+            // merely understated, which is safe (it under-sells) and fixable.
+            console.error(`[stripe-webhook] STOCK NOT RETURNED for refunded order ${order.id}:`, relErr.message);
         }
     }
 }
