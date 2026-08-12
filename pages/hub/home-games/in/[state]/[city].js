@@ -103,11 +103,11 @@ export async function getServerSideProps({ params, res }) {
       props: {
         stateCode,
         citySlug,
-        cityName: citySlugToTitle(citySlug),
+        // NOTE: the component destructures `cityTitle`, not `cityName`.
+        cityTitle: citySlugToTitle(citySlug),
         stateName: stateCodeToName(stateCode),
         stateSlug: stateCodeToSlug(stateCode),
         games: [],
-        serverError: true,
       },
     };
   }
