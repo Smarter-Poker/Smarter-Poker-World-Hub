@@ -164,16 +164,6 @@ export default function TriviaModePage() {
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
     const savePhaseRef = useRef(0); // 0=none, 1=score, 2=diamonds, 3=history, 4=mastery, 5=daily
 
-    // ── IDEMPOTENCY ────────────────────────────────────────────────────
-    // add_diamonds_to_balance dedups on p_reference_id, so the reference must
-    // be (a) STABLE across a saving_error retry of the SAME run, and (b) UNIQUE
-    // across runs. The old map was keyed only by actionType and was cleared
-    // only inside handlePlayAgain, so any other path back to 'ready' (a
-    // re-`initialize()` from an auth/router change, a Play-Again on a different
-    // mode, etc.) replayed the previous run's reference and the RPC silently
-    // swallowed the whole reward. Anchoring every key to a per-RUN id — minted
-    // in startGame(), exactly like endless.js mints gameRewardRefId — gives us
-    // both properties with one ref.
     // The per-run idempotency key chain (gameRunIdRef / newGameRunId /
     // getIdempotencyKey) is gone: it existed only to build p_reference_id
     // values for browser-side diamond credits, and this page no longer makes

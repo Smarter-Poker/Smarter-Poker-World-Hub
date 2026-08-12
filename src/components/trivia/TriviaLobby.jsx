@@ -231,6 +231,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
     // Route to the correct page for a mode
     const routeToMode = (modeId) => {
+        setIsRouting(true);
         const standaloneRoutes = {
             survival: '/hub/trivia/survival-game',
             endless: '/hub/trivia/endless',
@@ -246,7 +247,6 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         if (!modeId) return;
         // Remember the disclosure so it is shown once, not once per mode.
         try { localStorage.setItem(ACKNOWLEDGED_KEY, 'true'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-        setIsRouting(true);
         setShowChargePopup(false);
         setPendingMode(null);
         routeToMode(modeId);
