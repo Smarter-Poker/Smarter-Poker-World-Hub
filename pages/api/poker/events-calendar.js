@@ -437,7 +437,11 @@ async function handler(req, res) {
           // daily-tournaments.js, venue-tournament-calendar.js,
           // tournament-alerts.js) treats rows below this quality bar as retired.
           // Without it the calendar advertised events that vanish on click-through.
-          .eq('data_quality', 'scraped_verified')
+          // Both scraped provenances are in-bounds: 'scraped_verified' is a
+          // structured extraction, 'scraped_inferred' a regex/heuristic parse of a
+          // real scrape. Excluding the latter hid every row the daemon writes for
+          // venues without structured markup. 'stale'/'expired' stay excluded.
+          .in('data_quality', ['scraped_verified', 'scraped_inferred'])
           .or('is_suppressed.is.null,is_suppressed.eq.false');
 
         if (minBuyin) dq = dq.gte('buy_in', parseInt(minBuyin));

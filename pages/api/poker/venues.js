@@ -1719,7 +1719,9 @@ export default async function handler(req, res) {
                       .eq('is_active', true)
                       // Match daily-tournaments.js / venue-tournament-calendar.js so a
                       // venue page never shows rows those surfaces already retired.
-                      .eq('data_quality', 'scraped_verified')
+                      // Accepts both scraped provenances (verified = structured,
+                      // inferred = heuristic parse); excludes stale/expired.
+                      .in('data_quality', ['scraped_verified', 'scraped_inferred'])
                       .or('is_suppressed.is.null,is_suppressed.eq.false')
                       .order('day_of_week')
                       .limit(100);
@@ -1944,7 +1946,7 @@ export default async function handler(req, res) {
                               .select('venue_id, venue_name, day_of_week, start_time, buy_in, tournament_name, starting_stack')
                               .in('venue_id', charityIds)
                               .eq('is_active', true)
-                              .eq('data_quality', 'scraped_verified')
+                              .in('data_quality', ['scraped_verified', 'scraped_inferred'])
                               .or('is_suppressed.is.null,is_suppressed.eq.false')
                           : Promise.resolve({ data: [] }),
                       charityNames.length > 0
@@ -1954,7 +1956,7 @@ export default async function handler(req, res) {
                               .is('venue_id', null)
                               .in('venue_name', charityNames)
                               .eq('is_active', true)
-                              .eq('data_quality', 'scraped_verified')
+                              .in('data_quality', ['scraped_verified', 'scraped_inferred'])
                               .or('is_suppressed.is.null,is_suppressed.eq.false')
                           : Promise.resolve({ data: [] }),
                   ]);
@@ -2100,7 +2102,7 @@ export default async function handler(req, res) {
                           .select('venue_id, day_of_week, start_time, buy_in, tournament_name, game_type, guaranteed')
                           .in('venue_id', regularIds)
                           .eq('is_active', true)
-                          .eq('data_quality', 'scraped_verified')
+                          .in('data_quality', ['scraped_verified', 'scraped_inferred'])
                           .or('is_suppressed.is.null,is_suppressed.eq.false')
                           .order('start_time', { ascending: true });
 

@@ -181,7 +181,7 @@ async function handler(req, res) {
               `)
               .eq('is_active', true)
               .or('is_suppressed.is.null,is_suppressed.eq.false')
-              .eq('data_quality', 'scraped_verified')
+              .in('data_quality', ['scraped_verified', 'scraped_inferred'])
               .order('buy_in', { ascending: true });
 
           // Filter by day — use ilike for case-insensitive matching

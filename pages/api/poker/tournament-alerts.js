@@ -127,7 +127,7 @@ try {
                       .from('venue_daily_tournaments')
                       .select('id, venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, source_url')
                       .eq('is_active', true)
-                      .eq('data_quality', 'scraped_verified')
+                      .in('data_quality', ['scraped_verified', 'scraped_inferred'])
                       .or('is_suppressed.is.null,is_suppressed.eq.false');
 
                   if (prefs.min_buyin != null) tq = tq.gte('buy_in', prefs.min_buyin);
