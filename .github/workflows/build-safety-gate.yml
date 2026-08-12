@@ -55,7 +55,7 @@ jobs:
       # secret in repo Settings → Secrets and variables → Actions to
       # activate enforcement.
       # ═══════════════════════════════════════════════════════════════
-      - name: "CHECK 10: Diamond economy invariants"
+      - name: "CHECK 10: Diamond economy invariants + merch reservation tests"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
