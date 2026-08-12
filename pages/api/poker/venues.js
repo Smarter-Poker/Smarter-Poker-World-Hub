@@ -385,27 +385,50 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
             userLat >= -90 && userLat <= 90 &&
             userLng >= -180 && userLng <= 180
         ) {
+            // PRIVACY (audit 2026-08-12, finding C-1): a home group's
+            // latitude/longitude is a person's HOME ADDRESS. Distance must be
+            // measured from the JITTERED coordinate and exposed at WHOLE-MILE
+            // precision only.
+            //
+            // Previously this measured from the real lat/lng and exposed
+            // distance_mi at 0.1-mile precision. Because this endpoint is
+            // public and unauthenticated, an attacker could query it from 3+
+            // GPS points and trilaterate the exact house — defeating the
+            // entire privacy model that discover.js implements. See
+            // src/lib/home-games/geoPrivacy.js for the full threat model.
+            //
+            // The unrounded value is kept ONLY as an internal field for the
+            // radius filter below, and is stripped before the response.
             rows = rows.map((g) => {
-                if (g.latitude == null || g.longitude == null) {
-                    return { ...g, distance_km: null, distance_mi: null };
-                }
-                const distance = calculateDistance(
-                    userLat, userLng,
-                    parseFloat(g.latitude), parseFloat(g.longitude)
+                const d = publicDistanceToGroup(
+                    g.id, g.latitude, g.longitude, userLat, userLng
                 );
+                if (d.miles == null) {
+                    return { ...g, distance_km: null, distance_mi: null, _rawDistanceMi: null };
+                }
                 return {
                     ...g,
-                    distance_km: Math.round(distance * 10) / 10,
-                    distance_mi: Math.round(distance * 0.621371 * 10) / 10,
+                    // Whole-mile / whole-km precision. Do NOT restore decimals.
+                    distance_mi: d.miles,
+                    distance_km: Math.round(d.raw * 1.60934),
+                    _rawDistanceMi: d.raw,
                 };
             });
 
             // If this is a location-browse (no search term), filter by radius.
-            // Unlike regular venues, home groups always have approximate coords
-            // (populated at creation), so there's no no-coord fallback needed.
+            // Filter on the unrounded internal value so "within N miles"
+            // behaves exactly as before — the rounding only affects what we
+            // EXPOSE.
+            //
+            // NOTE: the previous comment here claimed home groups "always have
+            // approximate coords (populated at creation)". That is false —
+            // create.js sends `latitude: formData.approximate_lat || undefined`,
+            // so a group whose location picker never fired has no coordinates
+            // at all. Such a group cannot honestly be called "nearby", so it is
+            // dropped rather than padded into the result set.
             if (!search) {
                 rows = rows.filter(
-                    (g) => g.distance_mi != null && g.distance_mi <= maxRadius
+                    (g) => g._rawDistanceMi != null && g._rawDistanceMi <= maxRadius
                 );
             }
         }
