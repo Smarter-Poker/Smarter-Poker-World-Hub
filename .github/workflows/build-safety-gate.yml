@@ -55,6 +55,28 @@ jobs:
       # secret in repo Settings → Secrets and variables → Actions to
       # activate enforcement.
       # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 10: Diamond economy invariants"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+        run: |
+          # Standing assertions for the money paths. Each one corresponds to a
+          # defect that has already happened once and was found only by a hand
+          # audit: deduct_diamonds writing one balance column while credits
+          # wrote two; award_diamonds_v2's VIP guard failing OPEN on NULL and
+          # handing the VIP earning ceiling to 470 accounts; easter eggs
+          # counting toward the daily cap so legendary payouts were clamped and
+          # destroyed; a public view carrying write grants to anon so an
+          # unauthenticated request could rewrite tournament prize pools; and
+          # the balance RPCs being revoked from `authenticated` while the
+          # browser kept calling them. The assertions live in SQL
+          # (migration 20260808220000) so they read the live catalog.
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — economy invariants are NOT enforced."
+            exit 0
+          fi
+          node scripts/check-economy-invariants.mjs
+
       - name: "CHECK 9: Reward catalog matches diamondRewards.js"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

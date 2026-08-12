@@ -302,14 +302,26 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
         for (const friendId of selected) {
             try {
                 // 1. Get or create direct conversation via RPC (social_* tables)
+                // CRITICAL: the param names are p_user_id / p_other_user_id and must
+                // match the SQL signature exactly, because PostgREST binds RPC
+                // arguments BY NAME. The previous user1_id / user2_id call matched no
+                // overload and returned PGRST202, so the RPC never ran and sharing a
+                // post to a friend's DM silently failed for every friend.
                 const { data: convResult, error: convErr } = await supabase.rpc('fn_get_or_create_conversation', {
-                    user1_id: currentUser.id,
-                    user2_id: friendId,
+                    p_user_id: currentUser.id,
+                    p_other_user_id: friendId,
                 });
                 if (convErr) throw convErr;
-                // fn_get_or_create_conversation returns a UUID directly
-                const convId = convResult;
-                if (!convId) throw new Error('Failed to get or create conversation');
+                // The RPC returns jsonb { success, conversation_id, created } — not a
+                // bare UUID. Treating the whole jsonb as a UUID (the previous bug) made
+                // convId a truthy object, so the guard below passed and a malformed
+                // conversationId flowed downstream. Fix mirrors
+                // pages/api/messenger/start-conversation.js and
+                // pages/api/club-arena/approve-cashout.js.
+                if (!convResult?.success || !convResult?.conversation_id) {
+                    throw new Error('Failed to get or create conversation');
+                }
+                const convId = convResult.conversation_id;
 
                 // 2. Send via authenticated API (handles social_messages + participant verify + rate limit)
                 const richPayload = buildRichSharePayload(post, postUrl, message.trim());

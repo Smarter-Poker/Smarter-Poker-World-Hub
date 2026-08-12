@@ -26,7 +26,7 @@ import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diam
 import { checkNewUnlocks, computeTriviaStats } from '../../../src/config/triviaAchievements';
 
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
-import { getRecentlySeenIds, fetchRandomQuestionPool, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
+import { getRecentlySeenIds, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 
 // Phase 55 — gameplay quality floor. Questions tagged below this by the audit
@@ -40,7 +40,6 @@ import { useCelebrations } from '../../../src/components/trivia/CelebrationEffec
 import { getStreakTier, calculateRewardWithMultiplier } from '../../../src/config/triviaStreakSystem';
 
 // Phase 2 Enhancement Imports
-import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
 import { Gem } from 'lucide-react';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
@@ -74,17 +73,6 @@ const LOBBY_IMAGES = {
     daily: '/images/trivia/lobby-daily.jpg',
     arcade: '/images/trivia/lobby-arcade.jpg',
 };
-
-// crypto.randomUUID throws on Safari < 15.4 and non-secure contexts —
-// fall back to a timestamp+random id so reward RPCs never hard-fail.
-function genUUID() {
-    try {
-        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-            return crypto.randomUUID();
-        }
-    } catch (e) { /* fall through */ }
-    return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
-}
 
 // Modes this page runs through the server-authoritative grading flow
 // (session-start / session-answer / session-submit) instead of the
@@ -170,33 +158,17 @@ export default function TriviaModePage() {
     const [wheelPrize, setWheelPrize] = useState(null);
     const [wheelError, setWheelError] = useState(null);
 
-    // Phase 2: Double or Nothing state
-    const [showDoubleOrNothing, setShowDoubleOrNothing] = useState(false);
-    const [doubleAttempted, setDoubleAttempted] = useState(false);
-    const [doubleQuestion, setDoubleQuestion] = useState(null);
-    // Question ids already served this sitting — never repeat one in the
-    // Double-or-Nothing bonus round.
-    const sessionSeenIdsRef = useRef(new Set());
+    // Double-or-Nothing state removed with the wager (it could not settle).
+    // sessionSeenIdsRef went with it - the bonus draw was its only reader.
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
     const savePhaseRef = useRef(0); // 0=none, 1=score, 2=diamonds, 3=history, 4=mastery, 5=daily
 
-    // ── IDEMPOTENCY ────────────────────────────────────────────────────
-    // add_diamonds_to_balance dedups on p_reference_id, so the reference must
-    // be (a) STABLE across a saving_error retry of the SAME run, and (b) UNIQUE
-    // across runs. The old map was keyed only by actionType and was cleared
-    // only inside handlePlayAgain, so any other path back to 'ready' (a
-    // re-`initialize()` from an auth/router change, a Play-Again on a different
-    // mode, etc.) replayed the previous run's reference and the RPC silently
-    // swallowed the whole reward. Anchoring every key to a per-RUN id — minted
-    // in startGame(), exactly like endless.js mints gameRewardRefId — gives us
-    // both properties with one ref.
-    const gameRunIdRef = useRef(null);
-    const newGameRunId = () => { gameRunIdRef.current = genUUID(); };
-    const getIdempotencyKey = (actionType) => {
-        if (!gameRunIdRef.current) newGameRunId();
-        return `trivia_${mode}_${actionType}_${gameRunIdRef.current}`;
-    };
+    // The per-run idempotency key chain (gameRunIdRef / newGameRunId /
+    // getIdempotencyKey) is gone: it existed only to build p_reference_id
+    // values for browser-side diamond credits, and this page no longer makes
+    // any. Server payouts carry their own idempotent references
+    // (award_trivia_run uses trivia_session_<id>).
     const masteryCacheRef = useRef(null);
     // id of THIS run's trivia_scores row — the prize wheel's server-side token.
     const scoreIdRef = useRef(null);
@@ -672,9 +644,6 @@ export default function TriviaModePage() {
         isStartingRef.current = true;
         setIsStarting(true); // visible pressed/loading state on the lobby
         try {
-        // Fresh reference id for every RUN, so run 2's reward can never be
-        // deduped away as a replay of run 1's (see getIdempotencyKey).
-        newGameRunId();
         savePhaseRef.current = 0;
         cappedRewardRef.current = null;
         masteryCacheRef.current = null;
@@ -1008,28 +977,16 @@ export default function TriviaModePage() {
                                 .maybeSingle();
                             if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
                         }
-                    } else {
-                        const totalDiamondsToAward = diamondsEarned + dailyBonusDiamonds;
-                        if (totalDiamondsToAward > 0) {
-                            const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                                p_user_id: userId,
-                                p_amount: totalDiamondsToAward,
-                                p_type: 'trivia_reward',
-                                p_description: `Trivia ${mode} reward — ${totalDiamondsToAward}💎`,
-                                p_reference_id: getIdempotencyKey('game_complete')
-                            });
-                            if (__rpcErr) throw __rpcErr;
-                            // Refresh balance from DB
-                            const { data: profile } = await supabase
-                                .from('profiles')
-                                .select('diamonds')
-                                .eq('id', userId)
-                                .maybeSingle();
-                            if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
-
-                            busEmit.diamondsEarned(totalDiamondsToAward, `Trivia ${mode}`);
-                        }
                     }
+                    // There is deliberately NO else branch. Every mode this
+                    // page serves is in SERVER_GRADED_PAGE_MODES, so the
+                    // server has already paid via award_trivia_run. The old
+                    // fallback credited from the browser, which has been
+                    // impossible since the credit RPC lost authenticated
+                    // EXECUTE on 2026-08-03 - and leaving it here meant one
+                    // gate edit could resurrect a client-side mint path.
+                    // A mode that is ever removed from the gate must get a
+                    // server payout route, not a client credit.
                     savePhaseRef.current = 2;
                 }
 
@@ -1346,52 +1303,8 @@ export default function TriviaModePage() {
         }
     };
 
-    /**
-     * Pick an UNSEEN question for the Double-or-Nothing round.
-     *
-     * It used to draw from `questions` — the set the player had just answered —
-     * so the bonus round was a free double on a question whose answer was on
-     * screen thirty seconds earlier. Falls back to the played set only if the
-     * pool fetch yields nothing (the modal also tolerates a null question).
-     */
-    const openDoubleOrNothing = async () => {
-        let picked = null;
-        try {
-            const excludeIds = userId ? await getRecentlySeenIds(supabase, userId, 2000) : [];
-            const sessionExcludeIds = new Set([
-                ...sessionSeenIdsRef.current,
-                ...questions.map(q => q?.id).filter(Boolean)
-            ]);
-            const pool = await fetchRandomQuestionPool(supabase, {
-                // AUDIT FIX (C2/L3): CATEGORY_MAP now carries entries for
-                // mtt/cash/icm/gto (arrays). fetchRandomQuestionPool accepts
-                // string OR array — applyPoolFilters uses .in() for arrays,
-                // exactly as loadQuestions already relies on for
-                // history/rules/pro — so the bonus round now draws from the
-                // mode's own categories instead of the whole pool.
-                category: CATEGORY_MAP[mode],
-                pageSize: 300,
-                minQuality: MIN_QUALITY_SCORE,
-                want: 1
-            });
-            const usable = filterAndShuffle(pool || [], excludeIds, 1, {
-                sessionExcludeIds,
-                minQualityScore: MIN_QUALITY_SCORE
-            });
-            // Permute the options too — the pool row arrives in its stored
-            // order, which is the same order every other player sees.
-            picked = usable[0] ? (shuffleOptions([usable[0]])[0] || usable[0]) : null;
-        } catch (e) {
-            console.warn('[DoubleOrNothing] unseen-question fetch failed:', e?.message || e);
-        }
-        if (!picked && questions.length > 0) {
-            picked = questions[Math.floor(Math.random() * questions.length)] || null;
-        }
-        if (picked?.id) sessionSeenIdsRef.current.add(picked.id);
-        if (!isMountedRef.current) return;
-        setDoubleQuestion(picked);
-        setShowDoubleOrNothing(true);
-    };
+    // openDoubleOrNothing (the unseen-question draw for the bonus round) was
+    // removed with the wager. It only fed a modal that could not settle.
 
     const handlePlayAgain = async () => {
         if (mode === 'arcade' && !isVIP && userDiamonds < (modeConfig?.diamondCost || 10)) {
@@ -1399,10 +1312,6 @@ export default function TriviaModePage() {
             return;
         }
         setResult(null);
-        // A new run gets a new reference id (startGame mints it too — this is
-        // belt-and-braces for anything that reaches handleComplete without a
-        // fresh startGame).
-        newGameRunId();
         scoreIdRef.current = null;
         setWheelPrize(null);
         setWheelError(null);
@@ -1417,9 +1326,7 @@ export default function TriviaModePage() {
         // subsequent game until full page reload.
         savePhaseRef.current = 0;
         setSaveErrorPayload(null);
-        setShowDoubleOrNothing(false);
         setShowPrizeWheel(false);
-        setDoubleAttempted(false);
         setWheelSpun(false);
         setIsPerfectScore(false);
 
@@ -1674,32 +1581,16 @@ export default function TriviaModePage() {
                             // is unaffordable — HintButtons otherwise only shows a
                             // transient inline notice with no route to the store.
                             onNeedDiamonds={() => setShowOutOfDiamonds(true)}
-                            onDiamondsChange={async (delta) => {
-                                if (!userId) return;
-                                try {
-                                    // Fresh reference id PER EVENT — this fires once per
-                                    // hint purchase / stake delta, and the RPC dedups on
-                                    // p_reference_id. A cached per-game key silently
-                                    // dropped every delta after the first.
-                                    const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                                        p_user_id: userId,
-                                        p_amount: delta,
-                                        p_type: delta > 0 ? 'trivia_reward' : 'trivia_cost',
-                                        p_description: `Trivia ${mode} — ${Math.abs(delta)}💎 ${delta > 0 ? 'earned' : 'spent'}`,
-                                        p_reference_id: `trivia_${mode}_stakes_delta_${genUUID()}`
-                                    });
-                                    if (__rpcErr) throw __rpcErr;
-                                    const { data: profile } = await supabase
-                                        .from('profiles')
-                                        .select('diamonds')
-                                        .eq('id', userId)
-                                        .maybeSingle();
-                                    if (profile) setUserDiamonds(profile.diamonds || 0);
-                                    if (delta > 0) busEmit.diamondsEarned(delta, `Trivia ${mode}`);
-                                } catch (e) {
-                                    console.warn('[Trivia] onDiamondsChange RPC failed:', e);
-                                }
-                            }}
+                            // onDiamondsChange is deliberately NOT passed. It
+                            // existed to settle hint purchases and stake
+                            // deltas by crediting/debiting from the browser,
+                            // which stopped being possible when the credit RPC
+                            // lost authenticated EXECUTE on 2026-08-03. It is
+                            // also unreachable: hints are force-disabled under
+                            // serverGrader, and stake deltas are recomputed
+                            // server-side from the recorded answer sequence.
+                            // If hints ever return, they must settle through a
+                            // server route (see /api/diamonds/spend), never here.
                         />
                     )}
 
@@ -1729,13 +1620,11 @@ export default function TriviaModePage() {
                                 showDailyBonusRow
                                 onSpinWheel={openPrizeWheel}
                                 showSpinButton={isPerfectScore && !showPrizeWheel && !wheelSpun}
-                                onDoubleOrNothing={/* DISABLED: Double or Nothing pays through the
-                                    browser-side add_diamonds_to_balance RPC, which was revoked
-                                    2026-08-03 - a win could not be credited (and a loss could not
-                                    be collected). Disabled until it settles through a server
-                                    route. */
-                                    false && result.diamondsEarned > 0 && !doubleAttempted ? openDoubleOrNothing : null}
-                                showDoubleButton={false && result.diamondsEarned > 0 && !showDoubleOrNothing && !doubleAttempted}
+                                // onDoubleOrNothing / showDoubleButton are gone
+                                // with the wager itself - see the removal note
+                                // further down. They were held off with a
+                                // `false &&` guard, which is one keystroke from
+                                // re-offering a bet that cannot pay.
                             />
 
                             {mode === 'arcade' && (
@@ -1785,76 +1674,21 @@ export default function TriviaModePage() {
                         </div>
                     )}
 
-                    {/* Double or Nothing Modal.
-                        Wired to the component's REAL API (diamondsAtRisk /
-                        onAccept / onAnswer / onDecline) — the previous
-                        currentWinnings/onComplete props didn't exist, so the
-                        modal showed 0 winnings, never paid out, and trapped
-                        the player on the result screen.
-                        DISABLED: Double or Nothing pays through the browser-side
-                        add_diamonds_to_balance RPC, which was revoked 2026-08-03 -
-                        a win could not be credited (and a loss could not be
-                        collected). The false && guard keeps the wager unreachable
-                        until it settles through a server route. */}
-                    {false && showDoubleOrNothing && (
-                        <DoubleOrNothing
-                            question={doubleQuestion}
-                            diamondsAtRisk={result?.diamondsEarned || 0}
-                            onAccept={() => setDoubleAttempted(true)}
-                            onAnswer={async (won) => {
-                                const wager = result?.diamondsEarned || 0;
-                                try {
-                                    if (userId && won && wager > 0) {
-                                        // Award the extra diamonds (2x total = +wager) via RPC
-                                        const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                                            p_user_id: userId,
-                                            p_amount: wager,
-                                            p_type: 'trivia_double_win',
-                                            p_description: `Double or Nothing win — ${wager}💎 bonus`,
-                                            p_reference_id: getIdempotencyKey('double_win')
-                                        });
-                                        if (__rpcErr) throw __rpcErr;
-                                        const { data: profile } = await supabase
-                                            .from('profiles')
-                                            .select('diamonds')
-                                            .eq('id', userId)
-                                            .maybeSingle();
-                                        if (profile) setUserDiamonds(profile.diamonds || 0);
-                                        busEmit.diamondsEarned(wager, 'Double or Nothing Win');
-                                        busEmit.celebration('confetti');
-                                    } else if (userId && !won && wager > 0) {
-                                        // Deduct the original winnings (they lost) via RPC
-                                        const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                                            p_user_id: userId,
-                                            p_amount: -wager,
-                                            p_type: 'trivia_double_loss',
-                                            p_description: `Double or Nothing loss — ${wager}💎 deducted`,
-                                            p_reference_id: getIdempotencyKey('double_loss')
-                                        });
-                                        if (__rpcErr) throw __rpcErr;
-                                        const { data: profile } = await supabase
-                                            .from('profiles')
-                                            .select('diamonds')
-                                            .eq('id', userId)
-                                            .maybeSingle();
-                                        if (profile) setUserDiamonds(profile.diamonds || 0);
-                                        busEmit.diamondsSpent(wager, 'Double or Nothing Loss');
-                                        busEmit.screenShake('medium');
-                                    }
-                                } catch (e) {
-                                    console.warn('[DoubleOrNothing] RPC failed:', e);
-                                }
-                                // Reflect the outcome on the results card
-                                if (isMountedRef.current) {
-                                    setResult(prev => prev ? { ...prev, diamondsEarned: won ? wager * 2 : 0 } : prev);
-                                }
-                                // No auto-dismiss: DoubleOrNothing now renders a real
-                                // Continue button on its result stage, and a 2600ms
-                                // timer used to yank the reveal away mid-read.
-                            }}
-                            onDecline={() => setShowDoubleOrNothing(false)}
-                        />
-                    )}
+                    {/* Double or Nothing is REMOVED, not merely hidden.
+                        The wager settled by crediting a win (and debiting a
+                        loss) straight from the browser, which stopped being
+                        possible when the credit RPC lost authenticated EXECUTE
+                        on 2026-08-03: a win could not be paid and a loss could
+                        not be collected. It was first guarded off with a
+                        `false &&`, but dead payout code one keystroke away from
+                        live is exactly how a client-side mint gets resurrected,
+                        so the JSX and both RPC calls are gone.
+                        To bring the feature back: settle it server-side (grade
+                        the double-or-nothing question through
+                        /api/trivia/session-answer and pay from a route that
+                        owns the amount, the way award_trivia_run does for a
+                        run), then re-add the modal wired to that route. The
+                        DoubleOrNothing component itself is untouched. */}
 
                     {/* Prize Wheel - only shows on 100% perfect score */}
                     {showPrizeWheel && (

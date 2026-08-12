@@ -1,9 +1,14 @@
 /**
  * ENDLESS MODE - All Categories Random
  * Route: /hub/trivia/endless
- * 
+ *
  * Endless questions from ALL categories combined randomly.
- * Answer until you get one wrong. Diamonds stack with streak multipliers.
+ * Answer until you miss three (wrong answers and timeouts both count).
+ *
+ * Server-authoritative run: /api/trivia/session-start deals (and permutes)
+ * one 100-question roster for the whole run, session-answer grades each tap
+ * under the binding-first-answer rule, and session-submit caps and pays per
+ * correct answer - the client never receives an answer key.
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -26,10 +31,8 @@ import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
-import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
-import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
-import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
@@ -38,41 +41,30 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import { Settings as SettingsIcon, Timer as TimerIcon, Zap as ZapIcon } from 'lucide-react';
 
-const GAME_ENTRY_COST = 0; // was 10 - free until this page adopts server grading; its reward RPC has been dead since 2026-08-03 (see triviaEngine.ts INTERIM FREE ENTRY)
-// Daily cap comes from triviaEngine so the lobby price and the payout ceiling
-// can never disagree. The local literal was 10 — the same as a single entry
-// fee, which made the mode net-negative by construction.
-const DAILY_DIAMOND_CAP = Number.isFinite(DAILY_DIAMOND_CAPS.endless) ? DAILY_DIAMOND_CAPS.endless : 40;
+const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 
-/**
- * Unique-per-purchase idempotency reference.
- *
- * The previous scheme was `${prefix}_${userId}_${Math.floor(Date.now()/60000)}`
- * — a per-minute bucket. Two purchases (or two game-overs) inside the same
- * 60s window produced the SAME reference_id, so add_diamonds_to_balance
- * de-duplicated the second one: repeat lifeline buys were free, and the second
- * reward of the minute was silently never credited. Every money event now gets
- * its own reference. Retry stability is provided by the caller holding the
- * generated value in a ref (see gameRewardRefId).
- */
-function newReferenceId(prefix, userId) {
-    let unique;
-    try {
-        unique = (typeof crypto !== 'undefined' && crypto.randomUUID)
-            ? crypto.randomUUID()
-            : `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    } catch (e) {
-        unique = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    }
-    return `${prefix}_${userId}_${unique}`;
-}
+// Roster size requested from /api/trivia/session-start. Endless ends on the
+// third miss, which realistically lands well under 100 answers; unanswered
+// served questions cost nothing (payout is per-correct and the submit omits
+// them). If a player actually clears all 100, the run ends there - a fresh
+// game is a fresh session.
+const QUESTIONS_PER_SESSION = 100;
+
+// The run ends on the third miss. Wrong answers and shot-clock timeouts both
+// count; skips do not (they are never answered).
+const MAX_MISSES = 3;
+
+// Daily cap comes from triviaEngine so the lobby price and the payout ceiling
+// can never disagree. Display-only here: the ACTUAL clamp is applied by
+// /api/trivia/session-submit when it settles the run.
+const DAILY_DIAMOND_CAP = Number.isFinite(DAILY_DIAMOND_CAPS.endless) ? DAILY_DIAMOND_CAPS.endless : 40;
 
 export default function EndlessModePage() {
     useTrainingBus('trivia-endless');
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
 
-    const [gameState, setGameState] = useState('ready'); // ready, playing, gameover
+    const [gameState, setGameState] = useState('ready'); // ready, playing, saving, saving_error, gameover
     const [questions, setQuestions] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     // TRAIN-WIRE-TRIVIA-HOOK-4 — selectedAnswer/showResult managed by shared hook
@@ -88,11 +80,13 @@ export default function EndlessModePage() {
     });
     const [streak, setStreak] = useState(0);
     const [diamondsEarned, setDiamondsEarned] = useState(0);
-    // What the daily cap ACTUALLY credited. The results screen used to render
-    // the raw running total, so a capped player was told they earned diamonds
-    // that never reached their balance.
+    // Misses this run (wrong answers + timeouts). The third one ends the game.
+    const [misses, setMisses] = useState(0);
+    // What session-submit ACTUALLY credited after the server applied the daily
+    // cap. The results screen used to render the raw client running total, so
+    // a capped player was told they earned diamonds that never reached their
+    // balance.
     const [awardedDiamonds, setAwardedDiamonds] = useState(null);
-    const [multiplier, setMultiplier] = useState(1);
     const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [highScore, setHighScore] = useState(0);
@@ -112,12 +106,30 @@ export default function EndlessModePage() {
     const [accessToken, setAccessToken] = useState(null);
     const [loadError, setLoadError] = useState(null);
 
-    // 50/50 Lifeline State
-    const [fiftyFiftyUsedFree, setFiftyFiftyUsedFree] = useState(false); // One free per game
-    const [eliminatedOptions, setEliminatedOptions] = useState([]);
+    // Server-authoritative run: session-start deals, session-answer grades
+    // each tap, session-submit caps and pays. No client-side crediting.
+    const serverRun = useServerGradedRun('endless');
+    // Current question's server verdict (wasCorrect / correctDisplayIndex);
+    // null until session-answer resolves, cleared on advance. The reveal is
+    // driven entirely from this - the client holds no answer key.
+    const [verdict, setVerdict] = useState(null);
+    // Locks taps from the moment of the tap until the question advances, so a
+    // slow session-answer round-trip cannot accept a second answer.
+    const answerLockRef = useRef(false);
+    // Answers actually recorded via session-answer this game, in tap order:
+    // { questionId, displayIndex }. This is what session-submit grades from;
+    // skipped questions are deliberately omitted (the server counts them
+    // wrong, which is free here because payout is per-correct).
+    const sessionAnswersRef = useRef([]);
+
     const [userDiamonds, setUserDiamonds] = useState(0);
 
-    // Lifeline usage tracking (max 3 per game, all cost 5💎)
+    // Lifeline usage tracking (max 3 per game, skip costs 5💎).
+    // NOTE: the 50/50 and Double Chance lifelines are gone with the move to
+    // server grading - 50/50 needs the answer key the client no longer
+    // receives, and Double Chance needs a second attempt the binding
+    // first-answer rule cannot honour. Skip survives because it never answers:
+    // it just advances past a question that is then omitted from the submit.
     const [lifelinesUsedThisGame, setLifelinesUsedThisGame] = useState(0);
     const LIFELINE_COST = 5;
     const MAX_LIFELINES_PER_GAME = 3;
@@ -129,14 +141,9 @@ export default function EndlessModePage() {
 
     // Skip Question Lifeline state
     const [skipUsedThisQuestion, setSkipUsedThisQuestion] = useState(false);
-    // Surfaced when a lifeline purchase fails (was previously a console.warn only,
-    // so the button just looked dead).
-    const [lifelineError, setLifelineError] = useState(null);
-
-    // Double Chance Lifeline state
-    const [doubleChanceActive, setDoubleChanceActive] = useState(false);
-    const [doubleChanceUsedThisQuestion, setDoubleChanceUsedThisQuestion] = useState(false);
-    const [firstAttemptWrong, setFirstAttemptWrong] = useState(null);
+    // Surfaced when a lifeline purchase or an answer submission fails (was
+    // previously a console.warn only, so the button just looked dead).
+    const [actionError, setActionError] = useState(null);
 
     // 24-Second Shot Clock State
     const [screenShake, setScreenShake] = useState(false);
@@ -146,32 +153,15 @@ export default function EndlessModePage() {
     // Refs to avoid stale closures in setTimeout-triggered saveGameResult
     const streakRef = useRef(0);
     const diamondsEarnedRef = useRef(0);
+    const missesRef = useRef(0);
     const currentIndexRef = useRef(0);
     const answerTimeoutRef = useRef(null); // Cleanup on unmount
     const isStartingRef = useRef(false); // Prevent double-click race
-    // Mirror of `questions` so startGame can verify a non-empty pool
-    // synchronously after awaiting a load (setState has not flushed yet).
-    const questionsRef = useRef([]);
-    useEffect(() => { questionsRef.current = questions; }, [questions]);
-    // Every question id served in THIS sitting — passed to filterAndShuffle as
-    // a hard exclusion so a top-up batch can never repeat an earlier question.
-    const sessionServedIdsRef = useRef(new Set());
     // FIX(audit #8): synchronous in-flight lock for paid lifelines. The "used"
-    // state flags are set only AFTER the awaited charge RPC, so a double-tap
-    // passed the guards twice and produced two unique-reference deductions
-    // (which the DB cannot dedup by design) for a single lifeline.
+    // state flags are set only AFTER the awaited charge, so a double-tap
+    // passed the guards twice and produced two deductions for a single
+    // lifeline.
     const lifelineBusyRef = useRef(false);
-    // FIX(audit #10): in-flight lock for pool refills. The refill effect fires
-    // on every advance inside the last-5 window; two overlapping
-    // loadMoreQuestions calls both filtered against sessionServedIdsRef before
-    // either recorded its ids, so a question in both random pages could be
-    // appended twice to the same run.
-    const isFetchingMoreRef = useRef(false);
-    // FIX(audit #17): per-question outcomes, index-aligned with `questions`
-    // (true=correct, false=wrong/timeout, null=skipped). saveGameResult used to
-    // mark every question before the final index was_correct:true, which
-    // recorded SKIPPED questions as correct answers.
-    const answerOutcomesRef = useRef([]);
 
     // Game Settings (persist to localStorage)
     const [settings, setSettings] = useState({
@@ -181,25 +171,10 @@ export default function EndlessModePage() {
         intensity: 'high'   // 'low', 'medium', 'high'
     });
 
-    // Speed Bonus State
-    const [speedBonus, setSpeedBonus] = useState(0);
-    const [showSpeedBonus, setShowSpeedBonus] = useState(false);
-    // Multiplier tier-up celebration (every 5 correct answers)
-    const [milestoneMultiplier, setMilestoneMultiplier] = useState(0);
-
     const startTimeRef = useRef(null);
     const [gameDurationSec, setGameDurationSec] = useState(0);
-    // Per-game reward idempotency reference (stable across Retry Save attempts,
-    // unique per game). Replaces the per-minute bucket that silently swallowed
-    // the second game-over inside the same minute.
-    const gameRewardRefId = useRef(null);
 
-    // Calculate multiplier based on streak (increases every 5 questions)
-    useEffect(() => {
-        setMultiplier(Math.floor(streak / 5) + 1);
-    }, [streak]);
-
-    // ── SOUND: one switch, globally ────────────────────────────────────
+    // ── SOUND: one switch, globally ──────────────────────────────────
     // triviaAudio owns the mute flag for the whole trivia system. This page
     // used to keep an independent `settings.audio` boolean, so muting here left
     // TriviaGame loud (and vice versa) — three separate mute switches in total.
@@ -260,11 +235,8 @@ export default function EndlessModePage() {
                 }
             } catch (e) { console.warn("[endless.js]", e); }
 
-            // Pass user.id explicitly: `userId` state has not propagated yet at
-            // this point, so the previous call resolved getRecentlySeenIds with
-            // a null user and the first ~50 questions of every session bypassed
-            // the 60-day non-repeat filter entirely.
-            await loadMoreQuestions(user?.id || null);
+            // Questions are dealt by the server when a game starts - nothing
+            // to preload here.
             setIsLoading(false);
         }
         init();
@@ -324,109 +296,51 @@ export default function EndlessModePage() {
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [timer.isTimerRunning]);
 
-    // Load more questions when running low
-    useEffect(() => {
-        if (questions.length > 0 && currentIndex >= questions.length - 5) {
-            loadMoreQuestions();
-        }
-    }, [currentIndex, questions.length]);
-
-    async function loadMoreQuestions(uidOverride) {
-        // FIX(audit #10): single-flight — the refill effect fires on every
-        // question advance inside the last-5 window, and overlapping calls
-        // could append duplicate questions to the same run.
-        if (isFetchingMoreRef.current) return [];
-        isFetchingMoreRef.current = true;
-        try {
-            // `uidOverride` lets init() pass user.id before the userId state has
-            // propagated — otherwise the 60-day exclusion silently no-ops.
-            const uid = uidOverride || userId;
-            // 60-day non-repeat: Get user's recently seen question IDs using shared utility
-            const excludeIds = await getRecentlySeenIds(supabase, uid, 200, 'endless');
-
-            // Respect the player's preferred difficulty from the shared settings
-            // store (written by /hub/trivia/settings). 'any' / unset = full pool.
-            let preferredDifficulty;
-            try {
-                const saved = JSON.parse(localStorage.getItem('trivia_settings') || '{}') || {};
-                if (['easy', 'medium', 'hard'].includes(saved.difficulty)) preferredDifficulty = saved.difficulty;
-            } catch (e) { preferredDifficulty = undefined; }
-
-            // Phase 55: random offset fetch — was always pulling the same 200
-            // newest rows, so users in long sessions cycled through the same window
-            // while 8400+ other questions never appeared.
-            let data = await fetchRandomQuestionPool(supabase, { pageSize: 200, difficulty: preferredDifficulty });
-            // If the preferred difficulty has no usable pool, fall back to all
-            // difficulties rather than leaving the player with a blank board.
-            if ((!data || data.length === 0) && preferredDifficulty) {
-                data = await fetchRandomQuestionPool(supabase, { pageSize: 200 });
-            }
-            if (data && data.length > 0) {
-                // Filter out recently seen questions and shuffle using shared utility (unbiased)
-                // Phase 51: prefer high-quality questions for casual endless play
-                // sessionExcludeIds is a HARD exclusion: a question already
-                // served in this sitting must never come back, not even through
-                // filterAndShuffle's seen/quality degradation fallbacks. Without
-                // it a long endless run re-served questions from earlier in the
-                // SAME game as soon as the unseen pool ran thin.
-                const available = filterAndShuffle(data, excludeIds, 20, {
-                    minQualityScore: 6,
-                    preferHighQuality: true,
-                    sessionExcludeIds: sessionServedIdsRef.current
-                });
-                const toAdd = shuffleOptions(available.slice(0, 50));
-                for (const q of toAdd) { if (q?.id) sessionServedIdsRef.current.add(q.id); }
-
-                setQuestions(prev => {
-                    // FIX(audit #10): belt-and-suspenders dedup on append — even
-                    // if two refills raced past the single-flight guard, never
-                    // let an id already in the deck in twice.
-                    const have = new Set(prev.map(p => p?.id));
-                    const next = [...prev, ...toAdd.filter(q => q?.id && !have.has(q.id))];
-                    // Keep the ref hot immediately — startGame needs to verify a
-                    // non-empty pool before charging, without waiting for a render.
-                    questionsRef.current = next;
-                    return next;
-                });
-                return toAdd;
-            }
-        } catch (e) {
-            console.warn('Failed to load questions:', e);
-        } finally {
-            // FIX(audit #10): release the single-flight lock on every path.
-            isFetchingMoreRef.current = false;
-        }
-        return [];
-    }
-
     async function startGame() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
-        // Verify a non-empty pool BEFORE taking the entry fee. Previously the
-        // ready-screen image was clickable while isLoading was true, so a player
-        // could pay 10💎, land on a blank board (questions.length === 0) and get
-        // run down by the shot clock into an instant 0-streak game over.
-        // NOTE: read the array loadMoreQuestions RETURNS, not the `questions`
-        // state — setQuestions has not re-rendered yet at this point.
-        let pool = (questions && questions.length > 0) ? questions : questionsRef.current;
-        if (!pool || pool.length === 0) {
-            setIsLoading(true);
-            const added = await loadMoreQuestions();
+        setLoadError(null);
+
+        // Reset the per-game save pipeline. This is also the "Play Again"
+        // path - a stale phase or settlement from the previous game would
+        // make this game skip its own submit and re-report the old numbers.
+        savePhaseRef.current = 0;
+        serverResultRef.current = null;
+        sessionAnswersRef.current = [];
+        setSaveErrorPayload(null);
+
+        // Open the server session BEFORE any charge, so a start failure can
+        // never eat an entry fee. The served questions are used VERBATIM -
+        // their options are already permuted into grading order, so
+        // reshuffling them would break the display-index mapping the grader
+        // uses. One session serves the whole run; there are no mid-run
+        // refills any more.
+        let served;
+        setIsLoading(true);
+        try {
+            served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
+        } catch (e) {
+            console.warn('[Endless] Server session start failed:', e?.message || e);
+            setLoadError('We could not load any questions right now. Please check your connection and try again.');
+            return;
+        } finally {
             setIsLoading(false);
-            pool = (added && added.length > 0) ? added : questionsRef.current;
         }
-        if (!pool || pool.length === 0) {
+        if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
+            // NEVER charge for an empty game.
+            serverRun.reset();
             setLoadError('We could not load any questions right now. Please check your connection and try again.');
             return;
         }
-        setLoadError(null);
 
         // NOTE: the `sessionStorage.trivia_paid` short-circuit is gone. Nothing
         // writes that flag any more, so the only thing it could still do was let
         // a stale flag from an earlier session buy a free entry. Always charge.
 
-        // Per-game diamond gate (VIP bypass)
+        // Per-game diamond gate (VIP bypass). Charged only AFTER the session
+        // opened; every failure path abandons the session via serverRun.reset()
+        // (it expires server-side and pays nothing).
         if (!isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
             let freshBalance = userDiamonds;
@@ -442,12 +356,14 @@ export default function EndlessModePage() {
                 }
 
                 if (freshBalance < GAME_ENTRY_COST) {
+                    serverRun.reset();
                     setShowOutOfDiamonds(true);
                     return;
                 }
 
                 const result = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_endless');
                 if (!result.success) {
+                    serverRun.reset();
                     setShowOutOfDiamonds(true);
                     return;
                 }
@@ -455,33 +371,29 @@ export default function EndlessModePage() {
                 // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             } catch (e) {
                 console.warn('[Endless] Diamond deduction failed:', e);
+                serverRun.reset();
                 setShowOutOfDiamonds(true);
                 return;
             }
         }
+        setQuestions(served.questions);
         setGameState('playing');
         setStreak(0);
         setDiamondsEarned(0);
-        setMultiplier(1);
+        setMisses(0);
         setCurrentIndex(0);
         setGameDurationSec(0);
         setPreGameHighScore(highScore);
         streakRef.current = 0;
         diamondsEarnedRef.current = 0;
+        missesRef.current = 0;
         setAwardedDiamonds(null);
         currentIndexRef.current = 0;
-        answerOutcomesRef.current = []; // FIX(audit #17): fresh outcome log per game
-        // Fresh per-game reward reference + save-phase tracker so game 2 in the
-        // same minute is credited independently of game 1.
-        gameRewardRefId.current = newReferenceId('endless_reward', userId || 'anon');
-        savePhaseRef.current = 0;
+        setVerdict(null);
+        answerLockRef.current = false;
+        trivia.reset();
         // Reset all lifeline states for new game
-        setFiftyFiftyUsedFree(false);
-        setEliminatedOptions([]);
         setSkipUsedThisQuestion(false);
-        setDoubleChanceActive(false);
-        setDoubleChanceUsedThisQuestion(false);
-        setFirstAttemptWrong(null);
         setLifelinesUsedThisGame(0);
         // Start shot clock
         timer.resetTimer();
@@ -536,29 +448,15 @@ export default function EndlessModePage() {
         };
     }, [timer.isTimerRunning, trivia.showResult, timer.timeLeft, settings]);
 
-    // Handle timeout - game over.
-    // Mirrors selectAnswer's wrong-answer path: show the 'saving' skeleton and
-    // let saveGameResult decide the final state. Previously this jumped straight
-    // to 'gameover' and could then flash into 'saving_error' behind the panel.
+    // Handle timeout - one miss, not instant game over. The timeout is
+    // recorded server-side as a skip (displayIndex -1), which session-answer
+    // grades as wrong, so the verdict path counts the miss and reveals the
+    // correct answer exactly like a wrong tap.
     function handleTimeOut() {
         timer.setIsTimerRunning(false);
         setScreenShake(false);
         if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
-        trivia.setShowResult(true);
-        // FIX(audit #2): the current question timed out — record it as an
-        // incorrect outcome so the history batch attributes it correctly.
-        answerOutcomesRef.current.push(false);
-        // FIX(audit #2): never stack a second pending timeout on top of an
-        // existing one — an un-cleared earlier timeout could fire a duplicate
-        // saveGameResult after savePhaseRef was reset, double-running the save
-        // pipeline (reward dedup then throws and strands the player in an
-        // unwinnable saving_error retry loop).
-        if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
-        answerTimeoutRef.current = setTimeout(() => {
-            finalizeDuration();
-            setGameState('saving');
-            saveGameResult();
-        }, 1500);
+        gradeAnswer(-1);
     }
 
     function finalizeDuration() {
@@ -569,11 +467,12 @@ export default function EndlessModePage() {
 
     /**
      * Charge a lifeline. Returns true when the player may use it.
-     * VIP members are never charged (matching HintButtons.jsx / StrategyTrivia)
-     * and every purchase gets a unique reference_id so repeat buys are not
-     * de-duplicated away by the DB.
+     * VIP members are never charged (matching HintButtons.jsx / StrategyTrivia).
+     * Charges route through DiamondEngine.deduct - the direct balance RPC
+     * this page used to call lost authenticated EXECUTE on 2026-08-03, so
+     * every purchase silently failed.
      */
-    async function chargeLifeline(cost, prefix, label) {
+    async function chargeLifeline(cost, source) {
         if (isVip) return true;              // VIP lifelines are free
         if (!userId) return true;            // Guest play — nothing to charge
         if (userDiamonds < cost) {
@@ -581,275 +480,218 @@ export default function EndlessModePage() {
             return false;
         }
         try {
-            const { data, error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: userId,
-                p_amount: -cost,
-                p_type: 'endless_lifeline',
-                p_description: `Endless ${label} — ${cost} diamonds`,
-                p_reference_id: newReferenceId(prefix, userId)
-            });
-            if (rpcErr) throw rpcErr;
-            // The RPC can return { success:false } WITHOUT an error (insufficient
-            // balance / dedup). Treat that as a failure instead of granting a
-            // lifeline the player never paid for.
-            if (data && typeof data === 'object' && data.success === false) {
+            const charge = await DiamondEngine.deduct(cost, source);
+            if (!charge.success) {
                 setShowOutOfDiamonds(true);
                 return false;
             }
-            const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-            if (profile) setUserDiamonds(profile.diamonds || 0);
-            busEmit.diamondsSpent(cost, label);
+            if (charge.balance !== undefined) setUserDiamonds(charge.balance);
+            // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             return true;
         } catch (e) {
             console.warn('[Endless] Lifeline deduction failed:', e);
-            setLifelineError('Could not purchase that lifeline. Please try again.');
-            setTimeout(() => setLifelineError(null), 3000);
+            setActionError('Could not purchase that lifeline. Please try again.');
+            setTimeout(() => setActionError(null), 3000);
             return false;
         }
     }
 
-    // 50/50 Lifeline Function
-    async function useFiftyFifty() {
-        if (eliminatedOptions.length > 0 || trivia.showResult) return; // Already used on this question
-
-        const currentQ = questions[currentIndex];
-        if (!currentQ) return;
-
-        const needsToPay = fiftyFiftyUsedFree && !isVip;
-
-        if (needsToPay) {
-            // Paid 50/50 counts against the per-game lifeline cap, like Skip and
-            // Double Chance. It previously bypassed the cap entirely.
-            if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) return;
-            // FIX(audit #8): synchronous lock — a double-tap on the paid 50/50
-            // charged twice for a single elimination set.
-            if (lifelineBusyRef.current) return;
-            lifelineBusyRef.current = true;
-            try {
-                const paid = await chargeLifeline(LIFELINE_COST, 'endless_fifty', '50/50 Lifeline');
-                if (!paid) return;
-                setLifelinesUsedThisGame(prev => prev + 1);
-            } finally {
-                lifelineBusyRef.current = false;
-            }
-        } else {
-            setFiftyFiftyUsedFree(true);
-        }
-
-        // Find wrong answer indices
-        const wrongIndices = currentQ.options
-            .map((_, idx) => idx)
-            .filter(idx => idx !== currentQ.correct_index);
-
-        // Phase 59: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
-        for (let i = wrongIndices.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
-        }
-        const toEliminate = wrongIndices.slice(0, 2);
-        setEliminatedOptions(toEliminate);
-    }
-
-    // Skip Question Function (costs 5 diamonds, free for VIP)
+    // Skip Question Function (costs 5 diamonds, free for VIP). The skipped
+    // question is never answered: it is omitted from session-submit, so it is
+    // not a miss and does not break the streak - it just burns a lifeline.
     async function useSkipQuestion() {
-        if (trivia.showResult || skipUsedThisQuestion) return;
+        if (trivia.showResult || skipUsedThisQuestion || answerLockRef.current) return;
         if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) {
             // Lifeline limit reached — silently prevent
             return;
         }
         // FIX(audit #8): synchronous lock BEFORE the awaited charge — the state
         // guards above don't re-render fast enough to stop a double-tap, which
-        // charged twice (unique reference ids) and skipped two questions.
+        // charged twice and skipped two questions.
         if (lifelineBusyRef.current) return;
         lifelineBusyRef.current = true;
         try {
-            const paid = await chargeLifeline(LIFELINE_COST, 'endless_skip', 'Skip Question');
+            const paid = await chargeLifeline(LIFELINE_COST, 'endless_skip');
             if (!paid) return;
             setLifelinesUsedThisGame(prev => prev + 1);
 
             setSkipUsedThisQuestion(true);
             timer.setIsTimerRunning(false);
 
-            // FIX(audit #17): skipped question was still SEEN but never answered
-            // — log null so history doesn't credit it as correct.
-            answerOutcomesRef.current.push(null);
-
-            // Move to next question without penalty (keep streak)
-            setCurrentIndex(prev => prev + 1);
+            // Move to next question without penalty (keep streak). If the
+            // roster somehow runs out, end the run instead of advancing into
+            // an empty board.
+            if (currentIndexRef.current + 1 >= questions.length) {
+                endRun();
+                return;
+            }
+            setCurrentIndex(prev => { const next = prev + 1; currentIndexRef.current = next; return next; });
             trivia.reset();
-            setEliminatedOptions([]);
+            setVerdict(null);
             setSkipUsedThisQuestion(false);
-            setDoubleChanceActive(false);
-            setDoubleChanceUsedThisQuestion(false);
-            setFirstAttemptWrong(null);
             timer.resetTimer();
         } finally {
             lifelineBusyRef.current = false;
         }
     }
 
-    async function useDoubleChance() {
-        if (trivia.showResult || doubleChanceUsedThisQuestion || doubleChanceActive) return;
-        if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) {
-            // Lifeline limit reached — silently prevent
-            return;
-        }
-        // FIX(audit #8): synchronous lock — a double-tap paid twice for one
-        // double chance (the second setDoubleChanceActive(true) is a no-op).
-        if (lifelineBusyRef.current) return;
-        lifelineBusyRef.current = true;
+    // Per-answer server grading. Lock the tap immediately, record it with
+    // /api/trivia/session-answer (the first answer per question is BINDING
+    // server-side), then reveal from the verdict. A failed call unlocks so the
+    // player can re-tap - the endpoint is idempotent per question, so a retry
+    // cannot double-record. displayIndex -1 is the shot-clock timeout.
+    async function gradeAnswer(displayIndex) {
+        if (answerLockRef.current || trivia.showResult) return;
+        const q = questions[currentIndex];
+        if (!q || typeof q.id !== 'string') return;
+        answerLockRef.current = true;
+        timer.setIsTimerRunning(false);
+        if (displayIndex >= 0) trivia.setSelectedAnswer(displayIndex); // instant visual lock on the tap
         try {
-            const paid = await chargeLifeline(LIFELINE_COST, 'endless_double', 'Double Chance');
-            if (!paid) return;
-            setLifelinesUsedThisGame(prev => prev + 1);
-
-            setDoubleChanceActive(true);
-            setDoubleChanceUsedThisQuestion(true);
-        } finally {
-            lifelineBusyRef.current = false;
+            const v = await serverRun.answer({ questionId: q.id, displayIndex });
+            applyVerdict(q, displayIndex, v);
+        } catch (e) {
+            console.warn('[Endless] Answer grading failed:', e?.message || e);
+            if (displayIndex < 0) {
+                // Timeout that could not reach the server: no re-tap is
+                // possible, so record it locally (session-submit still grades
+                // it server-side) and count the miss without a reveal.
+                sessionAnswersRef.current.push({ questionId: q.id, displayIndex: -1 });
+                const missCount = missesRef.current + 1;
+                missesRef.current = missCount;
+                setMisses(missCount);
+                if (missCount >= MAX_MISSES) {
+                    endRun();
+                } else {
+                    scheduleAdvance(400);
+                }
+            } else {
+                // Unlock and let the player re-tap; give the shot clock back.
+                trivia.setSelectedAnswer(null);
+                answerLockRef.current = false;
+                setActionError('Could not submit that answer. Please tap it again.');
+                setTimeout(() => setActionError(null), 3000);
+                timer.setIsTimerRunning(true);
+            }
         }
     }
 
-    function selectAnswer(index) {
-        // FIX(audit #2): also block on showResult. handleTimeOut reveals the
-        // correct answer via setShowResult(true) WITHOUT setting selectedAnswer,
-        // so during the 1.5s reveal the option buttons were still enabled — a
-        // player could tap the highlighted correct answer after every timeout
-        // and be credited streak + diamonds for a question they never answered
-        // (and schedule a second, duplicate saveGameResult). Survival already
-        // guards both; endless now matches.
-        if (trivia.selectedAnswer !== null || trivia.showResult) return;
+    // Side effects that used to key off the client-computed correct_index now
+    // key off the server verdict. Zero answer-key reads in the play path.
+    function applyVerdict(q, displayIndex, v) {
+        setVerdict(v);
+        trivia.setShowResult(true);
+        sessionAnswersRef.current.push({ questionId: q.id, displayIndex });
 
-        // Stop timer
-        timer.setIsTimerRunning(false);
-        const answerTime = 24 - timer.timeLeft; // How many seconds it took to answer
+        if (v?.wasCorrect === true) {
+            // Server payout is count-based for endless: 1 diamond per correct
+            // answer (capped daily at settle time). The old streak-multiplier
+            // and speed-bonus diamond math promised amounts the server never
+            // pays, so the running total now mirrors the real formula.
+            setDiamondsEarned(prev => { const next = prev + 1; diamondsEarnedRef.current = next; return next; });
+            setStreak(prev => { const next = prev + 1; streakRef.current = next; return next; });
+            busEmit.decisionCorrect(streakRef.current);
+            scheduleAdvance(1000);
+        } else {
+            const missCount = missesRef.current + 1;
+            missesRef.current = missCount;
+            setMisses(missCount);
+            busEmit.decisionIncorrect(streakRef.current);
+            busEmit.screenShake('medium');
+            if (missCount >= MAX_MISSES) {
+                // Third miss: hold the reveal, then settle the run.
+                if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
+                answerTimeoutRef.current = setTimeout(endRun, 1500);
+            } else {
+                scheduleAdvance(1500);
+            }
+        }
+    }
 
-        // If Double Chance active and this is first attempt
-        if (doubleChanceActive && firstAttemptWrong === null) {
-            const currentQuestion = questions[currentIndex];
-            const correct = index === currentQuestion?.correct_index;
-
-            if (!correct) {
-                // First wrong attempt - allow second try, reset timer.
-                // Also strike the wrong option out so the player cannot burn
-                // their second chance by double-tapping the same answer.
-                setFirstAttemptWrong(index);
-                setEliminatedOptions(prev => (prev.includes(index) ? prev : [...prev, index]));
-                timer.resetTimer();
+    // Advance to the next question after the reveal, or end the run when the
+    // 100-question roster is exhausted (a fresh game is a fresh session).
+    function scheduleAdvance(delayMs) {
+        if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
+        answerTimeoutRef.current = setTimeout(() => {
+            if (currentIndexRef.current + 1 >= questions.length) {
+                endRun();
                 return;
             }
-        }
+            setCurrentIndex(prev => { const next = prev + 1; currentIndexRef.current = next; return next; });
+            setVerdict(null);
+            trivia.reset();
+            setSkipUsedThisQuestion(false);
+            answerLockRef.current = false;
+            timer.resetTimer();
+        }, delayMs);
+    }
 
-        const currentQuestion = questions[currentIndex];
-        const correct = index === currentQuestion?.correct_index;
-
-        trivia.setSelectedAnswer(index);
-        trivia.setShowResult(true);
-
-        if (correct) {
-            let earned = multiplier;
-
-            // Speed bonus for fast answers (under 10 seconds)
-            if (answerTime < 10) {
-                const bonus = answerTime <= 3 ? 3 : answerTime <= 5 ? 2 : 1;
-                setSpeedBonus(bonus);
-                setShowSpeedBonus(true);
-                earned += bonus;
-                setTimeout(() => setShowSpeedBonus(false), 1500);
-            }
-
-            setDiamondsEarned(prev => { const next = prev + earned; diamondsEarnedRef.current = next; return next; });
-            setStreak(prev => { const next = prev + 1; streakRef.current = next; return next; });
-            // FIX(audit #17): per-question outcome tracking (true=correct,
-            // false=wrong/timeout, null=skipped). Index-aligned with `questions`
-            // so the history batch never mislabels a skipped question as correct.
-            answerOutcomesRef.current.push(true);
-            busEmit.decisionCorrect(streak + 1);
-
-            // Multiplier tier-up celebration — the multiplier used to tick up
-            // silently in the corner. Every 5 correct answers unlocks a new tier.
-            const nextStreak = streak + 1;
-            if (nextStreak > 0 && nextStreak % 5 === 0) {
-                setMilestoneMultiplier(Math.floor(nextStreak / 5) + 1);
-                busEmit.celebration('confetti');
-                setTimeout(() => setMilestoneMultiplier(0), 1800);
-            }
-
-            // FIX(audit #2): clear any pending timeout before scheduling a new
-            // one so two pipelines can never race (advance vs save).
-            if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
-            answerTimeoutRef.current = setTimeout(() => {
-                setCurrentIndex(prev => { const next = prev + 1; currentIndexRef.current = next; return next; });
-                trivia.reset();
-                setEliminatedOptions([]);
-                setSkipUsedThisQuestion(false);
-                setDoubleChanceActive(false);
-                setDoubleChanceUsedThisQuestion(false);
-                setFirstAttemptWrong(null);
-                timer.resetTimer();
-            }, 1000);
-        } else {
-            // FIX(audit #17): record the run-ending wrong answer explicitly.
-            answerOutcomesRef.current.push(false);
-            busEmit.decisionIncorrect(streak);
-            busEmit.screenShake('medium');
-            // FIX(audit #2): clear any pending timeout before scheduling the
-            // save so saveGameResult can never be queued twice.
-            if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
-            answerTimeoutRef.current = setTimeout(() => {
-                finalizeDuration();
-                setGameState('saving'); // Show skeleton while saving
-                saveGameResult();
-            }, 1500);
-        }
+    function endRun() {
+        finalizeDuration();
+        setGameState('saving');
+        saveGameResult();
     }
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
-    const savePhaseRef = useRef(0); // 0=none, 1=diamonds, 2=highscore, 3=history
+    const savePhaseRef = useRef(0); // 0=none, 1=settled, 2=highscore, 3=history, 4=score
+    // Server settlement result, kept in a ref so a saving_error retry re-uses
+    // the already-paid result instead of re-submitting a closed session.
+    const serverResultRef = useRef(null);
 
     async function saveGameResult() {
-        if (!userId) return;
-
-        // Use refs to avoid stale state from setTimeout closure
-        const finalDiamonds = diamondsEarnedRef.current;
-        const finalStreak = streakRef.current;
-        const finalIndex = currentIndexRef.current;
+        if (!userId) {
+            setGameState('gameover');
+            return;
+        }
 
         try {
-            let actualAwarded = 0;
-            // Phase 1: Award diamonds (only if not already awarded)
+            // Phase 1: settle the run server-side (only if not already
+            // settled). The server grades from the answers it stored at tap
+            // time, applies the daily cap and pays per correct answer through
+            // a locked RPC - no client-side crediting, ever. Skipped questions
+            // are omitted from the array: the server counts them wrong, which
+            // is harmless because payout is per-correct.
             if (savePhaseRef.current < 1) {
-                // Clamp to daily cap
-                const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'endless');
-                const cappedDiamonds = clampToCap(earnedToday, finalDiamonds, DAILY_DIAMOND_CAP);
-                setAwardedDiamonds(cappedDiamonds);
-                if (cappedDiamonds > 0) {
-                    // Per-GAME reference (generated at startGame, held in a ref)
-                    // so Retry Save is idempotent but two games in the same
-                    // minute are credited independently. The old per-minute
-                    // bucket silently dropped the second game's reward while
-                    // trivia_scores still recorded diamonds_earned.
-                    if (!gameRewardRefId.current) {
-                        gameRewardRefId.current = newReferenceId('endless_reward', userId);
-                    }
-                    const { data: rpcData, error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                        p_user_id: userId,
-                        p_amount: cappedDiamonds,
-                        p_type: 'endless_reward',
-                        p_description: `Endless mode — ${cappedDiamonds} diamonds (${finalStreak} streak)`,
-                        p_reference_id: gameRewardRefId.current
-                    });
-                    if (__rpcErr) throw __rpcErr;
-                    if (rpcData && typeof rpcData === 'object' && rpcData.success === false) {
-                        throw new Error(rpcData.error || 'Diamond award was rejected');
-                    }
+                const submitted = await serverRun.submit(
+                    sessionAnswersRef.current.map(a => ({
+                        questionId: a.questionId,
+                        displayIndex: a.displayIndex
+                    }))
+                );
+                serverResultRef.current = submitted;
+                savePhaseRef.current = 1;
+
+                // Local balance from the server's post-award number, with a
+                // fresh profiles read as the fallback.
+                if (Number.isFinite(submitted?.newBalance)) {
+                    setUserDiamonds(submitted.newBalance);
+                } else {
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
-                    busEmit.diamondsEarned(cappedDiamonds, 'Endless Mode');
-                    actualAwarded = cappedDiamonds;
                 }
-                savePhaseRef.current = 1;
+                if ((submitted?.diamondsAwarded || 0) > 0) {
+                    busEmit.diamondsEarned(submitted.diamondsAwarded, 'Endless Mode');
+                }
             }
+            const settled = serverResultRef.current || {};
+            const awarded = Number.isFinite(settled.diamondsAwarded) ? settled.diamondsAwarded : 0;
+            const serverCorrect = Number.isFinite(settled.correct) ? settled.correct : streakRef.current;
+            const serverScore = Number.isFinite(settled.score) ? settled.score : serverCorrect * 100;
+
+            // Show what the server actually graded and credited, not what the
+            // client hoped for.
+            setAwardedDiamonds(awarded);
+            setStreak(serverCorrect);
+            streakRef.current = serverCorrect;
+            setDiamondsEarned(serverCorrect);
+            diamondsEarnedRef.current = serverCorrect;
+
+            // questionId -> wasCorrect from the server's per-question
+            // verdicts, for the history phase below.
+            const verdictMap = {};
+            (Array.isArray(settled.perQuestion) ? settled.perQuestion : []).forEach(pq => {
+                if (pq && typeof pq.questionId === 'string') verdictMap[pq.questionId] = pq.wasCorrect === true;
+            });
 
             // Phase 2: Update high score (only if not already updated).
             //
@@ -861,41 +703,34 @@ export default function EndlessModePage() {
             // after diamonds had already been awarded in phase 1. A cosmetic
             // high-score row is not worth trapping the player.
             if (savePhaseRef.current < 2) {
-                if (finalStreak > highScore) {
+                if (serverCorrect > highScore) {
                     const { error: hsErr } = await supabase
                         .from('endless_high_scores')
                         .upsert({
                             user_id: userId,
                             mode: 'random',
-                            high_score: finalStreak,
+                            high_score: serverCorrect,
                             achieved_at: new Date().toISOString()
                         }, { onConflict: 'user_id,mode' });
                     if (hsErr) {
                         console.warn('[Endless] High-score upsert failed (non-fatal):', hsErr.message);
                     }
-                    setHighScore(finalStreak);
+                    setHighScore(serverCorrect);
                 }
                 savePhaseRef.current = 2;
             }
 
-            // Phase 3: Record question history (only if not already recorded).
-            // Phase 59: filter null question_id (FK violation guard) +
-            // capture upsert errors that were silently swallowed.
+            // Phase 3: Record question history (only if not already recorded),
+            // for the questions actually answered, with was_correct taken from
+            // the server's per-question verdicts - the client has no answer
+            // key to compare against.
             if (savePhaseRef.current < 3) {
-                // FIX(audit #17): build history from the per-question outcome
-                // log instead of assuming everything before finalIndex was
-                // answered correctly — that assumption recorded SKIPPED
-                // questions (which advance the index without an answer) as
-                // was_correct:true. Null outcomes (skips) are dropped, matching
-                // survival's recordQuestionHistory.
-                const servedQuestions = questions.slice(0, answerOutcomesRef.current.length);
-                const historyRecords = servedQuestions
-                    .map((q, idx) => ({ q, outcome: answerOutcomesRef.current[idx] }))
-                    .filter(({ q, outcome }) => q && q.id != null && outcome != null)
-                    .map(({ q, outcome }) => ({
+                const historyRecords = sessionAnswersRef.current
+                    .filter(a => a && a.questionId != null)
+                    .map(a => ({
                         user_id: userId,
-                        question_id: q.id,
-                        was_correct: outcome === true,
+                        question_id: a.questionId,
+                        was_correct: verdictMap[a.questionId] === true,
                         seen_at: new Date().toISOString(),
                         mode: 'endless'
                     }));
@@ -922,23 +757,24 @@ export default function EndlessModePage() {
                 savePhaseRef.current = 3;
             }
 
-            // Phase 4: Record to unified trivia_scores (for leaderboard).
-            // Capture insert error — supabase-js does NOT throw on DB errors.
+            // Phase 4: Record to unified trivia_scores (for leaderboard) with
+            // the SERVER numbers. Capture insert error — supabase-js does NOT
+            // throw on DB errors.
             if (savePhaseRef.current < 4) {
                 // Phase 73: CST-anchored play_date so leaderboard.js (which
                 // queries by CST today) finds same-day rows.
                 const today = getTodayCST();
+                // The server's `total` is the FULL served roster (padded far
+                // beyond a realistic run), so "X of Y" stats use the count
+                // actually answered (timeouts included, skips not).
                 const { error: scoreErr } = await supabase.from('trivia_scores').insert({
                     user_id: userId,
                     username: avatarUser?.username || avatarUser?.display_name || null,
                     mode: 'endless',
-                    score: finalStreak * 100,
-                    correct_count: finalStreak,
-                    // FIX(audit #17): count questions actually SERVED (including
-                    // skips), not streak+1 — skips advanced the index without
-                    // advancing the streak, so totals under-counted.
-                    total_questions: Math.max(finalStreak + 1, answerOutcomesRef.current.length),
-                    diamonds_earned: actualAwarded,
+                    score: serverScore,
+                    correct_count: serverCorrect,
+                    total_questions: Math.max(serverCorrect, sessionAnswersRef.current.length),
+                    diamonds_earned: awarded,
                     play_date: today
                 });
                 if (scoreErr) throw scoreErr;
@@ -946,15 +782,13 @@ export default function EndlessModePage() {
             }
 
             // Success! Game saved — reset phase for next game.
-            // gameRewardRefId is deliberately NOT cleared here; startGame mints
-            // a fresh one for the next run.
             setGameState('gameover');
             setSaveErrorPayload(null);
             savePhaseRef.current = 0;
         } catch (e) {
             console.warn('[Endless] Failed to save game result:', e);
             // Save failed (network drop) -> Provide Retry UI (savePhaseRef preserves progress)
-            setSaveErrorPayload({ finalDiamonds, finalStreak, finalIndex });
+            setSaveErrorPayload({ finalDiamonds: diamondsEarnedRef.current, finalStreak: streakRef.current });
             setGameState('saving_error');
         }
     }
@@ -966,24 +800,10 @@ export default function EndlessModePage() {
         saveGameResult(); // savePhaseRef skips already-completed steps
     };
 
+    // Play Again - the server deals a FRESH roster for every session (the
+    // just-played questions are now in trivia_user_question_history), and
+    // startGame() opens the new session BEFORE charging another entry fee.
     function playAgain() {
-        // Phase 59: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
-        setQuestions(prev => {
-            // FIX(audit #7): slice from currentIndex + 1 — index currentIndex is
-            // the question the player just got WRONG, whose correct answer was
-            // highlighted on the reveal screen seconds ago. slice(currentIndex)
-            // kept it in the next game's deck: a just-seen repeat and a
-            // guaranteed-correct free diamond.
-            const remaining = prev.slice(currentIndex + 1);
-            for (let i = remaining.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
-            }
-            return shuffleOptions(remaining);
-        });
-        setCurrentIndex(0);
-        currentIndexRef.current = 0;
-        trivia.reset();
         startGame();
     }
 
@@ -1004,7 +824,7 @@ export default function EndlessModePage() {
                     userId={userId}
                     featureKey="trivia_endless"
                     isVip={isVip}
-                    cost={10}
+                    cost={GAME_ENTRY_COST}
                 />
             )}
 
@@ -1050,7 +870,7 @@ export default function EndlessModePage() {
                                 <div style={{ display: 'flex', gap: '16px', fontSize: '14px' }}>
                                     <span style={{ color: '#e69500' }}>Streak: {streak}</span>
                                     <span style={{ color: '#2374e1' }}>Diamonds: {diamondsEarned}</span>
-                                    <span style={{ color: '#31a24c' }}>{multiplier}x</span>
+                                    <span style={{ color: '#ef4444' }}>Misses: {misses}/{MAX_MISSES}</span>
                                 </div>
                             </div>
                         )}
@@ -1185,68 +1005,8 @@ export default function EndlessModePage() {
                                     </div>
                                 )}
 
-                                {/* Speed Bonus Animation */}
-                                {showSpeedBonus && (
-                                    <div style={{
-                                        position: 'fixed',
-                                        top: '50%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        zIndex: 100,
-                                        animation: 'bonusPop 1.5s ease-out forwards',
-                                        pointerEvents: 'none'
-                                    }}>
-                                        <style>{`
-                                            @keyframes bonusPop {
-                                                0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-                                                20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-                                                80% { transform: translate(-50%, -80%) scale(1); opacity: 1; }
-                                                100% { transform: translate(-50%, -100%) scale(0.8); opacity: 0; }
-                                            }
-                                        `}</style>
-                                        <div style={{
-                                            padding: '16px 32px',
-                                            background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                                            borderRadius: '16px',
-                                            boxShadow: '0 8px 32px rgba(251, 191, 36, 0.5)'
-                                        }}>
-                                            <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#1a1a1a' }}>
-                                                ⚡ SPEED BONUS +{speedBonus}💎
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Multiplier Tier-Up Celebration */}
-                                {milestoneMultiplier > 0 && (
-                                    <div style={{
-                                        position: 'fixed',
-                                        top: '42%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        zIndex: 100,
-                                        animation: 'bonusPop 1.8s ease-out forwards',
-                                        pointerEvents: 'none'
-                                    }}>
-                                        <div style={{
-                                            padding: '16px 32px',
-                                            background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-                                            borderRadius: '16px',
-                                            boxShadow: '0 8px 32px rgba(139, 92, 246, 0.5)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '10px'
-                                        }}>
-                                            <ZapIcon size={22} color="#fff" />
-                                            <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff' }}>
-                                                {milestoneMultiplier}x MULTIPLIER!
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Lifeline purchase failure */}
-                                {lifelineError && (
+                                {/* Lifeline purchase / answer submission failure */}
+                                {actionError && (
                                     <div role="alert" style={{
                                         background: 'rgba(239, 68, 68, 0.15)',
                                         border: '1px solid rgba(239, 68, 68, 0.4)',
@@ -1257,7 +1017,7 @@ export default function EndlessModePage() {
                                         fontSize: '13px',
                                         textAlign: 'center'
                                     }}>
-                                        {lifelineError}
+                                        {actionError}
                                     </div>
                                 )}
 
@@ -1422,29 +1182,6 @@ export default function EndlessModePage() {
                                     </div>
                                 )}
 
-                                {/* Multiplier Progress */}
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    padding: '10px 16px',
-                                    background: 'rgba(0, 0, 0, 0.3)',
-                                    borderRadius: '8px',
-                                    marginBottom: '20px'
-                                }}>
-                                    <div style={{ flex: 1, height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                                        <div style={{
-                                            height: '100%',
-                                            width: `${((streak % 5) / 5) * 100}%`,
-                                            background: '#8b5cf6',
-                                            transition: 'width 0.3s'
-                                        }} />
-                                    </div>
-                                    <span style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>
-                                        {5 - (streak % 5)} to {multiplier + 1}x
-                                    </span>
-                                </div>
-
                                 {/* Question Card */}
                                 <div style={{
                                     background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
@@ -1471,7 +1208,9 @@ export default function EndlessModePage() {
                                     </h2>
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-4 — shared option primitive (inline variant) */}
+                                        {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-4 — shared option primitive (inline variant).
+                                            The reveal keys off the server verdict: the client never
+                                            holds a correct_index of its own. */}
                                         {currentQuestion.options?.map((option, index) => (
                                             <TriviaAnswerOption
                                                 variant="inline"
@@ -1479,66 +1218,25 @@ export default function EndlessModePage() {
                                                 index={index}
                                                 option={toTitleCase(option)}
                                                 selectedAnswer={trivia.selectedAnswer}
-                                                correctIndex={currentQuestion.correct_index}
+                                                correctIndex={verdict ? verdict.correctDisplayIndex : null}
                                                 showResult={trivia.showResult}
-                                                eliminated={eliminatedOptions.includes(index)}
-                                                disabled={trivia.selectedAnswer !== null || eliminatedOptions.includes(index)}
-                                                onSelect={selectAnswer}
+                                                disabled={trivia.selectedAnswer !== null || trivia.showResult}
+                                                onSelect={gradeAnswer}
                                             />
                                         ))}
                                     </div>
 
                                     {/* Lifeline Buttons Row.
-                                        VIP members are never charged (parity with HintButtons.jsx /
-                                        StrategyTrivia), so the balance check must not lock them out.
-                                        `lifelineLocked` is the single source of truth for all three. */}
+                                        Skip is the one lifeline that survives server grading: it
+                                        never answers, so it needs no answer key and no second
+                                        attempt. VIP members are never charged (parity with
+                                        HintButtons.jsx / StrategyTrivia). */}
                                     {!trivia.showResult && (
                                         <div style={{
                                             display: 'flex',
                                             gap: '10px',
                                             marginTop: '16px'
                                         }}>
-                                            {/* 50/50 Button */}
-                                            <button
-                                                onClick={useFiftyFifty}
-                                                disabled={eliminatedOptions.length > 0}
-                                                style={{
-                                                    flex: 1,
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '4px',
-                                                    padding: '12px 8px',
-                                                    background: eliminatedOptions.length > 0
-                                                        ? 'rgba(100, 100, 100, 0.2)'
-                                                        : fiftyFiftyUsedFree
-                                                            ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 200, 0.3))'
-                                                            : 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(20, 150, 80, 0.3))',
-                                                    border: `2px solid ${eliminatedOptions.length > 0
-                                                        ? '#666'
-                                                        : fiftyFiftyUsedFree
-                                                            ? '#00D4FF'
-                                                            : '#22c55e'}`,
-                                                    borderRadius: '12px',
-                                                    color: eliminatedOptions.length > 0 ? '#666' : 'white',
-                                                    fontSize: '13px',
-                                                    fontWeight: 'bold',
-                                                    cursor: eliminatedOptions.length > 0 ? 'default' : 'pointer',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                            >
-                                                <span style={{ fontSize: '20px' }}>⚡</span>
-                                                <span>50/50</span>
-                                                {eliminatedOptions.length > 0 ? (
-                                                    <span style={{ fontSize: '11px', opacity: 0.7 }}>USED</span>
-                                                ) : (fiftyFiftyUsedFree && !isVip) ? (
-                                                    <span style={{ fontSize: '11px', color: '#00D4FF' }}>{LIFELINE_COST} DIAMONDS</span>
-                                                ) : (
-                                                    <span style={{ fontSize: '11px', color: '#22c55e' }}>FREE</span>
-                                                )}
-                                            </button>
-
                                             {/* Skip Question Button */}
                                             <button
                                                 onClick={useSkipQuestion}
@@ -1567,41 +1265,6 @@ export default function EndlessModePage() {
                                                 <span>Skip</span>
                                                 <span style={{ fontSize: '11px', color: isVip ? '#22c55e' : '#fbbf24' }}>{isVip ? 'FREE' : `${LIFELINE_COST} DIAMONDS`}</span>
                                             </button>
-
-                                            {/* Double Chance Button */}
-                                            <button
-                                                onClick={useDoubleChance}
-                                                disabled={doubleChanceUsedThisQuestion || doubleChanceActive || lifelineLocked}
-                                                style={{
-                                                    flex: 1,
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '4px',
-                                                    padding: '12px 8px',
-                                                    background: (doubleChanceUsedThisQuestion || doubleChanceActive || lifelineLocked)
-                                                        ? 'rgba(100, 100, 100, 0.2)'
-                                                        : 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(120, 60, 180, 0.3))',
-                                                    border: `2px solid ${(doubleChanceUsedThisQuestion || doubleChanceActive || lifelineLocked) ? '#666' : '#a855f7'}`,
-                                                    borderRadius: '12px',
-                                                    color: (doubleChanceUsedThisQuestion || doubleChanceActive || lifelineLocked) ? '#666' : 'white',
-                                                    fontSize: '13px',
-                                                    fontWeight: 'bold',
-                                                    cursor: (doubleChanceUsedThisQuestion || doubleChanceActive || lifelineLocked) ? 'default' : 'pointer',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                            >
-                                                <span style={{ fontSize: '20px' }}>🎯</span>
-                                                <span>2x Try</span>
-                                                {doubleChanceActive ? (
-                                                    <span style={{ fontSize: '11px', color: '#22c55e' }}>ACTIVE</span>
-                                                ) : doubleChanceUsedThisQuestion ? (
-                                                    <span style={{ fontSize: '11px', opacity: 0.7 }}>USED</span>
-                                                ) : (
-                                                    <span style={{ fontSize: '11px', color: isVip ? '#22c55e' : '#a855f7' }}>{isVip ? 'FREE' : `${LIFELINE_COST} DIAMONDS`}</span>
-                                                )}
-                                            </button>
                                         </div>
                                     )}
 
@@ -1618,7 +1281,7 @@ export default function EndlessModePage() {
                                         color: '#8b5cf6',
                                         fontSize: '13px'
                                     }}>
-                                        +{multiplier} diamonds for correct answer
+                                        +1 diamond per correct answer (max {DAILY_DIAMOND_CAP}/day)
                                     </div>
 
                                     {/* Report-a-bad-question — feeds the 3-strike quality_score
@@ -1749,7 +1412,7 @@ export default function EndlessModePage() {
                                         </button>
                                         <button
                                             onClick={async () => {
-                                                const r = await shareResult({ mode: 'Endless', score: streak, diamonds: diamondsEarned });
+                                                const r = await shareResult({ mode: 'Endless', score: streak, diamonds: awardedDiamonds != null ? awardedDiamonds : diamondsEarned });
                                                 if (r === 'copied') alert('Result copied to clipboard!');
                                             }}
                                             style={{
