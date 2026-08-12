@@ -35,7 +35,7 @@ jobs:
         id: timer
         run: echo "start=$(date +%s)" >> $GITHUB_OUTPUT
 
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       # CHECK 7: Storage bucket file_size_limit guard (RUNS FIRST)
       # Positioned before npm install so it runs even if install fails.
       # The social-media bucket file_size_limit was silently set to NULL on
@@ -54,7 +54,25 @@ jobs:
       # secret is not set the check warns but does not block — add the
       # secret in repo Settings → Secrets and variables → Actions to
       # activate enforcement.
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
+      - name: "CHECK 11: No new Supabase .catch() misuse"
+        run: |
+          # The PostgREST builder is a thenable with NO .catch(), so
+          # `await supabase.from(...).insert(...).catch(fn)` throws TypeError
+          # before the await runs — crashing the handler the .catch was meant
+          # to protect. Invisible to next build, tsc and _chk.cjs: it is valid
+          # syntax that only fails at runtime.
+          #
+          # This cost real uptime. Vercel runtime errors showed
+          # /api/cron/signup-probe and /api/cron/email-deliverability-check
+          # throwing it EVERY DAY from 2026-06-17 to 2026-08-12 — the probes
+          # that exist to announce a broken signup or mail flow were themselves
+          # dead for two months.
+          #
+          # Ratchet, not a hard fail: dozens of pre-existing sites are frozen at
+          # a baseline, and only an INCREASE fails the build.
+          node scripts/check-supabase-catch-misuse.mjs
+
       - name: "CHECK 10: Diamond economy invariants + merch reservation tests"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -210,10 +228,10 @@ jobs:
 
           [ "$FAIL" -eq 0 ] || exit 1
 
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       # CHECK 1: No .single() calls (must use .maybeSingle())
       # .single() throws PGRST116 when 0 rows returned = crash
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       - name: "CHECK 1: No .single() in Supabase queries"
         run: |
           echo "Scanning for .single() calls..."
@@ -233,16 +251,16 @@ jobs:
           fi
           echo "✓ No .single() calls found"
 
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       # CHECK 1b: No .js file may import from an explicit .ts path
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       # Root cause of the May 2026 auth cascade:
       #   src/lib/authUtils.js contained `import { ... } from './authUtils.ts'`
       # Webpack/Next.js cannot resolve explicit .ts extension imports in .js
       # files, causing every symbol to resolve as undefined — silently breaking
       # 20+ pages with "Attempted import error: X is not exported from authUtils".
       # This check catches that pattern before it reaches Vercel.
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       - name: "CHECK 1b: No .js file imports from explicit .ts path"
         run: |
           echo "Scanning for .js files that import from .ts paths..."
@@ -264,13 +282,13 @@ jobs:
           fi
           echo "✓ No .js→.ts explicit extension imports found"
 
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       # CHECK 1c: All authUtils imports must resolve to actual exports
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       # Catches "Attempted import error: X is not exported from authUtils"
       # before the commit reaches Vercel. Scans all consumer files and
       # verifies each imported symbol exists in authUtils.js.
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       - name: "CHECK 1c: authUtils imports match actual exports"
         run: |
           AUTHUTILS="src/lib/authUtils.js"
@@ -332,11 +350,11 @@ jobs:
           fi
           echo "✓ All authUtils imports resolve to actual exports"
 
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       # CHECK 2: No unused hook imports (the ThreePillHeader bug)
 
       # Imported but uncalled hooks = ReferenceError during SSG
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       - name: "CHECK 2: No unused React hook imports"
         run: |
           echo "Scanning for unused hook imports..."
@@ -358,10 +376,10 @@ jobs:
           fi
           echo "✓ All imported hooks are called"
 
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       # CHECK 3: No dynamic Supabase imports bypassing patched client
       # Must use src/lib/supabaseServerClient, never raw import
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       - name: "CHECK 3: No raw Supabase imports in API routes"
         run: |
           echo "Scanning for unpatched Supabase client usage..."
@@ -378,10 +396,10 @@ jobs:
           fi
           echo "✓ All API routes use patched Supabase client"
 
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       # CHECK 4: No merge conflict markers in source files
       # These cause immediate syntax errors and broken builds
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       - name: "CHECK 4: No merge conflict markers"
         run: |
           echo "Scanning for git merge conflict markers..."
@@ -402,13 +420,13 @@ jobs:
           fi
           echo "✓ No merge conflict markers found"
 
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       # CHECK 8: Auth-critical files exist on disk
       # Single source of truth: __tests__/auth-routes-exist.test.mjs
       # See docs/runbooks/07-auth-outage.md for the 2026-05-02 incident
       # that motivated this guard (every signup 404'd because
       # pages/auth/callback.js had been silently deleted).
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       - name: "CHECK 8: Auth-critical files exist"
         run: |
           if [ ! -f __tests__/auth-routes-exist.test.mjs ]; then
@@ -425,7 +443,7 @@ jobs:
             __tests__/phase-4-deliverables.test.mjs \
             __tests__/scroll-lock.test.mjs
 
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
       # All new scheduled jobs must go to Open Claw on Hetzner, not Vercel.
       # Allowed baselines (caps at the numbers captured 2026-04-24):
@@ -433,7 +451,7 @@ jobs:
       #   - pages/api/cron/ file count ≤ 45
       #   - GitHub Actions schedule: triggers only on the allowlist below
       # Shrinking these is fine (job retirement). Growing them is blocked.
-      # ═══════════════════════════════════════════════════════════════
+      # ═════════════════════════════════════════════════════════════
       - name: "CHECK 6: Cron governance (Open Claw migration)"
         run: |
           echo "Enforcing cron governance rules from CLAUDE.md section 11..."
@@ -498,9 +516,9 @@ jobs:
           ELAPSED=$(( END - ${{ steps.timer.outputs.start }} ))
           echo "## ⏱️ Safety Gate Duration: ${ELAPSED}s" >> $GITHUB_STEP_SUMMARY
 
-  # ═══════════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════════════════
   # FAILURE NOTIFICATION — Auto-create GitHub Issue on pipeline failure
-  # ═══════════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════════════════
   notify-failure:
     name: Failure Notification
     needs: [safety-checks]
@@ -538,9 +556,9 @@ jobs:
               });
             }
 
-  # ═══════════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════════════════
   # TYPESCRIPT VALIDATION (Parallel Job)
-  # ═══════════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════════════════
   type-check:
     name: TypeScript Check
     runs-on: ubuntu-latest
@@ -582,7 +600,7 @@ jobs:
             echo "✓ TypeScript compilation passed — zero errors"
           fi
 
-  # ═══════════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════════════════
   # VERCEL DEPLOY RETRY — Automatically re-triggers any Vercel deploy
   # that failed due to a transient GitHub HTTP 500 clone error.
   #
@@ -595,7 +613,7 @@ jobs:
   # the Vercel API for up to 5 minutes looking for any ERROR deployment
   # whose error message matches the GitHub-500 pattern. When found, it
   # immediately fires a new deployment for the same commit.
-  # ═══════════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════════════════
   vercel-deploy-retry:
     name: Vercel Deploy Retry (GitHub-500 guard)
     needs: [safety-checks]
