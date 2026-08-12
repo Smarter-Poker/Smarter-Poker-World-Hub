@@ -20,6 +20,7 @@ import {
   stateCodeToSlug,
   cityTitleToSlug,
   US_STATES_BY_CODE,
+  isGroupPubliclyVisible,
 } from '../../../../../src/lib/home-games/locationUtils';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 
@@ -31,27 +32,9 @@ const HOME_GROUP_INACTIVITY_DAYS = 45;
 // grace window, or covered by a host visibility override. Without this the SEO
 // surfaces kept advertising dead/deactivated/private groups (and emitting them
 // in ItemList JSON-LD) long after discover.js stopped returning them.
-function isGroupPubliclyVisible(g) {
-  if (!g || !g.id) return false;
-  if (g.is_active === false) return false;
-  if (g.is_private === true) return false;
-
-  const now = Date.now();
-  const cutoff = now - HOME_GROUP_INACTIVITY_DAYS * 24 * 60 * 60 * 1000;
-  const ts = (v) => {
-    if (!v) return null;
-    const t = Date.parse(v);
-    return Number.isNaN(t) ? null : t;
-  };
-
-  const lastActivity = ts(g.last_activity_at);
-  if (lastActivity != null && lastActivity >= cutoff) return true;
-  const created = ts(g.created_at);
-  if (created != null && created >= cutoff) return true;
-  const override = ts(g.visibility_override_until);
-  if (override != null && override > now) return true;
-  return false;
-}
+// isGroupPubliclyVisible now lives in locationUtils (audit M-4) — it was
+// copy-pasted byte-identically into three geo pages and MISSING from the
+// sitemap, which is how the sitemap ended up advertising 404s.
 
 // Land-border adjacency (plus the closest mainland states for AK/HI, which
 // have none). Used for the "Nearby states" internal-linking block — the old

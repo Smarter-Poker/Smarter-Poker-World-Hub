@@ -14,6 +14,7 @@ import {
   stateCodeToSlug,
   citySlugToTitle,
   cityTitleToSlug,
+  isGroupPubliclyVisible,
 } from '../../../../../src/lib/home-games/locationUtils';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 
@@ -27,27 +28,9 @@ const HOME_GROUP_INACTIVITY_DAYS = 45;
 // to the copy in in/[state]/index.js — without it this page kept advertising
 // deactivated / private / auto-hidden groups (and emitting them into the
 // ItemList JSON-LD) long after every other surface stopped returning them.
-function isGroupPubliclyVisible(g) {
-  if (!g || !g.id) return false;
-  if (g.is_active === false) return false;
-  if (g.is_private === true) return false;
-
-  const now = Date.now();
-  const cutoff = now - HOME_GROUP_INACTIVITY_DAYS * 24 * 60 * 60 * 1000;
-  const ts = (v) => {
-    if (!v) return null;
-    const t = Date.parse(v);
-    return Number.isNaN(t) ? null : t;
-  };
-
-  const lastActivity = ts(g.last_activity_at);
-  if (lastActivity != null && lastActivity >= cutoff) return true;
-  const created = ts(g.created_at);
-  if (created != null && created >= cutoff) return true;
-  const override = ts(g.visibility_override_until);
-  if (override != null && override > now) return true;
-  return false;
-}
+// isGroupPubliclyVisible now lives in locationUtils (audit M-4) — it was
+// copy-pasted byte-identically into three geo pages and MISSING from the
+// sitemap, which is how the sitemap ended up advertising 404s.
 
 export async function getServerSideProps({ params, res }) {
   const stateCode = stateSlugToCode(params?.state);
