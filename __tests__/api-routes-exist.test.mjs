@@ -87,18 +87,21 @@ const PROXIED_PREFIXES = ['/api/commander/'];
 //   2. The 'baseline has not gone stale' test FAILS when an entry starts
 //      resolving, forcing you to delete it. The baseline cannot rot.
 const BASELINE_DEAD = {
-  // pages/api/cron/ has 24 handlers; none of these 8 exist. Per CLAUDE.md
-  // section 11 the platform is mid-migration of scheduled jobs to Open Claw on
-  // Hetzner, so these were most likely moved and the health dashboard's list
-  // was never updated. Effect: /api/admin/cron-health reports 8 phantom jobs.
-  '/api/cron/tournament-alerts': 'cron-health monitors a handler that does not exist here (moved to Open Claw?)',
-  '/api/cron/daily-challenge': 'cron-health monitors a handler that does not exist here',
-  '/api/cron/content-grinder': 'cron-health monitors a handler that does not exist here',
-  '/api/cron/diamond-daily-rewards': 'cron-health monitors a handler that does not exist here',
-  '/api/cron/venue-data-refresh': 'cron-health monitors a handler that does not exist here',
-  '/api/cron/sentry-triage': 'cron-health monitors a handler that does not exist here',
-  '/api/cron/vip-expiration': 'cron-health monitors a handler that does not exist here',
-  '/api/cron/leaderboard-snapshot': 'cron-health monitors a handler that does not exist here',
+  // RESOLVED 2026-08-12 — the eight /api/cron/* entries that were here are
+  // gone, because the thing referencing them was itself the bug.
+  //
+  // pages/api/admin/cron-health.js listed local /api/cron/* endpoints for
+  // eight jobs. Six of those handlers exist nowhere; daily-challenge and
+  // sentry-triage had moved to Open Claw / the workers repo. Investigating
+  // turned up something larger: `cron_health_log` has ZERO rows and NO
+  // WRITER anywhere, so that monitor could never report a healthy job and
+  // had always answered "0/8_HEALTHY" — permanently crying wolf.
+  //
+  // The registry now records where each job actually runs instead of naming
+  // deleted routes, and reports NO_TELEMETRY rather than alarming. With the
+  // stale endpoint strings gone, these literals no longer appear in the
+  // codebase at all, so they need no baseline entry.
+
   '/api/cron/horses-stories': 'horses/trigger-pipeline.js calls a handler that does not exist',
 
   // Genuine user-facing breakage.
