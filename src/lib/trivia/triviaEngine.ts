@@ -107,7 +107,7 @@ export const TRIVIA_MODES = {
         icon: 'diamond',
         color: '#06b6d4'
     },
-    // ── ENTRY PRICING ──────────────────────────────────────────────────────
+    // ── ENTRY PRICING ────────────────────────────────────────────────────────
     // diamondCost is the SINGLE SOURCE OF TRUTH for what entering a mode
     // costs. It used to read 0 for every mode below while the charging code
     // (StrategyTrivia for mtt/cash/icm/gto, and each standalone page's local
@@ -140,7 +140,7 @@ export const TRIVIA_MODES = {
         description: 'Answer until you miss. Rewards stack!',
         questionsCount: 100, // Unlimited effectively
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - survival pays via award_trivia_run now
         diamondReward: 1, // Per correct answer
         perfectBonus: 0,
         icon: 'heart',
@@ -153,7 +153,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • MTT situations and decisions',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - mtt pays via award_trivia_run now
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'users',
@@ -165,7 +165,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • Deep stack scenarios and dynamics',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - cash pays via award_trivia_run now
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'banknote',
@@ -177,7 +177,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • Tournament equity and $EV',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - icm pays via award_trivia_run now
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'calculator',
@@ -189,7 +189,7 @@ export const TRIVIA_MODES = {
         description: '20 Questions • Solver-based scenarios',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - gto pays via award_trivia_run now
         diamondReward: 8,
         perfectBonus: 15,
         icon: 'brain',
@@ -205,7 +205,7 @@ export const TRIVIA_MODES = {
         description: 'All Categories • Rotating Mix',
         questionsCount: 20,
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored ccbfa17b - mixed pays via award_trivia_run now
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'shuffle',
@@ -217,7 +217,7 @@ export const TRIVIA_MODES = {
         description: 'Keep Answering Until You Miss Three',
         questionsCount: 0,
         timeLimit: null,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored - endless pays via award_trivia_run now
         diamondReward: 1,
         perfectBonus: 0,
         icon: 'infinity',
@@ -229,7 +229,7 @@ export const TRIVIA_MODES = {
         description: 'As Many As You Can Before The Clock Runs Out',
         questionsCount: 0,
         timeLimit: 120,
-        diamondCost: 0, // was 10 - free until server-graded (see INTERIM FREE ENTRY)
+        diamondCost: 10, // restored 20f63684 - time-attack pays via award_trivia_run now
         diamondReward: 1,
         perfectBonus: 0,
         icon: 'timer',
@@ -391,6 +391,17 @@ export function calculateDiamonds(
         // which is one wrong answer out of twenty.
         if (accuracy < 1) return config.diamondReward + timeBonus;
         return config.diamondReward + config.perfectBonus + timeBonus;
+    }
+
+    // Count-based modes (endless / time-attack): 1 diamond per correct
+    // answer (config.diamondReward per correct). These modes never had a
+    // formula here - their pages computed per-correct payouts locally and
+    // credited them client-side, which went dark when the credit RPC was
+    // locked on 2026-08-03. The daily cap (DAILY_DIAMOND_CAPS) still binds
+    // wherever this is consumed (calculateCreditedDiamonds and
+    // /api/trivia/session-submit both clamp).
+    if (mode === 'endless' || mode === 'time-attack') {
+        return safeCorrect * (config.diamondReward || 1);
     }
 
     // All other modes: Base reward + perfect bonus

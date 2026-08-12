@@ -1,13 +1,21 @@
 /**
  * PvP Matchmaking Service
- * Handles matchmaking using polling for queue status
+ * Handles matchmaking using polling for queue status.
+ *
+ * SCOPE (server-authoritative migration): this module now does MATCHMAKING
+ * ONLY - queue rows and the match row. Everything money- or score-shaped
+ * moved server-side:
+ *   - questions are drawn by /api/trivia/session-start (the match row is
+ *     created with questions:null so the server seeds a roster this client
+ *     cannot hand-pick, and the answer key never rides on the row);
+ *   - scores come from graded trivia_sessions, never from a client write
+ *     (the old submitMatchScore wrote whatever the browser sent);
+ *   - payouts happen in /api/trivia/pvp-settle-match (the old
+ *     processMatchReward called a browser-side credit RPC that lost
+ *     authenticated EXECUTE on 2026-08-03, so winners were unpaid anyway).
  */
 
 import { supabase } from '../lib/supabase';
-import { busEmit } from '../engine/EventBus';
-import { fetchRandomQuestionPool, filterAndShuffle } from '../lib/triviaQuestionLoader';
-
-const MIN_QUALITY_SCORE = 6;
 
 /**
  * Join the matchmaking queue for a specific stake level
@@ -130,33 +138,18 @@ export async function findMatch(userId, stakeAmount) {
             console.warn('[PvP Matchmaking] Warning: Could not fetch opponent losses:', lossesError);
         }
 
-        // Phase 55: real PvP matches (money-flow critical) need:
-        //   1. Random-offset fetch — was always pulling the same 100 newest
-        //      rows by Postgres-internal order, so opponents repeatedly faced
-        //      the same questions.
-        //   2. Quality floor — reported-bad (qs=2) and unclear (qs=4)
-        //      questions must NEVER land in a PvP match where money is at stake.
-        //   3. Unbiased Fisher-Yates shuffle (was using sort(()=>Math.random()-0.5)
-        //      which is mathematically biased — some permutations 2x more likely
-        //      than others, opponent could exploit).
-        const questions = await fetchRandomQuestionPool(supabase, { pageSize: 100 });
-        if (!questions || questions.length === 0) {
-            throw new Error('Failed to load trivia questions for match');
-        }
-        const matchQuestions = filterAndShuffle(questions, [], 20, { minQualityScore: MIN_QUALITY_SCORE })
-            .slice(0, 20);
-        if (matchQuestions.length < 20) {
-            throw new Error('Insufficient quality questions available for match');
-        }
-
-        // Create the match
+        // Create the match WITHOUT questions. The roster used to be picked
+        // and stored here - full objects, answer key included, readable by
+        // anyone via the permissive match SELECT policy, and hand-pickable by
+        // a tampered client. session-start now seeds the roster server-side
+        // (first player to start wins an atomic questions-IS-NULL write) and
+        // stores bare question ids only.
         const { data: match, error: matchError } = await supabase
             .from('trivia_pvp_matches')
             .insert({
                 player1_id: userId,
                 player2_id: opponent.user_id,
                 stake_amount: stakeAmount,
-                questions: matchQuestions,
                 status: 'active',
                 created_at: new Date().toISOString()
             })
@@ -182,8 +175,7 @@ export async function findMatch(userId, stakeAmount) {
                 username: opponentProfile?.username || 'Opponent',
                 wins: wins?.length || 0,
                 losses: losses?.length || 0
-            },
-            questions: matchQuestions
+            }
         };
     } catch (error) {
         console.warn('[PvP Matchmaking] Error finding match:', error);
@@ -219,9 +211,12 @@ export function subscribeToMatch(matchId, onUpdate) {
  * findMatch — which always found nothing, because the opponent's queue row is
  * already 'matched', leaving this player out of a match that held their stake.
  *
+ * No questions in the payload: both players fetch the shared roster through
+ * /api/trivia/session-start (answer-free, per-player option order).
+ *
  * @param {string} matchId - trivia_pvp_matches.id from the matched queue row
  * @param {string} userId  - The local user's ID (must be a participant)
- * @returns {Object|null} { match, opponent, questions } or null
+ * @returns {Object|null} { match, opponent } or null
  */
 async function loadMatchForPlayer(matchId, userId) {
     try {
@@ -263,8 +258,7 @@ async function loadMatchForPlayer(matchId, userId) {
                 username: opponentProfile?.username || 'Opponent',
                 wins: opponentStats?.wins || 0,
                 losses: opponentStats?.losses || 0
-            },
-            questions: Array.isArray(match.questions) ? match.questions : []
+            }
         };
     } catch (e) {
         console.warn('[PvP Matchmaking] loadMatchForPlayer failed:', e);
@@ -278,9 +272,9 @@ async function loadMatchForPlayer(matchId, userId) {
  *
  * Polls every 3 seconds for the user's own queue entry. If the entry's
  * status has changed from 'waiting' to 'matched', fires onNewPlayer with the
- * loaded { match, opponent, questions } payload (same shape findMatch returns)
- * so the caller can enter the already-created match directly. Falls back to
- * the raw queue row if the match cannot be loaded.
+ * loaded { match, opponent } payload (same shape findMatch returns) so the
+ * caller can enter the already-created match directly. Falls back to the raw
+ * queue row if the match cannot be loaded.
  * FIX(audit): previously the raw queue row was always delivered; the page
  * callback ignored it (own user_id) and the matched player never joined.
  *
@@ -336,9 +330,8 @@ export function subscribeToQueue(stakeAmount, onNewPlayer, userId) {
                     // see its own user_id and ignore it, so the notified player
                     // never joined the match the opponent created (and their
                     // stake was consumed by the horse fallback instead). Load
-                    // the match row (it already holds the shared question set)
-                    // and deliver the same { match, opponent, questions } shape
-                    // findMatch returns so the page can enter via
+                    // the match row and deliver the same { match, opponent }
+                    // shape findMatch returns so the page can enter via
                     // handleMatchFound.
                     const matchData = await loadMatchForPlayer(matched.match_id, userId);
                     if (stopped) return;
@@ -365,136 +358,15 @@ export function subscribeToQueue(stakeAmount, onNewPlayer, userId) {
     };
 }
 
-/**
- * Submit player's score for a match
- * @param {string} matchId - The match ID
- * @param {string} playerId - The player's ID
- * @param {number} score - Player's score
- * @param {boolean} isPlayer1 - Is this player1 or player2
- */
-export async function submitMatchScore(matchId, playerId, score, isPlayer1) {
-    try {
-        const updateField = isPlayer1 ? 'player1_score' : 'player2_score';
-
-        const { error } = await supabase
-            .from('trivia_pvp_matches')
-            .update({ [updateField]: score })
-            .eq('id', matchId);
-
-        if (error) throw error;
-
-        // Check if both scores are submitted
-        const { data: match } = await supabase
-            .from('trivia_pvp_matches')
-            .select('*')
-            .eq('id', matchId)
-            .maybeSingle();
-
-        if (match?.player1_score !== null && match?.player2_score !== null) {
-            // Both players finished, determine winner
-            const winnerId = match.player1_score > match.player2_score
-                ? match.player1_id
-                : match.player2_score > match.player1_score
-                    ? match.player2_id
-                    : null; // Tie
-
-            const { error: err_trivia_pvp_matches_9besc } = await supabase
-
-              .from('trivia_pvp_matches')
-
-              .update({
-                    status: 'complete',
-                    winner_id: winnerId,
-                    completed_at: new Date().toISOString()
-                })
-                .eq('id', matchId);
-
-            if (err_trivia_pvp_matches_9besc) console.warn('[Supabase] Silent mutation failed in trivia_pvp_matches:', err_trivia_pvp_matches_9besc.message);
-
-            return { match, winnerId, complete: true };
-        }
-
-        return { match, complete: false };
-    } catch (error) {
-        console.warn('[PvP Matchmaking] Error submitting score:', error);
-        return { error };
-    }
-}
-
-/**
- * Process diamond transfer after match completion
- * @param {string} winnerId - Winner's user ID
- * @param {string} loserId - Loser's user ID
- * @param {number} stakeAmount - The stake amount
- * @param {string} [matchId] - The PvP match ID. Used as p_reference_id so
- *                              double-fires (realtime retry, double-click,
- *                              network retry) credit the winner only once.
- */
-export async function processMatchReward(winnerId, loserId, stakeAmount, matchId = null) {
-    try {
-        // 10% house rake on total pot (both stakes combined)
-        const totalPot = stakeAmount * 2;
-        const rakeAmount = Math.floor(totalPot * 0.1);
-        const winnerPayout = totalPot - rakeAmount;
-
-        // Phase 55 (money-loss fix): stable reference_id for both RPCs so
-        // upstream retries can't double-credit. Fall back to a deterministic
-        // composite if matchId wasn't passed (legacy callers).
-        const referenceId = matchId
-            ? `pvp_match_win_${matchId}`
-            : `pvp_match_win_${winnerId}_${loserId}_${stakeAmount}`;
-
-        // Use RPC for atomic operation (avoids race conditions)
-        const { data: rpcResult, error: rpcError } = await supabase.rpc('award_diamonds', {
-            p_user_id: winnerId,
-            p_amount: winnerPayout,
-            p_type: 'pvp_match_win',
-            p_description: `PvP Match Win vs ${loserId} — Pot: ${totalPot}diamonds, Rake: ${rakeAmount}diamonds`,
-            p_reference_id: referenceId,
-        });
-
-        if (rpcError) {
-            console.warn('[PvP Matchmaking] RPC error awarding winner:', rpcError);
-            // Fallback: use add_diamonds_to_balance with same reference_id so
-            // it dedupes against the primary attempt if both somehow ran.
-            const { data: winner } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', winnerId)
-                .maybeSingle();
-
-            if (!winner) { console.warn('[PvP] Winner profile not found:', winnerId); return { success: false, error: 'Winner profile not found' }; }
-
-            // Phase 55 (money-loss fix): was awaiting silently; if the fallback
-            // also failed, the winner got nothing and no error surfaced.
-            const { error: fallbackErr } = await supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: winnerId,
-                p_amount: winnerPayout,
-                p_type: 'pvp_win',
-                p_description: `PvP Match Win vs ${loserId} — Pot: ${totalPot}diamonds, Rake: ${rakeAmount}diamonds (fallback)`,
-                p_reference_id: referenceId,
-            });
-            if (fallbackErr) {
-                console.warn('[PvP Matchmaking] FALLBACK ALSO FAILED — winner not credited:', fallbackErr);
-                return { success: false, error: 'reward_fallback_failed', detail: fallbackErr.message };
-            }
-        }
-
-        // Log the transaction for audit trail
-        await supabase.from('diamond_transactions').insert({
-            user_id: winnerId,
-            amount: winnerPayout,
-            transaction_type: 'pvp_match_win',
-            description: `PvP Match Win vs ${loserId}`,
-            balance_after: (rpcResult?.balance || 0)
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Non-critical, ignore errors
-
-        // Loser already had their stake deducted when joining — nothing to do
-        busEmit.diamondsEarned(winnerPayout, 'PvP Match Win');
-
-        return { success: true, winnerPayout, rakeAmount };
-    } catch (error) {
-        console.warn('[PvP Matchmaking] Error processing reward:', error);
-        return { error };
-    }
-}
+// NOTE: submitMatchScore() and processMatchReward() used to live here.
+// Both are gone by design, not by accident:
+//   - submitMatchScore wrote a client-computed score straight onto the match
+//     row and flipped it to 'complete' - the score that settled the money was
+//     whatever the browser claimed. Scores now exist only as server-graded
+//     trivia_sessions counts, and the settlement engine writes the row's
+//     score columns itself (display only - it never reads them back).
+//   - processMatchReward credited the winner from the browser through diamond
+//     RPCs that lost authenticated EXECUTE on 2026-08-03 (winners were unpaid
+//     since). /api/trivia/pvp-settle-match is the replacement: service-role,
+//     idempotent reference ids shared with the /api/cron/pvp-settle sweep.
+// Do not reintroduce client-side equivalents of either.

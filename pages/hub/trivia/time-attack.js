@@ -1,6 +1,10 @@
 /**
  * TIME ATTACK PAGE — Route: /hub/trivia/time-attack
  * 30 seconds to answer as many as possible
+ *
+ * Server-authoritative run: /api/trivia/session-start deals (and permutes)
+ * the questions, session-answer grades each tap, session-submit caps and
+ * pays - the client never receives an answer key.
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -14,7 +18,6 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 // not own. The dead import is removed rather than left in the bundle; wiring the
 // report button belongs inside src/components/trivia/TimeAttackGame.jsx.
 
-import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TimeAttackGame from '../../../src/components/trivia/TimeAttackGame';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
@@ -24,16 +27,20 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
-import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import { getTodayCST, getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
-import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 
-const GAME_ENTRY_COST = 0; // was 10 - free until this page adopts server grading; its reward RPC has been dead since 2026-08-03 (see triviaEngine.ts INTERIM FREE ENTRY)
+const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
+
+// Roster size requested from /api/trivia/session-start. The 30-second clock
+// realistically allows well under 30 answers, so 60 is generous headroom;
+// unanswered served questions cost nothing (payout is per-correct and the
+// submit omits them).
+const QUESTIONS_PER_SESSION = 60;
 
 // Phase 80: the cap lives in triviaEngine so the page, <TimeAttackGame>'s results
 // display and the shared clampToCap helper all agree. The old local value of 5 was
@@ -59,6 +66,14 @@ export default function TimeAttackPage() {
     const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
     const [startError, setStartError] = useState(null);
+    // Server-authoritative run: session-start deals, session-answer grades
+    // each tap, session-submit caps and pays. No client-side crediting.
+    const serverRun = useServerGradedRun('time-attack');
+    // Answers actually recorded via session-answer this game, in tap order:
+    // { questionId, displayIndex }. This is what session-submit grades from;
+    // unanswered served questions are deliberately omitted (the server counts
+    // them wrong, which is free here because payout is per-correct).
+    const sessionAnswersRef = useRef([]);
 
     useEffect(() => {
         if (authLoading) return;
@@ -155,38 +170,17 @@ export default function TimeAttackPage() {
         }
     }
 
-    async function loadQuestions() {
-        // 60-day non-repeat: Get user's recently seen question IDs using shared utility
-        const excludeIds = await getRecentlySeenIds(supabase, userId, 200, 'time-attack');
-
-        // Phase 55: random offset fetch instead of "first 200"
-        const data = await fetchRandomQuestionPool(supabase, { pageSize: 200 });
-        if (data && data.length > 0) {
-            // Filter and shuffle questions using shared utility
-            // minFallback=30: if fewer than 30 unseen questions remain, use full pool
-            const shuffled = filterAndShuffle(data, excludeIds, 30, { minQualityScore: 6 }); // Phase 51: drop low-quality
-            // also shuffle options
-            const finalized = shuffleOptions(shuffled);
-            setQuestions(finalized);
-            return finalized;
-        }
-        return [];
-    }
-
     async function handleStart() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
         // Reset the per-game save pipeline. This is the REAL "Play Again" path
-        // (the complete screen's button calls handleStart), and it used to be
-        // missing: getIdempotencyKey('game_complete') therefore returned the same
-        // reference_id for every game in the session, so add_diamonds_to_balance
-        // de-duplicated the award and players were credited only for their FIRST
-        // time-attack game per page load — while trivia_scores kept recording
-        // diamonds_earned > 0, inflating the daily cap and the stats page.
-        idempotencyRefs.current = {};
+        // (the complete screen's button calls handleStart) - a stale phase or
+        // settlement from the previous game would make this game skip its own
+        // submit and re-report the old numbers.
         savePhaseRef.current = 0;
-        cappedAwardRef.current = null;
+        serverResultRef.current = null;
+        sessionAnswersRef.current = [];
         setSaveErrorPayload(null);
         setResult(null);
 
@@ -202,18 +196,30 @@ export default function TimeAttackPage() {
             sessionStorage.removeItem('trivia_mode');
         } catch (e) { /* storage unavailable — nothing to clear */ }
 
-        // FIX(audit #5): load the question set BEFORE taking the entry fee.
-        // Previously the 10-diamond deduction ran first, so a failed question
-        // load charged the player for a game that never started — and clicking
-        // Start again charged them again. Mirrors endless.js, which verifies a
-        // non-empty pool before charging.
-        const qs = await loadQuestions();
-        if (qs.length === 0) {
+        // Open the server session BEFORE any charge, so a start failure can
+        // never eat an entry fee (same guarantee the old load-before-charge
+        // order gave, now with the server dealing). The served questions are
+        // used VERBATIM - their options are already permuted into grading
+        // order, so reshuffling them would break the display-index mapping
+        // the grader uses.
+        let served;
+        try {
+            served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
+        } catch (e) {
+            console.warn('[TimeAttack] Server session start failed:', e?.message || e);
+            setStartError('We could not load any questions right now. Please check your connection and try again.');
+            return;
+        }
+        if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
+            // NEVER charge for an empty game.
+            serverRun.reset();
             setStartError('We could not load any questions right now. Please check your connection and try again.');
             return;
         }
 
-        // Per-game diamond gate (VIP bypass)
+        // Per-game diamond gate (VIP bypass). Charged only AFTER the session
+        // opened; every failure path abandons the session via serverRun.reset()
+        // (it expires server-side and pays nothing).
         if (!isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
             try {
@@ -223,24 +229,26 @@ export default function TimeAttackPage() {
                     .eq('id', userId)
                     .maybeSingle();
                 if (profile && (profile.diamonds || 0) < GAME_ENTRY_COST) {
+                    serverRun.reset();
                     setShowOutOfDiamonds(true);
                     return;
                 }
 
-                const result = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_timeattack');
-                if (!result.success) {
+                const charge = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_timeattack');
+                if (!charge.success) {
+                    serverRun.reset();
                     setShowOutOfDiamonds(true);
                     return;
                 }
                 // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             } catch (e) {
                 console.warn('[TimeAttack] Diamond deduction failed:', e);
+                serverRun.reset();
                 setShowOutOfDiamonds(true);
                 return;
             }
         }
-        // FIX(audit #5): questions were verified above, before the charge — the
-        // player can no longer pay for a game that fails to load.
+        setQuestions(served.questions);
         setStartError(null);
         setGameState('playing');
         } finally {
@@ -248,28 +256,21 @@ export default function TimeAttackPage() {
         }
     }
 
-    const [saveErrorPayload, setSaveErrorPayload] = useState(null);
-    const savePhaseRef = useRef(0); // Tracks which save steps completed: 0=none, 1=score, 2=diamonds, 3=history
+    // Per-tap grader handed to <TimeAttackGame>. A successful verdict also
+    // records the answer for session-submit; a failed call records nothing,
+    // and the first answer per question is binding server-side, so the
+    // component's retry after a rejection cannot double-count.
+    async function gradeAnswer({ questionId, displayIndex }) {
+        const verdict = await serverRun.answer({ questionId, displayIndex });
+        sessionAnswersRef.current.push({ questionId, displayIndex });
+        return verdict;
+    }
 
-    const idempotencyRefs = useRef({});
-    // Daily-cap-clamped award for the current game (null = not yet computed).
-    const cappedAwardRef = useRef(null);
-    // FIX(audit #20): guarded token generator (copied from survival-game.js).
-    // Bare crypto.randomUUID() throws on insecure contexts / older WebViews,
-    // which killed the save pipeline before phase 1 and stranded the player in
-    // a saving_error retry loop that could never succeed.
-    const randomToken = () => {
-        try {
-            if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-        } catch (e) { /* fall through */ }
-        return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    };
-    const getIdempotencyKey = (actionType) => {
-        if (!idempotencyRefs.current[actionType]) {
-            idempotencyRefs.current[actionType] = `time_attack_${actionType}_${randomToken()}`;
-        }
-        return idempotencyRefs.current[actionType];
-    };
+    const [saveErrorPayload, setSaveErrorPayload] = useState(null);
+    const savePhaseRef = useRef(0); // Tracks which save steps completed: 0=none, 1=settled, 2=score, 3=history
+    // Server settlement result, kept in a ref so a saving_error retry re-uses
+    // the already-paid result instead of re-submitting a closed session.
+    const serverResultRef = useRef(null);
 
     // NOTE: a handlePlayAgain() that set gameState 'ready' used to live here. It
     // was dead code — nothing called it and no render branch existed for 'ready',
@@ -287,109 +288,102 @@ export default function TimeAttackPage() {
             const today = getTodayCST();
 
             try {
-                // Compute the capped award BEFORE the score row is written.
-                // Order matters: getDailyDiamondsEarned sums trivia_scores rows,
-                // so clamping after the insert would count this very run against
-                // itself (and, on a Retry Save, could clamp the award to 0).
-                // Memoised in a ref so retries reuse the same figure.
-                if (cappedAwardRef.current === null) {
-                    const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'time-attack');
-                    cappedAwardRef.current = clampToCap(earnedToday, gameResult.diamondsEarned || 0, DAILY_DIAMOND_CAP);
-                }
-                const cappedAward = cappedAwardRef.current;
-
-                // Phase 1: Save score (only if not already saved).
-                // Capture insert error — supabase-js does NOT throw on DB errors.
+                // Phase 1: settle the run server-side (only if not already
+                // settled). The server grades from the answers it stored at
+                // tap time, applies the daily cap and pays through a locked
+                // RPC - no client-side crediting, ever. Unanswered served
+                // questions are omitted from the array: the server counts
+                // them wrong, which is harmless here because payout is
+                // per-correct, not accuracy-based.
                 if (savePhaseRef.current < 1) {
+                    const submitted = await serverRun.submit(
+                        sessionAnswersRef.current.map(a => ({
+                            questionId: a.questionId,
+                            displayIndex: a.displayIndex
+                        }))
+                    );
+                    serverResultRef.current = submitted;
+                    savePhaseRef.current = 1;
+                    if ((submitted?.diamondsAwarded || 0) > 0) {
+                        busEmit.diamondsEarned(submitted.diamondsAwarded, 'Time Attack');
+                    }
+                }
+                const settled = serverResultRef.current || {};
+                const awarded = Number.isFinite(settled.diamondsAwarded) ? settled.diamondsAwarded : 0;
+                // The server's `total` is the FULL served roster (padded far
+                // beyond what 30 seconds allows), so "X of Y" stats use the
+                // count actually reached. `correct` is safe to take verbatim:
+                // unanswered questions grade wrong, never correct.
+                const reached = (gameResult.correctCount || 0) + (gameResult.wrongCount || 0);
+                const serverCorrect = Number.isFinite(settled.correct) ? settled.correct : (gameResult.correctCount || 0);
+                const serverScore = Number.isFinite(settled.score) ? settled.score : serverCorrect * 100;
+
+                // Phase 2: Save score with the SERVER numbers (only if not
+                // already saved). Capture insert error — supabase-js does NOT
+                // throw on DB errors.
+                if (savePhaseRef.current < 2) {
                     const { error: scoreErr } = await supabase.from('trivia_scores').insert({
                         user_id: userId,
                         username: avatarUser?.username || avatarUser?.display_name || null,
                         mode: 'time-attack',
-                        score: gameResult.correctCount * 100,
-                        correct_count: gameResult.correctCount,
-                        total_questions: gameResult.correctCount + gameResult.wrongCount,
-                        diamonds_earned: cappedAward,
+                        score: serverScore,
+                        correct_count: serverCorrect,
+                        total_questions: reached,
+                        diamonds_earned: awarded,
                         play_date: today
                     });
                     if (scoreErr) throw scoreErr;
-                    savePhaseRef.current = 1;
-                }
-
-                // Phase 2: Award diamonds (only if not already awarded).
-                // Re-check the daily cap against the SERVER here rather than
-                // trusting the component's page-load state — otherwise two tabs
-                // (or a stale tab left open across the cap reset) could each
-                // award up to the full cap. Matches endless.js phase 1.
-                let actualAwarded = 0;
-                if (savePhaseRef.current < 2) {
-                    const capped = cappedAward;
-                    if (capped > 0) {
-                        const { data: rpcData, error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                            p_user_id: userId,
-                            p_amount: capped,
-                            p_type: 'time_attack_reward',
-                            p_description: `Time Attack — ${capped} diamonds (${gameResult.correctCount} correct)`,
-                            p_reference_id: getIdempotencyKey('game_complete')
-                        });
-                        if (__rpcErr) throw __rpcErr;
-                        // The RPC returns { success:false } without an error on
-                        // dedup / insufficient funds — don't claim a credit that
-                        // never landed.
-                        if (rpcData && typeof rpcData === 'object' && rpcData.success === false) {
-                            throw new Error(rpcData.error || 'Diamond award was rejected');
-                        }
-                        busEmit.diamondsEarned(capped, 'Time Attack');
-                        actualAwarded = capped;
-                    }
                     savePhaseRef.current = 2;
-                    // Show what was actually credited, not what the component
-                    // hoped to credit.
-                    setResult(prev => (prev ? { ...prev, diamondsEarned: actualAwarded } : prev));
                 }
 
-                if (gameResult.correctCount > personalBest) {
-                    setPersonalBest(gameResult.correctCount);
+                // Show what the server actually credited and graded, not what
+                // the component hoped for.
+                setResult(prev => (prev ? { ...prev, correctCount: serverCorrect, diamondsEarned: awarded } : prev));
+                if (serverCorrect > personalBest) {
+                    setPersonalBest(serverCorrect);
                 }
-                setDailyDiamondsEarned(prev => prev + actualAwarded);
+                setDailyDiamondsEarned(prev => Math.min(DAILY_DIAMOND_CAP, prev + awarded));
 
-                // Phase 3: Record question history (only if not already recorded)
+                // Phase 3: Record question history (only if not already
+                // recorded), for the questions actually answered, with
+                // was_correct taken from the server's per-question verdicts.
                 if (savePhaseRef.current < 3) {
-                    const answeredCount = gameResult.correctCount + (gameResult.wrongCount || 0);
-                    const answeredQuestions = questions.slice(0, answeredCount);
-                    if (answeredQuestions.length > 0) {
-                        // Phase 59: filter out rows with no question_id (would
-                        // FK-violate on trivia_user_question_history.question_id
-                        // → trivia_questions.id) and capture upsert errors that
-                        // were previously silently swallowed.
-                        const historyRecords = answeredQuestions
-                            .filter(q => q && q.id != null)
-                            .map((q, idx) => ({
-                                user_id: userId,
-                                question_id: q.id,
-                                was_correct: gameResult.answerResults ? (gameResult.answerResults[idx] || false) : idx < gameResult.correctCount,
-                                seen_at: new Date().toISOString(),
-                                mode: 'time-attack'
-                            }));
+                    const verdictMap = {};
+                    (Array.isArray(settled.perQuestion) ? settled.perQuestion : []).forEach(pq => {
+                        if (pq && typeof pq.questionId === 'string') verdictMap[pq.questionId] = pq.wasCorrect === true;
+                    });
+                    // Phase 59: filter out rows with no question_id (would
+                    // FK-violate on trivia_user_question_history.question_id
+                    // → trivia_questions.id) and capture upsert errors that
+                    // were previously silently swallowed.
+                    const historyRecords = sessionAnswersRef.current
+                        .filter(a => a && a.questionId != null)
+                        .map(a => ({
+                            user_id: userId,
+                            question_id: a.questionId,
+                            was_correct: verdictMap[a.questionId] === true,
+                            seen_at: new Date().toISOString(),
+                            mode: 'time-attack'
+                        }));
 
-                        if (historyRecords.length > 0) {
-                            // ignoreDuplicates:true => ON CONFLICT DO NOTHING.
-                            // trivia_user_question_history has SELECT + INSERT RLS
-                            // policies but NO UPDATE policy, so the previous
-                            // ignoreDuplicates:false (an UPDATE on conflict) failed
-                            // the ENTIRE batch whenever any question had been seen
-                            // before — silently dropping the run's history and
-                            // eroding the 60-day non-repeat guarantee.
-                            const { error: historyErr } = await supabase
-                                .from('trivia_user_question_history')
-                                .upsert(historyRecords, {
-                                    onConflict: 'user_id,question_id',
-                                    ignoreDuplicates: true
-                                });
-                            if (historyErr) {
-                                // Non-fatal: score + diamonds already saved at
-                                // this point, history is best-effort.
-                                console.warn('[TimeAttack] History upsert failed (non-fatal):', historyErr.message);
-                            }
+                    if (historyRecords.length > 0) {
+                        // ignoreDuplicates:true => ON CONFLICT DO NOTHING.
+                        // trivia_user_question_history has SELECT + INSERT RLS
+                        // policies but NO UPDATE policy, so the previous
+                        // ignoreDuplicates:false (an UPDATE on conflict) failed
+                        // the ENTIRE batch whenever any question had been seen
+                        // before — silently dropping the run's history and
+                        // eroding the 60-day non-repeat guarantee.
+                        const { error: historyErr } = await supabase
+                            .from('trivia_user_question_history')
+                            .upsert(historyRecords, {
+                                onConflict: 'user_id,question_id',
+                                ignoreDuplicates: true
+                            });
+                        if (historyErr) {
+                            // Non-fatal: score + diamonds already saved at
+                            // this point, history is best-effort.
+                            console.warn('[TimeAttack] History upsert failed (non-fatal):', historyErr.message);
                         }
                     }
                     savePhaseRef.current = 3;
@@ -500,7 +494,7 @@ export default function TimeAttackPage() {
                                 <div className="rewards-info">
                                     <h3>Rewards</h3>
                                     <ul>
-                                        <li>+1💎 For Every 3 Correct Answers</li>
+                                        <li>+1 Diamond Per Correct Answer</li>
                                         <li>Max {DAILY_DIAMOND_CAP} diamonds per day</li>
                                         <li>Speed Is Everything!</li>
                                     </ul>
@@ -538,6 +532,7 @@ export default function TimeAttackPage() {
                             questions={questions}
                             onComplete={handleComplete}
                             dailyDiamondsEarned={dailyDiamondsEarned}
+                            serverGrader={gradeAnswer}
                         />
                     )}
 
