@@ -19,6 +19,10 @@
  * Truth chain:
  *   AvatarContext (auth session) → supabase.from('profiles') → setState
  *   → writes sp-social-user  → dispatches 'profile-updated' for other tabs
+ *
+ * NOTE: this hook both DISPATCHES and LISTENS FOR 'profile-updated'. The
+ * listener must never react to this hook's own dispatch — see
+ * selfDispatchDepth below.
  * ═══════════════════════════════════════════════════════════════════════
  */
 
@@ -27,6 +31,24 @@ import { useAvatar } from '../contexts/AvatarContext';
 import supabase from '../lib/supabase';
 
 const CACHE_KEY = 'sp-social-user';
+
+// BUGFIX (2026-08-12, profile-updated feedback loop): this hook dispatches
+// 'profile-updated' after every successful profiles fetch AND listens for that
+// same event to trigger a refetch, resetting fetchedRef on the way in. Nothing
+// broke the cycle, so one mount locked into fetch -> dispatch -> handler
+// -> fetch at network speed: ~8 profiles selects/sec per open tab, and because
+// UniversalHeader listens to the same event, ~8 POSTs/sec to
+// /api/user/get-header-stats (up to 8 DB round-trips each). The endpoint's rate
+// limiter was the only thing containing it, returning 429 once its window
+// filled. Measured on production 2026-08-12 at 5.6-8.5 calls/sec on every hub
+// page; it went unnoticed because the platform has had near-zero traffic.
+//
+// dispatchEvent() invokes listeners SYNCHRONOUSLY, so bracketing the dispatch
+// with this counter reliably covers every handler that runs as a result --
+// including the handlers of OTHER mounted useCurrentUser instances, which is
+// why this is module scope and not a per-instance ref (a per-instance ref would
+// still allow instance A's dispatch to drive instance B into the same loop).
+let selfDispatchDepth = 0;
 const PROFILE_TTL_MS = 5 * 60 * 1000; // 5 minutes — prevents stale avatar displays
 
 /**
@@ -123,8 +145,14 @@ export default function useCurrentUser() {
                 };
                 setProfile(normalized);
                 writeCache(normalized);
-                // Notify same-tab listeners (Header, SocialMedia, etc.)
-                window.dispatchEvent(new CustomEvent('profile-updated', { detail: normalized }));
+                // Notify same-tab listeners (Header, SocialMedia, etc.).
+                // Bracketed so this hook's own listener ignores the echo.
+                selfDispatchDepth++;
+                try {
+                    window.dispatchEvent(new CustomEvent('profile-updated', { detail: normalized }));
+                } finally {
+                    selfDispatchDepth--;
+                }
             }
         } catch (err) {
             console.warn('[useCurrentUser] unexpected error:', err.message);
@@ -158,6 +186,11 @@ export default function useCurrentUser() {
         if (!authUser?.id) return;
 
         const handler = () => {
+            // Ignore the echo of our own dispatch in fetchProfile. A genuine
+            // profile-edit save (profileHandlers, BasicInfoSection,
+            // CustomAvatarBuilder, PhoneVerifyVIPModal, ...) dispatches outside
+            // that bracket and still refetches exactly as before.
+            if (selfDispatchDepth > 0) return;
             fetchedRef.current = false;
             fetchProfile(authUser.id);
         };
