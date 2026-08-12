@@ -210,7 +210,13 @@ export async function getServerSideProps({ params, res }) {
   if (groupIds.length > 0) {
     const { data: groups } = await supabase
       .from('commander_home_groups')
-      .select('id, default_stakes, typical_buyin_min, typical_buyin_max, frequency, typical_day, member_count, latitude, longitude, is_active, is_private, last_activity_at, created_at, visibility_override_until')
+      // PRIVACY (audit 2026-08-12, finding C-2): latitude/longitude are
+      // deliberately NOT selected. They are a host's home address, they were
+      // never rendered by this page, and Next.js serialises every prop into
+      // __NEXT_DATA__ in the HTML — so selecting them published raw home
+      // coordinates on a page built specifically to be crawled and cached.
+      // Do not re-add them.
+      .select('id, default_stakes, typical_buyin_min, typical_buyin_max, frequency, typical_day, member_count, is_active, is_private, last_activity_at, created_at, visibility_override_until')
       .in('id', groupIds);
     groupMap = Object.fromEntries((groups || []).map(g => [String(g.id), g]));
   }
@@ -238,8 +244,7 @@ export async function getServerSideProps({ params, res }) {
         buyin_max: g.typical_buyin_max || null,
         frequency: g.frequency || null,
         typical_day: g.typical_day || null,
-        latitude: g.latitude ? Number(g.latitude) : null,
-        longitude: g.longitude ? Number(g.longitude) : null,
+        // No latitude/longitude — see the privacy note on the select above.
       };
     })
     .filter(Boolean)

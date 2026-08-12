@@ -18,6 +18,10 @@ import { captureError, addBreadcrumb } from '../../../src/lib/sentry';
 import allVenuesData from '../../../data/all-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+// Home-group coordinate privacy. See src/lib/home-games/geoPrivacy.js —
+// a home group's lat/lng is a person's home address and must never be
+// emitted raw from this (public, unauthenticated) endpoint.
+import { jitterCoord, publicDistanceToGroup } from '../../../src/lib/home-games/geoPrivacy';
 
 let _supabase = null;
 function getSupabase() {
@@ -467,6 +471,12 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
             });
         }
 
+        // PRIVACY (audit 2026-08-12, finding C-1): never emit a home group's
+        // real coordinate. Snap to the shared privacy grid — the SAME helper
+        // discover.js uses, so the two endpoints can no longer drift apart and
+        // report different points for the same group.
+        const _priv = jitterCoord(g.id, g.latitude, g.longitude);
+
         return {
             id: g.id,                                // UUID (intentionally string, not int)
             name: g.name,
@@ -475,8 +485,11 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
             venue_type: 'home_game',                 // Discriminator for frontend
             city: g.city,
             state: g.state,
-            latitude: g.latitude,
-            longitude: g.longitude,
+            // Jittered ~0.3mi. Stable per-group. Do NOT replace with g.latitude.
+            latitude: _priv.lat,
+            longitude: _priv.lng,
+            approximate_lat: _priv.lat,
+            approximate_lng: _priv.lng,
             profile_photo_url: g.profile_photo_url,
             cover_photo_url: g.cover_photo_url,
             logo_url: g.profile_photo_url,           // Alias — some components read logo_url

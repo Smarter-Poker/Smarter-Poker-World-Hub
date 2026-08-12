@@ -82,11 +82,34 @@ export async function getServerSideProps({ params, res }) {
     `)
     .eq('page_type', 'home_game')
     .eq('is_public', true)
+    // social_pages.slug is nullable. A null slug produced cards and JSON-LD
+    // ListItems pointing at /hub/home-games/null, which the public API 404s —
+    // publishing dead URLs inside ItemList structured data. The sibling state
+    // page already had this guard; the city page did not. (audit H-4)
+    .not('slug', 'is', null)
     .eq('location_state', stateCode);
 
   if (error) {
     console.warn(`[home-games/in/${stateCode}/${citySlug}] fetch failed:`, error.message);
-    return { notFound: true };
+    // Do NOT return notFound here. A transient Supabase error during a
+    // Googlebot crawl would hard-404 the page and get it dropped from the
+    // index. 503 + Retry-After tells the crawler to come back instead.
+    // (audit M-3 — matches the behaviour of /hub/home-games/[slug].)
+    if (res) {
+      res.statusCode = 503;
+      res.setHeader('Retry-After', '60');
+    }
+    return {
+      props: {
+        stateCode,
+        citySlug,
+        cityName: citySlugToTitle(citySlug),
+        stateName: stateCodeToName(stateCode),
+        stateSlug: stateCodeToSlug(stateCode),
+        games: [],
+        serverError: true,
+      },
+    };
   }
 
   const matching = (pages || []).filter(p => cityTitleToSlug(p.location_city) === citySlug);
@@ -99,7 +122,13 @@ export async function getServerSideProps({ params, res }) {
   if (groupIds.length > 0) {
     const { data: groups } = await supabase
       .from('commander_home_groups')
-      .select('id, default_stakes, typical_buyin_min, typical_buyin_max, frequency, typical_day, member_count, latitude, longitude, is_active, is_private, last_activity_at, created_at, visibility_override_until')
+      // PRIVACY (audit 2026-08-12, finding C-2): latitude/longitude are
+      // deliberately NOT selected. They are a host's home address, they were
+      // never rendered by this page, and Next.js serialises every prop into
+      // __NEXT_DATA__ in the HTML — so selecting them published raw home
+      // coordinates on a page built specifically to be crawled and cached.
+      // Do not re-add them.
+      .select('id, default_stakes, typical_buyin_min, typical_buyin_max, frequency, typical_day, member_count, is_active, is_private, last_activity_at, created_at, visibility_override_until')
       .in('id', groupIds);
     groupMap = Object.fromEntries((groups || []).map(g => [String(g.id), g]));
   }
@@ -123,8 +152,7 @@ export async function getServerSideProps({ params, res }) {
         buyin_max: g.typical_buyin_max || null,
         frequency: g.frequency || null,
         typical_day: g.typical_day || null,
-        latitude: g.latitude ? Number(g.latitude) : null,
-        longitude: g.longitude ? Number(g.longitude) : null,
+        // No latitude/longitude — see the privacy note on the select above.
       };
     })
     .filter(Boolean)
