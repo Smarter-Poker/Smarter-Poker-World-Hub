@@ -16,6 +16,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback, memo } from 'react';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
 import toast, { Toaster } from 'react-hot-toast';
 import LZString from 'lz-string';
 import {
@@ -57,23 +58,40 @@ import {
   EquityGraph, SessionLogModal, CoachActionPicker, CoachVerdict, ActionReplayBar, ShareHandModal,
   VillainReadCard, ShortcutLegend,
 } from '../../../src/components/sandbox/SandboxComponents';
-import { ExportCard } from '../../../src/components/sandbox/ExportCard';
-import RangeExplorer from '../../../src/components/sandbox/RangeExplorer';
-import QuickSpotDrill from '../../../src/components/sandbox/QuickSpotDrill';
-import SessionReport from '../../../src/components/sandbox/SessionReport';
-import CoachFeedback from '../../../src/components/sandbox/CoachFeedback';
-import TiltMonitor from '../../../src/components/sandbox/TiltMonitor';
-import VillainPresetPicker from '../../../src/components/sandbox/VillainPresetPicker';
-import HandReplay from '../../../src/components/sandbox/HandReplay';
-import StudyFolders from '../../../src/components/sandbox/StudyFolders';
-import SaveHandModal from '../../../src/components/sandbox/SaveHandModal';
-import ShareScenarioModal from '../../../src/components/sandbox/ShareScenarioModal';
-import CustomDrillBuilder from '../../../src/components/sandbox/CustomDrillBuilder';
-import GodModePanel from '../../../src/components/sandbox/GodModePanel';
-import ExternalSolverImport from '../../../src/components/sandbox/ExternalSolverImport';
-import EquityHeatmapOverlay from '../../../src/components/sandbox/EquityHeatmapOverlay';
-import NodeLockExploits from '../../../src/components/sandbox/NodeLockExploits';
-import ImportHHModal from '../../../src/components/sandbox/ImportHHModal';
+// ═══════════════════════════════════════════════════════════════════════════
+// CODE-SPLIT PANELS — everything here is behind a tap, a tab or a toggle.
+//
+// All seventeen were static imports, so ~289KB of component source shipped in
+// the first payload of a page whose critical path is the felt: the table, the
+// range grid and the action bar. A phone on a casino's wifi paid for the
+// solver-import modal and the hand-replay viewer before it could see a card.
+//
+// Every one of these is gated in JSX by a boolean the user has to flip
+// (`showQuickDrill`, `resultsTab === 'share'`, `coachMode`, an `isVisible`
+// prop that returns null when false), so deferring them cannot change what
+// renders on first paint. ssr:false because none of them are server-rendered
+// anyway — they all sit behind interaction state that starts false.
+// ═══════════════════════════════════════════════════════════════════════════
+const ExportCard = dynamic(
+  () => import('../../../src/components/sandbox/ExportCard').then(m => m.ExportCard),
+  { ssr: false },
+);
+const RangeExplorer = dynamic(() => import('../../../src/components/sandbox/RangeExplorer'), { ssr: false });
+const QuickSpotDrill = dynamic(() => import('../../../src/components/sandbox/QuickSpotDrill'), { ssr: false });
+const SessionReport = dynamic(() => import('../../../src/components/sandbox/SessionReport'), { ssr: false });
+const CoachFeedback = dynamic(() => import('../../../src/components/sandbox/CoachFeedback'), { ssr: false });
+const TiltMonitor = dynamic(() => import('../../../src/components/sandbox/TiltMonitor'), { ssr: false });
+const VillainPresetPicker = dynamic(() => import('../../../src/components/sandbox/VillainPresetPicker'), { ssr: false });
+const HandReplay = dynamic(() => import('../../../src/components/sandbox/HandReplay'), { ssr: false });
+const StudyFolders = dynamic(() => import('../../../src/components/sandbox/StudyFolders'), { ssr: false });
+const SaveHandModal = dynamic(() => import('../../../src/components/sandbox/SaveHandModal'), { ssr: false });
+const ShareScenarioModal = dynamic(() => import('../../../src/components/sandbox/ShareScenarioModal'), { ssr: false });
+const CustomDrillBuilder = dynamic(() => import('../../../src/components/sandbox/CustomDrillBuilder'), { ssr: false });
+const GodModePanel = dynamic(() => import('../../../src/components/sandbox/GodModePanel'), { ssr: false });
+const ExternalSolverImport = dynamic(() => import('../../../src/components/sandbox/ExternalSolverImport'), { ssr: false });
+const EquityHeatmapOverlay = dynamic(() => import('../../../src/components/sandbox/EquityHeatmapOverlay'), { ssr: false });
+const NodeLockExploits = dynamic(() => import('../../../src/components/sandbox/NodeLockExploits'), { ssr: false });
+const ImportHHModal = dynamic(() => import('../../../src/components/sandbox/ImportHHModal'), { ssr: false });
 import { idbSaveSessionLog, idbLoadSessionLog } from '../../../src/utils/indexeddb-pwa';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';

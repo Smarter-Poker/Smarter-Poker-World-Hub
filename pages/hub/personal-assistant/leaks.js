@@ -1373,7 +1373,7 @@ export default function LeakFinderPage() {
   }, []);
 
   // ═══ ACTION GATE: exploring leaks is free, practice/training is gated ═══
-  const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
+  const { guardAction, hasAccess: paHasAccess, UpgradePopup } = useFeatureGate('personal_assistant');
 
   const [tab, setTab] = useState('leaks');
   const [showMenu, setShowMenu] = useState(false);
@@ -1556,6 +1556,62 @@ export default function LeakFinderPage() {
       setDetectionSummary({ type: 'error', text: friendlyDetectionError(result?.error) });
     }
   }, [runDetection]);
+
+  // ─── First-visit auto-detection ──────────────────────────────────────────
+  //
+  // WHY THIS EXISTS: detection only ever ran on a manual tap, so `user_leaks`
+  // was empty for effectively everyone — 1,132 accounts hold 100+ hands and
+  // qualify, while the table carried 3 rows, all from the retired clinic
+  // system. The Leak Finder was architecturally complete and permanently
+  // empty, because nothing told a player to press a button they could not see
+  // the value of yet.
+  //
+  // It is a client-side trigger rather than a cron on purpose: RULE 11 sends
+  // every new scheduled job to Open Claw and CI fails on net-new
+  // pages/api/cron/ files, and RULE 12 forbids standing up new infrastructure.
+  // This needs neither.
+  //
+  // Guard rails, because detection is not free (it queries hand history and
+  // asks Grok for fix suggestions on the top 3 leaks):
+  //   • signed in AND already entitled — `hasAccess`, never `guardAction`, so
+  //     a background action can never pop the upgrade modal at someone;
+  //   • only when the leak list has loaded and is genuinely empty (sample
+  //     leaks do not count as content);
+  //   • once per browser per COOLDOWN_MS, so a clean player who legitimately
+  //     has zero leaks does not re-run it on every visit;
+  //   • once per mount, and never while a manual run is in flight;
+  //   • silent on failure — a background action the user did not ask for must
+  //     not raise an error banner. The manual button remains the loud path.
+  const autoDetectRef = useRef(false);
+  const [autoDetecting, setAutoDetecting] = useState(false);
+
+  useEffect(() => {
+    const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+    const KEY = 'pa-auto-detect-last';
+
+    if (autoDetectRef.current) return;                  // once per mount
+    if (!paHasAccess || !userId) return;                // entitled + signed in
+    if (leaksLoading || isDetecting) return;            // let loads settle
+    if (leaksAreDemo) return;                           // sample data is not "no leaks"
+    if (leaks.length > 0) return;                       // already has real leaks
+
+    const last = Number(safeStorage.get(KEY, '0'));
+    if (Number.isFinite(last) && last > 0 && Date.now() - last < COOLDOWN_MS) return;
+
+    autoDetectRef.current = true;
+    safeStorage.set(KEY, String(Date.now()));   // written BEFORE the call, so a
+                                                // failure cannot spin the retry
+    setAutoDetecting(true);
+    (async () => {
+      try {
+        await runDetection();
+      } catch (e) {
+        console.warn('[LeakFinder] auto-detection failed:', e?.message || e);
+      } finally {
+        setAutoDetecting(false);
+      }
+    })();
+  }, [paHasAccess, userId, leaksLoading, isDetecting, leaksAreDemo, leaks.length, runDetection]);
 
   const celebrate = useCallback(async () => {
     if (reduceMotion) return;
@@ -2132,11 +2188,16 @@ export default function LeakFinderPage() {
                 </div>
               ) : activeLeaks.length === 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+                  {/* A scan the user did not start still has to be visible —
+                      showing "no leaks detected" while one is running would be
+                      telling them something we do not yet know. */}
                   <EmptyState
                     icon={<Inbox size={22} strokeWidth={2} />}
-                    title="No leaks detected yet"
-                    body="Run detection on your recent hands and the engine will rank every repeated, measurable EV leak."
-                    action={detectButton(false)}
+                    title={(autoDetecting || isDetecting) ? 'Checking your recent hands…' : 'No leaks detected yet'}
+                    body={(autoDetecting || isDetecting)
+                      ? 'Scanning your hand history for repeated, measurable EV mistakes. This takes a few seconds.'
+                      : 'Run detection on your recent hands and the engine will rank every repeated, measurable EV leak.'}
+                    action={(autoDetecting || isDetecting) ? null : detectButton(false)}
                   />
                   {(onboardingLeaks || []).length > 0 && (
                     <div>
