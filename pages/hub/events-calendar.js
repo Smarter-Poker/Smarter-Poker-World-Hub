@@ -321,6 +321,14 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
           {event.game_type && event.game_type !== 'Unknown' && (
             <span className="ev-game-type">{event.game_type}</span>
           )}
+          {event.is_stale && (
+            <span
+              className="ev-meta-item ev-stale"
+              title={event.last_verified ? `Last verified ${new Date(event.last_verified).toLocaleDateString()}` : 'Not recently verified'}
+            >
+              Unverified
+            </span>
+          )}
           {event.events_count && event.source === 'series' && (
             <span className="ev-event-count">{event.events_count} Events</span>
           )}
@@ -1468,6 +1476,10 @@ export default function EventsCalendarPage({ fallbackData }) {
         .ev-venue-link { color: rgba(0,212,255,0.8); text-decoration: none; font-weight: 500; }
         .ev-venue-link:hover { color: #00D4FF; text-decoration: underline; }
         .ev-location { color: rgba(255,255,255,0.35); }
+        .ev-stale {
+          color: #f59e0b; font-weight: 600; font-size: 11px;
+          border: 1px solid rgba(245,158,11,0.45); border-radius: 4px; padding: 0 6px;
+        }
         .ev-distance { color: rgba(0,212,255,0.7); font-weight: 600; }
         .ev-recurrence { color: rgba(245,158,11,0.6); font-style: italic; }
         .ev-tour-code {

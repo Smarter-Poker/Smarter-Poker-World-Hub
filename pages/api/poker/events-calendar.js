@@ -431,7 +431,7 @@ async function handler(req, res) {
           // `is_recurring` was selected but never read — recurrence is recomputed
           // below as `!t.event_date`. Dropped so a schema drift on that column
           // cannot fail the whole query.
-          .select('venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date')
+          .select('venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date, scrape_timestamp')
           .eq('is_active', true)
           // Every other consumer of venue_daily_tournaments (venues.js,
           // daily-tournaments.js, venue-tournament-calendar.js,
@@ -524,6 +524,13 @@ async function handler(req, res) {
                 latitude: venueInfo?.latitude ? parseFloat(venueInfo.latitude) : null,
                 longitude: venueInfo?.longitude ? parseFloat(venueInfo.longitude) : null,
                 logo_url: venueInfo?.logo_url || null,
+                // PROVENANCE: surface scrape freshness so the calendar can flag rows
+                // that have not been re-verified recently, mirroring live-tables.js.
+                // Unknown timestamp is treated as stale (do not imply freshness we lack).
+                last_verified: t.scrape_timestamp || null,
+                is_stale: t.scrape_timestamp
+                  ? (Date.now() - new Date(t.scrape_timestamp).getTime()) > 30 * 24 * 60 * 60 * 1000
+                  : true,
               });
             }
           }
