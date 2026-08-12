@@ -411,8 +411,22 @@ const nextConfig = {
         __dirname,
         'src/lib/supabase.ts'
       ),
-      // ─── authUtils.js (commander-shared re-export stub) → authUtils.ts ─────
-      // src/lib/authUtils.js is a 136-byte stub that re-exports from
+      // ─── authUtils.js → authUtils.ts ───────────────────────────────────────
+      // CORRECTED 2026-08-12: the note below described src/lib/authUtils.js as
+      // "a 136-byte stub". That has not been true for some time — it is now a
+      // ~31KB file carrying its own full implementations. The alias is still
+      // correct (getFreshAccessToken lives only in the .ts file), but the
+      // consequence was missed: aliasing means the .ts version of EVERY shared
+      // export wins, including ones the .js file implemented properly.
+      //
+      // That silently swapped ensureAuthReady for a `Promise<void>` stub and
+      // broke six auth-gated flows (audit C-8). authUtils.ts:ensureAuthReady
+      // now implements the real contract. Before adding an export to the .js
+      // file, implement it in the .ts file instead — the .js version is not
+      // what ships.
+      //
+      // Original note follows:
+      // src/lib/authUtils.js re-exports from
       // @smarter-poker/commander-shared, which does NOT export
       // getFreshAccessToken (introduced 2026-04-30 locally in authUtils.ts).
       // Without this alias, webpack resolves the import path
