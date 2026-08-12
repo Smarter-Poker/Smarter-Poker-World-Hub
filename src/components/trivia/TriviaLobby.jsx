@@ -69,7 +69,7 @@ const MODE_CARDS = [
         glowColor: '#f97316',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/mtt-scenarios.webp?v=v5'
+        image: '/images/trivia/mtt-scenarios.webp?v=v6'
     },
     {
         id: 'cash',
@@ -80,7 +80,7 @@ const MODE_CARDS = [
         glowColor: '#31a24c',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/cash-game.webp?v=v5'
+        image: '/images/trivia/cash-game.webp?v=v6'
     },
     {
         id: 'icm',
@@ -91,7 +91,7 @@ const MODE_CARDS = [
         glowColor: '#2374e1',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/icm-chip-ev.webp?v=v5'
+        image: '/images/trivia/icm-chip-ev.webp?v=v6'
     },
     // ROW 2 - Core Trivia
     {
@@ -103,7 +103,7 @@ const MODE_CARDS = [
         glowColor: '#FFD700',
         diamondReward: 3,
         perfectBonus: 5,
-        image: '/images/trivia/poker-history.webp?v=v5'
+        image: '/images/trivia/poker-history.webp?v=v6'
     },
     {
         id: 'tournaments',
@@ -114,7 +114,7 @@ const MODE_CARDS = [
         glowColor: '#FFD700',
         diamondReward: 'Prize pool',
         perfectBonus: null,
-        image: '/images/trivia/tournaments.webp?v=v5'
+        image: '/images/trivia/tournaments.webp?v=v6'
     },
     {
         id: 'pro',
@@ -125,7 +125,7 @@ const MODE_CARDS = [
         glowColor: '#9D4EDD',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/pro-knowledge.webp?v=v5'
+        image: '/images/trivia/pro-knowledge.webp?v=v6'
     },
     // ROW 3 - Challenge Modes
     {
@@ -137,7 +137,7 @@ const MODE_CARDS = [
         glowColor: '#f02849',
         diamondReward: '10+',
         perfectBonus: null,
-        image: '/images/trivia/survival-mode-v2.webp?v=v5'
+        image: '/images/trivia/survival-mode-v2.webp?v=v6'
     },
     {
         id: 'endless',
@@ -148,7 +148,7 @@ const MODE_CARDS = [
         glowColor: '#8b5cf6',
         diamondReward: '1+/Q',
         perfectBonus: null,
-        image: '/images/trivia/endless-mode-v2.webp?v=v5'
+        image: '/images/trivia/endless-mode-v2.webp?v=v6'
     },
     {
         id: 'mixed',
@@ -159,7 +159,7 @@ const MODE_CARDS = [
         glowColor: '#00D4FF',
         diamondReward: '1/Q',
         perfectBonus: null,
-        image: '/images/trivia/mixed-mode-v2.webp?v=v5'
+        image: '/images/trivia/mixed-mode-v2.webp?v=v6'
     },
     // ROW 4 - Competitive
     {
@@ -171,7 +171,7 @@ const MODE_CARDS = [
         glowColor: '#f02849',
         diamondReward: '2x stake',
         perfectBonus: null,
-        image: '/images/trivia/pvp-battle.webp?v=v5'
+        image: '/images/trivia/pvp-battle.webp?v=v6'
     },
     {
         id: 'rules',
@@ -182,7 +182,7 @@ const MODE_CARDS = [
         glowColor: '#4a90d9',
         diamondReward: 3,
         perfectBonus: 5,
-        image: '/images/trivia/rules-quiz.webp?v=v5'
+        image: '/images/trivia/rules-quiz.webp?v=v6'
     },
     {
         id: 'gto',
@@ -193,7 +193,7 @@ const MODE_CARDS = [
         glowColor: '#a855f7',
         diamondReward: 8,
         perfectBonus: 15,
-        image: '/images/trivia/gto-master.webp?v=v5'
+        image: '/images/trivia/gto-master.webp?v=v6'
     }
 ];
 
@@ -326,7 +326,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 style={{ cursor: dailyCompleted ? 'default' : 'pointer' }}
             >
                 <img
-                    src="/images/trivia/daily-trivia-header-final.webp?v=v5"
+                    src="/images/trivia/daily-trivia-header-final.webp?v=v6"
                     alt="Daily Trivia - 10 Questions Fresh Every Day"
                     className="daily-trivia-banner__image"
                     width={1024}
@@ -493,7 +493,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     aria-label={`Quick Stakes — timed arcade round. ${isVip ? 'Free for VIP' : `Entry ${getEntryCost('arcade')} diamonds`}.`}
                 >
                     <img
-                        src="/images/trivia/quick-stakes.webp?v=v5"
+                        src="/images/trivia/quick-stakes.webp?v=v6"
                         alt=""
                         aria-hidden
                         className="quick-stakes-banner__img"
@@ -810,7 +810,9 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     overflow: hidden;
                     cursor: pointer;
                     transition: transform 0.2s ease, box-shadow 0.2s ease;
-                    aspect-ratio: 918 / 333;
+                    aspect-ratio: 1817 / 866; /* matches quick-stakes.webp exactly - the
+                       banner is object-fit: cover, so a mismatched box
+                       silently crops the artwork top and bottom */
                 }
 
                 .quick-stakes-banner__chip {
@@ -1070,7 +1072,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     <div className="gate-overlay" onClick={() => { setShowChargePopup(false); setPendingMode(null); }}>
                         <div className="diamond-modal" onClick={e => e.stopPropagation()}>
                             <img
-                                src="/images/trivia/diamond-entry-modal.webp?v=v5"
+                                src="/images/trivia/diamond-entry-modal.webp?v=v6"
                                 alt="Diamond Entry Modal"
                                 className="diamond-modal__bg"
                                 width={946}
