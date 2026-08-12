@@ -154,7 +154,9 @@ function normalizeProduct(raw, index, source) {
 
     return {
         key: rawId || `${source}-${index}-${name}`,
-        // Only a uuid is safe to send as a merchandise_items id.
+        // Any non-empty id is a candidate; merchandise_items.id is TEXT and
+        // production rows are slugs. The server rejects anything it does not
+        // recognise, so this does not have to guess.
         catalogId: isCatalogId(rawId) ? rawId.trim() : null,
         source,
         name,
@@ -539,6 +541,18 @@ export default function MerchStore({ user = null }) {
             item.price = product.priceUsd;
         }
         if (variant) {
+            // Send the variant's real id, not just its label.
+            //
+            // The chosen size/colour used to travel ONLY inside this free-text
+            // description, so the server had no way to price or stock-check it:
+            // merchandise_item_variants carries its own price_usd,
+            // price_diamonds and stock, and checkout never consulted the table
+            // at all. An XXL was charged the base price and its stock never
+            // moved. reserve_merch_order() now prices and reserves per variant,
+            // and REFUSES an item with variants when no variant_id arrives —
+            // guessing would either mischarge the customer or ship them the
+            // wrong size — so this field is required, not decorative.
+            if (variant.id) item.variantId = variant.id;
             item.description = `${product.description ? `${product.description} — ` : ''}Option: ${variant.label}`;
         } else if (product.description) {
             item.description = product.description;
