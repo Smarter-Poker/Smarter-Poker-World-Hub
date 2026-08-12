@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getSessionToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
@@ -138,11 +138,10 @@ export default function MixedModePage() {
 
             setUserId(user.id);
 
-            // Session token for the report-question API
-            try {
-                const { data: sessionData } = await supabase.auth.getSession();
-                setAccessToken(sessionData?.session?.access_token || null);
-            } catch (e) { console.warn('[Mixed] Session fetch failed:', e); }
+            // Session token for the report-question API.
+            // getSessionToken() (from authUtils) reads from localStorage and
+            // avoids the async auth-lock held by the Supabase session API.
+            setAccessToken(getSessionToken() || null);
 
             // Check VIP status
             await DiamondEngine.init(user.id);
