@@ -118,30 +118,88 @@ could silently revert.
 
 ---
 
-## 5. What is still open
+## 4b. The five "still open" items — all closed
 
-1. **~559 migrations exist only in production** (703 repo files vs 1,263
-   applied rows; ~162 Home Games functions / 350KB of definitions). This is
-   the root cause that let three fixes revert unnoticed. Run
-   `scripts/dump-home-games-schema.mjs` from somewhere with DB access and
-   commit the result. It was written as a script precisely because the dump
-   is too large to move through an agent context window without truncation.
-2. **8 phantom cron jobs.** `pages/api/admin/cron-health.js` health-checks
-   `/api/cron/*` handlers that do not exist here — almost certainly stranded
-   by the Open Claw migration (CLAUDE.md §11). Needs a decision (point the
-   dashboard at the dispatcher, or delete the entries), not a handler.
-3. **`/api/translate`** is an acknowledged placeholder with a graceful
-   fallback. Left as-is deliberately.
-4. **Upstream commander authz is unverified.** The `manage.js` gate is
-   defence in depth; the server-side check lives in another repo and should
-   be confirmed there. A client gate stops the UI rendering, not a
-   hand-crafted request.
-5. **Two competing seat models** (`commander_home_rsvps` vs
-   `commander_home_seat_reservations`) are still bridged one-directionally
-   and rendered side by side. Not addressed — it is a design decision, not a
-   bug fix.
+Worked one at a time after the initial remediation. Two of them corrected the
+audit again.
+
+1. **~559 production-only migrations — CLOSED.** The intended route (a direct
+   Postgres connection) is unavailable from an agent sandbox: the pooler IS
+   reachable, but `SUPABASE_DB_PASSWORD` in `.env` is stale and fails auth,
+   exactly like every GitHub token there. Used the still-valid service-role
+   key instead — a temporary `SECURITY DEFINER` RPC (phase55), fetched over
+   PostgREST straight to disk so 422KB never passed through a context window,
+   then dropped (phase56). `supabase/migrations/ZZZZ_snapshot_home_games_schema.sql`
+   now holds 163 functions, 98 policies, 144 indexes. Verified: delimiters
+   balanced, 0 secrets, and it captures the FIXED state.
+
+2. **8 phantom cron jobs — CLOSED, and bigger than reported.** `cron_health_log`
+   has ZERO rows and NO WRITER anywhere (this repo, workers repo, Open Claw
+   dispatcher). `/api/admin/cron-health` has therefore ALWAYS answered
+   `0/8_HEALTHY` — a monitor that could never go green, permanently crying
+   wolf. Also traced the jobs: six exist nowhere, `daily-challenge` is in the
+   Open Claw dispatcher, `sentry-triage` is in the workers repo. The registry
+   now records `location` instead of naming deleted routes, and reports
+   `NO_TELEMETRY` rather than alarming. Wiring real telemetry is now the
+   visible next step instead of being hidden behind a permanent red.
+
+3. **`/api/translate` — CLOSED, it was a real feature.** `TRANSLATION_LANGUAGES`
+   (10 languages) is exported and wired into the messenger UI; the endpoint
+   never existed, so users picked a language and got their own untranslated
+   text back with an `[ES] ` prefix. Implemented on the configured Anthropic
+   key, auth-gated, `LIMITS.ai`, 2000-char cap, target allowlist. Also moved
+   the caller GET -> POST: it had been putting private DM text in a URL,
+   where it lands in CDN and proxy logs.
+
+4. **Upstream commander authz — VERIFIED SECURE (audit correction).** The
+   audit called escrow "the highest-consequence unverified surface". The
+   `smarter-poker-commander` repo is mounted, so it was checkable: release
+   requires `escrow.player_id === user.id`, refund requires host-or-player,
+   listing requires host-or-participant, and `groups/[id]` gates private
+   groups on owner/approved-member with edits gated on `owner_id`. The
+   `manage.js` gate added earlier is genuine defence in depth, not the only
+   layer.
+
+5. **Two competing seat models — AUDIT WAS WRONG; the real bug was elsewhere.**
+   The audit claimed confirmed players "vanish at `rpc_hg_start_table`". They
+   are not duplicate models: `commander_home_rsvps` is "I am coming" (per
+   game), `commander_home_seat_reservations` is "I am in seat 4" (per table).
+   RSVP then seat assignment is the intended flow, so `start_table` is
+   correct to seat only reserved players, and auto-seating every yes-RSVP
+   would invent policy the product does not define (a game can have several
+   tables). Acting on the audit here would have seated the wrong people.
+
+   The genuine bugs, now fixed: `POST .../tables/[id]/start` had **zero
+   callers**, so a table could never start and `commander_home_seats` was
+   never materialised (F-08); the "Seat a member" affordance vanished once
+   the host took their own seat (F-29); and a user-facing "coming next" stub
+   toast was reachable (L-40). Because starting is irreversible and
+   production holds 8 yes-RSVPs with 0 reservations, the new host control
+   runs an unseated-confirmed pre-flight (`fn_home_game_unseated_confirmed`,
+   phase57, staff-gated) and folds the count into the confirmation.
+
+**Final state:** 8/8 database invariants pass; the temporary dump helper is
+gone; `BASELINE_DEAD` is down from 12 entries to 1; production verified on
+version `35a3be36` with home-game distances at whole-mile precision.
 
 ---
+
+## 5. Genuinely remaining (not blockers, and not silently dropped)
+
+1. **Wire cron telemetry.** `/api/admin/cron-health` now reports honestly,
+   but nothing writes `cron_health_log`. Each job should upsert on
+   completion. Six of the eight registered jobs also exist nowhere and need
+   a product decision: revive, or delete from the registry.
+2. **Refresh `SUPABASE_DB_PASSWORD`** (and the GitHub PATs in `.env*`, all of
+   which return 401). Once the DB password works,
+   `scripts/dump-home-games-schema.mjs --check` becomes a CI drift gate
+   without needing any server-side helper.
+3. **`/api/cron/horses-stories`** — the last BASELINE_DEAD entry.
+   `horses/trigger-pipeline.js` calls a handler that does not exist.
+4. **Consider consolidating the seat/RSVP surfaces in the UI.** They are
+   correct as data models (see §4b item 5) but `manage.js` renders both
+   panels side by side, which is what made them look contradictory in the
+   first place.
 
 ## 6. Operational note
 
