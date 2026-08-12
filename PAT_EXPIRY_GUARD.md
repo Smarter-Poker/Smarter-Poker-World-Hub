@@ -6,7 +6,7 @@ The fine-grained PAT used for pushes to this repo is stored in TWO places:
 2. **`.git/config` branch tracking URL** — the `remote = https://x-access-token:ghp_...@github.com/...` line
    under `[branch "main"]`. This is a fallback that works even when `gh` auth fails.
 
-Current token prefix in `.git/config`: `ghp_HUVX...REDACTED-SEE-INCIDENT-NOTE` (**do NOT commit the full token**)  
+Current token prefix in `.git/config`: `ghp_WeMi...` — name: **AGENT-PAT-v7-2026-08-12**, expires **2026-11-10** (**do NOT commit the full token**)  
 Third location: **GitHub Actions secret `GH_ADMIN_PAT`** — used by `push-velocity-watchdog.yml`
 
 When this token fails, ALL THREE stop working simultaneously.

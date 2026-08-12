@@ -7,6 +7,7 @@ import React from 'react';
 
 export default function HexButton({
     children,
+    label = null,  // alternative to children for convenience
     onClick,
     disabled = false,
     variant = 'primary', // 'primary' | 'secondary' | 'success' | 'danger'
@@ -29,8 +30,19 @@ export default function HexButton({
             disabled={disabled}
             style={style}
         >
-            {icon && <span className="hex-button__icon">{icon}</span>}
-            <span className="hex-button__text">{children}</span>
+            {icon && (() => {
+                // Support both rendered elements (<Play size={16} />) and
+                // component constructors (icon={Play}) — Lucide icons are
+                // forwardRef objects; rendering them directly causes React #31.
+                const Icon = (typeof icon === 'function' || (icon && typeof icon === 'object' && icon.$$typeof)) ? icon : null;
+                return (
+                    <span className="hex-button__icon">
+                        {Icon ? <Icon size={16} /> : icon}
+                    </span>
+                );
+            })()}
+
+            <span className="hex-button__text">{children ?? label}</span>
 
             <style>{`
                 .hex-button {
