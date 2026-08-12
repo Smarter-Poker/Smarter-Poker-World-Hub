@@ -44,9 +44,25 @@ function normalizeTournament(t) {
     structure: t.structure || 'standard',
     scheduled_date: t.scheduled_date,
     start_time: t.start_time,
+    // TIMEZONE (audit 2026-08-12, M-9): do NOT append 'Z' here.
+    //
+    // commander_home_games.start_time is a bare SQL TIME — the host's local
+    // wall clock, with no zone attached. Appending 'Z' declared it UTC, and
+    // formatDate() then re-rendered it in the VIEWER's zone. A tournament
+    // scheduled for Aug 15 at 00:30 displayed as "Aug 14" to every US
+    // viewer, and late-night home games are the common case, not the edge.
+    //
+    // Omitting the suffix yields a floating local time, which is what the
+    // value actually means and matches formatDate's own convention of
+    // appending T00:00:00 (local) to bare dates.
+    //
+    // The real fix is a timezone column on commander_home_groups plus
+    // Intl.DateTimeFormat({ timeZone }); until then, floating-local is
+    // correct for the overwhelmingly common case of a viewer in the same
+    // zone as the game they are looking at.
     scheduled_at_iso: t.scheduled_at_iso
       || (t.scheduled_date && t.start_time
-        ? `${t.scheduled_date}T${String(t.start_time).slice(0,8) || '00:00:00'}Z`
+        ? `${t.scheduled_date}T${String(t.start_time).slice(0,8) || '00:00:00'}`
         : null),
     entries_cap: t.entries_cap ?? t.max_players ?? null,
     rsvp_yes: typeof t.rsvp_yes === 'number' ? t.rsvp_yes : 0,
