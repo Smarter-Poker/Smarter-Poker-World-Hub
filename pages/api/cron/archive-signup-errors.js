@@ -46,12 +46,19 @@ export default async function handler(req, res) {
         }
 
         // Heartbeat
-        await admin.from('probe_heartbeats').insert({
+        // Supabase's PostgREST builder is a THENABLE, not a Promise: it has
+        // .then() but no .catch(), so this threw TypeError before the await
+        // ran and took the whole probe down with it. Read the returned
+        // { error } instead.
+        const { error: heartbeatErr } = await admin.from('probe_heartbeats').insert({
             probe_name: 'archive-signup-errors',
             status: 'ok',
             duration_ms: Date.now() - started,
             details: data || {},
-        }).catch(() => null);
+        });
+        if (heartbeatErr) {
+            console.warn('[archive-signup-errors] heartbeat write failed:', heartbeatErr.message);
+        }
 
         return res.status(200).json({
             status: 'ok',

@@ -159,12 +159,17 @@ export default async function handler(req, res) {
         const failures = results.filter((r) => !r.ok);
 
         // Heartbeat into probe_heartbeats with probe_name='trigger-audit'
-        await admin.from('probe_heartbeats').insert({
+        // Thenable, not a Promise — .catch() does not exist on the builder, so
+        // this threw TypeError before the await and crashed the audit probe.
+        const { error: heartbeatErr } = await admin.from('probe_heartbeats').insert({
             probe_name: 'trigger-audit',
             status: failures.length === 0 ? 'ok' : 'failed',
             duration_ms: 0,
             details: { results, failure_count: failures.length },
-        }).catch(() => null);
+        });
+        if (heartbeatErr) {
+            console.warn('[trigger-audit] heartbeat write failed:', heartbeatErr.message);
+        }
 
         if (failures.length === 0) {
             return res.status(200).json({
