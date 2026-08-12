@@ -6,7 +6,7 @@ Two compounding failures destroyed work mid-session on 2026-08-11/12:
 
 1. **GitHub MCP PAT expired** mid-phase — all trivia code reached `origin/main`
    before the failure, but the phase-4 audit doc (`2026-08-11-trivia-phase4-...`)
-   was written to the working tree only. Token: `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`
+   was written to the working tree only. Token: `ghp_HUVX...REDACTED-SEE-INCIDENT-NOTE`
    (in `.git/config` branch tracking URL — the `gh auth token` path may be different).
 
 2. **Antigravity reset loop destroyed the uncommitted audit doc** — reflog shows
@@ -42,7 +42,7 @@ as of 2026-08-12. Direct HTTPS push command used:
 
 ```bash
 GIT_CONFIG_NOSYSTEM=1 HOME=/tmp git push \
-  https://x-access-token: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@github.com/Smarter-Poker/Smarter-Poker-World-Hub.git \
+  https://x-access-token:ghp_HUVX...REDACTED-SEE-INCIDENT-NOTE@github.com/Smarter-Poker/Smarter-Poker-World-Hub.git \
   HEAD:main
 ```
 

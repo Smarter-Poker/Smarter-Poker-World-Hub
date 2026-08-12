@@ -6,7 +6,7 @@ The fine-grained PAT used for pushes to this repo is stored in TWO places:
 2. **`.git/config` branch tracking URL** — the `remote = https://x-access-token:ghp_...@github.com/...` line
    under `[branch "main"]`. This is a fallback that works even when `gh` auth fails.
 
-Current token prefix in `.git/config`: `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` (**do NOT commit the full token**)  
+Current token prefix in `.git/config`: `ghp_HUVX...REDACTED-SEE-INCIDENT-NOTE` (**do NOT commit the full token**)  
 Third location: **GitHub Actions secret `GH_ADMIN_PAT`** — used by `push-velocity-watchdog.yml`
 
 When this token fails, ALL THREE stop working simultaneously.
@@ -56,3 +56,35 @@ GIT_CONFIG_NOSYSTEM=1 HOME=/tmp git push \
 ```
 
 Replace `<TOKEN>` with the value from `.git/config` `[branch "main"]` remote URL.
+
+---
+
+## INCIDENT 2026-08-12: a live PAT was committed to this repo
+
+Commit `92eef2d459` wrote the full value of the then-current fine-grained PAT
+(prefix `ghp_HUVX...`) into TWO tracked files - this file and
+`.agent/audits/2026-08-12-ag-reset-loop-and-pat-failure.md` - and pushed them
+to `origin/main`. The same value was also pasted into an agent chat
+transcript. It has been redacted from the working tree, but **redaction does
+not undo exposure**: the value remains in the pushed git history and in that
+transcript.
+
+Required response, in order:
+
+1. **REVOKE** the token at https://github.com/settings/tokens (or the
+   fine-grained PAT page). Revoking is the only real remedy - rotating a
+   still-valid leaked token leaves the old one working.
+2. Issue the replacement and update all three locations listed above.
+3. Treat the git history as permanently containing the old value. Purging it
+   needs a history rewrite (`git filter-repo`) and a force-push, which is
+   disruptive; because revocation makes the value useless, rewriting is
+   optional and usually not worth it.
+
+### Rule going forward
+
+Never write a token value into a tracked file. This guard documents token
+LOCATIONS and PREFIXES only - never the secret itself. `scripts/git-safe-push.sh`
+Phase 0 exists precisely to block `ghp_` patterns; commit `92eef2d459` reached
+origin because it bypassed that script with a raw `git push`. If the safe-push
+script refuses a commit, that is the control working - fix the content, do not
+route around it.
