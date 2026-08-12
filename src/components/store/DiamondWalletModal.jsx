@@ -141,6 +141,20 @@ const EARNED_TYPES = [
 
 const SPENT_TYPES_EXCLUDE = ['refund', 'tournament_refund', 'pvp_refund'];
 
+// Every transaction type the Gifts tab should show.
+//
+// The filter and the counter each hardcoded only ['diamond_gift_sent',
+// 'diamond_gift_received'], so a gift that was REFUNDED
+// ('diamond_gift_refund') vanished from the Gifts tab entirely — the user saw
+// the money leave and never saw it come back, which reads exactly like a lost
+// transfer. 'diamond_received' was missing for the same reason.
+const GIFT_TX_TYPES = [
+    'diamond_gift_sent',
+    'diamond_gift_received',
+    'diamond_received',
+    'diamond_gift_refund',
+];
+
 // ── R8-I4: Date range filter options ──
 const DATE_RANGE_OPTIONS = [
     { value: 'all', label: 'All Time' },
@@ -1122,7 +1136,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 if (filter === 'spent') return tx.amount < 0 && !['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
                 if (filter === 'refund') return ['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
                 if (filter === 'purchase') return ['purchase', 'feature_unlock', 'game_cost', 'arcade_entry'].includes(txType);
-                if (filter === 'gifts') return ['diamond_gift_sent', 'diamond_gift_received'].includes(txType);
+                if (filter === 'gifts') return GIFT_TX_TYPES.includes(txType);
                 return txType === filter;
             });
         }
@@ -1153,7 +1167,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             if (tx.amount < 0 && !SPENT_TYPES_EXCLUDE.includes(txType)) counts.spent++;
             if (['refund', 'tournament_refund', 'pvp_refund'].includes(txType)) counts.refund++;
             if (['purchase', 'feature_unlock', 'game_cost', 'arcade_entry'].includes(txType)) counts.purchase++;
-            if (['diamond_gift_sent', 'diamond_gift_received'].includes(txType)) counts.gifts++;
+            if (GIFT_TX_TYPES.includes(txType)) counts.gifts++;
         });
         return counts;
     }, [transactions]);

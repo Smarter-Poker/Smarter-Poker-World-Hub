@@ -60,10 +60,23 @@ export default async function handler(req, res) {
                   .order('created_at', { ascending: false })
                   .limit(100),
 
-              // 2. Total diamonds earned via rewards (all time)
+              // 2. Total diamonds earned via rewards (all time).
+              //
+              // Reads the LEDGER, not diamond_reward_claims. That table looks
+              // like the right source and is not: award_diamonds_v2 never
+              // writes it (verified against prosrc), so it holds only legacy
+              // v1 rows and stopped growing on 2026-07-25. Every reward paid
+              // since then was invisible here, so this dashboard has been
+              // under-reporting earned diamonds for weeks.
+              //
+              // The join to diamond_reward_catalog is what makes a row a
+              // REWARD rather than a purchase, an admin adjustment or a
+              // received gift — the same definition award_diamonds_v2 uses for
+              // its cap accounting.
               getSupabase()
-                  .from('diamond_reward_claims')
-                  .select('diamonds_awarded'),
+                  .from('diamond_transactions')
+                  .select('amount, transaction_type, diamond_reward_catalog!inner(action_key)')
+                  .gt('amount', 0),
 
               // 3. Diamond purchases (Stripe)
               getSupabase()
@@ -98,7 +111,7 @@ export default async function handler(req, res) {
 
           // Calculate aggregates
           const rewardClaims = rewardClaimsResult.data || [];
-          const totalDiamondsEarned = rewardClaims.reduce((sum, c) => sum + (c.diamonds_awarded || 0), 0);
+          const totalDiamondsEarned = rewardClaims.reduce((sum, c) => sum + (c.amount || 0), 0);
 
           const transactions = transactionsResult.data || [];
           const totalDiamondsSpent = transactions
