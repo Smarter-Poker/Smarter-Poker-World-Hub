@@ -150,6 +150,13 @@ async function fetchAllScores(supabase, uid) {
     for (let page = 0; page < MAX_PAGES; page++) {
         const from = page * PAGE;
         const { data, error } = await supabase
+            // BUGFIX (2026-08-12): .from('trivia_scores') was missing entirely,
+            // so this called supabase.select(...) on the client itself and threw
+            // `TypeError: supabase.select is not a function` on the very first
+            // page. The throw escaped to loadAchievements()'s catch, which is why
+            // EVERY user saw "We could not load your achievements right now" and
+            // a permanent 0/30 — the page has never once rendered an achievement.
+            .from('trivia_scores')
             // computeTriviaStats needs time_spent / play_date / created_at too
             // (speed, marathon and the night-owl/early-bird achievements).
             .select('mode, score, correct_count, total_questions, diamonds_earned, time_spent, play_date, created_at')
