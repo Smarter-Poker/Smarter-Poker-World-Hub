@@ -237,13 +237,13 @@ export default async function handler(req, res) {
               await getSupabase().rpc('fn_increment_agent_player_count', {
                   p_agent_user_id: resolvedAgentUserId,
                   p_club_id: club.id,
-              }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
+              }).then(({ error }) => { if (error) throw error; }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
           }
 
           // Atomically increment club member count
           await getSupabase().rpc('fn_increment_club_member_count', {
               p_club_id: club.id,
-          }).catch(async () => {
+          }).then(({ error }) => { if (error) throw error; }).catch(async () => {
               // Fallback if RPC not yet deployed
               const { count } = await getSupabase()
                   .from('club_members')
