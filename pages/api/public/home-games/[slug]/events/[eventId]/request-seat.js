@@ -203,11 +203,26 @@ export default async function handler(req, res) {
     //     game is already at capacity — they are part of that capacity.
     const { data: priorRsvp } = await supabase
       .from('commander_home_rsvps')
-      .select('id, response')
+      // audit F-22: bringing_guests is needed to compare SEAT COUNTS, not
+      // just row existence.
+      .select('id, response, bringing_guests')
       .eq('game_id', eventId)
       .eq('user_id', user.id)
       .maybeSingle();
-    const alreadyHeldSeat = priorRsvp?.response === 'yes';
+
+    // audit F-22: this was `priorRsvp?.response === 'yes'` — pure row
+    // existence. An existing yes-RSVP could then re-POST with MORE guests and
+    // skip the capacity recount below entirely, because it "already held a
+    // seat". A party of 1 could become a party of 6 past max_players.
+    //
+    // Only the seats being ADDED are new demand, so exempt the request from
+    // the recount only when it is not asking for more than it already holds.
+    const priorSeats = priorRsvp?.response === 'yes'
+      ? 1 + Math.max(0, Number(priorRsvp.bringing_guests) || 0)
+      : 0;
+    // `spotsNeeded` (= 1 + bringingGuests, already clamped to
+    // event.guest_limit above) is this request's total seat demand.
+    const alreadyHeldSeat = priorSeats > 0 && spotsNeeded <= priorSeats;
 
     // 7. Upsert membership (no-op if the user is already a member,
     //    regardless of status — we don't want to demote an approved

@@ -136,7 +136,9 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                 <path d="M3.4 20.6L12 2l8.6 18.6L12 17z" />
                             </svg>
-                            {Number(venue.distance_miles).toFixed(1)} mi
+                            {/* audit L-4: discover rounds to whole miles for host-address
+                                privacy — .toFixed(1) rendered a fake "7.0 mi" decimal. */}
+                            {Math.round(Number(venue.distance_miles))} mi
                         </div>
                     )}
                     {onFavorite && (
@@ -523,7 +525,33 @@ export default function HomeGamesPage() {
         const ac = new AbortController();
         const token = getAccessToken();
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        fetch('/api/public/home-games/discover?limit=100', { signal: ac.signal, headers })
+
+        // audit H-1: this used to request `?limit=100` with NO lat/lng and a
+        // `[]` dep array. Without coordinates discover takes its non-GPS
+        // branch — order by member_count, limit 100 — so the page was a
+        // NATIONAL TOP-100 LIST that was then filtered client-side. A user in
+        // a small market whose local game is not in the national top 100 saw
+        // "0 Home Games Found" at any radius, and the State dropdown
+        // contradicted /hub/home-games/in/[state], which queries the DB
+        // directly. GPS was acquired later but never triggered a refetch.
+        //
+        // Same fix already shipped in PodHomeGames; it was never applied here.
+        // Scoped queries (explicit state or a search term) intentionally skip
+        // the geo params so they search nationally, as the pod does.
+        const params = new URLSearchParams({ limit: '100' });
+        const scoped = (filters.selectedState && filters.selectedState !== 'all')
+                       || !!searchQuery.trim();
+        if (filters.selectedState && filters.selectedState !== 'all') {
+            params.set('state', filters.selectedState);
+        }
+        if (searchQuery.trim()) params.set('search', searchQuery.trim());
+        if (!scoped && userLocation?.lat != null && userLocation?.lng != null) {
+            params.set('lat', String(userLocation.lat));
+            params.set('lng', String(userLocation.lng));
+            params.set('radius_miles',
+                filters.radius === 'Any' ? '150' : String(Math.min(Number(filters.radius) || 150, 150)));
+        }
+        fetch(`/api/public/home-games/discover?${params.toString()}`, { signal: ac.signal, headers })
             .then(r => r.json())
             .then(json => {
                 if (!json?.success) throw new Error(json?.error || 'discover failed');
@@ -594,7 +622,9 @@ export default function HomeGamesPage() {
                 setLoading(false);
             });
         return () => ac.abort();
-    }, []);
+        // Re-query when the user's location or scope changes. Previously `[]`,
+        // so the GPS fix acquired below never reached the API.
+    }, [userLocation, filters.selectedState, filters.radius, searchQuery]);
 
     // GPS auto-request
     const gpsAutoRef = useRef(false);

@@ -179,7 +179,10 @@ export default async function handler(req, res) {
     }
 
     // 4. Recent public posts on the social page
-    const { data: posts } = await supabase
+    // audit F-33: this did not destructure `error`, so an RLS change or schema
+    // drift rendered as "no posts" forever — silently, and inconsistently with
+    // the upcoming-games query twelve lines above which does surface its error.
+    const { data: posts, error: postsErr } = await supabase
       .from('social_page_posts')
       .select(
         'id, content, content_type, media_urls, like_count, comment_count, share_count, is_pinned, post_type, created_at, author_id'
@@ -190,6 +193,10 @@ export default async function handler(req, res) {
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(10);
+
+    if (postsErr) {
+      console.warn('[public/home-games/[slug]] posts query failed:', postsErr.message);
+    }
 
     // Hydrate post authors in one batch
     let postsOut = [];

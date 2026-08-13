@@ -29,10 +29,22 @@ const STRUCTURES = [
   { value: 'rebuy',    label: 'Rebuy' },
 ];
 
+// audit F-20: these dates are compared against a <input type="date"> value,
+// which is the user's LOCAL calendar date. toISOString() is UTC, so from
+// ~17:00 local onward in US timezones the UTC date is already tomorrow — an
+// evening host was told they "cannot schedule in the past" for today, and the
+// default start date landed a day late. Format from local parts instead.
+function localISODate(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function todayPlus(days) {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return localISODate(d);
 }
 
 function emptyForm() {
@@ -95,6 +107,10 @@ export default function TournamentEditModal({
     // Client-side validation
     if (!form.name.trim()) return setError('Name is required');
     if (form.name.length > 120) return setError('Name must be 120 characters or less');
+    // audit F-21: Number('') === 0, so an EMPTY buy-in passed this check and
+    // the tournament was published advertising "Free" entry. Reject the blank
+    // before coercing.
+    if (String(form.buy_in).trim() === '') return setError('Buy-in is required');
     const buyIn = Number(form.buy_in);
     if (!Number.isFinite(buyIn) || buyIn < 0) return setError('Buy-in must be a non-negative number');
     const startingStack = form.starting_stack === '' ? null : Number(form.starting_stack);
@@ -102,7 +118,7 @@ export default function TournamentEditModal({
       return setError('Starting stack must be a non-negative number');
     }
     if (!form.scheduled_date || !form.scheduled_time) return setError('Date and time are required');
-    if (form.scheduled_date < new Date().toISOString().slice(0, 10)) {
+    if (form.scheduled_date < localISODate()) {
       return setError('Cannot schedule a tournament in the past');
     }
     const entriesCap = form.entries_cap === '' ? null : Number(form.entries_cap);
@@ -249,7 +265,7 @@ export default function TournamentEditModal({
                   type="date"
                   value={form.scheduled_date}
                   onChange={(e) => update('scheduled_date', e.target.value)}
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={localISODate()}
                   className="cmd-input w-full h-11 px-3"
                   disabled={submitting}
                 />
