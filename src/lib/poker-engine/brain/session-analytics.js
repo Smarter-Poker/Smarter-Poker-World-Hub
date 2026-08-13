@@ -627,6 +627,7 @@ async function persistOpponentJournal(horseId, opponentId, profile) {
                 .update({ session_count: (existing.session_count || 1) + 1 })
                 .eq('horse_id', horseId)
                 .eq('opponent_id', opponentId)
+                .then(({ error }) => { if (error) throw error; })
                 .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
         if (!error) {

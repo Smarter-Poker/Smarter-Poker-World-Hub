@@ -192,7 +192,7 @@ class AntiCheatMonitor {
           reason: `[AUTO-BOOT] ${reason}`,
           severity,
           status: 'actioned',
-        }).catch(err => console.warn('[AntiCheatMonitor] Flag insert failed:', err.message));
+        }).then(({ error }) => { if (error) throw error; }).catch(err => console.warn('[AntiCheatMonitor] Flag insert failed:', err.message));
 
         // 5. Log event
         await this.supabase.from('anti_cheat_events').insert({
@@ -202,7 +202,7 @@ class AntiCheatMonitor {
           table_id: tableId,
           details: { reason, severity, flagType, cashoutAmount, automated: true },
           triggered_by: 'anti_cheat_monitor',
-        }).catch(err => console.warn('[AntiCheatMonitor] Event insert failed:', err.message));
+        }).then(({ error }) => { if (error) throw error; }).catch(err => console.warn('[AntiCheatMonitor] Event insert failed:', err.message));
       }
     } catch (err) {
       console.warn(`[AntiCheatMonitor] Auto-boot failed for ${playerId}:`, err.message);

@@ -1010,6 +1010,7 @@ class LiveStreamService {
         .delete()
         .eq('stream_id', leavingStreamId)
         .eq('viewer_id', leavingUserId)
+        .then(({ error }) => { if (error) throw error; })
         .catch(() => {});
     }
 
