@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * RLS POLICY SCOPING CHECK — ratchet
+ * RLS POLICY SCOPING CHECK — zero tolerance for new migrations
  * ═══════════════════════════════════════════════════════════════════════════
  * Flags the anti-pattern:
  *
@@ -10,10 +10,10 @@
  * with no `TO service_role` clause.
  *
  * ── WHY IT IS WRONG ────────────────────────────────────────────────────────
- * Omitting `TO` means the policy defaults to PUBLIC, which attaches it to
- * EVERY role. Postgres then evaluates that expression for every row of every
- * matching statement issued by anon and authenticated — where it can only ever
- * be false. It is pure overhead that can never grant anything.
+ * Omitting `TO` defaults the policy to PUBLIC, attaching it to EVERY role.
+ * Postgres then evaluates that expression for every row of every matching
+ * statement issued by anon and authenticated — where it can only ever be
+ * false. It is pure overhead that can never grant anything.
  *
  * That the predicate is constant-false for those roles is not an assumption;
  * it was measured on production before the cleanup:
@@ -48,19 +48,24 @@
  *  venue_live_tables.*_service, and others). The detector requires the body to
  * reduce to the service_role test ALONE before flagging it.
  *
- * ── WHY A RATCHET AND NOT ZERO ─────────────────────────────────────────────
- * Migration history is immutable: the 64 historical occurrences are already
- * applied and cannot be rewritten. The live database was corrected by ALTER
- * POLICY instead. So this freezes the historical count and fails only when a
- * NEW migration adds another one.
+ * ── WHY A DATE CUTOFF RATHER THAN A FROZEN COUNT ───────────────────────────
+ * Migration history is immutable: the historical occurrences are already
+ * applied and cannot be rewritten, and the live database was corrected with
+ * ALTER POLICY instead. An earlier version of this script froze a count of
+ * those, but that count came from a clone that was behind origin/main — a
+ * baseline you cannot verify is worse than no baseline, because it fails the
+ * build for reasons unrelated to the change being made.
+ *
+ * So: migrations dated before the cutoff are skipped entirely, and everything
+ * from the cutoff onward must be clean. No counting of history required.
  *
  * If you are adding a service-role-only policy, write it as:
  *
  *     CREATE POLICY "x_service" ON t AS PERMISSIVE FOR ALL
  *       TO service_role USING (true);
  *
- * TO service_role already restricts it; re-testing auth.role() inside the body
- * is redundant.
+ * TO service_role already restricts it; re-testing auth.role() in the body is
+ * redundant.
  *
  * USAGE: node scripts/check-rls-policy-scoping.mjs
  * ═══════════════════════════════════════════════════════════════════════════
@@ -70,10 +75,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * Occurrences already present in applied, immutable migration history.
- * Do NOT raise this to accommodate a new policy — scope it TO service_role.
+ * Migrations named with a date BEFORE this are immutable history and are not
+ * inspected. Everything from this date onward must be clean. Do not move this
+ * forward to silence a new finding — scope the policy TO service_role instead.
  */
-const BASELINE = 64;
+const CUTOFF = '20260813';
 
 const MIGRATIONS_DIR = 'supabase/migrations';
 
@@ -81,17 +87,13 @@ const MIGRATIONS_DIR = 'supabase/migrations';
 const SVC_TEST = /(auth\.role\s*\(\s*\)|current_setting\s*\([^)]*\))\s*=\s*'service_role'/i;
 
 /**
- * Anything that indicates the policy ALSO grants real users access. If any of
- * these survive after the service_role test is stripped out, the policy is
- * MIXED and must be left alone.
+ * Anything indicating the policy ALSO grants real users access. If any of
+ * these survive after the service_role test is stripped, the policy is MIXED
+ * and must be left attached to public.
  */
 const REAL_USER_REF = /auth\.uid|user_id|owner_id|is_public|club_id|exists\s*\(/i;
 
 const findings = [];
-
-function lineOf(src, index) {
-    return src.slice(0, index).split('\n').length;
-}
 
 function scan(file) {
     const src = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8');
@@ -102,8 +104,8 @@ function scan(file) {
         const stmt = m[0];
 
         // Only the BODY counts. A policy merely NAMED "service_role_select"
-        // whose body is `USING (true)` is a different (worse) problem and is
-        // not what this check is about.
+        // whose body is `USING (true)` is a different (worse) problem and not
+        // what this check is about.
         const bodyMatch = stmt.match(/\b(using|with\s+check)\b[\s\S]*/i);
         const body = bodyMatch ? bodyMatch[0] : '';
         if (!SVC_TEST.test(body)) continue;
@@ -111,13 +113,14 @@ function scan(file) {
         // Already correctly scoped.
         if (/\bto\s+service_role\b/i.test(stmt)) continue;
 
-        // Strip the service_role test; if a real-user reference remains, the
-        // policy is MIXED and legitimate.
+        // Strip the service_role test; a surviving real-user reference means
+        // the policy is MIXED and legitimate.
         const remainder = body.replace(new RegExp(SVC_TEST.source, 'gi'), '');
         if (REAL_USER_REF.test(remainder)) continue;
 
         const name = (stmt.match(/create\s+policy\s+("[^"]+"|\S+)/i) || [, '?'])[1];
-        findings.push(`${MIGRATIONS_DIR}/${file}:${lineOf(src, m.index)}  ${name}`);
+        const line = src.slice(0, m.index).split('\n').length;
+        findings.push(`${MIGRATIONS_DIR}/${file}:${line}  ${name}`);
     }
 }
 
@@ -126,34 +129,35 @@ if (!fs.existsSync(MIGRATIONS_DIR)) {
     process.exit(0);
 }
 
-for (const f of fs.readdirSync(MIGRATIONS_DIR).filter(n => n.endsWith('.sql')).sort()) {
-    scan(f);
-}
+const files = fs.readdirSync(MIGRATIONS_DIR)
+    .filter(n => n.endsWith('.sql'))
+    .filter(n => n.slice(0, 8) >= CUTOFF)   // dated filenames: YYYYMMDD...
+    .sort();
 
-const count = findings.length;
+for (const f of files) scan(f);
 
-if (count > BASELINE) {
+if (findings.length > 0) {
     console.error('');
-    console.error(`RLS POLICY SCOPING: ${count} occurrence(s), baseline ${BASELINE}.`);
+    console.error(`RLS POLICY SCOPING: ${findings.length} new occurrence(s). Baseline is 0 from ${CUTOFF}.`);
     console.error('');
-    console.error('A policy whose entire body is `auth.role() = \'service_role\'` but which');
+    console.error("A policy whose entire body is `auth.role() = 'service_role'` but which");
     console.error('has no TO clause defaults to PUBLIC. It is then evaluated for every row');
     console.error('of every statement by anon and authenticated, where it is always false —');
     console.error('it can never grant anything, only cost time, and it collides with the');
-    console.error('table\'s other policies in the performance advisor.');
+    console.error("table's other policies in the performance advisor.");
     console.error('');
     console.error('Write it as:');
     console.error('    CREATE POLICY "x_service" ON t AS PERMISSIVE FOR ALL');
     console.error('      TO service_role USING (true);');
     console.error('');
     console.error('If the policy ALSO grants real users access, e.g.');
-    console.error('    USING (auth.uid() = user_id OR auth.role() = \'service_role\')');
+    console.error("    USING (auth.uid() = user_id OR auth.role() = 'service_role')");
     console.error('then it is MIXED, it belongs TO public, and this check ignores it.');
     console.error('');
-    for (const f of findings.slice(BASELINE)) console.error(`  ${f}`);
+    for (const f of findings) console.error(`  ${f}`);
     console.error('');
     process.exit(1);
 }
 
-console.log(`[rls-scoping] OK — ${count} historical occurrence(s), at baseline ${BASELINE}.`);
+console.log(`[rls-scoping] OK — ${files.length} migration(s) since ${CUTOFF}, 0 occurrences.`);
 process.exit(0);
