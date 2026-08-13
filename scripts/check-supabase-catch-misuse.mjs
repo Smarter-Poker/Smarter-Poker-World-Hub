@@ -44,7 +44,7 @@ import path from 'node:path';
  * Known count after the four cron probes were fixed (2026-08-12), measured by
  * this exact script. Ratchet DOWN as sites are fixed; never up.
  */
-const BASELINE = 49;
+const BASELINE = 22;
 
 const ROOTS = ['pages', 'src'];
 const SKIP_DIR = /node_modules|\.next|\.git/;
