@@ -260,10 +260,14 @@ export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityT
               '@type': 'BreadcrumbList',
               itemListElement: [
                 { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://smarter.poker' },
-                // /hub/home-games has no index route — near-me is the real
-                // Home Games landing surface. Pointing the breadcrumb node at
-                // the bare path published a 404 to Google on every city page.
-                { '@type': 'ListItem', position: 2, name: 'Home Games', item: 'https://smarter.poker/hub/home-games/near-me' },
+                // audit F-44: the note here used to claim "/hub/home-games has
+                // no index route". That is FALSE — pages/hub/home-games.js
+                // exists and serves it. Acting on the false premise pointed
+                // every home-games breadcrumb at /near-me, which is entirely
+                // client-rendered, so all internal breadcrumb equity went to a
+                // page whose crawlable HTML is a spinner while the real
+                // landing page received none.
+                { '@type': 'ListItem', position: 2, name: 'Home Games', item: 'https://smarter.poker/hub/home-games' },
                 { '@type': 'ListItem', position: 3, name: 'By State', item: 'https://smarter.poker/hub/home-games/in' },
                 { '@type': 'ListItem', position: 4, name: stateName, item: `https://smarter.poker/hub/home-games/in/${stateSlug}` },
                 { '@type': 'ListItem', position: 5, name: cityTitle, item: canonical },
