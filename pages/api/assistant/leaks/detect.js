@@ -394,30 +394,68 @@ function normalizeStats(stats) {
     return null;
   };
 
+  /**
+   * Every LEAK_PATTERNS threshold is written in PERCENT (vpip < 18,
+   * threeBetFreq > 14, foldToCbet > 55). `player_stats` stores these as
+   * FRACTIONS: production ranges 0.00–0.55 for vpip and 0.00–0.32 for pfr,
+   * with not one row above 1 in 1,156. Read raw, `vpip < 18` is therefore
+   * true for every player alive — a 55% VPIP maniac gets told he is
+   * "Overfolding Preflop". Anything at or below 1 is a fraction and is
+   * scaled; anything above 1 is already a percent and is left alone. The
+   * two ranges cannot collide: a real VPIP of 1% does not occur over the
+   * 500+ hands these patterns require.
+   */
+  const asPercent = (...vals) => {
+    const v = num(...vals);
+    if (v === null) return null;
+    return v > 0 && v <= 1 ? v * 100 : v;
+  };
+
+  /**
+   * A voluntary-action rate of exactly 0 across hundreds of hands is not a
+   * measurement, it is an unwritten column: 974 of the 1,089 accounts past
+   * the 500-hand gate carry vpip = 0, several with 60k+ hands, which no
+   * human produces. Returning null routes these through patternIsMeasured,
+   * which skips the pattern — the codebase's standing rule that a number
+   * which was never measured must never be presented as if it was.
+   * Frequencies that ARE gated by an opportunity count (river bluffs, c-bets)
+   * keep their honest zeros; only the ungated preflop rates are treated
+   * this way.
+   */
+  const asMeasuredPercent = (...vals) => {
+    const v = asPercent(...vals);
+    return v === null || v === 0 ? null : v;
+  };
+
   return {
     handsPlayed: num(stats.hands_played, stats.total_hands) ?? 0,
-    vpip: num(stats.vpip),
-    pfr: num(stats.pfr),
-    limpFreq: num(stats.limp_freq, stats.limp_percentage),
-    coldCallFreq: num(stats.cold_call_freq, stats.cold_call_percentage),
-    threeBetFreq: num(stats.three_bet_freq, stats.three_bet_percentage),
-    foldToCbet: num(stats.fold_to_cbet, stats.fold_to_cbet_percentage),
+    vpip: asMeasuredPercent(stats.vpip),
+    pfr: asMeasuredPercent(stats.pfr),
+    // Postflop rates are ALSO compared against percent thresholds, so they get
+    // the same fraction-to-percent normalisation. Their honest zeros survive
+    // (asPercent, not asMeasuredPercent) because each one is gated by an
+    // opportunity count below: 0% river bluffs over 20+ spots is a real,
+    // measured leak, not an unwritten column.
+    limpFreq: asPercent(stats.limp_freq, stats.limp_percentage),
+    coldCallFreq: asPercent(stats.cold_call_freq, stats.cold_call_percentage),
+    threeBetFreq: asPercent(stats.three_bet_freq, stats.three_bet_percentage),
+    foldToCbet: asPercent(stats.fold_to_cbet, stats.fold_to_cbet_percentage),
     // Opportunity/faced counts default to 0 (NOT an invented sample) so
     // sample-size gates in the patterns don't fire on unknown samples.
     cbetsFaced: num(stats.cbets_faced) ?? 0,
-    cbetFreq: num(stats.cbet_freq, stats.cbet_percentage),
+    cbetFreq: asPercent(stats.cbet_freq, stats.cbet_percentage),
     cbetOpps: num(stats.cbet_opportunities) ?? 0,
-    checkRaiseFreq: num(stats.check_raise_freq, stats.check_raise_percentage),
+    checkRaiseFreq: asPercent(stats.check_raise_freq, stats.check_raise_percentage),
     checkRaiseOpps: num(stats.check_raise_opportunities) ?? 0,
-    turnBarrelFreq: num(stats.turn_barrel_freq, stats.turn_cbet_percentage),
+    turnBarrelFreq: asPercent(stats.turn_barrel_freq, stats.turn_cbet_percentage),
     turnBarrelOpps: num(stats.turn_barrel_opportunities) ?? 0,
-    turnFoldFreq: num(stats.turn_fold_freq),
+    turnFoldFreq: asPercent(stats.turn_fold_freq),
     turnFaced: num(stats.turn_bets_faced) ?? 0,
-    riverBluffFreq: num(stats.river_bluff_freq, stats.river_aggression),
+    riverBluffFreq: asPercent(stats.river_bluff_freq, stats.river_aggression),
     riverBluffOpps: num(stats.river_bluff_opportunities) ?? 0,
-    riverFoldFreq: num(stats.river_fold_freq),
+    riverFoldFreq: asPercent(stats.river_fold_freq),
     riverFaced: num(stats.river_bets_faced) ?? 0,
-    riverValueBetFreq: num(stats.river_value_bet_freq),
+    riverValueBetFreq: asPercent(stats.river_value_bet_freq),
     riverBetOpps: num(stats.river_bet_opportunities) ?? 0,
     aggFactor: num(stats.aggression_factor, stats.af),
     wtsd: num(stats.wtsd, stats.went_to_showdown),
