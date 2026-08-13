@@ -1,0 +1,5 @@
+{
+  "_comment": "Relations intentionally referenced in code but absent from the primary Supabase project. Every entry needs a reason in _reasons. Do NOT add a relation here just to make CI green - a phantom relation means writes are silently failing at runtime. See scripts/ci/check-phantom-tables.mjs.",
+  "_reasons": {},
+  "phantom_tables": []
+}
