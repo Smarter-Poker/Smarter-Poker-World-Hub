@@ -69,9 +69,37 @@ jobs:
           # that exist to announce a broken signup or mail flow were themselves
           # dead for two months.
           #
-          # Ratchet, not a hard fail: dozens of pre-existing sites are frozen at
-          # a baseline, and only an INCREASE fails the build.
+          # Zero tolerance: all 29 known sites were fixed, so the baseline is 0
+          # and the very next occurrence fails the build immediately rather than
+          # hiding inside a frozen count.
           node scripts/check-supabase-catch-misuse.mjs
+
+      - name: "CHECK 12: RLS policies scoped TO service_role"
+        run: |
+          # Flags a policy whose ENTIRE body is `auth.role() = 'service_role'`
+          # but which has no TO clause, so it defaults to PUBLIC and is attached
+          # to every role. Postgres then evaluates that expression for every row
+          # of every statement by anon and authenticated, where it is always
+          # false -- it can never grant anything, only cost time.
+          #
+          # Measured on production: auth.role() is NULL for both anon and
+          # authenticated, never 'service_role'. A caller whose JWT claim is
+          # service_role runs AS service_role, which has BYPASSRLS and skips
+          # policies entirely -- so the predicate is true only for the one role
+          # that never evaluates it.
+          #
+          # Written FOR ALL, each such policy also collides with all four
+          # commands for both roles: 44 of 64 multiple_permissive_policies
+          # advisor warnings (69%, 10 tables) came from just 13 of them.
+          # Migrations 20260813010000/020000/030000 took the count 76 -> 25.
+          #
+          # MIXED policies -- where the service_role test is one branch of an OR
+          # that also grants real users access -- are deliberately NOT flagged.
+          # Re-scoping those would REVOKE genuine access.
+          #
+          # Migrations before the 20260813 cutoff are immutable history and are
+          # skipped; everything from that date on must be clean.
+          node scripts/check-rls-policy-scoping.mjs
 
       - name: "CHECK 10: Diamond economy invariants + merch reservation tests"
         env:
