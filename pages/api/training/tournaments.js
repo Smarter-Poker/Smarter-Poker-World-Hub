@@ -243,7 +243,7 @@ export default async function handler(req, res) {
                               p_type: 'arcade_entry_refund',
                               p_description: `Tournament entry refund — registration failed`,
                               p_reference_id: `tourney_entry_refund_${tournamentId}_${userId}`,
-                          }).catch(refundErr => {
+                          }).then(({ error }) => { if (error) throw error; }).catch(refundErr => {
                               console.warn('[Tournaments] Refund threw:', refundErr?.message || refundErr);
                               return { error: { message: 'refund_threw' } };
                           });
