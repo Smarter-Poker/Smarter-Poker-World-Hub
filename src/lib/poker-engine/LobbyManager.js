@@ -661,7 +661,9 @@ class LobbyManager {
               p_action_type: 'bbj_loser_pool',
               p_amount: awardResult.loser_payout,
               p_details: { handNumber: bbjData.handNumber, hand: bbjData.loserHand }
-            }).catch(e => { console.warn('[LobbyManager] BBJ loser payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj', type: 'loser_payout' } }); });
+            })
+              .then(({ error }) => { if (error) throw error; })
+              .catch(e => { console.warn('[LobbyManager] BBJ loser payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj', type: 'loser_payout' } }); });
 
             sbAudit.rpc('record_arena_audit_log', {
               p_club_id: clubId,
@@ -670,7 +672,9 @@ class LobbyManager {
               p_action_type: 'bbj_winner_pool',
               p_amount: awardResult.winner_payout,
               p_details: { handNumber: bbjData.handNumber, hand: bbjData.winnerHand }
-            }).catch(e => { console.warn('[LobbyManager] BBJ winner payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj', type: 'winner_payout' } }); });
+            })
+              .then(({ error }) => { if (error) throw error; })
+              .catch(e => { console.warn('[LobbyManager] BBJ winner payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj', type: 'winner_payout' } }); });
             
             // NOTE: We could theoretically loop the tableSharePayout to all players, 
             // but tracking the two massive chip movements provides the primary BBJ absolute trace.
@@ -716,7 +720,9 @@ class LobbyManager {
             p_action_type: 'insurance_premium',
             p_amount: -(data.premium),
             p_details: { coverage: data.amount, equity: data.trailerEquity }
-          }).catch(e => { console.warn('[LobbyManager] Insurance premium audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'premium' } }); });
+          })
+            .then(({ error }) => { if (error) throw error; })
+            .catch(e => { console.warn('[LobbyManager] Insurance premium audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'premium' } }); });
         } catch (e) { console.warn('[LobbyManager] Insurance premium error:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance' } }); }
       }
     });
@@ -750,7 +756,9 @@ class LobbyManager {
             p_action_type: 'insurance_payout',
             p_amount: data.payout,
             p_details: { premium: data.premium, netGain: data.netGain }
-          }).catch(e => { console.warn('[LobbyManager] Insurance payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'payout' } }); });
+          })
+            .then(({ error }) => { if (error) throw error; })
+            .catch(e => { console.warn('[LobbyManager] Insurance payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'payout' } }); });
         } catch (e) { console.warn('[LobbyManager] Insurance payout error:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance' } }); }
       }
     });
@@ -930,7 +938,9 @@ class LobbyManager {
                 p_club_id: clubId,
                 p_player_user_id: player.id,
                 p_amount_wagered: invested,
-              }).catch(err => { console.warn('[LobbyManager] Promo wagering RPC failed:', err?.message || err); getSentry().captureException(err, { tags: { area: 'promo_wagering' } }); });
+              })
+                .then(({ error }) => { if (error) throw error; })
+                .catch(err => { console.warn('[LobbyManager] Promo wagering RPC failed:', err?.message || err); getSentry().captureException(err, { tags: { area: 'promo_wagering' } }); });
             }
           }
         } catch (promoErr) {
@@ -1187,7 +1197,9 @@ class LobbyManager {
           p_user_id: data.playerId || null,
           p_player_name: data.playerName || 'Player',
           p_message: String(data.message)
-        }).catch(err => console.warn('[Audit] Chat log error:', err.message));
+        })
+          .then(({ error }) => { if (error) throw error; })
+          .catch(err => console.warn('[Audit] Chat log error:', err.message));
       } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
@@ -1203,7 +1215,9 @@ class LobbyManager {
           p_action_type: 'sit_down',
           p_amount: data.stack || 0,
           p_details: { seatIndex: data.seatIndex }
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        })
+          .then(({ error }) => { if (error) throw error; })
+          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
@@ -1217,7 +1231,9 @@ class LobbyManager {
           p_action_type: 'stand_up',
           p_amount: data.stack || 0,
           p_details: { reason: data.reason }
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        })
+          .then(({ error }) => { if (error) throw error; })
+          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
@@ -1231,7 +1247,9 @@ class LobbyManager {
           p_action_type: 'add_chips',
           p_amount: data.amount || 0,
           p_details: { reason: 'rebuy' }
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        })
+          .then(({ error }) => { if (error) throw error; })
+          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
@@ -1247,7 +1265,9 @@ class LobbyManager {
           p_action_type: `action_${data.action.type}`, // e.g. action_fold, action_bet
           p_amount: data.action.amount || 0,
           p_details: { street: data.street, handNumber: table.handCount || 0 }
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        })
+          .then(({ error }) => { if (error) throw error; })
+          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
   }
