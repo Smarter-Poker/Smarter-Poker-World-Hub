@@ -533,6 +533,8 @@ GitHub's environment to execute:
 - `vercel-uniqueness-check.yml`
 - `branch-protection-watchdog.yml` — daily 09:00 UTC, auto-corrects `main` branch protection (added 2026-05-10 with PR #302)
 - `push-velocity-watchdog.yml` — hourly during work hours, alerts via GitHub Issue if no commits land on main for >4h (added 2026-05-10 after the 3h CHECK 6c stall)
+- `vercel-deploy-retry.yml` — already present in the CHECK 6c allowlist but previously missing from this list; recorded here to remove the doc/CI drift.
+- `news-digest.yml` — **TIME-BOXED EXCEPTION, not approved as permanent.** Weekly digest, Tuesdays 14:00 UTC. It has no GitHub-side dependency — it just calls `/api/news/digest` over HTTP with `CRON_SECRET` — so it belongs on Open Claw. It is allowlisted only because it had failed CHECK 6c on every commit since 2026-07-31, and that red gate was masking CHECK 8 and CHECK 10, the latter a real money bug (500 diamonds of drift per signup). Migrating it needs `scripts/deploy-openclaw.sh`, which requires the SSH key and Keychain-stored server IP on Dan's Mac. Steps are in `.agent/handoffs/2026-08-13-migrate-news-digest-to-openclaw.md`. **Remove this entry and the CHECK 6c one together once Open Claw is running it.**
 
 These are the ONLY permitted GitHub Actions `schedule:` cron triggers. Any
 net-new workflow with a `schedule:` trigger is blocked by CI. To add one:
