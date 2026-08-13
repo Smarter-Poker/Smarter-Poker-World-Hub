@@ -101,6 +101,15 @@ export default function HomeGamesSeatReservation({
   useEffect(() => { load(); }, [load]);
 
   // ─────────────────────────── realtime subscribe ─────────────────────────
+  // audit F-28: this effect used to depend on `tables.length`. A delete
+  // plus an add between refetches leaves the count unchanged, so the
+  // subscription stayed bound to a table_id that no longer exists and
+  // silently stopped delivering seat updates. Key on the actual id set.
+  const tableIdsKey = useMemo(
+    () => tables.map(t => t.id).sort().join(','),
+    [tables]
+  );
+
   useEffect(() => {
     if (!gameId || tables.length === 0 || !supabase) return;
 
@@ -137,12 +146,7 @@ export default function HomeGamesSeatReservation({
       }
       channelsRef.current = [];
     };
-  }, [gameId, tables.length, load]);
-
-  // Rebuild realtime filter only when the set of table ids changes (not on
-  // every refetch that returns the same ids). Above effect depends on
-  // tables.length which is an acceptable approximation; if a table is added
-  // mid-session the subscription re-attaches on the next load().
+  }, [gameId, tableIdsKey, load]);
 
   // ───────────────────────── mutation handlers ────────────────────────────
   const handleClaim = useCallback(async (tableId, seatNumber, isGuest) => {

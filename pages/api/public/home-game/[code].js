@@ -57,6 +57,13 @@ export default async function handler(req, res) {
           name,
           description,
           club_code,
+          -- audit F-18: pages/home-game/[code].js renders cover_photo_url,
+          -- profile_photo_url and tagline (including as the og:image), but
+          -- they were never selected or returned, so the page rendered with
+          -- no cover, no avatar and no social preview image.
+          cover_photo_url,
+          profile_photo_url,
+          tagline,
           is_private,
           requires_approval,
           city,
@@ -185,6 +192,9 @@ export default async function handler(req, res) {
             id: group.id,
             name: group.name,
             description: group.description,
+            tagline: group.tagline,
+            cover_photo_url: group.cover_photo_url,
+            profile_photo_url: group.profile_photo_url,
             club_code: group.club_code,
             is_private: group.is_private,
             requires_approval: group.requires_approval,

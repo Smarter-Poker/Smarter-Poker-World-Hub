@@ -29,7 +29,7 @@
 //      flow) — not here.
 // ═══════════════════════════════════════════════════════════════════════
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import {
@@ -246,11 +246,15 @@ export default function HomeGamesNearMePage() {
 
   return (
     <div className="min-h-screen bg-[#0A1526] text-white" style={{ fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif" }}>
-      <Head>
-        <title>Home Games Near Me — Smarter Poker</title>
-        <meta name="description" content="Find local poker home games near you. Get invited to private games, tournaments, and cash games hosted by players in your area." />
-        <meta name="robots" content="index, follow" />
-      </Head>
+      {/* audit M-5: this was the ONLY home-games surface using a raw next/head
+          instead of SEOHead, so it emitted no <link rel="canonical">, no
+          Open Graph and no Twitter tags — despite being the page every other
+          home-games BreadcrumbList nominates as the "Home Games" node. */}
+      <SEOHead
+        title="Home Games Near Me"
+        description="Find local poker home games near you. Get invited to private games, tournaments, and cash games hosted by players in your area."
+        canonical="https://smarter.poker/hub/home-games/near-me"
+      />
 
       {/* Top bar */}
       <div className="sticky top-0 z-10 border-b border-[#1E293B] bg-[#0A1526]/95 backdrop-blur-sm">
