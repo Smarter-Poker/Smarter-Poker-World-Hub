@@ -5,6 +5,10 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+// audit F-13: this was the only public home-games route with no limiter,
+// and it is a club_code enumeration oracle that costs 3 service-role
+// queries per hit.
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -20,6 +24,7 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
   try {
     // CDN cache: fresh for 60s, serve stale up to 300s
     if (req.method === 'GET') {

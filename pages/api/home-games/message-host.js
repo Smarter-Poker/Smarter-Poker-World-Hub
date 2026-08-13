@@ -250,10 +250,25 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: 'Failed to send message' });
         }
 
+        // audit F-06: fn_send_message returns jsonb and reports failure
+        // IN-BAND (e.g. {success:false, error:'not_a_participant'}) WITHOUT
+        // raising, so `msgErr` stays null on a dropped message and this
+        // endpoint answered success:true / "Message sent!". Unwrap it the
+        // same way pages/api/messenger/send-message.js does.
+        if (msgId && typeof msgId === 'object' && msgId.success === false) {
+            console.warn('[MessageHost] fn_send_message rejected:', msgId.error);
+            return res.status(400).json({
+                success: false,
+                error: msgId.error || 'Failed to send message',
+            });
+        }
+        const sentMessageId =
+            (msgId && typeof msgId === 'object') ? (msgId.message_id ?? null) : msgId;
+
         return res.json({
             success: true,
             conversationId,
-            msgId,
+            msgId: sentMessageId,
             message: 'Message sent! Check your Messenger for updates.',
         });
 

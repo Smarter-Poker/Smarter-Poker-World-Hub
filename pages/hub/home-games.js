@@ -477,6 +477,32 @@ export default function HomeGamesPage() {
     const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
     const [sortBy, setSortBy] = useState('default');
     const [favorites, setFavorites] = useState({});
+
+    // audit F-12: getVenueFavorites was imported but never called, so this
+    // map stayed empty for the whole session — every heart rendered unfilled
+    // even for venues the user had already favourited, and tapping one
+    // re-added a duplicate instead of toggling it off. Hydrate on sign-in.
+    useEffect(() => {
+        if (!userId) { setFavorites({}); return; }
+        let cancelled = false;
+        (async () => {
+            try {
+                const rows = await getVenueFavorites(userId);
+                if (cancelled) return;
+                const map = {};
+                for (const r of rows || []) {
+                    // Key must match toggleFavorite's: 'venue-' + venueId.
+                    // Use venue_id ONLY — r.id is the favourite row's own PK
+                    // and would build a key that never matches a venue.
+                    if (r.venue_id != null) map['venue-' + r.venue_id] = true;
+                }
+                setFavorites(map);
+            } catch (e) {
+                console.warn('[home-games] favorites hydrate failed:', e?.message || e);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [userId]);
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
 

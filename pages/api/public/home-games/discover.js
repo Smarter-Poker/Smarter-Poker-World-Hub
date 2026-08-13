@@ -40,7 +40,14 @@ function getSupabase() {
 }
 
 function escapeIlike(s) {
-  return (s || '').replace(/[%_\\]/g, (c) => '\\' + c);
+  // audit F-14: this escaped only LIKE wildcards. The value is interpolated
+  // into a PostgREST `or=(...)` expression, whose grammar is delimited by
+  // commas, dots and parentheses — so those characters let a caller inject
+  // additional predicates. Strip them the same way pages/api/friends/index.js
+  // does before its own or= interpolation, THEN escape LIKE wildcards.
+  return String(s || '')
+    .replace(/[(),.]/g, ' ')
+    .replace(/[%_\\]/g, (c) => '\\' + c);
 }
 
 // Coarse coordinate for public display. The ORIGINAL design used a hash

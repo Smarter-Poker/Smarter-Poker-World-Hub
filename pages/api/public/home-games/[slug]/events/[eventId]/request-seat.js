@@ -101,6 +101,13 @@ export default async function handler(req, res) {
     if (!page || page.linked_entity_type !== 'home_group' || !page.linked_entity_id) {
       return res.status(404).json({ success: false, error: 'Home game not found' });
     }
+    // audit F-09: is_public was SELECTed and the docblock promised a gate, but
+    // nothing ever checked it — unlisted pages still accepted seat requests,
+    // notified the host and inserted pending members. 404 (not 403) so an
+    // unlisted page stays indistinguishable from a missing one.
+    if (page.is_public === false) {
+      return res.status(404).json({ success: false, error: 'Home game not found' });
+    }
 
     const groupId = String(page.linked_entity_id);
 
