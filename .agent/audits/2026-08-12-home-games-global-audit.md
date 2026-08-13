@@ -201,6 +201,34 @@ version `35a3be36` with home-game distances at whole-mile precision.
    panels side by side, which is what made them look contradictory in the
    first place.
 
+## 5c. Third pass — systematic sweep of every remaining finding
+
+Worked the full finding list (not just the CRITICALs) severity-first.
+
+**HIGH — all closed.**
+- **F-04** Add Friend never worked: `[slug].js` POSTed `{action,to_user_id}`; `/api/friends` requires `{friend_id}` and 400s otherwise.
+- **F-05** `friendState` permanently `'none'`: three call sites polled `?action=status&user_id=`, but the action takes `targetUserId` and returns `{success,data:{status}}`.
+- **F-06** messages could fail silently: `fn_send_message` reports failure IN-BAND as jsonb without raising, so `msgErr` stayed null and the endpoint answered `success:true` / "Message sent!".
+- **F-09** unlisted pages still accepted seat requests, notified the host and inserted pending members — `is_public` was selected and never checked.
+- **F-10** Follow 404'd on club-typed pages (`page_type='home_game'` only, while siblings accept `'club'`).
+- **F-12** favourite hearts always empty — `getVenueFavorites` imported, never called.
+- **F-13** no rate limiter on `/api/public/home-game/[code]`, a `club_code` enumeration oracle costing 3 service-role queries per hit.
+- **F-14** filter injection: `escapeIlike` escaped only LIKE wildcards, but the value is interpolated into a PostgREST `or=(...)` expression delimited by commas, dots and parens. Verified live: `search=a,or(id.eq.1)` returns 200, not 500.
+- **F-17** members of a private group were locked out of it — `setIsMember` declared and never called.
+- **H-1** `/hub/home-games` was a NATIONAL top-100 list, not a local search: discover was called with no lat/lng and a `[]` dep array, so GPS never reached the API.
+
+**MEDIUM — all closed.** F-18 (no cover/avatar/og:image), F-20 (evening hosts couldn't schedule "today" — UTC vs local date), F-21 (blank buy-in published as FREE), F-22 (guests bypassed the capacity recount), F-28 (realtime bound to a dead `table_id`), F-30 ("View Public Page" 404'd), F-33 (posts failures rendered as "no posts" forever), F-44 (all three breadcrumbs pointed at a client-rendered spinner on a false premise), M-5 (landing page had no canonical), L-4 (fake `7.0 mi` precision).
+
+**Database.** `phase58` brought `rpc_hg_change_seat` to parity with `claim_seat`: parent-game guard, `updated_at` on the seat-map sync (without it realtime never observed a seat move), and `23505` → `SEAT_TAKEN`. Table status is deliberately NOT gated — moving seats on a running table is a supported feature, so F-24's premise was again partly wrong.
+
+**A bug I introduced and the gate caught.** My first F-30 fix used `slug` at line 187, which sits in `OverviewTab`'s scope where it was never defined — a ReferenceError. The `no-undef` gate caught it pre-ship. This is exactly why that gate runs separately: the repo's own `.eslintrc` turns `no-undef` OFF, so the normal lint would have passed it.
+
+**A near-miss worth recording.** A `/tmp` ENOSPC produced an empty commit SHA, which turned `"$NEW:main"` into a *branch-delete* refspec. GitHub refused it ("refusing to delete the current branch"). Pushes now validate the SHA is 40 hex chars before building a refspec. Never interpolate an unvalidated variable into the left side of a refspec.
+
+**Final verified state:** 17 commits on `origin/main`, all confirmed by ancestry; 8/8 DB invariants passing; no temporary objects left in production; every Home Games surface returns 200; coordinate privacy holds at whole-mile precision; `invite_code` absent from public responses; filter injection neutralised.
+
+---
+
 ## 6. Operational note
 
 Binding rule #10 (`never git add -A`) was violated by another agent twice
