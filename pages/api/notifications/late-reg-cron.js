@@ -52,7 +52,11 @@ async function handler(req, res) {
         const { data: tournaments, error: tErr } = await supabase
             .from('venue_daily_tournaments')
             .select('id, tournament_name, venue_name, start_time, event_date')
-            .in('id', tournamentIds);
+            .in('id', tournamentIds)
+            // Do not push alerts for rows that have been retired or suppressed
+            // since the alert was created.
+            .eq('is_active', true)
+            .in('data_quality', ['scraped_verified', 'scraped_inferred']);
 
         if (tErr) throw tErr;
 
