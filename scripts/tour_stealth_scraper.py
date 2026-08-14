@@ -145,6 +145,10 @@ def network_ok() -> bool:
         req = urllib.request.Request("https://1.1.1.1", method="HEAD")
         with urllib.request.urlopen(req, timeout=10):
             return True
+    except urllib.error.HTTPError:
+        # Any HTTP status IS a network response. 1.1.1.1 began returning 403
+        # (2026-08); treating that as "no network" killed every scrape run.
+        return True
     except Exception:
         return False
 
@@ -417,7 +421,11 @@ def main():
                 total_written += written
                 log(f"    {written}/{len(rows)} new row(s) confirmed written "
                     f"({len(stops) - len(fresh)} already present)")
-            status = "complete" if found else "no_data"
+            # Registry CHECK vocabulary is pending/active/stale/error/manual/defunct.
+            # "complete"/"no_data" violated it (23514) and EVERY telemetry PATCH
+            # failed silently since the registry was created -- which is why all
+            # rows still said "pending" while stops were being written.
+            status = "active" if found else "stale"
             tours_ok += 1
         else:
             log("    verification failed (empty/blocked/non-poker page)")
@@ -429,7 +437,7 @@ def main():
             sb_patch("tour_source_registry", f"tour_code=eq.{urllib.parse.quote(code)}",
                      {"last_checked_at": now_iso, "scrape_status": status,
                       "events_count": found,
-                      **({"last_successful_scrape": now_iso} if status == "complete" else {})})
+                      **({"last_successful_scrape": now_iso} if status == "active" else {})})
         write_heartbeat(status="running", tours_done=i + 1, stops_found=total_stops,
                         records_written=total_written)
         time.sleep(4)

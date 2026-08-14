@@ -22,6 +22,7 @@
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 export const config = { maxDuration: 300 };
 
@@ -110,7 +111,7 @@ async function getLastHrInfo(playerId) {
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   // ── Auth ─────────────────────────────────────────────────────────────────
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
   if (!bearerMatches(req.headers.authorization, CRON_SECRET)) {
@@ -380,3 +381,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok: false, error: err.message });
   }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('mlb-hr-cache-refresh', handler);

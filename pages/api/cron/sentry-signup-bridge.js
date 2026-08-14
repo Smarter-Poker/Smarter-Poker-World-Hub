@@ -24,6 +24,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 let Sentry;
 let sentryIsStub = false;
@@ -62,7 +63,7 @@ function getAdmin() {
 
 export const config = { maxDuration: 30 };
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     if (!validateCronAuth(req)) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -179,3 +180,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ status: 'error', error: err?.message });
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('sentry-signup-bridge', handler);

@@ -75,26 +75,14 @@ export async function getUserContextState(supabase, userId) {
       }
     }
 
-    // Check for active arena matches
-    const { data: arenaMatches } = await supabase
-      .from('arena_matches')
-      .select('id, status, started_at')
-      .eq('user_id', userId)
-      .in('status', ['active', 'in_progress', 'post_match'])
-      .order('started_at', { ascending: false })
-      .limit(1);
-
-    if (arenaMatches && arenaMatches.length > 0) {
-      const match = arenaMatches[0];
-
-      if (match.status === 'active' || match.status === 'in_progress') {
-        return CONTEXT_STATES.ARENA_ACTIVE;
-      }
-
-      if (match.status === 'post_match') {
-        return CONTEXT_STATES.ARENA_POST_MATCH_LOCKED;
-      }
-    }
+    // CHECK 13 (2026-08-14): the "active arena match" check queried
+    // arena_matches.status/started_at — neither column exists (the table
+    // stores COMPLETED match records: result, score, created_at) and no
+    // live-arena-state table exists in the schema. The query 42703'd on
+    // every call, so this branch has never once returned ARENA_ACTIVE /
+    // ARENA_POST_MATCH_LOCKED — behavior is unchanged by removing it. If a
+    // live arena state ever ships, reintroduce the check against the real
+    // table rather than resurrecting this one.
 
     // Check if user is in training mode
     const { data: trainingSession } = await supabase

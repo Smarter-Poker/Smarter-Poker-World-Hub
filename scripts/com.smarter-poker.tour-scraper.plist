@@ -2,15 +2,22 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>Label</key><string>com.smarter-poker.tour-scraper</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/bin/bash</string>
-        <string>/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/scripts/run-tour-stealth-scraper.sh</string>
-    </array>
-    <key>StartInterval</key><integer>259200</integer><!-- every 3 days -->
-    <key>RunAtLoad</key><true/>
-    <key>StandardOutPath</key><string>/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/tour-logs/launchd-stdout.log</string>
-    <key>StandardErrorPath</key><string>/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/tour-logs/launchd-stderr.log</string>
+	<key>Label</key>
+	<string>com.smarter-poker.tour-scraper</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Users/smarter.poker/.local/share/smarter-poker-venv/bin/python3</string>
+		<string>/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/scripts/tour_stealth_scraper.py</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>/Users/smarter.poker/.local/share/tour-scraper-launchd.log</string>
+	<key>StandardOutPath</key>
+	<string>/Users/smarter.poker/.local/share/tour-scraper-launchd.log</string>
+	<key>StartInterval</key>
+	<integer>259200</integer>
+	<key>WorkingDirectory</key>
+	<string>/Users/smarter.poker/Documents/Smarter-Poker-World-Hub</string>
 </dict>
 </plist>
