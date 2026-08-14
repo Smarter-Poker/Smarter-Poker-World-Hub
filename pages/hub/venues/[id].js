@@ -2004,6 +2004,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             {/* ============================================ */}
             {bravoLiveTables && bravoLiveTables.games && bravoLiveTables.games.length > 0 && (function () {
               var runningGames = bravoLiveTables.games.filter(function (g) { return (g.tables_running || 0) > 0; });
+              // Simulator rows intentionally carry source==='bravo'; is_simulated is
+              // the API's authoritative flag. Never present modeled counts as live.
+              var allCountsSimulated = runningGames.length > 0 && runningGames.every(function (g) { return g.is_simulated; });
+              var anySimulated = (bravoLiveTables.games || []).some(function (g) { return g.is_simulated; });
               var waitlistOnly = bravoLiveTables.games.filter(function (g) { return (g.tables_running || 0) === 0 && (g.players_waiting || 0) > 0; });
               var totalTablesRunning = runningGames.reduce(function (sum, g) { return sum + (g.tables_running || 0); }, 0);
               if (runningGames.length === 0 && waitlistOnly.length === 0) return null;
@@ -2014,8 +2018,14 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     <span className="bravo-live-pulse" />
                     <h2 className="bravo-live-title">Live Games Right Now</h2>
                     <span className="bravo-live-count">
-                      {totalTablesRunning} {totalTablesRunning === 1 ? 'Table' : 'Tables'} Running
+                      {totalTablesRunning} {totalTablesRunning === 1 ? 'Table' : 'Tables'}{allCountsSimulated ? ' Estimated' : ' Running'}
                     </span>
+                    {allCountsSimulated && (
+                      <span className="bravo-live-count" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }}
+                            title="Modeled from historical activity patterns, not a live observation">
+                        Modeled
+                      </span>
+                    )}
                   </div>
                   {bravoLiveTables.last_updated && (
                     <span className="bravo-live-updated">
@@ -2076,7 +2086,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </div>
                 )}
                 <div className="bravo-live-footer">
-                  <span className="bravo-live-source">Data From {(bravoLiveTables.games || []).some(function(g) { return g.source === 'bravo'; }) ? 'Bravo Poker Live' : 'Smarter.Poker Intelligence'}</span>
+                  <span className="bravo-live-source">Data From {(bravoLiveTables.games || []).some(function(g) { return g.source === 'bravo' && !g.is_simulated; }) ? 'Bravo Poker Live' : (anySimulated ? 'Smarter.Poker Estimates (modeled)' : 'Smarter.Poker Intelligence')}</span>
                   <button
                     className="bravo-live-scroll-btn"
                     onClick={function () {
