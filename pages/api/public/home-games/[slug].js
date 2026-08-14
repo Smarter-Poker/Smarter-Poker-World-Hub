@@ -276,7 +276,12 @@ export default async function handler(req, res) {
           // Contact info — only present if host has set them
           ...(group.contact_phone ? { contact_phone: group.contact_phone } : {}),
           ...(group.website_url   ? { website_url:   group.website_url   } : {}),
-          settings: group.settings || {},
+          // settings REMOVED from the public payload (audit 2026-08-14): the
+          // raw jsonb carries the host's full table/tournament config, no
+          // client reads it from this endpoint (verified in the contract
+          // sweep), and the runtime probe found it still being served after
+          // the first removal attempt matched a stale pattern. If a field in
+          // settings is ever needed publicly, project THAT field explicitly.
           created_at: group.created_at,
         },
         host: group.profiles
