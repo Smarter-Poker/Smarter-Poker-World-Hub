@@ -521,5 +521,75 @@ const summarize = () => {
         return true;
     });
 
+    // ---- _sessionStats.history: the store ~20 readers consult ---------------
+    // recordSessionHand (SESSION ANALYTICS FIX, 2026-08-08) is the single
+    // writer behind the summary screen's category breakdown, mistake clusters,
+    // EV-loss heatmap, running action frequencies and the rest -- a store that
+    // was read everywhere and written nowhere for its entire shipped life.
+    // These pin the writer to what the readers actually consume. (A second
+    // writer drafted in parallel in this session was dropped at rebase time in
+    // favor of this one -- two writers would have double-counted every answer.)
+    check('history: a graded decision lands with the fields the readers consult', () => {
+        deterministicEngine.resetSessionDifficulty();
+        deterministicEngine.recordSessionHand({
+            correct: true, classification: 'BEST MOVE', evLoss: 0, street: 'flop',
+            nodeType: 'facing_cbet', action: 'Call', selectedAction: 'Call',
+            correctAction: 'Call', handCategory: 'top pair',
+            frequencies: { c: 70, f: 30 }, heroPosition: 'BTN', texture: 'dry',
+        });
+        deterministicEngine.recordSessionHand({
+            correct: false, classification: 'BLUNDER', evLoss: 1.2, street: 'turn',
+            nodeType: 'facing_cbet', action: 'Fold', selectedAction: 'Fold',
+            correctAction: 'Call', handCategory: 'draw', frequencies: { c: 60, f: 40 },
+            heroPosition: 'BB', texture: 'wet',
+        });
+        const h = deterministicEngine._sessionStats.history;
+        if (!Array.isArray(h) || h.length !== 2) return 'history length ' + (h && h.length);
+        const e = h[1];
+        if (e.correct !== false) return 'correct not recorded';
+        if (e.street !== 'turn' || e.action !== 'Fold' || e.correctAction !== 'Call') return 'fields wrong';
+        if (e.evLoss !== 1.2 || !e.frequencies || e.classification !== 'BLUNDER') return 'evLoss/frequencies/classification missing';
+        if (e.position !== 'BB') return 'position alias not mirrored from heroPosition';
+        return true;
+    });
+
+    check('history: the category breakdown wakes up once three hands carry a category', () => {
+        deterministicEngine.resetSessionDifficulty();
+        for (let i = 0; i < 4; i++) {
+            deterministicEngine.recordSessionHand({
+                correct: i % 2 === 0, street: 'flop',
+                handCategory: i < 2 ? 'top pair' : 'air', evLoss: i * 0.5,
+            });
+        }
+        const b = deterministicEngine.getHandCategoryBreakdown();
+        if (!b || !Array.isArray(b.categories)) return 'no breakdown';
+        // This returned {categories: [], message: 'Need more hands...'} forever.
+        return b.categories.length > 0 || 'still returns the empty default';
+    });
+
+    check('history: the session EV-loss scalar accumulates across hands', () => {
+        deterministicEngine.resetSessionDifficulty();
+        deterministicEngine.recordSessionHand({ correct: false, evLoss: 0.4 });
+        deterministicEngine.recordSessionHand({ correct: false, evLoss: 1.1 });
+        const got = deterministicEngine._sessionStats.evLoss;
+        return got === 1.5 || 'evLoss scalar ' + got;
+    });
+
+    check('history: a near-empty record still lands safely', () => {
+        deterministicEngine.resetSessionDifficulty();
+        deterministicEngine.recordSessionHand({ correct: true });
+        const h = deterministicEngine._sessionStats.history;
+        if (h.length !== 1) return 'length ' + h.length;
+        return (h[0].correct === true && h[0].evLoss === 0) || 'defaults wrong';
+    });
+
+    check('history: bounded at 200 entries for marathon sessions', () => {
+        deterministicEngine.resetSessionDifficulty();
+        for (let i = 0; i < 230; i++) deterministicEngine.recordSessionHand({ correct: true, street: 'flop', evLoss: 0 });
+        const h = deterministicEngine._sessionStats.history;
+        deterministicEngine.resetSessionDifficulty();
+        return h.length === 200 || 'length ' + h.length;
+    });
+
     summarize();
 })();

@@ -5192,7 +5192,7 @@ export class DeterministicGTOEngine {
      */
     updateSessionDifficulty(isCorrect) {
         if (!this._sessionStats) {
-            this._sessionStats = { correct: 0, total: 0, recentWindow: [] };
+            this._sessionStats = { correct: 0, total: 0, recentWindow: [], history: [], evLoss: 0 };
         }
         this._sessionStats.total++;
         if (isCorrect) this._sessionStats.correct++;
@@ -5256,6 +5256,14 @@ export class DeterministicGTOEngine {
             texture: record.texture || null,
             timestamp: Date.now(),
         });
+        // A session is 20 questions, but this engine instance lives as long as
+        // the tab does. Bound the array so a marathon session cannot grow it
+        // without limit -- 200 entries covers ten full sessions of trend data,
+        // and every consumer reads recent-first or aggregates, so dropping the
+        // oldest entry is loss-free for all of them.
+        if (this._sessionStats.history.length > 200) {
+            this._sessionStats.history.shift();
+        }
     }
 
     getStreetForLevel(level) {
