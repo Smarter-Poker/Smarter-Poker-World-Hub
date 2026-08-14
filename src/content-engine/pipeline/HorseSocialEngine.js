@@ -706,7 +706,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
             commented++;
             
             // Sync denormalized comment_count on social_posts (fire-and-forget)
-            getSupabase().rpc('increment_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(() => {
+            getSupabase().rpc('increment_post_count', { p_post_id: post.id, p_field: 'comment_count' }).then(({ error }) => { if (error) throw error; }).catch(() => {
                 getSupabase().from('social_posts').select('comment_count').eq('id', post.id).maybeSingle().then(({ data: p }) => {
                     if (p) getSupabase().from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', post.id);
                 }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
@@ -836,7 +836,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
                 liked++;
                 
                 // Sync denormalized like_count on social_posts (fire-and-forget)
-                getSupabase().rpc('increment_post_count', { p_post_id: post.id, p_field: 'like_count' }).catch(() => {
+                getSupabase().rpc('increment_post_count', { p_post_id: post.id, p_field: 'like_count' }).then(({ error }) => { if (error) throw error; }).catch(() => {
                     getSupabase().from('social_posts').select('like_count').eq('id', post.id).maybeSingle().then(({ data: p }) => {
                         if (p) getSupabase().from('social_posts').update({ like_count: (p.like_count || 0) + 1 }).eq('id', post.id);
                     }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
@@ -972,7 +972,7 @@ async function replyToComments(maxReplies = 15) {
             replied++;
             
             // Sync denormalized comment_count on social_posts (fire-and-forget)
-            getSupabase().rpc('increment_post_count', { p_post_id: comment.post_id, p_field: 'comment_count' }).catch(() => {
+            getSupabase().rpc('increment_post_count', { p_post_id: comment.post_id, p_field: 'comment_count' }).then(({ error }) => { if (error) throw error; }).catch(() => {
                 getSupabase().from('social_posts').select('comment_count').eq('id', comment.post_id).maybeSingle().then(({ data: p }) => {
                     if (p) getSupabase().from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', comment.post_id);
                 }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));

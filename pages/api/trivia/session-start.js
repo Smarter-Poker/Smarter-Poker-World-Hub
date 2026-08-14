@@ -242,7 +242,19 @@ async function startPvpSession(req, res, sb, userId) {
             minQualityScore: DEFAULT_QUALITY_FLOOR,
         })
             .filter(q => q && typeof q.id === 'string' && Array.isArray(q.options) && q.options.length >= 2)
-            .map(q => q.id);
+            .map(q => q.id)
+            // BUGFIX (2026-08-12): filterAndShuffle's third argument is
+            // minFallback - a FLOOR ("top up from seen questions if we came up
+            // short"), never a cap. It returns the whole filtered pool, which
+            // here is pageSize = max(200, wanted * 5) = 200 rows. Without this
+            // slice the match roster was seeded with 200 questions and every
+            // 1v1 battle rendered "Question 1 of 200".
+            //
+            // The two sibling call sites already do exactly this: the solo path
+            // below ends `.slice(0, wanted)` and buildTriviaRoster in
+            // src/lib/triviaQuestionLoader.js ends `ordered.slice(0, count)`.
+            // The PvP seed was the only one missing it.
+            .slice(0, wanted);
         if (drawn.length === 0) {
             return res.status(503).json({ success: false, error: 'no_questions_available' });
         }

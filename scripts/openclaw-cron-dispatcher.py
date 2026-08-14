@@ -347,6 +347,23 @@ ALL_CRONS = [
     # Safe: caps at 200 jobs/fire, skips jobs <1h old, skips attempts>=5.
     ('/api/cron/yt-pipeline-recovery',            dict(minute='*/15')),       # every 15 min — keeps worker queue topped up continuously (cap=1000, auto-marks permanent failures)
 
+    # ══ Weekly news email digest (migrated off GitHub Actions 2026-08-13) ════
+    # Was .github/workflows/news-digest.yml with `schedule: '0 14 * * 2'`, which
+    # is exactly what CLAUDE.md §11 forbids — and CHECK 6c had been failing on
+    # every commit to main since 2026-07-31 because of it. Nothing forced it
+    # GitHub-side: the handler is a plain Vercel endpoint taking a CRON_SECRET
+    # bearer, which is what this dispatcher already sends.
+    #
+    # Tue 14:00 UTC is identical to the cron it replaces — the scheduler is
+    # constructed with timezone='UTC', so no conversion is involved and
+    # subscribers keep their existing slot.
+    #
+    # ?days=7 matches the workflow's default look-back. dryRun is deliberately
+    # NOT passed: the handler treats it as false unless present, so this is a
+    # real send. (The workflow defaulted dry_run=true only to make a mis-click
+    # on the manual button harmless; workflow_dispatch is kept for that.)
+    ('/api/news/digest?days=7',                   dict(day_of_week='tue', hour=14, minute=0)),
+
     # ══ INTERNAL — Phase 2A monitoring/alerting (closes plan line 285 gate) ═══
     # No HTTP egress; runs in-process. SMS-alerts via Twilio on workers outage.
     ('_internal/workers-healthcheck',             dict(minute='*/5')),      # every 5 min

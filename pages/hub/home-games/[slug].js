@@ -106,8 +106,16 @@ export async function getServerSideProps({ params, res, req }) {
       return { notFound: true };
     }
 
-    // Cache at the edge for 30s fresh / 180s stale-while-revalidate.
-    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=180');
+    // Cache at the edge for 30s fresh / 180s stale-while-revalidate — but ONLY
+    // for public groups. This header was previously set unconditionally, so a
+    // PRIVATE group's HTML was stored in a shared CDN cache (audit C-3b).
+    // Today's payload for a private group is reduced, but a public edge cache
+    // is one careless field addition away from broadcasting invite_code.
+    if (json.data?.group?.is_private) {
+      res.setHeader('Cache-Control', 'private, no-store');
+    } else {
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=180');
+    }
 
     return { props: { data: json.data, serverError: false } };
   } catch (err) {
@@ -638,14 +646,20 @@ export default function PublicHomeGamePage({ data, serverError }) {
       try {
         const token = await getAccessToken();
         if (!token) return;
-        const res = await fetch(`/api/friends?action=status&user_id=${hostIdForFriendCheck}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // audit F-05: this polled `action=status`, which did not exist until
+        // 2026-08-12, and passed `user_id` where the action takes
+        // `targetUserId`. friendState was therefore permanently 'none'.
+        // The action returns {success, data:{status}}, not a bare {status}.
+        const res = await fetch(
+          `/api/friends?action=status&targetUserId=${encodeURIComponent(hostIdForFriendCheck)}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         if (!res.ok) return;
         const json = await res.json().catch(() => ({}));
         if (cancelled) return;
-        if (json.status === 'friends') setFriendState('friends');
-        else if (json.status === 'pending') setFriendState('pending');
+        const st = json?.data?.status;
+        if (st === 'friends') setFriendState('friends');
+        else if (st === 'pending_outgoing' || st === 'pending_incoming') setFriendState('pending');
         else setFriendState('none');
       } catch { /* non-fatal */ }
     })();
@@ -861,10 +875,12 @@ export default function PublicHomeGamePage({ data, serverError }) {
       const res = await fetch('/api/friends', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'send_request', to_user_id: host.id }),
+        // audit F-04: sent {action,to_user_id}; /api/friends requires
+        // {friend_id} and 400s on anything else, so Add Friend never worked.
+        body: JSON.stringify({ friend_id: host.id }),
       });
       const json = await res.json().catch(() => ({}));
-      if (res.ok && (json.success || json.status)) {
+      if (res.ok && json.success) {
         setFriendState('pending');
       } else if (!res.ok) {
         toast.error(json.error || 'Could not send friend request.');
@@ -873,13 +889,15 @@ export default function PublicHomeGamePage({ data, serverError }) {
       console.warn('Add friend error:', err);
       toast.error('Could not send friend request. Resyncing state...');
       try {
-        const res = await fetch(`/api/friends?action=status&user_id=${host.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          `/api/friends?action=status&targetUserId=${encodeURIComponent(host.id)}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         if (res.ok) {
           const json = await res.json();
-          if (json.status === 'friends') setFriendState('friends');
-          else if (json.status === 'pending') setFriendState('pending');
+          const st = json?.data?.status;
+          if (st === 'friends') setFriendState('friends');
+          else if (st === 'pending_outgoing' || st === 'pending_incoming') setFriendState('pending');
           else setFriendState('none');
         }
       } catch (e) {}
@@ -953,14 +971,25 @@ export default function PublicHomeGamePage({ data, serverError }) {
 
   return (
     <>
+      {/*
+        INDEXING (audit 2026-08-12, finding C-3): `noindex` MUST be passed as a
+        prop here, never emitted as a sibling <meta name="robots"> below.
+
+        next/head de-duplicates <meta> by `name` and keeps the FIRST
+        occurrence. SEOHead renders before this page's own <Head>, and when
+        its `noindex` prop is falsy it unconditionally emits
+        "index, follow, max-image-preview:large, ...". So the child
+        "noindex, nofollow" tag was always discarded, and every PRIVATE home
+        group's page was served to Google with index,follow.
+      */}
       <SEOHead
         title={metaTitle}
         description={metaDesc}
         canonical={canonical}
         ogImage={page.cover_url || page.avatar_url || undefined}
+        noindex={!!group.is_private}
       />
       <Head>
-        {group.is_private && <meta name="robots" content="noindex, nofollow" />}
         {jsonLd.map((entry, i) => (
           <script
             key={i}

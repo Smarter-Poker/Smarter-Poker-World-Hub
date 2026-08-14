@@ -285,6 +285,32 @@ export default function HomeGamePage() {
     });
   }, []);
 
+  // audit F-17: setIsMember was declared and NEVER CALLED, so isMember stayed
+  // false for everyone. Existing members of a private group were shown
+  // "Request to Join" and locked out of Upcoming Games and Discussion — the
+  // exact content their membership entitles them to. Mirrors the membership
+  // lookup in pages/hub/home-games/[slug].js.
+  useEffect(() => {
+    const groupId = group?.id;
+    if (!groupId || !user?.id) { setIsMember(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: memberRow } = await supabase
+          .from('commander_home_members')
+          .select('status')
+          .eq('group_id', groupId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (cancelled) return;
+        setIsMember(['approved', 'active'].includes(memberRow?.status));
+      } catch (e) {
+        console.warn('[home-game] membership lookup failed:', e?.message || e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [group?.id, user?.id]);
+
   useEffect(() => {
 
   if (!router.isReady) return null;

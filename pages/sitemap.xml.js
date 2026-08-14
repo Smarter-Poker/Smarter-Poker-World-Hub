@@ -100,6 +100,9 @@ const staticPages = [
 
   // Hub — Home Games (geo index; individual game + state/city pages are added dynamically)
   { path: '/hub/home-games/in', priority: '0.8', changefreq: 'daily' },
+  // Every home-games BreadcrumbList nominates this as the 'Home Games'
+  // node, yet it was absent from the sitemap entirely (audit M-4).
+  { path: '/hub/home-games/near-me', priority: '0.8', changefreq: 'daily' },
 
   // Horses
   { path: '/horses', priority: '0.7', changefreq: 'daily' },
@@ -132,20 +135,47 @@ async function buildHomeGameUrls() {
     const supabase = createClient(url, key);
     const { data, error } = await supabase
       .from('social_pages')
-      .select('slug, location_state, location_city')
+      .select('slug, location_state, location_city, linked_entity_id')
       .eq('page_type', 'home_game')
-      .eq('is_public', true);
+      .eq('is_public', true)
+      // A null slug produced /hub/home-games/null, which the public API 404s.
+      .not('slug', 'is', null);
 
     if (error || !Array.isArray(data)) return [];
 
-    const { US_STATES_BY_CODE, cityTitleToSlug } =
+    const { US_STATES_BY_CODE, cityTitleToSlug, isGroupPubliclyVisible } =
       await import('../src/lib/home-games/locationUtils');
+
+    // VISIBILITY (audit M-4): this builder previously applied only
+    // `is_public`, while the three geo pages additionally require
+    // isGroupPubliclyVisible (is_active, not is_private, and the 45-day
+    // auto-hide). The sitemap therefore advertised city URLs that the city
+    // page itself 404s — it returns notFound once zero visible games remain —
+    // plus detail URLs for deactivated and private groups. Apply the same
+    // predicate here so the sitemap can only ever contain URLs that resolve.
+    const groupIds = data.map((r) => r.linked_entity_id).filter(Boolean).map(String);
+    const visibleGroupIds = new Set();
+    const CHUNK = 200;
+    for (let i = 0; i < groupIds.length; i += CHUNK) {
+      const { data: groups } = await supabase
+        .from('commander_home_groups')
+        .select('id, is_active, is_private, last_activity_at, created_at, visibility_override_until')
+        .in('id', groupIds.slice(i, i + CHUNK));
+      for (const g of groups || []) {
+        if (isGroupPubliclyVisible(g)) visibleGroupIds.add(String(g.id));
+      }
+    }
+    // NOTE: `data` is const (destructured above) — bind the filtered set to a
+    // new name rather than reassigning it.
+    const visibleRows = data.filter(
+      (r) => r.linked_entity_id && visibleGroupIds.has(String(r.linked_entity_id))
+    );
 
     const urls = [];
     const seenStates = new Set();
     const seenCities = new Set();
 
-    for (const row of data) {
+    for (const row of visibleRows) {
       // Individual home-game page (was missing from sitemap before)
       if (row.slug) {
         urls.push({

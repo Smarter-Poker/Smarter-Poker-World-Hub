@@ -136,7 +136,9 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                 <path d="M3.4 20.6L12 2l8.6 18.6L12 17z" />
                             </svg>
-                            {Number(venue.distance_miles).toFixed(1)} mi
+                            {/* audit L-4: discover rounds to whole miles for host-address
+                                privacy — .toFixed(1) rendered a fake "7.0 mi" decimal. */}
+                            {Math.round(Number(venue.distance_miles))} mi
                         </div>
                     )}
                     {onFavorite && (
@@ -477,6 +479,32 @@ export default function HomeGamesPage() {
     const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
     const [sortBy, setSortBy] = useState('default');
     const [favorites, setFavorites] = useState({});
+
+    // audit F-12: getVenueFavorites was imported but never called, so this
+    // map stayed empty for the whole session — every heart rendered unfilled
+    // even for venues the user had already favourited, and tapping one
+    // re-added a duplicate instead of toggling it off. Hydrate on sign-in.
+    useEffect(() => {
+        if (!userId) { setFavorites({}); return; }
+        let cancelled = false;
+        (async () => {
+            try {
+                const rows = await getVenueFavorites(userId);
+                if (cancelled) return;
+                const map = {};
+                for (const r of rows || []) {
+                    // Key must match toggleFavorite's: 'venue-' + venueId.
+                    // Use venue_id ONLY — r.id is the favourite row's own PK
+                    // and would build a key that never matches a venue.
+                    if (r.venue_id != null) map['venue-' + r.venue_id] = true;
+                }
+                setFavorites(map);
+            } catch (e) {
+                console.warn('[home-games] favorites hydrate failed:', e?.message || e);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [userId]);
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
 
@@ -497,7 +525,33 @@ export default function HomeGamesPage() {
         const ac = new AbortController();
         const token = getAccessToken();
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        fetch('/api/public/home-games/discover?limit=100', { signal: ac.signal, headers })
+
+        // audit H-1: this used to request `?limit=100` with NO lat/lng and a
+        // `[]` dep array. Without coordinates discover takes its non-GPS
+        // branch — order by member_count, limit 100 — so the page was a
+        // NATIONAL TOP-100 LIST that was then filtered client-side. A user in
+        // a small market whose local game is not in the national top 100 saw
+        // "0 Home Games Found" at any radius, and the State dropdown
+        // contradicted /hub/home-games/in/[state], which queries the DB
+        // directly. GPS was acquired later but never triggered a refetch.
+        //
+        // Same fix already shipped in PodHomeGames; it was never applied here.
+        // Scoped queries (explicit state or a search term) intentionally skip
+        // the geo params so they search nationally, as the pod does.
+        const params = new URLSearchParams({ limit: '100' });
+        const scoped = (filters.selectedState && filters.selectedState !== 'all')
+                       || !!searchQuery.trim();
+        if (filters.selectedState && filters.selectedState !== 'all') {
+            params.set('state', filters.selectedState);
+        }
+        if (searchQuery.trim()) params.set('search', searchQuery.trim());
+        if (!scoped && userLocation?.lat != null && userLocation?.lng != null) {
+            params.set('lat', String(userLocation.lat));
+            params.set('lng', String(userLocation.lng));
+            params.set('radius_miles',
+                filters.radius === 'Any' ? '150' : String(Math.min(Number(filters.radius) || 150, 150)));
+        }
+        fetch(`/api/public/home-games/discover?${params.toString()}`, { signal: ac.signal, headers })
             .then(r => r.json())
             .then(json => {
                 if (!json?.success) throw new Error(json?.error || 'discover failed');
@@ -508,7 +562,6 @@ export default function HomeGamesPage() {
                     id: g.id,
                     slug: g.slug,                       // canonical URL key
                     club_code: g.club_code,             // share fallback
-                    invite_code: g.invite_code,         // share fallback
                     name: g.name,
                     description: g.description,
                     city: g.city,
@@ -569,7 +622,9 @@ export default function HomeGamesPage() {
                 setLoading(false);
             });
         return () => ac.abort();
-    }, []);
+        // Re-query when the user's location or scope changes. Previously `[]`,
+        // so the GPS fix acquired below never reached the API.
+    }, [userLocation, filters.selectedState, filters.radius, searchQuery]);
 
     // GPS auto-request
     const gpsAutoRef = useRef(false);
@@ -907,8 +962,6 @@ export default function HomeGamesPage() {
                                                         router.push('/hub/home-games/' + venue.slug);
                                                     } else if (venue?.club_code) {
                                                         router.push('/home-game/' + venue.club_code);
-                                                    } else if (venue?.invite_code) {
-                                                        router.push('/home-game/' + venue.invite_code);
                                                     }
                                                 }}
                                             />
@@ -973,8 +1026,6 @@ export default function HomeGamesPage() {
                                                                 router.push('/hub/home-games/' + venue.slug);
                                                             } else if (venue?.club_code) {
                                                                 router.push('/home-game/' + venue.club_code);
-                                                            } else if (venue?.invite_code) {
-                                                                router.push('/home-game/' + venue.invite_code);
                                                             }
                                                         }}
                                                     />

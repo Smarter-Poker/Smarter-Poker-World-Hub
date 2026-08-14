@@ -28,7 +28,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 const { requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -526,8 +526,30 @@ export default async function handler(req, res) {
             });
         }
 
-        // Per-transfer UUID generated up front to ensure idempotency across both RPCs
-        const transferId = randomUUID();
+        // ═══════════════════════════════════════════════════════════════════
+        // IDEMPOTENCY KEY. This was randomUUID(), which is fresh on EVERY
+        // request — so the reference ids derived from it could never collide
+        // and the duplicate guard inside add_diamonds_to_balance was dead
+        // code. A double-submit produced two different transfer ids and
+        // therefore two real debits; only the 60-second per-recipient cooldown
+        // stood between a slipped double-click and a double charge.
+        //
+        // The key is now derived from WHO is sending, to WHOM, HOW MUCH, and a
+        // coarse time bucket. An identical transfer repeated inside the same
+        // bucket collapses onto the same reference and the RPC's guard rejects
+        // the second debit. Sending the same amount to the same friend again a
+        // minute later still works, which is the behaviour a user expects.
+        // ═══════════════════════════════════════════════════════════════════
+        const TRANSFER_IDEMPOTENCY_WINDOW_MS = 60_000;
+        const transferId = createHash('sha256')
+            .update([
+                userId,
+                recipientId,
+                String(amount),
+                String(Math.floor(Date.now() / TRANSFER_IDEMPOTENCY_WINDOW_MS)),
+            ].join('|'))
+            .digest('hex')
+            .slice(0, 32);
         const recipientName = recipientProfile.display_name || recipientProfile.username || 'friend';
         const senderName = senderProfile.display_name || senderProfile.username || 'friend';
 
@@ -612,17 +634,35 @@ export default async function handler(req, res) {
 
         // Compensating refund helper in case the credit fails.
         // Hoisted to outer let so the catch block can also call it.
+        // Returns true only when the sender's diamonds genuinely came back.
+        //
+        // This used to `await` the RPC and throw the result away. The RPC
+        // reports business failures in its RETURN VALUE, not by throwing, so a
+        // refund that was rejected — insufficient service balance, a duplicate
+        // reference, a cap — was indistinguishable from one that worked. The
+        // caller then told the user "your diamonds have been restored" when
+        // they had not been. A refund that silently fails is worse than one
+        // that fails loudly, because nobody goes looking for it.
         refundSender = async (reason) => {
             try {
-                await getSupabase().rpc('add_diamonds_to_balance', {
+                const { data, error } = await getSupabase().rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
                     p_amount: amount,
                     p_type: 'diamond_gift_refund',
                     p_description: `Transfer refund — ${reason}`,
                     p_reference_id: `transfer_refund_${transferId}`,
                 });
+                if (error || (data && data.success === false)) {
+                    console.error(
+                        `[Diamond Transfer] REFUND FAILED for ${userId} (${amount} diamonds) after ${reason}:`,
+                        error?.message || data?.error,
+                    );
+                    return false;
+                }
+                return true;
             } catch (err) {
-                console.warn('[Diamond Transfer] Refund threw:', err);
+                console.error(`[Diamond Transfer] Refund threw for ${userId} (${amount} diamonds):`, err?.message || err);
+                return false;
             }
         };
 
@@ -637,9 +677,18 @@ export default async function handler(req, res) {
 
         if (creditErr || (creditResult && creditResult.success === false && !creditResult.duplicate)) {
             // ROLLBACK: Restore sender's balance using atomic refund
-            await refundSender(creditErr?.message || creditResult?.error || 'credit failed');
+            const refunded = await refundSender(creditErr?.message || creditResult?.error || 'credit failed');
             console.warn('Transfer credit error (rolled back):', creditErr || creditResult);
-            return res.status(500).json({ success: false, error: 'Transfer failed — your diamonds have been restored' });
+            // Only claim the money came back if it actually did. Promising a
+            // refund that did not happen sends the user away satisfied while
+            // they are still short the diamonds.
+            return res.status(500).json({
+                success: false,
+                error: refunded
+                    ? 'Transfer failed — your diamonds have been restored'
+                    : 'Transfer failed and the refund did not go through. Please contact support.',
+                refunded,
+            });
         }
 
         if (creditResult && creditResult.duplicate) {

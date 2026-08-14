@@ -38,7 +38,7 @@ showPushPrompt, setShowPushPrompt, enablePushNotifications, C, isMobile
                                     p_user_id: user.id,
                                     p_key: 'pushPromptHandled',
                                     p_value: true,
-                                }).catch(async () => {
+                                }).then(({ error }) => { if (error) throw error; }).catch(async () => {
                                     const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
                                     const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
                                     const { error: prefErr } = await supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id);
@@ -71,7 +71,7 @@ showPushPrompt, setShowPushPrompt, enablePushNotifications, C, isMobile
                                     p_user_id: user.id,
                                     p_key: 'pushPromptHandled',
                                     p_value: true,
-                                }).catch(async () => {
+                                }).then(({ error }) => { if (error) throw error; }).catch(async () => {
                                     const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
                                     const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
                                     const { error: prefErr } = await supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id);

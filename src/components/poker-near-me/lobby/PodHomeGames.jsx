@@ -118,7 +118,6 @@ function adaptHomeGameToVenueShape(g) {
     poker_tables: 1,
     // Canonical identifiers used by onNavigate — prefer slug, fall back to code.
     slug: g.slug || null,
-    invite_code: g.invite_code || null,
     club_code: g.club_code || null,
     // Host info — populated from discover API's `host` join
     host_display_name: host?.display_name || g.host_display_name || null,
@@ -213,10 +212,8 @@ export default function PodHomeGames({
       handleVenueNavigate(`/hub/home-games/${venue.slug}`, venue);
     } else if (venue?.club_code) {
       handleVenueNavigate(`/home-game/${venue.club_code}`, venue);
-    } else if (venue?.invite_code) {
-      handleVenueNavigate(`/home-game/${venue.invite_code}`, venue);
     } else if (venue?.id) {
-      // [STUB FIX] slug/club_code/invite_code are all nullable on
+      // [STUB FIX] slug and club_code are both nullable on
       // commander_home_groups, and the discover API returns slug:null for any
       // group with no linked social_pages row. Without this branch the whole
       // card was rendered clickable but tapping it did nothing at all.

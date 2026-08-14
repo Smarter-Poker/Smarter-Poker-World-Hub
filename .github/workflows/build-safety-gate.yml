@@ -77,6 +77,49 @@ jobs:
           fi
           node scripts/check-economy-invariants.mjs
 
+      # ═══════════════════════════════════════════════════════════════
+      # PHASE U4 — Supabase invariants as CI gates.
+      #
+      # BLOCKING as of 2026-08-12. They were introduced warn-only per plan step
+      # U4.3 because both reported a real backlog; that backlog is now cleared
+      # (phantom 3 -> 0, stranded 7 -> 0), so warn-only was removed the same
+      # day rather than left to rot. A gate nobody has to obey is not a gate.
+      #
+      # Exceptions: scripts/ci/supabase-invariants.allowlist.json. Every entry
+      # needs a reason, and both scripts FAIL if an entry starts resolving, so
+      # the allowlist can only shrink.
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 11: No phantom Supabase tables (U4.2)"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+        run: |
+          # Catches `.from('table_that_does_not_exist')`. Those do not throw at
+          # build time and rarely at runtime either — PostgREST returns 42P01 in
+          # the error channel and this repo's call sites almost always swallow
+          # it into console.warn, so the write is discarded silently forever.
+          #
+          # Its first run found training_moves (every individual training move
+          # the app recorded was being thrown away), plus xp_logs and
+          # user_dna_profiles.
+          #
+          # Resolves the table list from the PostgREST schema document rather
+          # than a direct Postgres connection, because SUPABASE_DB_PASSWORD in
+          # this repo is stale and fails auth while the service key works.
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — phantom-table check is NOT enforced."
+            exit 0
+          fi
+          node scripts/ci/check-phantom-tables.mjs
+
+      - name: "CHECK 12: No stranded Supabase tables (U4.1)"
+        run: |
+          # Catches a table that src/services READS but nothing ever WRITES.
+          # That is not a crash — it renders an empty state forever, which is
+          # indistinguishable from "no data yet" and is exactly why this class
+          # of bug survives review. Pure static analysis; no DB access needed.
+          node scripts/ci/check-stranded-writers.mjs
+
       - name: "CHECK 9: Reward catalog matches diamondRewards.js"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

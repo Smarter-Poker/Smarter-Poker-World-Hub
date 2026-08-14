@@ -389,9 +389,84 @@ export function useRequireAuth(redirectPath?: string): { user: any; checking: bo
  * ensureAuthReady — async shim for pages that await auth initialization.
  * Our localStorage-based auth is synchronous, so this resolves immediately.
  */
-export async function ensureAuthReady(): Promise<void> {
-    // localStorage auth is synchronous — no async init needed.
-    return;
+/**
+ * RESILIENT AUTH GATE — wait for auth to stabilise before deciding to redirect.
+ *
+ * USE THIS for page-level auth guards. Unlike getAccessToken(), which is a
+ * one-shot localStorage read that races with Supabase SDK token refresh, this
+ * waits for the session to settle first.
+ *
+ *   const user = await ensureAuthReady(supabase);
+ *   if (!user) router.push('/auth/login');
+ *
+ * ── 2026-08-12 audit, finding C-8 ────────────────────────────────────────
+ * This function previously read, in its entirety:
+ *
+ *     export async function ensureAuthReady(): Promise<void> {
+ *         // localStorage auth is synchronous — no async init needed.
+ *         return;
+ *     }
+ *
+ * It returned `undefined`. Meanwhile src/lib/authUtils.js carries the real
+ * five-layer implementation and RETURNS THE USER, and next.config.js aliases
+ * authUtils.js -> authUtils.ts (added so consumers could reach
+ * getFreshAccessToken, which only exists here). So every caller resolved to
+ * THIS stub.
+ *
+ * Six call sites branch directly on the return value:
+ *   pages/hub/commander/home-games/index.js:163,240
+ *   pages/hub/commander/home-games/create.js:128,368
+ *   pages/hub/commander/tournaments/index.js:149
+ *   pages/hub/messenger.js:583
+ *   pages/hub/social-media/index.js:9097
+ * Each did `const authUser = await ensureAuthReady(supabase); if (!authUser)`
+ * and therefore treated every signed-in user as signed out — which is why
+ * "Join by Code" and the Commander group cards bounced authenticated users
+ * to /auth/login.
+ *
+ * The alias is correct and stays; the stub was the bug. This now mirrors the
+ * authUtils.js contract so both files behave identically.
+ *
+ * @param supabaseClient optional Supabase client. Without it, only the
+ *        synchronous localStorage layers run (still correct, just less
+ *        resilient during a token refresh).
+ * @returns the authenticated user object, or null.
+ */
+export async function ensureAuthReady(supabaseClient?: any): Promise<any | null> {
+    // 1. Immediate localStorage check (instant, no network).
+    const immediate = getAuthUser();
+    if (immediate?.id) return immediate;
+
+    // 2. Let the Supabase SDK resolve its session (handles refresh cycles).
+    if (supabaseClient?.auth?.getSession) {
+        try {
+            const { data } = await supabaseClient.auth.getSession();
+            if (data?.session?.user) return data.session.user;
+        } catch (err: any) {
+            console.warn('[authUtils] getSession failed:', err?.message || err);
+        }
+    }
+
+    // 3. Brief wait then retry — the SDK may write to storage asynchronously
+    //    after getSession() resolves.
+    await new Promise((r) => setTimeout(r, 300));
+    const retried = getAuthUser();
+    if (retried?.id) return retried;
+
+    // 4. Session backup recovery — restores if the primary entry was corrupted.
+    try {
+        if (restoreSessionBackup()) {
+            const backupUser = getAuthUser();
+            if (backupUser?.id) {
+                console.debug('[authUtils] session recovered from backup');
+                return backupUser;
+            }
+        }
+    } catch (err: any) {
+        console.warn('[authUtils] session backup restore failed:', err?.message || err);
+    }
+
+    return null;
 }
 
 /**

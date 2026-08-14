@@ -782,6 +782,60 @@ export default function ManageHomeGamePage() {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────────
+  // OWNERSHIP GATE (audit 2026-08-12, finding 4.1)
+  //
+  // Until now the ONLY check on this 1,600-line host console was
+  // `useRequireAuth`, which proves the caller is signed in and nothing more.
+  // Any authenticated user who knew (or guessed) a group UUID reached the
+  // full management surface, and `isHost` was hardcoded `true` below — so
+  // the UI rendered escrow release/refund, member removal, broadcast and
+  // Delete Group for them.
+  //
+  // The upstream commander API is expected to enforce this server-side, but
+  // it lives in a different repo and cannot be verified from here, so this
+  // is defence in depth, not the only line of defence. Never re-hardcode
+  // isHost — derive it from `isGroupStaff`.
+  //
+  // Staff = group owner, or an approved member holding owner/admin/co_host,
+  // mirroring the fn_home_is_group_staff RLS helper in the database.
+  const viewerMembership = members.find((m) => m.user_id && m.user_id === currentUserId);
+  const isGroupOwner = !!(group?.owner_id && currentUserId && group.owner_id === currentUserId);
+  const isGroupStaff =
+    isGroupOwner ||
+    !!(viewerMembership &&
+       viewerMembership.status === 'approved' &&
+       ['owner', 'admin', 'co_host'].includes(viewerMembership.role));
+
+  // `group` is null when the upstream 404s or denies. Treat unknown identity
+  // as not-staff: fail closed rather than open.
+  if (group && currentUserId && !isGroupStaff) {
+    return (
+      <CommanderPageShell>
+        <SEOHead title="Not Authorized" description="Smarter.Poker" noindex={true} />
+        <div className="cmd-page flex items-center justify-center px-4">
+          <div className="max-w-md w-full text-center py-16">
+            <h1 className="text-xl font-semibold text-white mb-2">You do not manage this game</h1>
+            <p className="text-sm text-[#9FB3C8] mb-6">
+              Only the host and group staff can open the management console.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => router.push(`/hub/commander/home-games/${id}`)}
+                className="cmd-btn cmd-btn-secondary px-4 h-11"
+              >
+                View the group
+              </button>
+              <button onClick={() => router.push('/hub/home-games')} className="cmd-btn cmd-btn-primary px-4 h-11">
+                Browse home games
+              </button>
+            </div>
+          </div>
+        </div>
+      </CommanderPageShell>
+    );
+  }
+
   return (
     <CommanderPageShell>
     <>
@@ -942,7 +996,7 @@ export default function ManageHomeGamePage() {
                             key={`seat-res-${event.id}-${seatRefreshKey}`}
                             gameId={event.id}
                             currentUserId={currentUserId}
-                            isHost={true}
+                            isHost={isGroupStaff}
                             onOpenRosterPicker={({ tableId, seatNumber, maxSeats, occupiedSeats }) => {
                               // All four values are authoritative — resolved by
                               // HomeGamesSeatReservation from the live tables state.
@@ -974,7 +1028,7 @@ export default function ManageHomeGamePage() {
                           <RSVPManager
                             rsvps={eventRsvps}
                             event={event}
-                            isHost={true}
+                            isHost={isGroupStaff}
                             isLoading={rsvpLoading}
                             onApprove={(rsvpId) => handleRsvpAction(rsvpId, 'yes')}
                             onDecline={(rsvpId) => handleRsvpAction(rsvpId, 'no')}

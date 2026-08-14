@@ -108,4 +108,56 @@ if (failed.length) {
 }
 
 console.log(`[economy-invariants] OK — ${rows.length} invariants hold.`);
+
+// ── Merchandise reservation regression tests ────────────────────────────────
+// public.test_merch_reservation() exercises reserve/release_merch_order against
+// the real catalog, each case inside a subtransaction that rolls back, so it is
+// safe to run against production. These were hand-run probes during the stock
+// work; running them here is what stops the next refactor from quietly
+// reintroducing overselling.
+let tests;
+try {
+    const testRes = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/rpc/test_merch_reservation`, {
+        method: 'POST',
+        headers: {
+            apikey: key,
+            Authorization: `Bearer ${key}`,
+            'Content-Type': 'application/json',
+        },
+        body: '{}',
+    });
+    if (!testRes.ok) {
+        console.error(`[merch-tests] RPC failed: HTTP ${testRes.status} ${await testRes.text()}`);
+        process.exit(1);
+    }
+    tests = await testRes.json();
+} catch (err) {
+    console.error('[merch-tests] RPC failed:', err?.message || err);
+    process.exit(1);
+}
+
+if (!Array.isArray(tests) || tests.length < 7) {
+    console.error(`[merch-tests] expected at least 7 tests, got ${Array.isArray(tests) ? tests.length : 'none'}.`);
+    console.error('[merch-tests] A shrinking test set is itself the regression.');
+    process.exit(1);
+}
+
+const failedTests = tests.filter((t) => t.ok !== true);
+for (const t of tests) {
+    console.log(`  ${t.ok === true ? 'PASS' : 'FAIL'}  ${t.test_name}`);
+}
+
+if (failedTests.length) {
+    console.error('');
+    console.error('MERCHANDISE RESERVATION TEST FAILURE — stock handling is not safe.');
+    console.error('');
+    for (const t of failedTests) {
+        console.error(`  ${t.test_name}`);
+        console.error(`      ${t.detail}`);
+    }
+    console.error('');
+    process.exit(1);
+}
+
+console.log(`[merch-tests] OK — ${tests.length} reservation tests pass.`);
 process.exit(0);

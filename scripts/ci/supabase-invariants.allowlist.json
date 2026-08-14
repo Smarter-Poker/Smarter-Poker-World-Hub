@@ -1,0 +1,21 @@
+{
+  "_readme": [
+    "Exceptions for the Phase U4 Supabase invariant checks.",
+    "Every entry needs a REASON that says where the object actually lives, or why it must not exist,",
+    "and how that was verified. Do NOT add an entry to make CI green: a phantom table means writes",
+    "are being silently discarded, which is exactly what these checkers exist to surface.",
+    "Both scripts FAIL if an entry here starts resolving, so this file can only shrink."
+  ],
+  "phantom_tables": {
+    "xp_logs": "FORBIDDEN, not missing. The database carries event trigger `xp_ban_guard` enforcing a zero-XP policy that blocks XP-shaped table, column and function names (including deliberate disguise patterns). Creating it raises 'XP_BAN: table \"public.xp_logs\" violates zero-XP policy'. Verified 2026-08-12 by attempting the migration. ACTION REQUIRED (product decision, not a bug fix): src/hooks/useTrainingAccountant.ts still writes XP here, so that write is dead by design and should be removed \u2014 do NOT resolve this by dropping the guard.",
+    "user_dna_profiles": "Never built. Both call sites (src/services/MediaUploadService.js:455 getStorageUsage, src/services/SocialService.js:691 getProfile) are READS with working fallbacks \u2014 a 1GB default and a caught throw. Verified 2026-08-12 that NO table in the database has its storage_used_bytes column, so it is not a rename of profiles. An empty table would change nothing; creating one would be inventing schema for a feature that was never specified."
+  },
+  "stranded_writers": {
+    "solved_spots_gold": "Externally bulk-loaded, not stranded. Verified 2026-08-12: 8,098,785 live rows and 1 trigger. This is the PIO solver corpus, loaded out-of-band rather than written by application code.",
+    "live_stream_analytics": "It is a VIEW, not a table (verified via pg_class.relkind='v' on 2026-08-12), so it is derived and can never have a direct writer. This checker is deliberately static-analysis-only and has no database access, so it cannot tell views from tables on its own.",
+    "user_daily_streaks": "Has live data (1 row as of 2026-08-12), so a writer exists outside the scanned paths - most likely the smarter-poker-workers repo or a scheduled job. Re-verify and remove this entry if the writer is brought into this repo.",
+    "posted_sports_clips": "Feature RETIRED, not broken. Its writer (markSportsClipAsPosted) lives in archive/cron/horses-sports-clips.js, which this checker deliberately does not scan because archived code does not run. src/services/SportsClipDeduplicationService.js has no importer outside archive/. Verified 2026-08-12. Remove this entry - and the service - if the horses sports-clip pipeline is formally decommissioned.",
+    "horse_sports_source_assignments": "Same retired pipeline as posted_sports_clips - only reachable from archive/cron/horses-sports-clips.js via SportsClipDeduplicationService. Verified 2026-08-12.",
+    "memory_challenge_completions": "FALSE POSITIVE of this checker, kept as documentation of its blind spot. The table IS written - by the SQL function complete_daily_challenge(), which DailyChallengeService.completeChallenge() invokes via supabase.rpc(). Verified 2026-08-12 against pg_proc.prosrc: the body contains INSERT INTO memory_challenge_completions. check-stranded-writers is pure static analysis and only sees .from() writes and INSERT INTO in supabase/*.sql, so writes that happen INSIDE a database function are invisible to it. Do not remove this entry expecting the check to pass without it."
+  }
+}

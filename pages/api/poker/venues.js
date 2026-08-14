@@ -845,8 +845,12 @@ export default async function handler(req, res) {
                           venue_type: 'home_game',
                           city: homeGroup.city,
                           state: homeGroup.state,
-                          latitude: homeGroup.latitude,
-                          longitude: homeGroup.longitude,
+                          // PRIVACY (audit C-1): this single-venue-by-id branch
+                          // is a SECOND home-game emission site and was still
+                          // returning the raw host coordinate after the list
+                          // path was fixed. Same shared helper, same guarantee.
+                          latitude: jitterCoord(homeGroup.id, homeGroup.latitude, homeGroup.longitude).lat,
+                          longitude: jitterCoord(homeGroup.id, homeGroup.latitude, homeGroup.longitude).lng,
                           profile_photo_url: homeGroup.profile_photo_url,
                           cover_photo_url: homeGroup.cover_photo_url,
                           logo_url: homeGroup.profile_photo_url,
@@ -1656,10 +1660,25 @@ export default async function handler(req, res) {
                       return { ...venue, distance_km: null, distance_mi: null };
                   }
                   const distance = calculateDistance(userLat, userLng, parseFloat(venueLat), parseFloat(venueLng));
+                  const miles = distance * 0.621371;
+                  // PRIVACY (audit C-1): this generic pass runs over the MERGED
+                  // list, so it was silently overwriting the whole-mile distance
+                  // the home-group path had already computed, restoring 0.1-mile
+                  // precision on exactly the rows that must not have it.
+                  //
+                  // A commercial venue's address is public — 0.1 mile is fine.
+                  // A home game's is someone's house: publishing 0.1-mile
+                  // distances from several GPS origins is the trilateration
+                  // vector the privacy model exists to defeat. Coarsen those.
+                  const isHomeGame = venue.venue_type === 'home_game';
                   return {
                       ...venue,
-                      distance_km: Math.round(distance * 10) / 10,
-                      distance_mi: Math.round(distance * 0.621371 * 10) / 10,
+                      distance_km: isHomeGame
+                          ? Math.round(distance)
+                          : Math.round(distance * 10) / 10,
+                      distance_mi: isHomeGame
+                          ? Math.round(miles)
+                          : Math.round(miles * 10) / 10,
                   };
               });
 

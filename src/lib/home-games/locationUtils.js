@@ -118,3 +118,44 @@ export function buildGeoUrl(stateCode, city) {
   if (!citySlug) return `/hub/home-games/in/${stateSlug}`;
   return `/hub/home-games/in/${stateSlug}/${citySlug}`;
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// PUBLIC VISIBILITY — the single source of truth
+//
+// A home group is publicly listable only while it shows signs of life:
+// engagement in the last 45 days, inside its new-group grace window, or
+// covered by a host visibility override. Mirrors the filter discover.js
+// applies at the DB level, so the SEO surfaces and the discovery API agree.
+//
+// Extracted here 2026-08-12 (audit M-4). This function was copy-pasted
+// byte-identically into three geo pages and — critically — was MISSING from
+// pages/sitemap.xml.js, which applied only `is_public`. The sitemap therefore
+// advertised city URLs that the city page itself 404s (it returns notFound
+// when zero visible games remain) plus detail URLs for deactivated and
+// private groups. Publishing known-404 URLs in a sitemap is a direct
+// crawl-budget and Search Console cost.
+//
+// Import this rather than re-copying it.
+export const HOME_GROUP_INACTIVITY_DAYS = 45;
+
+export function isGroupPubliclyVisible(g) {
+  if (!g || !g.id) return false;
+  if (g.is_active === false) return false;
+  if (g.is_private === true) return false;
+
+  const now = Date.now();
+  const cutoff = now - HOME_GROUP_INACTIVITY_DAYS * 24 * 60 * 60 * 1000;
+  const ts = (v) => {
+    if (!v) return null;
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? null : t;
+  };
+
+  const lastActivity = ts(g.last_activity_at);
+  if (lastActivity != null && lastActivity >= cutoff) return true;
+  const created = ts(g.created_at);
+  if (created != null && created >= cutoff) return true;
+  const override = ts(g.visibility_override_until);
+  if (override != null && override > now) return true;
+  return false;
+}

@@ -5,6 +5,10 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+// audit F-13: this was the only public home-games route with no limiter,
+// and it is a club_code enumeration oracle that costs 3 service-role
+// queries per hit.
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -20,6 +24,7 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
   try {
     // CDN cache: fresh for 60s, serve stale up to 300s
     if (req.method === 'GET') {
@@ -52,6 +57,13 @@ export default async function handler(req, res) {
           name,
           description,
           club_code,
+          -- audit F-18: pages/home-game/[code].js renders cover_photo_url,
+          -- profile_photo_url and tagline (including as the og:image), but
+          -- they were never selected or returned, so the page rendered with
+          -- no cover, no avatar and no social preview image.
+          cover_photo_url,
+          profile_photo_url,
+          tagline,
           is_private,
           requires_approval,
           city,
@@ -115,8 +127,19 @@ export default async function handler(req, res) {
       // Dan-fix/tournament-buildout: include format + description so the
       // client can render tournaments separately.
       // Limit raised from 5 → 20 to surface a host's full upcoming schedule.
-      // NOTE: commander_home_games has no starting_stack/structure column —
-      // selecting them 42703's the query and silently empties this list.
+      // CORRECTED 2026-08-12: the note here previously claimed
+      // "commander_home_games has no starting_stack/structure column".
+      // That is FALSE — both columns exist in production (verified against
+      // information_schema on 2026-08-12). The stale note caused this route
+      // to omit them while its sibling
+      // pages/api/public/home-games/[slug].js selected them, so the two
+      // public endpoints returned different shapes for the same game and
+      // tournament cards served from THIS route labelled every event
+      // "Standard".
+      //
+      // The underlying warning is still worth heeding, just not here:
+      // selecting a column that does not exist 42703s the WHOLE query and
+      // silently empties the list. Confirm a column exists before adding it.
       //
       // Timezone safety: toISOString() is UTC, so from ~5pm local onward in
       // US timezones the UTC date is already tomorrow and tonight's game
@@ -132,6 +155,8 @@ export default async function handler(req, res) {
           game_type,
           stakes,
           format,
+          structure,
+          starting_stack,
           buyin_min,
           buyin_max,
           scheduled_date,
@@ -167,6 +192,9 @@ export default async function handler(req, res) {
             id: group.id,
             name: group.name,
             description: group.description,
+            tagline: group.tagline,
+            cover_photo_url: group.cover_photo_url,
+            profile_photo_url: group.profile_photo_url,
             club_code: group.club_code,
             is_private: group.is_private,
             requires_approval: group.requires_approval,

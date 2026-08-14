@@ -1,0 +1,51 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Supabase invariants (Phase U4)
+# ═══════════════════════════════════════════════════════════════════════════
+# Catches the class of bug where application code talks to a relation that
+# does not exist. Those calls fail with 42P01 at runtime and are swallowed by
+# the caller's warn-and-continue error handling, so they surface as "the data
+# just never saved" weeks later.
+#
+# Deliberately a SEPARATE workflow rather than another step inside
+# build-safety-gate.yml: that gate has been failing on every commit at CHECK 8
+# for a long time, so anything added to it inherits a red status and provides
+# no signal.
+#
+# NON-BLOCKING for now (continue-on-error) per U4.3 — warnings first, blocking
+# once the current findings are cleared. Flip `continue-on-error` to false to
+# make it enforcing.
+#
+# No `schedule:` trigger here on purpose — CLAUDE.md section 11.3 forbids new
+# scheduled GitHub Actions; scheduled work belongs on Open Claw.
+# ═══════════════════════════════════════════════════════════════════════════
+name: Supabase Invariants
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: supabase-invariants-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phantom-tables:
+    name: "U4.2: No phantom tables"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Skips cleanly when the secrets are absent (e.g. a fork PR), so this
+      # can never fail for a reason the author cannot fix.
+      - name: Check for references to nonexistent relations
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/ci/check-phantom-tables.mjs

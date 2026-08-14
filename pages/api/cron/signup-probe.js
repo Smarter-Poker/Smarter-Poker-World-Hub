@@ -147,14 +147,19 @@ export default async function handler(req, res) {
         const duration_ms = Date.now() - startedAt;
 
         // Heartbeat write (best-effort — never fail a healthy probe because of this)
-        await admin.from('probe_heartbeats').insert({
+        // Supabase's PostgREST builder is a THENABLE, not a Promise — it has
+        // .then() but no .catch(), so this threw TypeError before the await
+        // ran. Crashing daily since 2026-06-17: the probe meant to detect a
+        // broken signup flow was itself broken, so nobody would have been told.
+        const { error: heartbeatErr } = await admin.from('probe_heartbeats').insert({
             probe_name: 'signup-probe',
             status: allOk ? 'ok' : 'failed',
             duration_ms,
             details: { checks, failed_checks: failedChecks },
-        }).catch((hbErr) => {
-            console.warn('[signup-probe] heartbeat write failed:', hbErr?.message || hbErr);
         });
+        if (heartbeatErr) {
+            console.warn('[signup-probe] heartbeat write failed:', heartbeatErr.message);
+        }
 
         if (!allOk) {
             return res.status(503).json({
@@ -176,12 +181,18 @@ export default async function handler(req, res) {
 
         const duration_ms = Date.now() - startedAt;
 
-        await admin.from('probe_heartbeats').insert({
+        // Same thenable-not-a-Promise bug as above. This one sits in the error
+        // path, so it converted a probe FAILURE into a TypeError and lost the
+        // original error entirely.
+        const { error: failHeartbeatErr } = await admin.from('probe_heartbeats').insert({
             probe_name: 'signup-probe',
             status: 'failed',
             duration_ms,
             details: { error: err?.message || String(err), checks },
-        }).catch(() => null);
+        });
+        if (failHeartbeatErr) {
+            console.warn('[signup-probe] failure heartbeat write failed:', failHeartbeatErr.message);
+        }
 
         return res.status(503).json({
             status: 'failed',

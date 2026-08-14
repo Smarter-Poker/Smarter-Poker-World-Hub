@@ -551,6 +551,18 @@ export default async function handler(req, res) {
               // refused without a variant_id, because guessing either
               // mischarges the customer or ships the wrong size.
               // ═══════════════════════════════════════════════════════════════
+              // Bound the array before doing per-item work. It was unbounded,
+              // so a 10,000-element body would be validated line by line and
+              // then handed to Stripe. The diamond-package branch is naturally
+              // limited by its 8-package merge; the merchandise branch had no
+              // equivalent.
+              if (items.length > 50) {
+                  return res.status(400).json({
+                      success: false,
+                      error: { code: 'TOO_MANY_ITEMS', message: 'Too many items in one order' },
+                  });
+              }
+
               const stockCheckLines = items.map((item) => ({
                   id: item.id,
                   variant_id: item.variantId || item.variant_id || null,

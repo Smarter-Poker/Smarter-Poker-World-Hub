@@ -34,6 +34,7 @@ export default function SeatGridTable({
   onChange,               // async (reservationId, newSeatNumber) -> void
   isHost,                 // boolean — host surfaces extra actions
   onHostSeatMember,       // async (tableId, seatNumber) -> void (opens roster picker)
+  onStartTable,           // async (tableId) -> void — host only; open_for_rsvp -> running
   busy                    // reservationId or seatNumber string we're acting on
 }) {
   const [pendingSeat, setPendingSeat] = useState(null); // seat number awaiting claim-confirm
@@ -302,8 +303,11 @@ export default function SeatGridTable({
         </div>
       )}
 
-      {/* Host "seat a member" affordance */}
-      {isHost && !isClosed && !ownSelfRes && (
+      {/* Host "seat a member" affordance.
+          audit F-29: this was gated on !ownSelfRes, so it vanished as soon as
+          the host took their own seat — the common case — leaving no way to
+          seat anyone else. */}
+      {isHost && !isClosed && (
         <div className="mt-4 pt-4 border-t border-[#1E2A47]">
           <button
             onClick={() => onHostSeatMember?.(table.id, null)}
@@ -312,6 +316,30 @@ export default function SeatGridTable({
             <UserPlus className="w-4 h-4" />
             Seat a member at this table
           </button>
+        </div>
+      )}
+
+      {/* Host "start table" control.
+          audit F-08: POST /api/home-games/tables/[id]/start existed with ZERO
+          callers, so open_for_rsvp -> running could never happen from the
+          product and commander_home_seats was never materialised. The parent
+          runs an unseated-confirmed pre-flight before calling this, because
+          starting is irreversible and seats only players who hold a
+          reservation. */}
+      {isHost && onStartTable && table.status === 'open_for_rsvp' && (
+        <div className="mt-3">
+          <button
+            onClick={() => onStartTable(table.id)}
+            disabled={busy === `start:${table.id}`}
+            className="w-full h-11 rounded-lg bg-[#22D3EE] text-[#06202B] font-semibold
+                       hover:bg-[#67E8F9] disabled:opacity-50 transition
+                       flex items-center justify-center gap-2"
+          >
+            {busy === `start:${table.id}` ? 'Starting…' : 'Start table'}
+          </button>
+          <p className="mt-1 text-[11px] text-[#94A3B8] text-center">
+            Seats everyone currently reserved. This cannot be undone.
+          </p>
         </div>
       )}
 

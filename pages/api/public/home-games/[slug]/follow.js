@@ -57,7 +57,11 @@ async function resolvePage(slug) {
         .from('social_pages')
         .select('id, page_type, is_public, follower_count, slug, name, linked_entity_id')
         .eq('slug', slug)
-        .eq('page_type', 'home_game')
+        // audit F-10: this filtered page_type='home_game' only, while
+        // [slug].js and vouch.js both accept 'club'. A home group promoted to
+        // a club keeps its public page but changes page_type, so Follow 404'd
+        // on exactly the groups most likely to have followers.
+        .in('page_type', ['home_game', 'club'])
         .maybeSingle();
     if (error) throw error;
     if (!data) return null;

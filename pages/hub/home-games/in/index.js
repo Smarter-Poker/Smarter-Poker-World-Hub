@@ -12,7 +12,9 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
-import { stateCodeToName, stateCodeToSlug, US_STATES_BY_CODE } from '../../../../src/lib/home-games/locationUtils';
+import { stateCodeToName, stateCodeToSlug, US_STATES_BY_CODE,
+  isGroupPubliclyVisible,
+} from '../../../../src/lib/home-games/locationUtils';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 
 // Phase 18 auto-hide window, mirrored from /api/public/home-games/discover
@@ -34,27 +36,9 @@ const GROUP_ID_CHUNK = 400;
 // in/[state]/index.js and in/[state]/[city].js — the state and city pages
 // already filter on this, so counting raw social_pages rows here advertised
 // totals that no drill-down page could ever show.
-function isGroupPubliclyVisible(g) {
-  if (!g || !g.id) return false;
-  if (g.is_active === false) return false;
-  if (g.is_private === true) return false;
-
-  const now = Date.now();
-  const cutoff = now - HOME_GROUP_INACTIVITY_DAYS * 24 * 60 * 60 * 1000;
-  const ts = (v) => {
-    if (!v) return null;
-    const t = Date.parse(v);
-    return Number.isNaN(t) ? null : t;
-  };
-
-  const lastActivity = ts(g.last_activity_at);
-  if (lastActivity != null && lastActivity >= cutoff) return true;
-  const created = ts(g.created_at);
-  if (created != null && created >= cutoff) return true;
-  const override = ts(g.visibility_override_until);
-  if (override != null && override > now) return true;
-  return false;
-}
+// isGroupPubliclyVisible now lives in locationUtils (audit M-4) — it was
+// copy-pasted byte-identically into three geo pages and MISSING from the
+// sitemap, which is how the sitemap ended up advertising 404s.
 
 export async function getServerSideProps({ res }) {
   // 30s fresh, 5min SWR — this page changes only when a new state gets its
@@ -180,10 +164,14 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
               '@type': 'BreadcrumbList',
               itemListElement: [
                 { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://smarter.poker' },
-                // /hub/home-games has no index route — near-me is the real
-                // Home Games landing surface. Pointing this node at the bare
-                // path published a 404 to Google as a named breadcrumb.
-                { '@type': 'ListItem', position: 2, name: 'Home Games', item: 'https://smarter.poker/hub/home-games/near-me' },
+                // audit F-44: the note here used to claim "/hub/home-games has
+                // no index route". That is FALSE — pages/hub/home-games.js
+                // exists and serves it. Acting on the false premise pointed
+                // every home-games breadcrumb at /near-me, which is entirely
+                // client-rendered, so all internal breadcrumb equity went to a
+                // page whose crawlable HTML is a spinner while the real
+                // landing page received none.
+                { '@type': 'ListItem', position: 2, name: 'Home Games', item: 'https://smarter.poker/hub/home-games' },
                 { '@type': 'ListItem', position: 3, name: 'By State', item: 'https://smarter.poker/hub/home-games/in' },
               ],
             }).replace(/</g, '\\u003c'),

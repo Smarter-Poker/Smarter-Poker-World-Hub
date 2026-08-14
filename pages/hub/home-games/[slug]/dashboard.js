@@ -99,7 +99,7 @@ function OnboardingChecklist({ group }) {
 // constant so the tile below can tell "exactly N" from "at least N".
 const EVENTS_PREVIEW_LIMIT = 5;
 
-function OverviewTab({ group, token }) {
+function OverviewTab({ group, token, slug }) {
   const [events, setEvents] = useState([]);
   // Total events reported by the API when it sends one, otherwise null so the
   // tile can fall back to the number of rows we actually received.
@@ -181,7 +181,10 @@ function OverviewTab({ group, token }) {
         <Link href={`/hub/commander/home-games/${group?.id}/manage`} style={{ background: C.tealDim, border: `1px solid ${C.tealBorder}`, borderRadius: 12, padding: 14, textAlign: 'center', color: C.teal, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
           Schedule Game
         </Link>
-        <Link href={`/hub/home-games/${group?.slug || group?.id}`} style={{ background: 'rgba(255,255,255,.04)', border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, textAlign: 'center', color: C.textSec, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+        {/* audit F-30: `slug` lives on social_pages, not commander_home_groups, so
+            group?.slug was undefined and this fell back to the group UUID, which
+            /hub/home-games/[slug] 404s. The route param IS the slug. */}
+        <Link href={`/hub/home-games/${slug}`} style={{ background: 'rgba(255,255,255,.04)', border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, textAlign: 'center', color: C.textSec, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
           View Public Page
         </Link>
       </div>
@@ -462,7 +465,7 @@ export default function HomeGameDashboard() {
           </div>
 
           {/* Tab Content */}
-          {tab === 0 && <OverviewTab group={group} token={token} />}
+          {tab === 0 && <OverviewTab slug={slug} group={group} token={token} />}
           {tab === 1 && <MembersTab group={group} token={token} />}
           {tab === 2 && <ModerationTab group={group} token={token} />}
           {tab === 3 && <SettingsTab group={group} />}

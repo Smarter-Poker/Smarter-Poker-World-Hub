@@ -101,6 +101,15 @@ export default function HomeGamesSeatReservation({
   useEffect(() => { load(); }, [load]);
 
   // ─────────────────────────── realtime subscribe ─────────────────────────
+  // audit F-28: this effect used to depend on `tables.length`. A delete
+  // plus an add between refetches leaves the count unchanged, so the
+  // subscription stayed bound to a table_id that no longer exists and
+  // silently stopped delivering seat updates. Key on the actual id set.
+  const tableIdsKey = useMemo(
+    () => tables.map(t => t.id).sort().join(','),
+    [tables]
+  );
+
   useEffect(() => {
     if (!gameId || tables.length === 0 || !supabase) return;
 
@@ -137,12 +146,7 @@ export default function HomeGamesSeatReservation({
       }
       channelsRef.current = [];
     };
-  }, [gameId, tables.length, load]);
-
-  // Rebuild realtime filter only when the set of table ids changes (not on
-  // every refetch that returns the same ids). Above effect depends on
-  // tables.length which is an acceptable approximation; if a table is added
-  // mid-session the subscription re-attaches on the next load().
+  }, [gameId, tableIdsKey, load]);
 
   // ───────────────────────── mutation handlers ────────────────────────────
   const handleClaim = useCallback(async (tableId, seatNumber, isGuest) => {
@@ -197,7 +201,10 @@ export default function HomeGamesSeatReservation({
 
   const handleHostSeatMember = useCallback((tableId, seatNumber) => {
     if (!onOpenRosterPicker) {
-      toast('Host seating UI coming next', { icon: 'ℹ️' });
+      // This stub was reachable in production because pages/hub/home-games/[slug].js
+      // hardcoded isHost={false}. Kept as a guard for callers that genuinely
+      // do not supply a picker, but it is no longer the host's only outcome.
+      toast('Seating from the roster is available on the host dashboard.', { icon: 'ℹ️' });
       return;
     }
     // Look up the target table from our own state so the picker modal receives
@@ -253,6 +260,53 @@ export default function HomeGamesSeatReservation({
     );
   }
 
+  // ───────────────────────── host: start a table ──────────────────────────
+  // POST /api/home-games/tables/[tableId]/start existed with ZERO callers, so
+  // open_for_rsvp -> running could never happen from the product and
+  // commander_home_seats was never materialised (audit F-08).
+  //
+  // Starting is irreversible, and rpc_hg_start_table deliberately seats only
+  // players who hold a seat reservation — RSVP and seat assignment are
+  // separate steps by design. A host could therefore start a table without
+  // realising confirmed players were never seated. Production currently holds
+  // 8 yes-RSVPs and 0 reservations, so this is live, not theoretical.
+  // fn_home_game_unseated_confirmed (migration phase57) drives the warning.
+  const handleStartTable = useCallback(async (tableId) => {
+    const table = tables.find(t => t.id === tableId);
+    const seated = (table?.reservations || []).filter(
+      r => r.status === 'reserved' || r.status === 'seated'
+    ).length;
+
+    let warning = '';
+    try {
+      const j = await jsonFetch(`/api/home-games/tables/${tableId}/unseated`);
+      {
+        const n = j?.unseated?.length || 0;
+        if (n > 0) {
+          warning =
+            `\n\n${n} player${n === 1 ? '' : 's'} RSVP'd yes but ${n === 1 ? 'is' : 'are'} not seated ` +
+            `at any table. Starting now will leave ${n === 1 ? 'them' : 'them'} out.`;
+        }
+      }
+    } catch (_e) { /* advisory only — never block the host on it */ }
+
+    if (!window.confirm(
+      `Start this table with ${seated} seated player${seated === 1 ? '' : 's'}?` +
+      `${warning}\n\nThis cannot be undone.`
+    )) return;
+
+    setBusy(`start:${tableId}`);
+    try {
+      await jsonFetch(`/api/home-games/tables/${tableId}/start`, { method: 'POST' });
+      toast.success('Table started');
+      await load(true);
+    } catch (err) {
+      toast.error(err?.message || 'Could not start the table');
+    } finally {
+      setBusy(null);
+    }
+  }, [tables, load]);
+
   return (
     <div className="space-y-6">
       {refreshing && (
@@ -273,6 +327,7 @@ export default function HomeGamesSeatReservation({
           onRelease={handleRelease}
           onChange={handleChange}
           onHostSeatMember={handleHostSeatMember}
+          onStartTable={isHost ? handleStartTable : undefined}
         />
       ))}
 
