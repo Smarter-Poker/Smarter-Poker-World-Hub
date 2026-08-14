@@ -41,6 +41,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 let _admin = null, _anon = null;
 function getAdmin() {
@@ -88,7 +89,7 @@ async function alertOps(subject, text) {
     }
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     if (!validateCronAuth(req)) return res.status(401).json({ error: 'Unauthorized' });
     res.setHeader('Cache-Control', 'no-store');
 
@@ -243,3 +244,8 @@ export default async function handler(req, res) {
         return res.status(503).json(failure);
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('login-probe', handler);
