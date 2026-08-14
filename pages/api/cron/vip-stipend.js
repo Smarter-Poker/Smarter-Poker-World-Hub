@@ -66,6 +66,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 let _supabase = null;
 function getSupabase() {
@@ -112,7 +113,7 @@ function chicagoMonthKey(date = new Date()) {
     return `${year}-${month}`;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     if (req.method !== 'GET' && req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method Not Allowed' });
     }
@@ -293,3 +294,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, error: err?.message || 'Internal server error', stats });
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('vip-stipend', handler);

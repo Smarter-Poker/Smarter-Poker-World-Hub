@@ -28,6 +28,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 export const config = {
     maxDuration: 60,
@@ -84,7 +85,7 @@ async function listAllObjects(supa, prefix = '', accumulator = []) {
     return accumulator;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     const auth = (req.headers.authorization || '').replace('Bearer ', '');
     if (!process.env.CRON_SECRET || auth !== process.env.CRON_SECRET) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -236,3 +237,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, error: err?.message || 'unknown' });
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('cleanup-orphan-uploads', handler);

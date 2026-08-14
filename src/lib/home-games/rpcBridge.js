@@ -41,27 +41,66 @@ export function mapRpcError(err) {
 
   switch (errName) {
     case 'AUTH_REQUIRED': return { status: 401, error: errName, message: 'Sign in to continue.' };
+
+    // ── Seat-race and eligibility errors (audit 2026-08-14) ──────────────
+    // The hardened claim/change/start RPCs raise these as P0001 domain
+    // errors — including converting 23505 unique_violations into
+    // 'SEAT_TAKEN' internally, which made the 23505 branch above dead for
+    // claims. None of these were mapped, so every lost seat race surfaced
+    // as HTTP 500 "Something went wrong." instead of the truth. These are
+    // ordinary user-facing outcomes, not server faults; every one gets a
+    // human sentence because toast.error(e.message) renders it verbatim.
+    case 'SEAT_TAKEN':
+      return { status: 409, error: errName, message: 'That seat was just taken by someone else.' };
+    case 'ALREADY_AT_TABLE':
+      return { status: 409, error: errName, message: 'You already have a seat at this table.' };
+    case 'GUEST_ALREADY_CLAIMED':
+      return { status: 409, error: errName, message: 'You have already claimed a guest seat at this table.' };
+    case 'GAME_NOT_ACTIVE':
+      return { status: 409, error: errName, message: 'This game has been cancelled or has already finished.' };
+    case 'WAITLISTED_CANNOT_SELF_SEAT':
+      return { status: 403, error: errName, message: 'The host has you on the waitlist — they will seat you when a spot opens.' };
+    case 'TABLE_STATE_CHANGED':
+      return { status: 409, error: errName, message: 'The table changed state just now — refresh to see the latest.' };
+
     case 'NOT_A_MEMBER':
+      return { status: 403, error: errName, message: 'Join this home game to grab a seat.' };
     case 'NOT_GROUP_STAFF':
+      return { status: 403, error: errName, message: 'Only the host or group staff can do that.' };
     case 'NOT_YOUR_RESERVATION':
+      return { status: 403, error: errName, message: 'That seat belongs to another player.' };
     case 'MEMBER_WRONG_GROUP': return { status: 403, error: errName, message: raw };
     case 'GAME_NOT_FOUND':
     case 'TABLE_NOT_FOUND':
     case 'MEMBER_NOT_FOUND':
     case 'RESERVATION_NOT_FOUND': return { status: 404, error: errName, message: raw };
-    case 'GAME_CANCELLED':
-    case 'TABLE_CANCELLED':
-    case 'TABLE_ENDED':
-    case 'TABLE_RUNNING':
+    // Table/RSVP state errors, each with a human sentence — the UI toasts
+    // e.message verbatim, so a bare domain code here reads as a fault.
+    // NOTE: no bare fall-through into a message that only fits one case; an
+    // earlier edit briefly routed GAME_CANCELLED into the "not open for seat
+    // claims" text via fall-through, which is exactly the wrong-message class
+    // of bug this block exists to prevent.
     case 'TABLE_NOT_OPEN':
     case 'TABLE_NOT_OPEN_FOR_RSVP':
     case 'TABLE_NOT_IN_OPEN_STATE':
     case 'TABLE_NOT_CLAIMABLE':
+      return { status: 409, error: errName, message: 'This table is not open for seat claims right now.' };
+    case 'GAME_CANCELLED':
+      return { status: 409, error: errName, message: 'This game has been cancelled.' };
+    case 'TABLE_CANCELLED':
+      return { status: 409, error: errName, message: 'This table has been cancelled.' };
+    case 'TABLE_ENDED':
+      return { status: 409, error: errName, message: 'This table has already ended.' };
+    case 'TABLE_RUNNING':
+      return { status: 409, error: errName, message: 'This table is already running.' };
     case 'RSVPS_CLOSED':
     case 'RSVP_DEADLINE_PASSED':
+      return { status: 409, error: errName, message: 'RSVPs are closed for this game.' };
     case 'GAME_START_TIME_PASSED':
+      return { status: 409, error: errName, message: 'This game has already started.' };
     case 'RESERVATION_INACTIVE':
     case 'RESERVATION_ALREADY_INACTIVE':
+      return { status: 409, error: errName, message: 'That reservation is no longer active — refresh to see the latest.' };
     case 'CANNOT_DELETE_DEFAULT_TABLE_WITH_SIBLINGS': return { status: 409, error: errName, message: raw };
     case 'SEAT_OUT_OF_BOUNDS':
     case 'MAX_SEATS_OUT_OF_BOUNDS':

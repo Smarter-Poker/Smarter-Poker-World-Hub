@@ -35,6 +35,7 @@ import {
     DEFAULT_QUALITY_FLOOR,
 } from '../../../src/lib/triviaQuestionLoader';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 export const config = { maxDuration: 60 };
 
@@ -97,7 +98,7 @@ function getSupabase() {
     return createClient(url, key);
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     try {
         if (!requireAdminSecret(req, res, { label: 'trivia-pool-guard' })) return;
 
@@ -218,3 +219,8 @@ export default async function handler(req, res) {
         }
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('trivia-pool-guard', handler);

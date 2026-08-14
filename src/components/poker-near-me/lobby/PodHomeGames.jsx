@@ -17,6 +17,7 @@ import React, { useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import VenueCard from '../VenueCard';
 import { cachedFetch } from './PnmApiCache';
+import { homeGameUrl } from '../../../lib/home-games/urls';
 
 const CreateHomeGame = dynamic(() => import('../CreateHomeGame'), { ssr: false });
 
@@ -94,6 +95,9 @@ function adaptHomeGameToVenueShape(g) {
     name: g.name,
     // Tell VenueCard this is a home game (not a poker room / club / casino).
     venue_type: 'home_game',
+    // UNIFICATION (audit 2026-08-14): canonical destination from the shared
+    // builder, so VenueMap popups and card buttons agree with the marker.
+    detailUrl: homeGameUrl(g),
     city: g.city,
     state: g.state,
     country: g.country || 'US',
@@ -120,7 +124,9 @@ function adaptHomeGameToVenueShape(g) {
     slug: g.slug || null,
     club_code: g.club_code || null,
     // Host info — populated from discover API's `host` join
-    host_display_name: host?.display_name || g.host_display_name || null,
+    // discover nests host as {id, display_name, avatar_url}; the old
+    // `g.host_display_name` tail read a key discover never emits.
+    host_display_name: host?.display_name || null,
     host_avatar_url: host?.avatar_url || null,
     host_id: host?.id || null,
     member_count: g.member_count || 0,
