@@ -126,18 +126,27 @@ export default async function handler(req, res) {
           if (!cashoutId) return res.status(400).json({ error: 'cashoutId required' });
 
           try {
+              // CHECK 13 (2026-08-14): this selected `notes`, which is not a
+              // column (real: player_note / agent_note) — the query 42703'd,
+              // `cashout` was undefined, and EVERY real cashout answered 404
+              // "Cashout not found". The stage list was also fiction: the live
+              // status CHECK is pending|approved|completing|completed (plus
+              // cancelling|cancelled) — there is no 'processing'.
               const { data: cashout } = await getSupabase()
                   .from('cashout_requests')
-                  .select('id, amount, status, created_at, updated_at, notes')
+                  .select('id, amount, status, created_at, updated_at, player_note, agent_note')
                   .eq('id', cashoutId)
                   .eq('player_id', user.id)
                   .maybeSingle();
 
               if (!cashout) return res.status(404).json({ error: 'Cashout not found' });
+              // Back-compat: the SPA reads `notes`.
+              cashout.notes = cashout.player_note || null;
 
-              // Status progression
-              const stages = ['pending', 'processing', 'approved', 'completed'];
-              const currentStage = stages.indexOf(cashout.status);
+              // Status progression (real vocabulary)
+              const stages = ['pending', 'approved', 'completing', 'completed'];
+              const cancelled = cashout.status === 'cancelled' || cashout.status === 'cancelling';
+              const currentStage = cancelled ? -1 : stages.indexOf(cashout.status);
 
               return res.status(200).json({
                   success: true,
