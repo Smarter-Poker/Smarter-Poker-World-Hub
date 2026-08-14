@@ -61,7 +61,19 @@ export function withCronHealth(cronName, handler) {
         if (code === 401 || code === 403) return;
         const client = getServiceClient();
         if (!client) return;
-        const status = thrown ? 'error' : code >= 400 ? `http_${code}` : 'ok';
+        // VOCABULARY (found via runtime logs, 2026-08-14): the table carries
+        // CHECK (last_status IN ('success','error','timeout')). The first two
+        // deployments wrote 'ok' / 'http_<code>' and EVERY upsert died on the
+        // constraint — which also falsified the "Vercel freezes the finally"
+        // theory, since the old wrapper's failure warns reached the logs too.
+        // The http status detail lives in error_message instead.
+        const failed = !!thrown || code >= 400;
+        const status = failed ? 'error' : 'success';
+        const errorMessage = thrown
+          ? String(thrown?.message || thrown).slice(0, 500)
+          : code >= 400
+            ? `http_${code}`
+            : null;
         const { error: telemetryErr } = await client
           .from('cron_health_log')
           .upsert(
@@ -70,7 +82,7 @@ export function withCronHealth(cronName, handler) {
               last_run_at: new Date().toISOString(),
               last_status: status,
               last_duration_ms: Date.now() - started,
-              error_message: thrown ? String(thrown?.message || thrown).slice(0, 500) : null,
+              error_message: errorMessage,
             },
             { onConflict: 'cron_name' }
           );
