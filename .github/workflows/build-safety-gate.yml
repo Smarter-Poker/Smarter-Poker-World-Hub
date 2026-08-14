@@ -112,6 +112,36 @@ jobs:
           fi
           node scripts/ci/check-phantom-tables.mjs
 
+      - name: "CHECK 13: No phantom Supabase COLUMNS (warn-only rollout)"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+        run: |
+          # Column-level twin of CHECK 11. Motivating incident: cron telemetry
+          # caught yt-pipeline-recovery failing EVERY 15-minute tick since it
+          # shipped — it selected video_transcode_jobs.attempts and wrote
+          # locked_at, neither of which existed. 42703 on a column behaves
+          # exactly like 42P01 on a table: swallowed error, feature that
+          # silently never works. CHECK 11 cannot see it (the table exists).
+          #
+          # First run found 187 phantom columns. Sample-verified 6/6 against
+          # information_schema — zero false positives. The worst was
+          # chip_escrow_holds in the poker engine's ChipBridge: written with
+          # player_id/table_id/status 'locked' against a live table whose
+          # columns are user_id/related_id and whose status CHECK forbids
+          # 'locked' — so chip escrow tracking had NEVER written a row and
+          # leave-club's "don't leave with locked chips" money guard was a
+          # no-op. Fixed same day; backlog is 184.
+          #
+          # WARN-ONLY until the backlog reaches zero — same rollout doctrine
+          # as CHECKs 11/12: a gate blocking on 184 pre-existing findings
+          # gets disabled, not fixed. Drop --warn-only when it reports OK.
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — phantom-column check is NOT enforced."
+            exit 0
+          fi
+          node scripts/ci/check-phantom-columns.mjs --warn-only
+
       - name: "CHECK 12: No stranded Supabase tables (U4.1)"
         run: |
           # Catches a table that src/services READS but nothing ever WRITES.
