@@ -125,6 +125,14 @@ export default async function handler(req, res) {
             id: group.id,
             name: group.name,
             is_private: true,
+            // club_code is a SHARE code, not a credential — /home-game/<code>
+            // URLs are built from it and the join endpoint still enforces
+            // approval. Without it, a private group's own join?slug= link
+            // dead-ended at "That invite link is missing a code": the join
+            // page resolves the slug through THIS reduced payload and found
+            // nothing redeemable. (invite_code stays withheld — that one IS
+            // the credential.)
+            club_code: group.club_code,
             city: group.city,
             state: group.state,
             member_count: group.member_count || 0,
@@ -154,6 +162,14 @@ export default async function handler(req, res) {
     // game would disappear from the page. Shift 12h west before slicing so
     // the cutoff never runs ahead of any US local date.
     const today = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      // UNIFIED 2026-08-14: "upcoming" means status IN ('scheduled','confirmed')
+      // on every public surface. This endpoint previously used
+      // .neq('status','cancelled'), which also surfaced draft (unpublished),
+      // in_progress and same-day completed games — so the slug page offered
+      // seat requests on events that request-seat.js (which checks
+      // scheduled/confirmed) then rejected, and the two public endpoints
+      // disagreed about the same group's schedule.
+
     const { data: upcomingGames, error: upcomingErr } = await supabase
       .from('commander_home_games')
       // Dan-fix/tournament-buildout: include format so the client can render
@@ -167,7 +183,7 @@ export default async function handler(req, res) {
       )
       .eq('group_id', group.id)
       .gte('scheduled_date', today)
-      .neq('status', 'cancelled')
+      .in('status', ['scheduled', 'confirmed'])
       .order('scheduled_date', { ascending: true })
       .limit(20);
 
@@ -251,12 +267,21 @@ export default async function handler(req, res) {
           typical_time: group.typical_time,
           member_count: group.member_count || 0,
           games_hosted: group.games_hosted || 0,
-          invite_code: group.invite_code,
+          // invite_code REMOVED 2026-08-14: it is the credential that redeems
+          // membership and this endpoint is public and CDN-cached. discover
+          // dropped it on 2026-08-12 (audit M-1); this endpoint was missed —
+          // a runtime probe found it still serving codes for every group.
+          // club_code (a share code, not a credential) is what links use.
           club_code: group.club_code,
           // Contact info — only present if host has set them
           ...(group.contact_phone ? { contact_phone: group.contact_phone } : {}),
           ...(group.website_url   ? { website_url:   group.website_url   } : {}),
-          settings: group.settings || {},
+          // settings REMOVED from the public payload (audit 2026-08-14): the
+          // raw jsonb carries the host's full table/tournament config, no
+          // client reads it from this endpoint (verified in the contract
+          // sweep), and the runtime probe found it still being served after
+          // the first removal attempt matched a stale pattern. If a field in
+          // settings is ever needed publicly, project THAT field explicitly.
           created_at: group.created_at,
         },
         host: group.profiles

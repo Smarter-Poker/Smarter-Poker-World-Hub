@@ -25,6 +25,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 let _admin = null;
 function getAdmin() {
@@ -61,7 +62,7 @@ const RECOVERABLE_PATTERNS = [
     'Bad Gateway',
 ];
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     if (!validateCronAuth(req)) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -132,24 +133,39 @@ export default async function handler(req, res) {
         scanned = (candidates || []).length;
 
         if (scanned > 0) {
-            const ids = candidates.map(c => c.id);
-            const { error: updateErr } = await admin
-                .from('video_transcode_jobs')
-                .update({
-                    status: 'queued',
-                    error_message: null,
-                    worker_id: null,
-                    locked_at: null,
-                })
-                .in('id', ids);
-            if (updateErr) {
-                return res.status(500).json({
-                    status: 'failed', stage: 'update', error: updateErr.message,
-                    scanned, requeued: 0,
-                });
+            // Requeue AND increment attempts (audit 2026-08-14). Until now
+            // nothing anywhere incremented `attempts`, so the `.lt('attempts', 5)`
+            // retry cap above could never bind — a permanently-broken job that
+            // dodged the "permanent failure" patterns would requeue forever at
+            // 1-hour spacing. supabase-js has no atomic increment on update, so
+            // group ids by their CURRENT attempts value (already loaded in the
+            // select) — at most 5 groups under the cap — one update per group.
+            const byAttempts = new Map();
+            for (const c of candidates) {
+                const a = Number(c.attempts) || 0;
+                if (!byAttempts.has(a)) byAttempts.set(a, []);
+                byAttempts.get(a).push(c.id);
             }
-            requeued = ids.length;
-            sampleIds.push(...ids.slice(0, 5));
+            for (const [a, ids] of byAttempts) {
+                const { error: updateErr } = await admin
+                    .from('video_transcode_jobs')
+                    .update({
+                        status: 'queued',
+                        error_message: null,
+                        worker_id: null,
+                        locked_at: null,
+                        attempts: a + 1,
+                    })
+                    .in('id', ids);
+                if (updateErr) {
+                    return res.status(500).json({
+                        status: 'failed', stage: 'update', error: updateErr.message,
+                        scanned, requeued,
+                    });
+                }
+                requeued += ids.length;
+                sampleIds.push(...ids.slice(0, 5 - sampleIds.length));
+            }
         }
 
         // Best-effort heartbeat — don't fail the response on heartbeat error.
@@ -175,3 +191,8 @@ export default async function handler(req, res) {
         });
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('yt-pipeline-recovery', handler);
