@@ -150,6 +150,23 @@ jobs:
           # of bug survives review. Pure static analysis; no DB access needed.
           node scripts/ci/check-stranded-writers.mjs
 
+      - name: "CHECK 14: Vendor drift guard (CJS-under-ESM + override bypass)"
+        run: |
+          # Closes the vendoring-drift bug CLASS behind three separate prod
+          # incidents in one week (Aug 2026), none of which threw or failed the
+          # build — they shipped green and broke in production:
+          #   A. CJS-under-ESM: vendor/commander-shared is "type":"module", so a
+          #      file in it using module.exports/require() exports NOTHING at
+          #      runtime and every named import of it resolves to undefined.
+          #      (parseBlindStructure.js, home-games/rpcBridge.js)
+          #   B. Override bypass: several src/ files are REAL local overrides
+          #      fixing a bug in the vendored twin (apiRateLimit's spoofable IP
+          #      parsing, the supabase client, authUtils). Importing the vendor
+          #      path directly instead of the local override silently runs the
+          #      UNFIXED code. (mock-supabase-client, forgeable-vendor-auth)
+          # Pure static analysis; no DB access, no npm install.
+          node scripts/check-vendor-drift.mjs
+
       - name: "CHECK 9: Reward catalog matches diamondRewards.js"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
