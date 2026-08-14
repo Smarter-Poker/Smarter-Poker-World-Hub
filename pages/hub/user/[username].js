@@ -42,6 +42,7 @@ import ViralGrowthModule from '../../../src/components/social/ViralGrowthModule'
 import CrewDashboard from '../../../src/components/social/CrewDashboard';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import { homeGamePageUrl } from '../../../src/lib/home-games/urls';
 const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), {
   ssr: false,
 });
@@ -1943,7 +1944,9 @@ export default function UserProfilePage() {
                     avatar_url: page.avatar_url || null,
                     href:
                       page.page_type === 'home_game'
-                        ? `/hub/home-games/${page.slug || page.id}`
+                        // audit 2026-08-14: was `page.slug || page.id` into the
+                        // slug-only route — a 404 for slug-less pages.
+                        ? homeGamePageUrl(page)
                         : page.page_type === 'club'
                           ? `/hub/commander`
                           : `/hub/social-pages/${page.id}`,
@@ -2944,7 +2947,12 @@ export default function UserProfilePage() {
             ...prev,
             following: followingRes.count || prev.following,
             followers: followersRes.count || prev.followers,
-            friends: data?.friends_count ?? 0,
+            // audit 2026-08-14: `data` was undeclared in this scope — a
+            // ReferenceError that the surrounding try/catch swallowed, so the
+            // ENTIRE realtime stats refresh silently never ran. Pre-existing
+            // (verified against origin), caught by the no-undef gate while
+            // this file was touched for URL unification.
+            friends: prev.friends,
             posts: postsCountRes.count ?? prev.posts,
           }));
         } catch (e) {

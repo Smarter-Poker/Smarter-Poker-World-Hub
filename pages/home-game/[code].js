@@ -303,7 +303,13 @@ export default function HomeGamePage() {
           .eq('user_id', user.id)
           .maybeSingle();
         if (cancelled) return;
-        setIsMember(['approved', 'active'].includes(memberRow?.status));
+        // audit 2026-08-14: owner exception added — the host frequently has
+        // no commander_home_members row at all (ownership lives on
+        // commander_home_groups.owner_id), so the host viewing their own
+        // private group was shown "Request to Join". 'active' kept for
+        // legacy tolerance though the DB CHECK cannot produce it.
+        const ownerException = group?.host_id && user?.id === group.host_id;
+        setIsMember(ownerException || ['approved', 'active'].includes(memberRow?.status));
       } catch (e) {
         console.warn('[home-game] membership lookup failed:', e?.message || e);
       }
