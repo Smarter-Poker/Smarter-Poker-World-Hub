@@ -564,6 +564,7 @@ async function handler(req, res) {
                       approximate_lng,
                       group:commander_home_groups!inner (
                           id,
+                          club_code,
                           name,
                           city,
                           state,
@@ -605,6 +606,33 @@ async function handler(req, res) {
                   // Optional state filter (applied the same way charity/
                   // tour filters are applied below — but safer to apply
                   // it at push-time here using the joined group's state).
+                  // UNIFICATION (audit 2026-08-14): batch-resolve public slugs so
+                  // the client can build the CANONICAL /hub/home-games/<slug>
+                  // URL. Before this, the payload carried only home_group_id,
+                  // and the panel deep-linked players into the HOST CONSOLE
+                  // (/hub/commander/home-games/<uuid>) — an auth-walled,
+                  // host-only surface — because it had nothing else to use.
+                  const hgGroupIds = Array.from(new Set(
+                      activeHomeGames.map((hg) => String(hg.group?.id)).filter(Boolean)
+                  ));
+                  const slugByGroupId = {};
+                  if (hgGroupIds.length > 0) {
+                      try {
+                          const { data: hgPages } = await getSupabase()
+                              .from('social_pages')
+                              .select('slug, linked_entity_id')
+                              .eq('linked_entity_type', 'home_group')
+                              .eq('is_public', true)
+                              .not('slug', 'is', null)
+                              .in('linked_entity_id', hgGroupIds);
+                          for (const pRow of hgPages || []) {
+                              slugByGroupId[String(pRow.linked_entity_id)] = pRow.slug;
+                          }
+                      } catch (slugErr) {
+                          console.warn('[daily-tournaments] slug resolution (non-fatal):', slugErr?.message);
+                      }
+                  }
+
                   const filteredByState = safeStateParam
                       ? activeHomeGames.filter((hg) =>
                           (hg.group?.state || '').toUpperCase() === safeStateParam.toUpperCase()
@@ -650,7 +678,14 @@ async function handler(req, res) {
                           city:              g.city,
                           logo_url:          g.profile_photo_url || null,
                           is_home_game:      true,                           // extra UI signal
-                          home_group_id:     g.id,                           // for deep-linking to /home-games/{slug}
+                          home_group_id:     g.id,
+                          // Canonical navigation keys (audit 2026-08-14).
+                          // The old comment on home_group_id claimed it was
+                          // "for deep-linking to /home-games/{slug}" — it is a
+                          // UUID and that route does not exist. These two are
+                          // what the shared homeGameUrl() builder consumes.
+                          home_group_slug:   slugByGroupId[String(g.id)] || null,
+                          home_group_club_code: g.club_code || null,
                           rsvp_yes:          hg.rsvp_yes || 0,
                           max_players:       hg.max_players,
                           pokerAtlasUrl:     null,

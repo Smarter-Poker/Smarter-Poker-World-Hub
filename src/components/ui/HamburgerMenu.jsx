@@ -25,6 +25,7 @@ import { useActiveIdentity } from '../../contexts/ActiveIdentityContext';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getAuthUser } from '../../lib/authUtils';
 import { T } from '../sandbox/paTokens';
+import { homeGamePageUrl } from '../../lib/home-games/urls';
 
 const FALLBACK_AVATAR = '/default-avatar.png';
 
@@ -746,7 +747,10 @@ export default function HamburgerMenu({
       avatar_url: p.avatar_url,
       href:
         p.page_type === 'home_game'
-          ? `/hub/home-games/${p.slug || p.id}`
+          // audit 2026-08-14: `p.slug || p.id` pushed a social_pages.id into
+          // the slug-only route — a 404. homeGamePageUrl falls back to
+          // /hub/social-pages/<id>, which SSR-resolves and redirects.
+          ? homeGamePageUrl(p)
           : p.page_type === 'club'
             ? '/hub/commander'
             : `/hub/social-pages/${p.id}`,
@@ -1150,7 +1154,7 @@ export default function HamburgerMenu({
                             switchToClub(page);
                             onClose?.();
                             if (page.page_type === 'home_game') {
-                              router.push(`/hub/home-games/${page.slug || page.id}`);
+                              router.push(homeGamePageUrl(page)); // audit 2026-08-14: was slug||id into the slug route
                             } else if (page.page_type === 'club') {
                               window.location.href = '/hub/commander';
                             } else {
