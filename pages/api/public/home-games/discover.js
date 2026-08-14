@@ -354,7 +354,10 @@ export default async function handler(req, res) {
       .select('id, group_id, title, scheduled_date, start_time, game_type, stakes, rsvp_yes, max_players, status')
       .in('group_id', groupIds)
       .gte('scheduled_date', today)
-      .neq('status', 'cancelled')
+      // UNIFIED 2026-08-14: same 'upcoming' definition as both public group
+      // endpoints — scheduled/confirmed only. The old .neq('cancelled') put
+      // draft and in_progress games in the "Next game" banner.
+      .in('status', ['scheduled', 'confirmed'])
       .order('scheduled_date', { ascending: true })
       .limit(upcomingRowCap);
 

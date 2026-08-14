@@ -1128,8 +1128,10 @@ export async function setStartingBankroll(userId: string, amount: number): Promi
     gross_in: amount,
     gross_out: 0,
     net_result: amount,
+    // CHECK 13 (2026-08-14): is_adjustment is not a column — its presence made
+    // the whole insert 42703 (warn swallowed), so the "Starting bankroll"
+    // audit-trail entry was never written. category 'deposit' already marks it.
     notes: 'Starting bankroll',
-    is_adjustment: true,
   });
   if (err_bankroll_ledger_7o3ix) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_7o3ix.message);
 }

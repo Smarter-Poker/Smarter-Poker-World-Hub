@@ -50,6 +50,7 @@ import { serviceClient } from '../trivia/tournament-lifecycle';
 import { settlePvpMatch } from '../trivia/pvp-settle-match';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 export const config = { maxDuration: 60 };
 
@@ -58,7 +59,7 @@ export const STALE_AFTER_MS = 30 * 60 * 1000;
 /** Cap per run - oldest first, the rest are picked up next tick. */
 export const MAX_MATCHES_PER_RUN = 50;
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     const startedAt = Date.now();
     try {
         if (req.method !== 'GET' && req.method !== 'POST') {
@@ -149,3 +150,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, error: 'internal_error' });
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('pvp-settle', handler);

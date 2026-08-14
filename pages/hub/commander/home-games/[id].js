@@ -233,8 +233,25 @@ export default function HomeGameDetailPage() {
         if (!trnErr && Array.isArray(trnData)) {
           setTournaments(trnData);
         } else if (trnErr) {
-          // Caller may not be group staff — that's fine, just leave it empty.
-          console.warn('[home-games/[id]] tournaments fetch:', trnErr.message);
+          // audit 2026-08-14: rpc_hg_list_tournaments is STAFF-ONLY — it
+          // raises NOT_GROUP_STAFF for every plain member, and this branch
+          // used to "just leave it empty", so ordinary members always saw an
+          // empty tournaments tab on their own group. The member-safe read,
+          // rpc_hg_list_public_tournaments(p_group_id), existed in the
+          // database with ZERO callers — built for exactly this case and
+          // never wired. Fall back to it instead of shrugging.
+          const staffDenied = /NOT_GROUP_STAFF/.test(trnErr.message || '');
+          if (staffDenied) {
+            const { data: pubData, error: pubErr } = await supabase
+              .rpc('rpc_hg_list_public_tournaments', { p_group_id: id });
+            if (!pubErr && Array.isArray(pubData)) {
+              setTournaments(pubData);
+            } else if (pubErr) {
+              console.warn('[home-games/[id]] public tournaments fetch:', pubErr.message);
+            }
+          } else {
+            console.warn('[home-games/[id]] tournaments fetch:', trnErr.message);
+          }
         }
       } catch (trnErr) {
         console.warn('[home-games/[id]] tournaments fetch threw:', trnErr);
@@ -363,7 +380,10 @@ export default function HomeGameDetailPage() {
         throw new Error(serverMsg || `Couldn't join — please try again (${res.status})`);
       }
       if (data.success || data.membership) {
-        if (data.membership?.status === 'pending') {
+        // audit 2026-08-14: read both response shapes, same as [slug].js and
+        // join.js — the proxy relays the upstream body untouched and the
+        // three consumers had three different readers.
+        if ((data.status || data.membership?.status) === 'pending') {
           toast.success('Request sent — waiting for the host to approve you');
         } else {
           toast.success('You joined the group');
@@ -524,7 +544,12 @@ export default function HomeGameDetailPage() {
   // 2026-07-25 audit fix: commander_home_groups rows have owner_id, not
   // host_id — the old comparison made isHost always false for the owner.
   const isHost = group.owner_id === currentUserId;
-  const isMember = !!userMembership;
+  // audit 2026-08-14: was `!!userMembership` — ANY row counted, so pending,
+  // declined and BANNED users unlocked every member-only block on this page.
+  // manage.js, vouch.js and the DB helper all require status === 'approved'.
+  const isMember = userMembership?.status === 'approved';
+  // A row that exists but is not approved still matters for the join button:
+  const isPendingMember = userMembership?.status === 'pending';
 
   return (
     <CommanderPageShell>
@@ -615,7 +640,8 @@ export default function HomeGameDetailPage() {
               </div>
             </div>
 
-            {!isMember && (
+            {/* pending members must not see a second Join button */}
+            {!isMember && !isPendingMember && (
               <button
                 onClick={handleJoin}
                 disabled={joining}

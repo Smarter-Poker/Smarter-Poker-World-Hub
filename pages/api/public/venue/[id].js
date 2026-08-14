@@ -489,6 +489,11 @@ export default async function handler(req, res) {
               .select('*')
               .eq('venue_id', id)
               .eq('is_active', true)
+              // Same visibility contract as every other consumer: without this,
+              // rows retired via data_quality='stale' (venue-scraper/receive.js)
+              // or suppression kept surfacing on the public venue page.
+              .in('data_quality', ['scraped_verified', 'scraped_inferred'])
+              .or('is_suppressed.is.null,is_suppressed.eq.false')
               .order('day_of_week')
               .limit(100);
             if (dtError) console.warn('[venue-detail] Daily tournaments query error (pv path):', dtError.message);

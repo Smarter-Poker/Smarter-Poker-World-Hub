@@ -20,7 +20,10 @@ export default function SavedReceipts({ userId }) {
         try {
             const { data, error } = await supabase
                 .from('bankroll_ledger')
-                .select('id, category, entry_date, net_result, media_urls, location_name, notes')
+                // CHECK 13 (2026-08-14): location_name is not a column — the
+                // select 42703'd and saved receipts NEVER loaded. The venue
+                // name lives on bankroll_locations via the location_id FK.
+                .select('id, category, entry_date, net_result, media_urls, notes, location:bankroll_locations(name)')
                 .eq('user_id', userId)
                 .not('media_urls', 'is', null)
                 .order('entry_date', { ascending: false })
@@ -40,7 +43,7 @@ export default function SavedReceipts({ userId }) {
                             category: entry.category,
                             date: entry.entry_date,
                             netResult: entry.net_result,
-                            location: entry.location_name,
+                            location: entry.location?.name || null,
                             notes: entry.notes,
                         });
                     });

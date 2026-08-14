@@ -1,3 +1,5 @@
+// vdt-filter-exempt: lifecycle writer — reads rows of every quality on purpose
+// (it is the thing that SETS data_quality='stale' when retiring superseded rows).
 /**
  * Venue Scraper — Receive Endpoint
  *

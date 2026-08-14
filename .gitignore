@@ -116,3 +116,23 @@ wh-fixes.tar.gz
 *.tar.gz
 trivia-*.tgz
 tmp/*.tgz
+
+# ── U4/audit probe leftovers (2026-08-12) ───────────────────────────────
+# Throwaway files from verifying the CI gates and lint passes. Each one was
+# used to prove a checker actually trips (inject a fake dead route / phantom
+# table / stranded table, confirm it fails, confirm it goes green again) and
+# then emptied.
+#
+# They are ignored rather than deleted because the agent mount forbids
+# unlink() — they could only be truncated. Ignoring them matters: this repo
+# is worked by several agents and a `git add -A` from any of them would
+# otherwise commit an empty .mjs at the repo root and a probe service into
+# src/services, which the stranded-writer gate scans.
+#
+# Safe to `git rm`/delete by hand at any time.
+.t[0-9a-z].config.mjs
+.tmp2.config.mjs
+.tmp-audit-flat.config.mjs
+src/components/__canary_route_probe.jsx
+src/__u4probe/
+src/services/__U4ProbeService.js
