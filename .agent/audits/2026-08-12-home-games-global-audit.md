@@ -229,6 +229,62 @@ Worked the full finding list (not just the CRITICALs) severity-first.
 
 ---
 
+## 5d. Fourth pass — "make it ONE system" (swarm audit, 2026-08-14)
+
+A five-agent swarm swept navigation, data shapes, membership predicates,
+API/DB contracts, and ran ~30 runtime probes against production. Everything
+it found was fixed the same day across 4 commits (4a465d1a, feee0334,
+1337b1e5 + the settings fix), each verified live post-deploy.
+
+**A regression of MINE, caught by the runtime probe.** The F-18 change put
+SQL-style `--` comments inside a PostgREST `.select()` template literal — a
+column list, not SQL — so `/api/public/home-game/<code>` 404'd for EVERY
+valid club code while the HTML shell kept returning 200. This is the
+strongest argument this audit has produced for runtime probes over static
+review: three layers of static gates passed that change.
+
+**Security closed:** the slug endpoint still served `invite_code` (the
+membership credential) and the host's raw `settings` jsonb publicly —
+discover had been fixed on the 12th, its sibling missed. `_document.js`
+carried a global `index,follow` robots meta outside next/head dedupe that
+duplicated on every page and directly conflicted with the private-group
+noindex. A FOURTH home-game emitter in venues.js (the social-pages merge
+path) inherited the RAW host coordinate when the page was ungeocoded —
+found only by a post-deploy probe after the other three emitters were fixed.
+
+**One URL system:** `src/lib/home-games/urls.js` replaces 13 inline
+re-implementations of the slug→club_code→uuid chain (6 different orderings).
+Five guaranteed-404 sites fixed (UUIDs pushed into the slug-only route from
+my-clubs, HamburgerMenu x2, both profile pages, notifications). All four
+adapters emit `detailUrl`, so VenueMap popups and markers finally agree.
+daily-tournaments now emits slug/club_code and routes players to the PUBLIC
+page instead of the auth-walled host console.
+
+**One membership model:** aligned every surface with the DB
+(pending/approved/declined/banned; staff = owner OR approved+role). Notable:
+[id].js counted ANY membership row as a member (banned users unlocked
+member-only blocks), dashboard.js accepted an illegal role list and never
+checked status (a banned admin passed the host gate), manage.js rendered
+banned/declined as approved via a negation, and the private-group join flow
+was dead because the reduced payload carried nothing redeemable.
+
+**One error contract:** all six seat-race domain errors (SEAT_TAKEN etc.)
+mapped to human sentences instead of HTTP 500 "Something went wrong";
+"upcoming" unified to scheduled/confirmed everywhere; members now get
+tournaments via the previously-orphaned rpc_hg_list_public_tournaments.
+
+**Swarm claims REJECTED after live verification (do not re-fix):**
+fn_home_game_unseated_confirmed exists (snapshot predates phase57);
+cancel_home_game validates auth.uid(); discover's 7-decimal coordinates are
+the jittered point, byte-identical across endpoints — not a leak.
+
+**Final verified state:** code API 200 for real club codes; invite_code and
+settings absent from public payloads; robots meta exactly once; both
+venues.js arrays and discover emit the identical jittered coordinate AND the
+identical detailUrl for the same group; all pages 200 on version 1337b1e5.
+
+---
+
 ## 6. Operational note
 
 Binding rule #10 (`never git add -A`) was violated by another agent twice

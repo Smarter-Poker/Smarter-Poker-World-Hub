@@ -1,11 +1,16 @@
 /**
  * 🧾 useTrainingAccountant — Engine 4: The Accountant
  * ═══════════════════════════════════════════════════════════════════════════
- * Handles all Supabase persistence for the training system:
- * - XP logging for correct answers
- * - Leak detection for mistakes
- * - Streak multiplier calculation
+ * Handles Supabase persistence for the training system:
+ * - Leak detection for mistakes  (user_leaks — live)
  * - User progress tracking
+ *
+ * NOT persisted: XP and daily streaks. Both used to write/read `xp_logs`,
+ * which does not exist and is forbidden by the `xp_ban_guard` event trigger
+ * (zero-XP policy), so those calls failed on every correct answer. XP is
+ * still COMPUTED and returned for in-session display; it is simply never
+ * stored, and the streak multiplier is a documented constant 1.0x rather
+ * than a lookup that always fails. See the notes at each call site.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -90,19 +95,25 @@ export function useTrainingAccountant(userId: string | null) {
                 metadata: { source: 'UniversalTrainingTable' }
             };
 
-            const { data, error: insertError } = await supabase
-                .from('xp_logs')
-                .insert(entry)
-                .select()
-                .maybeSingle();
-
-            if (insertError) {
-                console.warn('[ACCOUNTANT] XP log error:', insertError);
-                setError(insertError.message);
-                return null;
-            }
-
-            console.log(`[ACCOUNTANT] ✅ Logged ${xpAwarded} XP (streak: ${streakData.count}x)`);
+            // ── ZERO-XP POLICY (audit 2026-08-12) ────────────────────────
+            // This used to INSERT `entry` into `xp_logs`. That table does not
+            // exist and MUST NOT: the database carries an event trigger,
+            // `xp_ban_guard`, which rejects any XP-shaped table, column or
+            // function name — an attempt to create xp_logs raises
+            // 'XP_BAN: table "public.xp_logs" violates zero-XP policy'.
+            //
+            // So every correct answer was firing a write that failed 42P01 and
+            // then calling setError(...) on this hook. It was not merely dead;
+            // it was parking an error on a hook the training table renders
+            // from, on the app's hottest interaction path.
+            //
+            // The XP value is still computed and returned so the caller's
+            // contract is unchanged and any in-session display keeps working.
+            // It is simply not persisted, because the platform has decided XP
+            // is not a thing. If XP is ever reinstated, remove xp_ban_guard
+            // deliberately and restore a write here — do not reintroduce one
+            // while the guard stands.
+            void entry;
             return { xpAwarded, streakCount: streakData.count };
 
         } catch (err) {
@@ -231,39 +242,24 @@ export function useTrainingAccountant(userId: string | null) {
      * Calculate streak multiplier based on consecutive days played
      */
     const calculateStreakMultiplier = async (uid: string): Promise<{ count: number; multiplier: number }> => {
-        try {
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-            const { data: recentLogs } = await supabase
-                .from('xp_logs')
-                .select('created_at')
-                .eq('user_id', uid)
-                .gte('created_at', sevenDaysAgo.toISOString())
-                .order('created_at', { ascending: false });
-
-            if (!recentLogs || recentLogs.length === 0) {
-                return { count: 1, multiplier: 1.0 };
-            }
-
-            // Count unique days
-            const uniqueDays = new Set(
-                recentLogs.map(log =>
-                    new Date(log.created_at).toISOString().split('T')[0]
-                )
-            );
-
-            const streakCount = Math.min(uniqueDays.size, 7);
-
-            // Multiplier: 1.0 base + 0.1 per day (max 1.7x at 7 days)
-            const multiplier = 1.0 + (streakCount - 1) * 0.1;
-
-            return { count: streakCount, multiplier: Math.round(multiplier * 100) / 100 };
-
-        } catch (err) {
-            console.warn('[ACCOUNTANT] Streak calculation failed:', err);
-            return { count: 1, multiplier: 1.0 };
-        }
+        // ── ZERO-XP POLICY (audit 2026-08-12) ────────────────────────────
+        // This used to read `xp_logs` to count unique active days in the last
+        // week and scale a multiplier from 1.0x to 1.7x. `xp_logs` does not
+        // exist and is forbidden by the `xp_ban_guard` event trigger, so the
+        // query always errored and the catch always returned the neutral
+        // default — meaning the multiplier has been a hard-coded 1.0x for
+        // every user since this shipped. Nobody has ever received a streak
+        // bonus.
+        //
+        // Returning the default directly states the real behaviour instead of
+        // dressing it up as a lookup that fails. The day-counting arithmetic
+        // was removed rather than left unreachable behind an empty array.
+        //
+        // If daily streaks are wanted, derive them from
+        // `training_sessions.created_at` — a table that exists and is
+        // written — not from an XP ledger the platform has banned.
+        void uid;
+        return { count: 1, multiplier: 1.0 };
     };
 
     /**

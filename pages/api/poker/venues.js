@@ -22,6 +22,7 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // a home group's lat/lng is a person's home address and must never be
 // emitted raw from this (public, unauthenticated) endpoint.
 import { jitterCoord, publicDistanceToGroup } from '../../../src/lib/home-games/geoPrivacy';
+import { homeGameUrl } from '../../../src/lib/home-games/urls';
 
 let _supabase = null;
 function getSupabase() {
@@ -289,6 +290,7 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
         .from('commander_home_groups')
         .select(`
             id,
+        club_code,
             name,
             description,
             tagline,
@@ -483,6 +485,14 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
             description: g.description,
             tagline: g.tagline,
             venue_type: 'home_game',                 // Discriminator for frontend
+            // UNIFICATION (audit 2026-08-14): the canonical destination for
+            // this group, from the ONE shared URL builder. VenueMap's popup
+            // reads venue.detailUrl; before this, no home-game adapter set it,
+            // so the popup fell through to /hub/venues/<uuid> while the
+            // marker's onVenueClick used slug/club_code — the same pin
+            // navigated to two different pages.
+            detailUrl: homeGameUrl(g),
+            club_code: g.club_code || null,
             city: g.city,
             state: g.state,
             // Jittered ~0.3mi. Stable per-group. Do NOT replace with g.latitude.
@@ -1566,10 +1576,18 @@ export default async function handler(req, res) {
                                           hostDisplayName = sp.name;
                                           hostAvatarUrl = sp.avatar_url;
 
-                                          // Inherit coordinates from commander_home_groups if missing from social_pages geocoding
+                                          // Inherit coordinates from commander_home_groups if missing
+                                          // from social_pages geocoding.
+                                          //
+                                          // PRIVACY (audit 2026-08-14): this is a FOURTH home-game
+                                          // emitter in this file, found only after the other three were
+                                          // fixed — it inherited the RAW host coordinate, quietly
+                                          // undoing the C-1 work for any home game whose social page
+                                          // was never geocoded. Same shared jitter as everywhere else.
                                           if (!primaryLat && !primaryLng && hg.latitude && hg.longitude) {
-                                              primaryLat = hg.latitude;
-                                              primaryLng = hg.longitude;
+                                              const _hgPriv = jitterCoord(hg.id, hg.latitude, hg.longitude);
+                                              primaryLat = _hgPriv.lat;
+                                              primaryLng = _hgPriv.lng;
                                           }
                                       }
                                   }
@@ -1577,6 +1595,16 @@ export default async function handler(req, res) {
                                   mappedPages.push({
                                       id: `sp-${sp.id}`,
                                       slug: sp.slug,
+                                      // UNIFICATION (audit 2026-08-14): canonical destination from
+                                      // the ONE shared builder. Deliberately built from the page
+                                      // slug + page id (homeGamePageUrl semantics) because this
+                                      // row's id is the synthetic sp-<uuid>, which must never fall
+                                      // into the /hub/venues/<group-uuid> tier.
+                                      detailUrl: sp.page_type === 'home_game'
+                                          ? (sp.slug
+                                              ? `/hub/home-games/${encodeURIComponent(sp.slug)}`
+                                              : `/hub/social-pages/${encodeURIComponent(sp.id)}`)
+                                          : undefined,
                                       name: toTitleCase(sp.name),
                                       city: sp.location_city,
                                       state: sp.location_state,
