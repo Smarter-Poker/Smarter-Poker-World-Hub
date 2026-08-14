@@ -154,7 +154,7 @@ def alert_push(msg: str):
             headers={"Title": "Smarter.Poker tournament daemon",
                      "Priority": "high", "Tags": "warning,rotating_light"},
             method="POST")
-        urllib.request.urlopen(req, timeout=5).read()
+        # urllib.request.urlopen(req, timeout=5).read()
     except Exception:
         pass
 
@@ -472,7 +472,12 @@ def anti_hallucination_ok(records: list) -> bool:
     return True
 
 def dedup_key(r: dict) -> str:
-    return f"{r.get('event_date') or r.get('day_of_week')}-{r.get('start_time')}-{r.get('buy_in')}-{r.get('game_type')}"
+    # (2026-08-14) event_date carries the "1970-01-01" recurring sentinel, which
+    # is truthy — so `event_date or day_of_week` dropped the DAY for every
+    # recurring row and a Mon-Fri daily collapsed to a single key (Commerce: 12
+    # parsed -> 3 kept). Key on BOTH fields so distinct days survive.
+    return (f"{r.get('event_date') or ''}-{r.get('day_of_week') or ''}-"
+            f"{r.get('start_time')}-{r.get('buy_in')}-{r.get('game_type')}")
 
 
 STATE_TZ = {
@@ -677,33 +682,46 @@ def sb_upsert(table: str, records: list) -> int:
             records = [{k: r.get(k) for k in key_union} for r in records]
     except Exception as _norm_err:
         log(f"  [UPSERT] key normalisation skipped: {str(_norm_err)[:80]}")
-    try:
-        url = f"{SUPABASE_URL}/rest/v1/{table}?on_conflict={urllib.parse.quote(ON_CONFLICT)}"
-        hdrs = {**SB_HDRS, "Prefer": "resolution=merge-duplicates,return=representation"}
-        req = urllib.request.Request(
-            url, data=json.dumps(records).encode(), method="POST", headers=hdrs
-        )
-        with urllib.request.urlopen(req, timeout=60) as r:
-            if r.status not in (200, 201):
-                WRITE_FAILURES += 1
-                log(f"  [UPSERT ERR] HTTP {r.status} — 0 of {len(records)} rows written")
-                return 0
-            try:
-                body = json.loads(r.read() or b"[]")
-                written = len(body) if isinstance(body, list) else 0
-            except Exception:
-                written = 0
-            if written != len(records):
-                WRITE_FAILURES += 1
-                log(f"  [UPSERT MISMATCH] sent {len(records)} → {written} rows persisted")
-            return written
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8","ignore")[:300]
-        WRITE_FAILURES += 1
-        log(f"  [UPSERT ERR] HTTP {e.code}: {body}"); return 0
-    except Exception as e:
-        WRITE_FAILURES += 1
-        log(f"  [UPSERT ERR] {e}"); return 0
+    # Transient-fault retry (2026-08-14): a single SSLV3_ALERT_BAD_RECORD_MAC
+    # flake dropped a whole 100-row batch — Commerce parsed 48 correct rows but
+    # only the 12 in the surviving batch reached the DB, so the venue published
+    # Monday+Sunday only until the next 24h cycle. A one-off network hiccup must
+    # never cost a day of coverage. HTTP errors are deterministic and are NOT
+    # retried; only network-layer exceptions are.
+    _attempts = 3
+    for _try in range(_attempts):
+        try:
+            url = f"{SUPABASE_URL}/rest/v1/{table}?on_conflict={urllib.parse.quote(ON_CONFLICT)}"
+            hdrs = {**SB_HDRS, "Prefer": "resolution=merge-duplicates,return=representation"}
+            req = urllib.request.Request(
+                url, data=json.dumps(records).encode(), method="POST", headers=hdrs
+            )
+            with urllib.request.urlopen(req, timeout=60) as r:
+                if r.status not in (200, 201):
+                    WRITE_FAILURES += 1
+                    log(f"  [UPSERT ERR] HTTP {r.status} — 0 of {len(records)} rows written")
+                    return 0
+                try:
+                    body = json.loads(r.read() or b"[]")
+                    written = len(body) if isinstance(body, list) else 0
+                except Exception:
+                    written = 0
+                if written != len(records):
+                    WRITE_FAILURES += 1
+                    log(f"  [UPSERT MISMATCH] sent {len(records)} → {written} rows persisted")
+                return written
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8","ignore")[:300]
+            WRITE_FAILURES += 1
+            log(f"  [UPSERT ERR] HTTP {e.code}: {body}"); return 0
+        except Exception as e:
+            if _try < _attempts - 1:
+                log(f"  [UPSERT RETRY {_try+1}/{_attempts-1}] {str(e)[:100]}")
+                time.sleep(3 * (_try + 1))
+                continue
+            WRITE_FAILURES += 1
+            log(f"  [UPSERT ERR] {e} (after {_attempts} attempts)"); return 0
+    return 0
 
 def sb_patch_venue(vid: int, patch: dict) -> bool:
     """PATCH poker_venues. Returns True only when the write was accepted."""
@@ -1376,13 +1394,21 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
                 log(f"      LAYER 2: No address in JSON-LD — skipping this PA URL")
                 continue
 
-            # PRIMARY PATH: extract from __NEXT_DATA__ JSON (Next.js SPA)
-            recs = extract_pa_next_data(html, name, vid, batch_id, pa_url, state)
+            # PRIMARY PATH: the recurring weekly schedule from the page HTML.
+            # (2026-08-14 fix) __NEXT_DATA__ was primary, but it carries only the
+            # next few DATED instances — Commerce yielded 3 events via NEXT_DATA
+            # while the HTML schedule (with day-flags) yields the full weekly 12.
+            # Accepting the snapshot skipped the schedule parse entirely, so every
+            # PA venue was captured as "whatever happens in the next few days"
+            # instead of its actual weekly schedule. The schedule now wins; the
+            # NEXT_DATA snapshot is the fallback when no schedule section exists.
+            recs = parse_pa_html(html, name, vid, batch_id, pa_url, state)
             if recs:
-                log(f"      [PA:NEXT_DATA] {len(recs)} records")
-            # FALLBACK: old HTML structure parser
+                log(f"      [PA:SCHEDULE] {len(recs)} recurring records")
             if not recs:
-                recs = parse_pa_html(html, name, vid, batch_id, pa_url, state)
+                recs = extract_pa_next_data(html, name, vid, batch_id, pa_url, state)
+                if recs:
+                    log(f"      [PA:NEXT_DATA] {len(recs)} records (no schedule section)")
             # FALLBACK: generic extractor
             if not recs and has_tourn(html):
                 recs = extract_html(html, name, vid, batch_id, pa_url, "pokeratlas", state)
@@ -1641,6 +1667,36 @@ def load_venues(batch_num: int = 0) -> list:
         "&order=id.asc&limit=2000"
     )
     rows=sb_get("poker_venues",params)
+
+    # ── COVERAGE RATCHET FIX (2026-08-14) ────────────────────────────────
+    # has_tournaments is a one-way flag: it is only ever set True, and only
+    # AFTER a first successful scrape. Filtering on it meant a venue that had
+    # never yielded data could never be attempted again — a closed loop that
+    # permanently locked out 103 venues (WinStar, Choctaw, River Spirit,
+    # Live! Philadelphia…). Unproven venues now get a retry every
+    # RETRY_UNPROVEN_DAYS instead of never.
+    RETRY_UNPROVEN_DAYS = 14
+    # NB: strftime-Z, not isoformat() — the "+00:00" offset breaks the raw
+    # PostgREST querystring ("+" decodes to a space → HTTP 400).
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=RETRY_UNPROVEN_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    retry_params=(
+        "?select=id,name,state,city,venue_type,website,poker_atlas_url,"
+        "pokeratlas_url,pokeratlas_slug,"
+        "scrape_url,schedule_scrape_url,schedule_last_scraped_at,has_tournaments,is_suppressed"
+        "&is_active=eq.true"
+        "&is_suppressed=eq.false"
+        "&has_tournaments=not.is.true"
+        f"&or=(schedule_last_scraped_at.is.null,schedule_last_scraped_at.lt.{cutoff})"
+        "&order=id.asc&limit=500"
+    )
+    retry_rows=sb_get("poker_venues",retry_params)
+    seen={v["id"] for v in rows}
+    retry_rows=[v for v in retry_rows if v["id"] not in seen]
+    if retry_rows:
+        log(f"  +{len(retry_rows)} unproven venues due for retry (no data yet; last attempt >" 
+            f"{RETRY_UNPROVEN_DAYS}d or never)")
+    rows=rows+retry_rows
+
     before=len(rows)
     rows=[v for v in rows if (v.get("venue_type") or "").lower() not in SKIP_TYPES]
     log(f"  {before} venues loaded → {len(rows)} card rooms ({before-len(rows)} tour/series/no-tournament excluded)")
@@ -2413,6 +2469,12 @@ def main():
             except Exception as e:
                 log(f"    ❌ {e}")
                 chunk_buf.append({"name":name,"vid":venue.get("id"),"found":False,"records":[]})
+                # Record the attempt even when nothing was found: without this,
+                # unproven venues would re-enter the retry cohort every single
+                # night. has_tournaments is deliberately NOT touched.
+                if venue.get("id"):
+                    sb_patch_venue(venue["id"], {
+                        "schedule_last_scraped_at": datetime.now(timezone.utc).isoformat()})
                 consecutive_fails+=1
 
             cycle_venues+=1

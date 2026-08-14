@@ -44,6 +44,7 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, rm, readFile, writeFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 // Use require() for ffmpeg/ffprobe via the parent packages — webpack marks them
 // external via serverExternalPackages so no static module resolution is attempted.
 // At runtime on Vercel (linux-x64) the parent packages return the linux-x64 binary
@@ -228,7 +229,7 @@ async function validateVideoSource(file) {
     };
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     const auth = (req.headers.authorization || '').replace('Bearer ', '');
     if (!process.env.CRON_SECRET || auth !== process.env.CRON_SECRET) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -622,3 +623,8 @@ export default async function handler(req, res) {
         try { await rm(work, { recursive: true, force: true }); } catch (_) {}
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('transcode-videos', handler);

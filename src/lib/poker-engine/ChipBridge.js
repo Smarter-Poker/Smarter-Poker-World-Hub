@@ -82,16 +82,48 @@ async function lockChips(clubId, userId, tableId, amount) {
       lockedAt: Date.now(),
     });
 
+    // ── SCHEMA REALITY (CHECK 13, 2026-08-14) ────────────────────────────
+    // This code was written against a chip_escrow_holds design that never
+    // shipped. The LIVE table has: wallet_id (NOT NULL, FK wallets.id),
+    // user_id, club_id, hold_type CHECK(tournament_register|cashout_pending|
+    // inter_club_transfer|bomb_pot_ante|rebuy_pending|other), related_id,
+    // amount, status CHECK(held|released|captured|expired), expires_at
+    // (NOT NULL), released_at, released_reason.
+    //
+    // The old writes used player_id / table_id / status 'locked' /
+    // unlocked_at — every one absent or illegal — so the "cold-start
+    // recovery" escrow record has NEVER written a single row (0 rows in
+    // production), and every read against it was a 42703 the resilience
+    // wrapper dutifully retried and swallowed. Mapping used from here on:
+    //   player_id  -> user_id
+    //   table_id   -> related_id   (hold_type 'other' marks table-seat holds)
+    //   'locked'   -> 'held'       'unlocked' -> 'released' (+released_at/_reason)
+    //   wallet_id  -> resolved from wallets by user_id
+    //   expires_at -> now + 24h    (table-seat locks are hours, not days)
     // Track in chip_escrow for cold-start recovery (non-blocking, Phase 48f: resilient)
-    resilientMutation(sb, () => sb.from('chip_escrow_holds').insert({
-      club_id: clubId,
-      player_id: userId,
-      table_id: tableId,
-      amount: amount,
-      status: 'locked',
-    })).then(({ error }) => {
-      if (error) console.warn('[ChipBridge] Escrow insert warning:', error.message);
-    }).catch(console.warn);
+    (async () => {
+      try {
+        const { data: wallet } = await resilientQuery(sb, () => sb
+          .from('wallets').select('id').eq('user_id', userId).limit(1).maybeSingle());
+        if (!wallet?.id) {
+          console.warn('[ChipBridge] Escrow insert skipped: no wallet row for user', userId);
+          return;
+        }
+        const { error } = await resilientMutation(sb, () => sb.from('chip_escrow_holds').insert({
+          wallet_id: wallet.id,
+          user_id: userId,
+          club_id: clubId,
+          hold_type: 'other',
+          related_id: tableId,
+          amount: amount,
+          status: 'held',
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        }));
+        if (error) console.warn('[ChipBridge] Escrow insert warning:', error.message);
+      } catch (err) {
+        console.warn('[ChipBridge] Escrow insert threw:', err?.message || err);
+      }
+    })();
 
     return {
       success: true,
@@ -142,11 +174,16 @@ async function unlockChips(clubId, userId, tableId, cashoutAmount) {
     _activeLocks.delete(key);
 
     // Clear chip_escrow record (non-blocking, Phase 48f: resilient)
+    // Real schema (see the mapping note in lockChips): held -> released.
     resilientMutation(sb, () => sb.from('chip_escrow_holds')
-      .update({ status: 'unlocked', unlocked_at: new Date().toISOString() })
-      .eq('player_id', userId)
-      .eq('table_id', tableId)
-      .eq('status', 'locked')
+      .update({
+        status: 'released',
+        released_at: new Date().toISOString(),
+        released_reason: 'table_unlock',
+      })
+      .eq('user_id', userId)
+      .eq('related_id', tableId)
+      .eq('status', 'held')
     ).then(({ error }) => {
       if (error) console.warn('[ChipBridge] Escrow update warning:', error.message);
     });
@@ -324,12 +361,15 @@ async function checkLockExists(tableId, userId) {
   try {
     const sb = getSupabase();
     // Phase 48f: resilient query
+    // Real schema (see the mapping note in lockChips). The old query used
+    // table_id/player_id/'locked' — the cold-start source of truth 42703'd
+    // on every call and the catch answered "assume lock exists".
     const { data } = await resilientQuery(sb, () => sb
       .from('chip_escrow_holds')
       .select('id')
-      .eq('table_id', tableId)
-      .eq('player_id', userId)
-      .eq('status', 'locked')
+      .eq('related_id', tableId)
+      .eq('user_id', userId)
+      .eq('status', 'held')
       .limit(1)
       .maybeSingle()
     );

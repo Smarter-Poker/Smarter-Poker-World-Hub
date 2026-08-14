@@ -772,7 +772,9 @@ export default function ManageHomeGamePage() {
   const totalHeld = pendingEscrow.reduce((sum, t) => sum + (t.amount || 0), 0);
 
   const pendingMembers = members.filter(m => m.status === 'pending');
-  const approvedMembers = members.filter(m => m.status !== 'pending');
+  // audit 2026-08-14: was `status !== 'pending'`, a negation that put BANNED
+  // and DECLINED members in the approved list with full member rendering.
+  const approvedMembers = members.filter(m => m.status === 'approved');
 
   if (loading) {
     return (

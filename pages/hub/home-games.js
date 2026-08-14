@@ -19,6 +19,7 @@ const VenueCard = dynamic(() => import('../../src/components/poker-near-me/Venue
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap'), { ssr: false });
 import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
 import HostHomeGameButton from '../../src/components/poker-near-me/HostHomeGameButton';
+import { homeGameUrl } from '../../src/lib/home-games/urls';
 
 const PAGE_SIZE = 12;
 
@@ -609,6 +610,19 @@ export default function HomeGamesPage() {
                         : [],
                     schedule: [g.frequency, g.typical_day].filter(Boolean).join(' · ') || null,
                     trust_score: null,
+                    // UNIFICATION (audit 2026-08-14):
+                    // - detailUrl: canonical destination from the shared
+                    //   builder — VenueMap's popup reads it; without it the
+                    //   popup went to /hub/venues/<uuid> while the marker
+                    //   handler used slug/club_code.
+                    // - distance_mi: alias — VenueCard reads distance_mi,
+                    //   this adapter only emitted distance_miles.
+                    // - has_tournaments: MapTabPanel's tournaments chip
+                    //   filters on it; omitting it dropped every row here
+                    //   from that chip.
+                    detailUrl: homeGameUrl(g),
+                    distance_mi: g.distance_miles ?? null,
+                    has_tournaments: !!g.next_game_date,
                 }));
                 setAllHomeGames(adapted);
                 setVenues(adapted);
