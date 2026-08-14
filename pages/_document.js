@@ -26,8 +26,22 @@ export default class MyDocument extends Document {
 
                     {/* GLOBAL VIEWPORT MOVED TO _app.js per Next.js requirements */}
 
-                    {/* ═══ GLOBAL SEO DEFAULTS ═══ */}
-                    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+                    {/* ═══ GLOBAL SEO DEFAULTS ═══
+
+                        The global <meta name="robots"> that used to live here is
+                        GONE, deliberately (audit 2026-08-14). _document renders
+                        outside next/head's dedupe, so every page carried TWO
+                        robots tags: this one plus SEOHead's. A runtime probe
+                        found duplicated `index, follow` on public pages — and,
+                        far worse, on PRIVATE home-game pages this tag sat in
+                        direct conflict with SEOHead's `noindex`, re-inviting
+                        crawlers to the exact pages the noindex work (audit C-3)
+                        exists to hide.
+
+                        Removing it is semantically free: no robots meta at all
+                        means index,follow — the default. SEOHead remains the
+                        single owner of robots directives. Do not re-add one
+                        here. */}
                     <meta name="author" content="Smarter.Poker" />
                     <meta name="publisher" content="Smarter Software Inc." />
 
