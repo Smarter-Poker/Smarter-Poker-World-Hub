@@ -352,12 +352,12 @@ async function handler(req, res) {
     // indistinguishable from "no tournaments anywhere": the loops destructured
     // only `{ data }`, so an error produced `undefined`, the loop broke, and the
     // response still said success:true / total:0.
-    const sourceDegraded = { venues: false, daily: false, series: false, tour: false };
+    const sourceDegraded = { venues: false, daily: false, series: false, tour: false, home: false };
     try {
       // [EC4 FIX] Was .limit(2000) — Supabase project cap is 1000 rows/query.
       // Paginate across up to 3 pages (3,000 venues) to handle full venue table.
       let venueQ = sb.from('poker_venues')
-        .select('id, name, city, state, latitude, longitude, logo_url')
+        .select('id, name, city, state, latitude, longitude, logo_url, venue_type')
         .eq('is_active', true);
       if (safeState) venueQ = venueQ.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
       if (safeCity)  venueQ = venueQ.ilike('city', `%${safeCity}%`);
@@ -528,6 +528,11 @@ async function handler(req, res) {
                 latitude: venueInfo?.latitude ? parseFloat(venueInfo.latitude) : null,
                 longitude: venueInfo?.longitude ? parseFloat(venueInfo.longitude) : null,
                 logo_url: venueInfo?.logo_url || null,
+                // Charity events are stored in venue_daily_tournaments alongside
+                // casino dailies (the charity scrapers write here; the separate
+                // charity_events_schedule table is empty and write-orphaned).
+                // Tag them so the UI can filter/badge without a second source.
+                is_charity: (venueInfo?.venue_type || '').toLowerCase().includes('charity'),
                 // PROVENANCE: surface scrape freshness so the calendar can flag rows
                 // that have not been re-verified recently, mirroring live-tables.js.
                 // Unknown timestamp is treated as stale (do not imply freshness we lack).
@@ -551,7 +556,7 @@ async function handler(req, res) {
     if (eventType === 'all' || eventType === 'series') {
       try {
         let sq = sb.from('poker_series')
-          .select('id, series_name, venue_name, venue_id, city, state, start_date, end_date, buy_in_min, buy_in_max, main_event_buyin, total_guaranteed, main_event_guaranteed, tour_code, series_type, events_count, is_featured, short_name, logo_url')
+          .select('id, series_name, venue_name, venue_id, city, state, start_date, end_date, buy_in_min, buy_in_max, main_event_buyin, total_guaranteed, main_event_guaranteed, tour_code, series_type, events_count, is_featured, short_name, logo_url, scrape_timestamp')
           .not('start_date', 'is', null)
           // [EC-API-BUG-1 FIX] .eq('is_suppressed', false) silently excluded rows where
           // is_suppressed = NULL (field never set). Use .or() to match both NULL and false,
@@ -638,6 +643,12 @@ async function handler(req, res) {
                 latitude: venueInfo?.latitude ? parseFloat(venueInfo.latitude) : null,
                 longitude: venueInfo?.longitude ? parseFloat(venueInfo.longitude) : null,
                 logo_url: s.logo_url || null,
+                // Freshness contract (same pattern as daily tournaments):
+                // series data with no recent re-verification is flagged, not hidden.
+                last_verified: s.scrape_timestamp || null,
+                is_stale: s.scrape_timestamp
+                  ? (Date.now() - new Date(s.scrape_timestamp).getTime()) > 14 * 24 * 60 * 60 * 1000
+                  : true,
               });
             }
           }
@@ -654,7 +665,7 @@ async function handler(req, res) {
     if (eventType === 'all' || eventType === 'tour') {
       try {
         let tq = sb.from('tour_stop_events')
-          .select('id, tour_code, stop_name, stop_venue, stop_city, stop_state, event_name, start_date, start_time, buy_in, game_type, guarantee, is_main_event, is_high_roller');
+          .select('id, tour_code, stop_name, stop_venue, stop_city, stop_state, event_name, start_date, start_time, buy_in, game_type, guarantee, is_main_event, is_high_roller, scrape_timestamp');
 
         // [EC8 FIX] Removed .eq('is_active', true) — tour_stop_events doesn't have an is_active column
         // This was throwing an uncaught DB error and silently preventing any tour events from loading.
@@ -722,6 +733,10 @@ async function handler(req, res) {
               is_main_event: t.is_main_event || false,
               is_high_roller: t.is_high_roller || false,
               distance_mi: distanceMi,
+              last_verified: t.scrape_timestamp || null,
+              is_stale: t.scrape_timestamp
+                ? (Date.now() - new Date(t.scrape_timestamp).getTime()) > 14 * 24 * 60 * 60 * 1000
+                : true,
             });
           }
         }
@@ -733,7 +748,91 @@ async function handler(req, res) {
     // ──────────────────────────────────────────────────────────────
     // MERGE + DEDUP + SORT
     // ──────────────────────────────────────────────────────────────
-    let allEvents = [...dailyEvents, ...seriesEvents, ...tourEvents];
+    // ──────────────────────────────────────────────────────────────
+    // SOURCE 4: Home Games (public tournament-format games)
+    // Same visibility contract as daily-tournaments.js Phase 20: public,
+    // active groups only; 45-day activity cutoff; approximate coords only —
+    // never a host's real address.
+    // ──────────────────────────────────────────────────────────────
+    let homeEvents = [];
+    if (eventType === 'all' || eventType === 'home_game') {
+      try {
+        const HG_INACTIVITY_MS = 45 * 24 * 60 * 60 * 1000;
+        const { data: hgRows, error: hgErr } = await sb
+          .from('commander_home_games')
+          .select(`id, title, game_type, stakes, buyin_min, buyin_max, scheduled_date, start_time,
+                   max_players, rsvp_yes, status, format, neighborhood, approximate_lat, approximate_lng,
+                   group:commander_home_groups!inner ( id, club_code, name, city, state,
+                     profile_photo_url, is_private, is_active, last_activity_at, created_at,
+                     visibility_override_until )`)
+          .eq('format', 'tournament')
+          .in('status', ['scheduled', 'in_progress'])
+          .gte('scheduled_date', rangeStartKey)
+          .lte('scheduled_date', rangeEndKey)
+          .eq('group.is_private', false)
+          .eq('group.is_active', true)
+          .limit(500);
+        if (hgErr) {
+          sourceDegraded.home = true;
+          console.warn('[events-calendar] home games failed:', hgErr.message);
+        } else {
+          const nowMs = Date.now();
+          for (const hg of hgRows || []) {
+            const g = hg.group;
+            if (!g || g.is_private || !g.is_active) continue;
+            const lastActive = Math.max(
+              g.last_activity_at ? Date.parse(g.last_activity_at) : 0,
+              g.created_at ? Date.parse(g.created_at) : 0);
+            const overrideMs = g.visibility_override_until ? Date.parse(g.visibility_override_until) : 0;
+            if (nowMs - lastActive > HG_INACTIVITY_MS && overrideMs < nowMs) continue;
+
+            if (safeState && (g.state || '').toUpperCase() !== safeState.toUpperCase()) continue;
+            if (safeCity && !(g.city || '').toLowerCase().includes(safeCity.toLowerCase())) continue;
+
+            let distanceMi = null;
+            const hLat = hg.approximate_lat, hLng = hg.approximate_lng;
+            if (hasGps && hLat != null && hLng != null) {
+              distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(hLat), parseFloat(hLng)) * 10) / 10;
+              if (distanceMi > maxRadius) continue;
+            } else if (hasExplicitRadius && (hLat == null || hLng == null)) {
+              continue;
+            }
+            if (minBuyin && !(hg.buyin_min >= parseInt(minBuyin))) continue;
+            if (maxBuyin && hg.buyin_min != null && hg.buyin_min > parseInt(maxBuyin)) continue;
+
+            homeEvents.push({
+              source: 'home_game',
+              event_date: hg.scheduled_date,
+              event_name: hg.title || 'Home Game Tournament',
+              venue_name: g.name || 'Private Home Game',
+              venue_id: null,
+              home_game_id: hg.id,
+              club_code: g.club_code || null,
+              city: g.city || null,
+              state: g.state || null,
+              neighborhood: hg.neighborhood || null,
+              buy_in: hg.buyin_min || null,
+              buy_in_display: hg.buyin_min ? formatMoney(hg.buyin_min) : null,
+              buy_in_range: hg.buyin_min && hg.buyin_max && hg.buyin_max !== hg.buyin_min
+                ? `${formatMoney(hg.buyin_min)} - ${formatMoney(hg.buyin_max)}` : null,
+              game_type: normalizeGameType(hg.game_type),
+              start_time: hg.start_time || null,
+              max_players: hg.max_players || null,
+              rsvp_yes: hg.rsvp_yes || 0,
+              distance_mi: distanceMi,
+              latitude: hLat != null ? parseFloat(hLat) : null,
+              longitude: hLng != null ? parseFloat(hLng) : null,
+              logo_url: g.profile_photo_url || null,
+            });
+          }
+        }
+      } catch (e) {
+        sourceDegraded.home = true;
+        console.warn('[events-calendar] Home games error:', e.message);
+      }
+    }
+
+    let allEvents = [...dailyEvents, ...seriesEvents, ...tourEvents, ...homeEvents];
 
     // [EC-DAY FIX] The documented ?day= filter was parsed but never applied —
     // callers asking for Monday got every weekday back. Filter the projected
