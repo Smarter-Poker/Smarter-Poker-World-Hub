@@ -49,7 +49,17 @@ export default async function handler(req, res) {
         });
       }
 
-      // Fetch home game group by club_code
+      // Fetch home game group by club_code.
+      //
+      // audit F-18: cover_photo_url / profile_photo_url / tagline are selected
+      // because pages/home-game/[code].js renders them (incl. as og:image).
+      //
+      // REGRESSION NOTE (2026-08-14): the F-18 change originally annotated the
+      // select with SQL-style `--` comments INSIDE this template literal. A
+      // PostgREST select is a comma-separated column list, not SQL — the
+      // comment lines were sent as columns, every query errored, and this
+      // endpoint 404'd for EVERY valid club code until a runtime probe caught
+      // it. Never put comments inside a .select() string.
       const { data: group, error: groupError } = await getSupabase()
         .from('commander_home_groups')
         .select(`
@@ -57,10 +67,6 @@ export default async function handler(req, res) {
           name,
           description,
           club_code,
-          -- audit F-18: pages/home-game/[code].js renders cover_photo_url,
-          -- profile_photo_url and tagline (including as the og:image), but
-          -- they were never selected or returned, so the page rendered with
-          -- no cover, no avatar and no social preview image.
           cover_photo_url,
           profile_photo_url,
           tagline,
@@ -211,6 +217,11 @@ export default async function handler(req, res) {
             member_count: group.member_count,
             games_hosted: group.games_hosted,
             host: group.owner?.display_name || 'Host',
+            // host_id enables the owner exception client-side: without it a
+            // host viewing their own private group by code was shown
+            // "Request to Join" (they often have no member row). The owner's
+            // user id is already public on the slug endpoint as host.id.
+            host_id: group.owner?.id || null,
             host_avatar: group.owner?.avatar_url
           },
           upcoming_games: upcomingGames || [],
