@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import { getInitialsColor, US_STATE_TIMEZONES } from './pnm-utils';
+import { homeGameUrl } from '../../lib/home-games/urls';
 
 // ─── Game type normalization ───
 function formatGameType(raw) {
@@ -367,7 +368,17 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       const idStr = String(rawVenueId);
 
       if (idStr.startsWith('home_game_')) {
-          if (t.home_group_id) window.location.href = `/hub/commander/home-games/${encodeURIComponent(t.home_group_id)}`;
+          // audit 2026-08-14: this used to deep-link into the HOST CONSOLE
+          // (/hub/commander/home-games/<uuid>) — an auth-walled, host-only
+          // surface. A public browser tapping a home-game tournament hit a
+          // login wall instead of the public page. The API now emits
+          // home_group_slug/club_code; the shared builder picks the
+          // canonical public destination.
+          window.location.href = homeGameUrl({
+              slug: t.home_group_slug,
+              club_code: t.home_group_club_code,
+              id: t.home_group_id,
+          });
           return;
       }
       if (idStr.startsWith('charity_') || idStr.startsWith('tour_event_')) {
