@@ -1641,6 +1641,36 @@ def load_venues(batch_num: int = 0) -> list:
         "&order=id.asc&limit=2000"
     )
     rows=sb_get("poker_venues",params)
+
+    # ── COVERAGE RATCHET FIX (2026-08-14) ────────────────────────────────
+    # has_tournaments is a one-way flag: it is only ever set True, and only
+    # AFTER a first successful scrape. Filtering on it meant a venue that had
+    # never yielded data could never be attempted again — a closed loop that
+    # permanently locked out 103 venues (WinStar, Choctaw, River Spirit,
+    # Live! Philadelphia…). Unproven venues now get a retry every
+    # RETRY_UNPROVEN_DAYS instead of never.
+    RETRY_UNPROVEN_DAYS = 14
+    # NB: strftime-Z, not isoformat() — the "+00:00" offset breaks the raw
+    # PostgREST querystring ("+" decodes to a space → HTTP 400).
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=RETRY_UNPROVEN_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    retry_params=(
+        "?select=id,name,state,city,venue_type,website,poker_atlas_url,"
+        "pokeratlas_url,pokeratlas_slug,"
+        "scrape_url,schedule_scrape_url,schedule_last_scraped_at,has_tournaments,is_suppressed"
+        "&is_active=eq.true"
+        "&is_suppressed=eq.false"
+        "&has_tournaments=not.is.true"
+        f"&or=(schedule_last_scraped_at.is.null,schedule_last_scraped_at.lt.{cutoff})"
+        "&order=id.asc&limit=500"
+    )
+    retry_rows=sb_get("poker_venues",retry_params)
+    seen={v["id"] for v in rows}
+    retry_rows=[v for v in retry_rows if v["id"] not in seen]
+    if retry_rows:
+        log(f"  +{len(retry_rows)} unproven venues due for retry (no data yet; last attempt >" 
+            f"{RETRY_UNPROVEN_DAYS}d or never)")
+    rows=rows+retry_rows
+
     before=len(rows)
     rows=[v for v in rows if (v.get("venue_type") or "").lower() not in SKIP_TYPES]
     log(f"  {before} venues loaded → {len(rows)} card rooms ({before-len(rows)} tour/series/no-tournament excluded)")
@@ -2413,6 +2443,12 @@ def main():
             except Exception as e:
                 log(f"    ❌ {e}")
                 chunk_buf.append({"name":name,"vid":venue.get("id"),"found":False,"records":[]})
+                # Record the attempt even when nothing was found: without this,
+                # unproven venues would re-enter the retry cohort every single
+                # night. has_tournaments is deliberately NOT touched.
+                if venue.get("id"):
+                    sb_patch_venue(venue["id"], {
+                        "schedule_last_scraped_at": datetime.now(timezone.utc).isoformat()})
                 consecutive_fails+=1
 
             cycle_venues+=1
