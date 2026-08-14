@@ -146,25 +146,35 @@ async function handler(req, res) {
                 if (!byAttempts.has(a)) byAttempts.set(a, []);
                 byAttempts.get(a).push(c.id);
             }
+            // CHUNKED (found live, 2026-08-14): the first run of the fixed
+            // handler scanned 1,000 stuck jobs — a backlog of every transcode
+            // that failed since the pipeline shipped, none ever recovered —
+            // and the update died with 400 Bad Request: PostgREST's .in()
+            // rides the QUERY STRING, and 1,000 text ids overflow it. 200 per
+            // request stays comfortably under every URL limit involved.
+            const CHUNK = 200;
             for (const [a, ids] of byAttempts) {
-                const { error: updateErr } = await admin
-                    .from('video_transcode_jobs')
-                    .update({
-                        status: 'queued',
-                        error_message: null,
-                        worker_id: null,
-                        locked_at: null,
-                        attempts: a + 1,
-                    })
-                    .in('id', ids);
-                if (updateErr) {
-                    return res.status(500).json({
-                        status: 'failed', stage: 'update', error: updateErr.message,
-                        scanned, requeued,
-                    });
+                for (let i = 0; i < ids.length; i += CHUNK) {
+                    const slice = ids.slice(i, i + CHUNK);
+                    const { error: updateErr } = await admin
+                        .from('video_transcode_jobs')
+                        .update({
+                            status: 'queued',
+                            error_message: null,
+                            worker_id: null,
+                            locked_at: null,
+                            attempts: a + 1,
+                        })
+                        .in('id', slice);
+                    if (updateErr) {
+                        return res.status(500).json({
+                            status: 'failed', stage: 'update', error: updateErr.message,
+                            scanned, requeued,
+                        });
+                    }
+                    requeued += slice.length;
+                    if (sampleIds.length < 5) sampleIds.push(...slice.slice(0, 5 - sampleIds.length));
                 }
-                requeued += ids.length;
-                sampleIds.push(...ids.slice(0, 5 - sampleIds.length));
             }
         }
 
