@@ -272,7 +272,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
 
   // Join Group State
   const [joinBusy, setJoinBusy] = useState(false);
-  const [memberStatus, setMemberStatus] = useState(null); // 'none', 'active', 'pending', 'banned'
+  const [memberStatus, setMemberStatus] = useState(null); // null (loading) | 'none' | DB statuses: 'pending' | 'approved' | 'declined' | 'banned' ('active' is legacy client-side only)
 
   // Vouch state
   const [hasVouched, setHasVouched] = useState(false);
@@ -518,7 +518,12 @@ export default function PublicHomeGamePage({ data, serverError }) {
     // The Join button only renders after the serverError guard passes (line ~533), so in practice
     // this handler is only reachable when data is a valid object.
     const grp = data?.group;
-    const codeToUse = grp?.club_code || grp?.invite_code || grp?.id || '';
+    // club_code only. invite_code is no longer served publicly (it is the
+    // membership credential; club_code is the share code, and the live
+    // join_home_group function redeems either). The old `grp?.id` tail sent a
+    // raw UUID as a join code, which the proxy's code-shape validation
+    // rejects — a guaranteed failure dressed as a fallback.
+    const codeToUse = grp?.club_code || '';
     if (!codeToUse) {
       toast.error('Cannot join: group code unavailable.');
       joinLockRef.current = false;
@@ -540,11 +545,19 @@ export default function PublicHomeGamePage({ data, serverError }) {
         throw new Error(resData.error || 'Failed to join group');
       }
 
-      if (resData.status === 'pending') {
+      // audit 2026-08-14: read BOTH response shapes — the commander proxy
+      // relays the upstream body untouched, and the three consumers of this
+      // endpoint each read a different shape (bare status here, nested
+      // membership.status on [id].js, both on join.js). Also: this used to
+      // setMemberStatus('active'), a value the DB's CHECK constraint
+      // (pending/approved/declined/banned) can never hold — 'approved' is
+      // what the join RPC actually writes.
+      const joinStatus = resData.status || resData?.membership?.status;
+      if (joinStatus === 'pending') {
         setMemberStatus('pending');
         toast.success('You Have Requested To Join This Group, You Will Be Notified By The Host When You Are Accepted');
       } else {
-        setMemberStatus('active');
+        setMemberStatus('approved');
         toast.success('Successfully Joined Group!');
       }
     } catch (err) {

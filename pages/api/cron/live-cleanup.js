@@ -8,13 +8,14 @@
  *  2. Cleans up viewer records for ended streams
  */
 import { createClient } from '@supabase/supabase-js';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     // SECURITY: a missing CRON_SECRET is a server misconfiguration, not a grant.
     // This previously FAILED OPEN: with CRON_SECRET unset the comparison below
     // was `undefined !== undefined` → false, so a request carrying no
@@ -46,3 +47,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: err.message });
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('live-cleanup', handler);
