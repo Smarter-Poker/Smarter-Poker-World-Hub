@@ -42,7 +42,15 @@ function getSb(token) {
 }
 
 const TABS = ['Overview', 'Members', 'Moderation', 'Settings'];
-const HOST_ROLES = ['host', 'co_host', 'admin'];
+// audit 2026-08-14: aligned with the DB's staff definition.
+// fn_home_is_group_staff = owner_id match OR (status='approved' AND role IN
+// ('owner','admin','co_host')), and the members CHECK constraint only allows
+// roles ('owner','admin','member'). The old list here was
+// ['host','co_host','admin']: 'host' is not a legal role (it only worked
+// because the owner short-circuit synthesizes it), and 'owner' — a legal,
+// staff-granting role — was MISSING, so a non-owner member holding role
+// 'owner' was locked out of the dashboard the DB says they may manage.
+const HOST_ROLES = ['host', 'owner', 'admin', 'co_host'];
 
 const C = {
   bg: '#050810', card: 'rgba(15,23,42,.65)', border: 'rgba(148,163,184,.12)',
@@ -392,11 +400,15 @@ export default function HomeGameDashboard() {
         if (!role) {
           const { data: mem } = await getSb(token)
             .from('commander_home_members')
-            .select('role')
+            // audit 2026-08-14: status must be checked with role. Without it,
+            // a PENDING, DECLINED or even BANNED row carrying role 'admin'
+            // passed this gate — manage.js and the DB helper both require
+            // status='approved' for staff-ness.
+            .select('role, status')
             .eq('group_id', g.id)
             .eq('user_id', user.id)
             .maybeSingle();
-          role = mem?.role || null;
+          role = mem?.status === 'approved' ? (mem?.role || null) : null;
         }
 
         if (!role || !HOST_ROLES.includes(role)) {
