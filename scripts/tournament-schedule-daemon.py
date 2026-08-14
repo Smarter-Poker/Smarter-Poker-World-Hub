@@ -472,7 +472,12 @@ def anti_hallucination_ok(records: list) -> bool:
     return True
 
 def dedup_key(r: dict) -> str:
-    return f"{r.get('event_date') or r.get('day_of_week')}-{r.get('start_time')}-{r.get('buy_in')}-{r.get('game_type')}"
+    # (2026-08-14) event_date carries the "1970-01-01" recurring sentinel, which
+    # is truthy — so `event_date or day_of_week` dropped the DAY for every
+    # recurring row and a Mon-Fri daily collapsed to a single key (Commerce: 12
+    # parsed -> 3 kept). Key on BOTH fields so distinct days survive.
+    return (f"{r.get('event_date') or ''}-{r.get('day_of_week') or ''}-"
+            f"{r.get('start_time')}-{r.get('buy_in')}-{r.get('game_type')}")
 
 
 STATE_TZ = {
@@ -1389,13 +1394,21 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
                 log(f"      LAYER 2: No address in JSON-LD — skipping this PA URL")
                 continue
 
-            # PRIMARY PATH: extract from __NEXT_DATA__ JSON (Next.js SPA)
-            recs = extract_pa_next_data(html, name, vid, batch_id, pa_url, state)
+            # PRIMARY PATH: the recurring weekly schedule from the page HTML.
+            # (2026-08-14 fix) __NEXT_DATA__ was primary, but it carries only the
+            # next few DATED instances — Commerce yielded 3 events via NEXT_DATA
+            # while the HTML schedule (with day-flags) yields the full weekly 12.
+            # Accepting the snapshot skipped the schedule parse entirely, so every
+            # PA venue was captured as "whatever happens in the next few days"
+            # instead of its actual weekly schedule. The schedule now wins; the
+            # NEXT_DATA snapshot is the fallback when no schedule section exists.
+            recs = parse_pa_html(html, name, vid, batch_id, pa_url, state)
             if recs:
-                log(f"      [PA:NEXT_DATA] {len(recs)} records")
-            # FALLBACK: old HTML structure parser
+                log(f"      [PA:SCHEDULE] {len(recs)} recurring records")
             if not recs:
-                recs = parse_pa_html(html, name, vid, batch_id, pa_url, state)
+                recs = extract_pa_next_data(html, name, vid, batch_id, pa_url, state)
+                if recs:
+                    log(f"      [PA:NEXT_DATA] {len(recs)} records (no schedule section)")
             # FALLBACK: generic extractor
             if not recs and has_tourn(html):
                 recs = extract_html(html, name, vid, batch_id, pa_url, "pokeratlas", state)
