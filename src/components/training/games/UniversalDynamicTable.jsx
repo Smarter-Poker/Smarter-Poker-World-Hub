@@ -4694,7 +4694,28 @@ function UniversalDynamicTable({
                     return (
                         <div key={optionId} style={styles.actionButtonWrapper}>
                             <ActionButton
-                                action="fold"
+                                // `action` was hardcoded "fold", so every
+                                // button in the arena's action bar carried
+                                // data-action="fold" -- Raise, Call and Check
+                                // included. The visible styling hid it (the
+                                // style prop below overrides the theme), but
+                                // the semantic attribute was wrong on every
+                                // non-fold button, and anything keying on it
+                                // (tests, analytics, assistive tooling walking
+                                // data- attributes) read a table where the only
+                                // available action was folding. detectActionType
+                                // speaks a finer vocabulary than ActionButton
+                                // (betsmall/betlarge/betpot/overbet vs 'bet'),
+                                // hence the explicit collapse rather than a
+                                // pass-through -- an unmapped value would fall
+                                // back to the fold THEME and reintroduce the
+                                // bug one level down.
+                                action={{
+                                    fold: 'fold', check: 'check', call: 'call',
+                                    allin: 'allin', raise: 'raise',
+                                    overbet: 'bet', betpot: 'bet',
+                                    betlarge: 'bet', betsmall: 'bet',
+                                }[actionType] || 'bet'}
                                 size={sizeKey}
                                 label={text}
                                 onClick={() => handleAnswerWithGrouping(optionId)}
