@@ -116,3 +116,4 @@ wh-fixes.tar.gz
 *.tar.gz
 trivia-*.tgz
 tmp/*.tgz
+.env*

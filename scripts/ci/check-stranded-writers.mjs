@@ -160,6 +160,40 @@ function collect(dirs, { writesOnly = false, includeSql = false } = {}) {
   return acc;
 }
 
+/**
+ * Services that invoke `supabase.rpc('name')`.
+ *
+ * A write performed INSIDE a Postgres function is invisible to static
+ * analysis. Rather than pretend otherwise — or bury the case in an
+ * allowlist — a table read by a service that calls RPCs is reported as
+ * AMBIGUOUS: listed for a human, but not failed on. That is the honest
+ * answer, because the checker genuinely cannot tell.
+ *
+ * memory_challenge_completions is the worked example: it looked stranded and
+ * is in fact written by complete_daily_challenge(), which
+ * DailyChallengeService reaches through rpc().
+ */
+const RPC_RE = /\.\s*rpc\(\s*['"]([a-zA-Z0-9_]+)['"]/g;
+
+function rpcCallsByFile(dirs) {
+  const acc = new Map(); // relPath -> Set(rpcName)
+  for (const dir of dirs) {
+    for (const file of walk(path.join(REPO_ROOT, dir))) {
+      const rel = path.relative(REPO_ROOT, file).split(path.sep).join('/');
+      let src;
+      try { src = fs.readFileSync(file, 'utf8'); } catch { continue; }
+      if (!src.includes('.rpc(')) continue;
+      const clean = stripComments(src);
+      let m;
+      RPC_RE.lastIndex = 0;
+      const names = new Set();
+      while ((m = RPC_RE.exec(clean)) !== null) names.add(m[1]);
+      if (names.size) acc.set(rel, names);
+    }
+  }
+  return acc;
+}
+
 function loadAllowlist() {
   try {
     const j = JSON.parse(fs.readFileSync(ALLOWLIST_PATH, 'utf8'));
@@ -178,21 +212,33 @@ const serviceReads = collect(READ_SCAN_DIRS);
 const serverWrites = collect(SERVER_WRITE_DIRS, { writesOnly: true, includeSql: true });
 const clientWrites = collect(CLIENT_WRITE_DIRS, { writesOnly: true });
 
+const rpcFiles = rpcCallsByFile(READ_SCAN_DIRS);
+
 const stranded = [];
 const clientOnly = [];
+const ambiguous = [];
 for (const [table, sites] of serviceReads) {
   // A phantom table is U4.2's problem, not this script's — don't double-report.
   if (allow.phantom.has(table)) continue;
   if (allow.stranded.has(table)) continue;
   if (serverWrites.has(table)) continue;
   if (clientWrites.has(table)) { clientOnly.push({ table, sites }); continue; }
+
+  // If every file that reads this table also calls rpc(), the write may well
+  // live inside one of those functions and this checker cannot see it.
+  const readerFiles = [...new Set(sites.map((s) => s.split(':')[0]))];
+  const rpcNames = readerFiles.flatMap((f) => [...(rpcFiles.get(f) || [])]);
+  if (readerFiles.length > 0 && readerFiles.every((f) => rpcFiles.has(f))) {
+    ambiguous.push({ table, sites, rpcNames: [...new Set(rpcNames)] });
+    continue;
+  }
   stranded.push({ table, sites });
 }
 
 const staleAllow = [...allow.stranded.keys()].filter((t) => serverWrites.has(t));
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ stranded, clientOnly, staleAllow }, null, 2));
+  console.log(JSON.stringify({ stranded, clientOnly, ambiguous, staleAllow }, null, 2));
 } else {
   console.log(
     `check-stranded-writers: ${serviceReads.size} tables read by src/services, ` +
@@ -201,6 +247,19 @@ if (AS_JSON) {
   if (clientOnly.length) {
     console.log(`\n${clientOnly.length} table(s) written ONLY from client code (warning, not a failure):`);
     for (const { table } of clientOnly) console.log(`  ${table}`);
+  }
+  if (ambiguous.length) {
+    console.log(
+      `\n${ambiguous.length} AMBIGUOUS — read by a service that also calls rpc(), so a` +
+      `\nwrite may live inside a database function this checker cannot see:`
+    );
+    for (const { table, rpcNames } of ambiguous) {
+      console.log(`  ${table}  (rpc: ${rpcNames.join(', ') || 'n/a'})`);
+    }
+    console.log(
+      '  Verify with: SELECT prosrc FROM pg_proc WHERE proname = \'<rpc>\';' +
+      '\n  Not a failure — the checker genuinely cannot tell.'
+    );
   }
   if (stranded.length) {
     console.error(`\n${stranded.length} STRANDED TABLE(S) — read by a service, written by NOTHING:\n`);
