@@ -13,6 +13,8 @@
   "stranded_writers": {
     "solved_spots_gold": "Externally bulk-loaded, not stranded. Verified 2026-08-12: 8,098,785 live rows and 1 trigger. This is the PIO solver corpus, loaded out-of-band rather than written by application code.",
     "live_stream_analytics": "It is a VIEW, not a table (verified via pg_class.relkind='v' on 2026-08-12), so it is derived and can never have a direct writer. This checker is deliberately static-analysis-only and has no database access, so it cannot tell views from tables on its own.",
-    "user_daily_streaks": "Has live data (1 row as of 2026-08-12), so a writer exists outside the scanned paths - most likely the smarter-poker-workers repo or a scheduled job. Re-verify and remove this entry if the writer is brought into this repo."
+    "user_daily_streaks": "Has live data (1 row as of 2026-08-12), so a writer exists outside the scanned paths - most likely the smarter-poker-workers repo or a scheduled job. Re-verify and remove this entry if the writer is brought into this repo.",
+    "posted_sports_clips": "Feature RETIRED, not broken. Its writer (markSportsClipAsPosted) lives in archive/cron/horses-sports-clips.js, which this checker deliberately does not scan because archived code does not run. src/services/SportsClipDeduplicationService.js has no importer outside archive/. Verified 2026-08-12. Remove this entry - and the service - if the horses sports-clip pipeline is formally decommissioned.",
+    "horse_sports_source_assignments": "Same retired pipeline as posted_sports_clips - only reachable from archive/cron/horses-sports-clips.js via SportsClipDeduplicationService. Verified 2026-08-12."
   }
 }
