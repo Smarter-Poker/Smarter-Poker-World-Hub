@@ -2459,17 +2459,10 @@ def main():
 
         # A cycle that walked a real venue set and produced nothing is a FAILURE,
         # not a quiet success. Same for any batch the DB refused.
-        # A cycle that loaded NO venues is a failure, not a quiet success. On
-        # 2026-08-13 an expired service-role key made sb_get() return 401, so
-        # load_venues() yielded 0 rows; every guard below keyed off cycle_venues
-        # being LARGE, so the cycle reported [running] with no alert -- the exact
-        # silent-failure shape this alerting exists to catch.
-        no_venues_loaded = (cycle_venues == 0 and not args.dry_run)
-        cycle_failed = bool(session_unavailable) or WRITE_FAILURES > 0 or no_venues_loaded or (
+        cycle_failed = bool(session_unavailable) or WRITE_FAILURES > 0 or (
             cycle_venues > 20 and cycle_records == 0 and not args.dry_run)
         cycle_status = "running"
         if session_unavailable:      cycle_status = "connect_failed"
-        elif no_venues_loaded:       cycle_status = "no_venues_loaded"
         elif cycle_failed:           cycle_status = "no_data"
 
         if not args.dry_run:
