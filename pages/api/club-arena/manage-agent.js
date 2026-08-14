@@ -1177,7 +1177,7 @@ export default async function handler(req, res) {
         // Verify caller is an active agent
         const { data: parentAgent } = await getSupabase()
           .from('agents')
-          .select('id, user_id, commission_rate, status, agent_tier, role')
+          .select('id, user_id, commission_rate, status, role')
           .eq('user_id', user.id)
           .eq('club_id', clubId)
           .eq('status', 'active')
@@ -1186,7 +1186,11 @@ export default async function handler(req, res) {
         if (!parentAgent) {
           return res.status(403).json({ success: false, error: 'You are not an active agent in this club' });
         }
-        if (parentAgent.role !== 'super_agent' && parentAgent.agent_tier !== 'super_agent') {
+        // CHECK 13 (2026-08-14): agent_tier is not a column — selecting it
+        // 42703'd, parentAgent came back undefined, and every caller was told
+        // "not an active agent": sub-agent creation NEVER worked. role is the
+        // real tier field.
+        if (parentAgent.role !== 'super_agent') {
           return res.status(403).json({ success: false, error: 'Only Super Agents can create sub-agents. Contact a club owner to be promoted first.' });
         }
 
