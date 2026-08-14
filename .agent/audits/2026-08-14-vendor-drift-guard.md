@@ -70,9 +70,35 @@ with the other dependency-free static checks (after CHECK 12), no secrets.
   `require(` → PASS (no false positive).
 - Tree returned pristine after every fixture (verified `git status`).
 
+## Rollout result (same day)
+
+World Hub: pushed as 80b6e5b8 (script + audit) and 50c7cd68 (CHECK 14 in the
+gate). Blob-sha-verified byte-exact after push. Build Safety Gate GREEN on
+both commits with CHECK 14 executing; production /api/health served 50c7cd68.
+
+Commander (smarter-poker-commander): the byte-identical script was pushed as
+891c01eb with a matching gate step in ci.yml — and the guard's FIRST run went
+red on a real finding: `pages/commander/dashboard.js` imported
+`@smarter-poker/commander-shared/lib/commander/auth` directly, bypassing the
+hardened `src/lib/commander/auth.js` override (the exact
+forgeable-vendor-auth pattern this guard exists to block). The bypass was
+deliberate, justified by a 2026-07-25 note calling the override "server-only
+(uses node crypto)" — a rationale the 2026-08-07 session-signing hardening
+made obsolete, since the vendor module now imports node crypto too. Fixed in
+82288da3 by importing via the override (which re-exports the symbol, so zero
+behavior change today — but the page now follows any future localization of
+the fix).
+
+Observability side-quest: commander is a PRIVATE repo, so its Actions results
+are invisible to the MCP tooling (no unauthenticated API, no browser session).
+Ported World Hub's create-issue-on-failure job into commander's ci.yml
+(038d3061), then extended it to embed the drift guard's output and per-step
+failure status in the ISSUE BODY (209c493a — bodies are MCP-readable,
+comments are not). That channel is what surfaced the dashboard.js violation
+verbatim. Standing benefit: commander CI failures on main now self-report
+into a `ci-failure` issue with enough detail to diagnose without log access.
+
 ## Follow-ups
 
-- Push to the commander repo too (same script, unchanged) once the GitHub MCP
-  bridge is up; add the identical CHECK 14 step to its safety gate.
 - Deferred from the prior phase (unrelated): drop the now-NULL
   `commander_staff.pin_code` column (rollback-shim cleanup).
