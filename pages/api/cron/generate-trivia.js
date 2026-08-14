@@ -64,6 +64,7 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // here; only the named constant is pulled in, and there is no import cycle
 // (the guard does not import this module).
 import { CATEGORY_DAILY_DEMAND } from './trivia-pool-guard';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 // Node.js runtime (Pages Router req/res API). Long job: 300s ceiling, with an
 // internal wall-clock budget so the handler returns a resumable cursor instead
@@ -1221,7 +1222,7 @@ async function selfAuditQuestions(supabase, grok, deadline) {
 // HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     try {
         // Fail-closed, constant-time, header-only. No NODE_ENV or method
         // exception: the archived job let ANY unauthenticated POST in
@@ -1432,3 +1433,8 @@ export default async function handler(req, res) {
         }
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('generate-trivia', handler);

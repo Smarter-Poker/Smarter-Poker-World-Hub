@@ -41,14 +41,48 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
  * answer and `overallHealth` says so explicitly.
  */
 const CRON_REGISTRY = [
-    { name: 'tournament-alerts',     location: 'unknown',   intervalMin: 60,   description: 'OneSignal push for upcoming tournaments' },
-    { name: 'daily-challenge',       location: 'open-claw', intervalMin: 1440, description: 'Generate daily trivia challenge' },
-    { name: 'content-grinder',       location: 'unknown',   intervalMin: 360,  description: 'AI content generation pipeline' },
-    { name: 'diamond-daily-rewards', location: 'unknown',   intervalMin: 1440, description: 'Daily login diamond rewards' },
-    { name: 'venue-data-refresh',    location: 'unknown',   intervalMin: 4320, description: 'PokerAtlas/Bravo venue refresh (72h)' },
-    { name: 'sentry-triage',         location: 'workers',   intervalMin: 60,   description: 'OpenClaw Sentry error triage' },
-    { name: 'vip-expiration-check',  location: 'unknown',   intervalMin: 1440, description: 'Check and expire lapsed VIP memberships' },
-    { name: 'leaderboard-snapshot',  location: 'unknown',   intervalMin: 1440, description: 'Daily leaderboard snapshot' },
+    // ── The 24 REAL local handlers (pages/api/cron/*) ────────────────────
+    // As of 2026-08-14 every one of these is wrapped in withCronHealth
+    // (src/lib/cronHealth.js), which upserts into cron_health_log on each
+    // authorized run — the writer this table never had. Names match the
+    // handler filename, which is the cron_name the wrapper records.
+    // Intervals come from the ACTUAL schedules: vercel.json for 15,
+    // scripts/openclaw-cron-dispatcher.py for the other 9.
+    { name: 'signup-probe',               location: 'vercel',    intervalMin: 1440,  description: 'Signup flow probe' },
+    { name: 'signup-probe-restricted',    location: 'vercel',    intervalMin: 15,    description: 'Restricted signup probe' },
+    { name: 'sentry-signup-bridge',       location: 'vercel',    intervalMin: 15,    description: 'Bridge Sentry signup errors' },
+    { name: 'trigger-audit',              location: 'vercel',    intervalMin: 1440,  description: 'DB trigger audit' },
+    { name: 'email-deliverability-check', location: 'vercel',    intervalMin: 1440,  description: 'Email deliverability check' },
+    { name: 'archive-signup-errors',      location: 'vercel',    intervalMin: 1440,  description: 'Archive signup error rows' },
+    { name: 'login-probe',                location: 'vercel',    intervalMin: 15,    description: 'Login flow probe' },
+    { name: 'recovery-probe',             location: 'vercel',    intervalMin: 15,    description: 'Account recovery probe' },
+    { name: 'auth-integrity-audit',       location: 'vercel',    intervalMin: 1440,  description: 'Auth integrity audit' },
+    { name: 'generate-trivia',            location: 'vercel',    intervalMin: 1440,  description: 'Generate trivia questions' },
+    { name: 'trivia-pool-guard',          location: 'vercel',    intervalMin: 1440,  description: 'Trivia pool floor guard' },
+    { name: 'trivia-tournament-tick',     location: 'vercel',    intervalMin: 15,    description: 'Trivia tournament state tick' },
+    { name: 'vip-lapse',                  location: 'vercel',    intervalMin: 60,    description: 'Expire lapsed VIP memberships' },
+    { name: 'vip-stipend',                location: 'vercel',    intervalMin: 43200, description: 'Monthly VIP diamond stipend' },
+    { name: 'pvp-settle',                 location: 'vercel',    intervalMin: 30,    description: 'Settle PvP trivia matches' },
+    { name: 'cleanup-expired-stories',    location: 'open-claw', intervalMin: 360,   description: 'Delete expired stories' },
+    { name: 'cleanup-orphan-uploads',     location: 'open-claw', intervalMin: 1440,  description: 'Remove orphaned uploads' },
+    { name: 'cleanup-stale-streams',      location: 'open-claw', intervalMin: 5,     description: 'Close stale live streams' },
+    { name: 'live-cleanup',               location: 'open-claw', intervalMin: 5,     description: 'Live surface cleanup' },
+    { name: 'live-reminders',             location: 'open-claw', intervalMin: 5,     description: 'Live stream reminders' },
+    { name: 'mlb-hr-cache-refresh',       location: 'open-claw', intervalMin: 1440,  description: 'MLB HR due-score cache refresh' },
+    { name: 'social-page-completion-nudge', location: 'open-claw', intervalMin: 4320, description: 'Nudge incomplete social pages' },
+    { name: 'transcode-videos',           location: 'open-claw', intervalMin: 1,     description: 'Drain video transcode queue' },
+    { name: 'yt-pipeline-recovery',       location: 'open-claw', intervalMin: 15,    description: 'YT worker queue top-up' },
+
+    // ── Remote jobs (no local handler; telemetry must come from THEIR side) ──
+    { name: 'daily-challenge',            location: 'open-claw', intervalMin: 1440,  remote: true, description: 'Generate daily trivia challenge (workers repo)' },
+    { name: 'sentry-triage',              location: 'workers',   intervalMin: 60,    remote: true, description: 'OpenClaw Sentry error triage (workers repo)' },
+
+    // REMOVED 2026-08-14: tournament-alerts, content-grinder,
+    // diamond-daily-rewards, venue-data-refresh, vip-expiration-check,
+    // leaderboard-snapshot. Those six existed NOWHERE — not here, not in the
+    // workers repo, not in the dispatcher — so listing them made the
+    // dashboard report phantoms forever. If one is revived, add it back with
+    // its real location and schedule.
 ];
 
 /**
@@ -56,8 +90,14 @@ const CRON_REGISTRY = [
  *        which case a missing entry says nothing about the job — only that
  *        nothing is reporting. Do not surface that as a job failure.
  */
-function getStatus(lastRun, intervalMin, hasTelemetry) {
+function getStatus(lastRun, intervalMin, hasTelemetry, isRemote = false) {
     if (!lastRun) {
+        // A REMOTE job's telemetry has to come from its own repo; a missing
+        // row here says nothing about it. Without this carve-out, the first
+        // local telemetry row would flip both remote jobs to NEVER_RUN and
+        // leave them red forever — the exact cry-wolf failure this dashboard
+        // was rebuilt to eliminate.
+        if (isRemote) return { status: 'NO_REMOTE_TELEMETRY', healthy: null };
         return hasTelemetry
             ? { status: 'NEVER_RUN', healthy: false }
             : { status: 'NO_TELEMETRY', healthy: null };
@@ -118,7 +158,7 @@ export default async function handler(req, res) {
         const results = CRON_REGISTRY.map(cron => {
             const log = logMap[cron.name];
             const { status, healthy, minutesAgo } = getStatus(
-                log?.last_run_at, cron.intervalMin, hasTelemetry
+                log?.last_run_at, cron.intervalMin, hasTelemetry, !!cron.remote
             );
             return {
                 name: cron.name,

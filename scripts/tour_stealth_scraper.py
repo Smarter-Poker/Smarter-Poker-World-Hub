@@ -145,6 +145,10 @@ def network_ok() -> bool:
         req = urllib.request.Request("https://1.1.1.1", method="HEAD")
         with urllib.request.urlopen(req, timeout=10):
             return True
+    except urllib.error.HTTPError:
+        # Any HTTP status IS a network response. 1.1.1.1 began returning 403
+        # (2026-08); treating that as "no network" killed every scrape run.
+        return True
     except Exception:
         return False
 
