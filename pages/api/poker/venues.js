@@ -1576,10 +1576,18 @@ export default async function handler(req, res) {
                                           hostDisplayName = sp.name;
                                           hostAvatarUrl = sp.avatar_url;
 
-                                          // Inherit coordinates from commander_home_groups if missing from social_pages geocoding
+                                          // Inherit coordinates from commander_home_groups if missing
+                                          // from social_pages geocoding.
+                                          //
+                                          // PRIVACY (audit 2026-08-14): this is a FOURTH home-game
+                                          // emitter in this file, found only after the other three were
+                                          // fixed — it inherited the RAW host coordinate, quietly
+                                          // undoing the C-1 work for any home game whose social page
+                                          // was never geocoded. Same shared jitter as everywhere else.
                                           if (!primaryLat && !primaryLng && hg.latitude && hg.longitude) {
-                                              primaryLat = hg.latitude;
-                                              primaryLng = hg.longitude;
+                                              const _hgPriv = jitterCoord(hg.id, hg.latitude, hg.longitude);
+                                              primaryLat = _hgPriv.lat;
+                                              primaryLng = _hgPriv.lng;
                                           }
                                       }
                                   }
@@ -1587,6 +1595,16 @@ export default async function handler(req, res) {
                                   mappedPages.push({
                                       id: `sp-${sp.id}`,
                                       slug: sp.slug,
+                                      // UNIFICATION (audit 2026-08-14): canonical destination from
+                                      // the ONE shared builder. Deliberately built from the page
+                                      // slug + page id (homeGamePageUrl semantics) because this
+                                      // row's id is the synthetic sp-<uuid>, which must never fall
+                                      // into the /hub/venues/<group-uuid> tier.
+                                      detailUrl: sp.page_type === 'home_game'
+                                          ? (sp.slug
+                                              ? `/hub/home-games/${encodeURIComponent(sp.slug)}`
+                                              : `/hub/social-pages/${encodeURIComponent(sp.id)}`)
+                                          : undefined,
                                       name: toTitleCase(sp.name),
                                       city: sp.location_city,
                                       state: sp.location_state,
