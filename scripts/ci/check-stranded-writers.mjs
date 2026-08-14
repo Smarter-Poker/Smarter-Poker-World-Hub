@@ -26,6 +26,16 @@
  * reported as a warning, not a failure, because RLS may legitimately allow
  * it.
  *
+ * KNOWN BLIND SPOT — WRITES INSIDE DATABASE FUNCTIONS.
+ * This is pure static analysis, so it sees `.from(...).insert(...)` and
+ * `INSERT INTO` in supabase/*.sql, but NOT a write that happens inside a
+ * Postgres function invoked as `supabase.rpc('name')`. memory_challenge_
+ * completions is exactly that case: it looked stranded, and is in fact
+ * written by complete_daily_challenge() (verified against pg_proc.prosrc).
+ * When this check flags a table, grep for an rpc() call on the owning
+ * service before believing it — and record the finding in the allowlist so
+ * the next person does not repeat the investigation.
+ *
  * Deliberately NOT reported (learned from a monitor in this repo that cried
  * wolf permanently and was therefore ignored):
  *   - comments (stripped before matching)

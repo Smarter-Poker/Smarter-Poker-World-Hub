@@ -80,10 +80,10 @@ jobs:
       # ═══════════════════════════════════════════════════════════════
       # PHASE U4 — Supabase invariants as CI gates.
       #
-      # Rolled out WARN-ONLY on purpose (plan step U4.3): both checks report
-      # real findings against current HEAD, and blocking the build on a
-      # pre-existing backlog would just get the gate disabled. Flip each to
-      # blocking by deleting its `--warn-only` once its findings are at zero.
+      # BLOCKING as of 2026-08-12. They were introduced warn-only per plan step
+      # U4.3 because both reported a real backlog; that backlog is now cleared
+      # (phantom 3 -> 0, stranded 7 -> 0), so warn-only was removed the same
+      # day rather than left to rot. A gate nobody has to obey is not a gate.
       #
       # Exceptions: scripts/ci/supabase-invariants.allowlist.json. Every entry
       # needs a reason, and both scripts FAIL if an entry starts resolving, so
@@ -110,7 +110,7 @@ jobs:
             echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — phantom-table check is NOT enforced."
             exit 0
           fi
-          node scripts/ci/check-phantom-tables.mjs --warn-only
+          node scripts/ci/check-phantom-tables.mjs
 
       - name: "CHECK 12: No stranded Supabase tables (U4.1)"
         run: |
@@ -118,7 +118,7 @@ jobs:
           # That is not a crash — it renders an empty state forever, which is
           # indistinguishable from "no data yet" and is exactly why this class
           # of bug survives review. Pure static analysis; no DB access needed.
-          node scripts/ci/check-stranded-writers.mjs --warn-only
+          node scripts/ci/check-stranded-writers.mjs
 
       - name: "CHECK 9: Reward catalog matches diamondRewards.js"
         env:
