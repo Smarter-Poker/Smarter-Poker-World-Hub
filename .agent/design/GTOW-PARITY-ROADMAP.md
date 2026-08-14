@@ -490,15 +490,28 @@ High/Low mode.
     `committedFor` across all seven seats with and without the history and
     requiring equality.
 
-    Known cosmetic gap, deliberately not chased: `MP` is derived as a fold but
-    draws no plate, because `scenario.gameType` is `'cash_6max'` and
-    `playerCount` (`UniversalDynamicTable.jsx:2284`) tests for `'6max'` or
-    `'cash'` -- neither matches, so these spots render on the NINE-max ring.
-    Six of the seven modelled seats land on it. Correcting the ring is not a
-    one-word change: the 6-max seat map has no `HJ`, and the 3-bet and RFI
-    ranges both use HJ, so switching would drop a hero through
-    `getHeroSeatIndex`'s `?? 0` onto the BTN seat -- the exact defect fixed in
-    `c2c5cad682` and warned about in the comment directly above `playerCount`.
+    The cosmetic gap recorded here previously -- "MP is derived as a fold but
+    draws no plate" -- is CLOSED, and its recorded mechanism was wrong twice
+    over. The blamed nine-max ring was never in play: GameUIRouter maps
+    cash-001 to '6max', so these spots always rendered SEAT_CONFIGS[6]. And
+    the feared getHeroSeatIndex `?? 0` hazard was moot for hero -- the 6-max
+    position map has ALWAYS aliased both MP and HJ to seat 4. The real defect
+    was that only hero placement consulted that alias table; the four
+    action-history matches (villainFolded, villainSeatAction, isActiveVillain,
+    activeCount) and the chip-visibility gate compared raw name strings, and
+    the 6-max ring has no seat literally named 'MP', so every MP entry was
+    silently dropped. Fixed 2026-08-14 (`777ad2c8`): all five sites match by
+    resolved seat index via `positionSeatIndex`, which uses the same alias
+    tables but returns null for an unknown name instead of `?? 0` -- the
+    fallback that is right for hero, who must sit somewhere, would weld every
+    mislabeled entry onto the BTN seat when used for matching. Screen-measured
+    on production the same day: a CO RFI renders UTG and HJ greyed at 0.42
+    with FOLD bubbles (the HJ seat absorbing MP's fold via the alias, which is
+    what a six-seat table would truly show), BB live at 1.0 with his 1bb blind
+    chip, pot 1.5. Sixteen spots, `PAGE_ERRORS=[]`. Two entries aliasing to
+    one seat is correct behaviour, not a collision -- the solver's seven-name
+    vocabulary has to land on six seats somewhere.
+
 
 19. **Avatar must not float mid-table.** DONE — screen-measured 2026-08-06
     by the same run that proved #30, which is the measurement that closes this
