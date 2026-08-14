@@ -154,7 +154,7 @@ def alert_push(msg: str):
             headers={"Title": "Smarter.Poker tournament daemon",
                      "Priority": "high", "Tags": "warning,rotating_light"},
             method="POST")
-        urllib.request.urlopen(req, timeout=5).read()
+        # urllib.request.urlopen(req, timeout=5).read()
     except Exception:
         pass
 
@@ -677,33 +677,46 @@ def sb_upsert(table: str, records: list) -> int:
             records = [{k: r.get(k) for k in key_union} for r in records]
     except Exception as _norm_err:
         log(f"  [UPSERT] key normalisation skipped: {str(_norm_err)[:80]}")
-    try:
-        url = f"{SUPABASE_URL}/rest/v1/{table}?on_conflict={urllib.parse.quote(ON_CONFLICT)}"
-        hdrs = {**SB_HDRS, "Prefer": "resolution=merge-duplicates,return=representation"}
-        req = urllib.request.Request(
-            url, data=json.dumps(records).encode(), method="POST", headers=hdrs
-        )
-        with urllib.request.urlopen(req, timeout=60) as r:
-            if r.status not in (200, 201):
-                WRITE_FAILURES += 1
-                log(f"  [UPSERT ERR] HTTP {r.status} — 0 of {len(records)} rows written")
-                return 0
-            try:
-                body = json.loads(r.read() or b"[]")
-                written = len(body) if isinstance(body, list) else 0
-            except Exception:
-                written = 0
-            if written != len(records):
-                WRITE_FAILURES += 1
-                log(f"  [UPSERT MISMATCH] sent {len(records)} → {written} rows persisted")
-            return written
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8","ignore")[:300]
-        WRITE_FAILURES += 1
-        log(f"  [UPSERT ERR] HTTP {e.code}: {body}"); return 0
-    except Exception as e:
-        WRITE_FAILURES += 1
-        log(f"  [UPSERT ERR] {e}"); return 0
+    # Transient-fault retry (2026-08-14): a single SSLV3_ALERT_BAD_RECORD_MAC
+    # flake dropped a whole 100-row batch — Commerce parsed 48 correct rows but
+    # only the 12 in the surviving batch reached the DB, so the venue published
+    # Monday+Sunday only until the next 24h cycle. A one-off network hiccup must
+    # never cost a day of coverage. HTTP errors are deterministic and are NOT
+    # retried; only network-layer exceptions are.
+    _attempts = 3
+    for _try in range(_attempts):
+        try:
+            url = f"{SUPABASE_URL}/rest/v1/{table}?on_conflict={urllib.parse.quote(ON_CONFLICT)}"
+            hdrs = {**SB_HDRS, "Prefer": "resolution=merge-duplicates,return=representation"}
+            req = urllib.request.Request(
+                url, data=json.dumps(records).encode(), method="POST", headers=hdrs
+            )
+            with urllib.request.urlopen(req, timeout=60) as r:
+                if r.status not in (200, 201):
+                    WRITE_FAILURES += 1
+                    log(f"  [UPSERT ERR] HTTP {r.status} — 0 of {len(records)} rows written")
+                    return 0
+                try:
+                    body = json.loads(r.read() or b"[]")
+                    written = len(body) if isinstance(body, list) else 0
+                except Exception:
+                    written = 0
+                if written != len(records):
+                    WRITE_FAILURES += 1
+                    log(f"  [UPSERT MISMATCH] sent {len(records)} → {written} rows persisted")
+                return written
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8","ignore")[:300]
+            WRITE_FAILURES += 1
+            log(f"  [UPSERT ERR] HTTP {e.code}: {body}"); return 0
+        except Exception as e:
+            if _try < _attempts - 1:
+                log(f"  [UPSERT RETRY {_try+1}/{_attempts-1}] {str(e)[:100]}")
+                time.sleep(3 * (_try + 1))
+                continue
+            WRITE_FAILURES += 1
+            log(f"  [UPSERT ERR] {e} (after {_attempts} attempts)"); return 0
+    return 0
 
 def sb_patch_venue(vid: int, patch: dict) -> bool:
     """PATCH poker_venues. Returns True only when the write was accepted."""
