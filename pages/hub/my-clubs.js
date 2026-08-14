@@ -21,6 +21,7 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../src/engine/EventBus';
 import SkeletonLight from '../../src/components/ui/SkeletonLight';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import { homeGameUrl } from '../../src/lib/home-games/urls';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DESIGN TOKENS — SmarterPoker Dark palette
@@ -949,9 +950,15 @@ export default function MyClubsPage() {
                                                     <div
                                                         key={`hg-${group.id}`}
                                                         onClick={() => router.push(
+                                                            // audit 2026-08-14: `group.slug || group.id` pushed a raw
+                                                            // UUID into the slug-only route — a guaranteed 404 for any
+                                                            // group without a social page. The slug dashboard needs a
+                                                            // slug; the UUID-keyed host console is the real fallback.
                                                             isHost
-                                                                ? `/hub/home-games/${group.slug || group.id}/dashboard`
-                                                                : `/hub/home-games/${group.slug || group.id}`
+                                                                ? (group.slug
+                                                                    ? `/hub/home-games/${group.slug}/dashboard`
+                                                                    : `/hub/commander/home-games/${group.id}/manage`)
+                                                                : homeGameUrl(group)
                                                         )}
                                                         style={{
                                                             background: C.surface,

@@ -22,6 +22,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 let _supabase = null;
 function getSupabase() {
@@ -33,7 +34,7 @@ const CRON_SECRET      = process.env.CRON_SECRET;
 const NUDGE_COOLDOWN_DAYS = 7;     // min days between nudges per page
 const MAX_PAGES_PER_RUN   = 200;   // safety cap — don't blast everyone at once
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     // ── Auth ──────────────────────────────────────────────────────────────────
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
     const auth = req.headers.authorization || '';
@@ -145,3 +146,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, error: err.message });
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('social-page-completion-nudge', handler);
