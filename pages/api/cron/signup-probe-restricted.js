@@ -24,6 +24,7 @@
 
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { withCronHealth } from '../../../src/lib/cronHealth';
 
 // States the geo-blocker treats as restricted. If any of these gets a
 // redirect to /jurisdiction-blocked when hitting /auth/signup, the
@@ -43,7 +44,7 @@ function getBaseUrl(req) {
 
 export const config = { maxDuration: 30 };
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     if (!validateCronAuth(req)) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -137,3 +138,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ status: 'error', error: err?.message });
     }
 }
+
+// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
+// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
+// it is fail-open and skips unauthorized (401/403) hits.
+export default withCronHealth('signup-probe-restricted', handler);
