@@ -1828,12 +1828,12 @@ function UniversalDynamicTable({
     // Honour the OS "reduce motion" setting: no deal-in, no travel, no pulse.
     const reduceMotion = useReducedMotion();
 
-    // Phase 16: Computed height for the scale container to prevent layout collapse
-    const scaledTableHeight = useMemo(() => {
-                // Design height of the table area canvas (fixed) — must match styles.tableArea.height
-        const DESIGN_HEIGHT = 600;
-        return DESIGN_HEIGHT * scaleFactor;
-    }, [scaleFactor]);
+    // Phase 16's scaledTableHeight memo lived here for months with exactly one
+    // reference -- its own declaration. The scale container it was computed for
+    // was rebuilt to size itself, and the memo silently became a per-render
+    // computation feeding nothing. Removed rather than kept "just in case": a
+    // value nothing reads cannot be needed, and its dependency on scaleFactor
+    // made it look load-bearing to anyone auditing what scaleFactor drives.
 
     // Phase 3: Floating EV popup
     const [evPopup, setEvPopup] = React.useState(null);
