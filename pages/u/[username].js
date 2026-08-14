@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { createClient } from '@supabase/supabase-js';
+import { homeGameUrl } from '../../src/lib/home-games/urls';
 
 let _sb = null;
 function getSb() {
@@ -157,7 +158,7 @@ export default function PublicProfilePage() {
                   {hostedGroups.map(g => (
                     <Link
                       key={g.id}
-                      href={`/hub/home-games/${g.slug || g.id}`}
+                      href={homeGameUrl(g)} /* audit 2026-08-14: was slug||id into the slug route */
                       style={{ display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `1px solid ${C.tealBorder}`, borderRadius: 14, padding: 16, textDecoration: 'none', transition: 'border-color .2s' }}
                     >
                       {g.profile_photo_url ? (
