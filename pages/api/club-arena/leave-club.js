@@ -96,12 +96,29 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     // 3b. BLOCK IF SEATED AT TABLE — Chips locked in escrow would be lost
     // ═══════════════════════════════════════════════════════════════
-    const { data: activeEscrow } = await supabaseAdmin
+    // CHECK 13 (2026-08-14): this guard has been a NO-OP since it shipped.
+    // It queried player_id / table_id / status 'locked' — the live table has
+    // user_id / related_id and a status CHECK of held|released|captured|
+    // expired. The query 42703'd, the un-checked destructure left
+    // activeEscrow undefined, and the "block leaving with locked chips"
+    // protection below never blocked anyone. Aligned to the real schema
+    // (table-seat holds are written with related_id = table id, status
+    // 'held' — see the mapping note in ChipBridge.lockChips).
+    const { data: activeEscrow, error: escrowErr } = await supabaseAdmin
       .from('chip_escrow_holds')
-      .select('id, table_id, amount')
-      .eq('player_id', user.id)
-      .eq('status', 'locked')
+      .select('id, related_id, amount')
+      .eq('user_id', user.id)
+      .eq('status', 'held')
       .limit(5);
+    if (escrowErr) {
+      // Fail CLOSED on a money guard: an unreadable escrow state must block
+      // the leave, not wave it through the way the silent 42703 used to.
+      console.warn('[leave-club] escrow check failed:', escrowErr.message);
+      return res.status(503).json({
+        success: false,
+        error: 'Could not verify your table status. Try again in a moment.',
+      });
+    }
 
     // Filter to escrow records belonging to tables in THIS club
     if (activeEscrow && activeEscrow.length > 0) {
@@ -109,10 +126,10 @@ export default async function handler(req, res) {
         .from('tables')
         .select('id')
         .eq('club_id', clubId)
-        .in('id', activeEscrow.map(e => e.table_id));
+        .in('id', activeEscrow.map(e => e.related_id));
 
       const lockedAtClubTables = (clubTables || []).map(t => t.id);
-      const clubEscrow = activeEscrow.filter(e => lockedAtClubTables.includes(e.table_id));
+      const clubEscrow = activeEscrow.filter(e => lockedAtClubTables.includes(e.related_id));
 
       if (clubEscrow.length > 0) {
         const totalLocked = clubEscrow.reduce((s, e) => s + (e.amount || 0), 0);
@@ -120,7 +137,7 @@ export default async function handler(req, res) {
           success: false,
           error: 'You are currently seated at a table. Stand up from all tables before leaving the club.',
           lockedChips: totalLocked,
-          tables: clubEscrow.map(e => e.table_id),
+          tables: clubEscrow.map(e => e.related_id),
         });
       }
     }

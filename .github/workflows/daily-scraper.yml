@@ -1,9 +1,10 @@
 name: Venue Tournament Scraper (Daily)
 
 on:
-  schedule:
-    # Run daily at 6am UTC (midnight CST)
-    - cron: '0 6 * * *'
+  # DEMOTED to manual fallback (2026-08-14): the Mac tournament daemon
+  # (scripts/tournament-schedule-daemon.py) is the single canonical writer of
+  # venue_daily_tournaments. Running this fleet on cron alongside it produced
+  # unattributable rows from divergent code. Keep for manual/emergency use.
   workflow_dispatch:
     # Allow manual trigger with options
     inputs:

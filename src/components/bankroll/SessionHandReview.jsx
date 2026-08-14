@@ -32,16 +32,28 @@ export default function SessionHandReview({ userId }) {
             .order('created_at', { ascending: false })
             .limit(20);
 
-        // Fetch recent bankroll sessions
+        // Fetch recent bankroll sessions.
+        // CHECK 13 (2026-08-14): this selected result/date/venue — none exist on
+        // bankroll_ledger (real: net_result/entry_date/location_id) — so the
+        // query 42703'd and the session list was empty forever. Venue name
+        // comes through the location_id FK embed; render fields keep the old
+        // names via the map below.
         const { data: sessions } = await supabase
             .from('bankroll_ledger')
-            .select('id, result, date, game_type, venue, stakes')
+            .select('id, net_result, entry_date, game_type, stakes, location:bankroll_locations(name)')
             .eq('user_id', userId)
-            .order('date', { ascending: false })
+            .order('entry_date', { ascending: false })
             .limit(10);
 
         setRecentHands(hands || []);
-        setRecentSessions(sessions || []);
+        setRecentSessions((sessions || []).map(s => ({
+            id: s.id,
+            result: s.net_result,
+            date: s.entry_date,
+            game_type: s.game_type,
+            stakes: s.stakes,
+            venue: s.location?.name || null,
+        })));
         setLoading(false);
     };
 

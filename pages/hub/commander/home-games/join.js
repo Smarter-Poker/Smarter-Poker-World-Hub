@@ -56,7 +56,11 @@ export default function JoinHomeGame() {
         const r = await fetch(`/api/public/home-games/${encodeURIComponent(rawSlug)}`);
         const j = await r.json().catch(() => ({}));
         const g = j?.data?.group || j?.group || null;
-        codeToUse = g?.invite_code || g?.club_code || '';
+        // club_code only. invite_code was removed from the public payload
+        // (it is the membership credential; club_code is the share code) and
+        // join_home_group redeems either one — verified in the live function:
+        //   p_invite_code = v_group.invite_code OR p_invite_code = v_group.club_code
+        codeToUse = g?.club_code || '';
         if (g?.slug || rawSlug) setSlug(g?.slug || rawSlug);
       } catch (err) {
         console.warn('[join] slug resolution failed:', err);

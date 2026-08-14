@@ -13,6 +13,7 @@ import { createPortal } from 'react-dom';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import { getVenueLogoUrl, getVenueLogoFallback, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor, isStaleData, getZonedNow, resolveVenueTimeZone } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
+import { homeGameUrl } from '../../lib/home-games/urls';
 
 const formatMoney = (amount) => {
     if (!amount) return '$0';
@@ -155,10 +156,13 @@ function getVenueColor(venue) {
 
 // Get the correct detail URL for a venue or social page
 function getVenueUrl(venue) {
-    if (venue.venue_type === 'home_game' && (venue.slug || venue.host_social_page_slug)) {
-        return '/hub/home-games/' + encodeURIComponent(venue.slug || venue.host_social_page_slug);
+    // audit 2026-08-14: home games go through the ONE shared URL builder.
+    // This function used to skip the club_code tier that its own container
+    // (PodHomeGames) used, so the card body and the card's buttons navigated
+    // to DIFFERENT pages for the same slug-less group.
+    if (venue.venue_type === 'home_game') {
+        return homeGameUrl(venue);
     }
-    // Home games live in /hub/venues/[uuid] (now standard for home groups)
     if (venue.is_social_page && venue.social_page_id) {
         return '/club/' + venue.social_page_id;
     }
