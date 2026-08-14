@@ -118,7 +118,7 @@ async function handler(req, res) {
 
         const { data: candidates, error: selectErr } = await admin
             .from('video_transcode_jobs')
-            .select('id, reel_id, attempts, error_message, updated_at')
+            .select('id, reel_id, attempts, error_message, updated_at, youtube_url, source_type')
             .eq('status', 'failed')
             .or(orClause)
             .lt('updated_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())  // older than 1h
@@ -140,8 +140,41 @@ async function handler(req, res) {
             // 1-hour spacing. supabase-js has no atomic increment on update, so
             // group ids by their CURRENT attempts value (already loaded in the
             // select) — at most 5 groups under the cap — one update per group.
+            // DEDUPE (found live, 2026-08-14, third latent bug in this job):
+            // uniq_video_transcode_jobs_yt_url_live enforces ONE live
+            // (queued/processing) job per youtube_url. The never-recovered
+            // backlog contains repeated failures of the same URL, so a bulk
+            // requeue violates it — the first fixed run requeued 200 and then
+            // died on a duplicate. Requeue at most one candidate per URL and
+            // skip URLs that already have a live twin.
+            const liveUrls = new Set();
+            {
+                const candUrls = [...new Set(
+                    candidates
+                        .filter(c => c.source_type === 'youtube' && c.youtube_url)
+                        .map(c => c.youtube_url)
+                )];
+                for (let i = 0; i < candUrls.length; i += 100) {
+                    const { data: liveRows } = await admin
+                        .from('video_transcode_jobs')
+                        .select('youtube_url')
+                        .in('status', ['queued', 'processing'])
+                        .eq('source_type', 'youtube')
+                        .in('youtube_url', candUrls.slice(i, i + 100));
+                    for (const r of liveRows || []) liveUrls.add(r.youtube_url);
+                }
+            }
+            const seenUrls = new Set();
+            const requeueable = candidates.filter(c => {
+                if (c.source_type !== 'youtube' || !c.youtube_url) return true;
+                if (liveUrls.has(c.youtube_url)) return false;   // live twin exists
+                if (seenUrls.has(c.youtube_url)) return false;    // batch duplicate
+                seenUrls.add(c.youtube_url);
+                return true;
+            });
+
             const byAttempts = new Map();
-            for (const c of candidates) {
+            for (const c of requeueable) {
                 const a = Number(c.attempts) || 0;
                 if (!byAttempts.has(a)) byAttempts.set(a, []);
                 byAttempts.get(a).push(c.id);
