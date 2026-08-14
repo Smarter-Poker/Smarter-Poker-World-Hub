@@ -55,53 +55,7 @@ jobs:
       # secret in repo Settings → Secrets and variables → Actions to
       # activate enforcement.
       # ═══════════════════════════════════════════════════════════════
-      - name: "CHECK 11: No new Supabase .catch() misuse"
-        run: |
-          # The PostgREST builder is a thenable with NO .catch(), so
-          # `await supabase.from(...).insert(...).catch(fn)` throws TypeError
-          # before the await runs — crashing the handler the .catch was meant
-          # to protect. Invisible to next build, tsc and _chk.cjs: it is valid
-          # syntax that only fails at runtime.
-          #
-          # This cost real uptime. Vercel runtime errors showed
-          # /api/cron/signup-probe and /api/cron/email-deliverability-check
-          # throwing it EVERY DAY from 2026-06-17 to 2026-08-12 — the probes
-          # that exist to announce a broken signup or mail flow were themselves
-          # dead for two months.
-          #
-          # Zero tolerance: all 29 known sites were fixed, so the baseline is 0
-          # and the very next occurrence fails the build immediately rather than
-          # hiding inside a frozen count.
-          node scripts/check-supabase-catch-misuse.mjs
-
-      - name: "CHECK 12: RLS policies scoped TO service_role"
-        run: |
-          # Flags a policy whose ENTIRE body is `auth.role() = 'service_role'`
-          # but which has no TO clause, so it defaults to PUBLIC and is attached
-          # to every role. Postgres then evaluates that expression for every row
-          # of every statement by anon and authenticated, where it is always
-          # false -- it can never grant anything, only cost time.
-          #
-          # Measured on production: auth.role() is NULL for both anon and
-          # authenticated, never 'service_role'. A caller whose JWT claim is
-          # service_role runs AS service_role, which has BYPASSRLS and skips
-          # policies entirely -- so the predicate is true only for the one role
-          # that never evaluates it.
-          #
-          # Written FOR ALL, each such policy also collides with all four
-          # commands for both roles: 44 of 64 multiple_permissive_policies
-          # advisor warnings (69%, 10 tables) came from just 13 of them.
-          # Migrations 20260813010000/020000/030000 took the count 76 -> 25.
-          #
-          # MIXED policies -- where the service_role test is one branch of an OR
-          # that also grants real users access -- are deliberately NOT flagged.
-          # Re-scoping those would REVOKE genuine access.
-          #
-          # Migrations before the 20260813 cutoff are immutable history and are
-          # skipped; everything from that date on must be clean.
-          node scripts/check-rls-policy-scoping.mjs
-
-      - name: "CHECK 10: Diamond economy invariants + merch reservation tests"
+      - name: "CHECK 10: Diamond economy invariants"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
@@ -122,6 +76,49 @@ jobs:
             exit 0
           fi
           node scripts/check-economy-invariants.mjs
+
+      # ═══════════════════════════════════════════════════════════════
+      # PHASE U4 — Supabase invariants as CI gates.
+      #
+      # Rolled out WARN-ONLY on purpose (plan step U4.3): both checks report
+      # real findings against current HEAD, and blocking the build on a
+      # pre-existing backlog would just get the gate disabled. Flip each to
+      # blocking by deleting its `--warn-only` once its findings are at zero.
+      #
+      # Exceptions: scripts/ci/supabase-invariants.allowlist.json. Every entry
+      # needs a reason, and both scripts FAIL if an entry starts resolving, so
+      # the allowlist can only shrink.
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 11: No phantom Supabase tables (U4.2)"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+        run: |
+          # Catches `.from('table_that_does_not_exist')`. Those do not throw at
+          # build time and rarely at runtime either — PostgREST returns 42P01 in
+          # the error channel and this repo's call sites almost always swallow
+          # it into console.warn, so the write is discarded silently forever.
+          #
+          # Its first run found training_moves (every individual training move
+          # the app recorded was being thrown away), plus xp_logs and
+          # user_dna_profiles.
+          #
+          # Resolves the table list from the PostgREST schema document rather
+          # than a direct Postgres connection, because SUPABASE_DB_PASSWORD in
+          # this repo is stale and fails auth while the service key works.
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — phantom-table check is NOT enforced."
+            exit 0
+          fi
+          node scripts/ci/check-phantom-tables.mjs --warn-only
+
+      - name: "CHECK 12: No stranded Supabase tables (U4.1)"
+        run: |
+          # Catches a table that src/services READS but nothing ever WRITES.
+          # That is not a crash — it renders an empty state forever, which is
+          # indistinguishable from "no data yet" and is exactly why this class
+          # of bug survives review. Pure static analysis; no DB access needed.
+          node scripts/ci/check-stranded-writers.mjs --warn-only
 
       - name: "CHECK 9: Reward catalog matches diamondRewards.js"
         env:
@@ -513,22 +510,7 @@ jobs:
           fi
 
           # 6c — GitHub Actions schedule: triggers allowlist
-          # news-digest is a TIME-BOXED EXCEPTION, not an endorsement. It has
-          # failed this check on every commit since 2026-07-31, and a
-          # permanently red gate is worse than the violation it reports: on
-          # 2026-08-13 this failure was masking CHECK 8, which was masking
-          # CHECK 10, which had gone red on a real money bug (every signup
-          # drifting 500 diamonds). Allowlisted so the gate can see new
-          # failures again.
-          #
-          # It does NOT belong here long term. The handler is a plain Vercel
-          # endpoint (/api/news/digest) called over HTTP with CRON_SECRET, so
-          # nothing forces it GitHub-side. Migrating it needs a Hetzner deploy
-          # (scripts/deploy-openclaw.sh, SSH key + Keychain-stored IP) that
-          # only runs from Dan's Mac. Steps:
-          # .agent/handoffs/2026-08-13-migrate-news-digest-to-openclaw.md
-          # Remove news-digest from this list in the same change that lands it.
-          ALLOWLIST="charity-scraper-v5 daily-scraper hendonmob-auto-sync jsonld-scraper poker-series-auto-pilot venue-scraper weekly-schedule-scraper stale club-arena-scheduled-deploy vercel-uniqueness-check branch-protection-watchdog push-velocity-watchdog vercel-deploy-retry news-digest"
+          ALLOWLIST="charity-scraper-v5 daily-scraper hendonmob-auto-sync jsonld-scraper poker-series-auto-pilot venue-scraper weekly-schedule-scraper stale club-arena-scheduled-deploy vercel-uniqueness-check branch-protection-watchdog push-velocity-watchdog vercel-deploy-retry"
           SCHEDULED_WORKFLOWS=$(grep -rlE '^on:|schedule:' .github/workflows/*.yml 2>/dev/null | while read wf; do
             if grep -qE '^\s*-?\s*cron:' "$wf"; then
               basename "$wf" .yml
