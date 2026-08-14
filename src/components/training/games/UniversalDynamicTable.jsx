@@ -854,6 +854,46 @@ function getHeroSeatIndex(heroPosition, playerCount) {
     return map[normalized] ?? 0;
 }
 
+/**
+ * Seat index for ANY position name, or null when the ring has no seat for it.
+ *
+ * getHeroSeatIndex's `?? 0` fallback is right for hero -- hero must sit
+ * somewhere, and bottom-centre is the least-wrong somewhere -- and wrong for
+ * everyone else: mapping an unknown villain onto the BTN seat is how a
+ * mislabeled position ends up drawn on top of the button. Villain and
+ * action-history matching need the honest answer instead.
+ *
+ * Why matching needs this at all: the seat filter and villainFolded compare
+ * `a.position === seat.name` as raw strings, but the position maps above are
+ * ALIAS tables -- on the 6-max ring, MP and HJ are the same seat 4 and the
+ * ring has no seat literally named 'MP'. String matching therefore dropped
+ * every MP entry on every 6-max game: the #18 derived history marks MP folded,
+ * the plate never draws, and the player counts three folds in the question
+ * text but sees two on the felt. Matching by RESOLVED INDEX makes the ring's
+ * own alias table the single authority on which name lands on which seat.
+ */
+function positionSeatIndex(position, playerCount) {
+    if (!position) return null;
+    const normalized = String(position).toUpperCase().trim();
+    const maps = {
+        9: {
+            'BTN': 0, 'BUTTON': 0, 'SB': 1, 'SMALL BLIND': 1, 'BB': 2, 'BIG BLIND': 2,
+            'UTG': 3, 'UTG+1': 4, 'MP': 5, 'MIDDLE': 5, 'UTG+2': 5,
+            'MP+1': 6, 'LJ': 6, 'LOJACK': 6, 'HJ': 7, 'HIJACK': 7, 'CO': 8, 'CUTOFF': 8,
+        },
+        6: {
+            'BTN': 0, 'BUTTON': 0, 'SB': 1, 'SMALL BLIND': 1, 'BB': 2, 'BIG BLIND': 2,
+            'UTG': 3, 'LJ': 3, 'LOJACK': 3, 'HJ': 4, 'HIJACK': 4, 'MP': 4, 'MIDDLE': 4,
+            'CO': 5, 'CUTOFF': 5,
+        },
+        3: { 'BTN': 0, 'BUTTON': 0, 'BTN/SB': 0, 'SB': 1, 'SMALL BLIND': 1, 'BB': 2, 'BIG BLIND': 2 },
+        2: { 'BTN': 0, 'BUTTON': 0, 'BTN/SB': 0, 'SB': 0, 'SMALL BLIND': 0, 'BB': 1, 'BIG BLIND': 1 },
+    };
+    const map = maps[playerCount] || maps[6];
+    const idx = map[normalized];
+    return idx === undefined ? null : idx;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // COUNTDOWN TIMER — GTO Wizard-style time pressure ring
 // ═══════════════════════════════════════════════════════════════════════════
@@ -3609,20 +3649,28 @@ function UniversalDynamicTable({
                         // HERO-RELATIVE ring index for this ABSOLUTE seat index.
                         // Entry 0 is hero, 1 is the seat to his left, clockwise.
                         const seatRel = ((index - heroSeatIndex) % playerCount + playerCount) % playerCount;
+                        // Alias-aware seat matching (see positionSeatIndex).
+                        // On the 6-max ring MP and HJ share seat 4 and no seat
+                        // is literally named 'MP', so string comparison dropped
+                        // every MP entry -- the #18 fold plate simply never
+                        // drew on 6-max games. The entry matches this seat when
+                        // the ring's own alias table resolves it HERE.
+                        const entryMatchesSeat = (a) =>
+                            positionSeatIndex(a?.position, playerCount) === index;
                         const villainFolded = !isHero && actionHistory.some(
-                            a => a.position?.toUpperCase() === seat.name?.toUpperCase() && /fold/i.test(a.action)
+                            a => entryMatchesSeat(a) && /fold/i.test(a.action)
                         );
                         // Determine if this villain has a speech bubble action
                         const villainSeatAction = !isHero ? (
-                            actionHistory.find(a => a.position?.toUpperCase() === seat.name?.toUpperCase())
-                            || (villainPosition?.toUpperCase() === seat.name?.toUpperCase() && villainAction ? { action: villainAction } : null)
+                            actionHistory.find(entryMatchesSeat)
+                            || (index === villainSeatIndex && villainAction ? { action: villainAction } : null)
                         ) : null;
 
                         // GAP 1 FIX: Only show Hero + villain(s) who acted or are the named villain.
                         // Alias-aware: the named villain resolves via villainSeatIndex (same
                         // mapping as hero) so 'MP'/'SB'/'LJ' aliases don't make villains vanish.
                         const isActiveVillain = index === villainSeatIndex
-                            || actionHistory.some(a => a.position?.toUpperCase() === seat.name?.toUpperCase());
+                            || actionHistory.some(entryMatchesSeat);
                         if (!isHero && !isActiveVillain) return null;
 
                         // ── SEAT GEOMETRY ────────────────────────────────
@@ -3638,7 +3686,7 @@ function UniversalDynamicTable({
                         const activeCount = seats.filter((s, i) => {
                             if (i === heroSeatIndex) return true;
                             return i === villainSeatIndex
-                                || actionHistory.some(a => a.position?.toUpperCase() === s.name?.toUpperCase());
+                                || actionHistory.some(a => positionSeatIndex(a?.position, playerCount) === i);
                         }).length;
                         // ...and the seat ring is one of those tables. `seats` is a
                         // POSITION table: entry 0 is BTN, entry 1 is SB, and so on,
@@ -4043,10 +4091,13 @@ function UniversalDynamicTable({
                         if (!amount || amount <= 0) return null;
                         // Only seats actually shown on the felt get chips.
                         const isHeroSeat = index === heroSeatIndex;
+                        // Same alias-aware match as the seat block above --
+                        // a chip must not be hidden (or shown) by a name the
+                        // ring spells differently than the history does.
                         const shown = isHeroSeat
                             || index === villainSeatIndex
                             || actionHistory.some(
-                                (a) => a.position?.toUpperCase() === seat.name?.toUpperCase()
+                                (a) => positionSeatIndex(a?.position, playerCount) === index
                             );
                         if (!shown) return null;
                         // Same absolute-vs-hero-relative mismatch as the dealer
