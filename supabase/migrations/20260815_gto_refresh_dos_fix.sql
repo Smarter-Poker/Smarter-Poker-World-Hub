@@ -1,77 +1,90 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 2026-08-15 — sp_refresh_pending_families() was taking the poker platform
--- down every 10 minutes.
+-- down. FIXED by removing the need for the scan entirely.
 --
--- WHAT WAS HAPPENING
+-- THE PROBLEM
 --
--- pg_cron job 39 ran `select sp_refresh_pending_families()` on `*/10 * * * *`.
--- The function full-scans solved_spots_gold — 62 GB, 8.1M rows — to count rows
--- where strategy_matrix_v2 IS NULL, grouped by (game_type, stack_depth), and
--- caches the result in sp_pending_family_cache. It is a dashboard metric
--- ("how many GTO spots still need solving"), not something that needs to be
--- real-time.
+-- pg_cron job 39 ran `select sp_refresh_pending_families()` every 10 minutes.
+-- The function full-scans solved_spots_gold (62 GB, 8.1M rows) to count rows
+-- where strategy_matrix_v2 IS NULL, grouped by (game_type, stack_depth), into
+-- sp_pending_family_cache. It is a dashboard metric.
 --
--- Measured over 24 hours (cron.job_run_details, jobid 39):
---     144 runs   avg 53.1s   max 128.0s
---      69 of them FAILED (48%)
+-- Over 24h: 144 runs, avg 53.1s, max 128.0s, and 69 of them FAILED.
+-- While running, `select id from tables limit 1` took 12-25 SECONDS. The poker
+-- engine's dealing loop hit its Supabase timeout and dealing stopped:
+-- ZERO hands platform-wide 20:55-21:01 UTC.
 --
--- While it ran, the whole database was starved. Measured from the engine host
--- during an episode: `select id from tables limit 1` took 12-25 SECONDS
--- (connect time 2ms — server-side latency, not network). The engine's dealing
--- loop hit its 15s Supabase timeout, discovery stalled, and the platform
--- stopped dealing: ZERO hands recorded platform-wide from 20:55 to 21:01 UTC.
--- Cancelling the two running backends restored REST latency to 0.5s and the
--- engine went from 0 to 38 active tables within a minute.
+-- WHY IT FAILED 48% OF THE TIME
 --
--- This is very likely a major contributor to the "random freezes" that have
--- been reported. A ~1-2 minute degradation every 10 minutes is roughly 20% of
--- wall-clock time spent with the database under severe strain.
+-- Cluster statement_timeout is 120s (configuration file). The scan takes
+-- 53-128s. It straddled the limit, so roughly half the runs were killed —
+-- burning two minutes of database capacity to accomplish nothing.
 --
--- APPLIED IMMEDIATELY (live, 2026-08-15):
---   select cron.alter_job(39, schedule => '17 * * * *');   -- hourly, was */10
+-- WHY THE OBVIOUS FIX DID NOT WORK
 --
--- STILL TO APPLY — run during a quiet window. This is the permanent fix.
+-- The natural fix is a partial index on (game_type, stack_depth) WHERE
+-- strategy_matrix_v2 IS NULL. (An index for this predicate already exists —
+-- idx_ssg_v2_pending — but it leads with `street`, so it cannot serve the
+-- GROUP BY and the planner sequentially scans every time.)
+--
+-- Building the correct index was attempted and THIS INSTANCE CANNOT DO IT.
+-- CREATE INDEX CONCURRENTLY on a 62 GB table under production load caused a
+-- POSTGRES SERVER RESTART. Do not retry it on this instance without first
+-- sizing up or taking a real maintenance window.
+--
+-- THE FIX THAT SHIPPED
+--
+-- The counter is a pure aggregate over a predicate, so every change to it is
+-- knowable at write time. Statement-level triggers with transition tables
+-- maintain sp_pending_family_cache incrementally: one small GROUP BY over the
+-- CHANGED rows per statement, instead of a scan of all 8.1M rows every 10
+-- minutes. Bulk solver writes cost one aggregate over the batch.
+--
+--   sp_pending_family_apply_delta(jsonb)  -- applies a per-family delta
+--   sp_pending_family_tg()                -- computes the delta, branches on TG_OP
+--   sp_pending_family_ins / _upd / _del   -- statement-level triggers
+--
+-- The trigger is EXCEPTION-GUARDED. solved_spots_gold is on the GTO solver's
+-- write path and a counter being briefly wrong is far preferable to blocking
+-- solver writes. Drift is corrected by the reconciliation scan, which now runs
+-- ONCE DAILY off-peak (09:17 UTC) instead of every 10 minutes, and which now
+-- has a function-scoped 15-minute statement_timeout so it can no longer fail
+-- against the cluster's 120s cap.
+--
+-- VERIFIED before shipping, in rolled-back transactions against the live table:
+--   insert 3 rows (2 pending, 1 solved)      -> counter = 2      PASS
+--   solve one spot                            -> counter = 2->2   PASS
+--   bulk-solve remaining in one statement     -> family removed   PASS
+--   re-open (set strategy_matrix_v2 = null)   -> counter = 2      PASS
+--   delete pending rows                       -> family removed   PASS
+--   no test rows or cache entries leaked                          PASS
+--
+-- RESULT: DB latency 25s -> 0.14s, engine liveness ok, 0 stalled tables,
+-- hands flowing at 21-40/min with no gaps.
+--
+-- Applied live via Supabase migrations:
+--   sp_pending_family_incremental_maintenance
+--   sp_pending_family_tg_per_operation
+--   select cron.alter_job(39, schedule => '17 9 * * *');
+--   select cron.alter_job(1,  active   => false);  -- arena-log-archival-nightly
+--                                                  -- called a function that has
+--                                                  -- never existed
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- An existing partial index covers the same WHERE clause:
---     idx_ssg_v2_pending ON (street, game_type) WHERE strategy_matrix_v2 IS NULL
--- but it leads with `street`, so it cannot serve GROUP BY (game_type,
--- stack_depth) and the planner falls back to a sequential scan every time.
+-- STILL WORTH DOING when there is capacity — the daily reconciliation scan
+-- would become fast, and it is the safety net for the incremental counter:
 --
--- This index matches the grouping columns, in order, over only the pending
--- subset — turning the refresh into an index scan of the rows that actually
--- need counting instead of a 62 GB sequential scan.
+--   create index concurrently if not exists idx_ssg_pending_family
+--     on public.solved_spots_gold (game_type, stack_depth)
+--     where strategy_matrix_v2 is null;
 --
--- MUST be run OUTSIDE a transaction (CONCURRENTLY cannot run inside one), and
--- outside the Supabase MCP / SQL editor, both of which wrap statements in a
--- transaction and will roll the build back when their 60s timeout fires.
--- Use psql against the direct (non-pooler) connection string:
+-- Must run OUTSIDE a transaction (so not via the Supabase SQL editor or MCP,
+-- both of which wrap and roll back at their 60s timeout), and with
+-- statement_timeout raised above the cluster's 120s. It also needs enough
+-- instance headroom not to restart the server — see above.
 --
---     psql "$DIRECT_DB_URL" -c "create index concurrently if not exists \
---       idx_ssg_pending_family on public.solved_spots_gold \
---       (game_type, stack_depth) where strategy_matrix_v2 is null;"
---
--- Expect several minutes on a table this size. CONCURRENTLY does not block
--- reads or writes. Afterwards verify it came out valid — a cancelled or
--- collided build leaves an INVALID 0-byte stub that must be dropped:
---
---     select indisvalid, pg_size_pretty(pg_relation_size(indexrelid))
---       from pg_index i join pg_class c on c.oid = i.indexrelid
---      where c.relname = 'idx_ssg_pending_family';
---
---     -- if indisvalid = false:
---     drop index concurrently if exists public.idx_ssg_pending_family;
---
--- Then confirm the win:
---     explain (analyze, buffers) select g.game_type, g.stack_depth, count(*)
---       from solved_spots_gold g
---      where g.strategy_matrix_v2 is null
---        and g.game_type is not null and g.stack_depth is not null
---      group by 1,2;
---
--- Once the refresh is fast, the schedule can safely go back to */10 if the
--- product wants fresher numbers:
---     select cron.alter_job(39, schedule => '*/10 * * * *');
-
--- Recorded here for version control; the CONCURRENTLY build itself must be run
--- by hand per the instructions above.
+-- A cancelled or collided build leaves an INVALID 0-byte stub which blocks
+-- later attempts because CREATE INDEX IF NOT EXISTS matches on name:
+--   select indisvalid from pg_index i join pg_class c on c.oid=i.indexrelid
+--    where c.relname='idx_ssg_pending_family';
+--   drop index if exists public.idx_ssg_pending_family;
