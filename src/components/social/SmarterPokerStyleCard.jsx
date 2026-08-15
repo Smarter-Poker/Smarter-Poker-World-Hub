@@ -9,6 +9,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { getAuthorDisplayName } from '../../utils/displayName';
 import TranscodeStatusBadge from './TranscodeStatusBadge';
+import { YouTubePosterImg } from './SharedVideoComponents';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 SMARTERPOKER COLOR PALETTE
@@ -763,11 +764,12 @@ export const SPPostCard = ({
                               );
                             }
                             if (ytId) {
+                              // 2026-08-15 poster-quality fix: maxres→sd→hq
+                              // ladder instead of pinned 480×360 hqdefault.
                               return (
-                                <img
-                                  src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                                <YouTubePosterImg
+                                  videoId={ytId}
                                   alt={`Video ${idx + 1}`}
-                                  loading="lazy"
                                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 />
                               );

@@ -14,6 +14,57 @@ import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../hooks/useYouT
 import toast from '../../stores/toastStore';
 
 // ═══════════════════════════════════════════════════════════════════════════
+// YOUTUBE POSTER LADDER (2026-08-15 poster-quality fix, per Dan)
+// ═══════════════════════════════════════════════════════════════════════════
+// Every feed video tile postered from hqdefault.jpg — a 480×360 4:3 frame
+// with letterbox bars — upscaled to a ~740px card: grainy AND distorted.
+// (A 2026-05-07 re-encode job also nulled thumbnail_url on 2,372 reels, so
+// nearly every YT post fell into this path.) This ladder starts at
+// maxresdefault (1280×720, true 16:9) and steps down only when YouTube
+// doesn't have the size: maxres → sd → hq. YouTube sometimes serves a
+// 120×90 grey placeholder instead of a 404 for a missing size, so onLoad
+// treats that as a miss too.
+
+const YT_POSTER_FILES = ['maxresdefault.jpg', 'sddefault.jpg', 'hqdefault.jpg'];
+
+export function YouTubePosterImg({ videoId, alt = '', style = {}, onLoadValid, onExhausted, ...props }) {
+  const [rung, setRung] = useState(0);
+  useEffect(() => { setRung(0); }, [videoId]);
+  const exhaustedRef = useRef(false);
+  useEffect(() => { exhaustedRef.current = false; }, [videoId]);
+
+  if (!videoId || rung >= YT_POSTER_FILES.length) return null;
+  const src = `https://img.youtube.com/vi/${videoId}/${YT_POSTER_FILES[rung]}`;
+
+  const advance = () => {
+    setRung((r) => {
+      const next = r + 1;
+      if (next >= YT_POSTER_FILES.length && !exhaustedRef.current) {
+        exhaustedRef.current = true;
+        if (onExhausted) onExhausted();
+      }
+      return next;
+    });
+  };
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      style={style}
+      onError={advance}
+      onLoad={(e) => {
+        const img = e.target;
+        if (img.naturalWidth <= 120 && img.naturalHeight <= 90) advance();
+        else if (onLoadValid) onLoadValid(e);
+      }}
+      {...props}
+    />
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // VIDEO THUMBNAIL - Robust with fallback for invalid YouTube IDs
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -22,6 +73,9 @@ export function VideoThumbnail({ url, style = {}, onValidated }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isValid, setIsValid] = useState(null);
   const imgRef = useRef(null);
+  // 2026-08-15 poster-quality fix: render via the maxres→sd→hq ladder
+  // (see YouTubePosterImg above) instead of pinning 480×360 hqdefault.
+  const ladderVideoId = getYouTubeVideoId(url);
   const thumbnailUrl = getYouTubeThumbnail(url);
 
   const FallbackUI = ({ showUnavailable = false }) => (
@@ -72,9 +126,8 @@ export function VideoThumbnail({ url, style = {}, onValidated }) {
   return (
     <>
       {!isLoaded && !thumbnailError && <FallbackUI />}
-      <img
-        ref={imgRef}
-        src={thumbnailUrl}
+      <YouTubePosterImg
+        videoId={ladderVideoId}
         alt="Video Thumbnail"
         style={{
           width: '100%',
@@ -83,8 +136,8 @@ export function VideoThumbnail({ url, style = {}, onValidated }) {
           display: isLoaded && !thumbnailError ? 'block' : 'none',
           ...style,
         }}
-        onLoad={handleLoad}
-        onError={handleError}
+        onLoadValid={handleLoad}
+        onExhausted={handleError}
       />
     </>
   );
@@ -353,15 +406,16 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
       );
     }
     const ytId = getYouTubeVideoId(videoUrl);
-    const ytPosterUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
-    if (ytPosterUrl && !ytPosterFailed) {
+    if (ytId && !ytPosterFailed) {
+      // 2026-08-15 poster-quality fix: maxres→sd→hq ladder replaces the
+      // pinned 480×360 hqdefault (grainy at card width). onExhausted keeps
+      // the exact ytPosterFailed semantics the B7 fix established.
       return (
-        <img
-          src={ytPosterUrl}
+        <YouTubePosterImg
+          videoId={ytId}
           alt=""
-          loading="lazy"
           style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
-          onError={() => setYtPosterFailed(true)}
+          onExhausted={() => setYtPosterFailed(true)}
         />
       );
     }
