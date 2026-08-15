@@ -131,12 +131,24 @@ cp "$DIST_TMP/index.html" "$DEST/index.html"
 cp -r "$DIST_TMP/assets" "$DEST/assets"
 
 # Copy any other top-level build artifacts except big static dirs CA doesn't rebuild
+#
+# Dan 2026-08-15 — NESTING BUG. This used to be a bare `cp -r "$f" "$DEST/$fname"`.
+# When $DEST/$fname already exists as a directory, `cp -r src/d dest/d` copies the
+# source INTO the existing directory, yielding dest/d/d. game-card-icons/ is neither
+# wiped (only assets/ is) nor preserved (only cards|images|club-logos|videos are), so
+# it survived every sync and re-nested one level deeper each run — a 2026-08-15 sync
+# staged 51 duplicate PNGs (~6 MB) at game-card-icons/game-card-icons/, and the next
+# run would have produced a third level. Mirror the assets/ handling: clear the
+# destination directory first so each sync writes a flat, exact copy.
 for f in "$DIST_TMP"/*; do
   fname=$(basename "$f")
   case "$fname" in
     index.html|assets) ;;
     cards|images|club-logos|videos) ;; # preserved — not touched
-    *) cp -r "$f" "$DEST/$fname" ;;
+    *)
+      [ -d "$f" ] && rm -rf "$DEST/$fname"
+      cp -r "$f" "$DEST/$fname"
+      ;;
   esac
 done
 ok "Swapped"
