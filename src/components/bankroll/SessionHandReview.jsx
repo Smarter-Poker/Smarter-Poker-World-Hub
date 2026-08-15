@@ -25,12 +25,23 @@ export default function SessionHandReview({ userId }) {
         setLoading(true);
 
         // Fetch recent analyzed hands from Training Hub
-        const { data: hands } = await supabase
+        // 2026-08-15 CHECK 13 fix: this selected hand_id, created_at and
+        // action — none exist on training_hand_history (real: hand_number,
+        // played_at, action_sequence) — so the query 42703'd and the recent
+        // hands list was empty forever. Rows are mapped back to the names the
+        // render code uses, same pattern as the bankroll_ledger fix below.
+        const { data: handsRaw } = await supabase
             .from('training_hand_history')
-            .select('id, hand_id, created_at, position, action, result, notes, session_id')
+            .select('id, hand_number, played_at, position, action_sequence, result, notes, session_id')
             .eq('user_id', userId)
-            .order('created_at', { ascending: false })
+            .order('played_at', { ascending: false })
             .limit(20);
+        const hands = (handsRaw || []).map(h => ({
+            ...h,
+            hand_id: h.hand_number != null ? String(h.hand_number) : null,
+            created_at: h.played_at,
+            action: h.action_sequence,
+        }));
 
         // Fetch recent bankroll sessions.
         // CHECK 13 (2026-08-14): this selected result/date/venue — none exist on

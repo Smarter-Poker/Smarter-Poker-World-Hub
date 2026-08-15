@@ -96,14 +96,20 @@ export default async function handler(req, res) {
               // Create or update session record
               const { error: upsertError } = await getSupabase()
                   .from('god_mode_user_session')
+                  // 2026-08-15 CHECK 13 fix: this wrote session_id,
+                  // round_hand_count and round_correct_count — none exist on
+                  // god_mode_user_session (real: current_round_hands_played /
+                  // current_round_correct; no session id column) — so the upsert
+                  // 42703'd on every session start and progress (level, HP,
+                  // totals) NEVER persisted. sessionId still goes back to the
+                  // client in the response; it just isn't a DB column.
                   .upsert({
                       user_id: user_id,
                       game_id: game_id,
-                      session_id: sessionId,
                       current_level: currentLevel,
                       health_chips: currentHp,
-                      round_hand_count: 0,
-                      round_correct_count: 0,
+                      current_round_hands_played: 0,
+                      current_round_correct: 0,
                       total_hands_played: existingSession?.total_hands_played || 0,
                       total_correct: existingSession?.total_correct || 0,
                       highest_level_unlocked: existingSession?.highest_level_unlocked || 1,

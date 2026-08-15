@@ -73,11 +73,40 @@ agent's work in flight) -> apply small deterministic patches -> verify
 origin HEAD:main` (SSH credentials on the Mac work; the revoked-token note
 in .agent docs applies to the HTTPS .env token). Byte-exact by construction.
 
-## Remaining backlog / next batch candidates (154)
+## Part 3 — Batch 2: player-facing scatter (154 -> 142)
 
-god_mode_user_session.session_id/round_hand_count/round_correct_count
-(pages/api/session/start.js — real: current_round_hands_played /
-current_round_correct), video_favorites.video_url/thumbnail_url,
-training_hand_history.hand_id/created_at/action (SessionHandReview),
-social_posts.shared_post_id, poker_events.event_date, plus the
-pages/api/training (16) and club-arena (11) clusters.
+Seven more never-worked features, all verified against the live schema:
+
+- poker_events.event_date (real: start_date) — the news events API 42703'd
+  on every request and returned {data: [], fallback: true} forever; the news
+  page only ever showed its "Sample" placeholder events. Query repointed and
+  rows aliased back to event_date for the frontend.
+- newsletter_subscribers.source — every NEW newsletter signup 500'd (the
+  insert threw); only re-activation of existing rows worked. Additive
+  migration 20260815_newsletter_subscribers_source (provenance slug is part
+  of the design; zero code change).
+- god_mode_user_session.session_id/round_hand_count/round_correct_count
+  (real: current_round_hands_played/current_round_correct, no session id
+  column) — the upsert died on every session start, so god-mode progress
+  (level, HP, totals) never persisted.
+- video_favorites.video_url/thumbnail_url — the insert threw on every call:
+  favoriting a video (and its 2-diamond reward) never worked. Nothing reads
+  those fields back (video-library reconstructs from video_id), so they are
+  simply not persisted.
+- training_hand_history.hand_id/created_at/action (real: hand_number/
+  played_at/action_sequence) — SessionHandReview's recent-hands list was
+  empty forever; rows now mapped back to the render names.
+- social_posts.shared_post_id — share-to-feed's insert 42703'd: sharing a
+  post to the feed never worked. Provenance moved into metadata (jsonb);
+  the duplicate guard already keys on link_url.
+- social_pages.user_id (real: owner_id) — geocode-locations answered
+  404 "Page not found" for every page.
+
+Scanner re-run: 154 -> 142, zero new findings. Shipped via the
+host-terminal worktree transport with blob-sha verification.
+
+## Remaining backlog / next batch candidates (142)
+
+The pages/api/training cluster (16), club-arena cluster (11), god-mode
+cluster (9), content-engine pipeline (14+) and poker-engine (14) clusters,
+plus assorted admin/assistant/memory findings.

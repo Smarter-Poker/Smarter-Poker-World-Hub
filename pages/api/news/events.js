@@ -36,8 +36,12 @@ export default async function handler(req, res) {
           let query = getSupabase()
               .from('poker_events')
               .select('*')
-              .gte('event_date', new Date().toISOString().split('T')[0])
-              .order('event_date', { ascending: true })
+              // 2026-08-15 CHECK 13 fix: poker_events has no event_date column
+              // (real: start_date) — the query 42703'd on every request, so this
+              // API returned {data: [], fallback: true} forever and the news page
+              // only ever showed its "Sample" placeholder events.
+              .gte('start_date', new Date().toISOString().split('T')[0])
+              .order('start_date', { ascending: true })
               .limit(limit);
 
           if (featured === 'true') {
@@ -54,7 +58,10 @@ export default async function handler(req, res) {
           }
 
           res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
-          return res.status(200).json({ success: true, data });
+          // The news page renders event.event_date — expose start_date under the
+          // name the frontend already uses.
+          const mapped = data.map((e) => ({ ...e, event_date: e.start_date }));
+          return res.status(200).json({ success: true, data: mapped });
       } catch (error) {
           try { reportApiError(error, req); } catch (_e) { /* noop */ }
           console.warn('[Events API] Exception:', error?.message || error);

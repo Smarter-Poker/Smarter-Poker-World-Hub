@@ -140,9 +140,12 @@ export default async function handler(req, res) {
 
       try {
           // Fetch current metadata + verify ownership
+          // 2026-08-15 CHECK 13 fix: social_pages has no user_id column
+          // (real: owner_id) — the select 42703'd, so this endpoint answered
+          // 404 "Page not found" for every page and geocoding never worked.
           const { data: page, error: fetchError } = await getSupabase()
               .from('social_pages')
-              .select('metadata, user_id, owner_id')
+              .select('metadata, owner_id')
               .eq('id', page_id)
               .maybeSingle();
 
@@ -151,7 +154,7 @@ export default async function handler(req, res) {
           }
 
           // BUG #282 cont: Verify caller owns this page
-          const pageOwner = page.user_id || page.owner_id;
+          const pageOwner = page.owner_id;
           if (pageOwner && pageOwner !== user.id) {
               return res.status(403).json({ success: false, error: 'Not authorized to modify this page' });
           }

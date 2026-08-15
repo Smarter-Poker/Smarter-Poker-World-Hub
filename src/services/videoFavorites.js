@@ -30,12 +30,15 @@ export async function getVideoFavorites(userId) {
 export async function addVideoFavorite(userId, videoId, videoData = {}) {
     const { data, error } = await supabase
         .from('video_favorites')
+        // 2026-08-15 CHECK 13 fix: this wrote video_url and thumbnail_url,
+        // which do not exist on video_favorites — the insert threw on every
+        // call, so favoriting a video (and its 2-diamond reward) NEVER worked.
+        // Nothing reads those fields back: video-library reconstructs both the
+        // URL and the thumbnail from video_id, so they are simply not persisted.
         .insert({
             user_id: userId,
             video_id: videoId,
-            video_title: videoData.title || null,
-            video_url: videoData.url || null,
-            thumbnail_url: videoData.thumbnail || null
+            video_title: videoData.title || null
         })
         .select()
         .maybeSingle();

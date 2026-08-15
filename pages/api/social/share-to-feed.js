@@ -69,7 +69,11 @@ export default async function handler(req, res) {
             media_urls: original.media_urls || [],
             visibility: 'public',
             link_url: postLink,
-            shared_post_id: original.id,
+            // 2026-08-15 CHECK 13 fix: shared_post_id is not a column on
+            // social_posts — the insert 42703'd, so sharing a post to the feed
+            // NEVER worked. Provenance lives in metadata (jsonb, real column);
+            // the duplicate guard above already keys on link_url.
+            metadata: { shared_post_id: original.id },
         }).select('id').maybeSingle();
 
         if (insertErr) {
