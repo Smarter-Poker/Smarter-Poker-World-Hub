@@ -58,10 +58,20 @@ const STREETS = [
 ];
 
 // GTO Wizard Difficulty Modes
+//
+// The third id is 'exact', NOT 'standard'. Two vocabularies feed
+// toEngineDifficulty: this modal's button-set names and SessionSetupModal's
+// grading tiers (beginner/standard/expert). They collided on the word
+// 'standard', which the mapping resolves to the MIDDLE tier (GROUPED) because
+// that is what SessionSetupModal means by it. So picking the card below that
+// promises "Exact Sizings, up to 9 buttons" delivered grouped buckets
+// instead — and since 'standard' is also this modal's default, exact sizings
+// were unreachable from the whole screen. 'exact' has always mapped to
+// DIFFICULTY.STANDARD; using it makes the label true.
 const DIFFICULTY_MODES = [
     { id: 'simple', label: 'Simple', icon: '1', desc: 'Bet/Check/Fold', detail: '3 buttons max — learn basic decisions' },
-    { id: 'grouped', label: 'Grouped', icon: '2', desc: 'Small/Medium/Large', detail: '4-5 buttons — sizing categories' },
-    { id: 'standard', label: 'Standard', icon: '3', desc: 'Exact Sizings', detail: 'Up to 9 buttons — real solver sizings' },
+    { id: 'grouped', label: 'Grouped', icon: '2', desc: 'Small/Medium/Large/Overbet', detail: '4-5 buttons — sizing categories' },
+    { id: 'exact', label: 'Standard', icon: '3', desc: 'Exact Sizings', detail: 'Up to 9 buttons — real solver sizings' },
 ];
 
 export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGameId }) {
@@ -73,7 +83,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
     const [street, setStreet] = useState('all');
     const [handClass, setHandClass] = useState('all');
     const [questionsCount, setQuestionsCount] = useState(25);
-    const [difficultyMode, setDifficultyMode] = useState('standard');
+    const [difficultyMode, setDifficultyMode] = useState('exact');
     const [timerEnabled, setTimerEnabled] = useState(false);
     const [timerSeconds, setTimerSeconds] = useState(30);
     const [spotType, setSpotType] = useState('any');

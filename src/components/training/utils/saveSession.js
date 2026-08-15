@@ -5,6 +5,10 @@
 
 import { enqueueMutation } from '../../../engine/OfflineSyncQueue';
 import { busEmit } from '../../../engine/EventBus';
+import {
+  heroPositionOf,
+  compactHandHistoryEntry,
+} from '../../../lib/training/handHistoryEntry';
 
 /**
  * Save training session data to backend
@@ -62,7 +66,12 @@ export async function saveSession(sessionData) {
   const posStats = {};
   const classCounts = {};
   handHistory.forEach((h) => {
-    const pos = h.handData?.heroPosition || 'UNK';
+    // `h.handData` does not exist -- recordMove spreads handData FLAT onto the
+    // entry. Every session ever saved therefore wrote a single `UNK` bucket
+    // into training_sessions.position_stats, and /api/training/gto-reports and
+    // /api/training/coaching-summary both derive "strongest position",
+    // "weakest position" and the recommended drill from that column.
+    const pos = heroPositionOf(h);
     if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0, evLoss: 0 };
     posStats[pos].total++;
     if (h.classification === 'best' || h.classification === 'correct') posStats[pos].correct++;
@@ -78,23 +87,17 @@ export async function saveSession(sessionData) {
   // 413 on EVERY level completion — sessions were never saved and the
   // level-progression system was dead in production. Strip the bulk
   // matrices; keep everything the review/replay/report consumers read.
-  const compactHandHistory = (handHistory || []).slice(0, 100).map((h) => {
-    if (!h || typeof h !== 'object') return h;
-    const hd = h.handData && typeof h.handData === 'object' ? h.handData : null;
-    return {
-      ...h,
-      handData: hd
-        ? {
-            ...hd,
-            rawFrequencies: undefined,
-            evData:
-              hd.evData && typeof hd.evData === 'object'
-                ? { ...hd.evData, handEVs: undefined }
-                : hd.evData ?? null,
-          }
-        : hd,
-    };
-  });
+  //
+  // ●●● 2026-08-15: that fix was a NO-OP for its entire life. ●●●
+  // It stripped the matrices off `h.handData`, a key that does not exist --
+  // recordMove spreads handData FLAT. So `hd` was always null, the map
+  // returned `{...h, handData: null}`, and both matrices stayed on the entry
+  // at full size. The server-side twin had the identical bug and returned
+  // early on the same null. The payload has been full-size the whole time and
+  // the 2MB in-handler guard is reachable on long or multi-street sessions --
+  // which fails the save silently. Compaction now runs against whichever
+  // shape the entry actually has.
+  const compactHandHistory = (handHistory || []).slice(0, 100).map(compactHandHistoryEntry);
 
   const payload = {
     gameId,

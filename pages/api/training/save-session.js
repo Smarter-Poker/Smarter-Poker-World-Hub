@@ -14,6 +14,7 @@ import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { safeAward } from '../../../src/lib/rewards/awardGuard';
+import { compactHandHistoryEntry } from '../../../src/lib/training/handHistoryEntry';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -42,17 +43,14 @@ export const config = {
 
 // Strip the two per-169-hand bulk matrices from a hand-history entry before
 // persisting — they are review-time UI data, not reporting data.
-function compactHandHistoryEntry(h) {
-    if (!h || typeof h !== 'object') return h;
-    const hd = h.handData && typeof h.handData === 'object' ? h.handData : null;
-    if (!hd) return h;
-    const { rawFrequencies: _rf, ...restHd } = hd;
-    const evData =
-        restHd.evData && typeof restHd.evData === 'object'
-            ? (({ handEVs: _he, ...restEv }) => restEv)(restHd.evData)
-            : restHd.evData ?? null;
-    return { ...h, handData: { ...restHd, evData } };
-}
+//
+// 2026-08-15: the previous implementation read `h.handData` and returned the
+// entry untouched when it was absent — which it always is, because
+// useGTOWScore.recordMove spreads handData FLAT onto the entry. `if (!hd)
+// return h;` was taken on every entry of every session, so this function has
+// never once removed a byte. The shared helper handles both shapes; see
+// src/lib/training/handHistoryEntry.js for the full account of that defect
+// class. The implementation now lives in that module and is imported above.
 
 export default async function handler(req, res) {
   try {

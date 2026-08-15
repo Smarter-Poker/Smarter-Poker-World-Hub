@@ -2086,10 +2086,18 @@ export class DeterministicGTOEngine {
                 if (!existingIds.has('c') && !existingIds.has('x')) {
                     fillers.push({ id: 'c', text: 'Check' });
                 }
+                // ONE unsized aggressive option, not three fabricated sizings.
+                //
+                // Roadmap #20: buttons must never be padded with actions the
+                // solver did not return. This branch used to inject `b33`,
+                // `b66` and `b100` on a check-only node -- three specific
+                // sizings presented with the same authority as solver output,
+                // on a spot where the solver said nothing about sizing at all.
+                // A decision does need a second option to be a decision, so
+                // the aggressive alternative stays; it just stops claiming to
+                // know how much.
                 if (![...existingIds].some(id => id.startsWith('b'))) {
-                    fillers.push({ id: 'b33', text: 'Bet 33%' });
-                    fillers.push({ id: 'b66', text: 'Bet 67%' });
-                    fillers.push({ id: 'b100', text: 'Bet Pot' });
+                    fillers.push({ id: 'b', text: 'Bet' });
                 }
                 break;
 
@@ -5291,6 +5299,7 @@ export class DeterministicGTOEngine {
             correctAction: record.correctAction || '',
             handCategory: record.handCategory || '',
             frequencies: record.frequencies || null,
+            answerTimeSeconds: Number.isFinite(record.answerTimeSeconds) ? record.answerTimeSeconds : null,
             heroPosition: record.heroPosition || null,
             position: record.heroPosition || null,
             texture: record.texture || null,
@@ -16464,6 +16473,479 @@ export class DeterministicGTOEngine {
                 boardCards,
             },
         };
+    }
+
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+    // DEEP COACHING (roadmap #33 — "plain-language reason")
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+    //
+    // useGTOTrainer exposes ten wrappers under "Phase 261-270 Deep coaching
+    // intelligence", and NINE panels in the feedback layer render off them:
+    // PRINCIPLE, POSITION, TEXTURE, SPR, VILLAIN RANGE and STREET PLAN behind
+    // the "More coaching insights" disclosure, plus Frequency Correction, Tilt
+    // Recovery and Session Pacing on the session summary.
+    //
+    // None of the ten methods existed. Every wrapper is written as
+    // `try { return deterministicEngine.getX(...) } catch { return null }`, so
+    // each call threw a TypeError on a missing method name, the catch swallowed
+    // it, and each panel's `if (!x) return null` guard rendered nothing. No
+    // error, no console output, no empty state -- just nine panels that have
+    // been silently absent for their entire existence. That is precisely what
+    // the roadmap meant by "only the SHALLOW notes actually render".
+    //
+    // Everything below is deterministic: same spot in, same words out. No
+    // model calls, no randomness. The spot-level methods are pure functions of
+    // the spot; the three session-level ones read `_sessionStats.history`,
+    // which recordSessionHand has been populating since 2026-08-08.
+
+    /**
+     * The single idea that explains why the solver plays this way here.
+     * @returns {{principle: string}|null}
+     */
+    getTeachingPrinciple(street, nodeType, correctAction, handStrength, texture) {
+        const token = this._getHandToken(handStrength);
+        const act = String(correctAction || '').toLowerCase();
+        const node = String(nodeType || '').toLowerCase();
+        const st = String(street || '').toLowerCase();
+        const tex = String(texture || '').toLowerCase();
+
+        const aggressive = /bet|raise|3-bet|4-bet|shove|all-?in|jam/.test(act);
+        const passive = /check|call/.test(act);
+        const folding = /fold/.test(act);
+        const facing = node.includes('face') || node.includes('vs') || node.includes('bet');
+
+        const STRONG = ['nuts', 'full_house', 'flush', 'straight', 'set', 'trips', 'two_pair', 'overpair', 'top_pair_top_kicker'];
+        const DRAW = ['combo_draw', 'flush_draw', 'oesd', 'gutshot'];
+        const WEAK = ['air', 'overcards', 'weak_pair', 'middle_pair'];
+
+        let principle = null;
+
+        if (folding) {
+            principle = facing
+                ? 'Folding is a frequency, not a failure. Against a range this strong you cannot defend every hand profitably -- the ones you keep are chosen for equity and blockers, and this one has neither.'
+                : 'A hand with no equity and no blocking value has nothing to gain by continuing. Give it up now rather than paying to find out on a later street.';
+        } else if (aggressive && STRONG.includes(token)) {
+            principle = st === 'river'
+                ? 'Value bet as thin as your opponent will pay. On the river there are no more cards to protect against, so the only question left is whether a worse hand calls.'
+                : 'Bet for value AND protection. A strong made hand wants money in the pot while worse hands still have equity to lose.';
+        } else if (aggressive && DRAW.includes(token)) {
+            principle = 'Semi-bluff. Two ways to win -- they fold now, or you improve later -- which is why a draw bets at a higher frequency than a hand of the same raw showdown value.';
+        } else if (aggressive && WEAK.includes(token)) {
+            principle = 'Bluffs are not chosen at random. This one is picked because it blocks the hands that would continue and unblocks the ones that fold, so your value bets stay credible.';
+        } else if (passive && STRONG.includes(token)) {
+            principle = facing
+                ? 'Calling keeps their bluffs in. Raising folds out everything you beat and gets called only by what beats you -- so the strong hand makes more by staying quiet.'
+                : 'Checking a strong hand protects the rest of your checking range. If you only ever check weakness, an observant opponent bets you off every pot you decline to bet.';
+        } else if (passive && DRAW.includes(token)) {
+            principle = 'Taking a free card is worth more than the fold equity you give up here. Realise your equity cheaply and reassess when the card lands.';
+        } else if (passive) {
+            principle = facing
+                ? 'You are getting a price. Defend wide enough that folding becomes unprofitable for their bluffs -- that threshold is minimum defence frequency, and this hand sits above it.'
+                : 'Checking is not passivity when your range is capped. Betting into a range that has you dominated builds a pot you will have to fold out of.';
+        }
+
+        if (!principle) return null;
+
+        if (tex.includes('mono')) {
+            principle += ' The monotone board compresses everyone\'s range, so sizings run smaller than the equities alone suggest.';
+        } else if (tex.includes('paired')) {
+            principle += ' The pair on board removes value hands from both ranges, which pushes the whole node toward higher-frequency, smaller bets.';
+        }
+
+        return { principle };
+    }
+
+    /**
+     * What position is worth in this spot, said plainly.
+     * @returns {{tip: string}|null}
+     */
+    getPositionReminder(heroPosition, street, nodeType) {
+        const pos = String(heroPosition || '').trim().toUpperCase();
+        if (!pos) return null;
+        const st = String(street || '').toLowerCase();
+        const preflop = st === 'preflop';
+
+        const BY_POSITION = {
+            UTG: 'First in from the earliest seat, with every player still to act. That is why the opening range is the tightest at the table -- each seat behind you is another chance to be dominated.',
+            MP: 'Still four seats to act behind you. Widen from UTG, but not to the point where you are opening hands that play badly out of position after a call.',
+            HJ: 'Two seats from the button. This is where stealing starts to pay, because only three players remain and two of them are the blinds.',
+            CO: 'The cutoff opens wide because it is in position on everyone except the button. When the button folds, you inherit position for the whole hand.',
+            BTN: 'You act last on every postflop street. That is the single largest edge in poker -- it is why the button opens the widest range and why you can play more marginal hands profitably here than anywhere else.',
+            SB: 'You are out of position for the rest of the hand against everyone. The small blind is the least profitable seat at the table; play it tighter than the dead money in front of you suggests.',
+            BB: 'You already have one big blind invested, so you are getting a price nobody else at the table gets. That is why the big blind defends the widest -- but you will be out of position postflop against everyone but the blinds.',
+        };
+
+        let tip = BY_POSITION[pos];
+        if (!tip) {
+            // Aliased seats (MP/HJ collapse on a six-max ring) still deserve
+            // an answer rather than a blank panel.
+            tip = pos === 'LJ'
+                ? 'An early-middle seat with most of the table still behind you -- open tight and expect to face resistance from position.'
+                : null;
+        }
+        if (!tip) return null;
+
+        if (!preflop) {
+            const ip = pos === 'BTN' || pos === 'CO';
+            tip += ip
+                ? ' In position you can check back to control the pot and still get the last word on the next street.'
+                : ' Out of position you have to act first every street, so plan the whole hand before you commit to this one.';
+        }
+        return { tip };
+    }
+
+    /**
+     * How the board texture shapes the node.
+     * @returns {{strategy: string}|null}
+     */
+    getTextureStrategyGuide(texture, street, heroPosition, villainPosition) {
+        const t = String(texture || '').toLowerCase();
+        if (!t) return null;
+
+        let strategy = null;
+        if (t.includes('mono')) {
+            strategy = 'Monotone. Nobody can hold a wide value range here -- one suit dominates every equity -- so both players bet small and often rather than polarising. Hands holding the ace of the suit gain the most, because the blocker does the work the hand cannot.';
+        } else if (t.includes('two-tone') || t.includes('two tone')) {
+            strategy = 'Two-tone. Draws are live, so protection matters and sizings run larger than on a rainbow version of the same board. Equities shift hardest on the turn, which is why the flop bet buys more than fold equity.';
+        } else if (t.includes('paired')) {
+            strategy = 'Paired. Both ranges lose value combinations to the pair, so nobody can bet a wide value range credibly. Expect high-frequency small bets and a lot of checking behind with medium strength.';
+        } else if (t.includes('connect') || t.includes('wet') || t.includes('coordinated')) {
+            strategy = 'Connected. Straights and draws are everywhere, so the caller connects with this board far more often than with a broadway one. Bet for protection when you are ahead and be willing to give up when the turn completes the obvious draws.';
+        } else if (t.includes('dry') || t.includes('rainbow')) {
+            strategy = 'Dry rainbow. Almost nothing changes on the turn, so protection is cheap and the preflop raiser can c-bet at a very high frequency with a very small size. The range advantage does the work, not the hand.';
+        } else if (t.includes('broadway') || t.includes('high')) {
+            strategy = 'Broadway-heavy. The preflop aggressor holds far more of the top pairs than the caller does, which is the definition of a range advantage -- it licenses a high-frequency, small c-bet across the whole range.';
+        } else if (t.includes('low')) {
+            strategy = 'Low board. It misses the raiser\'s broadway-heavy range and hits the caller\'s, so the usual range advantage is gone. Bet less often here than the position alone suggests.';
+        }
+        if (!strategy) return null;
+
+        const hp = String(heroPosition || '').toUpperCase();
+        const vp = String(villainPosition || '').toUpperCase();
+        if (hp && vp) strategy += ` This is ${hp} against ${vp}.`;
+        return { strategy };
+    }
+
+    /**
+     * Stack-to-pot ratio and what it licenses.
+     * @returns {{spr: number, guidance: string}|null}
+     */
+    getSPRStrategyGuide(estimatedPot, stackDepth) {
+        const pot = Number(estimatedPot);
+        const stack = Number(stackDepth);
+        if (!isFinite(pot) || pot <= 0 || !isFinite(stack) || stack <= 0) return null;
+        const spr = stack / pot;
+
+        let guidance;
+        if (spr < 1) {
+            guidance = 'You are committed. With less than one pot behind, the money is going in -- decide now whether this hand is getting there, because there is no fold left in the stack.';
+        } else if (spr < 3) {
+            guidance = 'Low SPR. Top pair is a stack-off hand at this depth. Plan a two-street line and take it; there is no room for fancy multi-street manoeuvring.';
+        } else if (spr < 7) {
+            guidance = 'Medium SPR. Overpairs and strong top pairs play for stacks, marginal made hands play for pot control. This is the band where sizing choices matter most.';
+        } else if (spr < 13) {
+            guidance = 'High SPR. Implied odds favour draws and position; one pair is rarely worth three streets. Keep the pot proportional to how much of your range can actually continue.';
+        } else {
+            guidance = 'Very deep. Nut potential outranks current strength -- hands that can make the nuts gain, hands that can only make one pair lose. Avoid building a pot you cannot profitably finish.';
+        }
+        return { spr, guidance };
+    }
+
+    /**
+     * What villain's range looks like by the time the action reaches hero.
+     * @returns {{narration: string}|null}
+     */
+    getVillainRangeNarration(street, nodeType, villainActions) {
+        const node = String(nodeType || '').toLowerCase();
+        const st = String(street || '').toLowerCase();
+        const acts = Array.isArray(villainActions)
+            ? villainActions.map((a) => String((a && (a.action || a.text)) || a || '').toLowerCase())
+            : [];
+        const seq = acts.join(' ');
+
+        const raised = /raise|3-?bet|4-?bet/.test(seq) || node.includes('raise') || node.includes('3bet');
+        const bet = /bet/.test(seq) || node.includes('face') || node.includes('bet');
+        const checked = /check/.test(seq) || node.includes('check');
+        const called = /call/.test(seq);
+
+        let narration = null;
+        if (raised) {
+            narration = 'A raise is the narrowest action in poker. By the time someone puts in a third bet, the range is close to polarised: strong value plus the bluffs that block your continues, with almost nothing in between.';
+        } else if (bet) {
+            narration = st === 'river'
+                ? 'A river bet is either value or a bluff -- there is no protection left to justify anything in between. Your call needs to beat the bluffs, not the value hands.'
+                : 'Betting narrows them toward hands that want money in the pot: made hands strong enough to be called by worse, plus draws taking a second way to win.';
+        } else if (checked) {
+            narration = 'A check leaves the widest range on the table. It contains the hands too weak to bet AND the strong ones deliberately held back -- so it is capped in strength but not empty at the top.';
+        } else if (called) {
+            narration = 'Calling caps them. The very strongest hands would usually have raised, so what remains is the middle of the range: made hands good enough to continue but not to commit.';
+        }
+        if (!narration) return null;
+
+        if (st === 'turn' || st === 'river') {
+            narration += ` Each street they continue removes more of the range, so by the ${st} this is a much smaller set of hands than it was on the flop.`;
+        }
+        return { narration };
+    }
+
+    /**
+     * The plan for the streets after this one.
+     * @returns {{plan: string}|null}
+     */
+    getMultiStreetPlanningGuide(street, handStrength, optimalAction, estimatedPot, stackDepth) {
+        const st = String(street || '').toLowerCase();
+        if (st === 'river') return null; // there is no next street to plan for
+        const token = this._getHandToken(handStrength);
+        const act = String(optimalAction || '').toLowerCase();
+        const aggressive = /bet|raise|3-?bet|4-?bet|shove|all-?in|jam/.test(act);
+        const next = st === 'preflop' ? 'flop' : st === 'flop' ? 'turn' : 'river';
+
+        const pot = Number(estimatedPot);
+        const stack = Number(stackDepth);
+        const spr = isFinite(pot) && pot > 0 && isFinite(stack) && stack > 0 ? stack / pot : null;
+
+        const STRONG = ['nuts', 'full_house', 'flush', 'straight', 'set', 'trips', 'two_pair', 'overpair', 'top_pair_top_kicker'];
+        const DRAW = ['combo_draw', 'flush_draw', 'oesd', 'gutshot'];
+
+        let plan;
+        if (STRONG.includes(token) && aggressive) {
+            plan = spr !== null && spr < 4
+                ? `Betting here starts a two-street plan that ends with the stacks in. Size the ${next} so the last bet is a natural shove rather than an awkward remainder.`
+                : `This is the first of up to three value bets. Pick a sizing now that still leaves a credible ${next} and river bet -- a large flop bet you cannot follow through on tells the whole story.`;
+        } else if (DRAW.includes(token) && aggressive) {
+            plan = `Know your ${next} plan before you bet. If the draw completes you keep betting; if it bricks, decide now whether this hand has enough blockers to fire again or should simply give up.`;
+        } else if (DRAW.includes(token)) {
+            plan = `You are paying to see the ${next}. Count the cards that actually improve you and make sure the price you are getting -- plus what you can win later -- covers them.`;
+        } else if (aggressive) {
+            plan = `A bluff needs a story that survives the ${next}. If you cannot name the cards that let you fire again, this is a one-street bluff and should be sized accordingly.`;
+        } else {
+            plan = `Checking keeps the pot small and your range wide. Decide now which ${next} cards you will bet when checked to, so the decision is already made when one arrives.`;
+        }
+        return { plan };
+    }
+
+    /**
+     * Where the player's action mix drifts furthest from the solver's.
+     * @returns {{action: string, deviation: number, message: string}|null}
+     */
+    getFrequencyCorrectionPrompt() {
+        const history = (this._sessionStats && this._sessionStats.history) || [];
+        if (history.length < 8) return null;
+
+        const bucketOf = (text) => {
+            const t = String(text || '').toLowerCase();
+            if (!t) return null;
+            if (t.startsWith('fold')) return 'fold';
+            if (t.startsWith('check')) return 'check';
+            if (t.startsWith('call')) return 'call';
+            if (/bet|raise|3-?bet|4-?bet|all-?in|shove|jam/.test(t)) return 'bet/raise';
+            return null;
+        };
+
+        const played = {};
+        const solver = {};
+        let n = 0;
+        for (const h of history) {
+            const mine = bucketOf(h.selectedAction || h.action);
+            const theirs = bucketOf(h.correctAction);
+            if (!mine || !theirs) continue;
+            played[mine] = (played[mine] || 0) + 1;
+            solver[theirs] = (solver[theirs] || 0) + 1;
+            n++;
+        }
+        if (n < 8) return null;
+
+        let worstAction = null;
+        let worstDelta = 0;
+        for (const key of new Set([...Object.keys(played), ...Object.keys(solver)])) {
+            const delta = ((played[key] || 0) - (solver[key] || 0)) / n * 100;
+            if (Math.abs(delta) > Math.abs(worstDelta)) {
+                worstDelta = delta;
+                worstAction = key;
+            }
+        }
+        // Below ten points the two mixes are the same mix with sampling noise
+        // on top; flagging it would train the player to chase variance.
+        if (!worstAction || Math.abs(worstDelta) < 10) return null;
+
+        const over = worstDelta > 0;
+        const pct = Math.abs(worstDelta);
+        const message = over
+            ? `You chose ${worstAction} ${pct.toFixed(0)}% more often than the solver did across ${n} decisions. Over-using one action makes you readable and costs EV in the spots where it is second-best.`
+            : `You chose ${worstAction} ${pct.toFixed(0)}% less often than the solver did across ${n} decisions. The spots you are passing up are the ones this action is designed for.`;
+
+        return { action: worstAction, deviation: worstDelta, message };
+    }
+
+    /**
+     * Recent-form check: is the player still playing, or spiralling?
+     * @returns {{severity: string, title: string, advice: string}}
+     */
+    getTiltRecoveryAdvice() {
+        const history = (this._sessionStats && this._sessionStats.history) || [];
+        if (history.length < 6) return { severity: 'none' };
+
+        const recent = history.slice(-6);
+        const earlier = history.slice(0, -6);
+        const bad = (h) => h.classification === 'blunder' || h.classification === 'wrong';
+
+        const recentBad = recent.filter(bad).length;
+        let streak = 0;
+        for (let i = history.length - 1; i >= 0; i--) {
+            if (!bad(history[i])) break;
+            streak++;
+        }
+
+        const earlierAcc = earlier.length >= 6
+            ? earlier.filter((h) => h.correct).length / earlier.length
+            : null;
+        const recentAcc = recent.filter((h) => h.correct).length / recent.length;
+        const collapsed = earlierAcc !== null && earlierAcc - recentAcc >= 0.35;
+
+        if (streak >= 4 || (recentBad >= 5)) {
+            return {
+                severity: 'critical',
+                title: 'Stop and reset',
+                advice: `${streak >= 4 ? `${streak} serious mistakes in a row` : `${recentBad} of your last 6 decisions were mistakes`}. This is no longer a study problem. Close the session, take a real break, and come back to it -- the next twenty hands played in this state will teach you the wrong lesson.`,
+            };
+        }
+        if (streak === 3 || recentBad >= 4 || collapsed) {
+            return {
+                severity: 'high',
+                title: 'Slow down',
+                advice: collapsed
+                    ? 'Your accuracy has fallen sharply in the last six hands compared with earlier in the session. That is fatigue, not a knowledge gap. Slow the pace or stop here.'
+                    : 'Several mistakes close together. Give each of the next few spots twice the time you have been giving them and read the full explanation before advancing.',
+            };
+        }
+        if (recentBad >= 3) {
+            return {
+                severity: 'medium',
+                title: 'Refocus',
+                advice: 'Three mistakes in your last six. Before the next hand, say the spot out loud: position, street, what their range does here. Naming it stops the auto-pilot.',
+            };
+        }
+        if (recentBad === 2) {
+            return {
+                severity: 'low',
+                title: 'Steady',
+                advice: 'A couple of misses. That is a normal distribution, not a slide -- keep the same pace and read the solver line on the ones you get wrong.',
+            };
+        }
+        return { severity: 'none' };
+    }
+
+    /**
+     * How fast the player is deciding, and whether the speed is costing them.
+     * @returns {{avgTimePerHand: number, recommendation: string, message: string,
+     *            fastHands: number, slowHands: number}|null}
+     */
+    getSessionPacingAnalysis() {
+        const history = (this._sessionStats && this._sessionStats.history) || [];
+        if (history.length < 5) return null;
+
+        // Prefer the measured decision time. Fall back to the gap between
+        // consecutive recorded hands, which includes feedback-reading time and
+        // so is only a bound -- gaps beyond two minutes are the player leaving
+        // the tab, not thinking, and are dropped rather than averaged in.
+        const times = [];
+        for (let i = 0; i < history.length; i++) {
+            const t = Number(history[i].answerTimeSeconds);
+            if (isFinite(t) && t > 0 && t < 300) { times.push(t); continue; }
+            if (i === 0) continue;
+            const gap = (history[i].timestamp - history[i - 1].timestamp) / 1000;
+            if (isFinite(gap) && gap > 0 && gap < 120) times.push(gap);
+        }
+        if (times.length < 4) return null;
+
+        const avgTimePerHand = times.reduce((a, b) => a + b, 0) / times.length;
+        const fastHands = times.filter((t) => t < 3).length;
+        const slowHands = times.filter((t) => t > 20).length;
+
+        // Is the speed actually hurting? Compare accuracy on the quick
+        // decisions against the considered ones rather than asserting that
+        // fast is bad -- on trivial spots it is not.
+        const quick = [];
+        const considered = [];
+        history.forEach((h, i) => {
+            const t = Number(h.answerTimeSeconds);
+            const val = isFinite(t) && t > 0 ? t : (i > 0 ? (h.timestamp - history[i - 1].timestamp) / 1000 : null);
+            if (val === null || !isFinite(val) || val <= 0 || val >= 120) return;
+            (val < 5 ? quick : considered).push(h.correct ? 1 : 0);
+        });
+        const acc = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+        const quickAcc = quick.length >= 3 ? acc(quick) : null;
+        const consideredAcc = considered.length >= 3 ? acc(considered) : null;
+
+        let recommendation = 'steady';
+        let message;
+        if (quickAcc !== null && consideredAcc !== null && consideredAcc - quickAcc >= 0.2) {
+            recommendation = 'slow_down';
+            message = `Your snap decisions are ${Math.round((consideredAcc - quickAcc) * 100)} points less accurate than the ones you think about. The speed is costing you, not the knowledge.`;
+        } else if (avgTimePerHand > 25) {
+            recommendation = 'speed_up';
+            message = `Averaging ${avgTimePerHand.toFixed(0)}s a decision. At the table you will not get that long -- try to reach the same answer with less deliberation.`;
+        } else if (fastHands > times.length * 0.6 && quickAcc !== null && quickAcc >= 0.7) {
+            message = `Quick throughout, and accurate with it -- ${fastHands} decisions under three seconds with no accuracy cost. That is pattern recognition doing its job.`;
+        } else {
+            message = `${fastHands} fast, ${slowHands} slow decisions at ${avgTimePerHand.toFixed(1)}s average. A steady rhythm with time taken on the close spots is exactly right.`;
+        }
+
+        return { avgTimePerHand, recommendation, message, fastHands, slowHands };
+    }
+
+    /**
+     * How hard this spot is, on a 1-5 scale, from the shape of the solver's
+     * own strategy. A node the solver plays 95/5 is not a hard decision no
+     * matter how deep the stacks are; one it plays 40/35/25 is.
+     * @returns {{difficulty: number, label: string, reasons: string[]}}
+     */
+    estimateSpotDifficultyEnhanced(
+        frequencies, street, stackDepth, nodeType, heroPosition, villainPosition, handStrength, texture
+    ) {
+        const reasons = [];
+        let score = 2;
+
+        const freqs = frequencies && typeof frequencies === 'object'
+            ? Object.values(frequencies).map(Number).filter((n) => isFinite(n) && n > 0)
+            : [];
+        if (freqs.length) {
+            const total = freqs.reduce((a, b) => a + b, 0) || 1;
+            const top = Math.max(...freqs) / total;
+            if (top >= 0.9) { score -= 1; reasons.push('the solver plays one action almost always'); }
+            else if (top <= 0.5) { score += 1.5; reasons.push('a genuinely mixed strategy'); }
+            else if (top <= 0.7) { score += 0.5; reasons.push('two actions share the node'); }
+            if (freqs.length >= 4) { score += 0.5; reasons.push('many sizings in the tree'); }
+        }
+
+        const st = String(street || '').toLowerCase();
+        if (st === 'river') { score += 0.5; reasons.push('river decisions are final'); }
+        else if (st === 'preflop') { score -= 0.5; }
+
+        const token = this._getHandToken(handStrength);
+        if (['middle_pair', 'weak_pair', 'top_pair', 'gutshot'].includes(token)) {
+            score += 0.5; reasons.push('a marginal holding');
+        } else if (['nuts', 'air'].includes(token)) {
+            score -= 0.5;
+        }
+
+        const pos = String(heroPosition || '').toUpperCase();
+        if (pos === 'SB' || pos === 'BB') { score += 0.25; reasons.push('out of position'); }
+
+        const tex = String(texture || '').toLowerCase();
+        if (tex.includes('two-tone') || tex.includes('connect') || tex.includes('mono')) {
+            score += 0.5; reasons.push('a coordinated board');
+        }
+
+        const stack = Number(stackDepth);
+        if (isFinite(stack) && stack >= 150) { score += 0.25; reasons.push('deep stacks'); }
+
+        const node = String(nodeType || '').toLowerCase();
+        if (node.includes('raise') || node.includes('3bet')) { score += 0.25; }
+
+        const difficulty = Math.max(1, Math.min(5, Math.round(score)));
+        const LABELS = { 1: 'Straightforward', 2: 'Routine', 3: 'Intermediate', 4: 'Difficult', 5: 'Expert' };
+        return { difficulty, label: LABELS[difficulty], reasons };
     }
 }
 

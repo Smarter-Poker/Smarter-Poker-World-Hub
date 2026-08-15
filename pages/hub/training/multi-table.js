@@ -256,6 +256,16 @@ export default function MultiTablePage() {
       const finishedId = detail?.gameId;
       if (!finishedId) return;
 
+      // Only completions from OUR OWN run count. The bus mirrors every emit
+      // across tabs, and `source` stays 'GodModeArena' on the far side, so a
+      // second tab's finished table used to be folded into this run's totals
+      // and could trip the all-tables-done auto-save -- writing a session row
+      // for hands nobody played here. An arena mounted by this route always
+      // carries `<runId>-<gameId>`; an arena from anywhere else carries a
+      // sessionId that does not match, and one from an older build carries
+      // none at all, which is equally not ours.
+      if (String(detail?.sessionId || '') !== `${runId}-${finishedId}`) return;
+
       // GTOW parity #10 — payload key mismatch. This block used to read
       // `totalQuestions`, `handsPlayed` and `correctCount`, none of which
       // GodModeArena has ever emitted: its SESSION_END payload carries
@@ -291,7 +301,9 @@ export default function MultiTablePage() {
       }));
     });
     return unsub;
-  }, []);
+    // runId identifies the run this listener belongs to; re-subscribe when it
+    // changes so a restarted run does not keep matching against the old id.
+  }, [runId]);
 
   // Auto-save combined session when all tables complete
   useEffect(() => {

@@ -28,6 +28,7 @@ import { groupActions, resolveGroupedAction, getGroupedFrequency, DIFFICULTY_MOD
 import { toEngineDifficulty } from '../../../engines/DifficultyEngine';
 import { formatSignedScore } from '../../../engines/GTOScoreEngine';
 import { buildRangeGridData, rangeGridActions, handNotationFromCards } from '../rangeGridData';
+import { aggregateByHandClass, buildClassificationData } from '../../../lib/training/handClassStrategy';
 import { committedFor, computeDisplayPot } from './potMath';
 import { dealSeatAvatars, HERO_DEFAULT_AVATAR } from '../../../lib/tableAvatars';
 
@@ -2010,10 +2011,29 @@ function UniversalDynamicTable({
         if (!question) return;
         const qId = question.id || question.scenario?.id || `q-${questionNumber}`;
         setBookmarkedHands(prev => {
-            const exists = prev.some(b => b.questionId === qId);
+            // Re-read storage instead of trusting the copy this table hydrated
+            // at mount. Up to four tables are mounted at once and each held its
+            // own snapshot: table A bookmarking wrote [..., h1], then table B
+            // bookmarking wrote its OWN stale list plus h2 -- and h1 was gone.
+            // A's star stayed lit until reload, so the loss was invisible.
+            // The merge is by questionId with the freshest entry winning, so a
+            // concurrent add from another table survives this write.
+            let base = prev;
+            try {
+                const stored = JSON.parse(localStorage.getItem('sp_bookmarked_hands') || '[]');
+                if (Array.isArray(stored)) {
+                    const byId = new Map();
+                    for (const b of stored) if (b && typeof b === 'object' && b.questionId) byId.set(b.questionId, b);
+                    for (const b of prev) if (b && b.questionId) byId.set(b.questionId, b);
+                    base = [...byId.values()];
+                }
+            } catch (e) { console.warn('[App] Handled exception:', e); }
+
+            const exists = base.some(b => b.questionId === qId);
+            const prevList = base;
             let next;
             if (exists) {
-                next = prev.filter(b => b.questionId !== qId);
+                next = prevList.filter(b => b.questionId !== qId);
             } else {
                 const entry = {
                     questionId: qId,
@@ -2029,7 +2049,7 @@ function UniversalDynamicTable({
                     gameTitle,
                 };
                 // HARDENED: Cap at 500 bookmarks to prevent localStorage overflow
-                next = [...prev, entry].slice(-500);
+                next = [...prevList, entry].slice(-500);
             }
             try { localStorage.setItem('sp_bookmarked_hands', JSON.stringify(next)); } catch (e) { console.warn('[App] Handled exception:', e); }
             // HARDENED: EventBus emission for cross-page sync
@@ -2496,11 +2516,32 @@ function UniversalDynamicTable({
         return built;
     }, [question?.scenario, villainAction, villainPosition]);
 
-    // Compute simulated GTO frequencies for this question (if not passed down)
+    // The solver mix for THIS decision.
+    //
+    // The `gtoFrequencies` prop is `useGTOTrainer.lastGTOFrequencies`, which is
+    // written at GRADE time and never cleared. Before this question is answered
+    // it therefore still holds the PREVIOUS decision's mix -- and on a
+    // multi-street hand, every street after the flop reads the flop's. That is
+    // not a display nit: `rngRanges` -> `rngTargetAction` -> `effectiveCorrectAnswer`
+    // is built from this value, so RNG mode rolled against the previous
+    // decision's frequency bands and GRADED against the resulting action.
+    // Study mode ("GTO frequencies shown before you answer") printed the same
+    // stale numbers as this spot's solver output.
+    //
+    // The question carries its own mix and get-question.js:610 guarantees the
+    // key is populated, so prefer it and fall back only when it is genuinely
+    // absent. The trainer now also clears the stale state on every new
+    // decision; both halves are wanted, because either one alone leaves a hole
+    // if a caller mounts this table without the other.
     const computedFrequencies = useMemo(() => {
+        const own = question?.gtoFrequencies;
+        if (own && Object.keys(own).length > 0) return own;
         if (gtoFrequencies) return gtoFrequencies;
-        return simulateGTOFrequencies(options, correctAnswer, questionNumber);
-    }, [gtoFrequencies, options, correctAnswer, questionNumber]);
+        // Third argument is `level` (dominance = max(40, 85 - level*4)), NOT a
+        // question index -- passing questionNumber made the fabricated mix a
+        // function of how far into the session you were.
+        return simulateGTOFrequencies(options, correctAnswer, difficultyLevel || 1);
+    }, [question, gtoFrequencies, options, correctAnswer, difficultyLevel]);
 
     // ═══ RANGE MODE MATRIX (GTOW parity #35) ═══
     // The Range tab needs a per-HAND matrix, which only the solver's
@@ -2534,8 +2575,51 @@ function UniversalDynamicTable({
             gridData,
             actions: rangeGridActions(raw),
             heroHand: handNotationFromCards(cards),
+            // Per-hand EVs for the Range tab's overlay. RangeGrid has accepted
+            // `handEVs` / `showEVOverlay` since it was written and this call
+            // site passed neither, so the per-cell EV numbers and the EV row in
+            // the hand-detail popup have never rendered once. The data was
+            // three lines away the whole time -- get-question.js populates
+            // evData.handEVs from the solver's hand_evs.
+            handEVs: infoPanelQuestion?.evData?.handEVs
+                || infoPanelQuestion?.handEVs
+                || null,
         };
     }, [infoPanelQuestion, heroCards]);
+
+    // ═══ HAND-CLASS STRATEGY (GTOW parity #36) ═══
+    // The Strategy tab showed a flat per-action split for hero's ONE hand,
+    // which the felt already tells you. GTOW's Strategy tab answers the
+    // range-level question: what does each CLASS of hand do here. Same
+    // rawFrequencies matrix the Range tab renders, grouped by what each class
+    // is on this board.
+    const handClassStrategy = useMemo(() => {
+        if (!rangeModeGrid) return null;
+        const board = infoPanelQuestion?.scenario?.board
+            || infoPanelQuestion?.boardCards
+            || boardCards
+            || [];
+        try {
+            return aggregateByHandClass(rangeModeGrid.gridData, rangeModeGrid.actions, board);
+        } catch (err) {
+            console.warn('[UDT] hand-class aggregation failed:', err.message);
+            return null;
+        }
+    }, [rangeModeGrid, infoPanelQuestion, boardCards]);
+
+    const rangeClassification = useMemo(() => {
+        if (!rangeModeGrid) return null;
+        const board = infoPanelQuestion?.scenario?.board
+            || infoPanelQuestion?.boardCards
+            || boardCards
+            || [];
+        try {
+            return buildClassificationData(rangeModeGrid.gridData, board);
+        } catch (err) {
+            console.warn('[UDT] classification build failed:', err.message);
+            return null;
+        }
+    }, [rangeModeGrid, infoPanelQuestion, boardCards]);
 
     // Options + frequencies the Strategy panel draws, snapshot-aware for the
     // same reason as above.
@@ -2597,6 +2681,26 @@ function UniversalDynamicTable({
     const activeDifficultyMode = toEngineDifficulty(
         trainerConfig?.difficultyMode || trainerConfig?.difficulty
     );
+
+    // ●●● ONE remapper per question, not two. ●●●
+    // useGTOTrainer.applyDifficultyToQuestion already collapses the action set
+    // for Simple and Grouped, aggregating frequencies and per-action EVs onto
+    // the new ids and remapping the answer key -- with a fail-safe that serves
+    // the question UNSIMPLIFIED rather than unwinnable. It stamps the question
+    // with `_difficultyApplied` when it does.
+    //
+    // This table then ran `groupActions` over that OUTPUT, a second collapse of
+    // an already-collapsed set, and the two disagreed about vocabulary: the
+    // hook emits `fold`/`check`/`bet`, the grouper knew only `f`/`x`/`b33`. The
+    // hook's fail-safe cannot protect against a remap that happens after it
+    // returns, so a spot whose answer was Check or Fold arrived on the felt
+    // with no button for it. Re-grouping is now skipped when the question has
+    // already been through the hook; the felt renders exactly what the hook
+    // produced.
+    const difficultyAlreadyApplied = Boolean(question?._difficultyApplied);
+    const groupingMode = difficultyAlreadyApplied
+        ? DIFFICULTY_MODES.STANDARD
+        : activeDifficultyMode;
     const { groupedOptions: displayOptions, frequencyMap: displayFrequencies, actionMapping: difficultyActionMapping } = useMemo(() => {
         // BUG FIX (TRAIN-ACTIONS-COUNT-1): the source-of-truth `options` array
         // sometimes arrives with only 2 entries (e.g. ["BET 16%", "CHECK"]) on
@@ -2607,8 +2711,18 @@ function UniversalDynamicTable({
         // computedFrequencies (highest-frequency missing actions first) until
         // we have at least 4 buttons. Binary spots (push/fold short-stack
         // trainers) are detected and left at 2 buttons.
-        const grouped = groupActions(options, computedFrequencies, activeDifficultyMode);
-        if (activeDifficultyMode !== 'standard') return grouped;
+        const grouped = groupActions(
+            options,
+            computedFrequencies,
+            groupingMode,
+            Number(question?.scenario?.pot) || null
+        );
+        if (groupingMode !== 'standard') return grouped;
+        // The top-up below exists to reach four EXACT-sizing buttons. A
+        // question the hook already collapsed has the button count its mode
+        // asks for; padding it back to four would re-introduce the sizings the
+        // player chose to hide.
+        if (difficultyAlreadyApplied) return grouped;
         if (!grouped.groupedOptions || grouped.groupedOptions.length >= 4) return grouped;
 
         // Detect a binary-action spot: only push (allin / 'p') and fold are
@@ -2674,7 +2788,7 @@ function UniversalDynamicTable({
         }
 
         return { groupedOptions: padded, frequencyMap: freqMap, actionMapping: mapping };
-    }, [options, computedFrequencies, gtoFrequencies, activeDifficultyMode]);
+    }, [options, computedFrequencies, gtoFrequencies, groupingMode, difficultyAlreadyApplied, question]);
 
     // Fix 16: single source of truth for RNG cumulative frequency ranges —
     // built from displayOptions order so the pre-answer chips and the
@@ -2754,8 +2868,13 @@ function UniversalDynamicTable({
         answerSubmittedRef.current = true;
         // If using grouped/simple mode, resolve back to the best solver action
         let resolvedId = answerId;
-        if (activeDifficultyMode !== 'standard' && difficultyActionMapping[answerId]) {
-            resolvedId = resolveGroupedAction(answerId, difficultyActionMapping, computedFrequencies);
+        if (groupingMode !== 'standard' && difficultyActionMapping[answerId]) {
+            resolvedId = resolveGroupedAction(
+                answerId,
+                difficultyActionMapping,
+                computedFrequencies,
+                correctAnswer
+            );
         }
         setSelectedAnswer(resolvedId);
         const elapsed = (Date.now() - answerStartTime.current) / 1000;
@@ -2769,7 +2888,7 @@ function UniversalDynamicTable({
         if (onAnswer) onAnswer(resolvedId, { answerTimeSeconds: elapsed, ...(rngMeta || {}), ...(extraMeta || {}) });
         const gradedAgainst = rngMeta ? rngMeta.rngTargetActionId : correctAnswer;
         try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, isCorrect: resolvedId === gradedAgainst }); } catch (e) { console.warn('[App] Handled exception:', e); }
-    }, [showFeedback, selectedAnswer, activeDifficultyMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer, rngMode, rngHighLow, rngRoll, rngTargetAction]);
+    }, [showFeedback, selectedAnswer, groupingMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer, rngMode, rngHighLow, rngRoll, rngTargetAction]);
 
     // Phase 25: Keyboard Shortcuts — UNIFIED handler (1-9, F/C/R, Space/Enter)
     // Uses the SAME displayOptions list + handleAnswerWithGrouping path as the
@@ -4872,6 +4991,9 @@ function UniversalDynamicTable({
                                     cellSize={18}
                                     heroHand={rangeModeGrid.heroHand}
                                     compact={true}
+                                    handEVs={rangeModeGrid.handEVs}
+                                    showEVOverlay={Boolean(rangeModeGrid.handEVs)}
+                                    classificationData={rangeClassification}
                                 />
                             ) : (
                                 <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textAlign: 'center', padding: '12px 8px', lineHeight: 1.5 }}>
@@ -4945,6 +5067,59 @@ function UniversalDynamicTable({
                                     </div>
                                 );
                             })}
+
+                            {/* ═══ HAND-CLASS STRATEGY (GTOW parity #36) ═══
+                                The bars above answer "what do I do with THIS
+                                hand", which the felt already answers. This is
+                                the range-level question the Strategy tab exists
+                                for: what does each class of hand do here. */}
+                            {handClassStrategy && (
+                                <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>
+                                        By Hand Class
+                                        <span style={{ marginLeft: 6, color: 'var(--sp-fg-muted)', fontWeight: 600, letterSpacing: 0 }}>
+                                            {handClassStrategy.totalCombos} combos
+                                        </span>
+                                    </div>
+                                    {handClassStrategy.rows.map(row => (
+                                        <div key={row.key} style={{ marginBottom: 5 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, marginBottom: 2 }}>
+                                                <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{row.label}</span>
+                                                <span style={{ color: 'var(--sp-fg-dim)', fontFamily: "'Inter', monospace" }}>
+                                                    {row.share}% of range
+                                                </span>
+                                            </div>
+                                            {/* One stacked bar per class: the
+                                                whole width is that class, split
+                                                by what the solver does with it. */}
+                                            <div style={{ display: 'flex', height: 7, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
+                                                {panelStrategy.options.slice(0, 9).map(opt => {
+                                                    const optId = opt?.id || opt;
+                                                    const pct = row.mix[optId] || 0;
+                                                    if (pct <= 0) return null;
+                                                    const text = typeof opt === 'string' ? opt : (opt?.text || opt?.label || '');
+                                                    const c = ACTION_COLORS[detectActionType(text)]?.border || 'var(--sp-fg-dim)';
+                                                    return (
+                                                        <div
+                                                            key={optId}
+                                                            title={`${text} ${pct}%`}
+                                                            style={{ width: `${pct}%`, background: c }}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {/* Say what the data cannot resolve rather
+                                        than letting the omission read as a
+                                        finding. See handClassStrategy.js. */}
+                                    {handClassStrategy.suitedNote && (
+                                        <div style={{ fontSize: 8, lineHeight: 1.4, color: 'var(--sp-fg-muted)', marginTop: 6 }}>
+                                            {handClassStrategy.suitedNote}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </InfoPanelShell>
                     );
                 } catch (err) {

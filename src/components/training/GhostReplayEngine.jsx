@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { handDataOf } from '../../lib/training/handHistoryEntry';
 
 // Re-use core elements from GodModeArena structure
 function MiniCard({ rank, suit, isRed }) {
@@ -54,7 +55,10 @@ export default function GhostReplayEngine({ sessionName, handHistory = [], onClo
     }
 
     const currentHand = handHistory[currentIndex];
-    const data = currentHand?.handData || {};
+    // `handData` is spread FLAT onto the entry -- there is no `.handData` key,
+    // so this used to resolve to {} and the replay opened with no cards, no
+    // board, "Pot: ? BB" and "HERO (UNK)".
+    const data = handDataOf(currentHand);
     const heroCards = parseCards(data.heroCards);
     const boardCards = parseCards(data.board);
 

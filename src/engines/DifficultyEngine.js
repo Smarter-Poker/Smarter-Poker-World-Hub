@@ -8,8 +8,12 @@
  *   SIMPLE:    3 options — Bet/Raise, Check/Call, Fold
  *              Best for beginners. Focus on "do I play or fold?"
  *
- *   GROUPED:   5 options — Action type only (no exact sizing)
- *              Bet, Raise, Check, Call, Fold
+ *   GROUPED:   Sizing CATEGORIES — Small / Medium / Large / Overbet, with
+ *              Check, Call and Fold left individual. (This block used to say
+ *              "action type only, no exact sizing", and the code matched it:
+ *              every bet collapsed to one "Bet" button, which is SIMPLE mode
+ *              wearing a different name. GTOW's middle tier drills sizing
+ *              categories -- that is the whole point of having one.)
  *
  *   STANDARD:  Full solver sizings — Check, Bet 33%, Bet 67%, Bet 150%, etc.
  *              Exact match to solver output. For advanced players.
@@ -20,6 +24,11 @@
  *   - Scoring adjustments per difficulty
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
+
+// The sizing vocabulary lives in one place. actionGrouper.js owns the
+// thresholds and the parser; this engine reuses them so the two remappers can
+// never drift into disagreeing about what "Large" means.
+import { parseSizingPercent, getSizingGroup, SIZING_GROUPS } from '../utils/actionGrouper';
 
 // ●● Difficulty Modes ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
@@ -115,7 +124,7 @@ export function simplifyActions(fullActions, difficulty, potSize) {
     }
 
     if (difficulty === DIFFICULTY.GROUPED) {
-        return _simplifyToGrouped(fullActions);
+        return _simplifyToGrouped(fullActions, potSize);
     }
 
     return fullActions;
@@ -168,49 +177,76 @@ function _simplifyToSimple(fullActions) {
 }
 
 /**
- * GROUPED mode: Collapse sizing variants into action types.
- *   - "Bet" (any bet sizing → single button)
- *   - "Raise" (any raise sizing → single button)
- *   - "Check"
- *   - "Call"
- *   - "Fold"
+ * GROUPED mode: bucket bet/raise SIZINGS into GTO Wizard's four categories.
+ *   - "Small Bet"  (<=40% pot)
+ *   - "Medium Bet" (41-80%)
+ *   - "Large Bet"  (81-100%)
+ *   - "Overbet"    (>100%)
+ *   - Check / Call / Fold / All-in stay individual
+ *
+ * ●●● What this used to do, and why it was wrong. ●●●
+ * It collapsed every bet sizing into ONE button labelled "Bet" and every raise
+ * into one labelled "Raise" — the same shape SIMPLE mode produces, so the
+ * middle tier of the difficulty ladder taught nothing SIMPLE did not. GTOW's
+ * grouped mode exists precisely to drill sizing CATEGORIES.
+ *
+ * The four-bucket logic did exist, in src/utils/actionGrouper.js, and the
+ * table called it — but this function ran FIRST and had already rewritten
+ * `b33`/`b75`/`b125` to the bare token `bet`, which carries no sizing at all.
+ * `parseSizingPercent('bet')` returns null, so the bucketer skipped every
+ * action and the four buttons could never appear. Measured end to end with a
+ * `x / b33 / b75 / b125` node: rendered buttons were `Check | Bet`.
+ *
+ * Bucketing here rather than there is what makes the rest of the pipeline
+ * correct for free: the caller aggregates frequencies and per-action EVs off
+ * `mappedFrom`, and remaps the correct answer through it, so a bucket carries
+ * the summed frequency of its members and the answer key lands on the bucket
+ * that contains it.
  */
-function _simplifyToGrouped(fullActions) {
+function _simplifyToGrouped(fullActions, potSize) {
     const simplified = [];
-    const seen = new Set();
+    const buckets = new Map();
+    const passthrough = [];
 
     for (const action of fullActions) {
-        let key = action.action;
+        const isAggressive = action.action === 'bet' || action.action === 'raise';
+        const pct = isAggressive
+            ? parseSizingPercent(action.id, action.text || action.label, action.amount, potSize)
+            : null;
 
-        // Collapse all bet sizings into "bet"
-        if (key === 'allin') key = fullActions.some(a => a.action === 'raise') ? 'raise' : 'bet';
-
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        if (key === 'bet') {
-            const bets = fullActions.filter(a => a.action === 'bet');
-            const medianBet = bets.length > 0 ? bets[Math.floor(bets.length / 2)] : action;
-            simplified.push({
-                action: 'bet',
-                label: 'Bet',
-                amount: medianBet.amount,
-                mappedFrom: bets,
-                isSimplified: true,
-            });
-        } else if (key === 'raise') {
-            const raises = fullActions.filter(a => a.action === 'raise');
-            const medianRaise = raises.length > 0 ? raises[Math.floor(raises.length / 2)] : action;
-            simplified.push({
-                action: 'raise',
-                label: 'Raise',
-                amount: medianRaise.amount,
-                mappedFrom: raises,
-                isSimplified: true,
-            });
-        } else {
-            simplified.push({ ...action, isSimplified: true });
+        if (pct === null) {
+            // Fold / check / call / all-in, and any aggressive action whose
+            // sizing genuinely cannot be determined. An unsized bet keeps its
+            // own button rather than being merged into a bucket it may not
+            // belong in.
+            passthrough.push(action);
+            continue;
         }
+
+        const key = getSizingGroup(pct);
+        if (!buckets.has(key)) buckets.set(key, []);
+        buckets.get(key).push(action);
+    }
+
+    // Individual actions first, in the order the solver gave them.
+    for (const a of passthrough) simplified.push({ ...a, isSimplified: true });
+
+    // Then the sizing buckets, small to large.
+    for (const key of ['SMALL', 'MEDIUM', 'LARGE', 'OVERBET']) {
+        const members = buckets.get(key);
+        if (!members || members.length === 0) continue;
+        // A raise-only bucket says "Raise", so the label never invites an
+        // illegal action: you cannot bet when facing a bet.
+        const allRaises = members.every(m => m.action === 'raise');
+        const label = SIZING_GROUPS[key].label.replace('Bet', allRaises ? 'Raise' : 'Bet');
+        simplified.push({
+            id: `grouped_${key.toLowerCase()}`,
+            action: allRaises ? 'raise' : 'bet',
+            label,
+            amount: members[Math.floor(members.length / 2)].amount,
+            mappedFrom: members,
+            isSimplified: true,
+        });
     }
 
     return simplified;

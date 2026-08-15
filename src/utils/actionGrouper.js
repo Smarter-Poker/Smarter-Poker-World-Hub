@@ -29,29 +29,50 @@ export const DIFFICULTY_MODES = {
     STANDARD: 'standard',
 };
 
-// Sizing category thresholds (as percentage of pot)
-const SIZING_GROUPS = {
+// Sizing category thresholds (as percentage of pot).
+//
+// LARGE used to run to 150 and OVERBET to start at 151, which put b101..b150 —
+// bets of MORE than the pot, the textbook definition of an overbet — in the
+// "Large Bet" bucket. An overbet is a distinct strategic object and GTOW gives
+// it its own button; a player drilling sizing categories has to be able to
+// pick it. The boundary is the pot.
+export const SIZING_GROUPS = {
     SMALL: { label: 'Small Bet', min: 0, max: 40, color: '#3b82f6' },
     MEDIUM: { label: 'Medium Bet', min: 41, max: 80, color: '#f59e0b' },
-    LARGE: { label: 'Large Bet', min: 81, max: 150, color: '#ef4444' },
-    OVERBET: { label: 'Overbet', min: 151, max: Infinity, color: '#dc2626' },
+    LARGE: { label: 'Large Bet', min: 81, max: 100, color: '#ef4444' },
+    OVERBET: { label: 'Overbet', min: 101, max: Infinity, color: '#dc2626' },
 };
 
 /**
- * Parse the pot-percentage from an action code.
- * e.g., 'b33' → 33, 'b100' → 100, 'b200' → 200, 'r75' → 75
- * Returns null for non-sizing actions (fold, check, call, allin)
+ * Parse the pot-percentage of a bet/raise.
+ *
+ * Accepts every shape the pipeline actually produces, because the strict
+ * `/^[br](\d+)$/` this used to be silently returned null for `bet_66`,
+ * `b33.5` and `raise-75` — and a null means "not a sizing", so those actions
+ * skipped the bucketer entirely and rendered as exact sizings in a mode whose
+ * whole purpose is to hide them.
+ *
+ * Returns null for non-sizing actions (fold, check, call, allin).
  */
-function parseSizingPercent(actionId) {
-    const match = (actionId || '').match(/^[br](\d+)$/);
-    if (match) return parseInt(match[1], 10);
+export function parseSizingPercent(actionId, text = '', amount = null, potSize = null) {
+    const id = String(actionId || '');
+    // Canonical solver ids: b33, r75, b33.5, bet_66, raise-75
+    const m = id.match(/^(?:b|r|bet|raise)[_-]?(\d+(?:\.\d+)?)$/i);
+    if (m) return parseFloat(m[1]);
+    // Display text: "Bet 33%", "Raise to 75% pot"
+    const t = String(text || '').match(/(\d+(?:\.\d+)?)\s*%/);
+    if (t) return parseFloat(t[1]);
+    // Last resort: a chip amount against the pot it is being bet into.
+    const amt = Number(amount);
+    const pot = Number(potSize);
+    if (isFinite(amt) && amt > 0 && isFinite(pot) && pot > 0) return (amt / pot) * 100;
     return null;
 }
 
 /**
  * Determine which sizing group a bet/raise belongs to.
  */
-function getSizingGroup(pct) {
+export function getSizingGroup(pct) {
     if (pct <= SIZING_GROUPS.SMALL.max) return 'SMALL';
     if (pct <= SIZING_GROUPS.MEDIUM.max) return 'MEDIUM';
     if (pct <= SIZING_GROUPS.LARGE.max) return 'LARGE';
@@ -63,17 +84,39 @@ function getSizingGroup(pct) {
  */
 function isBetOrRaise(actionId) {
     const id = (actionId || '').toLowerCase();
-    return id.startsWith('b') || id.startsWith('r') || id === 'allin';
+    return /^(b|r)\d/.test(id)
+        || id === 'b' || id === 'r'
+        || id === 'bet' || id === 'raise'
+        || id.startsWith('bet') || id.startsWith('raise')
+        || id === 'allin' || id === 'all-in' || id === 'push' || id === 'shove' || id === 'jam';
 }
 
 /**
  * Detect action category for simple mode grouping.
+ *
+ * ●●● Two vocabularies reach this function and it only ever knew one. ●●●
+ * Raw solver ids are single letters (`f` `x` `c`) plus sized bets (`b33`).
+ * But useGTOTrainer.applyDifficultyToQuestion runs FIRST and rewrites them to
+ * spelled-out tokens (`fold` `check` `call` `bet` `raise`), and the table then
+ * grouped that output a second time. Under the old matcher `'fold'` and
+ * `'check'` matched nothing, fell to `'other'`, and `'other'` is absent from
+ * `categoryOrder` below — so those buttons were DROPPED and their frequency
+ * mass vanished. Two consequences, both live in production:
+ *
+ *   - a spot whose solver-best is Check or Fold became UNWINNABLE, because the
+ *     correct answer had no button. Measured: `f40/c45/r75` rendered only
+ *     `Call` and `Bet / Raise` with the answer key on `fold`.
+ *   - the frequencies printed under the buttons summed to 40-70%, not 100.
+ *
+ * Note `c` is CALL and `x` is CHECK. Mapping `c` to 'check' put a button
+ * labelled "Check" on the felt facing a bet — an action that is not legal in
+ * that spot.
  */
-function getSimpleCategory(actionId) {
-    const id = (actionId || '').toLowerCase();
-    if (id === 'f') return 'fold';
-    if (id === 'c' || id === 'x') return 'check'; // Check or call depending on context
-    if (id === 'call') return 'call';
+export function getSimpleCategory(actionId) {
+    const id = String(actionId || '').toLowerCase().trim();
+    if (id === 'f' || id === 'fold' || id.startsWith('fold')) return 'fold';
+    if (id === 'x' || id === 'check' || id.startsWith('check')) return 'check';
+    if (id === 'c' || id === 'call' || id.startsWith('call')) return 'call';
     if (isBetOrRaise(id)) return 'bet_raise';
     return 'other';
 }
@@ -90,7 +133,7 @@ function getSimpleCategory(actionId) {
  * This is needed for scoring: when user picks "Medium Bet" in grouped mode,
  * we need to know which real solver actions it covers.
  */
-export function groupActions(options, gtoFrequencies = {}, mode = DIFFICULTY_MODES.STANDARD) {
+export function groupActions(options, gtoFrequencies = {}, mode = DIFFICULTY_MODES.STANDARD, potSize = null) {
     if (!options || options.length === 0) {
         return { groupedOptions: [], frequencyMap: {}, actionMapping: {} };
     }
@@ -115,7 +158,12 @@ export function groupActions(options, gtoFrequencies = {}, mode = DIFFICULTY_MOD
 
         options.forEach(opt => {
             const id = opt.id || opt;
-            const category = getSimpleCategory(id);
+            // Classify on the id, but let the display text break a tie the id
+            // cannot -- a question pipeline that hands us `{id:'opt_2',
+            // text:'Check'}` has told us what the action is.
+            const category = getSimpleCategory(id) === 'other'
+                ? getSimpleCategory(opt && opt.text)
+                : getSimpleCategory(id);
             const freq = gtoFrequencies[id] || 0;
 
             if (!groups[category]) {
@@ -124,6 +172,7 @@ export function groupActions(options, gtoFrequencies = {}, mode = DIFFICULTY_MOD
                     totalFreq: 0,
                     highestFreqId: id,
                     highestFreq: freq,
+                    firstText: (opt && opt.text) || String(id),
                 };
             }
 
@@ -138,12 +187,21 @@ export function groupActions(options, gtoFrequencies = {}, mode = DIFFICULTY_MOD
         const groupedOptions = [];
 
         // Order: Fold, Check/Call, Bet/Raise (matches GTO Wizard simple mode layout)
-        const categoryOrder = ['fold', 'check', 'call', 'bet_raise'];
+        //
+        // `other` is listed LAST rather than omitted. Omitting it is how an
+        // unrecognised action id used to disappear from the felt taking its
+        // frequency with it -- a silent drop that makes the printed
+        // frequencies stop summing to 100 and can delete the correct answer.
+        // An action this function cannot classify still has to be playable;
+        // showing it under its own label is strictly better than pretending
+        // the solver never returned it.
+        const categoryOrder = ['fold', 'check', 'call', 'bet_raise', 'other'];
         const categoryLabels = {
             fold: 'Fold',
             check: 'Check',
             call: 'Call',
             bet_raise: 'Bet / Raise',
+            other: 'Other',
         };
 
         categoryOrder.forEach(cat => {
@@ -152,7 +210,9 @@ export function groupActions(options, gtoFrequencies = {}, mode = DIFFICULTY_MOD
             const groupId = `simple_${cat}`;
             groupedOptions.push({
                 id: groupId,
-                text: categoryLabels[cat],
+                // An unclassifiable action keeps its own label -- calling it
+                // "Other" would be true but useless on the felt.
+                text: cat === 'other' ? group.firstText : categoryLabels[cat],
                 frequency: group.totalFreq,
                 _resolvedId: group.highestFreqId, // Best action within group for scoring
             });
@@ -173,7 +233,7 @@ export function groupActions(options, gtoFrequencies = {}, mode = DIFFICULTY_MOD
         options.forEach(opt => {
             const id = opt.id || opt;
             const freq = gtoFrequencies[id] || 0;
-            const pct = parseSizingPercent(id);
+            const pct = parseSizingPercent(id, opt && opt.text, opt && opt.amount, potSize);
 
             if (pct !== null) {
                 // This is a sized bet/raise — group it
@@ -241,12 +301,20 @@ export function groupActions(options, gtoFrequencies = {}, mode = DIFFICULTY_MOD
  * @param {Object} gtoFrequencies - Original solver frequencies
  * @returns {string} The best matching solver action ID for scoring
  */
-export function resolveGroupedAction(selectedGroupId, actionMapping, gtoFrequencies = {}) {
+export function resolveGroupedAction(selectedGroupId, actionMapping, gtoFrequencies = {}, preferId = null) {
     const mappedActions = actionMapping[selectedGroupId];
     if (!mappedActions || mappedActions.length === 0) return selectedGroupId;
     if (mappedActions.length === 1) return mappedActions[0];
 
-    // Return the highest-frequency action in the group
+    // If the solver's own answer sits inside the bucket the player picked,
+    // that is the action they played. Resolving to a different member and then
+    // grading against the key marks a correct choice wrong: with b50 at 30%
+    // and b75 at 25% in one Medium bucket and b75 as the key, picking
+    // "Medium Bet" submitted b50 and lost the hand. The player chose a
+    // CATEGORY -- the category contains the right answer, so it is right.
+    if (preferId && mappedActions.includes(preferId)) return preferId;
+
+    // Otherwise the representative action is the one the solver plays most.
     let bestAction = mappedActions[0];
     let bestFreq = gtoFrequencies[mappedActions[0]] || 0;
     for (let i = 1; i < mappedActions.length; i++) {

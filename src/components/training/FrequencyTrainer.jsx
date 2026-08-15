@@ -20,6 +20,7 @@
 
 import React, { useMemo, useState, memo } from 'react';
 import { motion } from 'framer-motion';
+import { handFieldOf, playerActionOf } from '../../lib/training/handHistoryEntry';
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // FREQUENCY ANALYSIS ENGINE
@@ -335,13 +336,16 @@ export default function FrequencyTrainer({ handHistory, compact = false }) {
     // Filter hands by window
     const filteredHands = useMemo(() => {
         if (!handHistory) return [];
-        const hands = handHistory.map(h => {
-            const data = h.handData || h;
-            return {
-                gtoFrequencies: data.gtoFrequencies || h.gtoFrequencies,
-                userAction: data.userAction || h.selectedAnswer || h.userAction,
-            };
-        }).filter(h => h.gtoFrequencies && h.userAction);
+        // The action the player took is recorded as `action` -- NOT
+        // `userAction` and NOT `selectedAnswer`. Neither of those keys has
+        // ever existed on a history entry (useGTOTrainer.js writes `action`),
+        // so the filter below dropped every hand and this panel rendered its
+        // "need at least 3 mixed-strategy hands" empty state after a 50-hand
+        // session. See src/lib/training/handHistoryEntry.js.
+        const hands = handHistory.map(h => ({
+            gtoFrequencies: handFieldOf(h, 'gtoFrequencies'),
+            userAction: playerActionOf(h),
+        })).filter(h => h.gtoFrequencies && h.userAction);
 
         if (window === 'last10') return hands.slice(-10);
         if (window === 'last25') return hands.slice(-25);

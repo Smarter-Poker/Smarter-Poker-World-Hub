@@ -884,6 +884,11 @@ export default function useGTOTrainer(
           correctAction: correctText,
           handCategory: currentQuestion.handCategory || '',
           frequencies: frequencies || null,
+          // Measured at the felt (UniversalDynamicTable passes it in `meta`).
+          // getSessionPacingAnalysis prefers it over the gap between recorded
+          // hands, which also contains however long the player spent reading
+          // the previous explanation.
+          answerTimeSeconds: Number(meta?.answerTimeSeconds) || null,
           heroPosition: scenario.heroPosition || scenario.position || null,
           // Real texture classification from the board when one exists;
           // preflop spots stay null rather than inventing a texture.
@@ -1372,6 +1377,9 @@ export default function useGTOTrainer(
 
     try {
       setLoading(true);
+      // A street is a decision (roadmap #49). The flop's graded mix must not
+      // survive into the turn -- RNG grades against these bands.
+      setLastGTOFrequencies(null);
 
       // Call API endpoint to get next-street question
       const token = getSessionToken();
@@ -1649,6 +1657,11 @@ export default function useGTOTrainer(
    */
   const nextQuestion = useCallback(async () => {
     setShowFeedback(false);
+    // The graded mix belongs to the decision just finished. Leaving it set
+    // meant the felt served it as the NEXT spot's solver output until that one
+    // was graded too -- see the note on `computedFrequencies` in
+    // UniversalDynamicTable.jsx.
+    setLastGTOFrequencies(null);
 
     // ═══ MULTI-STREET: Try advancing street first ═══
     if (

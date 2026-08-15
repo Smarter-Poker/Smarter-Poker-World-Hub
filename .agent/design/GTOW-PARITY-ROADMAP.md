@@ -71,6 +71,177 @@ these directly:
 
 ---
 
+## Reconciliation — 2026-08-15 (audit pass 2)
+
+**The 50/50 tally above was measured honestly and was still hiding real
+defects.** Every item's own pass condition held; what a per-item check cannot
+see is a defect that lives BETWEEN two items, or one whose symptom is a
+plausible-looking default. Five audits run in parallel over the trainer found
+seventeen live defects, none of which any existing gate caught. The two worst
+made hands unwinnable and wrote fabricated rows to the database.
+
+Recorded here rather than by re-opening items, because none of them falsifies
+an item's pass condition — they falsify the assumption that a passing item
+means a working feature.
+
+### 1. The flat-spread law now has a home: `src/lib/training/handHistoryEntry.js`
+
+`useGTOWScore.recordMove` pushes `{handNumber, classification, evLoss, ...handData}`
+— handData is SPREAD FLAT and there is no `entry.handData` key. Reading
+`h.handData.x` returns undefined and renders the default behind the `||`. This
+had already been found twice (#40) and was fixed at those two sites only. It
+was live at **seven more**:
+
+- `utils/saveSession.js:65` — every session ever saved wrote a single `UNK`
+  bucket into `training_sessions.position_stats`, and `/api/training/gto-reports`
+  and `/api/training/coaching-summary` derive "strongest position", "weakest
+  position" and the recommended drill from that column. Historic rows are not
+  recoverable.
+- `GodModeArena.jsx` Action Diversity — every hand bucketed to `'unknown'`, so
+  `maxActionCount === totalHands` and the score was **hard-wired to 0%**. Every
+  player of every session was told "Too predictable — mix in more actions" on
+  the default review tab.
+- `AccuracyByPositionChart`, `WeaknessHeatmap`, per-street EV loss, and the
+  Weakest Spot callout — all four collapsed to `UNK` / `flop`. The per-street
+  chart is the instructive one: defaulting a missing street to `'flop'`
+  attributed **every preflop mistake to the flop bar** and produced a chart
+  that looked entirely reasonable.
+- `FrequencyTrainer.jsx:339` read `userAction`/`selectedAnswer`; the field is
+  `action`. Its filter dropped every hand, so the Frequency Adherence panel has
+  shown "need at least 3 mixed-strategy hands" after a 50-hand session for its
+  entire life.
+- `GhostReplayEngine.jsx:57` — `currentHand?.handData || {}` with no flat
+  fallback, so Ghost Replay opened with no cards, no board, `Pot: ? BB`,
+  `HERO (UNK)`.
+- `saveSession.js:83` + `save-session.js:47` — the D1 payload-compaction fix
+  was a **provable no-op on both sides**: it stripped the two 169-hand solver
+  matrices off `h.handData`, and `if (!hd) return h;` was taken on every entry.
+  Payloads have been full-size the whole time, which puts long sessions back
+  in reach of the 2MB guard → silent 413 → session never saved. The comment
+  measuring "compacted histories ~400KB" was measuring uncompacted data.
+
+All seven now go through one module. **Rule for reviewers: a `.handData`
+property access anywhere outside `handHistoryEntry.js` is a bug.**
+
+### 2. Two remappers ran on every question, and they disagreed (#20, #21)
+
+`useGTOTrainer.applyDifficultyToQuestion` collapses the action set, then
+`UniversalDynamicTable` ran `actionGrouper` over that OUTPUT. The hook emits
+`fold`/`check`/`bet`; the grouper knew only `f`/`x`/`b33`. Unrecognised ids fell
+to an `other` bucket that the emitter did not emit.
+
+- **A spot whose solver-best was Check or Fold had no button for it.** Measured:
+  `f40/c45/r75` rendered `Call` and `Bet / Raise` only, answer key on `fold`.
+  The hook's own "serve unsimplified rather than unwinnable" fail-safe cannot
+  help — the damage happens after it returns.
+- Printed frequencies summed to 40–70%, not 100.
+- **GROUPED mode never produced its four sizing buckets.** The four-bucket logic
+  existed and was correct, but the hook had already rewritten `b75` to the bare
+  token `bet`, and `parseSizingPercent('bet')` is null. An `x/b33/b75/b125` node
+  rendered `Check | Bet` — the middle difficulty tier was SIMPLE mode wearing a
+  different name.
+- `b101`–`b150` — bets larger than the pot — were labelled "Large Bet".
+- `c` (call) was categorised as `'check'`, putting a **Check button on the felt
+  facing a bet**.
+- `TrainerConfigModal`'s card promising "Exact Sizings, up to 9 buttons" emitted
+  `id: 'standard'`, which `toEngineDifficulty` maps to GROUPED — and it was the
+  screen's default, so exact sizings were unreachable from it. Now `'exact'`.
+- `resolveGroupedAction` returned the highest-*frequency* member, so with `b50`
+  (30%) and `b75` (25%) in one Medium bucket and `b75` as the key, picking
+  "Medium Bet" submitted `b50` and was graded wrong.
+- #20: `getContextualFillers` injected `b33`/`b66`/`b100` on a check-only node —
+  three fabricated sizings presented with solver authority. Now one unsized Bet.
+
+Fix shape: **one remapper per question.** The table skips re-grouping when the
+question carries `_difficultyApplied`, and GROUPED bucketing moved into
+`DifficultyEngine` where the sizings still exist. `actionGrouper` owns the
+thresholds and parser; both remappers import them so they cannot drift.
+
+### 3. RNG mode graded against the previous decision's frequencies
+
+`lastGTOFrequencies` is written at GRADE time and was never cleared, so during
+the whole pre-answer phase of the next decision the table held the previous
+one's mix — and on a multi-street hand, every street after the flop held the
+flop's. That value feeds `rngRanges` → `rngTargetAction` →
+`effectiveCorrectAnswer`, so **RNG mode rolled against, displayed, and graded
+against stale bands**, and Study mode printed them as this spot's solver output.
+Fixed at both ends: the table prefers `question.gtoFrequencies` (guaranteed
+populated at `get-question.js:610`) and the hook clears the state on
+`nextQuestion` and `advanceToNextStreet`.
+
+### 4. Multi-table (#10 residuals) — one refuted, one real, one already fixed
+
+- (a) **REAL, and worse than recorded.** The roadmap says all tables share one
+  preference; reads were already fixed by `prefsScope: 'table'`. The WRITES
+  were not, and fired unconditionally on mount with multi-table's *defaults*.
+  Opening two tables silently overwrote the Expert + Blitz a player had set on
+  the single-table arena, and the next visit there came back Standard with no
+  clock. Nothing they touched caused it. Table-scoped arenas no longer write
+  the shared keys.
+- (b) **REFUTED as stated** — no in-tab cross-table talk remains; both real
+  listeners filter by `gameId`. But a different defect sat underneath: EventBus
+  mirrors every emit onto a BroadcastChannel, so `SESSION_END` crosses **tabs**
+  with `source` still `'GodModeArena'`. A second tab's completion was folded
+  into this run's combined stats and could trip the all-tables-done auto-save,
+  **POSTing a session the player never played**. The route already hands each
+  arena a `<runId>-<gameId>` sessionId; it now travels with the event.
+- (c) **ALREADY FIXED** — the live writer is the atomic RPC. The read-modify-write
+  survives only in two dead, documented endpoints. New finding: the RPC's
+  `CREATE FUNCTION` was **absent from `supabase/migrations`**, so `db reset` and
+  every preview database failed at the revoke migration that asserts it exists.
+  Added as `20260809022000_fn_training_leaderboard_record.sql`, timestamped to
+  sort before it.
+- Unlisted, also real: `sp_bookmarked_hands` was hydrated into state at mount
+  and written back from that snapshot, a genuine cross-table lost update. The
+  toggle now re-reads and merges.
+
+### 5. #33 was stale in one direction and understated in the other
+
+The recorded caveat — free-text hand strength compared against snake_case enums
+— is CLOSED; `a8a1fcbc` routed all 19 sites through `_getHandToken`. What the
+caveat missed is larger: `useGTOTrainer` calls **ten engine methods that do not
+exist anywhere in the repo**. Each wrapper is
+`try { return deterministicEngine.getX(...) } catch { return null }`, so every
+call threw a TypeError, the catch swallowed it, and **nine coaching panels have
+been silently blank for their entire existence** — PRINCIPLE, POSITION, TEXTURE,
+SPR, VILLAIN RANGE and STREET PLAN behind "More coaching insights", plus
+Frequency Correction, Tilt Recovery and Session Pacing on the summary. That is
+exactly what "only the SHALLOW notes render" meant, and the mechanism was a
+missing method name, not a vocabulary mismatch.
+
+All ten implemented deterministically. The three session-level ones read
+`_sessionStats.history`, which `recordSessionHand` has populated since
+2026-08-08. Pacing now also gets a measured `answerTimeSeconds` rather than
+inferring from the gap between hands, which includes reading time.
+
+### 6. #36 Strategy tab: the range-level half was missing
+
+The item's measurement — "Bet 14% / Check 86%" — is hero's ONE hand, which the
+felt already tells you. GTOW's Strategy tab also shows **hand-class strategy**,
+and the data for it was present the whole time: `rawFrequencies` is the full
+169-class × action matrix, already fetched and already rendered as a grid on
+the Range tab. `src/lib/training/handClassStrategy.js` groups it by what each
+class IS on this board, combo-weighted (a pocket pair is 6 combos, an offsuit
+class 12 — averaging raw percentages lets the rarest classes shout loudest).
+
+Deliberate limit, stated in the panel rather than hidden: a 169-class grid
+records rank structure and a suited flag, not which suits. Made hands and
+straight draws are therefore EXACT; **flush draws are not determinable** — a
+suited class holds one in exactly one combo of four. There is no flush-draw
+bucket, and `suitedNote` says why. Inventing the missing suit information would
+have produced a panel that looks more complete and is less true.
+
+Also wired, having accepted the props since it was written: `RangeGrid`'s
+per-hand EV overlay and classification colouring. `evData.handEVs` was three
+lines away from the call site the whole time.
+
+**New gate: `node scripts/trainer-difficulty-check.js` — PASS 58 FAIL 0.**
+It pins every defect above, including that KK on an ace-high board is NOT an
+overpair (the first draft of that assertion had it backwards, and the
+classifier was right).
+
+---
+
 ## Part A — Reference: what GTO Wizard actually does
 
 Sourced from GTO Wizard's own documentation, not assumed.

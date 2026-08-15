@@ -28,6 +28,7 @@ import { useTrainingAnalytics } from './PerformanceTrends';
 // ●●● PHASE 17: Smart Practice + AI Coaching ●●●
 import SmartPracticeBanner from './SmartPracticeBanner';
 import { getSessionToken } from '../../lib/authUtils';
+import { heroPositionOf, streetOf, playerActionOf } from '../../lib/training/handHistoryEntry';
 // ●●● PHASE 18: Leaderboard ●●●
 import LeaderboardPanel from './LeaderboardPanel';
 // ●●● PHASE 19: Share Card + Achievement Toasts ●●●
@@ -820,7 +821,7 @@ function AccuracyByPositionChart({ handHistory }) {
   if (!handHistory || handHistory.length < 3) return null;
   const posStats = {};
   handHistory.forEach((h) => {
-    const pos = h.handData?.heroPosition || 'UNK';
+    const pos = heroPositionOf(h);
     if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0 };
     posStats[pos].total++;
     if (h.classification === 'best' || h.classification === 'correct') posStats[pos].correct++;
@@ -906,8 +907,8 @@ function WeaknessHeatmap({ handHistory }) {
   const positions = new Set();
   const streets = ['preflop', 'flop', 'turn', 'river'];
   handHistory.forEach((h) => {
-    const pos = h.handData?.heroPosition || 'UNK';
-    const st = h.handData?.street || 'flop';
+    const pos = heroPositionOf(h);
+    const st = streetOf(h) || 'preflop';
     positions.add(pos);
     if (!grid[pos]) grid[pos] = {};
     if (!grid[pos][st]) grid[pos][st] = { correct: 0, total: 0 };
@@ -3317,13 +3318,24 @@ function GodModeArenaInner({
     return 'standard';
   });
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('gma_difficulty', difficulty);
-    // prefsScope: 'table' -- useGTOTrainer resolves difficulty from this
-    // table's own trainerConfig instead of the shared localStorage key, so a
-    // mid-game settings change must be pushed into trainerConfig to reach
-    // THIS table's engine.
+    // A table-scoped arena READS its preference from its own trainerConfig
+    // (prefsScope: 'table'), so it must not WRITE the shared key either.
+    //
+    // It did, and unconditionally on mount, with the value multi-table
+    // DEFAULTS rather than one the player picked: /hub/training/multi-table
+    // supplies `difficulty: 'standard'` and `timer: 'relaxed'` when the setup
+    // modal forwards neither. So opening two tables silently overwrote the
+    // Expert + Blitz a player had set on the single-table arena, and the next
+    // visit there -- which passes no initialConfig and therefore reads these
+    // keys -- came back Standard with no clock at all. Nothing the player
+    // touched caused it and nothing told them it had happened.
+    const tableScoped = initialConfig?.prefsScope === 'table';
+    if (!tableScoped && typeof window !== 'undefined') {
+      localStorage.setItem('gma_difficulty', difficulty);
+    }
+    // A mid-game settings change still has to reach THIS table's engine.
     setTrainerConfig((c) => (c ? { ...c, difficulty } : c));
-  }, [difficulty]);
+  }, [difficulty, initialConfig?.prefsScope]);
 
   // ●●● QW-2: TIMER MODE (relaxed/standard/quick/blitz) ●●●
   //
@@ -3346,8 +3358,13 @@ function GodModeArenaInner({
     return 'standard';
   });
   useEffect(() => {
+    // Same rule as gma_difficulty above: a table-scoped arena does not own the
+    // shared preference and must not overwrite it with its own default. The
+    // sanitiser on READ is unaffected -- a stale out-of-vocabulary value is
+    // still repaired the next time a non-scoped arena mounts.
+    if (initialConfig?.prefsScope === 'table') return;
     if (typeof window !== 'undefined') localStorage.setItem('gma_timer', timerMode);
-  }, [timerMode]);
+  }, [timerMode, initialConfig?.prefsScope]);
   // The in-hand countdown lives in UDT's CountdownTimer, fed timerSeconds /
   // timerEnabled through trainerConfig below. A "fallback" interval used to
   // sit here -- it was DEAD both ways (timer enabled: early return; timer
@@ -3591,6 +3608,21 @@ function GodModeArenaInner({
           // wanted session EV loss — the multi-table aggregator most of all —
           // had nothing to read and fell through to zero.
           totalEVLoss: Number.isFinite(totalEVLoss) ? Number(totalEVLoss) : 0,
+          // Which RUN this completion belongs to.
+          //
+          // EventBus mirrors every emit onto a BroadcastChannel, so SESSION_END
+          // crosses TABS. The multi-table aggregator's only guards were
+          // `source !== 'MultiTable'` (which a real arena's event passes) and a
+          // per-tab dedupe ref (which knows nothing about the other tab). So a
+          // second tab open on the training arena ingested this tab's
+          // completion, folded its hands and EV loss into ITS combined stats,
+          // and -- once the borrowed completion pushed its count to the table
+          // total -- fired the auto-save and POSTed a session the player never
+          // played to /api/training/save-session. A phantom row, not a UI
+          // artifact. The multi-table route already hands each arena a
+          // `<runId>-<gameId>` sessionId; it just never travelled with the
+          // event that needed it.
+          sessionId: sessionId || null,
         };
 
         eventBus.emit(EventType.SESSION_END, sessionPayload, 'GodModeArena');
@@ -3770,7 +3802,7 @@ function GodModeArenaInner({
     // Count how often player chose the most common action vs mixing
     const actionCounts = {};
     handHistory.forEach((h) => {
-      const action = h.handData?.action || 'unknown';
+      const action = playerActionOf(h) || 'unknown';
       actionCounts[action] = (actionCounts[action] || 0) + 1;
     });
     const totalHands = handHistory.length;
@@ -5664,7 +5696,11 @@ function GodModeArenaInner({
                 (() => {
                   const streetEV = { flop: 0, turn: 0, river: 0, preflop: 0 };
                   handHistory.forEach((h) => {
-                    const s = h.handData?.street || 'flop';
+                    // No street recorded means the decision cannot be
+                    // attributed. Defaulting to 'flop' -- which this did --
+                    // charged every preflop mistake to the flop bar.
+                    const s = streetOf(h);
+                    if (!s) return;
                     streetEV[s] = (streetEV[s] || 0) + (h.evLoss || 0);
                   });
                   const maxEV = Math.max(0.01, ...Object.values(streetEV || {}));
@@ -5762,8 +5798,8 @@ function GodModeArenaInner({
                 (() => {
                   const spotStats = {};
                   handHistory.forEach((h) => {
-                    const pos = h.handData?.heroPosition || 'UNK';
-                    const st = h.handData?.street || 'flop';
+                    const pos = heroPositionOf(h);
+                    const st = streetOf(h) || 'preflop';
                     const key = `${pos} on ${st}`;
                     if (!spotStats[key]) spotStats[key] = { evLoss: 0, mistakes: 0, total: 0 };
                     spotStats[key].total++;
