@@ -223,8 +223,20 @@ def purge_dead_videos(batch_size: int = 20, dry_run: bool = False) -> dict:
     Safe: skips on network errors (only deletes on confirmed HTTP 4xx).
     """
     log.info('Starting dead-video purge...')
-    all_vids = (supabase.table('video_library_videos')
-        .select('id,youtube_video_id,source_id,title').execute().data or [])
+    # 2026-08-15: same 1000-row PostgREST cap — the purge silently stopped
+    # checking anything past row 1000, so dead/private videos accumulated
+    # forever once the library outgrew that.
+    all_vids = []
+    _page, _size = 0, 1000
+    while True:
+        _rows = (supabase.table('video_library_videos')
+                 .select('id,youtube_video_id,source_id,title')
+                 .range(_page * _size, _page * _size + _size - 1)
+                 .execute().data or [])
+        all_vids.extend(_rows)
+        if len(_rows) < _size:
+            break
+        _page += 1
 
     dead_ids   = []
     dead_vids  = []
@@ -444,8 +456,21 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
     start = datetime.now(timezone.utc)
 
     # One round-trip to load all existing IDs for fast dedup
-    existing_resp = supabase.table('video_library_videos').select('youtube_video_id').execute()
-    existing_ids  = set(v['youtube_video_id'] for v in (existing_resp.data or []))
+    # 2026-08-15: PostgREST caps a select at 1000 rows. Without paging, every
+    # dedupe check past row 1000 was blind: re-scrapes re-attempted inserts and
+    # leaned on the 23505 catch below. Page explicitly.
+    existing_ids = set()
+    _page, _size = 0, 1000
+    while True:
+        _r = (supabase.table('video_library_videos')
+              .select('youtube_video_id')
+              .range(_page * _size, _page * _size + _size - 1)
+              .execute())
+        _rows = _r.data or []
+        existing_ids.update(v['youtube_video_id'] for v in _rows)
+        if len(_rows) < _size:
+            break
+        _page += 1
     log.info(f'Existing videos in DB: {len(existing_ids)}')
 
     summary = {

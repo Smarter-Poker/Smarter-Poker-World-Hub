@@ -184,7 +184,11 @@ export default function VideoLibraryPage() {
     const handleOpenVideoRef = useRef(null);
     useEffect(() => {
         if (router.query.type) {
-            setSelectedType(router.query.type.toUpperCase());
+            // 2026-08-15: was .toUpperCase(), which produced 'CASH'/'TOURNAMENT'
+            // and never matched v.type — the DB CHECK constraint stores these
+            // lowercase. Every ?type= deep link (two hamburger-menu entries and
+            // the sitemap links) landed on an empty "No Videos Found" page.
+            setSelectedType(router.query.type.toLowerCase());
         }
         if (router.query.source) {
             setSelectedSource(router.query.source.toUpperCase());

@@ -384,6 +384,20 @@ SCRAPER_PY = str(
 # Maps cron path → list of args passed to `python3 SCRAPER_PY`.
 # Only used as a primary-role fallback for the Mac dispatcher. On secondary
 # (Hetzner), any path in WORKERS_PREFERRED below fires via HTTP instead.
+# 2026-08-15: '--sync-captions' is NOT a flag of video_library_scraper.py
+# (its argparse accepts only --dry-run/--source/--purge/--backfill/
+# --refresh-views/--tag-backfill), so this job exited 2 every night and new
+# library videos never reached social_reels. The flag belongs to
+# video_library_to_reels.py, which no scheduler referenced at all.
+# SCRIPT_JOB_SCRIPTS overrides the script per path; default stays SCRAPER_PY.
+REELS_BRIDGE_PY = str(
+    Path.home() / 'Documents' / 'Smarter-Poker-World-Hub' / 'scripts' / 'video_library_to_reels.py'
+)
+
+SCRIPT_JOB_SCRIPTS = {
+    '/api/cron/video-library-reels': REELS_BRIDGE_PY,
+}
+
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
     '/api/cron/video-library-reels':    ['--sync-captions'],
@@ -599,7 +613,7 @@ def fire_script(path: str, extra_args: list):
     The script itself POSTs its result back to the Vercel status webhook,
     so the audit log stays up to date even though we're running locally.
     """
-    cmd = [sys.executable, SCRAPER_PY] + extra_args
+    cmd = [sys.executable, SCRIPT_JOB_SCRIPTS.get(path, SCRAPER_PY)] + extra_args
     log.info(f'▶ Script job {path} → {" ".join(cmd)}')
     t0 = time.time()
     try:
