@@ -110,6 +110,12 @@ export function ActiveIdentityProvider({ children }) {
                         avatar_url: page.avatar_url,
                         page_type: page.page_type || 'club',
                         unread_count: page.unread_count || 0,
+                        // A club's social page has its OWN id; the club id lives in
+                        // linked_entity_id. Club Arena forces identity by CLUB id, so
+                        // this field is required for the forceIdentity match below.
+                        linked_entity_id: page.linked_entity_id || null,
+                        linked_entity_type: page.linked_entity_type || null,
+                        slug: page.slug || null,
                     })));
                     console.debug('[ActiveIdentity] Club pages found:', pagesFound.length);
                 }
@@ -166,7 +172,14 @@ export function ActiveIdentityProvider({ children }) {
                 setActiveIdentity({ mode: 'personal', clubPage: null });
                 forceAppliedRef.current = true;
             } else {
-                const page = ownedPages.find(p => p.id === forceId);
+                // Club Arena passes the CLUB id (clubId=<uuid>), which equals a
+                // page linked_entity_id, NOT its social-page id. Also accept a direct
+                // page id or slug so the switcher works regardless of the identifier.
+                const page = ownedPages.find(p =>
+                    p.id === forceId ||
+                    p.linked_entity_id === forceId ||
+                    p.slug === forceId
+                );
                 if (page) {
                     console.debug('[ActiveIdentity] Force switching to:', page.name);
                     setActiveIdentity({ mode: 'club', clubPage: page });
@@ -262,6 +275,9 @@ export function ActiveIdentityProvider({ children }) {
                     avatar_url: page.avatar_url,
                     page_type: page.page_type || 'club',
                     unread_count: page.unread_count || 0,
+                    linked_entity_id: page.linked_entity_id || null,
+                    linked_entity_type: page.linked_entity_type || null,
+                    slug: page.slug || null,
                 }));
 
                 const isChanged = JSON.stringify(newOwnedPages) !== JSON.stringify(ownedPages);
