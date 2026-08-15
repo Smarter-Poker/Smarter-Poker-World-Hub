@@ -179,3 +179,32 @@ per the standing doctrine: a gate nobody has to obey is not a gate.
 - The sweep-1/2/3 commits' deploy verification (Vercel build + /api/health)
   is folded into this phase's final verification since all four land on
   main within the same window.
+
+## Rollout results (recorded post-push)
+
+- Sweep 4 shipped as 381b7b468d (byte-exact patch transport, blob-verified).
+- The gate run on 381b7b46 went red — NOT on CHECK 13, but on two
+  pre-existing failures the previously-red gate had been masking (main's
+  Build Safety Gate had been failing since at least 8a0f5311 earlier today):
+  1. **CHECK 10 (economy invariants):** `fn_memory_promote_session_to_
+     leaderboard` — a trigger function from a parallel workstream — carried
+     Postgres's default PUBLIC EXECUTE grant, tripping the
+     anon-callable-definer-writes assertion. Fixed by revoking
+     PUBLIC/anon/authenticated EXECUTE (zero behavior change: trigger firing
+     does not consult the session role's EXECUTE privilege), applied to prod
+     with a post-assert that economy_invariants() is clean, mirrored +
+     pushed as 6c64d9829f.
+  2. **CHECK 6c (cron governance):** 419ea6b7 removed `news-digest` from
+     the gate allowlist while CLAUDE.md §11.4 still carries the time-boxed
+     exception — and the removal's precondition never held: Open Claw
+     deploys have failed since 2026-05-17 (2026-08-13 handoff), so the
+     Actions schedule is the digest's only live scheduler. Allowlist entry
+     restored to match CLAUDE.md, pushed as 1fb0bfd49f.
+- Gate run on 1fb0bfd4: **Pre-Deploy Safety Checks SUCCESS** — CHECK 13
+  (blocking, live schema) ✓, CHECK 10 ✓, CHECK 11 ✓, CHECK 12 ✓, CHECK 14 ✓,
+  CHECK 6 ✓, TypeScript ✓.
+- Production: `/api/health` serving version `1fb0bfd4`, db ok — which also
+  transitively verifies the sweep 1+2 (fabec97fe4), sweep 3 (0fca5d4bec)
+  and sweep 4 deployments (each intermediate Vercel deployment reached
+  READY; see deployment log).
+- Commander repo untouched by this phase.
