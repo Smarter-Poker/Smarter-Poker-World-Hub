@@ -233,6 +233,7 @@ export default function GoldenTemplateTable({
     questionNumber = 1,
     totalQuestions = 20,
     gameTitle = 'ICM Fundamentals',
+    skin = 'classic_green', // new skin prop
     onFold,
     onCheck,
     onCall,
@@ -248,12 +249,15 @@ export default function GoldenTemplateTable({
     }));
 
     const gamePlayers = players.length > 0 ? players : defaultPlayers;
+    const skinImage = `/assets/tables/skin_${skin}.jpg`;
 
     return (
         <div style={{
             width: '100%',
             height: '100vh',
-            background: '#080810',
+            backgroundImage: `url(${skinImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
             position: 'relative',
             overflow: 'hidden',
             fontFamily: "'Inter', -apple-system, sans-serif",
@@ -271,179 +275,92 @@ export default function GoldenTemplateTable({
             }}>
 
                 {/* ═══════════════════════════════════════════════════════════════════
-            RACETRACK TABLE with 3D DEPTH and layered gold rails
+            TABLE SKIN (BACKGROUND HAS BEEN SET ON PARENT)
             ═══════════════════════════════════════════════════════════════════ */}
 
-                {/* OUTER DARK FRAME - 3D raised effect */}
+                {/* POT display (center top of table) */}
                 <div style={{
                     position: 'absolute',
-                    top: '12%',
-                    left: '8%',
-                    right: '8%',
-                    bottom: '12%',
-                    borderRadius: '50% / 38%',
-                    background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 50%, #050505 100%)',
-                    boxShadow: `
-                        0 25px 80px rgba(0,0,0,0.95),
-                        0 8px 30px rgba(0,0,0,0.8),
-                        inset 0 -8px 20px rgba(0,0,0,0.6),
-                        inset 0 8px 20px rgba(50,50,50,0.2)
-                    `,
+                    top: '18%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: 'rgba(25,25,25,0.95)',
+                    borderRadius: 14,
+                    padding: '5px 12px',
+                    border: '1px solid #3a3a3a',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                 }}>
-                    {/* OUTER GOLD RAIL - gradient for 3D */}
                     <div style={{
-                        position: 'absolute',
-                        inset: 12,
-                        borderRadius: '50% / 37%',
-                        background: 'linear-gradient(180deg, #f0d050 0%, #d4a000 25%, #a07800 60%, #705000 100%)',
-                        boxShadow: `
-                            inset 0 3px 6px rgba(255,255,180,0.5),
-                            inset 0 -3px 6px rgba(0,0,0,0.5)
-                        `,
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(180deg, #444 0%, #222 100%)',
+                        border: '2px solid #555',
+                        boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.1)',
+                    }} />
+                    <span style={{
+                        color: '#fff',
+                        fontSize: 12,
+                        fontWeight: 'bold',
+                        letterSpacing: 0.5,
                     }}>
-                        {/* BLACK GAP */}
-                        <div style={{
-                            position: 'absolute',
-                            inset: 10,
-                            borderRadius: '50% / 36%',
-                            background: 'linear-gradient(180deg, #151515 0%, #0a0a0a 100%)',
-                        }}>
-                            {/* INNER GOLD RAIL */}
-                            <div style={{
-                                position: 'absolute',
-                                inset: 8,
-                                borderRadius: '50% / 35%',
-                                background: 'linear-gradient(180deg, #ffe070 0%, #e8b810 25%, #b08000 60%, #785500 100%)',
-                                boxShadow: `
-                                    inset 0 3px 6px rgba(255,255,180,0.6),
-                                    inset 0 -3px 6px rgba(0,0,0,0.5)
-                                `,
-                            }}>
-                                {/* THIN DARK EDGE */}
-                                <div style={{
-                                    position: 'absolute',
-                                    inset: 6,
-                                    borderRadius: '50% / 34%',
-                                    background: 'linear-gradient(180deg, #101010 0%, #080808 100%)',
-                                }}>
-                                    {/* INNER GLOW LINE */}
-                                    <div style={{
-                                        position: 'absolute',
-                                        inset: 4,
-                                        borderRadius: '50% / 33%',
-                                        border: '3px solid',
-                                        borderColor: 'rgba(180,140,50,0.35)',
-                                        background: 'transparent',
-                                    }}>
-                                        {/* FELT with radial gradient depth */}
-                                        <div style={{
-                                            position: 'absolute',
-                                            inset: 0,
-                                            borderRadius: '50% / 33%',
-                                            background: `radial-gradient(
-                                                ellipse at 50% 35%,
-                                                #181818 0%,
-                                                #121212 25%,
-                                                #0d0d0d 50%,
-                                                #080808 75%,
-                                                #050505 100%
-                                            )`,
-                                            boxShadow: `
-                                                inset 0 0 120px rgba(0,0,0,0.9),
-                                                inset 0 0 60px rgba(0,0,0,0.7),
-                                                inset 0 -20px 40px rgba(0,0,0,0.5)
-                                            `,
-                                        }}>
-                                            {/* POT display (center top of table) */}
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: '18%',
-                                                left: '50%',
-                                                transform: 'translateX(-50%)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 6,
-                                                background: 'rgba(25,25,25,0.95)',
-                                                borderRadius: 14,
-                                                padding: '5px 12px',
-                                                border: '1px solid #3a3a3a',
-                                                boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                                            }}>
-                                                <div style={{
-                                                    width: 16,
-                                                    height: 16,
-                                                    borderRadius: '50%',
-                                                    background: 'linear-gradient(180deg, #444 0%, #222 100%)',
-                                                    border: '2px solid #555',
-                                                    boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.1)',
-                                                }} />
-                                                <span style={{
-                                                    color: '#fff',
-                                                    fontSize: 12,
-                                                    fontWeight: 'bold',
-                                                    letterSpacing: 0.5,
-                                                }}>
-                                                    POT {pot}
-                                                </span>
-                                            </div>
+                        POT {pot}
+                    </span>
+                </div>
 
-                                            {/* Game title (center of table) */}
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: '50%',
-                                                left: '50%',
-                                                transform: 'translate(-50%, -50%)',
-                                                textAlign: 'center',
-                                            }}>
-                                                <div style={{
-                                                    fontSize: 24,
-                                                    fontFamily: 'Georgia, serif',
-                                                    fontStyle: 'italic',
-                                                    color: '#4a4a4a',
-                                                    letterSpacing: 2,
-                                                    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                                                }}>
-                                                    {gameTitle}
-                                                </div>
-                                                <div style={{
-                                                    fontSize: 14,
-                                                    color: '#c4960a',
-                                                    marginTop: 6,
-                                                    textShadow: '0 0 10px rgba(196,150,10,0.3)',
-                                                }}>
-                                                    Smarter.Poker
-                                                </div>
-                                            </div>
-
-                                            {/* Community cards (center, below title) */}
-                                            {communityCards.length > 0 && (
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    top: '68%',
-                                                    left: '50%',
-                                                    transform: 'translateX(-50%)',
-                                                    display: 'flex',
-                                                    gap: 6,
-                                                }}>
-                                                    {communityCards.map((card, i) => (
-                                                        <motion.div
-                                                            key={i}
-                                                            initial={{ scale: 0, rotateY: 180 }}
-                                                            animate={{ scale: 1, rotateY: 0 }}
-                                                            transition={{ delay: i * 0.1 }}
-                                                        >
-                                                            <Card card={card} />
-                                                        </motion.div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                {/* Game title (center of table) */}
+                <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    textAlign: 'center',
+                }}>
+                    <div style={{
+                        fontSize: 24,
+                        fontFamily: 'Georgia, serif',
+                        fontStyle: 'italic',
+                        color: '#ffffff',
+                        letterSpacing: 2,
+                        textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+                    }}>
+                        {gameTitle}
+                    </div>
+                    <div style={{
+                        fontSize: 14,
+                        color: '#f0c040',
+                        marginTop: 6,
+                        textShadow: '0 0 10px rgba(0,0,0,0.8)',
+                    }}>
+                        Smarter.Poker
                     </div>
                 </div>
+
+                {/* Community cards (center, below title) */}
+                {communityCards.length > 0 && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '68%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        display: 'flex',
+                        gap: 6,
+                    }}>
+                        {communityCards.map((card, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ scale: 0, rotateY: 180 }}
+                                animate={{ scale: 1, rotateY: 0 }}
+                                transition={{ delay: i * 0.1 }}
+                            >
+                                <Card card={card} />
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
 
                 {/* ═══════════════════════════════════════════════════════════════════
             PLAYER AVATARS (positioned around outside of table)
