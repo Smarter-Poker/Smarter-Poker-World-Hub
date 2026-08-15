@@ -2364,6 +2364,36 @@ export class DeterministicGTOEngine {
         // matrix's own `pot` is written in -- so they are rebased onto the pot
         // the felt is actually showing rather than used raw.
         const sm = scenario.strategy_matrix || {};
+
+        // SOURCE 0 -- the 2026-08-15 harvest schema. The solver machines'
+        // rebuilt pipeline replaced the singular `node` key with a `nodes[]`
+        // array of decision points, each shaped
+        //   { node_path, node_type, pot, actions, frequencies, hand_evs }
+        // (shape read off live production rows, not assumed). A facing-bet
+        // entry is one whose node_type says so or whose path ends in a bet
+        // token; its own per-node `pot` is the chips in the middle BEFORE hero
+        // acts, which is exactly the rebase denominator. Written against the
+        // observed contract AHEAD of the data: as of this commit every
+        // harvested entry is still node_type "hero_first" at r:0, so this
+        // branch returns 0 in production today -- and lights up the moment the
+        // machines' facing-bet harvest lands, with no further web change.
+        if (Array.isArray(sm.nodes)) {
+            for (const nd of sm.nodes) {
+                if (!nd || typeof nd.node_path !== 'string') continue;
+                const isFacing = nd.node_type === 'facing_bet' || /b\d+$/.test(nd.node_path);
+                if (!isFacing) continue;
+                const m = nd.node_path.match(/b(\d+)$/);
+                if (!m) continue;
+                const chips = parseInt(m[1], 10);
+                const nodePot = Number(nd.pot);
+                if (!isFinite(chips) || chips <= 0) continue;
+                if (isFinite(nodePot) && nodePot > 0) {
+                    return Math.round(((chips / nodePot) * pot) * 10) / 10;
+                }
+                return Math.round(chips * 10) / 10;
+            }
+        }
+
         const node = typeof sm.node === 'string' ? sm.node : '';
         const tail = node.match(/b(\d+)$/);
         if (tail) {

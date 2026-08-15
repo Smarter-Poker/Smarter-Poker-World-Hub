@@ -656,5 +656,43 @@ const summarize = () => {
         return c12.pioStreet === 'river' || 'unexpected declaration';
     });
 
+    // ---- _villainBetBB reads the 2026-08-15 nodes[] harvest schema ---------
+    // Written against the contract observed on live rows (node_path,
+    // node_type, per-node pot) AHEAD of the facing-bet data landing, so the
+    // chip badge lights up the moment the machines deliver -- these pin the
+    // reader to that contract.
+    check('#14 nodes[]: a facing_bet entry with per-node pot rebases onto the felt pot', () => {
+        const scenario = { strategy_matrix: { nodes: [
+            { node_path: 'r:0', node_type: 'hero_first', pot: 40 },
+            { node_path: 'r:0:b20', node_type: 'facing_bet', pot: 60 },
+        ] } };
+        // solver: 20 chips into a 60-chip node pot = 1/3 pot; felt pot 12bb -> 4bb
+        const got = deterministicEngine._villainBetBB(scenario, 12);
+        return got === 4 || 'got ' + got;
+    });
+
+    check('#14 nodes[]: a hero_first-only array yields 0 -- todays production shape', () => {
+        const scenario = { strategy_matrix: { nodes: [
+            { node_path: 'r:0', node_type: 'hero_first', pot: 40 },
+        ] } };
+        const got = deterministicEngine._villainBetBB(scenario, 12);
+        return got === 0 || 'got ' + got;
+    });
+
+    check('#14 nodes[]: a bet-terminal path counts even without the node_type label', () => {
+        const scenario = { strategy_matrix: { nodes: [
+            { node_path: 'r:0:c:b412', pot: 824 },
+        ] } };
+        // 412 into 824 = half pot; felt pot 10bb -> 5bb
+        const got = deterministicEngine._villainBetBB(scenario, 10);
+        return got === 5 || 'got ' + got;
+    });
+
+    check('#14 nodes[]: the legacy singular `node` path still works unchanged', () => {
+        const scenario = { strategy_matrix: { node: 'r:0:c:b488', pot: 976 } };
+        const got = deterministicEngine._villainBetBB(scenario, 10);
+        return got === 5 || 'got ' + got;
+    });
+
     summarize();
 })();
