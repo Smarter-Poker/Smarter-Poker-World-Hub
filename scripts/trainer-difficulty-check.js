@@ -637,6 +637,34 @@ check('classification data covers every class in the grid, with a colour', () =>
     return true;
 });
 
+check('a STRING board works, not just an array -- production sends a string', () => {
+    // scenario.board on a served postflop question is "7s 4h Tc". Requiring
+    // the array shape made boardRanks return [], so every class was
+    // classified with the PREFLOP buckets while the row order asked for the
+    // postflop ones -- empty intersection, no rows, no panel, and nothing
+    // logged. Found only by loading the screen.
+    const grid = { AKo: { b: 60, x: 40 }, '72o': { b: 10, x: 90 }, QQ: { b: 80, x: 20 } };
+    const asArray = aggregateByHandClass(grid, [{ id: 'b' }, { id: 'x' }], ['Ah', '7d', '2s']);
+    const asString = aggregateByHandClass(grid, [{ id: 'b' }, { id: 'x' }], 'Ah 7d 2s');
+    if (!asArray || !asString) return `array ${!!asArray} string ${!!asString}`;
+    return JSON.stringify(asArray.rows) === JSON.stringify(asString.rows)
+        || `array ${JSON.stringify(asArray.rows.map(r => r.key))} vs string ${JSON.stringify(asString.rows.map(r => r.key))}`;
+});
+
+check('a comma-separated board string parses too', () => {
+    const grid = { AKo: { b: 60, x: 40 } };
+    const out = aggregateByHandClass(grid, [{ id: 'b' }, { id: 'x' }], 'Ah,7d,2s');
+    return (out && out.rows[0].key === 'top_pair') || JSON.stringify(out && out.rows.map(r => r.key));
+});
+
+check('row ordering comes from the buckets produced, never a second guess', () => {
+    // Even a board shape nothing can parse must still yield rows -- it falls
+    // to the preflop buckets, and the order follows them.
+    const grid = { AA: { b: 100, x: 0 }, '72o': { b: 0, x: 100 } };
+    const out = aggregateByHandClass(grid, [{ id: 'b' }, { id: 'x' }], { nonsense: true });
+    return (out && out.rows.length === 2) || JSON.stringify(out && out.rows.map(r => r.key));
+});
+
 check('unparseable notation is skipped rather than bucketed as air', () => {
     return classifyHandClass('ZZ', ['Ah', '7d', '2s']) === null
         && classifyHandClass('', []) === null

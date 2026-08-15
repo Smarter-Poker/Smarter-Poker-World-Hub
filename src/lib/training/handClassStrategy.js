@@ -54,10 +54,24 @@ function ranksOf(hand) {
     return { hi: Math.max(a, b), lo: Math.min(a, b), pair: hand[0] === hand[1], suited: hand.endsWith('s') };
 }
 
-/** Board card strings ('Ah', 'Td') -> sorted-descending rank values. */
+/**
+ * Board -> sorted-descending rank values.
+ *
+ * Accepts BOTH an array of card strings and a single space/comma-separated
+ * string, because the question pipeline produces both: `scenario.board` on a
+ * served postflop question is the string `"7s 4h Tc"`, while the felt's own
+ * `boardCards` memo is an array. Requiring the array shape is what made this
+ * module return null on every real spot -- `boardRanks` gave `[]`, every class
+ * was therefore classified with the PREFLOP buckets, and the row order asked
+ * for the postflop ones. No overlap, no rows, no panel. Nothing threw and
+ * nothing logged; the section simply was not there.
+ */
 function boardRanks(board) {
-    if (!Array.isArray(board)) return [];
-    return board
+    let cards;
+    if (Array.isArray(board)) cards = board;
+    else if (typeof board === 'string') cards = board.trim().split(/[\s,]+/).filter(Boolean);
+    else return [];
+    return cards
         .map((c) => RANK_VALUE[String(c || '').trim()[0]?.toUpperCase()])
         .filter((v) => typeof v === 'number')
         .sort((x, y) => y - x);
@@ -237,9 +251,19 @@ export function aggregateByHandClass(gridData, actions, board) {
 
     if (totalCombos === 0) return null;
 
-    const ORDER = board && board.length
-        ? HAND_CLASS_ORDER
-        : ['premium', 'pairs', 'broadway_suited', 'broadway_offsuit', 'suited_connectors', 'suited_other', 'offsuit_other'];
+    // Order from the SAME source that produced the buckets, never from a
+    // second guess about the board. The previous version chose the postflop
+    // ordering whenever `board` was truthy and the preflop one otherwise --
+    // so a board shape it could not parse produced preflop buckets and asked
+    // for postflop keys, and the intersection was empty. Listing the known
+    // order first and then appending anything unaccounted for makes an
+    // ordering mismatch cost presentation, not the whole panel.
+    const known = [
+        ...HAND_CLASS_ORDER,
+        'premium', 'pairs', 'broadway_suited', 'broadway_offsuit',
+        'suited_connectors', 'suited_other', 'offsuit_other',
+    ];
+    const ORDER = [...known.filter((k) => buckets.has(k)), ...[...buckets.keys()].filter((k) => !known.includes(k))];
 
     const rows = [];
     for (const key of ORDER) {
@@ -262,7 +286,7 @@ export function aggregateByHandClass(gridData, actions, board) {
     return {
         rows,
         totalCombos: Math.round(totalCombos),
-        suitedNote: anySuited && board && board.length >= 3
+        suitedNote: anySuited && boardRanks(board).length >= 3
             ? 'Flush draws are not separated: a 169-class grid records suited-or-not, not which suit, so a suited class holds the draw in one combo of four. Made hands and straight draws are exact.'
             : null,
     };
