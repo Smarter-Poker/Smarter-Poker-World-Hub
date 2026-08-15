@@ -1,0 +1,41 @@
+diff --git a/pages/hub/personal-assistant/leaks.js b/pages/hub/personal-assistant/leaks.js
+index 4583962..d10a3ce 100644
+--- a/pages/hub/personal-assistant/leaks.js
++++ b/pages/hub/personal-assistant/leaks.js
+@@ -2049,3 +2049,3 @@ export default function LeakFinderPage() {
+               </p>
+-              <a className="pa-btn" href="/auth" style={{ ...btn('primary', { block: true }), textDecoration: 'none', minHeight: 48 }}>
++              <a className="pa-btn" href="/auth/signin" style={{ ...btn('primary', { block: true }), textDecoration: 'none', minHeight: 48 }}>
+                 Sign in to analyse my hands
+diff --git a/pages/hub/personal-assistant/sandbox.js b/pages/hub/personal-assistant/sandbox.js
+index a73fba0..2d60ea2 100644
+--- a/pages/hub/personal-assistant/sandbox.js
++++ b/pages/hub/personal-assistant/sandbox.js
+@@ -1012,3 +1012,3 @@ function TemplatesSheet({ isOpen, onClose, templates, status, error, onReload, o
+           body="Templates are tied to your account so they follow you across devices."
+-          action={<a className="pa-btn" href="/auth" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
++          action={<a className="pa-btn" href="/auth/signin" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
+         />
+@@ -1070,3 +1070,3 @@ function AnalyticsSheet({ isOpen, onClose, status, stats, error, onRetry }) {
+           body="Accuracy, position distribution and insights are tied to your account."
+-          action={<a className="pa-btn" href="/auth" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
++          action={<a className="pa-btn" href="/auth/signin" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
+         />
+diff --git a/pages/hub/profile-edit.js b/pages/hub/profile-edit.js
+index bc86089..f909115 100644
+--- a/pages/hub/profile-edit.js
++++ b/pages/hub/profile-edit.js
+@@ -828,3 +828,3 @@ export default function ProfilePage() {
+                             <a
+-                                href={`/hub/social-media/profile/${profile.username}`}
++                                href={`/hub/user/${profile.username}`}
+                                 target="_blank"
+diff --git a/pages/hub/training/gto-reports.js b/pages/hub/training/gto-reports.js
+index 91f8992..dd4b5e2 100644
+--- a/pages/hub/training/gto-reports.js
++++ b/pages/hub/training/gto-reports.js
+@@ -818,3 +818,3 @@ export default function GTOReportsPage() {
+                     const DRILL_PAGES = {
+-                      vpip: { name: 'Range Construction', desc: 'Practice opening ranges by position', href: '/hub/training/range-trainer', icon: ''},
++                      vpip: { name: 'Range Construction', desc: 'Practice opening ranges by position', href: '/hub/training/range-builder', icon: ''},
+                       pfr: { name: 'Preflop Aggression', desc: 'Master raise-first strategy', href: '/hub/training/play-mode', icon: ''},
