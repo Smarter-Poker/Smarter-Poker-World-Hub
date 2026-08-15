@@ -73,13 +73,16 @@ export default async function handler(req, res) {
                   if (muteCheck) return res.status(403).json({ error: 'You are muted at this table' });
 
                   // Check if user is seated at the table
+                  // CHECK 13 (2026-08-14): selected table_state, which is not a
+                  // column (real: status) — the query 42703'd and EVERY table
+                  // chat message got 404 'Table not found'.
                   const { data: tableData } = await getSupabase()
                       .from('active_tables')
-                      .select('table_state')
+                      .select('status')
                       .eq('id', tableId)
                       .maybeSingle();
 
-                  if (!tableData || !tableData.table_state) {
+                  if (!tableData) {
                       return res.status(404).json({ error: 'Table not found' });
                   }
 

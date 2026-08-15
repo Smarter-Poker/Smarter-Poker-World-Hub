@@ -22,6 +22,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAccessToken } from '../../src/lib/authUtils';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import { homeGameUrl } from '../../src/lib/home-games/urls';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -848,7 +849,10 @@ function NotificationsPage() {
 
                                 // ── Home Games / Groups ──────────────────────────────
                                 if (t.startsWith('home_group') || t.startsWith('home_game') || t === 'member_joined') {
-                                    if (d.group_id) navigate(`/hub/home-games/${d.group_id}`);
+                                    // audit 2026-08-14: pushed the raw group UUID into the
+                                    // slug-only route — every home-game notification tap 404'd.
+                                    // /hub/venues/<uuid> resolves group UUIDs (Phase 41).
+                                    if (d.group_id) navigate(homeGameUrl({ id: d.group_id }));
                                     else navigate('/hub/home-games');
 
                                 // ── Friends ──────────────────────────────────────────

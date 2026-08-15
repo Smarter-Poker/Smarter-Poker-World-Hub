@@ -265,7 +265,10 @@ export default async function handler(req, res) {
           try {
               const { data: agent } = await getSupabase()
                   .from('agents')
-                  .select('id, user_id, commission_rate, weekly_rake_generated, status, role, parent_agent_id, player_count, created_at')
+                  // CHECK 13 (2026-08-14): player_count is not a column (real:
+                  // active_player_count) — the select 42703'd and agent_score
+                  // answered 404 for every agent.
+                  .select('id, user_id, commission_rate, weekly_rake_generated, status, role, parent_agent_id, active_player_count, created_at')
                   .eq('user_id', targetAgent)
                   .eq('club_id', clubId)
                   .maybeSingle();
@@ -364,7 +367,7 @@ export default async function handler(req, res) {
           try {
               const { data: agents } = await getSupabase()
                   .from('agents')
-                  .select('id, user_id, commission_rate, status, role, parent_agent_id, player_count, weekly_rake_generated')
+                  .select('id, user_id, commission_rate, status, role, parent_agent_id, active_player_count, weekly_rake_generated')
                   .eq('club_id', clubId)
                   .limit(5000);
 
@@ -390,7 +393,7 @@ export default async function handler(req, res) {
                       commissionRate: a.commission_rate,
                       status: a.status,
                       role: a.role,
-                      playerCount: a.player_count || 0,
+                      playerCount: a.active_player_count || 0,
                       weeklyRake: a.weekly_rake_generated || 0,
                       parentAgentId: a.parent_agent_id,
                       children: [],

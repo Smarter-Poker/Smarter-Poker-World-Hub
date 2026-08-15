@@ -115,7 +115,10 @@ export default async function handler(req, res) {
               author_id: user.id,
               title: sanitizeNote(title, 200),
               content: sanitizeNote(content, 5000),
-              pinned: pinned || false,
+              // CHECK 13 (2026-08-14): the column is is_pinned; writing
+              // `pinned` 42703'd the whole insert — announcement creation
+              // always failed.
+              is_pinned: pinned || false,
             })
             .select()
             .maybeSingle();

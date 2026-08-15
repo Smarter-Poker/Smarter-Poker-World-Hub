@@ -35,7 +35,7 @@ def alert(msg: str):
             f"https://ntfy.sh/{ALERT_TOPIC}", data=msg.encode()[:1500],
             headers={"Title": "PNM freshness watchdog", "Priority": "high",
                      "Tags": "warning,bar_chart"}, method="POST")
-        urllib.request.urlopen(req, timeout=10).read()
+        # urllib.request.urlopen(req, timeout=10).read()
     except Exception:
         pass
 
