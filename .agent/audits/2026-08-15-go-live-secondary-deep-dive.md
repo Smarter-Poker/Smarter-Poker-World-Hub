@@ -129,4 +129,8 @@ check; the receiver 30-day cap (1,000) being 10× smaller than the per-gift cap.
 
 ## Verification
 All 10 touched files pass esbuild; phantom scanner clean (0 / 2,771 refs / 761
-tables). Rollout recorded below after push.
+tables). Rollout: shipped as 31bb9ce880, Build Safety Gate GREEN, production
+/api/health serving it. Migration verified live (live_guest_revocations +
+fn_rotate_guest_invite_code present); economy_invariants clean; the thumbnail
+backfill re-queued 1,266 previously-blank video posts for server-side
+extraction.
