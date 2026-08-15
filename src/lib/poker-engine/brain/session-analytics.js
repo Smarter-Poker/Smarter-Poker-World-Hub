@@ -434,7 +434,10 @@ async function canRebuy(tableId, playerId, minBuyIn = 0, clubId = null) {
                 .from('club_members')
                 .select('chip_balance')
                 .eq('club_id', clubId)
-                .eq('profile_id', playerId)
+                // 2026-08-15 CHECK 13 fix: club_members keys players by user_id
+                // (profile_id is not a column) — the bankruptcy check 42703'd and
+                // horses could rebuy with empty club balances.
+                .eq('user_id', playerId)
                 .maybeSingle();
             if (error) throw error;
             const realBalance = data?.chip_balance || 0;

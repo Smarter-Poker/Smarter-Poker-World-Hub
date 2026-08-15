@@ -2231,7 +2231,10 @@ async function updatePLOOpponentRead(horseId, opponentId, revealedHand, opponent
         // Incremental updates: only adjust the specific tendencies we observed
         const update = {};
         if (wasBluffing) update.bluff_frequency = 0.02;   // Upward nudge
-        if (wasStation) update.fold_tendency = -0.02;     // Downward nudge (calls more)
+        // 2026-08-15 CHECK 13 fix: the column is fold_frequency (fold_tendency
+        // never existed; slow_play_tendency added by migration) — the whole
+        // opponent-read merge 42703'd, so horse opponent modeling never learned.
+        if (wasStation) update.fold_frequency = -0.02;    // Downward nudge (calls more)
         if (wasSlowPlay) update.slow_play_tendency = 0.02;
 
         if (Object.keys(update || {}).length === 0) return;
@@ -2239,7 +2242,7 @@ async function updatePLOOpponentRead(horseId, opponentId, revealedHand, opponent
         // Read existing record first, then merge
         const { data: existing } = await supabaseClient
             .from('horse_opponent_reads')
-            .select('bluff_frequency, fold_tendency, slow_play_tendency')
+            .select('bluff_frequency, fold_frequency, slow_play_tendency')
             .eq('horse_id', horseId)
             .eq('opponent_id', opponentId)
             .maybeSingle();
@@ -2248,7 +2251,7 @@ async function updatePLOOpponentRead(horseId, opponentId, revealedHand, opponent
             horse_id: horseId,
             opponent_id: opponentId,
             bluff_frequency: Math.min(0.80, Math.max(0.05, (existing?.bluff_frequency || 0.15) + (update.bluff_frequency || 0))),
-            fold_tendency: Math.min(0.80, Math.max(0.05, (existing?.fold_tendency || 0.35) + (update.fold_tendency || 0))),
+            fold_frequency: Math.min(0.80, Math.max(0.05, (existing?.fold_frequency || 0.35) + (update.fold_frequency || 0))),
             slow_play_tendency: Math.min(0.70, Math.max(0.02, (existing?.slow_play_tendency || 0.10) + (update.slow_play_tendency || 0))),
             updated_at: new Date().toISOString(),
         };

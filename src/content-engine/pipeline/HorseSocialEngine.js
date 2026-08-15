@@ -686,7 +686,11 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
                         user_id: friend.profile_id,
                         actor_id: horse.profile_id,
                         type: 'mention',
-                        reference_id: post.id,
+                        // 2026-08-15 CHECK 13 fix: reference_id is not a column on
+                        // notifications — the insert 42703'd and mention
+                        // notifications were never delivered. The post reference
+                        // rides in the data jsonb (real column).
+                        data: { post_id: post.id },
                         message: `mentioned you in a comment`
                     });
                     if (err_notifications_uevyd) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_uevyd.message);

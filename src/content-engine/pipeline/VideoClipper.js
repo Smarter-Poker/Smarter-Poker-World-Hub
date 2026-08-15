@@ -486,13 +486,16 @@ class VideoClipper {
                 const { data: reel, error: reelError } = await supabase
                     .from('social_reels')
                     .insert({
+                        // 2026-08-15 CHECK 13 fix: source_url/duration_seconds/
+                        // visibility are not columns on social_reels (real:
+                        // original_youtube_url / is_public; no duration column) —
+                        // the insert 42703'd, so clipped reels were never created.
                         author_id: metadata.authorId,
                         video_url: publicUrl,
                         caption: metadata.caption || '',
-                        source_url: metadata.sourceUrl || null,
+                        original_youtube_url: metadata.sourceUrl || null,
                         source_type: metadata.sourceType || 'clipped',
-                        duration_seconds: metadata.duration || null,
-                        visibility: 'public'
+                        is_public: true
                     })
                     .select()
                     .maybeSingle();

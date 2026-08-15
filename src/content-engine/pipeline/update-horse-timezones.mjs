@@ -115,13 +115,16 @@ async function updateTimezones() {
 
     // Get profile locations
     const profileIds = horses.map(h => h.profile_id);
+    // 2026-08-15 CHECK 13 fix: profiles has no `location` column (real:
+    // city/state/country) — the select 42703'd and every horse got the
+    // default timezone.
     const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, location')
+        .select('id, city, state, country')
         .in('id', profileIds);
 
     const profileMap = {};
-    (profiles || []).forEach(p => { profileMap[p.id] = p; });
+    (profiles || []).forEach(p => { profileMap[p.id] = { ...p, location: [p.city, p.state, p.country].filter(Boolean).join(', ') || null }; });
 
     let updated = 0;
     const tzCounts = {};

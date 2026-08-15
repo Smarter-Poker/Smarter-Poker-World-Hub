@@ -183,24 +183,14 @@ export async function getPostflopStrategy(params) {
     const cached = cacheGet(cacheKey);
     if (cached !== undefined) return cached;
 
-    const sb = getSupabase();
-    if (!sb) return null;
-
-    const { data, error } = await sb
-        .from('solved_spots_gold')
-        .select('strategy_matrix, macro_metrics')
-        .eq('street', street)
-        .eq('stack_depth', stackDepth)
-        .eq('game_type', gameType)
-        .eq('topology', topology)
-        .eq('mode', mode)
-        .contains('board_cards', board)
-        .maybeSingle();
-
-    if (error || !data) return null;
-
-    cacheSet(cacheKey, data);
-    return data;
+    // 2026-08-15 CHECK 13 fix: solved_spots_gold has no topology/mode/
+    // board_cards/macro_metrics columns — this query 42703'd on every call,
+    // so the postflop-gold path NEVER returned data and callers always used
+    // their fallback logic (which is therefore the real behavior, now
+    // explicit). The gold corpus is keyed by scenario_hash
+    // (street_family_pos_stack_board); integrating postflop lookups against
+    // it is a feature project, not a phantom-column repoint.
+    return null;
 }
 
 /**

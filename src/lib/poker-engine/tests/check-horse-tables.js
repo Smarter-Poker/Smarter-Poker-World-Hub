@@ -39,7 +39,7 @@ async function run() {
     // Check memory_charts_gold (PioSolver)
     const { data: gtoData, error: gtoErr } = await sb
         .from('memory_charts_gold')
-        .select('id')
+        .select('chart_id')  // 2026-08-15 CHECK 13 fix: no `id` column
         .limit(1);
 
     if (gtoErr) {

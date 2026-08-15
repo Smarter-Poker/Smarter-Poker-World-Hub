@@ -43,8 +43,9 @@ class HorseAlertingService {
             // Log to database
             const { data, error } = await this.supabase
                 .from('horse_error_log')
+                // 2026-08-15 CHECK 13 fix: author_id is not a column (real: horse_id)
                 .insert({
-                    author_id: authorId,
+                    horse_id: authorId,
                     error_type: errorType,
                     error_message: errorMessage,
                     context
@@ -136,10 +137,15 @@ class HorseAlertingService {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
+        // 2026-08-15 CHECK 13 fix: horse_analytics is a METRIC table
+        // (horse_id, metric_type, metric_value, recorded_at, details) — the old
+        // code assumed per-day wide rows (date/posts_created/likes_received/...)
+        // and 42703'd, so analytics summaries were always empty. Pivot the
+        // metric rows instead.
         const { data: analytics } = await this.supabase
             .from('horse_analytics')
-            .select('*')
-            .gte('date', startDate.toISOString().split('T')[0]);
+            .select('horse_id, metric_type, metric_value, recorded_at, details')
+            .gte('recorded_at', startDate.toISOString());
 
         if (!analytics || analytics.length === 0) {
             return this.getEmptySummary();
@@ -158,21 +164,24 @@ class HorseAlertingService {
             activeHorses: new Set()
         };
 
-        for (const day of analytics) {
-            summary.totalPosts += day.posts_created || 0;
-            summary.totalStories += day.stories_created || 0;
-            summary.totalComments += day.comments_made || 0;
-            summary.totalLikes += day.likes_given || 0;
-            summary.totalErrors += (day.download_failures || 0) + (day.upload_failures || 0);
+        const METRIC_TARGETS = {
+            posts_created: 'totalPosts',
+            stories_created: 'totalStories',
+            comments_made: 'totalComments',
+            likes_given: 'totalLikes',
+            download_failures: 'totalErrors',
+            upload_failures: 'totalErrors',
+        };
+        for (const row of analytics) {
+            const target = METRIC_TARGETS[row.metric_type];
+            if (target) summary[target] += Number(row.metric_value) || 0;
 
-            if (day.author_id) summary.activeHorses.add(day.author_id);
+            if (row.horse_id) summary.activeHorses.add(row.horse_id);
 
-            // Merge source distribution
-            if (day.source_distribution) {
-                for (const [source, count] of Object.entries(day.source_distribution || {})) {
-                    summary.sourceDistribution[source] =
-                        (summary.sourceDistribution[source] || 0) + count;
-                }
+            const source = row.details?.source;
+            if (source) {
+                summary.sourceDistribution[source] =
+                    (summary.sourceDistribution[source] || 0) + (Number(row.metric_value) || 0);
             }
         }
 
@@ -221,23 +230,24 @@ class HorseAlertingService {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
+        // 2026-08-15 CHECK 13 fix: same metric-table pivot as
+        // getAnalyticsSummary — the wide-row select 42703'd and top-horses was
+        // always empty.
         const { data: analytics } = await this.supabase
             .from('horse_analytics')
-            .select(`
-                author_id,
-                posts_created,
-                likes_received,
-                comments_received
-            `)
-            .gte('date', startDate.toISOString().split('T')[0]);
+            .select('horse_id, metric_type, metric_value')
+            .gte('recorded_at', startDate.toISOString());
 
         // Aggregate by horse
+        const METRIC_KEYS = { posts_created: 'posts', likes_received: 'likes', comments_received: 'comments' };
         const horseStats = {};
         (analytics || []).forEach(a => {
-            if (!horseStats[a.author_id]) {
-                horseStats[a.author_id] = { posts: 0, likes: 0, comments: 0 };
+            const key = METRIC_KEYS[a.metric_type];
+            if (!key) return;
+            if (!horseStats[a.horse_id]) {
+                horseStats[a.horse_id] = { posts: 0, likes: 0, comments: 0 };
             }
-            horseStats[a.author_id].posts += a.posts_created || 0;
+            horseStats[a.horse_id][key] += Number(a.metric_value) || 0;
             horseStats[a.author_id].likes += a.likes_received || 0;
             horseStats[a.author_id].comments += a.comments_received || 0;
         });

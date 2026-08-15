@@ -86,13 +86,16 @@ async function generateAllBios() {
 
     // Get profile locations
     const profileIds = horses.map(h => h.profile_id);
+    // 2026-08-15 CHECK 13 fix: profiles has no `location` column (real:
+    // city/state/country) — the select 42703'd and every horse bio fell back
+    // to the default location.
     const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, location, bio')
+        .select('id, city, state, country, bio')
         .in('id', profileIds);
 
     const profileMap = {};
-    (profiles || []).forEach(p => { profileMap[p.id] = p; });
+    (profiles || []).forEach(p => { profileMap[p.id] = { ...p, location: [p.city, p.state, p.country].filter(Boolean).join(', ') || null }; });
 
     // Only generate bios for horses that don't have one or have a very short one
     const needsBio = horses.filter(h => {

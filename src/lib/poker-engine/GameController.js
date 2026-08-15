@@ -1687,10 +1687,12 @@ class GameController {
         // Deep Bug Hunt Parity Fix: the React UI queries `tournament_registrations` for the roster,
         // so we must manually persist the AI horse here just like the human API does.
         try {
+          // 2026-08-15 CHECK 13 fix: tournament_registrations has no club_id
+          // column (tournament_id scopes it) — the insert 42703'd and AI horses
+          // never appeared in the tournament roster UI.
           await sb.from('tournament_registrations').insert({
             tournament_id: tournamentId,
             user_id: horse.id,
-            club_id: clubId,
             status: 'registered',
             registered_at: new Date().toISOString()
           });

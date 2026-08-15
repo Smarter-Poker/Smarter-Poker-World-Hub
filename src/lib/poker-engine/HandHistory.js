@@ -233,22 +233,35 @@ class HandHistoryRecorder {
         const { error } = await resilientMutation(this.supabase, () =>
           this.supabase
             .from('hand_history')
+            // 2026-08-15 CHECK 13 fix: this wrote club_id/variant/
+            // betting_structure/player_ids/hand_data/rake/pot_total/winner_ids/
+            // completed_at — none exist on hand_history (real: game_variant/
+            // players jsonb/rake_amount/pot_size/winners jsonb/ended_at; club
+            // scope lives on tables.club_id) — so the insert 42703'd and the
+            // API-engine's hands were NEVER recorded. players/winners now match
+            // the live rows' shape (userId keys); the full hand record is
+            // preserved as JSON in summary (text) for the stats reader.
             .insert({
               id: handId,
               table_id: handRecord.tableId,
-              club_id: handRecord.clubId,
               hand_number: handRecord.handNumber,
-              variant: handRecord.variant,
-              betting_structure: handRecord.bettingStructure,
+              game_variant: handRecord.variant,
               small_blind: handRecord.smallBlind,
               big_blind: handRecord.bigBlind,
-              player_ids: handRecord.players.map(p => p.id),
-              hand_data: handRecord,
-              rake: handRecord.rake || 0,
-              pot_total: (handRecord.pots || []).reduce((sum, p) => sum + (p.amount || 0), 0),
-              winner_ids: (handRecord.winners || []).map(w => w.playerId),
+              players: handRecord.players.map(p => ({
+                userId: p.id,
+                username: p.displayName,
+                seat: p.seatIndex,
+                stack: p.endStack ?? p.startStack,
+              })),
+              board: handRecord.board || [],
+              summary: JSON.stringify(handRecord),
+              rake_amount: handRecord.rake || 0,
+              pot_size: (handRecord.pots || []).reduce((sum, p) => sum + (p.amount || 0), 0),
+              winners: (handRecord.winners || []).map(w => ({ userId: w.playerId, amount: w.amount })),
+              source: 'wh-engine',
               started_at: handRecord.startedAt,
-              completed_at: handRecord.completedAt,
+              ended_at: handRecord.completedAt,
             }),
           { critical: true }
         );
@@ -302,10 +315,12 @@ class HandHistoryQuery {
     let query = this.supabase
       .from('hand_history')
       .select('*')
-      .contains('player_ids', [playerId])
-      .order('completed_at', { ascending: false });
+      // 2026-08-15 CHECK 13 fix: containment on the real players jsonb
+      // (userId keys), ordered by the real ended_at column.
+      .contains('players', [{ userId: playerId }])
+      .order('ended_at', { ascending: false });
 
-    if (options.variant) query = query.eq('variant', options.variant);
+    if (options.variant) query = query.eq('game_variant', options.variant);
     if (options.tableId) query = query.eq('table_id', options.tableId);
     if (options.limit) query = query.limit(options.limit);
     if (options.offset) query = query.range(options.offset, options.offset + (options.limit || 50) - 1);
@@ -329,7 +344,7 @@ class HandHistoryQuery {
         .from('hand_history')
         .select('*')
         .eq('table_id', tableId)
-        .order('completed_at', { ascending: false })
+        .order('ended_at', { ascending: false })
         .limit(limit)
     );
 
@@ -365,11 +380,11 @@ class HandHistoryQuery {
   async getPlayerStats(playerId, options = {}) {
     let query = this.supabase
       .from('hand_history')
-      .select('hand_data, rake, pot_total, winner_ids, variant, completed_at')
-      .contains('player_ids', [playerId]);
+      .select('summary, rake_amount, pot_size, winners, game_variant, ended_at')
+      .contains('players', [{ userId: playerId }]);
     
-    if (options.variant) query = query.eq('variant', options.variant);
-    if (options.since) query = query.gte('completed_at', options.since);
+    if (options.variant) query = query.eq('game_variant', options.variant);
+    if (options.since) query = query.gte('ended_at', options.since);
 
     // Phase 48f: resilient query
     const { data, error } = await resilientQuery(this.supabase, () => query);
@@ -387,7 +402,9 @@ class HandHistoryQuery {
     let wonAtShowdown = 0;
     
     for (const hand of data) {
-      const handData = hand.hand_data;
+      // Full hand record is stored as JSON in summary (see the insert above).
+      let handData = null;
+      try { handData = hand.summary ? JSON.parse(hand.summary) : null; } catch { handData = null; }
       if (!handData) continue;
       
       const player = handData.players?.find(p => String(p.id) === String(playerId));
@@ -397,7 +414,8 @@ class HandHistoryQuery {
       totalNetResult += player.netResult || 0;
       
       // Won hand?
-      if (hand.winner_ids?.includes(playerId)) {
+      const winnerIds = (hand.winners || []).map(w => w.userId ?? w.playerId);
+      if (winnerIds.includes(playerId)) {
         handsWon++;
       }
       
@@ -418,7 +436,7 @@ class HandHistoryQuery {
         const didntFold = !preflopActions.some(a => String(a.playerId) === String(playerId) && a.type === 'fold');
         if (didntFold) {
           wentToShowdown++;
-          if (hand.winner_ids?.includes(playerId)) wonAtShowdown++;
+          if (winnerIds.includes(playerId)) wonAtShowdown++;
         }
       }
     }

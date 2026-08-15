@@ -90,25 +90,25 @@ async function processDirectMessages() {
     for (const convId of Object.keys(convMap || {})) {
         if (convsProcessed >= MAX_CONVS_PER_RUN) break; // BUG-R8-03: deadline guard
         // Fetch the conversation details to see who is in it
-        const { data: convInfo } = await getSupabase()
-            .from('social_conversations')
-            .select('user1_id, user2_id')
-            .eq('id', convId)
-            .maybeSingle();
+        // 2026-08-15 CHECK 13 fix: social_conversations has no user1_id/
+        // user2_id — participants live in social_conversation_participants.
+        // The old select 42703'd, so horses NEVER replied to DMs.
+        const { data: participants } = await getSupabase()
+            .from('social_conversation_participants')
+            .select('user_id')
+            .eq('conversation_id', convId)
+            .limit(10);
 
-        if (!convInfo) continue;
+        const memberIds = (participants || []).map(p => p.user_id);
+        if (memberIds.length !== 2) continue; // DMs only
 
-        // Is a horse involved?
-        const isUser1Horse = horseIds.includes(convInfo.user1_id);
-        const isUser2Horse = horseIds.includes(convInfo.user2_id);
-        
+        const horseMembers = memberIds.filter(id => horseIds.includes(id));
         // If neither or both are horses, skip (we don't want horses DMing each other right now)
-        if (!isUser1Horse && !isUser2Horse) continue;
-        if (isUser1Horse && isUser2Horse) continue;
+        if (horseMembers.length !== 1) continue;
 
-        const targetHorseId = isUser1Horse ? convInfo.user1_id : convInfo.user2_id;
+        const targetHorseId = horseMembers[0];
         const horse = horseMap[targetHorseId];
-        const humanId = isUser1Horse ? convInfo.user2_id : convInfo.user1_id;
+        const humanId = memberIds.find(id => id !== targetHorseId);
 
         // 3. Fetch conversation history to see if the horse already replied
         const { data: history } = await getSupabase()

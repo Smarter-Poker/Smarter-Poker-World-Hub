@@ -253,9 +253,12 @@ export async function postReply(postId, authorId, content) {
 
           .from('social_post_comments')
 
+          // 2026-08-15 CHECK 13 fix: social_post_comments keys the author as
+          // user_id (author_id is not a column) — the insert 42703'd and horse
+          // replies were never posted.
           .insert({
                 post_id: postId,
-                author_id: authorId,
+                user_id: authorId,
                 content
             });
 

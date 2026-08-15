@@ -306,7 +306,11 @@ function HorsesDashboard({ user, onLogout }) {
         try {
             const { data, error } = await supabase
                 .from('hand_history')
-                .select('id, hand_number, table_id, club_id, pot_total, started_at, reported_at, hand_data')
+                // 2026-08-15 CHECK 13 fix: club_id/pot_total/hand_data are not
+                // columns (real: pot_size, winners/players jsonb; reported/
+                // reported_at added by migration 20260815_check13_sweep3_columns)
+                // — the reported-hands list always errored empty.
+                .select('id, hand_number, table_id, pot_total:pot_size, started_at, reported_at, winners, players')
                 .eq('reported', true)
                 .order('reported_at', { ascending: false })
                 .limit(50);
@@ -806,8 +810,8 @@ function HorsesDashboard({ user, onLogout }) {
                                                 {h.reported_at ? new Date(h.reported_at).toLocaleString() : '—'}
                                             </td>
                                             <td style={{ fontSize: 11 }}>
-                                                {h.hand_data?.winners?.map(w => {
-                                                    const p = h.hand_data?.players?.find(x => String(x.id) === String(w.playerId));
+                                                {h.winners?.map(w => {
+                                                    const p = h.players?.find(x => String(x.userId || x.id) === String(w.userId || w.playerId));
                                                     return p?.displayName || 'Player';
                                                 }).join(', ') || '—'}
                                             </td>

@@ -614,8 +614,10 @@ class PerformanceTracker {
           session_duration_min: stats.sessionDurationMin,
           total_rake_paid: stats.totalRakePaid,
           win_rate_class: stats.winRateClass,
-          anomalies: stats.anomalies,
-          ended_at: new Date().toISOString(),
+          // 2026-08-15 CHECK 13 fix: anomalies/ended_at are not columns (real
+          // timestamp: recorded_at) — the upsert 42703'd, so horse session
+          // analytics were never persisted. Anomalies remain in logs.
+          recorded_at: new Date().toISOString(),
         }, { onConflict: 'horse_id,table_id' }),
         { label: 'persist_session_stats', idempotent: true }
       );

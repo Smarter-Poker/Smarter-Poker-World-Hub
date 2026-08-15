@@ -131,7 +131,10 @@ class ContentScheduler {
                     .from('content_schedule')
                     .insert({
                         content_id: insertedContent.id,
-                        scheduled_time: slot.scheduledTime.toISOString()
+                        // 2026-08-15 CHECK 13 fix: scheduled_time is not a column on
+                        // content_schedule (real: scheduled_at) — the insert 42703'd
+                        // and no schedule entries were ever created.
+                        scheduled_at: slot.scheduledTime.toISOString()
                     });
 
                 if (scheduleError) {
