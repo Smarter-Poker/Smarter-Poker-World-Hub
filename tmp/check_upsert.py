@@ -1,6 +1,6 @@
 import psycopg2
 
-db_url = "postgresql://postgres:215SlalomCt!@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres"
+db_url = "postgresql://postgres:${SUPABASE_DB_PASSWORD}@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres"
 
 try:
     conn = psycopg2.connect(db_url)

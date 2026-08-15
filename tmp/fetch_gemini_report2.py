@@ -1,3 +1,4 @@
+import os
 from playwright.sync_api import sync_playwright
 import time
 
@@ -17,7 +18,7 @@ def run():
                 page.fill("input[type='email']", "SMARTERPOKER45@GMAIL.COM")
                 page.click("#identifierNext")
                 time.sleep(3)
-                page.fill("input[type='password']", "215SlalomCt!")
+                page.fill("input[type='password']", os.environ["SMARTER_POKER_SHARED_PASSWORD"])
                 page.click("#passwordNext")
                 time.sleep(10)
                 print("Current URL after login:", page.url)

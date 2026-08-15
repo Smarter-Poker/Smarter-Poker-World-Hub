@@ -11,7 +11,7 @@ const pool = new Pool({
     port: 5432,
     database: 'postgres',
     user: 'postgres',
-    password: '215SlalomCt!',
+    password: process.env.SUPABASE_DB_PASSWORD,
     ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 15000,
     query_timeout: 30000,
