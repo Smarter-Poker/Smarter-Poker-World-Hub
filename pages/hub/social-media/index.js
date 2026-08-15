@@ -9088,6 +9088,11 @@ function SocialMediaPage() {
   }, []);
 
   useEffect(() => {
+    // FAILSAFE: Never show skeletons for more than 8 seconds if network/API hangs
+    const failsafeTimer = setTimeout(() => {
+      setLoading(false);
+    }, 8000);
+
     (async () => {
       try {
         // ⚡ FAST PATH: Try localStorage first (instant, no network)
@@ -9333,6 +9338,8 @@ function SocialMediaPage() {
         }
       } catch (e) {
         console.warn('[Social] Auth error:', e);
+      } finally {
+        clearTimeout(failsafeTimer);
       }
       // Only set loading false here if cache didn't already do it
       setLoading(false);
