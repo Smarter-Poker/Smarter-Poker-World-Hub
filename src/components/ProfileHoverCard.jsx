@@ -40,7 +40,7 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
         try {
             let query = supabase
                 .from('profiles')
-                .select('id, username, avatar_url, bio, city, country, xp_total, skill_tier, is_online')
+                .select('id, username, avatar_url, bio, city, country, diamonds, skill_tier, is_online')
                 .limit(1);
 
             if (userId) {
@@ -185,7 +185,7 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
                                 }}>
                                     <div style={{ textAlign: 'center' }}>
                                         <div style={{ fontSize: 18, fontWeight: 700, color: C.blue }}>
-                                            {profile.xp_total?.toLocaleString() || 0}
+                                            {profile.diamonds?.toLocaleString() || 0}
                                         </div>
                                         <div style={{ fontSize: 11, color: C.textSec }}>Diamonds</div>
                                     </div>

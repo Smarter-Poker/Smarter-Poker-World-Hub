@@ -943,13 +943,47 @@ function MessengerPage() {
             if (!user?.id) return;
             const pollInbox = async () => {
                 try {
-                    const { data, error } = await supabase
+                    // 2026-08-15 CHECK 13: messenger_participants has no
+                    // unread_count column (this poll 42703'd every 30s).
+                    // Unread is derived from last_read_at, mirroring
+                    // /api/messenger/get-conversations.
+                    const { data: parts, error } = await supabase
                         .from('messenger_participants')
-                        .select('conversation_id, unread_count')
+                        .select('conversation_id, last_read_at')
                         .eq('user_id', user.id);
                     if (error) throw error;
                     setConnectionStatus('connected');
-                    if (!data?.length) return;
+                    if (!parts?.length) return;
+                    const lastReadByConv = {};
+                    let oldestRead = null;
+                    let hasNeverRead = false;
+                    parts.forEach(p => {
+                        lastReadByConv[p.conversation_id] = p.last_read_at || null;
+                        if (p.last_read_at) {
+                            if (!oldestRead || p.last_read_at < oldestRead) oldestRead = p.last_read_at;
+                        } else hasNeverRead = true;
+                    });
+                    let msgQ = supabase
+                        .from('messenger_messages')
+                        .select('conversation_id, created_at')
+                        .in('conversation_id', parts.map(p => p.conversation_id))
+                        .neq('sender_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(2000);
+                    if (oldestRead && !hasNeverRead) msgQ = msgQ.gt('created_at', oldestRead);
+                    const { data: candidateMsgs, error: msgErr } = await msgQ;
+                    if (msgErr) throw msgErr;
+                    const unreadByConv = {};
+                    (candidateMsgs || []).forEach(m => {
+                        const lr = lastReadByConv[m.conversation_id];
+                        if (!lr || m.created_at > lr) {
+                            unreadByConv[m.conversation_id] = (unreadByConv[m.conversation_id] || 0) + 1;
+                        }
+                    });
+                    const data = parts.map(p => ({
+                        conversation_id: p.conversation_id,
+                        unread_count: unreadByConv[p.conversation_id] || 0,
+                    }));
                     setConversations(prev => {
                         let anyChanged = false;
                         const updated = prev.map(c => {

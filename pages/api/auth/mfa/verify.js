@@ -118,7 +118,8 @@ export default async function handler(req, res) {
         .from('user_mfa_factors')
         .update({
             enabled: true,
-            verified_at: new Date().toISOString(),
+            // 2026-08-15 CHECK 13: verified_at is not a column (real: updated_at)
+            updated_at: new Date().toISOString(),
             backup_codes: hashedBackupCodes,
         })
         .eq('user_id', user.id);

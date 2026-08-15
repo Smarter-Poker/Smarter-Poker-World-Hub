@@ -387,13 +387,15 @@ function setPlayerNote(playerId, note) {
 async function syncNoteToSupabase(supabase, userId, playerId, note) {
   if (!supabase || !userId) return;
   try {
+    // 2026-08-15 CHECK 13: real columns are user_id/target_user_id/notes
+    // (owner_id/target_player_id/note_text never existed — sync 42703'd always).
     const { error: err_player_notes_qw1pl } = await supabase.from('player_notes').upsert({
-      owner_id: userId,
-      target_player_id: playerId,
-      note_text: note.text || '',
+      user_id: userId,
+      target_user_id: playerId,
+      notes: note.text || '',
       color_label: note.colorId || 'fish',
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'owner_id,target_player_id' });
+    }, { onConflict: 'user_id,target_user_id' });
     if (err_player_notes_qw1pl) console.warn('[Supabase] Silent mutation failed in player_notes:', err_player_notes_qw1pl.message);
   } catch { /* non-fatal — localStorage is the fallback */ }
 }
@@ -403,8 +405,9 @@ async function loadNotesFromSupabase(supabase, userId) {
   try {
     const { data, error } = await supabase
       .from('player_notes')
-      .select('target_player_id, note_text, color_label, updated_at')
-      .eq('owner_id', userId);
+      // aliased so downstream row.target_player_id / row.note_text keep working
+      .select('target_player_id:target_user_id, note_text:notes, color_label, updated_at')
+      .eq('user_id', userId);
     if (error || !data) return null;
     const notes = {};
     for (const row of data) {

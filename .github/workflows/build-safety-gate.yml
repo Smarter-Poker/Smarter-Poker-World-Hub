@@ -112,7 +112,7 @@ jobs:
           fi
           node scripts/ci/check-phantom-tables.mjs
 
-      - name: "CHECK 13: No phantom Supabase COLUMNS (warn-only rollout)"
+      - name: "CHECK 13: No phantom Supabase COLUMNS"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
@@ -131,16 +131,20 @@ jobs:
           # columns are user_id/related_id and whose status CHECK forbids
           # 'locked' — so chip escrow tracking had NEVER written a row and
           # leave-club's "don't leave with locked chips" money guard was a
-          # no-op. Fixed same day; backlog is 184.
+          # no-op. Fixed same day; backlog was 184.
           #
-          # WARN-ONLY until the backlog reaches zero — same rollout doctrine
-          # as CHECKs 11/12: a gate blocking on 184 pre-existing findings
-          # gets disabled, not fixed. Drop --warn-only when it reports OK.
+          # BLOCKING as of 2026-08-15. Introduced warn-only per the same
+          # rollout doctrine as CHECKs 11/12 (a gate blocking on 184
+          # pre-existing findings gets disabled, not fixed); the backlog was
+          # burned to ZERO across four sweeps (187 -> 142 -> 110 -> 73 -> 0,
+          # see .agent/audits/2026-08-15-check13-phantom-column-burndown.md),
+          # so --warn-only was removed the same day the scanner first
+          # reported clean.
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — phantom-column check is NOT enforced."
             exit 0
           fi
-          node scripts/ci/check-phantom-columns.mjs --warn-only
+          node scripts/ci/check-phantom-columns.mjs
 
       - name: "CHECK 12: No stranded Supabase tables (U4.1)"
         run: |

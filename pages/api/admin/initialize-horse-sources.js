@@ -92,10 +92,11 @@ export default async function handler(req, res) {
               sportsIndex++;
 
               // Create assignment records
+              // 2026-08-15 CHECK 13: real columns are horse_id/source_name
               pokerSources.forEach((sourceKey, index) => {
                   assignments.push({
-                      horse_profile_id: horse.profile_id,
-                      source_key: sourceKey,
+                      horse_id: horse.profile_id,
+                      source_name: sourceKey,
                       source_type: 'poker',
                       is_primary: index === 0
                   });
@@ -103,8 +104,8 @@ export default async function handler(req, res) {
 
               sportsSources.forEach((sourceKey, index) => {
                   assignments.push({
-                      horse_profile_id: horse.profile_id,
-                      source_key: sourceKey,
+                      horse_id: horse.profile_id,
+                      source_name: sourceKey,
                       source_type: 'sports',
                       is_primary: index === 0
                   });
@@ -116,7 +117,7 @@ export default async function handler(req, res) {
           // Batch insert all assignments
           const { data, error } = await getSupabase()
               .from('horse_source_assignments')
-              .upsert(assignments, { onConflict: 'horse_profile_id,source_key' })
+              .upsert(assignments, { onConflict: 'horse_id,source_name' })
               .select();
 
           if (error) {
@@ -128,7 +129,7 @@ export default async function handler(req, res) {
           // Verify assignments
           const { data: verification, error: verifyError } = await getSupabase()
               .from('horse_source_assignments')
-              .select('horse_profile_id, source_key, source_type')
+              .select('horse_id, source_name, source_type')
               .limit(10);
 
           if (!verifyError && verification) {

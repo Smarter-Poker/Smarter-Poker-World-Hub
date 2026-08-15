@@ -318,7 +318,7 @@ export function subscribeToQueue(stakeAmount, onNewPlayer, userId) {
                     .eq('stake_amount', stakeAmount)
                     .eq('status', 'matched')
                     .eq('user_id', userId)
-                    .order('updated_at', { ascending: false })
+                    .order('created_at', { ascending: false })
                     .limit(1)
                     .maybeSingle();
 

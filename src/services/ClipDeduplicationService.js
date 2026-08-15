@@ -99,8 +99,9 @@ export async function getRecentlyPostedClips(days = 30) {
 export async function getHorseAssignedSources(horseProfileId) {
     const { data, error } = await supabase
         .from('horse_source_assignments')
-        .select('source_key, source_type, is_primary')
-        .eq('horse_profile_id', horseProfileId);
+        // 2026-08-15 CHECK 13: real columns horse_id/source_name (aliased)
+        .select('source_key:source_name, source_type, is_primary')
+        .eq('horse_id', horseProfileId);
 
     if (error) {
         console.warn('Error fetching horse sources:', error);
@@ -115,15 +116,15 @@ export async function getHorseAssignedSources(horseProfileId) {
  */
 export async function assignSourcesToHorse(horseProfileId, sourceKeys, sourceType = 'poker') {
     const assignments = sourceKeys.map((sourceKey, index) => ({
-        horse_profile_id: horseProfileId,
-        source_key: sourceKey,
+        horse_id: horseProfileId,
+        source_name: sourceKey,
         source_type: sourceType,
         is_primary: index === 0
     }));
 
     const { data, error } = await supabase
         .from('horse_source_assignments')
-        .upsert(assignments, { onConflict: 'horse_profile_id,source_key' })
+        .upsert(assignments, { onConflict: 'horse_id,source_name' })
         .select();
 
     if (error) {
@@ -140,8 +141,8 @@ export async function assignSourcesToHorse(horseProfileId, sourceKeys, sourceTyp
 export async function getHorsesForSource(sourceKey) {
     const { data, error } = await supabase
         .from('horse_source_assignments')
-        .select('horse_profile_id')
-        .eq('source_key', sourceKey);
+        .select('horse_profile_id:horse_id')
+        .eq('source_name', sourceKey);
 
     if (error) {
         console.warn('Error fetching horses for source:', error);

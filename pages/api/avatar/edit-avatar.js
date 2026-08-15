@@ -216,7 +216,6 @@ export default async function handler(req, res) {
                       .update({
                           image_url: publicUrl,
                           prompt: `${editPrompt} (edited)`,
-                          updated_at: new Date().toISOString()
                       })
                       .eq('id', existingAvatars[0].id);
 

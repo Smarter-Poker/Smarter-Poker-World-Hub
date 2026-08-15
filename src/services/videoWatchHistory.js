@@ -64,7 +64,6 @@ export async function addToWatchHistory(userId, videoId, videoData = {}) {
             user_id: userId,
             video_id: videoId,
             video_title: videoData.title || null,
-            video_url: videoData.url || null,
             thumbnail_url: videoData.thumbnail || null
         })
         .select()
@@ -142,7 +141,6 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
             user_id: userId,
             video_id: videoId,
             video_title: videoData.title || null,
-            video_url: videoData.url || null,
             thumbnail_url: videoData.thumbnail || null,
             watch_duration_seconds: additionalSeconds
         })

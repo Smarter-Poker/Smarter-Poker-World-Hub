@@ -1171,12 +1171,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
       showErrorToast('Like failed - resyncing state...');
       // Authoritative state resynchronization
       try {
+        // 2026-08-15 CHECK 13: comment likes live in social_interactions
+        // (metadata->>comment_id), not social_likes — which has no comment_id
+        // column, so this resync 42703'd and never resynced anything.
         const [{ data: commentData }, { data: likeData }] = await Promise.all([
           supabase.from('social_comments').select('like_count').eq('id', commentId).maybeSingle(),
-          supabase.from('social_likes').select('reaction_type').eq('comment_id', commentId).eq('user_id', userId)
+          supabase.from('social_interactions').select('id')
+            .eq('user_id', authUser.id)
+            .eq('post_id', currentReel.id)
+            .eq('interaction_type', 'comment_like')
+            .eq('metadata->>comment_id', commentId)
         ]);
         if (commentData) setCommentLikeCounts(prev => ({ ...prev, [commentId]: commentData.like_count || 0 }));
-        if (likeData) setCommentLikes(prev => ({ ...prev, [commentId]: likeData.some(r => r.reaction_type === 'like') }));
+        if (likeData) setCommentLikes(prev => ({ ...prev, [commentId]: likeData.length > 0 }));
       } catch (e) { console.warn('Resync failed:', e); }
     }
   };

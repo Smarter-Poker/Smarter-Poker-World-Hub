@@ -104,7 +104,7 @@ async function handler(req, res) {
                         user_id:     page.owner_id,
                         type:        'page_completion_nudge',
                         title:       'Finish Setting Up Your Page',
-                        body:        `"${pageName}" is missing: ${missingStr}. Complete your profile to attract more followers.`,
+                        message:     `"${pageName}" is missing: ${missingStr}. Complete your profile to attract more followers.`,
                         action_url:  `/hub/social-pages/${pageRef}/manage`,
                         metadata:    { page_id: page.id, missing_fields: missing },
                         is_read:     false,

@@ -45,7 +45,7 @@ export default async function handler(req, res) {
             // Inline fallback: update profiles table directly
             console.warn('[update-presence] RPC error, using inline fallback:', rpcErr.message);
             const { error: err_profiles_fsj04 } = await supabase.from('profiles').update({
-                last_seen_at: new Date().toISOString(),
+                last_seen: new Date().toISOString(),
                 is_online: isOnline,
                 updated_at: new Date().toISOString(),
             }).eq('id', user.id);

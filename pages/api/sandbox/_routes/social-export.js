@@ -65,9 +65,9 @@ export default async function handler(req, res) {
           const { data, error } = await supabase
               .from('social_posts')
               .insert({
-                  user_id: userId,
+                  author_id: userId,
                   content: postContent,
-                  post_type: 'sandbox_report',
+                  content_type: 'sandbox_report',
                   metadata: {
                       ...clientMeta,
                       handCount: handNum,

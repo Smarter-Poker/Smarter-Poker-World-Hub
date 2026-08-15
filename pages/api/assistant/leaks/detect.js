@@ -245,7 +245,9 @@ async function getPlayerStats(supabase, userId) {
       const { data: hands, error: handsErr } = await getSupabase()
         .from('hand_history')
         .select('actions, created_at')
-        .eq('user_id', userId)
+        // 2026-08-15 CHECK 13: hand_history has no user_id column — membership
+        // lives in the players jsonb ([{userId,...}]); containment matches it.
+        .contains('players', [{ userId }])
         .order('created_at', { ascending: false })
         .limit(2000);
 
@@ -976,8 +978,10 @@ async function linkHandExamples(userId, leaksWithIds) {
     // Get recent hands that might show these leaks (single fetch for all leaks)
     const { data: hands, error: handsErr } = await getSupabase()
       .from('hand_history')
-      .select('id, actions, hero_cards, board, pot_size, created_at')
-      .eq('user_id', userId)
+      // 2026-08-15 CHECK 13: hero_cards → real column hole_cards (aliased so
+      // downstream keeps reading .hero_cards); user_id → players containment.
+      .select('id, actions, hero_cards:hole_cards, board, pot_size, created_at')
+      .contains('players', [{ userId }])
       .order('created_at', { ascending: false })
       .limit(100);
 

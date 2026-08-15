@@ -29,7 +29,7 @@ export default async function handler(req, res) {
           // Check poker_clips
           const { data: pokerClips, error: pokerError } = await getSupabase()
               .from('poker_clips')
-              .select('id, title, is_active, source_url')
+              .select('id, title, source_url')
               .limit(5);
 
           // Check sports_clips
@@ -47,11 +47,9 @@ export default async function handler(req, res) {
               .from('sports_clips')
               .select('*', { count: 'exact', head: true });
 
-          // Check poker_clips with is_active = true
-          const { count: activePokerCount } = await getSupabase()
-              .from('poker_clips')
-              .select('*', { count: 'exact', head: true })
-              .eq('is_active', true);
+          // 2026-08-15 CHECK 13: poker_clips has no is_active column — the
+          // filtered count 42703'd on every call. All rows are live.
+          const activePokerCount = pokerCount;
 
           return res.status(200).json({
               poker_clips: {

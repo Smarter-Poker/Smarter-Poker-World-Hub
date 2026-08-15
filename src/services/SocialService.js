@@ -752,6 +752,33 @@ export class SocialService {
         }
     }
 
+    /**
+     * Resolve the 1:1 (non-group) conversation shared by two users, or null.
+     * 2026-08-15 CHECK 13 helper: social_messages carries conversation_id,
+     * not receiver_id, so DM reads/writes must resolve the pair's thread.
+     */
+    async _findDirectConversation(userId, partnerId) {
+        const { data: mine, error: mineErr } = await this.supabase
+            .from('social_conversation_participants')
+            .select('conversation_id')
+            .eq('user_id', userId);
+        if (mineErr || !mine?.length) return null;
+        const ids = mine.map(r => r.conversation_id);
+        const { data: shared, error: sharedErr } = await this.supabase
+            .from('social_conversation_participants')
+            .select('conversation_id')
+            .eq('user_id', partnerId)
+            .in('conversation_id', ids);
+        if (sharedErr || !shared?.length) return null;
+        const { data: convs } = await this.supabase
+            .from('social_conversations')
+            .select('id')
+            .in('id', shared.map(r => r.conversation_id))
+            .eq('is_group', false)
+            .limit(1);
+        return convs?.[0]?.id || null;
+    }
+
     async getMessages(conversationId) {
         try {
             // Extract partner ID from conversation ID
@@ -761,10 +788,16 @@ export class SocialService {
             const user = getAuthUser();
             if (!user) return [];
 
+            // 2026-08-15 CHECK 13: social_messages has no receiver_id — DMs
+            // are conversation-scoped (social_conversations + participants),
+            // so the pair's 1:1 conversation is resolved first.
+            const conversationDbId = await this._findDirectConversation(user.id, partnerId);
+            if (!conversationDbId) return [];
+
             const { data, error } = await this.supabase
                 .from('social_messages')
-                .select('id, sender_id, receiver_id, content, created_at')
-                .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
+                .select('id, sender_id, content, created_at')
+                .eq('conversation_id', conversationDbId)
                 .order('created_at', { ascending: true })
                 .limit(100);
 
@@ -788,11 +821,31 @@ export class SocialService {
             const user = getAuthUser();
             if (!user || !partnerId) throw new Error('Missing user or partner');
 
+            // 2026-08-15 CHECK 13: conversation-model insert (no receiver_id
+            // column) — find or create the 1:1 conversation for the pair.
+            let conversationDbId = await this._findDirectConversation(user.id, partnerId);
+            if (!conversationDbId) {
+                const { data: conv, error: convErr } = await this.supabase
+                    .from('social_conversations')
+                    .insert({ is_group: false })
+                    .select('id')
+                    .maybeSingle();
+                if (convErr || !conv) throw (convErr || new Error('Failed to create conversation'));
+                conversationDbId = conv.id;
+                const { error: partErr } = await this.supabase
+                    .from('social_conversation_participants')
+                    .insert([
+                        { conversation_id: conversationDbId, user_id: user.id },
+                        { conversation_id: conversationDbId, user_id: partnerId },
+                    ]);
+                if (partErr) throw partErr;
+            }
+
             const { data, error } = await this.supabase
                 .from('social_messages')
                 .insert({
+                    conversation_id: conversationDbId,
                     sender_id: user.id,
-                    receiver_id: partnerId,
                     content: text
                 })
                 .select('id, content, created_at')

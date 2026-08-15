@@ -152,12 +152,12 @@ export async function loadSessionHistory(supabase, userId, options = {}) {
             .from('training_sessions')
             .select('*')
             .eq('user_id', userId)
-            .order('completed_at', { ascending: false })
+            .order('created_at', { ascending: false })
             .limit(options.limit || 50);
 
         if (options.gameId) query = query.eq('game_id', options.gameId);
         if (options.level) query = query.eq('level', options.level);
-        if (options.since) query = query.gte('completed_at', options.since);
+        if (options.since) query = query.gte('created_at', options.since);
 
         const { data, error } = await query;
         if (error) throw error;

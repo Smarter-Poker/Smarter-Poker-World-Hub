@@ -107,12 +107,12 @@ export default function MemoryCampaignView() {
         const progressMap = new Map<string, LevelProgress>();
         if (progressData && !progressError) {
             progressData.forEach((p: any) => {
-                progressMap.set(p.chart_id, {
-                    chart_id: p.chart_id,
-                    best_accuracy: p.best_accuracy || 0,
-                    is_unlocked: p.is_unlocked || false,
-                    times_played: p.times_played || 0,
-                    last_played_at: p.last_played_at,
+                // real row shape: level_id/accuracy/status/attempts
+                progressMap.set(p.level_id, {
+                    chart_id: p.level_id,
+                    best_accuracy: p.accuracy || 0,
+                    is_unlocked: p.status === 'unlocked',
+                    times_played: p.attempts || 0,
                 });
             });
         }
@@ -164,17 +164,18 @@ export default function MemoryCampaignView() {
         const passThreshold = Math.min(100, 85 + (activeLevel.levelIndex * 2)) / 100;
         const shouldUnlock = passed && accuracy >= passThreshold;
 
+        // 2026-08-15 CHECK 13: real columns are level_id/accuracy/attempts/
+        // status (PK user_id+level_id). chart_id keys progress on the chart.
         const { error: err_user_level_progress_3aagg } = await supabase
 
           .from('user_level_progress')
 
           .upsert({
                 user_id: userId,
-                chart_id: activeLevel.chart.chart_id,
-                best_accuracy: Math.max(activeLevel.bestAccuracy, accuracy),
-                is_unlocked: shouldUnlock,
-                times_played: activeLevel.timesPlayed + 1,
-                last_played_at: new Date().toISOString(),
+                level_id: activeLevel.chart.chart_id,
+                accuracy: Math.max(activeLevel.bestAccuracy, accuracy),
+                status: shouldUnlock ? 'unlocked' : 'in_progress',
+                attempts: activeLevel.timesPlayed + 1,
             });
 
         if (err_user_level_progress_3aagg) console.warn('[Supabase] Silent mutation failed in user_level_progress:', err_user_level_progress_3aagg.message);

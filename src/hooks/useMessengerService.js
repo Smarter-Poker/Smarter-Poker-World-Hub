@@ -348,7 +348,9 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             // Reset unread count for this participant
             const { error: err_messenger_participants_l4vqc } = await supabase
               .from('messenger_participants')
-              .update({ unread_count: 0, last_read_at: new Date().toISOString() })
+              // 2026-08-15 CHECK 13: no unread_count column — read state is
+              // last_read_at; unread counts are derived from it on load.
+              .update({ last_read_at: new Date().toISOString() })
                 .eq('conversation_id', conversationId)
                 .eq('user_id', currentUser.id);
             if (err_messenger_participants_l4vqc) console.warn('[Supabase] Silent mutation failed in messenger_participants:', err_messenger_participants_l4vqc.message);
@@ -661,14 +663,47 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         if (!supabase || !currentUser?.id) return [];
         try {
             // Get my participant records
+            // 2026-08-15 CHECK 13: is_pinned/unread_count are not columns on
+            // messenger_participants (the old select 42703'd — the entire
+            // conversation list silently loaded empty). Real columns: pinning
+            // lives in the settings jsonb; unread is derived from
+            // last_read_at exactly like /api/messenger/get-conversations.
             const { data: participantData } = await supabase
                 .from('messenger_participants')
-                .select('conversation_id, is_pinned, unread_count, role')
+                .select('conversation_id, role, last_read_at, settings')
                 .eq('user_id', currentUser.id);
 
             if (!participantData?.length) { setConversations([]); return []; }
 
             const convIds = participantData.map(p => p.conversation_id);
+
+            // Derive unread counts: messages newer than each conversation's
+            // own last_read_at, from other senders, in one batched query.
+            const unreadByConv = {};
+            try {
+                const lastReadByConv = {};
+                let oldestRead = null;
+                participantData.forEach(p => {
+                    lastReadByConv[p.conversation_id] = p.last_read_at || null;
+                    if (p.last_read_at && (!oldestRead || p.last_read_at < oldestRead)) oldestRead = p.last_read_at;
+                    if (!p.last_read_at) oldestRead = null; // an unread-from-start conv defeats the lower bound
+                });
+                let msgQ = supabase
+                    .from('messenger_messages')
+                    .select('conversation_id, created_at')
+                    .in('conversation_id', convIds)
+                    .neq('sender_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(2000);
+                if (oldestRead) msgQ = msgQ.gt('created_at', oldestRead);
+                const { data: candidateMsgs } = await msgQ;
+                (candidateMsgs || []).forEach(m => {
+                    const lr = lastReadByConv[m.conversation_id];
+                    if (!lr || m.created_at > lr) {
+                        unreadByConv[m.conversation_id] = (unreadByConv[m.conversation_id] || 0) + 1;
+                    }
+                });
+            } catch (e) { console.warn('[Messenger] Unread derivation failed:', e); }
 
             // Get conversations
             const { data: convData } = await supabase
@@ -713,8 +748,8 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 const participant = participantData.find(p => p.conversation_id === conv.id);
                 return {
                     ...conv,
-                    isPinned: participant?.is_pinned || false,
-                    unreadCount: participant?.unread_count || 0,
+                    isPinned: participant?.settings?.is_pinned === true,
+                    unreadCount: unreadByConv[conv.id] || 0,
                     myRole: participant?.role || 'member',
                     participants: participantsByConvo[conv.id] || [],
                 };
@@ -792,10 +827,18 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         const supabase = getSupabase();
         if (!supabase || !conversationId || !currentUser?.id) return;
         try {
+            // 2026-08-15 CHECK 13: participant per-user state lives in the
+            // settings jsonb (no metadata column). Merge to preserve other keys.
+            const { data: curRow } = await supabase
+                .from('messenger_participants')
+                .select('settings')
+                .eq('conversation_id', conversationId)
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
             const { error: err_messenger_participants_nn92e } = await supabase
               .from('messenger_participants')
               .update({
-                    metadata: { public_key: publicKeyJwk }
+                    settings: { ...(curRow?.settings || {}), public_key: publicKeyJwk }
                 })
                 .eq('conversation_id', conversationId)
                 .eq('user_id', currentUser.id);
@@ -809,11 +852,11 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         try {
             const { data } = await supabase
                 .from('messenger_participants')
-                .select('metadata')
+                .select('settings')
                 .eq('conversation_id', conversationId)
                 .eq('user_id', remoteUserId)
                 .maybeSingle();
-            return data?.metadata?.public_key || null;
+            return data?.settings?.public_key || null;
         } catch (e) { return null; }
     }, [conversationId]);
 
@@ -1024,10 +1067,18 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id) return;
         try {
+            const targetConvId = convId || conversationId;
+            // settings jsonb carries per-user state (no metadata column); merge
+            const { data: curArch } = await supabase
+                .from('messenger_participants')
+                .select('settings')
+                .eq('conversation_id', targetConvId)
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
             const { error } = await supabase
                 .from('messenger_participants')
-                .update({ metadata: { archived: true, archived_at: new Date().toISOString() } })
-                .eq('conversation_id', convId || conversationId)
+                .update({ settings: { ...(curArch?.settings || {}), archived: true, archived_at: new Date().toISOString() } })
+                .eq('conversation_id', targetConvId)
                 .eq('user_id', currentUser.id);
             if (error) throw error;
             setConversations(prev => prev.filter(c => c.id !== (convId || conversationId)));
@@ -1041,9 +1092,15 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id) return;
         try {
+            const { data: curUnarch } = await supabase
+                .from('messenger_participants')
+                .select('settings')
+                .eq('conversation_id', convId)
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
             const { error } = await supabase
                 .from('messenger_participants')
-                .update({ metadata: { archived: false } })
+                .update({ settings: { ...(curUnarch?.settings || {}), archived: false } })
                 .eq('conversation_id', convId)
                 .eq('user_id', currentUser.id);
             if (error) throw error;
@@ -1228,7 +1285,8 @@ ${messages.map(m =>
                 .from('messenger_conversations')
                 .insert({
                     type: 'group',
-                    name: name || 'New Group',
+                    // 2026-08-15 CHECK 13: the column is title, not name
+                    title: name || 'New Group',
                     avatar_url: avatar,
                     metadata: { admin_ids: [currentUser.id], created_by: currentUser.id }
                 })

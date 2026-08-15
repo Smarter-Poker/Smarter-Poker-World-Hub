@@ -61,7 +61,7 @@ const AS_JSON = process.argv.includes('--json');
 
 const SCAN_DIRS = ['pages/api', 'src', 'server'];
 const EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs']);
-const FOREIGN_PROJECT_PATHS = ['pages/api/mlb/', 'src/lib/mlb_data'];
+const FOREIGN_PROJECT_PATHS = ['pages/api/mlb/', 'src/lib/mlb_data', 'src/lib/mlb_cached_data'];
 const FOREIGN_CLIENT_IDENTIFIERS = new Set(['mlbDb', 'mlbSupabase', 'mlbdb']);
 
 const FILTER_METHODS = new Set([

@@ -46,7 +46,7 @@ function getSupabase() {
           // Check what profiles exist
           const { data: profiles } = await getSupabase()
               .from('profiles')
-              .select('id, username, email, diamonds, xp_total')
+              .select('id, username, email, diamonds')
               .or(`email.ilike.%bekavac%`);
 
           return res.status(200).json({

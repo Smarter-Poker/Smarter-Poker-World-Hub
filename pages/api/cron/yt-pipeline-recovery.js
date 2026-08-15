@@ -215,7 +215,7 @@ async function handler(req, res) {
         try {
             await admin.from('probe_heartbeats').insert({
                 probe_name: 'yt-pipeline-recovery',
-                metadata: { requeued, scanned, permanentlyHidden, duration_ms: Date.now() - started },
+                details: { requeued, scanned, permanentlyHidden, duration_ms: Date.now() - started },
             });
         } catch (_) { /* heartbeats table may not exist on all envs */ }
 

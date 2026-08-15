@@ -32,9 +32,7 @@ export async function addToWatchLater(userId, videoId, videoData = {}) {
         .insert({
             user_id: userId,
             video_id: videoId,
-            video_title: videoData.title || null,
-            video_url: videoData.url || null,
-            thumbnail_url: videoData.thumbnail || null
+            video_title: videoData.title || null
         })
         .select()
         .maybeSingle();

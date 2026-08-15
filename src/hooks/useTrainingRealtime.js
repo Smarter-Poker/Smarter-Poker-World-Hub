@@ -97,19 +97,33 @@ export function useTrainingRealtime(userId) {
         const pollLeaderboard = async () => {
             if (typeof document !== 'undefined' && document.hidden) return;
             try {
-                const { data: row, error } = await client
+                // 2026-08-15 CHECK 13: training_leaderboard has no rank
+                // column — rank is positional. Derive it the same way the
+                // leaderboard API does: count rows in the same period ordered
+                // ahead of ours (accuracy desc, then questions_correct desc).
+                const { data: myRows, error } = await client
                     .from('training_leaderboard')
-                    .select('rank, period_type')
+                    .select('period_type, period_key, accuracy, questions_correct')
                     .eq('user_id', userId)
-                    .order('rank', { ascending: true })
-                    .limit(1)
-                    .maybeSingle();
+                    .limit(5);
 
                 if (error) { console.warn('[TrainingRealtime] Leaderboard poll error:', error); return; }
+                const row = myRows?.[0];
                 if (!row || !mountedRef.current) return;
 
+                const acc = row.accuracy ?? 0;
+                const qc = row.questions_correct ?? 0;
+                const { count, error: rankErr } = await client
+                    .from('training_leaderboard')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('period_type', row.period_type)
+                    .eq('period_key', row.period_key)
+                    .or(`accuracy.gt.${acc},and(accuracy.eq.${acc},questions_correct.gt.${qc})`);
+                if (rankErr) { console.warn('[TrainingRealtime] Rank derivation error:', rankErr); return; }
+                if (!mountedRef.current) return;
+
                 const oldRank = lastLeaderboardCheckRef.current ?? 999;
-                const newRank = row.rank ?? 999;
+                const newRank = (count ?? 0) + 1;
 
                 if (newRank < oldRank && newRank <= 10) {
                     console.debug('[TrainingRealtime] Leaderboard rank improved (poll):', oldRank, '->', newRank);

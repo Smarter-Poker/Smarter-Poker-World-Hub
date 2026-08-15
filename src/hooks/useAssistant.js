@@ -868,8 +868,8 @@ export function useLeakHandExamples(leakId) {
         .from('leak_hand_examples')
         .select(`
           id,
-          situation_snapshot,
-          ev_loss_bb,
+          situation_snapshot:hand_data,
+          ev_loss_bb:ev_loss,
           created_at,
           hand_history_id
         `)

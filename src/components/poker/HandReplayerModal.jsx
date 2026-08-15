@@ -175,7 +175,10 @@ function HandHistorySidebar({ supabase, tableId, clubId, currentHandId, onSelect
     
     let q = supabase
       .from('hand_history')
-      .select('id, hand_number, winner_ids, pot_total, rake, started_at, hand_data')
+      // 2026-08-15 CHECK 13: real columns are pot_size/rake_amount (aliased
+      // to keep downstream field names); the full hand record is JSON in
+      // summary (winner_ids never existed and was unused).
+      .select('id, hand_number, pot_total:pot_size, rake:rake_amount, started_at, summary')
       .order('started_at', { ascending: false })
       .limit(50);
     
@@ -183,7 +186,13 @@ function HandHistorySidebar({ supabase, tableId, clubId, currentHandId, onSelect
     else if (clubId) q = q.eq('club_id', clubId);
     
     q.then(({ data, error }) => {
-      if (!error && data) setHands(data);
+      if (!error && data) {
+        setHands(data.map(h => {
+          let hd = null;
+          try { hd = typeof h.summary === 'string' ? JSON.parse(h.summary) : h.summary; } catch { /* legacy */ }
+          return { ...h, hand_data: hd };
+        }));
+      }
       setLoading(false);
     });
   }, [supabase, tableId, clubId]);
@@ -408,16 +417,20 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
       try {
         const { data, error: fetchErr } = await supabase
           .from('hand_history')
-          .select('hand_data, rake')
+          // 2026-08-15 CHECK 13: the hand record is JSON in summary; rake
+          // is rake_amount (hand_data/rake never existed).
+          .select('summary, rake_amount')
           .eq('id', activeHandId)
           .maybeSingle();
 
         if (fetchErr) throw fetchErr;
         
-        if (data && data.hand_data) {
+        let parsedHand = null;
+        try { parsedHand = typeof data?.summary === 'string' ? JSON.parse(data.summary) : data?.summary; } catch { /* legacy */ }
+        if (parsedHand) {
           if (isMounted) {
-            const hd = data.hand_data;
-            hd.rake = data.rake || 0;
+            const hd = parsedHand;
+            hd.rake = data.rake_amount || 0;
             setHandData(hd);
             setLoading(false);
             // #10: Cache it

@@ -46,13 +46,14 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
         // Get recent training activity (last 5 sessions)
         const { data: recentSessions } = await supabase
             .from('training_sessions')
-            .select('game_id, score, completed_at')
+            // 2026-08-15 CHECK 13: real columns are gtow_score/created_at
+            .select('game_id, gtow_score, created_at')
             .eq('user_id', userId)
-            .order('completed_at', { ascending: false })
+            .order('created_at', { ascending: false })
             .limit(5);
 
         const recentActivity = recentSessions?.map(s =>
-            `${s.game_id}: ${s.score}pts`
+            `${s.game_id}: ${s.gtow_score}pts`
         ) || [];
 
         // Get last drill type
@@ -61,7 +62,8 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
         // Get poker stats (if available)
         const { data: stats } = await supabase
             .from('player_stats')
-            .select('hands_played, win_rate')
+            // 2026-08-15 CHECK 13: player_stats has no win_rate column
+            .select('hands_played')
             .eq('user_id', userId)
             .maybeSingle();
 
@@ -75,7 +77,7 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
             sessionDuration,
             recentActivity,
             lastDrillType,
-            winRate: stats?.win_rate ?? undefined,
+            winRate: undefined,
             handsPlayed: stats?.hands_played ?? undefined
         };
     } catch (error) {

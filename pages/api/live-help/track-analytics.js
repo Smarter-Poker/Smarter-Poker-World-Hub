@@ -52,11 +52,13 @@ export default async function handler(req, res) {
           // Insert analytics event
           const { error: insertError } = await getSupabase()
               .from('live_help_analytics')
+              // 2026-08-15 CHECK 13: real columns are session_id/details
+              // (conversation_id/metadata do not exist — insert 42703'd always).
               .insert({
                   user_id: user.id,
-                  conversation_id,
+                  session_id: conversation_id,
                   event_type,
-                  metadata: metadata || {}
+                  details: metadata || {}
               });
 
           if (insertError) {

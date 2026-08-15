@@ -54,25 +54,23 @@ export async function getUserContextState(supabase, userId) {
   }
 
   try {
-    // Check for active poker sessions
+    // Check for active poker sessions.
+    // 2026-08-15 CHECK 13: poker_sessions has no status column — the old
+    // .in('status', ...) filter 42703'd on every call, so LIVE_PLAY /
+    // SESSION_PAUSED were never returned. Session state is derived from the
+    // real columns: an open session is one with no ended_at. (A distinct
+    // "paused" state is unrepresentable in the schema, so SESSION_PAUSED is
+    // unreachable — reintroduce it only if a pause marker ever ships.)
     const { data: activeSessions } = await supabase
       .from('poker_sessions')
-      .select('id, status, started_at, ended_at')
+      .select('id, started_at, ended_at')
       .eq('user_id', userId)
-      .in('status', ['active', 'paused', 'in_progress'])
+      .is('ended_at', null)
       .order('started_at', { ascending: false })
       .limit(1);
 
     if (activeSessions && activeSessions.length > 0) {
-      const session = activeSessions[0];
-
-      if (session.status === 'active' || session.status === 'in_progress') {
-        return CONTEXT_STATES.LIVE_PLAY;
-      }
-
-      if (session.status === 'paused') {
-        return CONTEXT_STATES.SESSION_PAUSED;
-      }
+      return CONTEXT_STATES.LIVE_PLAY;
     }
 
     // CHECK 13 (2026-08-14): the "active arena match" check queried
@@ -84,17 +82,13 @@ export async function getUserContextState(supabase, userId) {
     // live arena state ever ships, reintroduce the check against the real
     // table rather than resurrecting this one.
 
-    // Check if user is in training mode
-    const { data: trainingSession } = await supabase
-      .from('training_sessions')
-      .select('id, status')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .limit(1);
-
-    if (trainingSession && trainingSession.length > 0) {
-      return CONTEXT_STATES.TRAINING_MODE;
-    }
+    // 2026-08-15 CHECK 13: the "active training session" check queried
+    // training_sessions.status — the column does not exist (rows are
+    // completed-session records with no live state), so the query 42703'd on
+    // every call and this branch never once returned TRAINING_MODE early.
+    // Removed; behavior is unchanged (TRAINING_MODE remains the fallthrough
+    // default below). If live training state ever ships, check it against
+    // the real table that carries it.
 
     // Check for recently ended session (within cooldown period)
     const cooldownMs = 5 * 60 * 1000; // 5 minute cooldown
@@ -102,7 +96,8 @@ export async function getUserContextState(supabase, userId) {
       .from('poker_sessions')
       .select('id, ended_at')
       .eq('user_id', userId)
-      .eq('status', 'completed')
+      // completed = has an ended_at (no status column; see note above)
+      .not('ended_at', 'is', null)
       .gte('ended_at', new Date(Date.now() - cooldownMs).toISOString())
       .limit(1);
 

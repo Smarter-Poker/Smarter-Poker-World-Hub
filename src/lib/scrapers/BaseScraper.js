@@ -155,8 +155,7 @@ export class BaseScraper {
                             ...venueData,
                             source: this.sourceName,
                             source_priority: this.sourcePriority,
-                            last_scraped_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString()
+                            last_scraped_at: new Date().toISOString()
                         })
                         .eq('id', existing.id);
 
@@ -175,9 +174,7 @@ export class BaseScraper {
                         ...venueData,
                         source: this.sourceName,
                         source_priority: this.sourcePriority,
-                        last_scraped_at: new Date().toISOString(),
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
+                        last_scraped_at: new Date().toISOString()
                     })
                     .select('id')
                     .maybeSingle();

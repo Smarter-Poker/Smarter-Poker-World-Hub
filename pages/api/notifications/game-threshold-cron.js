@@ -1,4 +1,5 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { normalizeForMatch, resolveVenueName } from '../poker/venue-dedup';
 import { withSentry } from '../../../src/lib/sentry';
 import { sendPushNotification } from '../../../src/lib/onesignal-server';
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -49,13 +50,47 @@ async function handler(req, res) {
         const venueIds = [...new Set(alerts.map(a => a.venue_id).filter(id => id))];
         
         // 2. Poll live game data
-        // Check the active_tables metric on the venues
+        // 2026-08-15 CHECK 13: poker_venues has no active_tables column (the
+        // old select 42703'd on every run — no threshold alert ever fired).
+        // Live table counts come from venue_live_tables (see live-cash-games
+        // policy): non-simulated rows, latest scrape batch per venue+source,
+        // Bravo real-time data preferred over PokerAtlas estimates.
         const { data: venues, error: vErr } = await supabase
             .from('poker_venues')
-            .select('id, name, active_tables')
+            .select('id, name')
             .in('id', venueIds);
 
         if (vErr) throw vErr;
+
+        const { data: liveRows, error: liveErr } = await supabase
+            .from('venue_live_tables')
+            .select('venue_name, source, tables_running, scrape_batch_id, scrape_timestamp')
+            .gte('scrape_timestamp', new Date(Date.now() - 6 * 3600 * 1000).toISOString())
+            .order('scrape_timestamp', { ascending: false })
+            .limit(5000);
+        if (liveErr) throw liveErr;
+
+        const venueKey = (name) => normalizeForMatch(resolveVenueName(name));
+        const latestBatch = {};   // `${key}|${source}` -> newest batch id
+        const bySource = {};      // key -> { bravo: n, other: n, hasBravo: bool }
+        for (const row of liveRows || []) {
+            const batchId = row.scrape_batch_id;
+            if (typeof batchId === 'string' && batchId.startsWith('sim-')) continue; // modelled, never live
+            const key = venueKey(row.venue_name);
+            const src = String(row.source || '').toLowerCase();
+            const bk = `${key}|${src}`;
+            if (!(bk in latestBatch)) latestBatch[bk] = batchId;
+            else if (latestBatch[bk] !== batchId) continue; // older batch for this source
+            if (!bySource[key]) bySource[key] = { bravo: 0, other: 0, hasBravo: false };
+            const n = row.tables_running ?? 0;
+            if (src.includes('bravo')) { bySource[key].bravo += n; bySource[key].hasBravo = true; }
+            else bySource[key].other += n;
+        }
+        const liveCountFor = (name) => {
+            const e = bySource[venueKey(name)];
+            if (!e) return 0;
+            return e.hasBravo ? e.bravo : e.other;
+        };
 
         // 3. Process thresholds and batch by venue to avoid Vercel timeouts and OneSignal rate limits
         const alertsByVenue = {};
@@ -65,7 +100,7 @@ async function handler(req, res) {
             
             if (!venue || !playerId) continue;
 
-            const liveTablesCount = venue.active_tables || 0;
+            const liveTablesCount = liveCountFor(venue.name);
             
             // Check if last trigger was within the last 4 hours (240 mins) to prevent spam
             let canTrigger = true;

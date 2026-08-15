@@ -328,12 +328,15 @@ export class MediaUploadService {
 
         } catch (error) {
             console.warn('[MediaUpload] Upload failed:', error?.message || error);
-            // Mark upload as failed in database
+            // 2026-08-15 CHECK 13: social_media has no status column (the old
+            // update 42703'd). Failed uploads simply leave no storage object;
+            // the orphaned row is removed so the gallery never shows a broken
+            // reference.
             const { error: err_social_media_qjsi0 } = await this.supabase
               .from('social_media')
-              .update({ status: 'failed' })
+              .delete()
                 .eq('id', media_id);
-            if (err_social_media_qjsi0) console.warn('[Supabase] Silent mutation failed in social_media:', err_social_media_qjsi0.message);
+            if (err_social_media_qjsi0) console.warn('[Supabase] Failed-upload row cleanup failed in social_media:', err_social_media_qjsi0.message);
 
             throw error;
         }
@@ -412,9 +415,12 @@ export class MediaUploadService {
      */
     async deleteMedia(mediaId) {
         // Get media info
+        // 2026-08-15 CHECK 13: real columns are storage_path/content_type
+        // (bucket_name/file_path never existed — delete always threw). The
+        // bucket is derived the same way fn_create_media_upload assigns it.
         const { data: media, error: fetchError } = await this.supabase
             .from('social_media')
-            .select('bucket_name, file_path')
+            .select('storage_path, content_type')
             .eq('id', mediaId)
             .maybeSingle();
 
@@ -423,9 +429,12 @@ export class MediaUploadService {
         }
 
         // Delete from storage
+        const bucket = String(media.content_type || '').toLowerCase().startsWith('video')
+            ? 'social-media-videos'
+            : 'social-media-images';
         const { error: storageError } = await this.supabase.storage
-            .from(media.bucket_name)
-            .remove([media.file_path]);
+            .from(bucket)
+            .remove([media.storage_path]);
 
         if (storageError) {
             console.warn('Storage deletion failed:', storageError);

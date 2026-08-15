@@ -186,7 +186,7 @@ const useMessengerPrefs = () => {
                 // Bookmarks
                 const bms = state.bookmarks || [];
                 for (const b of bms) {
-                    const { error } = await sb.from('messenger_bookmarks').upsert({ message_id: b.id, user_id: uid, message_text: b.text }, { onConflict: 'message_id,user_id' });
+                    const { error } = await sb.from('messenger_bookmarks').upsert({ message_id: b.id, user_id: uid }, { onConflict: 'message_id,user_id' });
                     if (error) throw error;
                 }
                 

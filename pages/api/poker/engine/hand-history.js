@@ -35,14 +35,40 @@ export default async function handler(req, res) {
       const { tableId, hand } = req.body || {};
       if (!tableId || !hand) return res.status(400).json({ error: 'tableId and hand required' });
       try {
-        const { error: err_hand_history_8sdl8 } = await getSupabase().from('hand_history').upsert({
-          hand_id: hand.handId || `${tableId}-${Date.now()}`,
+        // 2026-08-15 CHECK 13: the old upsert wrote hand_id/user_id/hand_data/
+        // pot_total — none exist on hand_history (and there is no
+        // (hand_id,user_id) unique constraint), so every POST 42703'd and no
+        // hand was ever recorded here. Now writes the real row shape used by
+        // src/lib/poker-engine/HandHistory.js (players/winners carry userId
+        // keys; the full hand record is preserved as JSON in summary).
+        const players = Array.isArray(hand.players)
+          ? hand.players.map(p => ({
+              userId: p.userId || p.id || p.playerId,
+              username: p.username || p.displayName || p.name || null,
+              seat: p.seat ?? p.seatIndex ?? null,
+              stack: p.stack ?? p.endStack ?? p.startStack ?? null,
+            }))
+          : [];
+        const winners = Array.isArray(hand.winners)
+          ? hand.winners.map(w => ({
+              userId: w.userId || w.id || w.playerId,
+              amount: w.amount ?? 0,
+            }))
+          : [];
+        const { error: err_hand_history_8sdl8 } = await getSupabase().from('hand_history').insert({
           table_id: tableId,
-          user_id: user.id,
-          hand_data: hand,
-          pot_total: hand.potTotal || 0,
-          created_at: new Date().toISOString(),
-        }, { onConflict: 'hand_id,user_id' });
+          hand_number: hand.handNumber ?? hand.hand_number ?? null,
+          game_variant: hand.gameVariant || hand.variant || 'nlhe',
+          players,
+          winners,
+          board: hand.board || [],
+          summary: JSON.stringify(hand),
+          pot_size: hand.potTotal || 0,
+          rake_amount: hand.rake || 0,
+          source: 'engine-api',
+          started_at: hand.startedAt || new Date().toISOString(),
+          ended_at: hand.endedAt || new Date().toISOString(),
+        });
         if (err_hand_history_8sdl8) console.warn('[Supabase] Silent mutation failed in hand_history:', err_hand_history_8sdl8.message);
         return res.status(200).json({ ok: true });
       } catch (err) {
@@ -77,8 +103,8 @@ export default async function handler(req, res) {
 
       // Filter to only include hands where this player participated
       const playerHands = (data || []).filter(h => {
-        const players = h.players || h.hand_data?.players || [];
-        return players.some(p => String(p.id) === String(user.id) || String(p.playerId) === String(user.id));
+        const players = h.players || [];
+        return players.some(p => String(p.userId) === String(user.id) || String(p.id) === String(user.id) || String(p.playerId) === String(user.id));
       });
 
       return res.status(200).json({

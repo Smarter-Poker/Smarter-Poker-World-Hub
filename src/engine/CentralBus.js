@@ -219,7 +219,7 @@ class CentralBusEngine {
             const { error } = await sb.from('training_events').insert({
                 user_id: event.payload.user_id,
                 event_type: event.type,
-                payload: event.payload,
+                event_data: event.payload,
                 created_at: event.timestamp,
             });
 
