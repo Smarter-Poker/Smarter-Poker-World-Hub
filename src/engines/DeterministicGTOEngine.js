@@ -640,7 +640,17 @@ export class DeterministicGTOEngine {
             let effectiveLevel = level;
 
             // Build pool of available spots, weighted by difficulty level
-            const spotPool = this._buildPreflopSpotPool(effectiveLevel, stackDepth);
+            let spotPool = this._buildPreflopSpotPool(effectiveLevel, stackDepth);
+            // Subject filter (2026-08-14). A game whose title names ONE
+            // preflop discipline -- cash-008 is "4-Bet Wars" -- must not deal
+            // the whole pool. pioSpotTypes narrows to the declared subject;
+            // absent, nothing changes. If the filter empties the pool the
+            // config named a spot type this data cannot produce, and dealing
+            // off-subject spots would hide that config error, so return null
+            // and let the caller's fallback surface it instead.
+            if (Array.isArray(gameConfig.pioSpotTypes) && gameConfig.pioSpotTypes.length > 0) {
+                spotPool = spotPool.filter(sp => gameConfig.pioSpotTypes.includes(sp.spotType));
+            }
             if (spotPool.length === 0) return null;
 
             // Pick random spot — bias toward harder spot types at higher effective levels

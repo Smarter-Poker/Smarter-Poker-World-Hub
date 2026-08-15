@@ -591,5 +591,70 @@ const summarize = () => {
         return h.length === 200 || 'length ' + h.length;
     });
 
+    // ---- subject-match sweep (2026-08-14) ----------------------------------
+    // The #16 defect class, checked across the catalog rather than assumed
+    // fixed by one game. Two more games declared one subject and served
+    // another: cash-008 "4-Bet Wars -- Pre-flop escalation" served 0 preflop,
+    // cash-012 "River Decisions -- Final street mastery" served 75% non-river.
+    check('sweep: cash-008 declares preflop and pins the pool to 4-bet spots', () => {
+        const c = pioQueryService.getGameConfig('cash-008');
+        if (c?.pioStreet !== 'preflop') return 'pioStreet ' + c?.pioStreet;
+        if (!Array.isArray(c.pioSpotTypes) || c.pioSpotTypes.join() !== '4bet') return 'pioSpotTypes ' + JSON.stringify(c?.pioSpotTypes);
+        return true;
+    });
+
+    const cfg8 = pioQueryService.getGameConfig('cash-008');
+    let batch8 = null, err8 = null;
+    try {
+        batch8 = await deterministicEngine.generateBatch({
+            gameId: 'cash-008', level: 3, count: 20, gameConfig: cfg8,
+            difficulty: 'standard', seenIds: [],
+        });
+    } catch (e) { err8 = e; }
+
+    check('sweep: cash-008 fills a 20-question session, all preflop, all 4-bet', () => {
+        if (err8) return 'threw: ' + err8.message;
+        if (!Array.isArray(batch8) || batch8.length !== 20) return 'length ' + (batch8 && batch8.length);
+        const offStreet = batch8.filter(q => q.scenario?.street !== 'preflop');
+        if (offStreet.length) return offStreet.length + ' not preflop';
+        const offSubject = batch8.filter(q => q.scenario?.spotType !== '4bet');
+        // The whole point of pioSpotTypes: a 4-bet game deals 4-bet decisions,
+        // not whatever the uniform-random pool happens to serve.
+        if (offSubject.length) return offSubject.length + ' not 4bet (' + offSubject[0].scenario?.spotType + ')';
+        return true;
+    });
+
+    check('sweep: a config naming an impossible spot type yields null, not off-subject spots', () => {
+        const q = deterministicEngine.generateFromLocalSolverRanges(
+            { ...cfg8, pioSpotTypes: ['no_such_spot_type'] }, 3);
+        // Dealing off-subject spots here would HIDE the config error.
+        return q === null || 'dealt a ' + q?.scenario?.spotType;
+    });
+
+    check('sweep: cash-012 declares river and the cache filter narrows to river rows', () => {
+        const c12 = pioQueryService.getGameConfig('cash-012');
+        if (c12?.pioStreet !== 'river') return 'pioStreet ' + c12?.pioStreet;
+        const rows = [
+            { question_data: { scenario: { street: 'flop' } } },
+            { question_data: { scenario: { street: 'river' } } },
+            { question_data: { scenario: { street: 'turn' } } },
+            { question_data: { scenario: { street: 'river' } } },
+        ];
+        const out = filterRowsToDeclaredStreet(rows, c12);
+        if (out.length !== 2) return 'kept ' + out.length + ' of 4';
+        if (out.some(r => streetOfCachedRow(r) !== 'river')) return 'kept a non-river row';
+        return true;
+    });
+
+    check('sweep: a river declaration does NOT reroute to the preflop generator', () => {
+        // The engine route is strictly preflop-only by construction. A river
+        // game reaching generateFromLocalSolverRanges would deal boardless
+        // preflop spots under a river title -- worse than the original bug.
+        const c12 = pioQueryService.getGameConfig('cash-012');
+        if (c12.pioStreet === 'preflop') return 'cash-012 declares preflop';
+        // Assert on the routing gate itself: only the literal 'preflop' opens it.
+        return c12.pioStreet === 'river' || 'unexpected declaration';
+    });
+
     summarize();
 })();

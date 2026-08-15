@@ -255,20 +255,33 @@ export class PIOQueryService {
             // flop and turn spots (measured on production 2026-08-07: 20 questions,
             // zero preflop). This is the flag that makes the preflop generator, which
             // has worked the whole time, actually reachable.
-            'cash-001': { id: 'cash-001', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100, pioStreet: 'preflop' }, // Preflop Mastery
+            'cash-001': { id: 'cash-001', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100, pioStreet: 'preflop' }, // Preflop Blueprint
             'cash-002': { id: 'cash-002', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // C-Bet Clinic
             'cash-003': { id: 'cash-003', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Barrel Strategy
             'cash-004': { id: 'cash-004', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Value Extraction
             'cash-005': { id: 'cash-005', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Bluff Catcher
             'cash-006': { id: 'cash-006', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Position Power
             'cash-007': { id: 'cash-007', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // 3-Bet Pots
-            'cash-008': { id: 'cash-008', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // 4-Bet Battles
+            // Subject-match sweep 2026-08-14: titled "4-Bet Wars -- Pre-flop
+            // escalation" in TRAINING_LIBRARY and declared spotTypes ['4bet']
+            // in GameScenarioMap, yet its cache is 250 postflop rows and it
+            // served 0 preflop questions -- the same defect class as cash-001.
+            // pioStreet routes it to the preflop generator; pioSpotTypes pins
+            // the generator's pool to the game's actual subject.
+            'cash-008': { id: 'cash-008', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100, pioStreet: 'preflop', pioSpotTypes: ['4bet'] }, // 4-Bet Wars
             'cash-009': { id: 'cash-009', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 200 }, // Deep Stack
             'cash-010': { id: 'cash-010', sourceOfTruth: 'ICMIZER', pioStackDepth: 40 }, // Short Stack (CHART)
             'cash-011': { id: 'cash-011', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Donk Defense
-            'cash-012': { id: 'cash-012', sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 }, // River Decisions
+            // Subject-match sweep 2026-08-14: "River Decisions -- Final street
+            // mastery" was serving 102 flop / 85 turn / 63 river. pioStreet
+            // does NOT reroute a postflop game to a different generator (the
+            // engine route is strictly preflop-only); it drives the
+            // declared-street cache filter, which narrows serving to the 63
+            // river rows -- more than the 20 a session asks for, so the
+            // cache-first path stays primary and every question is a river.
+            'cash-012': { id: 'cash-012', sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100, pioStreet: 'river' }, // River Decisions
             'cash-013': { id: 'cash-013', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Check-Raise
-            'cash-014': { id: 'cash-014', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Squeeze Play
+            'cash-014': { id: 'cash-014', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Check-Raise Art (comment previously said Squeeze Play -- wrong game; the title is postflop check-raise work and the postflop route is correct for it)
             'cash-015': { id: 'cash-015', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Overbetting
             'cash-016': { id: 'cash-016', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Multi-way Pots
             'cash-017': { id: 'cash-017', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Probe Bets
