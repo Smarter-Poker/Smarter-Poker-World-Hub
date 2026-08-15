@@ -136,7 +136,25 @@ for f in "$DIST_TMP"/*; do
   case "$fname" in
     index.html|assets) ;;
     cards|images|club-logos|videos) ;; # preserved — not touched
-    *) cp -r "$f" "$DEST/$fname" ;;
+    # Dan 2026-08-15 — NESTING BUG. This used to be a bare
+    # `cp -r "$f" "$DEST/$fname"`. When $DEST/$fname already exists as a
+    # directory, `cp -r src/d dest/d` copies the source INTO the existing
+    # directory, producing dest/d/d. game-card-icons/ is neither wiped (only
+    # assets/ is) nor preserved (only cards|images|club-logos|videos are), so
+    # it survived every sync and re-nested one level deeper each run: a
+    # 2026-08-15 sync staged 51 duplicate PNGs (~6 MB) at
+    # game-card-icons/game-card-icons/, and the next run would have added a
+    # third level. Mirror the assets/ handling — clear the destination
+    # directory first so every sync writes a flat, exact copy.
+    *)
+      # Explicit `if` rather than `[ -d ] && rm`: this script runs under
+      # `set -e`, and dist/ contains plain files (sw.js, manifest.json) as
+      # well as directories, so the test legitimately fails on most entries.
+      if [ -d "$f" ]; then
+        rm -rf "$DEST/$fname"
+      fi
+      cp -r "$f" "$DEST/$fname"
+      ;;
   esac
 done
 ok "Swapped"
