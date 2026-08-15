@@ -1010,7 +1010,7 @@ function TemplatesSheet({ isOpen, onClose, templates, status, error, onReload, o
           icon={<BookOpen size={24} strokeWidth={2} aria-hidden="true" />}
           title="Sign in to save templates"
           body="Templates are tied to your account so they follow you across devices."
-          action={<a className="pa-btn" href="/auth" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
+          action={<a className="pa-btn" href="/auth/signin" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
         />
       ) : templates.length === 0 ? (
         <EmptyState
@@ -1068,7 +1068,7 @@ function AnalyticsSheet({ isOpen, onClose, status, stats, error, onRetry }) {
           icon={<Trophy size={24} strokeWidth={2} aria-hidden="true" />}
           title="Sign in to track your study stats"
           body="Accuracy, position distribution and insights are tied to your account."
-          action={<a className="pa-btn" href="/auth" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
+          action={<a className="pa-btn" href="/auth/signin" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
         />
       )}
 

@@ -509,6 +509,32 @@ High/Low mode.
     A solver work: the machines must store facing-bet nodes with their `pot`,
     or the badge stays dark postflop permanently.
 
+    **2026-08-15 — the blocker is now precisely characterised, and it is
+    narrower than "the machines have not got to it yet."** Seven rechecks over
+    thirteen hours, across BOTH matrix columns (every earlier recheck read
+    only the first, which is why this took so long to see):
+
+    - `strategy_matrix` (current bulk run, writing continuously): 100%
+      `hero_first` at `r:0`, one node per row, zero paths ending in a bet.
+    - `strategy_matrix_v2` (written 2026-08-06): carries `pot_bb` on 3000/3000
+      rows, and **0 of 3000 node paths end in a bet**.
+
+    The pot has therefore been delivered TWICE and the sibling nodes never
+    once. Both attempts implemented addition 2 of the handoff (record the pot)
+    and skipped addition 1 (harvest the facing-bet siblings) -- and addition 1
+    is the one that unblocks this item. `b488` still appears MID-path
+    (`r:0:c:b488:c:7c:c`), which proves the bet nodes exist in the solved tree
+    and are simply never emitted as their own rows.
+
+    Two web-side defects were found and fixed in the same pass, either of
+    which would have kept the badge dark or WRONG even after the data lands:
+    `src/utils/v2Matrix.js` dropped `pot_bb` entirely, and `_villainBetBB`
+    fell through to returning RAW solver chips when no pot was available --
+    which would have painted `488` on the felt as big blinds. Full account,
+    including the measured 100-chips-per-big-blind scale, the root-pot vs
+    node-pot hazard, and the only query shapes that survive write load:
+    `.agent/handoffs/2026-08-07-solver-facing-bet-nodes.md`.
+
 
 14a. **`committedFor` read only a seat's FIRST action.** FIXED 2026-08-06,
     found while confirming #14. `committedFor` used `.find`, so a seat with more
