@@ -194,7 +194,12 @@ export default function VideoLibraryPage() {
             setSelectedSource(router.query.source.toUpperCase());
         }
         if (router.query.filter) {
-            setSearchQuery(router.query.filter);
+            const f = String(router.query.filter).toLowerCase();
+            if (f === 'favorites' || f === 'history' || f === 'watchlater') {
+                setLibraryFilter(f);
+            } else {
+                setSearchQuery(router.query.filter);
+            }
         }
         // ?v=VIDEO_ID — auto-open a specific video
         if (router.query.v && allVideos.length > 0) {
@@ -231,6 +236,13 @@ export default function VideoLibraryPage() {
     const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false); // loading state for playlist creation
     const [playlistActionError, setPlaylistActionError] = useState(null); // error feedback
     const [watchLater, setWatchLater] = useState(new Set());
+    // 2026-08-15: the three "My Library" hamburger entries
+    // (?filter=favorites|history|watchlater) previously fell into a handler
+    // that just ran setSearchQuery('favorites'), so users got
+    // `0 results for "favorites"`. There was no such view at all. The data
+    // was already in state (favorites / watchLater / watchedVideos are Sets
+    // of video ids) — it just was never wired to a filter.
+    const [libraryFilter, setLibraryFilter] = useState('ALL');
     const [watchedVideos, setWatchedVideos] = useState(new Set()); // Videos watched 60+ seconds
     const [watchProgress, setWatchProgress] = useState(new Map()); // video_id → { watchedSeconds, watchedAt }
     const [recentlyWatched, setRecentlyWatched] = useState([]); // Recently watched videos
@@ -663,6 +675,13 @@ export default function VideoLibraryPage() {
             filtered = filtered.filter(v => v.source === selectedSource);
         }
 
+        if (libraryFilter !== 'ALL') {
+            const set = libraryFilter === 'favorites' ? favorites
+                : libraryFilter === 'watchlater' ? watchLater
+                : watchedVideos;
+            filtered = filtered.filter(v => set.has(v.id));
+        }
+
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
             filtered = filtered.filter(v =>
@@ -688,7 +707,7 @@ export default function VideoLibraryPage() {
             });
         }
         setVideos(filtered);
-    }, [selectedSource, selectedType, searchQuery, watchedVideos, allVideos, sortMode, trendingScores]);
+    }, [selectedSource, selectedType, searchQuery, watchedVideos, allVideos, sortMode, trendingScores, libraryFilter, favorites, watchLater]);
 
 
     // Keyboard navigation in modal
