@@ -31,7 +31,12 @@ import { createClient } from '@supabase/supabase-js';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 
 export const config = {
-    maxDuration: 60,
+    // 2026-08-15: was 60 — the run has timed out daily since 2026-06-18
+    // (Vercel runtime error group, count growing) because listAllObjects
+    // walked the ENTIRE social-media bucket. The listing is now scoped to
+    // post-media prefixes (below), and the ceiling is raised as a backstop
+    // for continued bucket growth.
+    maxDuration: 300,
 };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
@@ -179,8 +184,21 @@ async function handler(req, res) {
             if (seg) allowedPrefixes.add(seg);
         }
 
-        // 2. List every object in the social-media bucket.
-        const objects = await listAllObjects(supa);
+        // 2. List objects in the bucket — SCOPED to the allowed post-media
+        //    prefixes. TIMEOUT FIX 2026-08-15: this used to list the ENTIRE
+        //    bucket (avatars, club branding, messenger images + voice notes,
+        //    wallpapers, comment-images — every tree, one paginated request
+        //    per 1000 objects plus a recursion per folder) and then discard
+        //    everything outside allowedPrefixes in step 3. As those trees
+        //    grew, the walk blew the 60s ceiling and the cron timed out
+        //    daily since 2026-06-18 — meaning NO orphan sweep has completed
+        //    since then. The allowlist is fully known before listing, so
+        //    only walk those subtrees; the step-3 prefix check stays as a
+        //    belt-and-braces guard.
+        const objects = [];
+        for (const prefix of allowedPrefixes) {
+            await listAllObjects(supa, prefix, objects);
+        }
 
         // 3. Compute orphans — older than 24h AND in a post-media folder AND not
         //    in the referenced set.
