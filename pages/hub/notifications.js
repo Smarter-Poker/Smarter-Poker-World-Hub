@@ -843,6 +843,14 @@ function NotificationsPage() {
                                     if (sid) { navigate(`/hub/social-media?stream=${sid}`); return; }
                                     navigate('/hub/lives'); return;
                                 }
+                                // 2026-08-15 audit: co-host invite → the guest join page
+                                // (was falling through to a generic route, so tapping the
+                                // invite notification never opened the join surface).
+                                if (t === 'live_invite') {
+                                    const raw = (d.content || '').replace('[LIVE_INVITE]', '').trim();
+                                    if (raw) { navigate(`/hub/live/guest?${raw}`); return; }
+                                    navigate('/hub/lives'); return;
+                                }
                                 if (t === 'live_scheduled') {
                                     navigate('/hub/lives'); return;
                                 }

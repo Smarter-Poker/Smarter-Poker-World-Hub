@@ -260,14 +260,14 @@ export class MediaUploadService {
             // Upload to Supabase Storage
             const { error: storageError } = await this.supabase.storage
                 .from(bucket_name)
+                // NOTE: supabase-js v2 storage upload has no progress callback
+                // (the old onUploadProgress option was silently ignored) — the
+                // bar steps 15 -> 50 -> 92 instead of pretending to stream.
                 .upload(file_path, uploadFile, {
                     cacheControl: '31536000', // 1 year cache
                     upsert: false,
-                    onUploadProgress: (progress) => {
-                        const percent = Math.round((progress.loaded / progress.total) * 70) + 20;
-                        onProgress?.(Math.min(percent, 90));
-                    }
                 });
+            onProgress?.(50);
 
             if (storageError) {
                 throw storageError;
@@ -383,11 +383,18 @@ export class MediaUploadService {
      * @returns {Promise<{ url: string, mediaId: string }>}
      */
     async uploadAvatar(file, onProgress) {
-        // Optimize to square
-        const optimized = await optimizeImage(file, {
+        // Optimize to square. optimizeImage returns a Blob (no .name), so wrap
+        // it in a File — fn_create_media_upload derives the storage path from
+        // the file name (2026-08-15 audit fix).
+        const optimizedBlob = await optimizeImage(file, {
             maxDimension: 512,
             quality: 0.9
         });
+        const optimized = new File(
+            [optimizedBlob],
+            String(file.name || 'avatar').replace(/\.[^.]+$/, '') + '.jpg',
+            { type: 'image/jpeg' }
+        );
 
         return this.uploadFile(optimized, { mediaType: 'avatar' }, onProgress);
     }
@@ -399,11 +406,17 @@ export class MediaUploadService {
      * @returns {Promise<{ url: string, mediaId: string }>}
      */
     async uploadCover(file, onProgress) {
-        // Optimize for cover (wide aspect ratio)
-        const optimized = await optimizeImage(file, {
+        // Optimize for cover (wide aspect ratio). Wrapped in a File for the
+        // same reason as uploadAvatar (Blob has no .name).
+        const optimizedBlob = await optimizeImage(file, {
             maxDimension: 1920,
             quality: 0.85
         });
+        const optimized = new File(
+            [optimizedBlob],
+            String(file.name || 'cover').replace(/\.[^.]+$/, '') + '.jpg',
+            { type: 'image/jpeg' }
+        );
 
         return this.uploadFile(optimized, { mediaType: 'cover' }, onProgress);
     }
@@ -461,18 +474,20 @@ export class MediaUploadService {
         const userId = this._getUserId();
         if (!userId) return { used: 0, limit: 0, percentage: 0 };
 
+        // 2026-08-15 audit: user_dna_profiles does not exist — the meter was
+        // permanently 0. Sum the caller's own social_media rows instead.
         const { data, error } = await this.supabase
-            .from('user_dna_profiles')
-            .select('storage_used_bytes, storage_limit_bytes')
-            .eq('user_id', userId)
-            .maybeSingle();
+            .from('social_media')
+            .select('file_size')
+            .eq('uploader_id', userId)
+            .limit(2000);
 
         if (error || !data) {
             return { used: 0, limit: 1073741824, percentage: 0 };
         }
 
-        const used = data.storage_used_bytes || 0;
-        const limit = data.storage_limit_bytes || 1073741824;
+        const used = data.reduce((sum, r) => sum + (r.file_size || 0), 0);
+        const limit = 1073741824;
 
         return {
             used,

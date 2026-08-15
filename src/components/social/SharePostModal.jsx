@@ -17,7 +17,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { busEmit } from '../../engine/EventBus';
 import { supabase } from '../../lib/supabase';
-import { getAccessToken } from '../../lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import toast from '../../stores/toastStore';
 import { SharedAvatar as Avatar } from './SharedAvatar';
 import confetti from 'canvas-confetti';
@@ -528,7 +528,7 @@ function GroupsTab({ post, onClose }) {
 
             try {
                 // Fetch group conversations from social_* tables
-                const sb = getSupabase();
+                const sb = supabase;
                 const { data, error } = await sb
                     .from('social_conversation_participants')
                     .select('conversation_id, social_conversations!inner(id, is_group, group_name)')
@@ -611,7 +611,7 @@ function GroupsTab({ post, onClose }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div style={{ display: 'flex', padding: '12px 16px', gap: 12, borderBottom: `1px solid ${C.border}` }}>
-                <SPAvatar src={null} size={40} />
+                <Avatar src={null} size={40} />
                 <textarea
                     placeholder="Say something about this in your group..."
                     value={message}
@@ -652,7 +652,7 @@ function GroupsTab({ post, onClose }) {
                                 onMouseLeave={e => !isSelected && (e.currentTarget.style.background = 'transparent')}
                             >
                                 <div style={{ position: 'relative' }}>
-                                    <SPAvatar src={group.avatar_url} size={44} name={group.name} />
+                                    <Avatar src={group.avatar_url} size={44} name={group.name} />
                                     <div style={{
                                         position: 'absolute', bottom: -2, right: -2, width: 16, height: 16,
                                         borderRadius: '50%', background: group.type === 'announcement' ? '#FF9800' : '#4CAF50',
@@ -905,7 +905,7 @@ export default function SharePostModal({ post, authorUsername, currentUser, onCl
                         />
                     )}
 
-                    {tab === 'groups' && <GroupsTab post={post} onClose={handleBackdrop} />}
+                    {tab === 'groups' && <GroupsTab post={post} onClose={onClose} />}
                     {tab === 'who' && <WhoSharedTab post={post} />}
 
                     {tab === 'external' && (

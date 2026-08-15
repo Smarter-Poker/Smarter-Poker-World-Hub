@@ -11,8 +11,10 @@
 import React from 'react';
 
 const HASHTAG_REGEX = /#(\w{2,30})/g;
-const MENTION_REGEX = /@(\w{2,30})/g;
-const COMBINED_REGEX = /(#\w{2,30}|@\w{2,30})/g;
+// (?<![\w.]) stops "dan@gmail.com" from rendering "@gmail" as a mention;
+// [\w.]* interior keeps dotted usernames whole (composer stores them dotted).
+const MENTION_REGEX = /(?<![\w.])@([\w][\w.]{0,28}[\w]|[\w]{2})/g;
+const COMBINED_REGEX = /(#\w{2,30}|(?<![\w.])@[\w][\w.]{0,29})/g;
 
 const COLORS = {
     hashtag: '#1877F2',

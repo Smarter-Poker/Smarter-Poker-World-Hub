@@ -25,7 +25,8 @@ const MAX_STORY_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB — stories bucket config
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;        // 10MB for images
 
 const ALLOWED_TYPES = [
-    'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
+    'image/png', 'image/jpeg', 'image/gif', 'image/webp', // svg removed: stored-XSS vector on the public bucket
+
     // iPhone Photos default formats — accepted at the bucket layer 2026-04-29.
     // NOTE: render natively on Safari/iOS but NOT on Chrome/Firefox desktop.
     // Server-side conversion to JPEG is a follow-up in .memory/SUMMARY.md.

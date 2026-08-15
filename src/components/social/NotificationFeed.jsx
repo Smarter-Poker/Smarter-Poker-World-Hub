@@ -56,6 +56,7 @@ export default function NotificationFeed({ onClose, onNavigate }) {
     const [filter, setFilter] = useState('all');
     const [readIds, setReadIds] = useState(new Set());
     const subRef = useRef(null);
+    const ownPostIdsRef = useRef(new Set());
 
     const loadNotifications = useCallback(async () => {
         try {
@@ -70,6 +71,7 @@ export default function NotificationFeed({ onClose, onNavigate }) {
                 .limit(200);
 
             const ownPostIds = ownPosts ? ownPosts.map(p => p.id) : [];
+            ownPostIdsRef.current = new Set(ownPostIds);
 
             if (ownPostIds.length === 0) {
                 setNotifications([]);
@@ -141,6 +143,10 @@ export default function NotificationFeed({ onClose, onNavigate }) {
                     schema: 'public',
                     table: 'social_interactions',
                 }, (payload) => {
+                    // 2026-08-15 audit: scope realtime to MY posts — the raw
+                    // subscription notified users about strangers liking
+                    // strangers' posts platform-wide.
+                    if (payload.new && !ownPostIdsRef.current.has(payload.new.post_id)) return;
                     if (payload.new && payload.new.user_id !== user.id) {
                         const newNotif = {
                             id: payload.new.id,

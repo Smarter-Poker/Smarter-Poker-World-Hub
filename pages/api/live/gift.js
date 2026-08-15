@@ -105,7 +105,9 @@ export default async function handler(req, res) {
     clientIp = forwarded[0].split(',')[0].trim();
   }
 
-  const { stream_id, receiver_id, amount, message } = req.body;
+  const { stream_id, receiver_id, amount } = req.body;
+  // 2026-08-15 audit: bound the free-text message (was unbounded — payload/XSS risk)
+  const message = typeof req.body.message === 'string' ? req.body.message.slice(0, 200).trim() || null : null;
 
   // SECURITY: Strictly parse amount to an integer. If amount is NaN, a string
   // like "invalid", or an array, it bypasses JS coercion checks (< 1) and could
@@ -242,7 +244,9 @@ export default async function handler(req, res) {
       p_types: ['diamond_gift_sent', 'live_gift_sent'],
       p_start: last24hStart,
     });
-    if ((sent24h || 0) + parsedAmount > 500) {
+    // 2026-08-15 audit: debits are stored as NEGATIVE amounts, so the raw sum
+    // is <= 0 and this cap never fired. abs() makes it real.
+    if (Math.abs(sent24h || 0) + parsedAmount > 500) {
       const liftAt = new Date(firstPurchaseAt.getTime() + 7 * 24 * 60 * 60 * 1000);
       const liftDate = liftAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       return res.status(429).json({
@@ -254,7 +258,7 @@ export default async function handler(req, res) {
         next_send_message: 'You Can Send More Diamonds Tomorrow',
         limits_lift_at: liftAt.toISOString(),
         limits_lift_message: `Your Limits Are Fully Lifted On ${liftDate}`,
-        amount_sent_24h: sent24h || 0,
+        amount_sent_24h: Math.abs(sent24h || 0),
         amount_cap_24h: 500,
       });
     }
@@ -276,7 +280,8 @@ export default async function handler(req, res) {
       p_start: rolling30Start,
     });
 
-    const effectiveAlreadySent = Math.max(alreadySent || 0, ipAlreadySent || 0);
+    // 2026-08-15 audit: abs() — alreadySent is a sum of negative debit rows.
+    const effectiveAlreadySent = Math.max(Math.abs(alreadySent || 0), ipAlreadySent || 0);
 
     const purchasedWonAvailable = await getLiveGiftSourceCapAvailable(user.id);
     const activeCap =
@@ -471,9 +476,12 @@ export default async function handler(req, res) {
         .status(500)
         .json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
     }
-    if (creditResult && creditResult.success === false && !creditResult.duplicate) {
-      await refundSender(`credit returned ${creditResult.error || 'success:false'}`);
-      console.warn('[live/gift] Credit returned success:false (refunded sender):', creditResult);
+    // 2026-08-15 audit: require an explicit success/duplicate — a null/undefined
+    // creditResult (PostgREST schema-cache race) was previously treated as
+    // success, charging the sender while crediting nobody.
+    if (!(creditResult && (creditResult.success === true || creditResult.duplicate === true))) {
+      await refundSender(`credit returned ${creditResult?.error || 'null/unknown'}`);
+      console.warn('[live/gift] Credit did not confirm success (refunded sender):', creditResult);
       return res
         .status(500)
         .json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
@@ -490,7 +498,7 @@ export default async function handler(req, res) {
     // duplicate primary-key violation. The deduct/credit are already
     // idempotent via p_reference_id; this closes the last write that
     // wasn't.
-    const { data: gift } = await supabase
+    const { data: gift, error: giftRowErr } = await supabase
       .from('live_gifts')
       .upsert(
         {
@@ -505,6 +513,10 @@ export default async function handler(req, res) {
       )
       .select()
       .maybeSingle();
+    // 2026-08-15 audit: the transfer already succeeded; a failed gift-row write
+    // means the gift won't appear in top-gifters/analytics. Log loudly and flag
+    // it in the response rather than silently claiming full success.
+    if (giftRowErr) console.error('[live/gift] gift row write failed after transfer:', giftRowErr.message);
 
     // Record the IP cluster action — clientIp was parsed once at top of handler
     const { error: err_anti_farming_ips_gr9d2 } = await supabase.from('anti_farming_ips').insert({
@@ -553,6 +565,7 @@ export default async function handler(req, res) {
     return res.json({
       success: true,
       gift,
+      recorded: !!gift,
       newBalance: senderNewBalance,
     });
   } catch (err) {

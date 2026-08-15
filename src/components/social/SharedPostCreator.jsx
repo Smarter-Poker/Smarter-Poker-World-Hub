@@ -1274,7 +1274,7 @@ export function SharedPostCreator({
               page_id: activeHomeGroup.social_page_id,
               author_id: user?.id,
               content: finalContent,
-              content_type: urls.length > 0 ? 'media' : 'text',
+              content_type: type, // 'media' was a value no feed renderer understands
               visibility: postVisibility,
               post_type: 'regular',
               ...(persistedThumbnailUrl ? { thumbnail_url: persistedThumbnailUrl } : {}),

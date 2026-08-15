@@ -149,9 +149,13 @@ export default async function handler(req, res) {
 
           // Determine if page requires approval (home_game type)
           let requiresApproval = false;
+          // 2026-08-15 audit: page_type is a top-level column (the metadata
+          // read was always undefined, so home-game approval was bypassed).
           const { data: pageData } = await getSupabase()
-              .from('social_pages').select('metadata').eq('id', page_id).maybeSingle();
-          if (pageData?.metadata?.page_type === 'home_game') {
+              .from('social_pages').select('page_type, is_public, metadata').eq('id', page_id).maybeSingle();
+          if (pageData?.page_type === 'home_game'
+              || pageData?.metadata?.page_type === 'home_game'
+              || pageData?.is_public === false) {
               requiresApproval = true;
           }
 
@@ -326,7 +330,10 @@ export default async function handler(req, res) {
               .from('social_page_followers')
               .update(updates)
               .eq('page_id', page_id)
-              .eq('user_id', notify !== undefined ? user_id : req.body.follower_id || user_id)
+              // Target the member being changed when follower_id is supplied
+              // (the old `notify !== undefined` discriminator made an owner's
+              // role-change edit their OWN row instead of the member's).
+              .eq('user_id', req.body.follower_id || user_id)
               .select()
               .maybeSingle();
 

@@ -718,6 +718,35 @@ export function MessageBubble({
                         let content = message.content || message.text || '';
                         content = content.replace(/^\[REPLY:[^\]]+\]\s*/, '');
 
+                        // 2026-08-15 audit: render live co-host invites as a
+                        // tappable Join card instead of raw "[LIVE_INVITE]room=…"
+                        // text, so acceptance works from the message thread (not
+                        // only the transient realtime toast).
+                        if (content.startsWith('[LIVE_INVITE]')) {
+                            const qs = content.replace('[LIVE_INVITE]', '').trim();
+                            const joinHref = `/hub/live/guest?${qs}`;
+                            return (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0' }}>
+                                    <span style={{ fontSize: 24 }}>🎥</span>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: 600 }}>Live co-host invite</div>
+                                        <div style={{ fontSize: 12, opacity: 0.8 }}>Tap to join the live stream</div>
+                                    </div>
+                                    {!isOwn && (
+                                        <a
+                                            href={joinHref}
+                                            onClick={(e) => { e.stopPropagation(); }}
+                                            style={{
+                                                marginLeft: 'auto', textDecoration: 'none',
+                                                background: C.blue, color: 'white', borderRadius: 16,
+                                                padding: '6px 14px', fontSize: 12, fontWeight: 600,
+                                            }}
+                                        >Join Live</a>
+                                    )}
+                                </div>
+                            );
+                        }
+
                         if (content.startsWith('[CALL_RECEIPT]')) {
                             const raw = content.replace('[CALL_RECEIPT]', '');
                             let receiptData = null;
@@ -828,7 +857,7 @@ export function MessageBubble({
                     {(() => {
                         let content = message.content || message.text || '';
                         content = content.replace(/^\[REPLY:[^\]]+\]\s*/, '');
-                        if (message.is_deleted || content.startsWith('[MEDIA]') || content.startsWith('[AUDIO]') || content.startsWith('[CALL_RECEIPT]')) {
+                        if (message.is_deleted || content.startsWith('[MEDIA]') || content.startsWith('[AUDIO]') || content.startsWith('[CALL_RECEIPT]') || content.startsWith('[LIVE_INVITE]')) {
                             return null;
                         }
                         const urls = content.match(URL_REGEX);

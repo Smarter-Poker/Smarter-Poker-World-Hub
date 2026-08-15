@@ -34,12 +34,29 @@ export default async function handler(req, res) {
         // Fetch stream metadata + broadcaster profile for the post card
         const { data: stream, error: streamErr } = await supabase
             .from('live_streams')
-            .select('id, broadcaster_id, title, thumbnail_url, preview_clip_url, status, profiles!broadcaster_id(username, full_name)')
+            .select('id, broadcaster_id, title, thumbnail_url, preview_clip_url, status, is_draft, profiles!broadcaster_id(username, full_name)')
             .eq('id', stream_id)
             .maybeSingle();
 
-        if (streamErr || !stream) {
+        if (streamErr) {
+            console.warn('[share-stream-to-feed] stream lookup error:', streamErr.message);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+        if (!stream) {
             return res.status(404).json({ error: 'Stream not found' });
+        }
+        // 2026-08-15 audit: only live or posted replays are shareable — not
+        // drafts/cancelled — and not if either party has blocked the other.
+        if (!['live', 'ended'].includes(stream.status) || stream.is_draft) {
+            return res.status(409).json({ error: 'This stream is not available to share' });
+        }
+        const { data: blockRow } = await supabase
+            .from('blocked_users')
+            .select('id')
+            .or(`and(blocker_id.eq.${user.id},blocked_id.eq.${stream.broadcaster_id}),and(blocker_id.eq.${stream.broadcaster_id},blocked_id.eq.${user.id})`)
+            .limit(1);
+        if (blockRow && blockRow.length > 0) {
+            return res.status(403).json({ error: 'Cannot share this stream' });
         }
 
         const streamLink = `https://smarter.poker/hub/social-media?stream=${stream_id}`;
@@ -76,6 +93,9 @@ export default async function handler(req, res) {
                 content: postContent,
                 content_type: 'shared',
                 media_urls: stream.thumbnail_url ? [stream.thumbnail_url] : [],
+                // 2026-08-15 audit: the canonical poster field was omitted, so
+                // shared stream cards rendered blank.
+                thumbnail_url: stream.thumbnail_url || null,
                 visibility: 'public',
                 link_url: streamLink,
                 metadata: {

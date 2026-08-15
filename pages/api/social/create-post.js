@@ -61,11 +61,19 @@ export default async function handler(req, res) {
                   p_content_type: content_type,
                   p_media_urls: media_urls || [],
                   p_visibility: visibility,
-                  p_achievement_data: metadata ? JSON.stringify(metadata) : null,
+                  // jsonb param — supabase-js serialises objects natively;
+                  // JSON.stringify double-encoded it into a JSON *string*.
+                  p_achievement_data: metadata || null,
                   p_thumbnail_url: thumbnail_url || null,
               });
 
-          if (rpcError) {
+          // The RPC traps its own exceptions and returns {success:false,
+          // error} with NO Supabase-level error — treat that as a failure and
+          // fall through to the direct insert (2026-08-15 audit fix; mirrors
+          // SocialService.createPost).
+          const rpcFailed = rpcError || !(rpcResult?.success === true && rpcResult?.id) && !rpcResult?.id;
+
+          if (rpcFailed) {
               // Fallback: direct insert with service role key.
               // IMPORTANT: keep this column list in sync with fn_create_social_post —
               // dropping a field here silently loses data when the RPC fails. Bug
@@ -92,11 +100,17 @@ export default async function handler(req, res) {
               }
               post = directPost;
           } else {
-              if (!rpcResult) {
-                  console.warn('Create post error: RPC returned null');
-                  return res.status(500).json({ success: false, error: 'Failed to create post' });
+              post = { id: rpcResult.id };
+              // fn_create_social_post has no metadata parameter — persist it
+              // directly so page-attributed posts render correctly in the feed
+              // (the feed reads metadata.page_name / metadata.page_avatar_url).
+              if (metadata) {
+                  const { error: metaErr } = await getSupabase()
+                      .from('social_posts')
+                      .update({ metadata })
+                      .eq('id', rpcResult.id);
+                  if (metaErr) console.warn('Create post: metadata persist failed:', metaErr.message);
               }
-              post = rpcResult;
           }
 
           return res.status(200).json({

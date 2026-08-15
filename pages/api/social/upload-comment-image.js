@@ -14,9 +14,10 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // import was missing, so every comment-image upload threw ReferenceError at
 // runtime on top of the wrong bucket name below. Restore the canonical import.
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 function getSupabase() {
-  const { createClient } = require('@supabase/supabase-js');
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY

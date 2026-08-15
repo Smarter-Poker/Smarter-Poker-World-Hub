@@ -29,6 +29,8 @@ export default function TrendingPosts({ limit = 5 }) {
                     .from('social_posts')
                     .select('id, content, author_id, like_count, comment_count, share_count, created_at, content_type')
                     .gte('created_at', oneDayAgo)
+                    .eq('is_deleted', false)
+                    .or('visibility.eq.public,visibility.is.null')
                     .order('like_count', { ascending: false })
                     .limit(limit);
 

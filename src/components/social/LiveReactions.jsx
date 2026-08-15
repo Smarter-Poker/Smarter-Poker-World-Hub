@@ -136,6 +136,12 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
         // BUG FIX (LR-2): log errors instead of swallowing — silent RLS/FK failures
         // made it impossible to diagnose missing reaction counts.
         if (streamId && userId) {
+            // increment_live_reaction_count keeps live_streams.reaction_count
+            // in sync (direct client writes to that column are blocked by
+            // fn_live_streams_guard_update; the RPC was never called, so feed
+            // tiles always showed 0 reactions).
+            supabase.rpc('increment_live_reaction_count', { p_stream_id: streamId })
+                .then(({ error }) => { if (error) console.warn('[LiveReactions] count RPC failed:', error.message); });
             supabase.from('live_reactions').insert({
                 stream_id: streamId,
                 sender_id: userId,
