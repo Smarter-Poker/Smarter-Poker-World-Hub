@@ -326,7 +326,7 @@ async function processJob(job) {
       '-y', '-hide_banner', '-loglevel', 'error',
       '-i', rawFile,
       '-vf', SCALE_1080P,
-      '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
+      '-c:v', 'libx264', '-preset', 'fast', '-crf', '18',
       '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.1',
       '-c:a', 'aac', '-b:a', '192k',
       '-movflags', '+faststart',
