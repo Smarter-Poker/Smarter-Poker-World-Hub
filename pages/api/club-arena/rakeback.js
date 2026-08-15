@@ -6,7 +6,13 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * GET  ?clubId=xxx&action=history   — Get player's rakeback history
  * POST { action: 'open'|'close'|'claim', clubId }
  *   open  — Owner starts a new rakeback period
- *   close — Owner closes period, calculates rakeback for all players
+ *   close — Owner closes the administrative period marker.
+ *           It does NOT credit players. Per-player rakeback is written solely
+ *           by the engine's RakebackSettlerService, which splits each hand's
+ *           rake EQUALLY among the players dealt in (DECISION D-001/FIX 144).
+ *           A contribution-weighted crediting path used to live here and wrote
+ *           to the same rakeback_periods table with different math; it was
+ *           removed 2026-08-15 (see the comment in the close branch).
  *   claim — Player claims their pending rakeback
  *
  * Auth: Bearer token
@@ -233,78 +239,48 @@ export default async function handler(req, res) {
           if (!openPeriod) return res.status(400).json({ success: false, error: 'No open rakeback period found' });
 
           // Get club's rakeback rate
-          const { data: club } = await getSupabase()
-            .from('clubs')
-            .select('settings')
-            .eq('id', clubId)
-            .maybeSingle();
-
-          const rakebackRate = club?.settings?.rakeback_rate || 0.10;
-
-          // Get all rake records since period started
-          const { data: rakeRecords } = await getSupabase()
-            .from('rake_records')
-            .select('player_contributions')
-            .eq('club_id', clubId)
-            .gte('created_at', openPeriod.period_start);
-
-          // Aggregate rake per player
-          const playerRake = {};
-          for (const record of (rakeRecords || [])) {
-            const contributions = record.player_contributions || {};
-            for (const [playerId, amount] of Object.entries(contributions || {})) {
-              playerRake[playerId] = (playerRake[playerId] || 0) + amount;
-            }
-          }
-
-          // Create rakeback records for each player
-          const inserts = [];
-          for (const [playerId, totalRake] of Object.entries(playerRake || {})) {
-            if (totalRake <= 0) continue;
-            const rakebackAmount = Math.floor(totalRake * rakebackRate);
-            if (rakebackAmount <= 0) continue;
-            inserts.push({
-              club_id: clubId,
-              user_id: playerId,
-              status: 'closed',
-              rake_generated: totalRake,
-              rakeback_amount: rakebackAmount,
-              period_start: openPeriod.period_start,
-              period_end: new Date().toISOString(),
-            });
-          }
-
-          if (inserts.length > 0) {
-            const { error: insertErr } = await getSupabase()
-              .from('rakeback_periods')
-              .insert(inserts);
-            if (insertErr) throw insertErr;
-          }
-
-          // Close master period
+          // ── Dan 2026-08-15 — CONTRIBUTION-WEIGHTED CREDITING REMOVED ──
+          //
+          // Ruling: "It's supposed to be evenly distributed and credited to
+          // every player dealt in. Only use this model and delete anything
+          // that conflicts with this."
+          //
+          // This branch used to be a SECOND, competing rakeback settlement
+          // engine. It aggregated rake_records.player_contributions per player
+          // and credited each one proportionally to what they personally put
+          // into the pots, then INSERTed those rows into rakeback_periods —
+          // the same table the engine's RakebackSettlerService owns and
+          // upserts using equal-share math (DECISION D-001 / FIX 144). Two
+          // systems, two different formulas, one table, no coordination:
+          // whichever ran last decided what a player was owed, and a player
+          // could be credited twice for the same week.
+          //
+          // Verified before removal (2026-08-15): rakeback_periods held 2,376
+          // rows, zero duplicate (user_id, club_id, period_start) tuples, and
+          // ZERO master-period rows (user_id IS NULL). This branch needs an
+          // open master period to reach its insert, so it had never actually
+          // executed in production — the conflict was latent and no player was
+          // ever double-credited. Removing it is preventive, not a repair.
+          //
+          // RakebackSettlerService remains the single writer of per-player
+          // rakeback. This action now only closes the administrative marker.
           const { error: err_rakeback_periods_tvtud } = await getSupabase()
             .from('rakeback_periods')
             .update({ status: 'closed', period_end: new Date().toISOString() })
             .eq('id', openPeriod.id);
           if (err_rakeback_periods_tvtud) console.warn('[Supabase] Silent mutation failed in rakeback_periods:', err_rakeback_periods_tvtud.message);
 
-          // Notify players with rakeback available (fire-and-forget)
-          for (const ins of inserts.filter(i => i.rakeback_amount > 0)) {
-            await notifyUser(supabaseAdmin, {
-              userId: ins.user_id, type: 'rakeback_available',
-              title: `🎁 Rakeback Available: ${ins.rakeback_amount.toLocaleString()}`,
-              message: `You have ${ins.rakeback_amount.toLocaleString()} chips in unclaimed rakeback. Claim now in the cashier!`,
-              data: { clubId, amount: ins.rakeback_amount },
-              pushUrl: `/hub/club-arena/cashier?club=${clubId}`,
-            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-          }
-
           const responseObj = {
             success: true,
-            playersProcessed: inserts.length,
-            totalRakebackDistributed: inserts.reduce((s, i) => s + i.rakeback_amount, 0),
+            periodClosed: openPeriod.id,
+            // No per-player crediting happens here, by design. The engine's
+            // RakebackSettlerService (30-min interval, equal share among the
+            // players dealt in) is the sole writer of per-player rows.
+            creditedBy: 'RakebackSettlerService',
+            playersProcessed: 0,
+            totalRakebackDistributed: 0,
           };
-          logAudit(supabaseAdmin, { actionType: 'rakeback_closed', userId: user.id, clubId, ip: extractIP(req), details: { playersProcessed: inserts.length, totalDistributed: inserts.reduce((s, i) => s + i.rakeback_amount, 0) } });
+          logAudit(supabaseAdmin, { actionType: 'rakeback_closed', userId: user.id, clubId, ip: extractIP(req), details: { periodClosed: openPeriod.id, crediting: 'deferred_to_equal_share_settler' } });
           cacheResponse(req, 200, responseObj);
           return res.status(200).json(responseObj);
         }
