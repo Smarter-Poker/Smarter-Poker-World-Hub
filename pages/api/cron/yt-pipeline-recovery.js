@@ -6,8 +6,10 @@
  * Re-queues video_transcode_jobs that failed with cookie-auth or transient
  * patterns so the worker retries them with the current stack:
  *   - bgutil-pot-provider POT tokens (no Google login)
- *   - player_client=tv,web_safari,mweb,web_embedded (looser bot detection)
- *   - player_skip=webpage,configs (no HTML fingerprinting)
+ *   - player_client=default (2026-08-15: the old
+ *     tv,web_safari,mweb,web_embedded pin made YouTube return ONE format,
+ *     itag 18 / 640x360, so every ingest was 360p — see
+ *     .agent/audits/2026-08-15-360p-RESOLVED-verified-1080p.md)
  *
  * Most cookie-auth failures from earlier weeks will now succeed because the
  * pipeline no longer depends on cookies for ~95% of content. The remaining
@@ -211,6 +213,66 @@ async function handler(req, res) {
             }
         }
 
+        // ── Video-library staleness watch (2026-08-15) ────────────────────
+        // The library silently stopped ingesting on 2026-04-22 and nobody
+        // noticed for 116 days. The reason it went unseen: the scraper reports
+        // its health by POSTing to /api/cron/video-library-scraper?report=1,
+        // a route that does not exist, and the 404 is swallowed by a bare
+        // except. Meanwhile public.video_library_health — a per-source health
+        // VIEW with exactly the right columns — had been sitting there since
+        // April with NO consumer at all.
+        //
+        // This is the consumer. It does not fix ingestion; it makes a stalled
+        // pipeline impossible to miss. Fail-open: a monitoring query must
+        // never take down the recovery cron it is riding on.
+        let libraryHealth = null;
+        try {
+            const { data: health } = await admin
+                .from('video_library_health')
+                .select('source_id,total_videos,last_scraped')
+                .order('last_scraped', { ascending: true, nullsFirst: true });
+
+            if (Array.isArray(health) && health.length) {
+                const newest = health.reduce((max, r) => {
+                    const t = r.last_scraped ? Date.parse(r.last_scraped) : 0;
+                    return t > max ? t : max;
+                }, 0);
+                const staleHours = newest ? (Date.now() - newest) / 3_600_000 : Infinity;
+                // 48h: the scrape is daily, so one missed run is noise and two
+                // consecutive misses is a real outage.
+                const STALE_HOURS = 48;
+                const stale = staleHours > STALE_HOURS;
+                const deadSources = health
+                    .filter((r) => {
+                        const t = r.last_scraped ? Date.parse(r.last_scraped) : 0;
+                        return !t || (Date.now() - t) / 3_600_000 > STALE_HOURS * 7;
+                    })
+                    .map((r) => r.source_id);
+
+                libraryHealth = {
+                    stale,
+                    hours_since_scrape: Math.round(staleHours),
+                    sources: health.length,
+                    total_videos: health.reduce((n, r) => n + Number(r.total_videos || 0), 0),
+                    dead_sources: deadSources.slice(0, 10),
+                };
+
+                if (stale) {
+                    console.error(
+                        `[VIDEO_LIBRARY_STALE] No scrape in ${Math.round(staleHours)}h ` +
+                            `(threshold ${STALE_HOURS}h). ${health.length} sources, ` +
+                            `${libraryHealth.total_videos} videos. Ingestion is DOWN.`
+                    );
+                    try {
+                        await admin.from('probe_heartbeats').insert({
+                            probe_name: 'video-library-stale',
+                            details: libraryHealth,
+                        });
+                    } catch (_) { /* non-fatal */ }
+                }
+            }
+        } catch (_) { /* monitoring must never break the cron */ }
+
         // Best-effort heartbeat — don't fail the response on heartbeat error.
         try {
             await admin.from('probe_heartbeats').insert({
@@ -225,6 +287,7 @@ async function handler(req, res) {
             permanentlyHidden,
             scanned,
             sample_ids: sampleIds,
+            library_health: libraryHealth,
             duration_ms: Date.now() - started,
         });
     } catch (err) {
