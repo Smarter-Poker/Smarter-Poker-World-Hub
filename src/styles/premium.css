@@ -465,8 +465,19 @@ textarea {
     color: #fff;
 }
 
-/* Premium focus ring */
-:focus-visible {
+/* Suppress blue ring on document root — the :focus-visible shadow bleeds
+   past the viewport edges on html/body and appears as a thin blue line
+   along the top and left of the screen. Always none on the document root. */
+html:focus,
+html:focus-visible,
+body:focus,
+body:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Premium focus ring — scoped to interactive elements only, never html/body */
+:focus-visible:not(html):not(body) {
     outline: none;
     box-shadow:
         0 0 0 2px var(--premium-void),

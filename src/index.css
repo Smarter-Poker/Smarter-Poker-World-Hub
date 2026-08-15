@@ -33,6 +33,17 @@ button:focus {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Prevent blue viewport-edge lines from html/body receiving focus.
+   The :focus-visible box-shadow bleeds past the top and left screen edges
+   when html or body is focused (e.g. after clicking the canvas or background). */
+html:focus,
+html:focus-visible,
+body:focus,
+body:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 html {
   width: 100%;
   min-height: 100%;
