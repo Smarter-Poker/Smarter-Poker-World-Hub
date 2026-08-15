@@ -857,7 +857,55 @@ class LobbyManager {
           }), { critical: true });
 
           if (rakeErr) {
-            console.warn('[LobbyManager] Rake RPC failed:', rakeErr.message);
+            // ── Dan 2026-08-15 — THIS CALL CANNOT SUCCEED AS WRITTEN ──
+            //
+            // The arguments above do not match the deployed function. The real
+            // signature is:
+            //   record_rake(p_hand_id uuid, p_club_id uuid, p_table_id uuid,
+            //               p_rake_amount numeric, p_pot_size numeric,
+            //               p_num_players integer, p_player_contributions jsonb,
+            //               p_is_tournament boolean, p_tournament_id uuid,
+            //               p_bbj_pct numeric)
+            // We pass p_bbj_contribution and p_dealt_player_ids, neither of
+            // which exists, and omit four that do. PostgREST resolves by named
+            // argument, so this is a guaranteed PGRST202. On top of that,
+            // p_hand_id is built as text ("hand_<tableId>_<n>") against a uuid
+            // parameter.
+            //
+            // It previously console.warn'd and carried on: a hand could
+            // complete, pay every player, and take ZERO rake with nothing
+            // recorded anywhere. Silent revenue loss is the worst failure mode
+            // this path could have.
+            //
+            // Evidence it has never actually run: all 626,468 rake_records rows
+            // carry the Hetzner engine's player_contributions signature and none
+            // carry this engine's hand-id format. The only route that reaches
+            // this code (/hub/poker/lobby) is unlinked from any UI. So it is
+            // dormant rather than actively losing money — but dormant and
+            // reachable is exactly how this bites later.
+            //
+            // Escalated to a durable alert so it can never fail quietly. The
+            // engine of record is the Hetzner ServerTableEngine; this second
+            // engine is queued for deletion (P1-2).
+            console.error('[LobbyManager] RAKE NOT RECORDED:', rakeErr.message);
+            try {
+              await sb.from('financial_alerts').insert({
+                severity: 'critical',
+                source: 'LobbyManager.record_rake_failed',
+                message: `World Hub poker engine completed a hand but recorded NO rake: ${rakeErr.message}`,
+                context: {
+                  hand_id: canonicalHandId,
+                  club_id: clubId,
+                  table_id: config.tableId,
+                  rake_amount: rakeAmount,
+                  pot_size: data.potTotal || 0,
+                  note: 'record_rake argument mismatch — see comment in LobbyManager.js',
+                },
+                resolved: false,
+              });
+            } catch (alertErr) {
+              console.error('[LobbyManager] could not even raise the alert:', alertErr?.message);
+            }
           } else if (rakeResult?.global_hand_id) {
             // Store global ID so it can be pushed to clients if needed in future
             // For now, log it for audit trail
