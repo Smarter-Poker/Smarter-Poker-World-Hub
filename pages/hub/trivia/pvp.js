@@ -376,24 +376,15 @@ export default function PvPPage() {
         // match actually begins, which also means cancelling a search refunds
         // nothing because nothing has been taken.
 
-        // Always set 10-second horse fallback as safety net
+        // Always set 5-second horse fallback as safety net
         // This fires regardless of whether the queue join or real match succeeds
         searchTimeout.current = setTimeout(() => {
             handleHorseMatch(stake);
-        }, 10000);
+        }, 5000);
 
         // Try to join the matchmaking queue (best-effort for real matches)
         try {
             const { data: queueEntry } = await joinMatchmakingQueue(userId, stake);
-
-            // VERIFY: If the 10-second timeout fired while we were joining the queue
-            // (e.g. slow network), we MUST cancel this queue entry to prevent a ghost match.
-            if (matchFoundRef.current) {
-                if (queueEntry) {
-                    try { await leaveMatchmakingQueue(userId); } catch (e) {}
-                }
-                return;
-            }
 
             if (queueEntry) {
                 // Subscribe to queue changes to detect new opponents.
@@ -458,50 +449,6 @@ export default function PvPPage() {
         if (gameStateRef.current === 'battle' || gameStateRef.current === 'result' || gameStateRef.current === 'waiting') return;
 
         if (queueSubscription.current) { queueSubscription.current(); queueSubscription.current = null; }
-
-        try {
-            // VERIFY WE ARE NOT ALREADY MATCHED BY A RACE CONDITION BEFORE STARTING HORSE MATCH
-            // If an opponent matched us right before the timeout, our queue row is 'matched'.
-            // If we abort the real match now, the opponent gets stuck waiting endlessly.
-            const { data: myQueueRow } = await supabase
-                .from('trivia_pvp_queue')
-                .select('status, match_id')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (myQueueRow && myQueueRow.status === 'matched' && myQueueRow.match_id) {
-                // A real match was created! Abort horse fallback and manually enter the real match.
-                const { data: realMatch } = await supabase.from('trivia_pvp_matches').select('*').eq('id', myQueueRow.match_id).maybeSingle();
-                if (realMatch) {
-                    const opponentId = realMatch.player1_id === userId ? realMatch.player2_id : realMatch.player1_id;
-                    let prof = null;
-                    let st = null;
-                    if (opponentId) {
-                        const { data: pData } = await supabase.from('profiles').select('id, username').eq('id', opponentId).maybeSingle();
-                        prof = pData;
-                        const { data: sData } = await supabase.from('trivia_pvp_stats').select('wins, losses').eq('user_id', opponentId).maybeSingle();
-                        st = sData;
-                    }
-                    const matchData = {
-                        match: realMatch,
-                        opponent: {
-                            id: opponentId,
-                            username: prof?.username || 'Opponent',
-                            wins: st?.wins || 0,
-                            losses: st?.losses || 0
-                        }
-                    };
-                    matchFoundRef.current = true;
-                    handleMatchFound(matchData);
-                    return; // Successfully entered real match, do NOT start a horse match!
-                }
-            }
-        } catch (e) {
-            console.warn('[PVP] Race condition check before horse match failed:', e);
-            // If the check fails, proceed to horse match to keep the player moving.
-        }
 
         // Leave the matchmaking queue BEFORE playing the horse. Previously only
         // the local subscription was torn down and the trivia_pvp_queue row was
