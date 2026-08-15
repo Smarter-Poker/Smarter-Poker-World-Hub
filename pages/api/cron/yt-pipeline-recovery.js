@@ -266,6 +266,10 @@ async function handler(req, res) {
                     try {
                         await admin.from('probe_heartbeats').insert({
                             probe_name: 'video-library-stale',
+                            // status is NOT NULL with no default — omitting it
+                            // makes the insert fail and the catch swallow it,
+                            // which is exactly how this table ended up empty.
+                            status: 'stale',
                             details: libraryHealth,
                         });
                     } catch (_) { /* non-fatal */ }
@@ -277,6 +281,13 @@ async function handler(req, res) {
         try {
             await admin.from('probe_heartbeats').insert({
                 probe_name: 'yt-pipeline-recovery',
+                // 2026-08-15: this insert has ALWAYS failed. probe_heartbeats.status
+                // is NOT NULL with no default, so every call raised 23502 and the
+                // bare catch below hid it — this cron has run successfully for
+                // months while writing zero heartbeats. Every other cron in
+                // pages/api/cron/ passes status; this file was the only one that
+                // did not.
+                status: 'success',
                 details: { requeued, scanned, permanentlyHidden, duration_ms: Date.now() - started },
             });
         } catch (_) { /* heartbeats table may not exist on all envs */ }
