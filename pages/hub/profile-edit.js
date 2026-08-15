@@ -826,7 +826,7 @@ export default function ProfilePage() {
                     {profile.username && (
                         <div style={{ textAlign: 'center', marginTop: 4, marginBottom: 8 }}>
                             <a
-                                href={`/hub/social-media/profile/${profile.username}`}
+                                href={`/hub/user/${profile.username}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{

@@ -816,7 +816,7 @@ export default function GTOReportsPage() {
                       .slice(0, 3);
 
                     const DRILL_PAGES = {
-                      vpip: { name: 'Range Construction', desc: 'Practice opening ranges by position', href: '/hub/training/range-trainer', icon: ''},
+                      vpip: { name: 'Range Construction', desc: 'Practice opening ranges by position', href: '/hub/training/range-builder', icon: ''},
                       pfr: { name: 'Preflop Aggression', desc: 'Master raise-first strategy', href: '/hub/training/play-mode', icon: ''},
                       threeBet: { name: '3-Bet Scenarios', desc: 'Practice 3-bet and squeeze spots', href: '/hub/training/blind-defense', icon: '▲'},
                       foldTo3Bet: { name: '3-Bet Defense', desc: 'Learn when to call, 4-bet, or fold', href: '/hub/training/blind-defense', icon: ''},
