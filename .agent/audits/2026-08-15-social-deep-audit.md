@@ -146,4 +146,8 @@ Share), `scheduled_lives` never pre-creates streams, and
   clean (0 findings / 2,767 call sites, stub updated with the new columns).
 - `trig_sync_like_count` and `validate_social_like_post_id` definitions
   pulled from the live DB before touching any like-count code path.
-- Deploy verification recorded in rollout below.
+- Rollout: shipped as 22cd45506e. Build Safety Gate GREEN (all checks,
+  CHECK 13 blocking); production /api/health serving 22cd4550; live
+  browser check confirmed the /hub/post/<id> share-link redirect renders
+  the deep-linked post in the feed, delete buttons are visible, and the
+  feed loads clean.
