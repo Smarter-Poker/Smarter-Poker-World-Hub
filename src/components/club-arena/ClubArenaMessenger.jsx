@@ -17,6 +17,12 @@ import SPImage from '../common/SPImage';
 const SharedPostCard = lazy(() => import('../social/SharedPostCard'));
 
 import { supabase } from '../../lib/supabase';
+import {
+    getMessengerUserId,
+    loadMessengerPrefs,
+    syncMessengerPrefs,
+    mergeServerPrefs,
+} from '../../lib/messengerPrefsSync';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💾 PERSISTENCE HOOK (Local + Supabase Background Sync)
@@ -162,55 +168,41 @@ const useMessengerPrefs = () => {
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }, []);
 
-    // Phase 6 Deep Sweep: Background sync to SQL
-    const syncToSupabase = async (state) => {
-        const sb = supabase;
-        if (!sb) return;
-        // Read token from localStorage — avoids auth.getSession() lock contention
-        let _uid = null;
-        try {
-            const _raw = localStorage.getItem('smarter-poker-auth');
-            const _parsed = _raw ? JSON.parse(_raw) : null;
-            _uid = _parsed?.user?.id || null;
-            if (!_uid) {
-                const _sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                if (_sbKey) _uid = JSON.parse(localStorage.getItem(_sbKey) || '{}')?.user?.id || null;
-            }
-        } catch (_) {}
-        if (!_uid) return;
-        const uid = _uid;
-
-        // Non-blocking fire-and-forget sync
-        setTimeout(async () => {
-            try {
-                // Bookmarks
-                const bms = state.bookmarks || [];
-                for (const b of bms) {
-                    await sb.from('messenger_bookmarks').upsert({ message_id: b.id, user_id: uid }, { onConflict: 'message_id,user_id' });
+    // DEAD-WIRING FIX 2026-08-15: read the server copy back on mount.
+    // Bookmarks, labels and themes were written to Supabase and NEVER read,
+    // so they survived a reload only because localStorage happened to hold
+    // them -- and vanished entirely on a second device or after clearing site
+    // data. See src/lib/messengerPrefsSync.js for the full write-up.
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            const uid = getMessengerUserId();
+            if (!uid || !supabase) return;
+            const server = await loadMessengerPrefs(supabase, uid);
+            if (cancelled || !server) return;
+            setPrefs((local) => {
+                const { prefs: merged, backfill } = mergeServerPrefs(local, server);
+                // Nothing on the server for a group the user has locally: push
+                // the local copy up rather than silently discarding it. Every
+                // one of these tables is empty today, so this is the ordinary
+                // first-load path, not a rare edge case.
+                if (backfill) {
+                    syncMessengerPrefs(supabase, uid, merged, {
+                        bookmarks: [],
+                        labels: {},
+                        themes: {},
+                    });
                 }
-                
-                // Labels
-                const lbls = state.labels || {};
-                for (const [msgId, msgLabels] of Object.entries(lbls || {})) {
-                    for (const lbl of msgLabels) {
-                        await sb.from('messenger_labels').upsert({ message_id: msgId, user_id: uid, label: lbl }, { onConflict: 'message_id,user_id,label' });
-                    }
-                }
-                
-                // Themes
-                const thms = state.themes || {};
-                for (const [convId, themeStr] of Object.entries(thms || {})) {
-                    await sb.from('messenger_themes').upsert({ conversation_id: convId, user_id: uid, theme_value: themeStr }, { onConflict: 'conversation_id,user_id' });
-                }
-                
-                // Note: Other tables (reactions, pins, edit history) can be synced similarly, 
-                // but because their structures vary slightly, we prioritize core premium features first.
-                // EventBus already transmits real-time actions.
-            } catch (err) {
-                console.warn('[Messenger] Supabase Sync soft-fail:', err.message);
-            }
-        }, 100);
-    };
+                try {
+                    localStorage.setItem('ca-messenger-prefs', JSON.stringify(merged));
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+                return merged;
+            });
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const updatePrefs = (updater) => {
         setPrefs(prev => {
@@ -218,7 +210,15 @@ const useMessengerPrefs = () => {
             try {
                 localStorage.setItem('ca-messenger-prefs', JSON.stringify(next));
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-            syncToSupabase(next);
+            // Fire-and-forget. `prev` is passed so removals are diffed and
+            // actually DELETED server-side -- the old code only upserted, so
+            // un-bookmarking never reached the database.
+            const uid = getMessengerUserId();
+            if (uid && supabase) {
+                setTimeout(() => {
+                    syncMessengerPrefs(supabase, uid, next, prev);
+                }, 100);
+            }
             return next;
         });
     };
