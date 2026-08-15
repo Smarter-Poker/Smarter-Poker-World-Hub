@@ -444,14 +444,26 @@ class LiveStreamService {
       this.onReconnected?.();
     });
 
+    // 2026-08-15 audit: viewers arriving via deep link / PiP restore have no
+    // user gesture in the call stack, so the browser blocks LiveKit audio
+    // playback and the stream is silently muted with no unmute affordance.
+    // Surface it so the viewer can render a "Tap for sound" control.
+    this.room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
+      try { this.onAudioPlaybackChanged?.(!this.room.canPlaybackAudio); } catch (_) {}
+    });
+
     this.room.on(RoomEvent.ParticipantConnected, () => {
       this._debouncedUpdateViewerCount();
-      this.onParticipantListChange?.(this._getParticipants());
+      this._emitParticipants();
     });
 
     this.room.on(RoomEvent.ParticipantDisconnected, () => {
       this._debouncedUpdateViewerCount();
-      this.onParticipantListChange?.(this._getParticipants());
+      // 2026-08-15 audit: the disconnect handlers used to fire
+      // onParticipantListChange, which no component assigns — so a co-host
+      // leaving never cleared their tile. Emit the callback the UIs actually
+      // consume.
+      this._emitParticipants();
     });
 
     // Connection quality tracking
@@ -509,6 +521,16 @@ class LiveStreamService {
           els.forEach((el) => el.remove());
         } catch (_) {}
       }
+      // 2026-08-15 audit: drop the ended track from the synthetic remote stream
+      // (otherwise a camera-swap/co-host-leave strands a dead video track that
+      // GlobalPiPManager renders as a frozen last frame), and refresh the
+      // participant snapshot so split-screen tiles disappear when a guest goes.
+      try {
+        if (track.mediaStreamTrack && this._remoteMediaStream?.getTracks().includes(track.mediaStreamTrack)) {
+          this._remoteMediaStream.removeTrack(track.mediaStreamTrack);
+        }
+      } catch (_) {}
+      this._emitParticipants();
     });
 
     await this.room.connect(url, token, {
@@ -1082,12 +1104,27 @@ class LiveStreamService {
     // Previously only endBroadcast() reset currentUserId — leaveStream() did not,
     // allowing the viewer identity to bleed into subsequent sessions.
     this.currentStreamId = null;
-    this.currentUserId = null; // FIX: was never reset in leaveStream()
-    this.isManualDisconnect = false; // FIX: reset so next join can reconnect on disconnect
-    // BUG-FIX-AUDIT LSS-3: clear guestInviteCode so it never bleeds into a
-    // subsequent joinStream() — a stale invite code would cause _handleUnexpectedDisconnect
-    // to send broadcaster=false + a wrong invite code to the token API for the new stream.
+    this.currentUserId = null;
+    // 2026-08-15 audit: do NOT flip isManualDisconnect back to false here. The
+    // room.disconnect() above emits RoomEvent.Disconnected a microtask later;
+    // if the flag were already false the reconnect ladder would fire against a
+    // now-null stream id (~62s of phantom "Reconnecting…" after a normal
+    // leave). joinStream/startBroadcast/joinAsGuest each set it false at entry.
+    this.isBroadcaster = false; // a departed guest must not keep broadcaster state
+    this.reconnectAttempts = 0;
+    this.isReconnecting = false;
+    this.onRemoteStream = null;
     this.guestInviteCode = null;
+  }
+
+  // 2026-08-15 audit: must be called from inside a user gesture to satisfy
+  // the browser autoplay policy; unblocks all LiveKit audio elements.
+  async startAudio() {
+    try { if (this.room) await this.room.startAudio(); return true; } catch (_) { return false; }
+  }
+
+  get audioBlocked() {
+    try { return this.room ? !this.room.canPlaybackAudio : false; } catch (_) { return false; }
   }
 
   // ═══════════════════════════════════════════════════
@@ -1123,6 +1160,50 @@ class LiveStreamService {
    *
    * Ban is broadcaster-only on the server; co-hosts cannot ban.
    */
+  // 2026-08-15 audit: single source of truth for the participant snapshot the
+  // viewer/broadcaster UIs render from.
+  _emitParticipants() {
+    try {
+      if (this.room && this.onParticipantsUpdate) {
+        this.onParticipantsUpdate(Array.from(this.room.remoteParticipants.values()));
+      }
+    } catch (_) {}
+  }
+
+  // Remove one co-host mid-stream (broadcaster action). Records the revocation
+  // server-side so the guest cannot re-mint a publish token, and evicts them
+  // from the LiveKit room; they may rejoin as a plain viewer.
+  async revokeGuest(streamId, targetUserId) {
+    const token = (await getFreshAccessToken()) || getAccessToken();
+    const resp = await fetch('/api/live/moderate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: 'revoke_guest', stream_id: streamId, target_user_id: targetUserId }),
+    });
+    if (!resp.ok) {
+      const d = await resp.json().catch(() => ({}));
+      throw new Error(d.error || `Remove guest failed (${resp.status})`);
+    }
+    return resp.json();
+  }
+
+  // Rotate the shared invite code — invalidates every outstanding invite.
+  async rotateInvite(streamId) {
+    const token = (await getFreshAccessToken()) || getAccessToken();
+    const resp = await fetch('/api/live/moderate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: 'rotate_invite', stream_id: streamId }),
+    });
+    if (!resp.ok) {
+      const d = await resp.json().catch(() => ({}));
+      throw new Error(d.error || `Rotate invite failed (${resp.status})`);
+    }
+    const j = await resp.json();
+    this.guestInviteCode = j.invite_code || this.guestInviteCode;
+    return j.invite_code;
+  }
+
   async banUser(streamId, bannedUserId) {
     try {
       const token = getAccessToken();

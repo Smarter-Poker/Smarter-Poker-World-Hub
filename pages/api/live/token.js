@@ -144,14 +144,18 @@ export default async function handler(req, res) {
       // not be able to mint a fresh token. Previously this branch
       // skipped the ban check entirely — a banned co-host could rejoin
       // with publish privileges by re-using their still-valid code.
-      const { data: guestBan } = await supabase
-        .from('live_bans')
-        .select('id')
-        .eq('stream_id', room)
-        .eq('banned_user_id', user.id)
-        .maybeSingle();
+      const [{ data: guestBan }, { data: guestRevoked }] = await Promise.all([
+        supabase.from('live_bans').select('id').eq('stream_id', room).eq('banned_user_id', user.id).maybeSingle(),
+        // 2026-08-15 audit: a co-host the broadcaster removed mid-stream must
+        // not be able to re-mint a publish token (auto-reconnect replays the
+        // cached invite code). The revocation makes the kick stick.
+        supabase.from('live_guest_revocations').select('id').eq('stream_id', room).eq('user_id', user.id).maybeSingle(),
+      ]);
       if (guestBan) {
         return res.status(403).json({ error: 'You are banned from this stream' });
+      }
+      if (guestRevoked) {
+        return res.status(403).json({ error: 'You have been removed as a co-host of this stream' });
       }
     } else if (!isAnonymous) {
       // BUG-FIX-LIVE-API-AUDIT (C3): authenticated viewer tokens are

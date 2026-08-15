@@ -53,6 +53,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
   const blockedSetRef = useRef(new Set());
   const [viewerCount, setViewerCount] = useState(stream?.viewer_count || 0);
   const [isConnecting, setIsConnecting] = useState(true);
+  const [audioBlocked, setAudioBlocked] = useState(false); // 2026-08-15 audit: autoplay-blocked audio
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [connectionQuality, setConnectionQuality] = useState('excellent');
   const [error, setError] = useState('');
@@ -212,6 +213,10 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             videoRef.current.play().catch(() => {});
           }
         };
+        // 2026-08-15 audit: reflect autoplay-blocked audio so the viewer can
+        // render a "Tap for sound" button (iOS Safari / deep-link joins).
+        liveStreamService.onAudioPlaybackChanged = (blocked) => setAudioBlocked(!!blocked);
+        setTimeout(() => { try { setAudioBlocked(liveStreamService.audioBlocked); } catch (_) {} }, 1500);
         // Update streamData with the full DB response (includes broadcaster profile)
         if (freshStream) setStreamData(freshStream);
 
@@ -1098,6 +1103,38 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
           </div>
         )}
 
+        {/* 2026-08-15 audit: autoplay-blocked audio (iOS Safari / deep-link joins)
+            — a real user gesture is required to unblock LiveKit audio. */}
+        {audioBlocked && !isConnecting && (
+          <button
+            onClick={async () => {
+              const ok = await liveStreamService.startAudio();
+              if (ok) setAudioBlocked(false);
+            }}
+            style={{
+              position: 'absolute',
+              bottom: 96,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 40,
+              background: '#0066FF',
+              color: 'white',
+              border: 'none',
+              borderRadius: 24,
+              padding: '10px 20px',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            🔊 Tap for sound
+          </button>
+        )}
+
         {/* Error Message — BUG-FIX: added Close button so user can dismiss and continue */}
         {error && (
           <div
@@ -1352,9 +1389,17 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                   disabled={sharingToFeed || !stream?.id}
                   onClick={async () => {
                     if (sharingToFeed || !stream?.id) return;
+                    if (!userId) {
+                      setShowShareMenu(false);
+                      if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+                      setShareToast('Sign in to share to your feed');
+                      shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(''); }, 2500);
+                      return;
+                    }
                     setSharingToFeed(true);
                     try {
-                      const token = getAccessToken();
+                      // fresh token — a cached JWT expires on long streams and 401s
+                      const token = (await getFreshAccessToken()) || getAccessToken();
                       const resp = await fetch('/api/live/share-stream-to-feed', {
                         method: 'POST',
                         headers: {
@@ -2202,6 +2247,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         streamId={stream?.id}
         viewerCount={viewerCount}
         isOpen={showViewerList}
+        currentUser={user}
+        inviteCode={streamData?.invite_code || stream?.invite_code || null}
         onClose={() => setShowViewerList(false)}
       />
 

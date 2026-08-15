@@ -608,6 +608,9 @@ export function GoLiveModal({
     }
     return () => {
       mediaAccessMountedRef.current = false;
+      // 2026-08-15 audit: reset the go-live guard so closing the modal mid-
+      // countdown doesn't leave the button stuck on "Starting…" forever.
+      setIsStarting(false);
       liveStreamService.onViewerCountChange = null;
       liveStreamService.onParticipantsUpdate = null; // FEATURE 6
       // BUG-FIX-LIVE-2: do NOT stop streamRef tracks here — they belong
@@ -1181,7 +1184,10 @@ export function GoLiveModal({
     // brief regional hiccups; without retry, a one-off blip ships the
     // stream thumbnail-less. Backoff 250ms, 500ms. We do NOT retry on
     // 4xx (auth/permission/MIME-disallow) — those won't fix themselves.
-    const ext = file.name.split('.').pop();
+    // 2026-08-15 audit: derive extension from the validated MIME, not the
+    // filename (extensionless / multi-dot / HEIC names produced wrong keys).
+    const EXT_BY_MIME = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+    const ext = EXT_BY_MIME[file.type] || 'jpg';
     const path = `live-thumbnails/${user.id}/${Date.now()}.${ext}`;
     const MAX_ATTEMPTS = 3;
     let lastErr = null;
@@ -1301,10 +1307,14 @@ export function GoLiveModal({
     let thumbUrl = null;
     if (thumbnailFile) {
       thumbUrl = await uploadThumbnail(thumbnailFile);
-    } else if (user?.id) {
-      // FIX: captureThumbnail() returns a data URL (can be several MB as base64).
-      // Storing raw data URLs in a DB text column causes silent insert failures
-      // on row size limits. Convert to Blob and upload to storage instead.
+      // 2026-08-15 audit: if the picked cover failed (HEIC/oversized/network),
+      // don't go live thumbnail-less — fall through to an auto-captured frame.
+      if (!thumbUrl && !guestMode) {
+        try { toast.info('Could not use that image — using a camera frame instead'); } catch (_) {}
+      }
+    }
+    if (!thumbUrl && !guestMode && user?.id) {
+      // captureThumbnail() returns a data URL; convert to a Blob and upload.
       const dataUrl = captureThumbnail();
       if (dataUrl) {
         try {
@@ -1889,11 +1899,14 @@ export function GoLiveModal({
     // to friends inside the app — not OS share sheet that surfaces iMessage,
     // WhatsApp, etc. The internal picker also reuses the live-stream invite
     // code, which generates an in-app deep link that re-opens the stream.
-    if (guestInviteCode) {
+    // 2026-08-15 audit: only the BROADCASTER can invite co-hosts. A guest
+    // pressing share must not be able to hand the host's code to more people;
+    // route them to the plain share-link path instead.
+    if (guestInviteCode && !guestMode) {
       setGuestInviteModalOpen(true);
       return;
     }
-    // Fallback (pre-live or post-live, no invite code yet) — clipboard only.
+    // Fallback (pre-live or post-live, no invite code yet, or guest) — clipboard.
     // Deliberately skip navigator.share even when available: Dan was clear
     // that external messengers should not be surfaced from the live UI.
     const url = `${window.location.origin}/hub/social-media?stream=${streamId}`;
@@ -2772,6 +2785,38 @@ export function GoLiveModal({
                         >
                           {p.name || 'Guest'}
                         </div>
+                        {/* 2026-08-15 audit: broadcaster can remove a co-host at
+                            any time. Guests never see this control. */}
+                        {!guestMode && streamId && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await liveStreamService.revokeGuest(streamId, String(p.identity).split(':')[0]);
+                                setParticipants((prev) => prev.filter((x) => x.identity !== p.identity));
+                                toast.success(`Removed ${p.name || 'guest'}`);
+                              } catch (e) {
+                                toast.error(e?.message || 'Could not remove guest');
+                              }
+                            }}
+                            title="Remove co-host"
+                            style={{
+                              position: 'absolute',
+                              top: 12,
+                              right: 12,
+                              background: 'rgba(250,56,62,0.85)',
+                              border: 'none',
+                              color: 'white',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              padding: '5px 10px',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              zIndex: 5,
+                            }}
+                          >
+                            Remove
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -3292,7 +3337,7 @@ export function GoLiveModal({
                     <button
                       onClick={() => {
                         setPinnedComment(null);
-                        liveStreamService.unpinComment(streamId).catch(() => {});
+                        liveStreamService.unpinComment(streamId, guestMode ? guestInviteCode : null).catch((err) => toast.error(err?.message || 'Unpin failed'));
                       }}
                       style={{
                         background: 'none',
@@ -3430,7 +3475,7 @@ export function GoLiveModal({
                             e.stopPropagation();
                             setPinnedComment(c);
                             setCommentMenu(null);
-                            liveStreamService.pinComment(streamId, c.id).catch(() => {});
+                            liveStreamService.pinComment(streamId, c.id, guestMode ? guestInviteCode : null).catch((err) => toast.error(err?.message || 'Pin failed'));
                           }}
                           title="Pin comment"
                           style={{
@@ -3451,7 +3496,7 @@ export function GoLiveModal({
                             e.stopPropagation();
                             setComments((prev) => prev.filter((x) => x.id !== c.id));
                             setCommentMenu(null);
-                            liveStreamService.deleteComment(c.id).catch(() => {});
+                            liveStreamService.deleteComment(c.id, guestMode ? guestInviteCode : null).catch((err) => toast.error(err?.message || 'Delete failed'));
                           }}
                           title="Delete comment"
                           style={{
@@ -3467,11 +3512,11 @@ export function GoLiveModal({
                         >
                           Del
                         </button>
-                        {c.user_id !== user?.id && (
+                        {!guestMode && c.user_id !== user?.id && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              liveStreamService.banUser(streamId, c.user_id).catch(() => {});
+                              liveStreamService.banUser(streamId, c.user_id).catch((err) => toast.error(err?.message || 'Ban failed'));
                               setCommentMenu(null);
                               setComments((prev) => prev.filter((x) => x.user_id !== c.user_id));
                             }}
@@ -3746,6 +3791,40 @@ export function GoLiveModal({
                 >
                   📤
                 </button>
+                {/* 2026-08-15 audit: let the BROADCASTER and GUESTS post the live
+                    stream to their own feed (was reachable only from the viewer
+                    surface). */}
+                {streamId && (
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        const { getFreshAccessToken, getAccessToken } = await import('../../lib/authUtils');
+                        const token = (await getFreshAccessToken()) || getAccessToken();
+                        const resp = await fetch('/api/live/share-stream-to-feed', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                          body: JSON.stringify({ stream_id: streamId }),
+                        });
+                        const data = await resp.json().catch(() => ({}));
+                        toast[resp.ok ? 'success' : 'error'](
+                          resp.ok ? (data.already_shared ? 'Already on your feed' : 'Posted to your feed') : (data.error || 'Could not post')
+                        );
+                      } catch (err) {
+                        toast.error('Could not post to feed');
+                      }
+                    }}
+                    title="Post to my feed"
+                    style={{
+                      width: 44, height: 44, borderRadius: '50%', border: 'none',
+                      background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+                      color: 'white', fontSize: 18, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    📣
+                  </button>
+                )}
                 {/* BUG-FIX-LIVE-DUP-INVITE: removed duplicate "Invite Guest" button.
                    The 📤 share button above already opens GuestInviteModal when
                    guestInviteCode is present — this was a second, redundant path

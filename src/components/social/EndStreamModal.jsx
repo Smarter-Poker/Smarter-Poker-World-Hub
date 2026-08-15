@@ -109,9 +109,17 @@ export function EndStreamModal({
     vidEl.onseeked = async () => {
       clearTimeout(safetyRevoke);
       try {
+        // 2026-08-15 audit: if the first frame hasn't decoded, videoWidth is 0;
+        // drawing it produced a solid-black poster. Bail and let the broadcaster
+        // keep the client-supplied thumbnail instead of shipping a black frame.
+        if (!vidEl.videoWidth || !vidEl.videoHeight) {
+          console.warn('[EndStreamModal] recording frame not ready — skipping auto-thumbnail');
+          try { URL.revokeObjectURL(blobUrl); } catch (_) {}
+          return;
+        }
         const canvas = document.createElement('canvas');
-        canvas.width = vidEl.videoWidth || 640;
-        canvas.height = vidEl.videoHeight || 360;
+        canvas.width = vidEl.videoWidth;
+        canvas.height = vidEl.videoHeight;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(vidEl, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(
@@ -329,7 +337,9 @@ export function EndStreamModal({
         .update({
           video_url: videoUrl,
           // BUG FIX (ESM-2): use resolvedThumbUrl (may be auto-extracted from blob)
-          thumbnail_url: resolvedThumbUrl || thumbnailUrl || null,
+          // 2026-08-15 audit: only write a thumbnail when we actually have one —
+          // an explicit null here clobbered a poster the extraction just persisted.
+          ...(resolvedThumbUrl || thumbnailUrl ? { thumbnail_url: resolvedThumbUrl || thumbnailUrl } : {}),
         })
         .eq('id', streamId);
       if (postUpdateErr) throw postUpdateErr;
@@ -379,7 +389,9 @@ export function EndStreamModal({
         .update({
           video_url: videoUrl,
           // BUG FIX (ESM-2): use resolvedThumbUrl (may be auto-extracted from blob)
-          thumbnail_url: resolvedThumbUrl || thumbnailUrl || null,
+          // 2026-08-15 audit: only write a thumbnail when we actually have one —
+          // an explicit null here clobbered a poster the extraction just persisted.
+          ...(resolvedThumbUrl || thumbnailUrl ? { thumbnail_url: resolvedThumbUrl || thumbnailUrl } : {}),
         })
         .eq('id', streamId);
       if (saveUpdateErr) throw saveUpdateErr;
@@ -406,7 +418,7 @@ export function EndStreamModal({
   };
 
   const handleDelete = async () => {
-    if (!confirm('Delete this recording? This cannot be undone.')) return;
+    // (the caller already confirms — no double prompt)
 
     try {
       await callEndStream('delete');
