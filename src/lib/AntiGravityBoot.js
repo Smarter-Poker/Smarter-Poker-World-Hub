@@ -23,10 +23,9 @@ import { supabase as sharedSupabase } from './supabase';
 // the URL fallback stays because the project URL is not a credential.
 const FALLBACK_SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
 
-const REQUIRED_ENV_VARS = [
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-];
+// NOTE: the required-var list is intentionally NOT an array driving a loop.
+// See verifyEnvVars() -- client-side env checks must use static
+// `process.env.NEXT_PUBLIC_*` references or they always read undefined.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STATE
@@ -55,11 +54,20 @@ let supabaseClient = sharedSupabase;
 function verifyEnvVars() {
     const missing = [];
 
-    for (const envVar of REQUIRED_ENV_VARS) {
-        const value = process.env[envVar];
-        if (!value || value.trim() === '') {
-            missing.push(envVar);
-        }
+    // These MUST be STATIC `process.env.X` references. Next.js only inlines
+    // NEXT_PUBLIC_* values into the client bundle where they are referenced
+    // statically; a dynamic `process.env[name]` lookup is left untouched and is
+    // therefore ALWAYS undefined in the browser, no matter how the deploy is
+    // configured. The previous dynamic loop made this check log
+    // "Supabase calls will fail" on every production page load even though the
+    // vars were set correctly (initializeSupabase() below reads them statically
+    // and succeeds) -- which buried genuine console errors and failed the E2E
+    // smoke gate that asserts a clean console.
+    if (!(process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim()) {
+        missing.push('NEXT_PUBLIC_SUPABASE_URL');
+    }
+    if (!(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim()) {
+        missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
     }
 
     if (missing.length > 0) {
