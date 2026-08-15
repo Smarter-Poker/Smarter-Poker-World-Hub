@@ -235,10 +235,38 @@ Also wired, having accepted the props since it was written: `RangeGrid`'s
 per-hand EV overlay and classification colouring. `evData.handEVs` was three
 lines away from the call site the whole time.
 
-**New gate: `node scripts/trainer-difficulty-check.js` — PASS 58 FAIL 0.**
+### 7. Two more defects that only the SCREEN found, after shipping
+
+Both were fixed in follow-up commits and both are the roadmap's own #16 lesson
+recurring — a green suite over code the author wrote both sides of.
+
+- `f7cc6001` — **the hand-class panel never rendered.** 45 assertions passed and
+  the section was absent, with no error. `scenario.board` on a served question
+  is the STRING `"7s 4h Tc"`, not an array; `boardRanks` required the array,
+  returned `[]`, so every class was bucketed with the PREFLOP keys while the
+  row order asked for the postflop ones. Empty intersection, zero rows, section
+  gated off. Every unit test had passed an array.
+- `4d1e2dd3` — **the panel rendered and lied.** Board `Kh Ah Kd` reported
+  "Sets & better 28.5% of range": any hole card matching any board rank was
+  graded as trips on a paired board, so every ace read as a monster when it is
+  two pair. Corrected to 14.7%, with Two pair populated at 13%. The same commit
+  fixed a top-of-deck gutshot being called an open-ender — QJ on A-K needs only
+  a ten, and no window sits above the ace. **A hand-strength readout that errs
+  upward is worse than one that is absent.**
+
+**New gate: `node scripts/trainer-difficulty-check.js` — PASS 64 FAIL 0.**
 It pins every defect above, including that KK on an ace-high board is NOT an
 overpair (the first draft of that assertion had it backwards, and the
 classifier was right).
+
+**Verified on production `4d1e2dd3`**, 430x932, `cash-007`, eight hands,
+`PAGE_ERRORS=[]`: `CHECK | SMALL BET` with `+0.72`/`+0.02` EV chips and
+`97%/3%` (first time a sizing CATEGORY has rendered); `BY HAND CLASS
+1142 COMBOS` with seven rows summing to 100.0% and the suited caveat beneath;
+POSITION and STREET PLAN coaching prose that changes with hero's seat and the
+street; ~136 per-hand EV cells in the Range tab where there were none.
+
+Full account: `.agent/audits/2026-08-15-trainer-parity-audit-pass-2.md`.
 
 ---
 
