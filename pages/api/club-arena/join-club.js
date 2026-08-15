@@ -121,7 +121,10 @@ export default async function handler(req, res) {
           // Check existing membership
           const { data: existing } = await getSupabase()
               .from('club_members')
-              .select('id')
+              // 2026-08-15 CHECK 13 fix: no `id` column on club_members — the check
+              // 42703'd, `existing` was always null, and the duplicate-membership
+              // guard never fired.
+              .select('user_id')
               .eq('club_id', club.id)
               .eq('user_id', user.id)
               .maybeSingle();

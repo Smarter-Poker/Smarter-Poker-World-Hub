@@ -75,7 +75,10 @@ export default async function handler(req, res) {
       // 3. Get downline players
       let playersQuery = getSupabase()
         .from('club_members')
-        .select('user_id, role, chip_balance, agent_id, status, nickname, tier, xp')
+        // 2026-08-15 CHECK 13 fix: `xp` is not a column on club_members (real:
+        // reputation_xp; aliased) — the select 42703'd and the agent dashboard
+        // player list was always empty.
+        .select('user_id, role, chip_balance, agent_id, status, nickname, tier, xp:reputation_xp')
         .eq('club_id', clubId)
         .eq('role', 'player')
             .limit(100);

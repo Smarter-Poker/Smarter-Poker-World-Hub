@@ -107,9 +107,12 @@ export default async function handler(req, res) {
           // Fallback to training_level_history
           let histQuery = getSupabase()
               .from('training_level_history')
-              .select('id, game_id, accuracy_percentage, questions_answered, questions_correct, best_streak, passed, level, created_at')
+              // 2026-08-15 CHECK 13 fix: created_at is not a column on
+              // training_level_history (real: completed_at) — the fallback query
+              // 42703'd and returned nothing. Aliased to keep the response shape.
+              .select('id, game_id, accuracy_percentage, questions_answered, questions_correct, best_streak, passed, level, created_at:completed_at')
               .eq('user_id', user.id)
-              .order('created_at', { ascending: false })
+              .order('completed_at', { ascending: false })
               .limit(boundedLimit);
 
           if (gameId) {

@@ -75,7 +75,10 @@ export default async function handler(req, res) {
       // The tableId is used as club_id in club_chat (table chat uses club scope)
       const { data: member } = await getSupabase()
           .from('club_members')
-          .select('id')
+          // 2026-08-15 CHECK 13 fix: club_members has no `id` column (composite
+          // club_id+user_id identity) — selecting it 42703'd, member came back
+          // null, and EVERY club chat request answered 403 'Not a member'.
+          .select('user_id')
           .eq('club_id', tableId)
           .eq('user_id', userId)
           .maybeSingle();
@@ -115,7 +118,10 @@ export default async function handler(req, res) {
       // ─── Membership check: verify user belongs to this club ───
       const { data: member } = await getSupabase()
           .from('club_members')
-          .select('id')
+          // 2026-08-15 CHECK 13 fix: club_members has no `id` column (composite
+          // club_id+user_id identity) — selecting it 42703'd, member came back
+          // null, and EVERY club chat request answered 403 'Not a member'.
+          .select('user_id')
           .eq('club_id', clubId)
           .eq('user_id', userId)
           .maybeSingle();

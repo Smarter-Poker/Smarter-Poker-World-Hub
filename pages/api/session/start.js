@@ -79,13 +79,18 @@ export default async function handler(req, res) {
           let currentLevel = level;
           let currentHp = 100;
 
-          if (user_id) {
+          // 2026-08-15 follow-up to the CHECK 13 fix: god_mode_user_session.game_id
+          // is a uuid referencing game_registry — querying it with the request's
+          // SLUG fails on type. Use the registry row resolved above; without a
+          // registry row there is nothing to persist against.
+          const gameUUID = game?.id || null;
+          if (user_id && gameUUID) {
               // Check for existing session/progress
               const { data: existingSession } = await getSupabase()
                   .from('god_mode_user_session')
                   .select('*')
                   .eq('user_id', user_id)
-                  .eq('game_id', game_id)
+                  .eq('game_id', gameUUID)
                   .maybeSingle();
 
               if (existingSession) {
@@ -105,7 +110,7 @@ export default async function handler(req, res) {
                   // client in the response; it just isn't a DB column.
                   .upsert({
                       user_id: user_id,
-                      game_id: game_id,
+                      game_id: gameUUID,
                       current_level: currentLevel,
                       health_chips: currentHp,
                       current_round_hands_played: 0,

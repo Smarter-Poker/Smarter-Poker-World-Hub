@@ -266,7 +266,11 @@ export default async function handler(req, res) {
               // Get active challenges (narrow select to needed columns)
               const { data: definitions } = await supabase
                   .from('training_challenge_definitions')
-                  .select('id, name, challenge_type, metric, target_type, target_category, target_value, diamond_reward, description')
+                  // 2026-08-15 CHECK 13 fix: `metric` is not a column (and was never
+                  // read downstream) — its presence 42703'd the whole select, so NO
+                  // challenge definitions ever loaded and challenge progress never
+                  // updated.
+                  .select('id, name, challenge_type, target_type, target_category, target_value, diamond_reward, description')
                   .eq('is_active', true)
                   .limit(100);
 

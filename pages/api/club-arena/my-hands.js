@@ -55,15 +55,26 @@ export default async function handler(req, res) {
       const offset = (pageNum - 1) * limitNum;
 
       try {
-          // Find hand histories in this club where the user is in the hand_data -> players array.
-          // The JSONB contains path `hand_data->'players'` which is an array of objects.
-          // We use the JSONB containment operator `@>`
+          // 2026-08-15 CHECK 13 fix: this queried hand_id/pot_total/club_id/
+          // hand_data — none exist on hand_history (real: hand_number, pot_size,
+          // table_id, players jsonb; club scope lives on tables.club_id) — so the
+          // query 42703'd and "My Hands" was empty forever. Player containment
+          // also targeted the wrong key: players[] elements carry userId, not id.
+          const { data: clubTables } = await getSupabase()
+              .from('tables')
+              .select('id')
+              .eq('club_id', clubId)
+              .limit(1000);
+          const clubTableIds = (clubTables || []).map(t => t.id);
+          if (clubTableIds.length === 0) {
+              return res.status(200).json({ success: true, hands: [], total: 0, page: pageNum, totalPages: 0 });
+          }
+
           const { data: hands, count, error } = await getSupabase()
               .from('hand_history')
-              .select('id, hand_id, hand_number, table_id, pot_total, created_at', { count: 'exact' })
-              .eq('club_id', clubId)
-              // JSONB filter: look for the user.id inside the players array
-              .contains('hand_data', { players: [{ id: user.id }] })
+              .select('id, hand_id:hand_number, hand_number, table_id, pot_total:pot_size, created_at', { count: 'exact' })
+              .in('table_id', clubTableIds)
+              .contains('players', [{ userId: user.id }])
               .order('created_at', { ascending: false })
               .range(offset, offset + limitNum - 1);
 

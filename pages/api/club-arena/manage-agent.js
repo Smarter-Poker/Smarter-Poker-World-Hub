@@ -233,7 +233,10 @@ export default async function handler(req, res) {
         // Get current membership
         const { data: member } = await getSupabase()
           .from('club_members')
-          .select('id, role')  // BUG FIX: must include role — previously only 'id', making member.role always undefined
+          // 2026-08-15 CHECK 13 fix: no `id` column on club_members — selecting it
+          // 42703'd, member was always null, and promotion answered 404 for every
+          // real member.
+          .select('user_id, role')
           .eq('club_id', clubId)
           .eq('user_id', targetUserId)
           .maybeSingle();

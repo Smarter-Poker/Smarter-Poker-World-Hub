@@ -128,11 +128,15 @@ export default async function handler(req, res) {
           // Create the social post
           const { data: post, error } = await supabase
               .from('social_posts')
+              // 2026-08-15 CHECK 13 fix: social_posts has no user_id/type columns
+              // (real: author_id/content_type; no CHECK constraint on values) — the
+              // insert 42703'd, so sharing a training result to the feed NEVER
+              // worked.
               .insert({
                   id: postId,
-                  user_id: userId,
+                  author_id: userId,
                   content,
-                  type: 'training_share',
+                  content_type: 'training_share',
                   metadata: {
                       shareType,
                       postType: template.postType,

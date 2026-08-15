@@ -61,7 +61,9 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     const { data: member, error: memErr } = await supabaseAdmin
       .from('club_members')
-      .select('id, user_id, role, chip_balance, held_chips, credit_used, credit_limit, agent_id, nickname, display_name')
+      // 2026-08-15 CHECK 13 fix: no `id` column on club_members — the select
+      // 42703'd and EVERY leave-club request answered 404 'not a member'.
+      .select('user_id, role, chip_balance, held_chips, credit_used, credit_limit, agent_id, nickname, display_name')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
       .maybeSingle();

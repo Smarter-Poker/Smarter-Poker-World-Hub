@@ -137,7 +137,11 @@ export default async function handler(req, res) {
               const [{ data: definitions }, { data: existing }] = await Promise.all([
                   supabase
                       .from('training_achievement_definitions')
-                      .select('id, category, threshold, diamond_reward, name, icon'),
+                      // 2026-08-15 CHECK 13 fix: diamond_reward/icon are not columns
+                      // (real: reward_diamonds/icon_url) — the select 42703'd and NO
+                      // achievement definitions ever loaded. PostgREST aliases keep the
+                      // downstream field names.
+                      .select('id, category, threshold, diamond_reward:reward_diamonds, name, icon:icon_url'),
                   supabase
                       .from('training_user_achievements')
                       .select('achievement_id')

@@ -283,6 +283,19 @@ function normalizeBoardForHash(board) {
     return str.replace(/\s+/g, '').toLowerCase();
 }
 
+// 2026-08-15 CHECK 13 fix: macro_metrics is not a column on solved_spots_gold
+// — selecting it 42703'd ALL THREE lookup tiers, so this endpoint never
+// returned solver data despite an 8.3M-row solved corpus. The macro numbers
+// live inside strategy_matrix; derive them from there.
+function deriveMacroMetrics(matrix) {
+    if (!matrix || typeof matrix !== 'object') return null;
+    const out = {};
+    for (const k of ['ev', 'ev_ip', 'ev_oop', 'exploitability']) {
+        if (matrix[k] !== undefined) out[k] = matrix[k];
+    }
+    return Object.keys(out).length ? out : null;
+}
+
 async function queryPioSolverData(params) {
     const { street, stackDepth, board, gameType, players } = params;
     const pioGameType = selectPioGameType(gameType, players);
@@ -292,7 +305,7 @@ async function queryPioSolverData(params) {
     if (boardStr.length >= 6) {
         const tier1 = await getSupabase()
             .from('solved_spots_gold')
-            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, macro_metrics')
+            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
             .eq('game_type', pioGameType)
             .eq('street', street)
             .ilike('scenario_hash', `%${boardStr}%`)
@@ -304,7 +317,7 @@ async function queryPioSolverData(params) {
                 return {
                     scenario,
                     strategyMatrix: scenario.strategy_matrix,
-                    macroMetrics: scenario.macro_metrics,
+                    macroMetrics: deriveMacroMetrics(scenario.strategy_matrix),
                     matchQuality: 'EXACT',
                 };
             }
@@ -318,7 +331,7 @@ async function queryPioSolverData(params) {
         const flopStr = boardStr.slice(0, 6);
         const tier2 = await getSupabase()
             .from('solved_spots_gold')
-            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, macro_metrics')
+            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
             .eq('game_type', pioGameType)
             .eq('street', street)
             .ilike('scenario_hash', `%${flopStr}%`)
@@ -330,7 +343,7 @@ async function queryPioSolverData(params) {
                 return {
                     scenario,
                     strategyMatrix: scenario.strategy_matrix,
-                    macroMetrics: scenario.macro_metrics,
+                    macroMetrics: deriveMacroMetrics(scenario.strategy_matrix),
                     matchQuality: 'FLOP_PREFIX',
                 };
             }
@@ -342,7 +355,7 @@ async function queryPioSolverData(params) {
     // surface that this isn't an exact-board match.
     let tier3Query = getSupabase()
         .from('solved_spots_gold')
-        .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, macro_metrics')
+        .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
         .eq('game_type', pioGameType)
         .eq('street', street)
         .limit(10);
@@ -358,7 +371,7 @@ async function queryPioSolverData(params) {
             return {
                 scenario,
                 strategyMatrix: scenario.strategy_matrix,
-                macroMetrics: scenario.macro_metrics,
+                macroMetrics: deriveMacroMetrics(scenario.strategy_matrix),
                 matchQuality: 'APPROXIMATE',
             };
         }

@@ -72,7 +72,7 @@ export default async function handler(req, res) {
             .from('rakeback_periods')
             .select('*')
             .eq('club_id', clubId)
-            .eq('player_id', user.id)
+            .eq('user_id', user.id)
             .order('created_at', { ascending: false })
             .limit(50);
 
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
           .from('rakeback_periods')
           .select('*')
           .eq('club_id', clubId)
-          .eq('player_id', user.id)
+          .eq('user_id', user.id)
           .eq('status', 'closed')
           .gt('rakeback_amount', 0);
 
@@ -189,14 +189,18 @@ export default async function handler(req, res) {
 
           if (existing) return res.status(400).json({ success: false, error: 'A rakeback period is already open' });
 
-          // Create a marker period (player_id = null means it's the master period)
+          // 2026-08-15 CHECK 13 fix: rakeback_periods keys players by user_id
+          // (player_id/rake_contributed never existed — every rakeback query and
+          // insert 42703'd, so the whole rakeback flow was dead). user_id was
+          // relaxed to nullable so the master-period marker row (no user) works.
+          // Create a marker period (user_id = null means it's the master period)
           const { data: period, error } = await getSupabase()
             .from('rakeback_periods')
             .insert({
               club_id: clubId,
-              player_id: null,
+              user_id: null,
               status: 'open',
-              rake_contributed: 0,
+              rake_generated: 0,
               rakeback_amount: 0,
               period_start: new Date().toISOString(),
             })
@@ -221,7 +225,7 @@ export default async function handler(req, res) {
             .select('*')
             .eq('club_id', clubId)
             .eq('status', 'open')
-            .is('player_id', null)
+            .is('user_id', null)
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -261,9 +265,9 @@ export default async function handler(req, res) {
             if (rakebackAmount <= 0) continue;
             inserts.push({
               club_id: clubId,
-              player_id: playerId,
+              user_id: playerId,
               status: 'closed',
-              rake_contributed: totalRake,
+              rake_generated: totalRake,
               rakeback_amount: rakebackAmount,
               period_start: openPeriod.period_start,
               period_end: new Date().toISOString(),
@@ -287,7 +291,7 @@ export default async function handler(req, res) {
           // Notify players with rakeback available (fire-and-forget)
           for (const ins of inserts.filter(i => i.rakeback_amount > 0)) {
             await notifyUser(supabaseAdmin, {
-              userId: ins.player_id, type: 'rakeback_available',
+              userId: ins.user_id, type: 'rakeback_available',
               title: `🎁 Rakeback Available: ${ins.rakeback_amount.toLocaleString()}`,
               message: `You have ${ins.rakeback_amount.toLocaleString()} chips in unclaimed rakeback. Claim now in the cashier!`,
               data: { clubId, amount: ins.rakeback_amount },
@@ -313,7 +317,7 @@ export default async function handler(req, res) {
             .from('rakeback_periods')
             .update({ status: 'claiming' })
             .eq('club_id', clubId)
-            .eq('player_id', user.id)
+            .eq('user_id', user.id)
             .eq('status', 'closed')
             .gt('rakeback_amount', 0)
             .select('id, rakeback_amount');

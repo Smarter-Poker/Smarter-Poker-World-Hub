@@ -67,7 +67,13 @@ export default async function handler(req, res) {
               // Check if already claimed today
               const { data: claimed } = await supabase
                   .from('training_daily_bonus')
-                  .select('claimed_at, diamonds_awarded')
+                  // 2026-08-15 CHECK 13 fix: diamonds_awarded is not a column (real:
+                  // total_awarded; aliased to keep the response field). bonus_date was
+                  // also phantom — added by migration 20260815_training_daily_bonus_
+                  // bonus_date with the unique (user_id, bonus_date) index the atomic
+                  // claim design always assumed. The daily bonus was unclaimable
+                  // before this (0 rows ever written).
+                  .select('claimed_at, diamonds_awarded:total_awarded')
                   .eq('user_id', userId)
                   .eq('bonus_date', today)
                   .maybeSingle();
@@ -167,8 +173,10 @@ export default async function handler(req, res) {
                   .insert({
                       user_id: userId,
                       bonus_date: today,
-                      diamonds_awarded: totalBonus,
-                      streak_bonus: streakBonus
+                      total_awarded: totalBonus,
+                      base_bonus: BASE_DAILY_BONUS,
+                      streak_bonus: streakBonus,
+                      streak_days: currentStreak
                   });
 
               if (claimInsertErr) {

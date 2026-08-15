@@ -190,7 +190,10 @@ export default async function handler(req, res) {
                   ease_factor: newEase,
                   review_count: (spot.review_count || 0) + 1,
                   next_review_at: nextReview.toISOString(),
-                  last_reviewed_at: new Date().toISOString(),
+                  // 2026-08-15 CHECK 13 fix: last_reviewed_at is not a column (real:
+                  // updated_at) — the update 42703'd, so reviews never advanced the
+                  // spaced-repetition schedule.
+                  updated_at: new Date().toISOString(),
               })
               .eq('user_id', userId)
               .eq('spot_signature', spotSignature);

@@ -124,11 +124,21 @@ export default async function handler(req, res) {
                           column_name: 'use_count',
                           row_id: templateId,
                       });
-                  // If RPC doesn't exist, fall back to manual update
+                  // If RPC doesn't exist, fall back to read-then-increment.
+                  // 2026-08-15 CHECK 13 fix: use_count did not exist as a column
+                  // (added by migration 20260815_check13_sweep2_columns), and the
+                  // old fallback called supabase-js .raw(), which is not a
+                  // function — the fallback itself threw.
                   if (error) {
+                      const { data: curr } = await getSupabase()
+                          .from('table_templates')
+                          .select('use_count')
+                          .eq('id', templateId)
+                          .eq('club_id', clubId)
+                          .maybeSingle();
                       const { error: err_table_templates_nqovg } = await getSupabase()
                         .from('table_templates')
-                        .update({ use_count: getSupabase().raw('use_count + 1') })
+                        .update({ use_count: (curr?.use_count || 0) + 1 })
                           .eq('id', templateId)
                           .eq('club_id', clubId);
                       if (err_table_templates_nqovg) console.warn('[Supabase] Silent mutation failed in table_templates:', err_table_templates_nqovg.message);

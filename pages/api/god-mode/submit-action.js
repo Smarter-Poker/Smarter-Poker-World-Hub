@@ -112,21 +112,35 @@ export default async function handler(req, res) {
           const levelMatch = gameId.match(/level-(\d+)/i);
           const level = levelMatch ? parseInt(levelMatch[1], 10) : 1;
 
-          // Get session data to track round number
+          // 2026-08-15 CHECK 13 fix: the round-number lookup queried
+          // god_mode_sessions for hands_played/game_id/status/started_at — that
+          // table's real schema is entirely different (actions/completed/
+          // game_type/score) and the SESSION-PROGRESS table is
+          // god_mode_user_session (keyed by game_registry uuid). The old query
+          // 42703'd on every action, so the round number was always 1.
+          // Resolve the game uuid first; it is also needed for the insert below.
+          let gameUUID = null;
+          if (gameId) {
+              const { data: gameData } = await getSupabase()
+                  .from('game_registry')
+                  .select('id')
+                  .eq('slug', gameId)
+                  .maybeSingle();
+              gameUUID = gameData?.id || null;
+          }
+
           let roundNumber = 1;
           try {
-              const { data: sessionData } = await getSupabase()
-                  .from('god_mode_sessions')
-                  .select('hands_played')
-                  .eq('user_id', userId)
-                  .eq('game_id', gameId)
-                  .eq('status', 'active')
-                  .order('started_at', { ascending: false })
-                  .limit(1)
-                  .maybeSingle();
-
-              if (sessionData) {
-                  roundNumber = (sessionData.hands_played || 0) + 1;
+              if (gameUUID) {
+                  const { data: sessionData } = await getSupabase()
+                      .from('god_mode_user_session')
+                      .select('current_round_hands_played')
+                      .eq('user_id', userId)
+                      .eq('game_id', gameUUID)
+                      .maybeSingle();
+                  if (sessionData) {
+                      roundNumber = (sessionData.current_round_hands_played || 0) + 1;
+                  }
               }
           } catch (sessionError) {
               console.warn('Could not fetch session data:', sessionError.message);
@@ -134,16 +148,6 @@ export default async function handler(req, res) {
 
           // 3. Record in hand history
           try {
-              // Lookup game UUID from game_registry by slug
-              let gameUUID = null;
-              if (gameId) {
-                  const { data: gameData } = await getSupabase()
-                      .from('game_registry')
-                      .select('id')
-                      .eq('slug', gameId)
-                      .maybeSingle();
-                  gameUUID = gameData?.id || null;
-              }
 
               // Only insert if we have a valid game UUID
               if (gameUUID) {

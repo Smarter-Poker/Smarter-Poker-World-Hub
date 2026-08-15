@@ -126,7 +126,10 @@ export default async function handler(req, res) {
 
           const { data: childSpots, error } = await getSupabase()
               .from('solved_spots_gold')
-              .select('scenario_hash, strategy_matrix, hand_evs')
+              // 2026-08-15 CHECK 13 fix: hand_evs is not a top-level column — it
+              // lives INSIDE the strategy_matrix jsonb. Selecting it 42703'd the
+              // whole query, so the runout report always 500'd.
+              .select('scenario_hash, strategy_matrix')
               .ilike('scenario_hash', `${safeHash}__`)
               .limit(200);
 
@@ -147,7 +150,7 @@ export default async function handler(req, res) {
                       childMap[nextCard.toLowerCase()] = {
                           aggression: childAggression,
                           ev_delta: childAggression - baselineAggression,
-                          handEvs: spot.hand_evs,
+                          handEvs: spot.strategy_matrix?.hand_evs,
                       };
                   }
               }

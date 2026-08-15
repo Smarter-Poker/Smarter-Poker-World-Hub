@@ -151,36 +151,20 @@ export default async function handler(req, res) {
 
           const scenarioHash = hashScenario({ board, heroPosition, villainPosition, stackDepth, gameType, street });
 
-          // 1) Check pre-computed solutions database
+          // 2026-08-15 CHECK 13 fix: the "pre-computed solutions" lookup queried
+          // training_scenarios for gto_strategy/actions/frequencies/ev_data/
+          // scenario_hash — NONE of which exist on that table (real schema is a
+          // simple content table with scenario_data jsonb; the table also has 0
+          // rows). The select 42703'd on every call, so the branch never fired
+          // and every request fell through to the queue+baseline path — which is
+          // therefore the real, working behavior and now the only path. The
+          // actual precomputed corpus is solved_spots_gold, but its scenario
+          // hashes are human-readable (street_family_pos_stack_board) while this
+          // endpoint's hashScenario() is a numeric JS hash — integrating the two
+          // is a feature project, not a phantom-column repoint.
           const supabase = getSupabase();
-          const { data: existing } = await supabase
-              .from('training_scenarios')
-              .select('gto_strategy, actions, frequencies, ev_data')
-              .eq('scenario_hash', scenarioHash)
-              .limit(1)
-              .maybeSingle();
 
-          if (existing) {
-              // Return pre-computed solution
-              return res.status(200).json({
-                  success: true,
-                  status: 'solved',
-                  source: 'precomputed',
-                  scenarioHash,
-                  solution: {
-                      actions: existing.gto_strategy || existing.actions || {},
-                      frequencies: existing.frequencies || {},
-                      evByAction: existing.ev_data || {},
-                      board,
-                      heroPosition,
-                      villainPosition: villainPosition || 'BB',
-                      stackDepth: stackDepth || 100,
-                      gameType: gameType || 'cash',
-                  },
-              });
-          }
-
-          // 2) Not in DB — queue for solving (stub for remote PIO node)
+          // Queue for solving (stub for remote PIO node)
           const queueEntry = {
               scenario_hash: scenarioHash,
               board: board.join(','),

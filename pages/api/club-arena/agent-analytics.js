@@ -192,7 +192,10 @@ export default async function handler(req, res) {
               // Get commission totals per agent
               const { data: commissions } = await getSupabase()
                   .from('commission_history')
-                  .select('agent_id, amount')
+                  // 2026-08-15 CHECK 13 fix: `amount` is not a column on
+                  // commission_history (real: commission_earned; aliased) — the
+                  // select 42703'd and agent earnings always showed 0.
+                  .select('agent_id, amount:commission_earned')
                   .eq('club_id', clubId)
                   .in('agent_id', agentIds)
                   .gte('created_at', daysAgo)

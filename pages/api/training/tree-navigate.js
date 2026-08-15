@@ -70,7 +70,10 @@ export default async function handler(req, res) {
               // Try exact match first
               let { data: childSpot, error } = await getSupabase()
                   .from('solved_spots_gold')
-                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
+                  // 2026-08-15 CHECK 13 fix: hand_evs is not a top-level column — it
+                  // lives INSIDE strategy_matrix. Selecting it 42703'd the query, so
+                  // tree navigation never found child spots.
+                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix')
                   .eq('scenario_hash', childHash)
                   .maybeSingle();
 
@@ -85,7 +88,7 @@ export default async function handler(req, res) {
 
                   const { data: altSpots } = await getSupabase()
                       .from('solved_spots_gold')
-                      .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
+                      .select('id, scenario_hash, game_type, stack_depth, strategy_matrix')
                       .eq('scenario_hash', altChildHash)
                       .limit(1);
                   childSpot = altSpots?.[0] || null;
@@ -132,7 +135,7 @@ export default async function handler(req, res) {
                           heroPosition: extractPositionFromHash(childSpot.scenario_hash),
                           actions,
                           gridData,
-                          handEVs: childSpot.hand_evs || {},
+                          handEVs: childSpot.strategy_matrix?.hand_evs || {},
                           handCount: Object.keys(gridData || {}).filter(h => gridData[h] !== null).length,
                       },
                   });

@@ -385,8 +385,12 @@ export default async function handler(req, res) {
                 if (sb) {
                     const { data } = await sb
                         .from('horse_personality')
-                        .select('aggression_level, humor_level, technical_depth, contrarian_tendency, gto_philosophy, risk_tolerance')
-                        .eq('profile_id', horseId)
+                        // 2026-08-15 CHECK 13 fix: gto_philosophy/profile_id are not
+                        // columns (real: gto_vs_exploitative, keyed by author_id) — the
+                        // select 42703'd and horse opponents always fell back to the
+                        // default personality.
+                        .select('aggression_level, humor_level, technical_depth, contrarian_tendency, gto_vs_exploitative, risk_tolerance')
+                        .eq('author_id', horseId)
                         .maybeSingle();
 
                     if (data) {
@@ -395,7 +399,7 @@ export default async function handler(req, res) {
                             humor: data.humor_level || 5,
                             technical: data.technical_depth || 5,
                             contrarian: data.contrarian_tendency || 5,
-                            gto: data.gto_philosophy || 'balanced',
+                            gto: data.gto_vs_exploitative || 'balanced',
                             risk: data.risk_tolerance || 'moderate',
                         };
                     }

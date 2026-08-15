@@ -141,7 +141,8 @@ export default async function handler(req, res) {
               getSupabase().from('tables').select('id, status, current_players')
                   .eq('club_id', clubId).in('status', ['active', 'playing', 'waiting', 'between_hands']),
               // Total members
-              getSupabase().from('club_members').select('id', { count: 'exact', head: true })
+              // 2026-08-15 CHECK 13 fix: no `id` column on club_members — count by user_id
+              getSupabase().from('club_members').select('user_id', { count: 'exact', head: true })
                   .eq('club_id', clubId).eq('status', 'active'),
               // Today's rake
               getSupabase().rpc('sum_chip_transactions', {
