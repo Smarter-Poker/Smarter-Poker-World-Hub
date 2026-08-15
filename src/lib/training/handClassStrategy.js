@@ -85,20 +85,32 @@ function boardRanks(board) {
  */
 function straightDrawOf(hi, lo, brs) {
     const present = new Set([hi, lo, ...brs]);
-    let best = null;
+    // Count the DISTINCT ranks that would complete a straight. Two or more is
+    // open-ended, exactly one is a gutshot.
+    //
+    // Asking instead whether the missing rank sits at an end of the window --
+    // which is the textbook shorthand and what this did first -- is wrong at
+    // the top of the deck. QJ on an A-K board leaves A-K-Q-J-T needing only a
+    // ten; the missing rank is at the end of its window, but there is no
+    // window above it, so exactly one rank completes and it is a gutshot with
+    // four outs. Counting the completing ranks is the definition the
+    // shorthand is an approximation OF, so it cannot disagree with itself.
+    const completing = new Set();
     for (let low = 2; low <= 10; low++) {
         const window = [low, low + 1, low + 2, low + 3, low + 4];
-        const have = window.filter((r) => present.has(r));
-        if (have.length !== 4) continue;
+        if (window.filter((r) => present.has(r)).length !== 4) continue;
         // The hand has to be part of it, or it is the board's draw, not ours.
         if (!window.includes(hi) && !window.includes(lo)) continue;
-        const missing = window.find((r) => !present.has(r));
-        const openEnded = missing === window[0] || missing === window[4];
-        if (openEnded) return 'oesd';
-        best = best || 'gutshot';
+        completing.add(window.find((r) => !present.has(r)));
     }
-    // A made straight is caught by the caller before this runs.
-    return best;
+    // The wheel: the ace plays low, so A-2-3-4-5 is a fifth window.
+    const wheel = [14, 2, 3, 4, 5];
+    if (wheel.filter((r) => present.has(r)).length === 4
+        && (wheel.includes(hi) || wheel.includes(lo))) {
+        completing.add(wheel.find((r) => !present.has(r)));
+    }
+    if (completing.size === 0) return null;
+    return completing.size >= 2 ? 'oesd' : 'gutshot';
 }
 
 function madeStraight(hi, lo, brs) {
@@ -162,7 +174,16 @@ export function classifyHandClass(hand, board) {
     // ── Postflop ───────────────────────────────────────────────────────────
     const boardSet = new Set(brs);
     const top = brs[0];
-    const boardPaired = brs.length !== new Set(brs).size;
+    // Which board ranks appear more than once. Matching one of THOSE is trips;
+    // matching an unpaired board rank on a paired board is two pair (hero's
+    // pair plus the board's). The first version of this treated any hole-card
+    // hit on a paired board as trips, so on K-K-A every ace graded as a
+    // monster -- measured on screen as "Sets & better 28.5% of range", which
+    // is exactly the direction a hand-strength panel must never err in.
+    const counts = new Map();
+    for (const r of brs) counts.set(r, (counts.get(r) || 0) + 1);
+    const pairedRanks = new Set([...counts.entries()].filter(([, n]) => n >= 2).map(([r]) => r));
+    const boardPaired = pairedRanks.size > 0;
 
     if (r.pair) {
         if (boardSet.has(r.hi)) return 'monster';                    // set
@@ -178,11 +199,15 @@ export function classifyHandClass(hand, board) {
     const hiHits = boardSet.has(r.hi);
     const loHits = boardSet.has(r.lo);
 
-    if (hiHits && loHits) return 'two_pair_plus';
-    // Trips with an unpaired hole card requires a paired board.
-    if (boardPaired && (hiHits || loHits)) return 'monster';
+    // Trips: the hole card matches a rank the board already holds twice.
+    if (pairedRanks.has(r.hi) || pairedRanks.has(r.lo)) return 'monster';
 
     if (madeStraight(r.hi, r.lo, brs)) return 'monster';
+
+    // Both hole cards paired with the board is two pair. So is one hole card
+    // paired on an already-paired board -- hero's pair plus the board's.
+    if (hiHits && loHits) return 'two_pair_plus';
+    if (boardPaired && (hiHits || loHits)) return 'two_pair_plus';
 
     if (hiHits || loHits) {
         const hitRank = hiHits ? r.hi : r.lo;

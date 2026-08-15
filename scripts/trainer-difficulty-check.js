@@ -555,6 +555,16 @@ check('straight draws are rank-exact: open-ender vs gutshot vs neither', () => {
     return true;
 });
 
+check('open-ender vs gutshot is decided by how many ranks complete it', () => {
+    // 76 on a 9-8-2 board: a five OR a ten completes -> open-ended.
+    if (classifyHandClass('76s', ['9h', '8d', '2s']) !== 'oesd') return '76s on 982';
+    // QJ on A-K-2: only a ten completes, because nothing sits above the ace.
+    if (classifyHandClass('QJo', ['Ah', 'Kd', '2s']) !== 'gutshot') return 'QJo on AK2';
+    // The wheel counts: A2 on 3-4-K needs a five.
+    if (classifyHandClass('A2o', ['3h', '4d', 'Ks']) !== 'gutshot') return 'A2o on 34K';
+    return true;
+});
+
 check('a made straight outranks the draw buckets', () => {
     return classifyHandClass('JTo', ['9h', '8d', '7s']) === 'monster'
         || 'got ' + classifyHandClass('JTo', ['9h', '8d', '7s']);
@@ -635,6 +645,34 @@ check('classification data covers every class in the grid, with a colour', () =>
         if (!cd[h] || !cd[h].color || !cd[h].label) return 'missing for ' + h;
     }
     return true;
+});
+
+check('on a paired board, only the PAIRED rank makes trips', () => {
+    // Measured on screen at 430x932: board Kh Ah Kd reported "Sets & better
+    // 28.5% of range" because every hole card that hit ANY board rank was
+    // graded as trips -- so an ace, which is two pair here, read as a monster.
+    // A hand-strength panel that errs upward is worse than one that is absent.
+    const B = ['Kh', 'Ah', 'Kd'];
+    const cases = [
+        ['K5o', 'monster'],        // trips kings
+        ['A2s', 'two_pair_plus'],  // aces AND the board kings -- two pair
+        ['AA', 'monster'],         // full house
+        // A-K-Q-J needs only a ten: one completing rank, so a gutshot -- the
+        // "missing card is at the end of the run" shorthand calls this an
+        // open-ender, and there is no window above the ace to make it one.
+        ['QJo', 'gutshot'],
+    ];
+    for (const [hand, want] of cases) {
+        const got = classifyHandClass(hand, B);
+        if (got !== want) return `${hand} -> ${got}, want ${want}`;
+    }
+    return true;
+});
+
+check('an unpaired board still needs BOTH cards to hit for two pair', () => {
+    const B = ['Ah', '7d', '2s'];
+    return (classifyHandClass('A7o', B) === 'two_pair_plus' && classifyHandClass('A5o', B) === 'top_pair')
+        || `A7o ${classifyHandClass('A7o', B)} A5o ${classifyHandClass('A5o', B)}`;
 });
 
 check('a STRING board works, not just an array -- production sends a string', () => {
