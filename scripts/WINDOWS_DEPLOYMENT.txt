@@ -14,7 +14,7 @@
 SUPABASE_URL=https://kuklfnapbkmacvwxktbh.supabase.co
 
 ## Supabase Service Role Key (ADMIN ACCESS - KEEP SECRET!)
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.oZxe_-RYdGvfPHxg7EhSJx-E3Tl6nYG3YZGP8Q7bYc0
+SUPABASE_SERVICE_ROLE_KEY=<SET-FROM-YOUR-PASSWORD-MANAGER>
 
 ## Supabase Anon Key (Public access - safe for client-side)
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo
@@ -36,7 +36,7 @@ pip install supabase-py pandas python-dotenv
 
 ## Step 3: Set Environment Variables (Windows PowerShell) ##
 $env:SUPABASE_URL="https://kuklfnapbkmacvwxktbh.supabase.co"
-$env:SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.oZxe_-RYdGvfPHxg7EhSJx-E3Tl6nYG3YZGP8Q7bYc0"
+$env:SUPABASE_KEY="<SET-FROM-YOUR-PASSWORD-MANAGER>"
 
 ## Step 4: Create Folder Structure ##
 # Follow structure in GOD_MODE_FOLDER_STRUCTURE.md
@@ -54,7 +54,7 @@ python ingest_god_mode.py C:\PokerSolver\Raw
 # Add these lines to .env:
 
 SUPABASE_URL=https://kuklfnapbkmacvwxktbh.supabase.co
-SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.oZxe_-RYdGvfPHxg7EhSJx-E3Tl6nYG3YZGP8Q7bYc0
+SUPABASE_KEY=<SET-FROM-YOUR-PASSWORD-MANAGER>
 
 # Then update ingest_god_mode.py to use python-dotenv:
 # from dotenv import load_dotenv

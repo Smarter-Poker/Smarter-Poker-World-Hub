@@ -32,11 +32,11 @@ echo.
 REM Step 3: Set environment variables
 echo 🔑 Step 3: Setting environment variables...
 setx SUPABASE_URL "https://kuklfnapbkmacvwxktbh.supabase.co"
-setx SUPABASE_KEY "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.oZxe_-RYdGvfPHxg7EhSJx-E3Tl6nYG3YZGP8Q7bYc0"
+setx SUPABASE_KEY "<SET-FROM-YOUR-PASSWORD-MANAGER>"
 
 REM Set for current session too
 set SUPABASE_URL=https://kuklfnapbkmacvwxktbh.supabase.co
-set SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.oZxe_-RYdGvfPHxg7EhSJx-E3Tl6nYG3YZGP8Q7bYc0
+set SUPABASE_KEY=<SET-FROM-YOUR-PASSWORD-MANAGER>
 
 echo ✅ Environment variables set!
 echo.
