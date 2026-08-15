@@ -129,6 +129,10 @@ export function VideoThumbnail({ url, style = {}, onValidated }) {
       <YouTubePosterImg
         videoId={ladderVideoId}
         alt="Video Thumbnail"
+        // eager, NOT lazy: this img is display:none until it loads, and a
+        // lazy image that never intersects the viewport never loads — the
+        // FallbackUI gradient would show forever.
+        loading="eager"
         style={{
           width: '100%',
           height: '100%',
