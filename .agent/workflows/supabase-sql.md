@@ -29,7 +29,7 @@ node scripts/antigravity_sql_push.js --inline "ALTER TABLE clubs ADD COLUMN leve
 
 Only use if Options A/B fail:
 ```bash
-psql "postgresql://postgres:[PASSWORD]@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres" -c "YOUR SQL HERE"
+psql "postgresql://postgres:" + os.environ["SUPABASE_DB_PASSWORD"] + "@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres" -c "YOUR SQL HERE"
 ```
 The password is in `.env.local` as `SUPABASE_DB_PASSWORD`.
 

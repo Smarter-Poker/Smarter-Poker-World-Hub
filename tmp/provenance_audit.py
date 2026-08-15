@@ -13,7 +13,7 @@ import psycopg2, json, os, re, hashlib
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-db_url = "postgresql://postgres:215SlalomCt!@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres"
+db_url = "postgresql://postgres:${SUPABASE_DB_PASSWORD}@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres"
 conn = psycopg2.connect(db_url)
 cur = conn.cursor()
 

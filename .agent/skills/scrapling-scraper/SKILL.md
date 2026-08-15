@@ -23,8 +23,8 @@ description: Cloudflare-bypassing web scraper using Scrapling + camoufox. Use th
 | Priority | Source | Credential | Use For |
 |----------|--------|------------|---------|
 | 1️⃣ PRIMARY | Venue/Tour OWN WEBSITE | None (public) | Address, phone, hours, tournament schedule |
-| 2️⃣ BACKUP | PokerAtlas | `danbekavac4545` / `215SlalomCt!` | Cross-verification of venue data |
-| 3️⃣ BACKUP | Bravo Poker Live | `admin@smarter.poker` / `215SlalomCt!` (token: `cd6942d7-4d38-4ecc-95b2-cc9bee944b07`) | Real-time game data, tournament listings |
+| 2️⃣ BACKUP | PokerAtlas | `danbekavac4545` / `$SMARTER_POKER_SHARED_PASSWORD` | Cross-verification of venue data |
+| 3️⃣ BACKUP | Bravo Poker Live | `admin@smarter.poker` / `$SMARTER_POKER_SHARED_PASSWORD` (token: `$BRAVO_API_TOKEN`) | Real-time game data, tournament listings |
 
 ## Environment Setup
 
@@ -113,7 +113,7 @@ def scrape_bravo_authenticated():
     page = context.new_page()
     page.goto('https://www.bravopokerlive.com/login/')
     page.fill('input[name="Email"]', 'admin@smarter.poker')
-    page.fill('input[name="Password"]', '215SlalomCt!')
+    page.fill('input[name="Password"]', os.environ['SMARTER_POKER_SHARED_PASSWORD'])
     page.press('input[name="Password"]', 'Enter')
     page.wait_for_load_state('networkidle')
     # Now scrape authenticated pages with page.goto()

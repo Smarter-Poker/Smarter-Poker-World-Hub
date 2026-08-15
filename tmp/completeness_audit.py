@@ -1,6 +1,6 @@
 import psycopg2, json
 
-db_url = "postgresql://postgres:215SlalomCt!@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres"
+db_url = "postgresql://postgres:${SUPABASE_DB_PASSWORD}@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres"
 
 # All 34 target fields
 FIELDS = [

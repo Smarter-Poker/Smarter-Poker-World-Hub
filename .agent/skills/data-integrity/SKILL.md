@@ -34,8 +34,8 @@ description: MANDATORY 15-layer enforcement for ALL poker tournament data ingest
 ## Source of Truth Hierarchy
 
 1. **PRIMARY**: The venue/casino/club/tour's **own website**
-2. **BACKUP #1**: PokerAtlas (login: `danbekavac4545` / `215SlalomCt!`)
-3. **BACKUP #2**: Bravo Poker Live (login: `admin@smarter.poker` / `215SlalomCt!`, token: `cd6942d7-4d38-4ecc-95b2-cc9bee944b07`)
+2. **BACKUP #1**: PokerAtlas (login: `danbekavac4545` / `$SMARTER_POKER_SHARED_PASSWORD`)
+3. **BACKUP #2**: Bravo Poker Live (login: `admin@smarter.poker` / `$SMARTER_POKER_SHARED_PASSWORD`, token: `$BRAVO_API_TOKEN`)
 
 ## The 7 Commandments (Non-Negotiable)
 

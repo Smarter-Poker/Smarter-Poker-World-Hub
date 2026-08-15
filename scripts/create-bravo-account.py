@@ -27,7 +27,7 @@ for env_file in ['.env.local', '.env.production.local', '.env']:
 
 # ── CONFIG ──
 NEW_EMAIL = 'clubarena45@gmail.com'
-NEW_PASS  = '215SlalomCt!'
+NEW_PASS  = os.environ['SMARTER_POKER_SHARED_PASSWORD']
 FIRST_NAME = 'Club'
 LAST_NAME = 'Arena'
 SCREENSHOT_DIR = project_root / 'data' / 'bravo-logs'

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 """
 Second-Pass Missing Tournament Scraper v1.0
 ============================================
@@ -57,7 +58,7 @@ CF_TIMEOUT  = 25000  # ms
 
 SUPABASE_URL = "https://kuklfnapbkmacvwxktbh.supabase.co"
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-BRAVO_TOKEN  = "cd6942d7-4d38-4ecc-95b2-cc9bee944b07"
+BRAVO_TOKEN  = "$BRAVO_API_TOKEN"
 SB_HDR = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
