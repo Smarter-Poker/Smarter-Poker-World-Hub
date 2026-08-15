@@ -235,7 +235,26 @@ async function processJob(job) {
       //      No Google login required. No cookies required for ~95% of
       //      videos. Only age-restricted content still needs the cookie
       //      keep-alive path (PR #521).
-      '--extractor-args', 'youtube:player_client=tv,web_safari,mweb,web_embedded;player_skip=webpage,configs',
+      // 2026-08-15: THIS LINE WAS THE 360p BUG.
+      //
+      // The pinned client set (tv, web_safari, mweb, web_embedded) plus
+      // player_skip=webpage,configs made YouTube return exactly ONE format
+      // for our videos: itag 18, 640x360 muxed. Not "prefer" it — it was the
+      // only entry in the list, so `bv*[height<=1080]+ba` had nothing better
+      // to choose and every ingest landed at 360p (202x360 for shorts).
+      // That is why the feed looked grainy: the stored MP4s really were
+      // 360p, and the posters, extracted at native resolution, inherited it.
+      //
+      // Verified on the worker box against the same video, same cookies:
+      //   player_client=tv,web_safari,mweb,web_embedded -> 18  640x360  (only)
+      //   player_client=default                         -> up to 3840x2160
+      //
+      // The bot-detection workaround those clients existed for is now
+      // carried by the cookie jar plus the bgutil PO-token provider
+      // (bgutil-pot.service on :4416, plugin bgutil:http-1.3.1 confirmed
+      // loaded), so the restricted clients are no longer buying us anything
+      // except a 360p ceiling. SCALE_1080P below still caps output at 1080p.
+      '--extractor-args', 'youtube:player_client=default',
     ];
     if (cookiesExist) {
       ytdlpArgs.push('--cookies', COOKIES_FILE);

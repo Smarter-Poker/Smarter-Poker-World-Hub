@@ -60,27 +60,45 @@ get_ip() {
 REELS_IP=$(get_ip reels-transcode-worker-ip "${REELS_WORKER_IP:-5.161.49.206}")
 OPENCLAW_IP=$(get_ip openclaw-server-ip "${OPENCLAW_IP:-178.104.180.220}")
 
-# Auto-detect working SSH key
-for key in "$HOME/.ssh/id_ed25519" "$HOME/.ssh/openclaw_ed25519" "$HOME/.ssh/workers_ed25519"; do
-  if [ -f "$key" ] && ssh -i "$key" -o ConnectTimeout=3 -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no -o ChallengeResponseAuthentication=no -o BatchMode=yes -o StrictHostKeyChecking=accept-new "openclaw@$REELS_IP" "uname" &>/dev/null; then
-    SSH_KEY="$key"
-    break
-  fi
+# Auto-detect working SSH key + user.
+#
+# 2026-08-15: this probe never matched, which is why "SSH to Hetzner is
+# broken" has been assumed since 2026-05-17. Two reasons, both here:
+#   1. It probed user `openclaw`. The key that is actually authorised on
+#      reels-transcode-worker is authorised for `root`
+#      (~/.ssh/hetzner_deploy and ~/.ssh/id_ed25519 both work as root;
+#      every key fails as openclaw).
+#   2. ConnectTimeout=3. The box runs ffmpeg at preset=slow with
+#      concurrency 3 and sits at load ~18, so sshd routinely needs longer
+#      than 3s just to send its banner. The probe timed out on a host that
+#      was up and reachable.
+# Both are fixed below: try root first, and allow 20s.
+SSH_USER=""
+for key in "$HOME/.ssh/hetzner_deploy" "$HOME/.ssh/id_ed25519" "$HOME/.ssh/openclaw_ed25519" "$HOME/.ssh/workers_ed25519"; do
+  [ -f "$key" ] || continue
+  for user in root openclaw; do
+    if ssh -i "$key" -o ConnectTimeout=20 -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no -o ChallengeResponseAuthentication=no -o BatchMode=yes -o StrictHostKeyChecking=accept-new "$user@$REELS_IP" "uname" &>/dev/null; then
+      SSH_KEY="$key"
+      SSH_USER="$user"
+      break 2
+    fi
+  done
 done
 
 if [ -z "$SSH_KEY" ]; then
   # Fallback
   SSH_KEY="$HOME/.ssh/openclaw_ed25519"
 fi
+SSH_USER="${SSH_USER:-root}"
 
 [ -f "$SSH_KEY" ] || die "SSH key missing at $SSH_KEY" 1
 
 log "reels-transcode-worker : $REELS_IP (ash)"
 log "workers-dispatcher     : $OPENCLAW_IP (fsn1)"
-log "using SSH key          : $SSH_KEY"
+log "using SSH key          : $SSH_KEY (user: $SSH_USER)"
 $DRY_RUN && log "DRY RUN — no files will be transferred or services restarted"
 
-ssh_cmd() { ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 "openclaw@$1" "${@:2}"; }
+ssh_cmd() { ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=25 "$SSH_USER@$1" "${@:2}"; }
 scp_file() {
   local src="$1" dst_host="$2" dst_path="$3"
   if $DRY_RUN; then
@@ -91,7 +109,7 @@ scp_file() {
     [ "$LOCAL_SHA" = "$REMOTE_SHA" ] && log "  (no change)" || log "  (would update)"
     return 0
   fi
-  scp -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new "$src" "openclaw@${dst_host}:${dst_path}" \
+  scp -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=25 "$src" "$SSH_USER@${dst_host}:${dst_path}" \
     || die "scp to $dst_host failed" 2
 }
 
@@ -134,4 +152,4 @@ fi
 
 $DRY_RUN && log "Dry run complete. Re-run without --dry-run to apply." && exit 0
 log "Workers deploy complete."
-log "Monitor: ssh -i ~/.ssh/openclaw_ed25519 openclaw@$REELS_IP 'sudo journalctl -u sp-yt-transcode -f'"
+log "Monitor: ssh -i $SSH_KEY $SSH_USER@$REELS_IP 'sudo journalctl -u sp-yt-transcode -f'"
