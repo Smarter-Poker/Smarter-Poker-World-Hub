@@ -162,9 +162,15 @@ export default async function handler(req, res) {
 
     try {
         // ── Eligibility: a HendonMob link is actually stored on the profile ──
+        // 2026-08-15 CHECK 13 fix: this selected hendonmob_url, hendon_mob_url,
+        // hendonmob_id and social_links — none of which exist on profiles — so
+        // the query 42703'd, profile came back null, and EVERY user got
+        // "Profile not found": the HendonMob-link diamond reward was
+        // unclaimable since it shipped. The real column is hendon_url
+        // (populated by the HendonMob sync alongside hendon_total_earnings etc).
         const { data: profile } = await supabase
             .from('profiles')
-            .select('hendonmob_url, hendon_mob_url, hendonmob_id, social_links')
+            .select('hendon_url')
             .eq('id', userId)
             .maybeSingle();
 
@@ -172,10 +178,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0, message: 'Profile not found' });
         }
 
-        const hendonmobValue = profile.hendonmob_url
-            || profile.hendon_mob_url
-            || profile.hendonmob_id
-            || (profile.social_links && (profile.social_links.hendonmob || profile.social_links.hendon_mob));
+        const hendonmobValue = profile.hendon_url;
 
         if (!hendonmobValue || String(hendonmobValue).trim().length < 5) {
             return res.status(200).json({

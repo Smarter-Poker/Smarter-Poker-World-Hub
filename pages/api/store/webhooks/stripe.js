@@ -698,23 +698,37 @@ async function handleRefund(charge) {
 }
 
 async function handleCommanderSubscriptionUpdate(subscription) {
-    const { id, status, metadata, current_period_start, current_period_end, cancel_at_period_end } = subscription;
+    const { id, status, metadata, current_period_end } = subscription;
     const venueId = metadata?.venue_id;
 
     if (!venueId) return;
+
+    // 2026-08-15 CHECK 13 fix: this UPDATE wrote current_period_start,
+    // current_period_end and cancel_at_period_end — none of which exist on
+    // commander_subscriptions — so the WHOLE update 42703'd and was swallowed
+    // by the warn below. Net effect: no Stripe subscription change (renewal,
+    // cancellation, tier change, past_due) EVER propagated to
+    // commander_subscriptions; venues kept whatever status/tier they started
+    // with. The real schema stores the period end as next_billing_date.
+    // current_period_start had no reader anywhere and is not persisted;
+    // cancel_at_period_end likewise has no DB reader (the settings UI reads it
+    // from the live Stripe object) — if a future UI needs it from the DB,
+    // that is an additive migration then, not a phantom write now.
+    const periodEnd = Number(current_period_end);
+    const updatePayload = {
+        status: status,
+        tier: metadata.tier || 'home_game',
+        updated_at: new Date().toISOString()
+    };
+    if (Number.isFinite(periodEnd) && periodEnd > 0) {
+        updatePayload.next_billing_date = new Date(periodEnd * 1000).toISOString();
+    }
 
     const { error: err_commander_subscriptions_0z48c } = await getSupabase()
 
       .from('commander_subscriptions')
 
-      .update({
-            status: status,
-            tier: metadata.tier || 'home_game',
-            current_period_start: new Date(current_period_start * 1000).toISOString(),
-            current_period_end: new Date(current_period_end * 1000).toISOString(),
-            cancel_at_period_end: cancel_at_period_end,
-            updated_at: new Date().toISOString()
-        })
+      .update(updatePayload)
         .eq('stripe_subscription_id', id);
 
     if (err_commander_subscriptions_0z48c) console.warn('[Supabase] Silent mutation failed in commander_subscriptions:', err_commander_subscriptions_0z48c.message);

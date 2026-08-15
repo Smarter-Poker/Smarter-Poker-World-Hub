@@ -161,7 +161,10 @@ export default function TaxReportPanel({ userId }) {
                     tax_year: selectedYear,
                     form_type: uploadMeta.form_type,
                     source_description: uploadMeta.source_description || null,
-                    amount: uploadMeta.amount ? parseFloat(uploadMeta.amount) : null,
+                    // 2026-08-15 CHECK 13 fix: this wrote `amount`, which does not exist
+                    // on w2g_forms (real column: gross_amount) — the insert 42703'd and
+                    // threw, so uploading a W-2G form NEVER worked.
+                    gross_amount: uploadMeta.amount ? parseFloat(uploadMeta.amount) : null,
                     file_url: publicUrl,
                     file_name: uploadFile.name,
                 });
@@ -486,9 +489,9 @@ export default function TaxReportPanel({ userId }) {
                                     </div>
                                 </div>
                                 <div style={styles.formCardRight}>
-                                    {form.amount && (
+                                    {form.gross_amount && (
                                         <span style={styles.formAmount}>
-                                            ${parseFloat(form.amount).toLocaleString()}
+                                            ${parseFloat(form.gross_amount).toLocaleString()}
                                         </span>
                                     )}
                                     <div style={{ display: 'flex', gap: 6 }}>
@@ -638,7 +641,7 @@ export default function TaxReportPanel({ userId }) {
                                         </span>
                                     </div>
                                     <span style={styles.w2gAmount}>
-                                        {form.amount ? `$${parseFloat(form.amount).toLocaleString()}` : '—'}
+                                        {form.gross_amount ? `$${parseFloat(form.gross_amount).toLocaleString()}` : '—'}
                                     </span>
                                 </div>
                             ))}
