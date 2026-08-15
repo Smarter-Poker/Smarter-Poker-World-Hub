@@ -491,14 +491,16 @@ function StoryViewer({ storyGroup, onClose, userId }) {
         }
     }, [managedYtError]);
 
+    const [videoDurationMs, setVideoDurationMs] = useState(null);
     useEffect(() => {
         setProgress(0);
         setYtError(null); // Clear error on story change
-        const duration = 5000;
+        setVideoDurationMs(null);
         const interval = 50;
         let elapsed = 0;
 
         timerRef.current = setInterval(() => {
+            const duration = (stories[currentIndex]?.media_type === 'video' && videoDurationMs) ? videoDurationMs : 5000;
             elapsed += interval;
             setProgress((elapsed / duration) * 100);
 
@@ -518,7 +520,20 @@ function StoryViewer({ storyGroup, onClose, userId }) {
     // Without onClose: parent re-renders with a new callback reference go unnoticed,
     // and the old callback fires (potential stale state or missing overlay teardown).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentIndex, stories.length, onClose]);
+    }, [currentIndex, stories.length, onClose, videoDurationMs]);
+
+    // 2026-08-15 audit: fn_view_story was only called for the FIRST story of
+    // a group — stories 2..N never recorded a view. Record each story as it
+    // is shown (deduped per viewer session).
+    const seenStoriesRef = useRef(new Set());
+    useEffect(() => {
+        const s = stories[currentIndex];
+        if (!s?.id || s.is_own || !userId) return;
+        if (seenStoriesRef.current.has(s.id)) return;
+        seenStoriesRef.current.add(s.id);
+        supabase.rpc('fn_view_story', { p_story_id: s.id, p_viewer_id: userId })
+            .then(({ error }) => { if (error) console.warn('[Stories] fn_view_story failed:', error.message); });
+    }, [currentIndex, stories, userId]);
 
 
 
@@ -641,6 +656,16 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                             src={currentStory.media_url}
                             autoPlay
                             muted
+                            playsInline
+                            onLoadedMetadata={(e) => {
+                                // Size the advance timer to the real video
+                                // length (capped 30s) instead of cutting every
+                                // story video at 5s.
+                                const d = e.currentTarget?.duration;
+                                if (Number.isFinite(d) && d > 0) {
+                                    setVideoDurationMs(Math.min(Math.round(d * 1000), 30000));
+                                }
+                            }}
                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
                     ) : (

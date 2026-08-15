@@ -212,10 +212,11 @@ export default async function handler(req, res) {
               return res.status(200).json({ success: true, data: data || [] });
           }
 
-          // List pages with filters
+          // List pages with filters (count:exact so `total` paginates —
+          // it was always null without it)
           let query = getSupabase()
               .from('social_pages')
-              .select('*');
+              .select('*', { count: 'exact' });
 
           const include_memberships = safeP(req.query.include_memberships) === 'true';
 
@@ -471,7 +472,13 @@ export default async function handler(req, res) {
                       || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
                   fetch(`${baseUrl}/api/social/geocode-locations`, {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: {
+                          'Content-Type': 'application/json',
+                          // geocode-locations requires auth (BUG #282) —
+                          // forward the creator's token or every new page
+                          // silently loses its map pin.
+                          ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+                      },
                       body: JSON.stringify({ page_id: data.id, locations: [locStr] }),
                   }).then(r => {
                       if (!r.ok) {
@@ -578,7 +585,15 @@ export default async function handler(req, res) {
           const createAutoPost = (postType, mediaUrl, location) => {
               fetch(`${baseUrl}/api/social/auto-post`, {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET || '' },
+                  headers: {
+                      'Content-Type': 'application/json',
+                      // 2026-08-15 audit: the x-internal-secret path is
+                      // restricted to BOT_ACCOUNT_ID and 403'd every
+                      // owner-attributed auto-post. The caller here IS the
+                      // page owner — forward their token so auto-post's
+                      // authenticated branch attributes the post correctly.
+                      ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+                  },
                   body: JSON.stringify({
                       user_id: owner_id,
                       post_type: postType,

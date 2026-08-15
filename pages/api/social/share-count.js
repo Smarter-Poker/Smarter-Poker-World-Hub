@@ -10,7 +10,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * SECURITY: JWT auth required + rate limiting.
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';

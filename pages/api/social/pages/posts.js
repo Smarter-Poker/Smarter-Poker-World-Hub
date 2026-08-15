@@ -53,11 +53,15 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'page_id or author_id required' });
           }
 
+          // Service role bypasses RLS: only public posts are served from
+          // this unauthenticated endpoint (visibility is honoured on write
+          // but was never honoured on read — private/home-game page posts
+          // were enumerable by author_id).
           let query = getSupabase()
               .from('social_page_posts')
               .select('*')
               .eq('is_approved', true)
-                  .limit(100);
+              .or('visibility.eq.public,visibility.is.null');
 
           if (page_id) query = query.eq('page_id', page_id);
           if (author_id) query = query.eq('author_id', author_id);

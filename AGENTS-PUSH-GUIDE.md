@@ -1,6 +1,6 @@
 # How agents push to Smarter-Poker repos (READ THIS FIRST)
 
-Last verified: 2026-08-14
+Last verified: 2026-08-15
 
 ## TL;DR — which auth works
 
@@ -40,14 +40,21 @@ race resolved cleanly only by luck). Before shipping ANY change:
    while the Claude desktop app is open — it drops and reconnects; if tools
    vanish mid-task, wait for reconnect rather than switching to a riskier path.
 
-2. **Large files (>~250 KB) — GitHub git-data API.**
-   `push_files` / `create_or_update_file` send the whole file inline, and the
-   agent's own tool-call output cap (~85–100k tokens) makes a 300 KB file
-   impossible to emit in one call. Instead build the commit from git objects:
-   `POST /git/blobs` → `POST /git/trees` (base_tree + changed entries) →
-   `POST /git/commits` → `PATCH /git/refs/heads/<branch>`. Verify the blob SHA
-   with `git hash-object` before committing. (This is how `TablePage.tsx`,
-   ~300 KB, was shipped on 2026-08-06.)
+2. **Large files — the agent-patch pipeline (added 2026-08-15).**
+   `push_files` / `create_or_update_file` cap out around ~65 KB per file, which
+   blocked every edit to `TablePage.tsx` (307 KB) for weeks. The Club Arena repo
+   now has `.github/workflows/agent-apply-patch.yml`: create a branch named
+   `patch/<name>` from main, push a **unified diff** to
+   `.agent/patches/<name>.patch` (a few KB regardless of target size), and the
+   runner applies it with `git apply --index`, deletes the patch file, and
+   commits the applied result back to the branch — then open a normal PR.
+   Generate the diff mechanically (stage the file via the device bridge,
+   `git diff --no-index` or a scratch repo in the cloud container) and verify
+   your base blob SHA matches main first; a stale base makes `git apply` fail
+   loudly (red workflow run) instead of corrupting anything. Verified live
+   2026-08-15: a 1.4 KB diff edited the 307 KB TablePage.tsx, applied in 13
+   seconds, merged as CA PR #49. To enable the same pipeline in another repo,
+   copy the workflow file — the bridge token has `workflow` scope.
 
 3. **The cloud session's git proxy is per-repo gated.** From the cloud container,
    `git push` / `api.github.com/repos/...` return `403 "not enabled for this
@@ -56,13 +63,14 @@ race resolved cleanly only by luck). Before shipping ANY change:
    endpoint is NOT a valid token test. To push directly from the cloud, add the
    repo to the session's GitHub sources (add_repo, access:"push").
 
-4. **Compute-with-network fallback (only if 1–3 are blocked AND a valid PAT
-   exists).** A short-lived Vercel serverless function can call the GitHub
-   git-data API with a token passed **in the request body** (never baked into
-   source), then be deleted. Used 2026-08-06 (GitHub Actions outage) and
-   2026-08-07/08 (PRs #576/#577). A generic string-replace committer of this
-   shape lives in the `sp-wh-ops` Vercel project (delete when no longer needed;
-   it holds no secrets). This path is DEAD while no valid PAT exists.
+4. **Compute-with-network fallback — RETIRED.** The short-lived Vercel
+   string-replace committer functions (`sp-wh-ops`, `sp-ops-oneshot`) were
+   **deleted on 2026-08-15** per Dan (they were dead anyway without a valid
+   PAT, and the patch pipeline in path 2 covers their use case with no token
+   at all). If some future outage kills both the bridge and Actions, the
+   recipe was: a serverless function that takes `{token, owner, repo, edits}`
+   in the request body (token NEVER baked into source), applies string
+   replacements via the git-data API, and gets deleted afterward.
 
 ## Merge quirks seen in production
 

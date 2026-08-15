@@ -69,11 +69,28 @@ export default async function handler(req, res) {
   // BUG-FIX-DEEP-AUDIT-R3 M-9: co-host detection via guest invite code.
   // Only valid if (a) the code matches the stream's, and (b) the action
   // is in the comment-mod set. Ban/unban require broadcaster.
-  const isCoHost =
+  let isCoHost =
     !isBroadcaster &&
     COMMENT_MOD_ACTIONS.has(action) &&
     guest_invite_code &&
     stream.guest_invite_code === guest_invite_code;
+
+  // 2026-08-15 audit: a co-host's moderation authority must not outlive their
+  // participation. Reject if the stream is over, if they've been revoked, or
+  // if they've been banned — the old check was pure code-equality, so a
+  // banned/removed co-host kept full comment-moderation forever (and the code
+  // never rotated).
+  if (isCoHost) {
+    if (stream.status !== 'live') {
+      isCoHost = false;
+    } else {
+      const [{ data: chBan }, { data: chRev }] = await Promise.all([
+        supabase.from('live_bans').select('id').eq('stream_id', stream_id).eq('banned_user_id', user.id).maybeSingle(),
+        supabase.from('live_guest_revocations').select('id').eq('stream_id', stream_id).eq('user_id', user.id).maybeSingle(),
+      ]);
+      if (chBan || chRev) isCoHost = false;
+    }
+  }
 
   if (!isBroadcaster && !isCoHost) {
     return res.status(403).json({
@@ -288,9 +305,75 @@ export default async function handler(req, res) {
         return res.json({ success: true, action: 'unban_user' });
       }
 
+      case 'revoke_guest': {
+        // 2026-08-15 audit: remove ONE co-host mid-stream without banning them
+        // from watching. Broadcaster-only. Records a revocation (so
+        // auto-reconnect can't re-mint a publish token) and evicts every
+        // LiveKit identity for that user; they may rejoin as a plain viewer.
+        if (!isBroadcaster) return res.status(403).json({ error: 'Only the broadcaster can remove a guest' });
+        if (!target_user_id || !/^[0-9a-f-]{36}$/i.test(String(target_user_id))) {
+          return res.status(400).json({ error: 'valid target_user_id required' });
+        }
+        const { error: revErr } = await supabase
+          .from('live_guest_revocations')
+          .upsert({ stream_id, user_id: target_user_id, revoked_by: user.id }, { onConflict: 'stream_id,user_id' });
+        if (revErr) throw new Error(revErr.message);
+
+        let kicked = 0, kickStatus = 'attempted', kickError = null;
+        const room = stream.livekit_room || stream.id;
+        try {
+          const apiKey = process.env.LIVEKIT_API_KEY?.trim();
+          const apiSecret = process.env.LIVEKIT_API_SECRET?.trim();
+          const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL?.trim();
+          if (!apiKey || !apiSecret || !livekitUrl) {
+            kickStatus = 'skipped'; kickError = 'LiveKit not configured';
+          } else {
+            const httpUrl = livekitUrl.replace(/^wss:\/\//, 'https://').replace(/^ws:\/\//, 'http://');
+            const { RoomServiceClient } = await import('livekit-server-sdk');
+            const rs = new RoomServiceClient(httpUrl, apiKey, apiSecret);
+            const roomStr = String(room);
+            const idStr = String(target_user_id);
+            let participants = [];
+            try { participants = await rs.listParticipants(roomStr); }
+            catch (e) { const m = e?.message || String(e); kickStatus = (m.includes('not_found') || m.includes('404')) ? 'skipped' : 'failed'; kickError = m.slice(0, 200); }
+            if (kickStatus === 'attempted') {
+              const matches = (participants || []).filter((p) => {
+                const id = p?.identity || '';
+                return id === idStr || id.startsWith(`${idStr}:`);
+              });
+              for (const p of matches) {
+                try { await rs.removeParticipant(roomStr, p.identity); kicked += 1; }
+                catch (e) { const m = e?.message || String(e); if (!m.includes('not_found') && !m.includes('404')) kickError = m.slice(0, 200); }
+              }
+              kickStatus = kickError ? 'failed' : (kicked > 0 ? 'kicked' : 'not_in_room');
+            }
+          }
+        } catch (e) { kickStatus = 'failed'; kickError = (e?.message || String(e)).slice(0, 200); }
+        return res.json({ success: true, action: 'revoke_guest', kicked, kick_status: kickStatus, kick_error: kickError });
+      }
+
+      case 'rotate_invite': {
+        // 2026-08-15 audit: invalidate ALL outstanding invite codes for this
+        // stream at once (broadcaster-only). Returns the fresh code so the
+        // client can keep inviting with the new one.
+        if (!isBroadcaster) return res.status(403).json({ error: 'Only the broadcaster can rotate the invite code' });
+        // Use a user-scoped client so fn_rotate_guest_invite_code's auth.uid()
+        // check binds to the caller.
+        const { getServerUserWithFallback: _gs } = await import('../../../src/lib/serverAuth');
+        const { createClient: _cc } = await import('../../../src/lib/supabaseServerClient');
+        const userClient = _cc(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          { global: { headers: { Authorization: req.headers.authorization || '' } } }
+        );
+        const { data: newCode, error: rotErr } = await userClient.rpc('fn_rotate_guest_invite_code', { p_stream_id: stream_id });
+        if (rotErr) throw new Error(rotErr.message);
+        return res.json({ success: true, action: 'rotate_invite', invite_code: newCode });
+      }
+
       default:
         return res.status(400).json({
-          error: `Unknown action: ${action}. Use: delete_comment, pin_comment, unpin_comment, ban_user, unban_user`,
+          error: `Unknown action: ${action}. Use: delete_comment, pin_comment, unpin_comment, ban_user, unban_user, revoke_guest, rotate_invite`,
         });
     }
   } catch (err) {

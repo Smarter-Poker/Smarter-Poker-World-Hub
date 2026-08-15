@@ -109,9 +109,17 @@ export function EndStreamModal({
     vidEl.onseeked = async () => {
       clearTimeout(safetyRevoke);
       try {
+        // 2026-08-15 audit: if the first frame hasn't decoded, videoWidth is 0;
+        // drawing it produced a solid-black poster. Bail and let the broadcaster
+        // keep the client-supplied thumbnail instead of shipping a black frame.
+        if (!vidEl.videoWidth || !vidEl.videoHeight) {
+          console.warn('[EndStreamModal] recording frame not ready — skipping auto-thumbnail');
+          try { URL.revokeObjectURL(blobUrl); } catch (_) {}
+          return;
+        }
         const canvas = document.createElement('canvas');
-        canvas.width = vidEl.videoWidth || 640;
-        canvas.height = vidEl.videoHeight || 360;
+        canvas.width = vidEl.videoWidth;
+        canvas.height = vidEl.videoHeight;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(vidEl, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(
@@ -329,7 +337,9 @@ export function EndStreamModal({
         .update({
           video_url: videoUrl,
           // BUG FIX (ESM-2): use resolvedThumbUrl (may be auto-extracted from blob)
-          thumbnail_url: resolvedThumbUrl || thumbnailUrl || null,
+          // 2026-08-15 audit: only write a thumbnail when we actually have one —
+          // an explicit null here clobbered a poster the extraction just persisted.
+          ...(resolvedThumbUrl || thumbnailUrl ? { thumbnail_url: resolvedThumbUrl || thumbnailUrl } : {}),
         })
         .eq('id', streamId);
       if (postUpdateErr) throw postUpdateErr;
@@ -379,7 +389,9 @@ export function EndStreamModal({
         .update({
           video_url: videoUrl,
           // BUG FIX (ESM-2): use resolvedThumbUrl (may be auto-extracted from blob)
-          thumbnail_url: resolvedThumbUrl || thumbnailUrl || null,
+          // 2026-08-15 audit: only write a thumbnail when we actually have one —
+          // an explicit null here clobbered a poster the extraction just persisted.
+          ...(resolvedThumbUrl || thumbnailUrl ? { thumbnail_url: resolvedThumbUrl || thumbnailUrl } : {}),
         })
         .eq('id', streamId);
       if (saveUpdateErr) throw saveUpdateErr;
@@ -406,7 +418,7 @@ export function EndStreamModal({
   };
 
   const handleDelete = async () => {
-    if (!confirm('Delete this recording? This cannot be undone.')) return;
+    // (the caller already confirms — no double prompt)
 
     try {
       await callEndStream('delete');
@@ -628,9 +640,45 @@ export function EndStreamModal({
             Save to Lives
           </button>
 
+          {/* Keep for later — always enabled. Without this, a failed
+              recording (Safari codec gap / finalize timeout) left Delete as
+              the ONLY working button (2026-08-15 audit). */}
+          <button
+            onClick={() => {
+              // 2026-08-15 final sweep: the recording is never uploaded on
+              // this path — say so, and confirm before throwing it away.
+              if (
+                videoBlob &&
+                typeof window !== 'undefined' &&
+                !window.confirm('Close without saving? Your recording will be discarded.')
+              )
+                return;
+              onClose?.(null);
+            }}
+            disabled={isUploading}
+            style={{
+              width: '100%',
+              padding: '12px 24px',
+              borderRadius: 8,
+              border: `1px solid ${C.border}`,
+              background: 'transparent',
+              color: C.text,
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: isUploading ? 'not-allowed' : 'pointer',
+              opacity: isUploading ? 0.6 : 1,
+            }}
+          >
+            {videoBlob ? 'Discard recording & close' : 'Close'}
+          </button>
+
           {/* Delete - Destructive */}
           <button
-            onClick={handleDelete}
+            onClick={() => {
+              if (typeof window !== 'undefined'
+                  && !window.confirm('Delete this stream? The feed post and the stream record will be permanently removed.')) return;
+              handleDelete();
+            }}
             disabled={isUploading}
             style={{
               width: '100%',

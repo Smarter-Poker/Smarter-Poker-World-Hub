@@ -4072,11 +4072,10 @@ export function ReelsFeedCarousel() {
         { event: 'INSERT', schema: 'public', table: 'social_reels' },
         debouncedReload
       )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'social_posts' },
-        debouncedReload
-      )
+      // (social_posts INSERT listener removed 2026-08-15: loadReels reads
+      // only social_reels since M7.1, and the video→reel mirror trigger
+      // already emits a social_reels INSERT — every text post platform-wide
+      // was costing a full 50-row reels refetch.)
       // M7.4: surgical UPDATE handler for worker conversion broadcasts.
       // Only acts when video_url actually changed; ignores like/comment UPDATEs.
       .on(

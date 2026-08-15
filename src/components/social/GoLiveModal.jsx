@@ -261,6 +261,11 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
 
   useEffect(() => {
     if (!isOpen) return;
+    // 2026-08-15 final sweep: reset loading on every open (a re-open showed
+    // the stale list with no spinner) and guard against setState after the
+    // modal closes mid-fetch.
+    let cancelled = false;
+    setLoading(true);
     const fetchFriends = async () => {
       try {
         const { getAccessToken } = await import('../../lib/authUtils');
@@ -269,11 +274,14 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const json = await res.json();
-        if (json.success) setFriends(json.data?.friends || []);
+        if (!cancelled && json.success) setFriends(json.data?.friends || []);
       } catch (err) {}
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
     fetchFriends();
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen]);
 
   const sendInvite = async (friendId) => {
@@ -472,7 +480,6 @@ export function GoLiveModal({
   const [showControls, setShowControls] = useState(false); // tap-to-reveal
   const [comments, setComments] = useState([]);
   const [commentInput, setCommentInput] = useState('');
-  const [controlsTimer, setControlsTimer] = useState(null);
   // New v2 state
   const [isReconnecting, setIsReconnecting] = useState(false);
   // STREAM-BUG-6: after 60s of failed reconnects, show a popup with an
@@ -542,6 +549,12 @@ export function GoLiveModal({
   const [thumbnailUrl, setThumbnailUrl] = useState(null);
 
   const [recordedBlob, setRecordedBlob] = useState(null);
+  // 2026-08-15 final sweep: hasPreview flips true once a camera stream is
+  // actually attached. streamRef is a ref — assigning it doesn't re-render,
+  // and on the cached fast-path setStage('preview')/setError('') are no-op
+  // state writes, so the "Waiting for camera permission..." overlay could
+  // stay up forever over a perfectly working preview.
+  const [hasPreview, setHasPreview] = useState(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -569,6 +582,19 @@ export function GoLiveModal({
   // Bug20: canvas refs for applying beauty filter to the outgoing LiveKit stream
   const beautyCanvasRef = useRef(null);
   const beautyAnimFrameRef = useRef(null);
+  const beautyHiddenTimerRef = useRef(null); // hidden-tab draw timer (2026-08-15)
+  // 2026-08-15 final sweep: keep the beauty canvas.captureStream() so its
+  // track can be stopped on cleanup (it was never stopped — leaked a live
+  // 30fps canvas capture pipeline after every broadcast).
+  const beautyCanvasStreamRef = useRef(null);
+  // 2026-08-15 final sweep: wall-clock anchor for the elapsed timer.
+  // setInterval is throttled in background tabs, so a p+1 counter drifts
+  // minutes behind on long streams; compute from Date.now() instead.
+  const streamStartRef = useRef(null);
+  // 2026-08-15 final sweep: running byte total of the in-memory recording
+  // (chunks live in RAM — an uncapped 2.5Mbps recording OOM-kills the tab
+  // at roughly the 1-hour mark on mobile).
+  const recordedBytesRef = useRef(0);
   // BUG-FIX-9: guest (co-host) realtime viewer count channel.
   // The host heartbeat updates live_streams.viewer_count in the DB; guests
   // subscribe to this Postgres channel so their viewer counter stays in sync.
@@ -592,9 +618,14 @@ export function GoLiveModal({
           .select('id, title, started_at')
           .eq('broadcaster_id', user.id)
           .eq('status', 'live')
-          .maybeSingle()
-          .then(({ data }) => {
-            if (data) setExistingLiveStream(data);
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .then(({ data, error }) => {
+            // limit(1) not maybeSingle(): two orphaned live rows made
+            // maybeSingle() error out and the reconnect banner never showed
+            // for exactly the user who needed it most.
+            if (error) console.warn('[GoLive] existing-stream check failed:', error.message);
+            if (data?.[0]) setExistingLiveStream(data[0]);
             setCheckingExistingStream(false);
           })
           .catch(() => setCheckingExistingStream(false));
@@ -602,6 +633,9 @@ export function GoLiveModal({
     }
     return () => {
       mediaAccessMountedRef.current = false;
+      // 2026-08-15 audit: reset the go-live guard so closing the modal mid-
+      // countdown doesn't leave the button stuck on "Starting…" forever.
+      setIsStarting(false);
       liveStreamService.onViewerCountChange = null;
       liveStreamService.onParticipantsUpdate = null; // FEATURE 6
       // BUG-FIX-LIVE-2: do NOT stop streamRef tracks here — they belong
@@ -612,6 +646,10 @@ export function GoLiveModal({
       // page-level layout) or via releaseMediaStream({force:true}).
       if (timerRef.current) clearInterval(timerRef.current);
       if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
+      // 2026-08-15 final sweep: drop recorded chunks on force-close — they
+      // otherwise sat in RAM until the next broadcast (or forever).
+      recordedChunksRef.current = [];
+      recordedBytesRef.current = 0;
       if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
       if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
       // BUG FIX (GLM-1): cancel any in-flight giftFlash timer on modal close
@@ -695,10 +733,23 @@ export function GoLiveModal({
         }
         ctx.filter = 'brightness(1.06) contrast(0.92) saturate(1.12) blur(0.4px)';
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        beautyAnimFrameRef.current = requestAnimationFrame(draw);
+        // rAF stops in hidden tabs, freezing the published canvas track for
+        // every viewer while audio keeps rolling. Fall back to a 33ms timer
+        // whenever the document is hidden (2026-08-15 audit fix).
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+          beautyAnimFrameRef.current = null;
+          beautyHiddenTimerRef.current = setTimeout(draw, 33);
+        } else {
+          if (beautyHiddenTimerRef.current) {
+            clearTimeout(beautyHiddenTimerRef.current);
+            beautyHiddenTimerRef.current = null;
+          }
+          beautyAnimFrameRef.current = requestAnimationFrame(draw);
+        }
       };
       draw();
       const canvasStream = canvas.captureStream(30);
+      beautyCanvasStreamRef.current = canvasStream; // 2026-08-15 final sweep
       const newVideoTrack = canvasStream.getVideoTracks()[0];
       if (newVideoTrack && liveStreamService.room) {
         try {
@@ -714,6 +765,12 @@ export function GoLiveModal({
         beautyAnimFrameRef.current = null;
       }
       beautyCanvasRef.current = null;
+      // 2026-08-15 final sweep: stop the canvas capture track — it was never
+      // stopped, leaking a live 30fps capture pipeline per broadcast.
+      if (beautyCanvasStreamRef.current) {
+        try { beautyCanvasStreamRef.current.getTracks().forEach((t) => t.stop()); } catch (_) {}
+        beautyCanvasStreamRef.current = null;
+      }
       if (liveStreamService.localStream && liveStreamService.room) {
         const originalTrack = liveStreamService.localStream.getVideoTracks()[0];
         if (originalTrack) {
@@ -736,22 +793,49 @@ export function GoLiveModal({
         cancelAnimationFrame(beautyAnimFrameRef.current);
         beautyAnimFrameRef.current = null;
       }
+      if (beautyHiddenTimerRef.current) {
+        clearTimeout(beautyHiddenTimerRef.current);
+        beautyHiddenTimerRef.current = null;
+      }
       beautyCanvasRef.current = null;
+      // 2026-08-15 final sweep: stop the canvas capture track on effect
+      // teardown too (stage left 'live' without stopBeautyCanvas running).
+      if (beautyCanvasStreamRef.current) {
+        try { beautyCanvasStreamRef.current.getTracks().forEach((t) => t.stop()); } catch (_) {}
+        beautyCanvasStreamRef.current = null;
+      }
     };
   }, [beautyMode, stage]);
 
-  // #14: beforeunload — end broadcast if user closes tab/navigates away while live
+  // #14: warn on tab close while live; do the real teardown on pagehide.
+  // 2026-08-15 final sweep: endBroadcast() used to fire inside beforeunload
+  // itself — which fires even when the user CANCELS the leave prompt and
+  // stays on the page, killing a healthy broadcast. pagehide only fires
+  // when the page is genuinely being torn down. Guests leave (their own
+  // disconnect) rather than force-ending the host's stream.
   useEffect(() => {
     if (stage !== 'live' || !streamId) return;
     const handleBeforeUnload = (e) => {
-      // Fire-and-forget — navigator.sendBeacon can't do POST with JSON,
-      // so we use the sync LiveKit disconnect + DB update
-      liveStreamService.endBroadcast().catch(() => {});
+      e.preventDefault();
       e.returnValue = 'Your live stream is still running. Are you sure you want to leave?';
     };
+    const handlePageHide = () => {
+      try {
+        if (guestMode) {
+          liveStreamService.isManualDisconnect = true;
+          liveStreamService.leaveStream().catch(() => {});
+        } else {
+          liveStreamService.endBroadcast().catch(() => {});
+        }
+      } catch (_) {}
+    };
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [stage, streamId]);
+    window.addEventListener('pagehide', handlePageHide);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [stage, streamId, guestMode]);
 
   // Subscribe to viewer comments when stream goes live
   useEffect(() => {
@@ -1035,6 +1119,7 @@ export function GoLiveModal({
         }
         setStage('preview');
         setError('');
+        setHasPreview(true); // 2026-08-15 final sweep
         detectAndApplyZoom(cached); // BUG-HUNT-1
         return;
       }
@@ -1053,6 +1138,7 @@ export function GoLiveModal({
       }
       setStage('preview');
       setError('');
+      setHasPreview(true); // 2026-08-15 final sweep
       detectAndApplyZoom(stream); // BUG-HUNT-1
 
       // BUG-FIX-1: Black-frame watchdog.
@@ -1090,6 +1176,11 @@ export function GoLiveModal({
     } catch (err) {
       if (mediaAccessMountedRef.current) {
         setError('Camera access denied. Please allow camera and microphone permissions.');
+        // 2026-08-15 final sweep: route to the dedicated permission screen —
+        // it has an explicit retry button. Previously stage stayed 'preview'
+        // (this screen was dead code) and the user saw only an inline error
+        // with no way to re-trigger the permission prompt.
+        setStage('setup');
       }
     }
   };
@@ -1159,7 +1250,10 @@ export function GoLiveModal({
     // brief regional hiccups; without retry, a one-off blip ships the
     // stream thumbnail-less. Backoff 250ms, 500ms. We do NOT retry on
     // 4xx (auth/permission/MIME-disallow) — those won't fix themselves.
-    const ext = file.name.split('.').pop();
+    // 2026-08-15 audit: derive extension from the validated MIME, not the
+    // filename (extensionless / multi-dot / HEIC names produced wrong keys).
+    const EXT_BY_MIME = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+    const ext = EXT_BY_MIME[file.type] || 'jpg';
     const path = `live-thumbnails/${user.id}/${Date.now()}.${ext}`;
     const MAX_ATTEMPTS = 3;
     let lastErr = null;
@@ -1201,6 +1295,28 @@ export function GoLiveModal({
     if (guestMode) return;
     if (!streamRef.current) return;
     recordedChunksRef.current = [];
+    recordedBytesRef.current = 0;
+    // 2026-08-15 final sweep: chunks accumulate in RAM. At 2.5Mbps an
+    // uncapped recording passes 1GB around the 1-hour mark and iOS Safari
+    // OOM-kills the tab — taking the live broadcast down with it. Cap the
+    // recording (~28min of video); the LIVE STREAM ITSELF continues.
+    const MAX_RECORDING_BYTES = 512 * 1024 * 1024;
+    let capNotified = false;
+    const makeChunkHandler = (rec) => (e) => {
+      if (e.data.size > 0) {
+        recordedChunksRef.current.push(e.data);
+        recordedBytesRef.current += e.data.size;
+        if (recordedBytesRef.current >= MAX_RECORDING_BYTES && rec.state === 'recording') {
+          try { rec.stop(); } catch (_) {}
+          if (!capNotified) {
+            capNotified = true;
+            try {
+              toast.info('Recording reached its size limit — the first part of your stream is saved. Your live broadcast continues.');
+            } catch (_) {}
+          }
+        }
+      }
+    };
     const types = [
       'video/webm;codecs=vp9,opus',
       'video/webm;codecs=vp8,opus',
@@ -1237,10 +1353,10 @@ export function GoLiveModal({
         return;
       }
       const mr2 = new MediaRecorder(fallback, { mimeType: mime, videoBitsPerSecond: 2500000 });
-      mr2.ondataavailable = (e) => {
-        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
-      };
-      mr2.onstop = () => setRecordedBlob(new Blob(recordedChunksRef.current, { type: mime }));
+      mr2.ondataavailable = makeChunkHandler(mr2);
+      // 2026-08-15 final sweep: no onstop blob here — finalizeRecording in
+      // handleEndStream builds the blob from chunks. The old onstop built a
+      // SECOND full-size Blob in parallel (double memory at the worst moment).
       mr2.start(1000);
       mediaRecorderRef.current = mr2;
       return;
@@ -1249,10 +1365,8 @@ export function GoLiveModal({
       mimeType: mime,
       videoBitsPerSecond: 2500000,
     });
-    mr.ondataavailable = (e) => {
-      if (e.data.size > 0) recordedChunksRef.current.push(e.data);
-    };
-    mr.onstop = () => setRecordedBlob(new Blob(recordedChunksRef.current, { type: mime }));
+    mr.ondataavailable = makeChunkHandler(mr);
+    // 2026-08-15 final sweep: no onstop blob — see fallback recorder note.
     mr.start(1000);
     mediaRecorderRef.current = mr;
   };
@@ -1275,34 +1389,42 @@ export function GoLiveModal({
     setStage('countdown');
     setCountdown(5);
 
-    // Upload thumbnail if provided, else auto-capture from video and upload
-    let thumbUrl = null;
-    if (thumbnailFile) {
-      thumbUrl = await uploadThumbnail(thumbnailFile);
-    } else if (user?.id) {
-      // FIX: captureThumbnail() returns a data URL (can be several MB as base64).
-      // Storing raw data URLs in a DB text column causes silent insert failures
-      // on row size limits. Convert to Blob and upload to storage instead.
-      const dataUrl = captureThumbnail();
-      if (dataUrl) {
-        try {
-          const res = await fetch(dataUrl);
-          const blob = await res.blob();
-          const autoFile = new File([blob], 'auto-thumb.jpg', { type: 'image/jpeg' });
-          thumbUrl = await uploadThumbnail(autoFile);
-          if (!thumbUrl) console.warn('[GoLive] auto-thumbnail upload returned null');
-        } catch (thumbErr) {
-          console.warn('[GoLive] auto-thumbnail failed:', thumbErr?.message || thumbErr);
-          thumbUrl = null;
+    // 2026-08-15 final sweep: upload the thumbnail IN PARALLEL with the
+    // countdown. A slow upload used to run BEFORE the countdown started,
+    // freezing the UI on "Get Ready 5" for seconds with no feedback.
+    const thumbPromise = (async () => {
+      let thumbUrl = null;
+      if (thumbnailFile) {
+        thumbUrl = await uploadThumbnail(thumbnailFile);
+        // 2026-08-15 audit: if the picked cover failed (HEIC/oversized/network),
+        // don't go live thumbnail-less — fall through to an auto-captured frame.
+        if (!thumbUrl && !guestMode) {
+          try { toast.info('Could not use that image — using a camera frame instead'); } catch (_) {}
         }
-      } else {
-        console.warn(
-          '[GoLive] captureThumbnail returned null — videoWidth:',
-          videoRef.current?.videoWidth
-        );
       }
-    }
-    setThumbnailUrl(thumbUrl);
+      if (!thumbUrl && !guestMode && user?.id) {
+        // captureThumbnail() returns a data URL; convert to a Blob and upload.
+        const dataUrl = captureThumbnail();
+        if (dataUrl) {
+          try {
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            const autoFile = new File([blob], 'auto-thumb.jpg', { type: 'image/jpeg' });
+            thumbUrl = await uploadThumbnail(autoFile);
+            if (!thumbUrl) console.warn('[GoLive] auto-thumbnail upload returned null');
+          } catch (thumbErr) {
+            console.warn('[GoLive] auto-thumbnail failed:', thumbErr?.message || thumbErr);
+            thumbUrl = null;
+          }
+        } else {
+          console.warn(
+            '[GoLive] captureThumbnail returned null — videoWidth:',
+            videoRef.current?.videoWidth
+          );
+        }
+      }
+      return thumbUrl;
+    })();
 
     // 5-second countdown
     let count = 5;
@@ -1313,6 +1435,11 @@ export function GoLiveModal({
       if (count <= 0) {
         clearInterval(cdInterval);
         timerRef._cdInterval = null;
+        let thumbUrl = null;
+        try {
+          thumbUrl = await thumbPromise;
+        } catch (_) {}
+        setThumbnailUrl(thumbUrl);
         await startBroadcast(thumbUrl);
       }
     }, 1000);
@@ -1468,6 +1595,7 @@ export function GoLiveModal({
 
       setStage('live');
       setElapsedTime(0);
+      streamStartRef.current = Date.now(); // 2026-08-15 final sweep
       startRecording();
 
       // BUG-FIX-9: guest viewer count realtime subscription.
@@ -1542,7 +1670,14 @@ export function GoLiveModal({
         console.warn('[GoLive] preview capture init failed:', previewErr?.message || previewErr);
       }
 
-      timerRef.current = setInterval(() => setElapsedTime((p) => p + 1), 1000);
+      // 2026-08-15 final sweep: wall-clock elapsed. setInterval is throttled
+      // to ~1/min in background tabs, so a p+1 counter drifted far behind
+      // real duration whenever the broadcaster backgrounded the app.
+      timerRef.current = setInterval(() => {
+        if (streamStartRef.current) {
+          setElapsedTime(Math.max(0, Math.floor((Date.now() - streamStartRef.current) / 1000)));
+        }
+      }, 1000);
       // BUG-FIX-LIVE-1: play chime via the AudioContext armed in
       // handleGoLive(). toast.success below ALSO calls toastStore's
       // _playSuccessChime, but that creates a fresh AudioContext on
@@ -1648,7 +1783,20 @@ export function GoLiveModal({
     const finalizeRecording = () =>
       new Promise((resolve) => {
         const mr = mediaRecorderRef.current;
-        if (!mr || mr.state === 'inactive') return resolve(null);
+        if (!mr || mr.state === 'inactive') {
+          // 2026-08-15 final sweep: the recorder may have been stopped early
+          // by the size cap — salvage the chunks instead of returning null
+          // (which showed the streamer "no recording" for a stream that DID
+          // record its first ~28 minutes).
+          if (recordedChunksRef.current.length) {
+            try {
+              return resolve(
+                new Blob(recordedChunksRef.current, { type: mr?.mimeType || 'video/webm' })
+              );
+            } catch (_) {}
+          }
+          return resolve(null);
+        }
         const mime = mr.mimeType || 'video/webm';
         let settled = false;
         const onStopOnce = () => {
@@ -1757,7 +1905,9 @@ export function GoLiveModal({
         setZoomSliderOpen(false); // close the slider since the range changed
       }
     } catch (err) {
-      setError('Camera flip failed: ' + err.message);
+      // 2026-08-15 final sweep: toast, not setError — the inline error div
+      // only renders in the preview stage, so live-stage failures were mute.
+      try { toast.error('Camera flip failed: ' + (err?.message || 'unknown')); } catch (_) {}
     } finally {
       setIsCameraFlipping(false);
     }
@@ -1804,11 +1954,27 @@ export function GoLiveModal({
       };
       liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
       liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps);
+      // 2026-08-15 final sweep: install the external-end handler too — a
+      // reconnected broadcaster whose stream was force-ended by the reaper
+      // previously got no overlay and kept "broadcasting" into a dead room.
+      liveStreamService.onStreamEndedExternally = () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        setStreamEndedExternally(true);
+      };
       // Re-join the existing LiveKit room
       const reconnectStreamId = existingLiveStream.id;
       const { token, url } = await liveStreamService._getToken(reconnectStreamId, true);
       if (liveStreamService.room) {
-        liveStreamService.room.disconnect().catch(() => {});
+        // 2026-08-15 final sweep: latch manual-disconnect BEFORE dropping the
+        // old room — its async Disconnected event otherwise fires the
+        // reconnect ladder against the connection we're replacing.
+        liveStreamService.isManualDisconnect = true;
+        try {
+          await liveStreamService.room.disconnect();
+        } catch (_) {}
         liveStreamService.room = null;
       }
       liveStreamService.currentStreamId = reconnectStreamId;
@@ -1819,10 +1985,31 @@ export function GoLiveModal({
       // BUG-FIX-GLM-HEARTBEAT-RESTART: restart heartbeat so stale-cleanup cron
       // doesn't kill the recovered stream.
       liveStreamService._startBroadcasterHeartbeat(reconnectStreamId);
+      // 2026-08-15 final sweep: re-subscribe the realtime viewer/status
+      // channel (gift toasts, external-end detection) — startBroadcast does
+      // this but the manual reconnect path never did.
+      liveStreamService._subscribeToViewers(reconnectStreamId);
+      // 2026-08-15 final sweep: re-fetch the guest invite code so Share /
+      // co-host invites work after reconnect (guestInviteCode state was null,
+      // silently downgrading Share to the clipboard fallback).
+      try {
+        const { data: codeData } = await supabase.rpc('fn_get_my_guest_invite_code', {
+          p_stream_id: reconnectStreamId,
+        });
+        if (codeData) setGuestInviteCode(codeData);
+      } catch (_) {}
       setStreamId(reconnectStreamId);
       setTitle(existingLiveStream.title || '');
       setStage('live');
       setExistingLiveStream(null);
+      // 2026-08-15 final sweep: seed elapsed from the stream's real start
+      // time — after reconnect the timer restarted at 00:00 even though the
+      // stream had been live for much longer.
+      streamStartRef.current =
+        Date.parse(existingLiveStream.started_at) || Date.now();
+      setElapsedTime(
+        Math.max(0, Math.floor((Date.now() - streamStartRef.current) / 1000))
+      );
       startRecording();
       // BUG-FIX-GLM-PREVIEW-RESTART: re-acquire media on reconnect so the
       // rolling 12-second clip uploader resumes for the recovered stream.
@@ -1851,7 +2038,11 @@ export function GoLiveModal({
           previewErr?.message || previewErr
         );
       }
-      timerRef.current = setInterval(() => setElapsedTime((p) => p + 1), 1000);
+      timerRef.current = setInterval(() => {
+        if (streamStartRef.current) {
+          setElapsedTime(Math.max(0, Math.floor((Date.now() - streamStartRef.current) / 1000)));
+        }
+      }, 1000);
       toast.success('Reconnected to your live stream!');
       busEmit.dataMutated?.('live_streams');
     } catch (err) {
@@ -1867,11 +2058,14 @@ export function GoLiveModal({
     // to friends inside the app — not OS share sheet that surfaces iMessage,
     // WhatsApp, etc. The internal picker also reuses the live-stream invite
     // code, which generates an in-app deep link that re-opens the stream.
-    if (guestInviteCode) {
+    // 2026-08-15 audit: only the BROADCASTER can invite co-hosts. A guest
+    // pressing share must not be able to hand the host's code to more people;
+    // route them to the plain share-link path instead.
+    if (guestInviteCode && !guestMode) {
       setGuestInviteModalOpen(true);
       return;
     }
-    // Fallback (pre-live or post-live, no invite code yet) — clipboard only.
+    // Fallback (pre-live or post-live, no invite code yet, or guest) — clipboard.
     // Deliberately skip navigator.share even when available: Dan was clear
     // that external messengers should not be surfaced from the live UI.
     const url = `${window.location.origin}/hub/social-media?stream=${streamId}`;
@@ -1902,7 +2096,14 @@ export function GoLiveModal({
     if (!streamId) return;
     const newMode = !slowMode;
     setSlowMode(newMode);
-    await liveStreamService.setSlowMode(streamId, newMode);
+    try {
+      await liveStreamService.setSlowMode(streamId, newMode);
+    } catch (err) {
+      // 2026-08-15 final sweep: revert the optimistic flip — the badge said
+      // SLOW while the server never enabled it (and vice versa).
+      setSlowMode(!newMode);
+      try { toast.error('Could not update slow mode'); } catch (_) {}
+    }
   };
 
   const handleSendComment = async () => {
@@ -1924,7 +2125,11 @@ export function GoLiveModal({
       text,
       created_at: new Date().toISOString(),
     };
-    setComments((prev) => [...prev, newComment]);
+    setComments((prev) => {
+      // AUDIT-C cap applies to the optimistic path too (2026-08-15 final sweep)
+      const next = [...prev, newComment];
+      return next.length > 200 ? next.slice(next.length - 200) : next;
+    });
     try {
       // BUG FIX (GLM-2): broadcaster comments now go through /api/live/comment
       // (just like viewers do) so ban-check, slow-mode, and server-side author_name
@@ -1946,13 +2151,10 @@ export function GoLiveModal({
       const json = await resp.json();
       if (!resp.ok) {
         setComments((prev) => prev.filter((c) => c.id !== optimisticId));
-        setError(json.error || 'Comment failed');
-        // BUG FIX (GLM-6): track timer so cancel on unmount avoids stale setState
-        if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-        errorTimerRef.current = setTimeout(() => {
-          errorTimerRef.current = null;
-          setError('');
-        }, 3000);
+        // 2026-08-15 final sweep: toast, not setError — the inline error div
+        // only renders in the preview stage, so a rejected comment (ban,
+        // slow-mode) vanished with zero feedback during the live stage.
+        try { toast.error(json.error || 'Comment failed'); } catch (_) {}
       } else if (json.comment) {
         setComments((prev) => prev.map((c) => (c.id === optimisticId ? json.comment : c)));
       }
@@ -1970,6 +2172,13 @@ export function GoLiveModal({
     streamRef.current = null;
     setStage('preview');
     setRecordedBlob(null);
+    // 2026-08-15 final sweep: free the recording buffers (up to 512MB of
+    // chunks were retained for the life of the page) and reset the preview
+    // flag so the next open re-runs the attach path.
+    recordedChunksRef.current = [];
+    recordedBytesRef.current = 0;
+    streamStartRef.current = null;
+    setHasPreview(false);
     setThumbnailUrl(null);
     setThumbnailFile(null);
     // FIX: revoke blob URL before clearing
@@ -2194,7 +2403,7 @@ export function GoLiveModal({
               {/* Camera preview */}
               <div style={{ position: 'relative', background: '#000', aspectRatio: '16/9' }}>
                 {/* BUG-FIX-PERM-1: show appropriate UX copy while waiting for getUserMedia */}
-                {!streamRef.current && !error && (
+                {!hasPreview && !error && (
                   <div
                     style={{
                       position: 'absolute',
@@ -2565,7 +2774,7 @@ export function GoLiveModal({
                   </button>
                   <button
                     onClick={handleGoLive}
-                    disabled={isStarting}
+                    disabled={isStarting || !hasPreview}
                     style={{
                       flex: 1,
                       padding: '13px 20px',
@@ -2575,8 +2784,8 @@ export function GoLiveModal({
                       color: 'white',
                       fontSize: 15,
                       fontWeight: 700,
-                      cursor: isStarting ? 'not-allowed' : 'pointer',
-                      opacity: isStarting ? 0.6 : 1,
+                      cursor: isStarting || !hasPreview ? 'not-allowed' : 'pointer',
+                      opacity: isStarting || !hasPreview ? 0.6 : 1,
                     }}
                   >
                     {isStarting ? 'Starting...' : guestMode ? 'Join as Guest' : 'Go Live'}
@@ -2633,7 +2842,7 @@ export function GoLiveModal({
                     opacity: 0.85,
                   }}
                 >
-                  Get Ready
+                  {countdown > 0 ? 'Get Ready' : 'Going Live'}
                 </div>
                 <div
                   style={{
@@ -2646,11 +2855,38 @@ export function GoLiveModal({
                   }}
                   key={countdown}
                 >
-                  {countdown}
+                  {countdown > 0 ? countdown : 'GO'}
                 </div>
                 <div style={{ fontSize: 16, color: 'rgba(255,255,255,.7)', marginTop: 20 }}>
-                  Your stream is about to start
+                  {countdown > 0 ? 'Your stream is about to start' : 'Connecting…'}
                 </div>
+                {/* 2026-08-15 final sweep: escape hatch. There was no way to
+                    abort a mistaken Go Live tap during the 5s countdown. */}
+                {countdown > 0 && (
+                  <button
+                    onClick={() => {
+                      if (timerRef._cdInterval) {
+                        clearInterval(timerRef._cdInterval);
+                        timerRef._cdInterval = null;
+                      }
+                      setIsStarting(false);
+                      setStage('preview');
+                    }}
+                    style={{
+                      marginTop: 28,
+                      background: 'rgba(255,255,255,0.14)',
+                      border: '1px solid rgba(255,255,255,0.4)',
+                      color: 'white',
+                      padding: '10px 28px',
+                      borderRadius: 24,
+                      fontSize: 14,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -2726,6 +2962,13 @@ export function GoLiveModal({
                               try {
                                 videoPub.track.attach(el);
                               } catch (e) {}
+                            } else if (!el && videoPub.track) {
+                              // 2026-08-15 final sweep: detach on unmount so
+                              // the track drops its reference to the dead
+                              // element (media element leak per guest churn).
+                              try {
+                                videoPub.track.detach();
+                              } catch (e) {}
                             }
                           }}
                           style={{
@@ -2750,6 +2993,38 @@ export function GoLiveModal({
                         >
                           {p.name || 'Guest'}
                         </div>
+                        {/* 2026-08-15 audit: broadcaster can remove a co-host at
+                            any time. Guests never see this control. */}
+                        {!guestMode && streamId && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await liveStreamService.revokeGuest(streamId, String(p.identity).split(':')[0]);
+                                setParticipants((prev) => prev.filter((x) => x.identity !== p.identity));
+                                toast.success(`Removed ${p.name || 'guest'}`);
+                              } catch (e) {
+                                toast.error(e?.message || 'Could not remove guest');
+                              }
+                            }}
+                            title="Remove co-host"
+                            style={{
+                              position: 'absolute',
+                              top: 12,
+                              right: 12,
+                              background: 'rgba(250,56,62,0.85)',
+                              border: 'none',
+                              color: 'white',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              padding: '5px 10px',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              zIndex: 5,
+                            }}
+                          >
+                            Remove
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -3270,7 +3545,7 @@ export function GoLiveModal({
                     <button
                       onClick={() => {
                         setPinnedComment(null);
-                        liveStreamService.unpinComment(streamId).catch(() => {});
+                        liveStreamService.unpinComment(streamId, guestMode ? guestInviteCode : null).catch((err) => toast.error(err?.message || 'Unpin failed'));
                       }}
                       style={{
                         background: 'none',
@@ -3408,7 +3683,7 @@ export function GoLiveModal({
                             e.stopPropagation();
                             setPinnedComment(c);
                             setCommentMenu(null);
-                            liveStreamService.pinComment(streamId, c.id).catch(() => {});
+                            liveStreamService.pinComment(streamId, c.id, guestMode ? guestInviteCode : null).catch((err) => toast.error(err?.message || 'Pin failed'));
                           }}
                           title="Pin comment"
                           style={{
@@ -3429,7 +3704,7 @@ export function GoLiveModal({
                             e.stopPropagation();
                             setComments((prev) => prev.filter((x) => x.id !== c.id));
                             setCommentMenu(null);
-                            liveStreamService.deleteComment(c.id).catch(() => {});
+                            liveStreamService.deleteComment(c.id, guestMode ? guestInviteCode : null).catch((err) => toast.error(err?.message || 'Delete failed'));
                           }}
                           title="Delete comment"
                           style={{
@@ -3445,11 +3720,11 @@ export function GoLiveModal({
                         >
                           Del
                         </button>
-                        {c.user_id !== user?.id && (
+                        {!guestMode && c.user_id !== user?.id && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              liveStreamService.banUser(streamId, c.user_id).catch(() => {});
+                              liveStreamService.banUser(streamId, c.user_id).catch((err) => toast.error(err?.message || 'Ban failed'));
                               setCommentMenu(null);
                               setComments((prev) => prev.filter((x) => x.user_id !== c.user_id));
                             }}
@@ -3724,6 +3999,68 @@ export function GoLiveModal({
                 >
                   📤
                 </button>
+                {/* 2026-08-15 audit: let the BROADCASTER and GUESTS post the live
+                    stream to their own feed (was reachable only from the viewer
+                    surface). */}
+                {streamId && (
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        const { getFreshAccessToken, getAccessToken } = await import('../../lib/authUtils');
+                        const token = (await getFreshAccessToken()) || getAccessToken();
+                        const resp = await fetch('/api/live/share-stream-to-feed', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                          body: JSON.stringify({ stream_id: streamId }),
+                        });
+                        const data = await resp.json().catch(() => ({}));
+                        toast[resp.ok ? 'success' : 'error'](
+                          resp.ok ? (data.already_shared ? 'Already on your feed' : 'Posted to your feed') : (data.error || 'Could not post')
+                        );
+                      } catch (err) {
+                        toast.error('Could not post to feed');
+                      }
+                    }}
+                    title="Post to my feed"
+                    style={{
+                      width: 44, height: 44, borderRadius: '50%', border: 'none',
+                      background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+                      color: 'white', fontSize: 18, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    📣
+                  </button>
+                )}
+                {/* 2026-08-15 final sweep: slow mode had a full handler + a
+                    SLOW badge but NO control that called it — wire it up.
+                    Broadcaster only. */}
+                {!guestMode && streamId && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleSlowMode();
+                    }}
+                    title={slowMode ? 'Disable slow mode' : 'Enable slow mode (limits comment rate)'}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: '50%',
+                      border: 'none',
+                      background: slowMode ? 'rgba(255,165,0,0.85)' : 'rgba(0,0,0,0.6)',
+                      backdropFilter: 'blur(8px)',
+                      color: 'white',
+                      fontSize: 18,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    🐢
+                  </button>
+                )}
                 {/* BUG-FIX-LIVE-DUP-INVITE: removed duplicate "Invite Guest" button.
                    The 📤 share button above already opens GuestInviteModal when
                    guestInviteCode is present — this was a second, redundant path
@@ -3871,6 +4208,11 @@ export function GoLiveModal({
           isOpen={showSchedule}
           onClose={(scheduled) => {
             setShowSchedule(false);
+            // 2026-08-15 final sweep: confirm the schedule landed — the modal
+            // passes the created row on success and it was dropped silently.
+            if (scheduled) {
+              try { toast.success('Live stream scheduled'); } catch (_) {}
+            }
           }}
           user={user}
         />

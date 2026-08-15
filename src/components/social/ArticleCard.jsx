@@ -20,6 +20,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { decodeHtmlEntities } from '../../lib/socialHelpers';
 
 // Light theme colors (matches social-media.js)
 const C = {
@@ -255,7 +256,7 @@ export default function ArticleCard({
     };
 
     // Extract display title from content if not available
-    const displayTitle = metadata.title
+    const displayTitle = decodeHtmlEntities(metadata.title)
         || (fallbackContent?.split('\n')[0]?.replace(/^[📰🃏♠️♣️♥️♦️🔗\s]+/, '').substring(0, 60))
         || 'View Article';
 
@@ -362,7 +363,7 @@ export default function ArticleCard({
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
                     }}>
-                        {metadata.description}
+                        {decodeHtmlEntities(metadata.description)}
                     </div>
                 )}
                 <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>

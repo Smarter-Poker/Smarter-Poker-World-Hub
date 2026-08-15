@@ -575,7 +575,7 @@ export function ReelsViewer({ onClose }) {
       video.removeEventListener('play', onPlay);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex]);
+  }, [currentIndex, reels[currentIndex]?.id]);
 
   // Auto-unmute helper — called from onStateChange(1), goNext, goPrev, swipe
   // handlers, iframe onLoad, and IntersectionObserver. Only fires once a user
@@ -1154,7 +1154,8 @@ export function ReelsViewer({ onClose }) {
           .eq('user_id', userId)
           .eq('reaction_type', 'like');
         if (error) throw error;
-        incrementMetric(currentReel, 'like_count', -1);
+        // trig_sync_like_count already decrements like_count on this DELETE
+        // (verified in the live DB) — the extra RPC here double-decremented.
       } catch (e) {
         console.warn('Handled exception:', e);
       }
@@ -1829,10 +1830,13 @@ export function ReelsViewer({ onClose }) {
           const nextReel = reels[newIdx + 1];
           if (nextReel?.video_url && !isYouTubeUrl(nextReel.video_url))
             prefetchVideoStart(nextReel.video_url);
+          // 2026-08-15 audit: the old eviction set evictEl.src = '' — React
+          // never re-commits an unchanged src prop, so scrolling back up two
+          // slots showed a permanently blank video. Release decoder memory
+          // without touching src: pause + drop buffered position.
           const evictEl = container.querySelector(`[data-reel-index="${newIdx - 2}"] video`);
           if (evictEl) {
-            evictEl.src = '';
-            evictEl.load();
+            try { evictEl.pause(); evictEl.currentTime = 0; } catch (_) {}
           }
         });
       },

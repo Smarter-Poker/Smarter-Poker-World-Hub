@@ -500,7 +500,7 @@ export const SPPostCard = ({
 
   // Share → copy link to clipboard + show toast
   const handleShare = async () => {
-    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/app/social/post/${post.id}`;
+    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/hub/post/${post.id}`;
     try {
       await navigator.clipboard.writeText(url);
     } catch {

@@ -129,6 +129,10 @@ export function VideoThumbnail({ url, style = {}, onValidated }) {
       <YouTubePosterImg
         videoId={ladderVideoId}
         alt="Video Thumbnail"
+        // eager, NOT lazy: this img is display:none until it loads, and a
+        // lazy image that never intersects the viewport never loads — the
+        // FallbackUI gradient would show forever.
+        loading="eager"
         style={{
           width: '100%',
           height: '100%',
@@ -629,8 +633,9 @@ export function FullScreenVideoViewer({
     const isYT = isYouTubeUrl(videoUrl);
     if (!isYT && videoRef.current) {
       if (videoRef.current.paused) {
-        videoRef.current.play();
-        setIsPlaying(true);
+        // Don't assert playing until the promise resolves — a rejected
+        // play() (autoplay policy) used to leave the UI claiming playback.
+        videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
       } else {
         videoRef.current.pause();
         setIsPlaying(false);
@@ -772,11 +777,14 @@ export function FullScreenVideoViewer({
             cursor: 'pointer',
           }}
           onPlay={() => {
+            setIsPlaying(true);
             progressRAF.current = requestAnimationFrame(updateProgress);
           }}
           onPause={() => {
+            setIsPlaying(false);
             if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
           }}
+          onError={() => setIsPlaying(false)}
         />
       )}
 

@@ -48,15 +48,28 @@ export default function GlobalPiPManager() {
     }, [router.pathname]);
 
     useEffect(() => {
-        if (isActive && videoRef.current) {
-            if (liveStreamService.isBroadcaster) {
-                videoRef.current.srcObject = liveStreamService.localStream;
-            } else {
-                if (liveStreamService._remoteMediaStream) {
-                    videoRef.current.srcObject = liveStreamService._remoteMediaStream;
-                }
+        if (!isActive) return;
+        // Re-bind on an interval: the remote MediaStream often resolves AFTER
+        // isActive flips (LiveKit track subscription is async) — the old
+        // one-shot bind left the PiP window black. Also nudge play() for
+        // autoplay-restricted browsers and detach on cleanup.
+        const bind = () => {
+            const el = videoRef.current;
+            if (!el) return;
+            const stream = liveStreamService.isBroadcaster
+                ? liveStreamService.localStream
+                : liveStreamService._remoteMediaStream;
+            if (stream && el.srcObject !== stream) {
+                el.srcObject = stream;
+                el.play?.().catch(() => {});
             }
-        }
+        };
+        bind();
+        const bindInterval = setInterval(bind, 1000);
+        return () => {
+            clearInterval(bindInterval);
+            if (videoRef.current) videoRef.current.srcObject = null;
+        };
     }, [isActive]);
 
     if (!isActive) return null;
@@ -88,7 +101,16 @@ export default function GlobalPiPManager() {
     };
 
     const handleReturn = () => {
-        router.push(`/hub/social-media?stream=${streamContext?.streamId}`);
+        // 2026-08-15 audit (P0): routing a BROADCASTER into ?stream=<own id>
+        // mounted LiveStreamViewer.joinStream on their own broadcast, which
+        // tore down the live room for every viewer. Broadcasters return to
+        // the social hub without the stream param (their GoLiveModal state
+        // is still mounted); only viewers deep-link back into the viewer.
+        if (streamContext?.isBroadcaster) {
+            router.push('/hub/social-media');
+        } else {
+            router.push(`/hub/social-media?stream=${streamContext?.streamId}`);
+        }
     };
 
     const handleEndOrLeave = async () => {
