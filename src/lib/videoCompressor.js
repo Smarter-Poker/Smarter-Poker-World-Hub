@@ -17,6 +17,22 @@ const TARGET_BITRATE = 2_500_000; // 2.5 Mbps — good 720p quality
 // A 60s clip takes 60+ seconds to compress on-device, freezing the UI before upload even begins.
 // TUS chunked uploads (tus-js-client, 6 MB chunks) now handle large files reliably instead.
 // Re-enable by lowering COMPRESS_THRESHOLD to 50 * 1024 * 1024 ONLY when ffmpeg.wasm is integrated.
+// 2026-08-15 media-quality fix: poster capture settings, shared by
+// generateThumbnail() and captureFrameAt(). See generateThumbnail for why
+// 480/0.70 was the visible "grain" in the feed.
+const POSTER_MAX_DIM = 1280;
+const POSTER_QUALITY = 0.92;
+
+// Canvas defaults to a cheap box filter, which aliases badly on the 2-4x
+// downscales video/photo capture needs — reads as grain on fine detail
+// (felt texture, card pips, small text).
+function applyHighQualityScaling(ctx) {
+    try {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+    } catch (_) {}
+}
+
 const COMPRESS_THRESHOLD = Infinity; // DISABLED — see note above
 const MAX_COMPRESS_DURATION = 120; // Skip videos > 2 minutes (real-time processing)
 const MAX_CLIENT_SIZE = 5 * 1024 * 1024 * 1024; // 5GB hard limit
@@ -135,7 +151,15 @@ export function generateThumbnail(file, timeSeconds = 2) {
             if (resolved) return;
             try {
                 const canvas = document.createElement('canvas');
-                const maxDim = 480;
+                // 2026-08-15 media-quality fix (Dan: "all of the videos and
+                // images posted in the feed are grainy and distorted").
+                // This poster IS the feed tile until the user hits play, and
+                // the tile is bled to full card width — on a 2-3x DPR phone a
+                // 480px q0.70 JPEG gets painted into 750-1125 physical pixels.
+                // That upscale is the grain. 1280 covers the widest card at
+                // 3x with headroom; q0.92 kills the blocking on flat felt and
+                // card faces. Costs ~300-500KB on a one-time poster upload.
+                const maxDim = POSTER_MAX_DIM;
                 const vw = video.videoWidth || 640;
                 const vh = video.videoHeight || 360;
                 const ratio = Math.min(maxDim / vw, maxDim / vh, 1);
@@ -143,6 +167,7 @@ export function generateThumbnail(file, timeSeconds = 2) {
                 canvas.height = Math.round(vh * ratio);
 
                 const ctx = canvas.getContext('2d');
+                applyHighQualityScaling(ctx);
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
                 // Verify we didn't draw a blank frame (all black). Sample 4
@@ -157,7 +182,7 @@ export function generateThumbnail(file, timeSeconds = 2) {
                 ];
                 const isBlank = samples.every(d => d[0] < 8 && d[1] < 8 && d[2] < 8);
 
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                const dataUrl = canvas.toDataURL('image/jpeg', POSTER_QUALITY);
                 if (dataUrl.length < 1000 || isBlank) {
                     if (!attemptedSeek && video.duration > 3) {
                         // First frame was black — seek to 2s and retry. This
@@ -234,6 +259,74 @@ export function generateThumbnail(file, timeSeconds = 2) {
 }
 
 /**
+ * Capture ONE frame at a specific timestamp, at poster resolution.
+ *
+ * 2026-08-15 media-quality fix: generateFrames() renders the filmstrip at
+ * 360px/q0.65 because it decodes six frames and they only ever display as
+ * ~64px picker tiles. But picking a tile used to hand that 360px tile
+ * straight through as the post's real thumbnail_url — so choosing a custom
+ * cover made the poster WORSE than the 480px default. The picker now shows
+ * the cheap tiles and re-captures the chosen timestamp at full poster
+ * quality through this function.
+ *
+ * @param {File} file
+ * @param {number} timeSeconds
+ * @returns {Promise<string|null>} JPEG data URL, or null if capture failed.
+ */
+export function captureFrameAt(file, timeSeconds, { maxDim = POSTER_MAX_DIM, quality = POSTER_QUALITY } = {}) {
+    return new Promise((resolve) => {
+        if (!file || typeof document === 'undefined') return resolve(null);
+        const video = document.createElement('video');
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+
+        const blobUrl = URL.createObjectURL(file);
+        let done = false;
+        const finish = (val) => {
+            if (done) return;
+            done = true;
+            try { video.pause(); video.removeAttribute('src'); video.load(); } catch (_) {}
+            try { URL.revokeObjectURL(blobUrl); } catch (_) {}
+            resolve(val);
+        };
+
+        // Bounded — a failed high-res recapture must never block the post.
+        // The caller falls back to the filmstrip tile.
+        setTimeout(() => finish(null), 8000);
+
+        video.onseeked = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                const vw = video.videoWidth || 640;
+                const vh = video.videoHeight || 360;
+                const ratio = Math.min(maxDim / vw, maxDim / vh, 1);
+                canvas.width = Math.round(vw * ratio);
+                canvas.height = Math.round(vh * ratio);
+                const ctx = canvas.getContext('2d');
+                applyHighQualityScaling(ctx);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                finish(dataUrl && dataUrl.length > 1000 ? dataUrl : null);
+            } catch (_) {
+                finish(null);
+            }
+        };
+        video.onerror = () => finish(null);
+        video.onloadedmetadata = () => {
+            try {
+                video.currentTime = Math.max(0.1, Math.min(timeSeconds || 0.1, (video.duration || 1) - 0.05));
+            } catch (_) {
+                finish(null);
+            }
+        };
+        video.src = blobUrl;
+    });
+}
+
+/**
  * Generate multiple evenly-spaced JPEG frames from a video file.
  * Used by the thumbnail picker filmstrip. Reuses a single video element
  * with sequential seeks for efficiency (avoids N parallel video elements).
@@ -281,6 +374,7 @@ export function generateFrames(file, count = 6) {
                     canvas.width = Math.round(vw * ratio);
                     canvas.height = Math.round(vh * ratio);
                     const ctx = canvas.getContext('2d');
+                    applyHighQualityScaling(ctx);
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
                     finish(dataUrl.length > 800 ? dataUrl : null);

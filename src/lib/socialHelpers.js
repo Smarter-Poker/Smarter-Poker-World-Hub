@@ -104,7 +104,15 @@ export const MAX_MEDIA = 10;
 // Convenience alias — allows `import { C } from 'socialHelpers'` as a shorthand
 export { SOCIAL_COLORS as C };
 
-export async function compressImage(file, maxDim = 1920, quality = 0.85) {
+// 2026-08-15 media-quality fix (Dan: "grainy and distorted"). Three changes
+// from the old 1920 / q0.85 / default-resampler settings:
+//   1. 2560 max edge — a modern phone shoots 4032px; 1920 threw away more
+//      than half the detail before the feed ever downscaled it again.
+//   2. q0.92 — 0.85 blocks visibly on felt, card faces and skin tone.
+//   3. imageSmoothingQuality='high' — the canvas default is a box filter
+//      that aliases hard on a 2x+ downscale. That aliasing IS the "grain".
+// PNG sources take a different branch: see the encodeType note below.
+export async function compressImage(file, maxDim = 2560, quality = 0.92) {
     const mime = sniffMimeType(file);
     if (mime === 'image/gif' || file.size < 200 * 1024) return file;
     return new Promise((resolve) => {
@@ -116,15 +124,31 @@ export async function compressImage(file, maxDim = 1920, quality = 0.85) {
             canvas.width = Math.round(img.width * scale);
             canvas.height = Math.round(img.height * scale);
             const ctx = canvas.getContext('2d');
+            try { ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; } catch (_) {}
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            // A PNG on this platform is almost always a screenshot, GTO chart,
+            // hand history or range grid — text and flat colour, exactly what
+            // JPEG handles worst (ringing around every glyph, which is the
+            // "distorted" half of the complaint). WebP keeps those clean and
+            // still compresses. Browsers that can't encode WebP fall back to
+            // PNG per the toBlob() spec, which is lossless — also fine.
+            const isPng = mime === 'image/png';
+            const encodeType = isPng ? 'image/webp' : 'image/jpeg';
+            const encodeQuality = isPng ? 0.95 : quality;
             canvas.toBlob((blob) => {
                 URL.revokeObjectURL(img.src);
                 if (blob && blob.size < file.size) {
-                    resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+                    const outType = blob.type || encodeType;
+                    const ext =
+                        outType === 'image/webp' ? '.webp' : outType === 'image/png' ? '.png' : '.jpg';
+                    resolve(new File([blob], file.name.replace(/\.[^.]+$/, ext), { type: outType }));
                 } else {
+                    // Re-encode came out bigger than the source — keep the
+                    // original. Best quality, and the browser downscales it
+                    // at paint time with a proper filter anyway.
                     resolve(file);
                 }
-            }, 'image/jpeg', quality);
+            }, encodeType, encodeQuality);
         };
         img.onerror = () => { URL.revokeObjectURL(img.src); resolve(file); };
         img.src = URL.createObjectURL(file);

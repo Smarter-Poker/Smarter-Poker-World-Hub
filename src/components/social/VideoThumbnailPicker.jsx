@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { generateFrames } from '../../lib/videoCompressor';
+import { generateFrames, captureFrameAt } from '../../lib/videoCompressor';
 import { SP_COLORS } from './SmarterPokerStyleCard';
 
 export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
     const [frames, setFrames] = useState([]);
     const [loading, setLoading] = useState(true);
+    // 2026-08-15 media-quality fix: the value handed to onSelect is now a
+    // high-res re-capture, not the filmstrip tile, so `currentThumbnail ===
+    // frame.dataUrl` no longer identifies the active tile. Track the index.
+    const [selectedIdx, setSelectedIdx] = useState(null);
 
     // Keep onSelect stable so effects don't need it as a dep
     const onSelectRef = React.useRef(onSelect);
@@ -35,7 +39,11 @@ export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
 
                 // Auto-select first frame only if no thumbnail is already set
                 if (!currentThumbnail && validFrames.length > 0) {
+                    setSelectedIdx(0);
+                    // Show the cheap tile immediately, then upgrade in place.
                     onSelectRef.current(validFrames[0].dataUrl);
+                    const hi = await captureFrameAt(file, validFrames[0].timeSeconds);
+                    if (mounted && hi) onSelectRef.current(hi);
                 }
             } catch (err) {
                 console.warn('Failed to load video frames', err);
@@ -197,10 +205,16 @@ export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
                             frames.map((frame, idx) => (
                                 <button 
                                     key={idx}
-                                    className={`frame-btn ${currentThumbnail === frame.dataUrl ? 'active' : ''}`}
-                                    onClick={(e) => {
+                                    className={`frame-btn ${selectedIdx === idx || currentThumbnail === frame.dataUrl ? 'active' : ''}`}
+                                    onClick={async (e) => {
                                         e.preventDefault();
+                                        setSelectedIdx(idx);
+                                        // Instant feedback from the filmstrip
+                                        // tile, then swap in the poster-quality
+                                        // recapture of the same timestamp.
                                         onSelectRef.current(frame.dataUrl);
+                                        const hi = await captureFrameAt(file, frame.timeSeconds);
+                                        if (hi) onSelectRef.current(hi);
                                     }}
                                 >
                                     <img src={frame.dataUrl} alt={`Frame ${idx}`} />
