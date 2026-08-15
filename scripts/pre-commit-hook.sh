@@ -26,7 +26,22 @@ ARENA_PATH="public/hub/club-arena/"
 ARENA_STAGED=$(git diff --cached --name-only | grep "^${ARENA_PATH}" | wc -l | tr -d ' ')
 
 if [ "$ARENA_STAGED" -gt 0 ]; then
-    if [ "${ARENA_BUILD:-0}" = "1" ]; then
+    # Dan 2026-08-15 — MERGE EXEMPTION.
+    #
+    # This guard exists to stop hand-edited build output, and it should. But it
+    # also fired on MERGE-CONFLICT RESOLUTIONS in that directory, a case the
+    # sync script cannot help with: sync-club-arena.sh builds and commits, it
+    # cannot resolve a merge. When origin and local each carry a different build
+    # of the same hashed assets, the only way forward is to resolve and commit —
+    # and this guard blocked exactly that, forcing a manual `ARENA_BUILD=1
+    # git commit` to land a 308-file merge.
+    #
+    # A merge commit is not a hand-edit, so allow it. MERGE_HEAD exists only
+    # while a merge is actually in progress, so this cannot be abused to sneak
+    # a direct commit through.
+    if [ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ]; then
+        echo "[pre-commit] ✓ Merge in progress — Club Arena guard skipped ($ARENA_STAGED files)"
+    elif [ "${ARENA_BUILD:-0}" = "1" ]; then
         echo "[pre-commit] ✓ Club Arena build script authorized — $ARENA_STAGED files committed"
     else
         echo ""
@@ -42,7 +57,7 @@ if [ "$ARENA_STAGED" -gt 0 ]; then
         echo "║                                                              ║"
         echo "║  THE ONLY AUTHORIZED WAY TO DEPLOY CLUB ARENA:             ║"
         echo "║                                                              ║"
-        echo "║    bash scripts/build-club-arena.sh \"your message\"          ║"
+        echo "║    bash scripts/sync-club-arena.sh \"your message\"           ║"
         echo "║                                                              ║"
         echo "║  That script builds → cleans → copies → commits → pushes   ║"
         echo "║  atomically, preventing all stale artifact accumulation.    ║"
