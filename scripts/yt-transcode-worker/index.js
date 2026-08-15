@@ -80,7 +80,15 @@ const FAST_POLL_MS = 5_000;              // When jobs are flowing, poll faster
 const STORAGE_BUCKET = 'social-media';
 const WORKER_ID = process.env.WORKER_ID || `hetzner-${hostname()}`;
 const MAX_CONCURRENT_YT = Number(process.env.MAX_CONCURRENT_YT) || 3;
-const YT_DOWNLOAD_TIMEOUT = 300_000;     // 5 min per yt-dlp call
+// 2026-08-15: raised 300s -> 900s as a direct consequence of the
+// player_client fix below. The old budget was sized for the 360p muxed
+// file that was previously the ONLY format on offer (~14 MB). Now that
+// yt-dlp sees the real ladder we pull a 1080p video+audio pair, which is
+// several times larger, and on a box that sits at load ~18 the 5-minute
+// budget started expiring mid-download: 19 jobs failed as
+// 'yt-dlp_timeout_300s' in the first hour after the fix. The download is
+// still bounded (--max-filesize 400m, --match-filter duration < 600).
+const YT_DOWNLOAD_TIMEOUT = 900_000;     // 15 min per yt-dlp call
 const FFMPEG_TIMEOUT = 600_000;          // 10 min per re-encode
 const MAX_FILE_SIZE = 500_000_000;       // 500 MB hard cap
 
@@ -203,9 +211,17 @@ async function processJob(job) {
     // 5-8 Mbps H.264 for native playback. Stream-copy is still tried
     // first in the rare case yt-dlp delivered avc1+aac+mp4.
     const ytdlpArgs = [
+      // 2026-08-15: added explicit 720p + muxed rungs. With the client pin
+      // removed we now see the full ladder, but a few videos expose no
+      // <=1080 video+audio PAIR and the old chain fell straight through to
+      // 'b' (or errored 'Requested format is not available'). Stepping
+      // 1080 -> 720 -> any-muxed keeps those on HD instead of dropping
+      // them to whatever single format happens to exist.
       '-f',
         'bv*[height<=1080]+ba/' +
         'b[height<=1080]/' +
+        'bv*[height<=720]+ba/' +
+        'b[height<=720]/' +
         'bv*+ba/b',
       '--merge-output-format', 'mp4',
       '--no-playlist',
