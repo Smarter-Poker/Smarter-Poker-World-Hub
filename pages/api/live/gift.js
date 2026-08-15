@@ -9,10 +9,13 @@
  * for fully atomic balance operations.
  *
  * ANTI-FARMING SAFEGUARDS (live gifts):
- *  - Hard block: accounts < 30 days cannot send ANY live gifts
- *  - Source-tier rolling 30-day cap (days 31–89):
- *      free/earned diamonds: 100 diamonds/30 days
- *      purchased/won diamonds: 500 diamonds/30 days
+ *  - Age-tiered allowance for EARNED diamonds (never zero — see
+ *    freeEarnedAllowance below). Earning is already supply-throttled by the
+ *    reward system's own daily caps.
+ *  - Per-pair concentration cap: the anti-DUMPING control (see
+ *    PAIR_30DAY_CONCENTRATION_LIMIT)
+ *  - IP-aggregated 30-day budget shared across accounts: the anti-FARMING
+ *    control (sum_anti_farming_ips)
  *  - Accounts 90+ days: standard max-per-gift cap (10,000) + velocity detection
  *  - Receiving is NOT capped. See RECEIVER_30DAY_REVIEW_THRESHOLD below.
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -30,8 +33,54 @@ const supabase = createClient(
 // ── Anti-farming constants (live gifts) ──
 const NEW_USER_BLOCK_DAYS = 30;
 const GRADUATION_DAYS = 120;
-const FREE_EARNED_30DAY_LIMIT = 100;
-const PURCHASED_WON_30DAY_LIMIT = 500;
+
+// 2026-08-15 economy redesign, round 2 (Dan: "users can earn diamonds without
+// ever purchasing them, SO YOU CAN'T BLOCK THEM. There has to be a happy
+// middle to both while protecting us from farming and dumping").
+//
+// What was wrong with the old flat 100/30d free-earned cap: it was
+// simultaneously TOO TIGHT for honest users and TOO LOOSE for farms.
+//   * Too tight: measured against production, 8 of 8 users who earned
+//     anything in the last 30 days earned MORE than 100 (median 387, p90
+//     1,706). The cap sat below what 100% of real earners actually earn, so
+//     the honest single user was throttled on diamonds they legitimately
+//     worked for.
+//   * Too loose: a farm does not care about a PER-ACCOUNT cap. Fifty sock
+//     accounts at 100 each is 5,000 funnelled to one target, straight
+//     through the cap. A global per-sender ceiling is simply the wrong shape
+//     for the threat.
+//
+// So the flat cap is replaced by three controls that each target the actual
+// behaviour instead of the aggregate:
+//   1. An age-tiered allowance that is NEVER zero, sized above what real
+//      earners earn, so honest users are never blocked from spending what
+//      they earned. Supply is already throttled upstream by the reward
+//      system's own daily caps.
+//   2. PAIR_30DAY_CONCENTRATION_LIMIT — anti-DUMPING. A real fan spreads
+//      gifts across streams; a dump concentrates on one target. Capping the
+//      sender->recipient PAIR kills the funnel without touching normal use.
+//   3. The existing IP-aggregated budget (sum_anti_farming_ips) — anti-
+//      FARMING. Accounts sharing an IP share one budget, so spinning up more
+//      accounts buys the farm nothing. This is retained and is what makes
+//      relaxing (1) safe.
+//
+// Numbers are sized off production data (median lifetime earn 400, p90 520).
+function freeEarnedAllowance(ageDays) {
+  if (ageDays < 7) return { limit: 100, windowDays: 7, tier: 'new' };
+  if (ageDays < 30) return { limit: 300, windowDays: 30, tier: 'establishing' };
+  return { limit: 600, windowDays: 30, tier: 'established' };
+}
+
+// Money-backed or competition-won diamonds. Raised from 500 — a tournament
+// prize can legitimately dwarf that (largest single earner on record: 50,185)
+// and this tier is not the farming vector.
+const PURCHASED_WON_30DAY_LIMIT = 1500;
+
+// Anti-DUMPING. Max a NON-graduated sender may push at ONE recipient per 30
+// days. Deliberately generous next to real behaviour (median live gift to
+// date is 10 diamonds) while making a funnel expensive: concentration is the
+// signal, not volume.
+const PAIR_30DAY_CONCENTRATION_LIMIT = 750;
 // 2026-08-15 economy redesign (Dan: "1000 diamonds every 30 days seems very
 // low, we want diamonds flying around and being purchased").
 //
@@ -58,9 +107,10 @@ const PURCHASED_WON_30DAY_LIMIT = 500;
 // laundering vector for a receive cap to close, so the cap bought us nothing
 // and cost us every gift above 1,000.
 //
-// Free-diamond farming — the one real concern — is already throttled at the
-// SENDER, by source tier: free/earned diamonds are capped at 100 per 30 days
-// (FREE_EARNED_30DAY_LIMIT). Capping the receiver was redundant with that.
+// Free-diamond farming — the one real concern — is throttled at the SENDER
+// by the age-tiered earned allowance, the per-pair concentration cap and the
+// IP-aggregated budget (see the constants block). Capping the receiver was
+// redundant with all three.
 //
 // Replaced with an observability threshold: we still compute the 30-day
 // receive total and log loudly past this line, but we never reject the gift.
@@ -251,11 +301,19 @@ export default async function handler(req, res) {
     isGraduated || isPostPurchaseCooldown
   );
 
-  // ── GUARD: Hard block — new users (< 30 days) cannot send live gifts ──
-  // Trusted senders (paid OR graduated unflagged) bypass the new-user block.
-  // Per platform rule: "unlimited gifting for paid users and 120d+ unflagged
-  // senders". KINGFISH bypass remains independent.
-  if (!isKingfish && !hasPaid && senderAgeDays < NEW_USER_BLOCK_DAYS) {
+  // ── GUARD: new-account block — REMOVED 2026-08-15 ─────────────────────
+  // This used to 403 every unpaid account under 30 days old, so a user who
+  // had legitimately EARNED diamonds in-app could not spend a single one for
+  // their first month. Dan: "users can earn diamonds without ever purchasing
+  // them, so you can't block them."
+  //
+  // A new account is now governed by the tier-0 allowance in
+  // freeEarnedAllowance() (100 per 7 days — about ten gifts at the observed
+  // median gift size) plus the pair-concentration and IP-aggregate caps
+  // below. Participation from day one, funnels still closed.
+  //
+  // Retained ONLY for accounts already flagged by a human as farming.
+  if (!isKingfish && !hasPaid && senderProfile?.is_farming_flagged && senderAgeDays < NEW_USER_BLOCK_DAYS) {
     const daysRemaining = Math.ceil(NEW_USER_BLOCK_DAYS - senderAgeDays);
     return res.status(403).json({
       error: `New accounts cannot send live gifts until your 30-Day VIP Card expires. ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining.`,
@@ -307,45 +365,85 @@ export default async function handler(req, res) {
   // the intended chargeback-window control; this one would double-bind it.
   if (!isKingfish && !isFullyUnrestricted && !isFreshPaid) {
     // BUG FIX (Pass 4): Use direct RPCs for aggregations instead of paginated HTTP fetching
+    // The free/earned tier for a brand-new account uses a 7-day window, not
+    // 30 — a short window that refills is friendlier to a real user than one
+    // long window, and no friendlier to a farm.
+    const tierWindowStart = new Date(
+      Date.now() - freeEarnedAllowance(senderAgeDays).windowDays * 24 * 60 * 60 * 1000
+    ).toISOString();
     const { data: alreadySent } = await supabase.rpc('sum_diamond_transactions', {
       p_user_id: user.id,
       p_types: ['diamond_gift_sent', 'live_gift_sent'],
-      p_start: rolling30Start,
+      p_start: tierWindowStart,
     });
 
     const { data: ipAlreadySent } = await supabase.rpc('sum_anti_farming_ips', {
       p_ip: clientIp,
-      p_start: rolling30Start,
+      p_start: tierWindowStart,
     });
 
     // 2026-08-15 audit: abs() — alreadySent is a sum of negative debit rows.
     const effectiveAlreadySent = Math.max(Math.abs(alreadySent || 0), ipAlreadySent || 0);
 
     const purchasedWonAvailable = await getLiveGiftSourceCapAvailable(user.id);
-    const activeCap =
-      purchasedWonAvailable >= parsedAmount ? PURCHASED_WON_30DAY_LIMIT : FREE_EARNED_30DAY_LIMIT;
-    const capLabel = purchasedWonAvailable >= parsedAmount ? 'purchased/won' : 'free/earned';
+    const usingPurchasedWon = purchasedWonAvailable >= parsedAmount;
+    const allowance = freeEarnedAllowance(senderAgeDays);
+    const activeCap = usingPurchasedWon ? PURCHASED_WON_30DAY_LIMIT : allowance.limit;
+    const activeWindowDays = usingPurchasedWon ? 30 : allowance.windowDays;
+    const capLabel = usingPurchasedWon ? 'purchased/won' : 'free/earned';
 
     if (effectiveAlreadySent + parsedAmount > activeCap) {
       console.warn(
         `[VELOCITY:LIVE_GIFT] User ${user.id} (IP: ${clientIp}) hit 30-day ${capLabel} cap: ${effectiveAlreadySent}/${activeCap}`
       );
       return res.status(429).json({
-        error: `30-day live gift limit reached for ${capLabel} diamonds (${activeCap}/30 days). You've sent ${effectiveAlreadySent} diamonds recently.`,
+        error: `${activeWindowDays}-day live gift limit reached for ${capLabel} diamonds (${activeCap}/${activeWindowDays} days). You've sent ${effectiveAlreadySent} diamonds recently.`,
         alreadySent: effectiveAlreadySent,
         cap: activeCap,
         capType: capLabel,
+        windowDays: activeWindowDays,
         gateType: 'source_tier_cap',
         title: 'Outbound Limit Reached',
-        popup_message: 'You Have Reached Your 30-Day Sending Limit',
-        popup_explanation: `Your account is currently in the graduation phase. Unpaid or fresh accounts have a rolling 30-day cap of ${FREE_EARNED_30DAY_LIMIT} diamonds for free/earned and ${PURCHASED_WON_30DAY_LIMIT} diamonds for purchased/won. Limits are fully lifted once your account reaches 120 days old.`,
-        next_send_message: 'Limits Graduate Automatically At 120 Days',
+        popup_message: `You Have Reached Your ${activeWindowDays}-Day Sending Limit`,
+        popup_explanation: `Your sending allowance grows as your account matures: ${'100'} diamonds per 7 days in your first week, ${'300'} per 30 days to one month, ${'600'} per 30 days after that, and unlimited at 120 days. Purchasing diamonds lifts the limit immediately.`,
+        next_send_message: 'Your Allowance Grows As Your Account Matures',
         limits_lift_message: 'Limits Graduate To Unlimited At 120 Days',
       });
     }
   } else {
     // ── Graduated accounts: rely on velocity detectors ──
     await checkVelocity(user.id, clientIp);
+  }
+
+  // ── GUARD: per-pair concentration (anti-DUMPING) ──────────────────────
+  // The control that lets the allowances above be generous. Volume alone is
+  // not a farming signal — CONCENTRATION is. A real supporter spreads gifts
+  // across the streams they watch; a dump points everything at one account.
+  // Applies to the same non-graduated population as the source-tier cap, so
+  // trusted and paying senders stay frictionless.
+  if (!isKingfish && !isFullyUnrestricted) {
+    const { data: pairTotal } = await supabase.rpc('sum_live_gift_pair', {
+      p_sender: user.id,
+      p_receiver: receiver_id,
+      p_start: rolling30Start,
+    });
+    if ((pairTotal || 0) + parsedAmount > PAIR_30DAY_CONCENTRATION_LIMIT) {
+      console.warn(
+        `[ANTI_DUMP:LIVE_GIFT] User ${user.id} -> ${receiver_id} would exceed pair cap: ` +
+          `${(pairTotal || 0) + parsedAmount}/${PAIR_30DAY_CONCENTRATION_LIMIT} in 30d`
+      );
+      return res.status(429).json({
+        error: `You've reached your 30-day limit for gifting this broadcaster (${PAIR_30DAY_CONCENTRATION_LIMIT} diamonds). You can still gift other broadcasters.`,
+        gateType: 'pair_concentration_cap',
+        cap: PAIR_30DAY_CONCENTRATION_LIMIT,
+        alreadySent: pairTotal || 0,
+        title: 'Limit For This Broadcaster',
+        popup_message: 'You Have Reached Your Limit For This Broadcaster',
+        popup_explanation: `New accounts can gift up to ${PAIR_30DAY_CONCENTRATION_LIMIT.toLocaleString()} diamonds to any single broadcaster per 30 days. You can keep gifting other broadcasters, and this limit is lifted entirely once your account reaches 120 days or you purchase diamonds.`,
+        next_send_message: 'You Can Still Gift Other Broadcasters',
+        limits_lift_message: 'Lifted At 120 Days Or On Purchase',
+      });
+    }
   }
 
   // ── GUARD: Per-broadcaster rolling 30-day receive cap ──
