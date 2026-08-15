@@ -494,6 +494,13 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     }
 
     return () => {
+      // 2026-08-15 audit: every unmount path except the X button skipped
+      // leaveStream(), leaving a zombie live_viewers row, a connected LiveKit
+      // room eating media, and a ghost "WATCHING" PiP for an ended stream.
+      // leaveStream() is idempotent (no-ops when already disconnected).
+      if (!liveStreamService.isBroadcaster && liveStreamService.room) {
+        liveStreamService.leaveStream().catch(() => {});
+      }
       if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
       if (giftChannelRef.current) supabase.removeChannel(giftChannelRef.current);
       if (pinChannelRef.current) supabase.removeChannel(pinChannelRef.current);
@@ -913,8 +920,14 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
       // BUG-FIX-13: explicitly null currentStreamId so GlobalPiPManager
       // stops polling and the PiP widget doesn't reappear when the user
       // navigates to their profile after watching a stream.
+      // 2026-08-15 audit: when the 3s race timer won, the Room reference was
+      // dropped while still connected — the viewer stayed a LiveKit
+      // participant forever and inflated the broadcaster's viewer count.
+      // Capture and disconnect explicitly before dropping the handle.
+      const straggler = liveStreamService.room;
       liveStreamService.currentStreamId = null;
       liveStreamService.room = null;
+      if (straggler) { try { straggler.disconnect(); } catch (_) {} }
       busEmit.dataMutated?.('live_streams');
       onClose();
     }

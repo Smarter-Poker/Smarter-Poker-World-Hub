@@ -633,8 +633,9 @@ export function FullScreenVideoViewer({
     const isYT = isYouTubeUrl(videoUrl);
     if (!isYT && videoRef.current) {
       if (videoRef.current.paused) {
-        videoRef.current.play();
-        setIsPlaying(true);
+        // Don't assert playing until the promise resolves — a rejected
+        // play() (autoplay policy) used to leave the UI claiming playback.
+        videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
       } else {
         videoRef.current.pause();
         setIsPlaying(false);
@@ -776,11 +777,14 @@ export function FullScreenVideoViewer({
             cursor: 'pointer',
           }}
           onPlay={() => {
+            setIsPlaying(true);
             progressRAF.current = requestAnimationFrame(updateProgress);
           }}
           onPause={() => {
+            setIsPlaying(false);
             if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
           }}
+          onError={() => setIsPlaying(false)}
         />
       )}
 

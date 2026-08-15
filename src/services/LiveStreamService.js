@@ -245,8 +245,21 @@ class LiveStreamService {
         .maybeSingle();
 
       if (existing) {
-        const { error: err_live_streams_yd7f3 } = await supabase.from('live_streams').update({ status: 'ended' }).eq('id', existing.id);
-        if (err_live_streams_yd7f3) console.warn('[Supabase] Silent mutation failed in live_streams:', err_live_streams_yd7f3.message);
+        // End via the server route so ended_at is stamped and the previous
+        // feed post's LIVE NOW badge is cleared (fn_mark_feed_post_ended) —
+        // the old raw status flip left a permanent pulsing LIVE card.
+        try {
+          const endRes = await fetch('/api/live/end-stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stream_id: existing.id, action: 'force_end' }),
+          });
+          if (!endRes.ok) throw new Error(`HTTP ${endRes.status}`);
+        } catch (endErr) {
+          console.warn('[LiveStream] preflight force_end failed, falling back to raw flip:', endErr?.message);
+          const { error: err_live_streams_yd7f3 } = await supabase.from('live_streams').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', existing.id);
+          if (err_live_streams_yd7f3) console.warn('[Supabase] Silent mutation failed in live_streams:', err_live_streams_yd7f3.message);
+        }
       }
     } catch (_) {}
 
@@ -710,6 +723,28 @@ class LiveStreamService {
    * Toggle microphone mute/unmute
    * @returns {boolean} new muted state
    */
+  // 2026-08-15 audit: GlobalPiPManager's camera button called toggleVideo(),
+  // which never existed — every tap threw. Mirrors toggleMute for video.
+  async toggleVideo() {
+    if (!this.room) throw new Error('No active room');
+    const localParticipant = this.room.localParticipant;
+    const videoPublications = [...localParticipant.trackPublications.values()].filter(
+      (pub) => pub.track?.kind === Track.Kind.Video
+    );
+    const currentlyMuted = videoPublications[0]?.isMuted ?? false;
+    const newMuted = !currentlyMuted;
+    for (const pub of videoPublications) {
+      if (pub.track) {
+        if (newMuted) await pub.track.mute();
+        else await pub.track.unmute();
+      }
+    }
+    if (this.localStream) {
+      this.localStream.getVideoTracks().forEach((t) => { t.enabled = !newMuted; });
+    }
+    return newMuted;
+  }
+
   async toggleMute() {
     if (!this.room) throw new Error('No active room');
     const localParticipant = this.room.localParticipant;
@@ -862,6 +897,13 @@ class LiveStreamService {
       return stream;
     }
 
+    // 2026-08-15 audit (P0): joining a stream while BROADCASTING used to
+    // call leaveStream() on the broadcast room — a broadcaster tapping their
+    // own stream card (or the PiP "return" arrow) silently killed their live
+    // video for every viewer while the DB row stayed 'live' (zombie).
+    if (this.isBroadcaster && this.room) {
+      throw new Error('You are currently broadcasting — end your stream before joining another.');
+    }
     if (this.room) {
       await this.leaveStream();
     }

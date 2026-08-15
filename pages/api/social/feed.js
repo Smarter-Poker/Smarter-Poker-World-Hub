@@ -49,21 +49,39 @@ export default async function handler(req, res) {
     try {
         const offset = Math.max(0, parseInt(req.query.offset || '0', 10));
         const limit = Math.min(50, Math.max(1, parseInt(req.query.limit || '20', 10)));
-        const userId = req.query.user_id || null;
+        // 2026-08-15 audit: identity comes from the JWT, never from
+        // ?user_id — the service-role enrichment below would otherwise leak
+        // any user's like/bookmark state to any caller who passed their uuid.
+        let userId = null;
+        const authHeader = req.headers.authorization || '';
+        if (authHeader.startsWith('Bearer ')) {
+            try {
+                const { getServerUserWithFallback } = await import('../../../src/lib/serverAuth');
+                const { createClient } = await import('../../../src/lib/supabaseServerClient');
+                const authClient = createClient(SUPA_URL, SUPA_KEY);
+                const { user: authUser } = await getServerUserWithFallback(req, authClient);
+                userId = authUser?.id || null;
+            } catch (e) {
+                console.warn('[API/feed] auth resolve failed:', e?.message);
+            }
+        }
 
         // ── 1. Fetch posts (no embedded join — separate parallel queries are faster) ──
         const postsParams = new URLSearchParams({
-            select: 'id,content,content_type,media_urls,thumbnail_url,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata',
+            select: 'id,content,content_type,media_urls,thumbnail_url,like_count,comment_count,share_count,view_count,visibility,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata',
             or: '(visibility.eq.public,visibility.is.null)',
             order: 'created_at.desc',
             offset: String(offset),
-            limit: String(limit),
+            // Over-fetch one row so hasMore is exact on boundary pages
+            limit: String(limit + 1),
         });
         // BUG-11 FIX: is_deleted filter must be a separate param with Supabase REST dot-filter syntax
         // Was: { 'is_deleted': 'eq.false' } — this sent key name literally as 'is_deleted' with no operator binding
         postsParams.append('is_deleted', 'eq.false');
 
-        const posts = await supaFetch(`/social_posts?${postsParams}`);
+        let posts = await supaFetch(`/social_posts?${postsParams}`);
+        const hasMore = Array.isArray(posts) && posts.length > limit;
+        if (hasMore) posts = posts.slice(0, limit);
 
         if (!posts || posts.length === 0) {
             res.setHeader('Cache-Control', 'public, max-age=5, stale-while-revalidate=30');
@@ -74,15 +92,23 @@ export default async function handler(req, res) {
         const postIds = posts.map(p => p.id);
         const authorIds = [...new Set(posts.map(p => p.author_id).filter(Boolean))];
 
-        const [profilesData, likesData, bookmarksData] = await Promise.all([
+        const [profilesData, likesData, ownLikesData, bookmarksData] = await Promise.all([
             // Profiles for all authors on this page
             authorIds.length > 0
                 ? supaFetch(`/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name,avatar_url`)
                 : Promise.resolve([]),
 
-            // Likes for posts on THIS page only (scoped — avoids table scan)
+            // Reaction flavor for posts on this page (display only — capped)
             postIds.length > 0
                 ? supaFetch(`/social_likes?post_id=in.(${postIds.join(',')})&select=post_id,user_id,reaction_type&limit=500`)
+                : Promise.resolve([]),
+
+            // The caller's OWN like rows — authoritative for isLiked. The
+            // capped page above misses the caller's row on popular posts,
+            // which rendered hearts un-liked and made the next tap UN-like.
+            userId && postIds.length > 0
+                ? supaFetch(`/social_likes?user_id=eq.${userId}&post_id=in.(${postIds.join(',')})&select=post_id`)
+                    .catch(() => [])
                 : Promise.resolve([]),
 
             // Bookmarks (only if user logged in)
@@ -104,6 +130,7 @@ export default async function handler(req, res) {
         });
 
         const bookmarkedIds = new Set((bookmarksData || []).map(b => b.post_id));
+        const ownLikedIds = new Set((ownLikesData || []).map(l => l.post_id));
 
         // ── 4. Enrich posts ──────────────────────────────────────────────────
         const enrichedPosts = posts.map(p => {
@@ -124,8 +151,10 @@ export default async function handler(req, res) {
                 commentCount: p.comment_count || 0,
                 shareCount: p.share_count || 0,
                 reactions,
-                isLiked: userId ? likesArray.some(l => l.user_id === userId) : false,
+                isLiked: ownLikedIds.has(p.id),
                 isBookmarked: bookmarkedIds.has(p.id),
+                viewCount: p.view_count || 0,
+                visibility: p.visibility || 'public',
                 createdAt: p.created_at,
                 link_url: p.link_url || null,
                 link_title: p.link_title || null,
@@ -156,7 +185,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             posts: enrichedPosts,
-            hasMore: posts.length === limit,
+            hasMore,
             offset,
             limit,
         });

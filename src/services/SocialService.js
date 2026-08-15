@@ -107,17 +107,17 @@ export class SocialService {
         try {
             const { data, error } = await this.supabase
                 .from('social_posts')
+                // 2026-08-15 audit: user_dna_profiles does not exist (PGRST200 on
+                // every call) — author data lives on profiles (id/level).
                 .select(`
           *,
-          author:user_dna_profiles!author_id (
-            user_id,
+          author:profiles!author_id (
+            id,
             username,
             full_name,
             display_name_preference,
             avatar_url,
-            current_level,
-            tier_id,
-            is_verified
+            level
           )
         `)
                 .eq('id', postId)
@@ -480,13 +480,13 @@ export class SocialService {
                 .from('social_comments')
                 .select(`
           *,
-          author:user_dna_profiles!author_id (
-            user_id,
+          author:profiles!author_id (
+            id,
             username,
             full_name,
             display_name_preference,
             avatar_url,
-            current_level
+            level
           )
         `)
                 .eq('post_id', postId)
@@ -500,7 +500,7 @@ export class SocialService {
                 ...row,
                 author_username: row.author?.username,
                 author_avatar: row.author?.avatar_url,
-                author_level: row.author?.current_level
+                author_level: row.author?.level
             }));
         } catch (error) {
             console.warn('Comments fetch error:', error);
@@ -525,13 +525,13 @@ export class SocialService {
                 })
                 .select(`
           *,
-          author:user_dna_profiles!author_id (
-            user_id,
+          author:profiles!author_id (
+            id,
             username,
             full_name,
             display_name_preference,
             avatar_url,
-            current_level
+            level
           )
         `)
                 .maybeSingle();
@@ -571,12 +571,15 @@ export class SocialService {
      */
     async followUser(followerId, followingId) {
         try {
+            // 2026-08-15 audit: every read surface (profiles, reels, live,
+            // cache warmer) uses social_follows — writing social_connections
+            // made follows invisible platform-wide. social_follows has no
+            // status column.
             const { error } = await this.supabase
-                .from('social_connections')
+                .from('social_follows')
                 .insert({
                     follower_id: followerId,
-                    following_id: followingId,
-                    status: 'active'
+                    following_id: followingId
                 });
 
             if (error) throw error;
@@ -602,7 +605,7 @@ export class SocialService {
     async unfollowUser(followerId, followingId) {
         try {
             const { error } = await this.supabase
-                .from('social_connections')
+                .from('social_follows')
                 .delete()
                 .eq('follower_id', followerId)
                 .eq('following_id', followingId);
@@ -624,11 +627,10 @@ export class SocialService {
     async isFollowing(followerId, followingId) {
         try {
             const { data, error } = await this.supabase
-                .from('social_connections')
+                .from('social_follows')
                 .select('id')
                 .eq('follower_id', followerId)
                 .eq('following_id', followingId)
-                .eq('status', 'active')
                 .maybeSingle();
 
             if (error && error.code !== 'PGRST116') throw error;
@@ -707,19 +709,56 @@ export class SocialService {
 
     async getConversations(userId) {
         try {
-            // Fetch distinct conversations where user is sender or receiver
-            const { data, error } = await this.supabase
-                .from('social_messages')
-                .select(`
-                    id, sender_id, receiver_id, content, created_at,
-                    sender:user_dna_profiles!sender_id(user_id, username, avatar_url),
-                    receiver:user_dna_profiles!receiver_id(user_id, username, avatar_url)
-                `)
-                .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-                .order('created_at', { ascending: false })
-                .limit(50);
+            // 2026-08-15 audit: rewritten on the conversation model —
+            // social_messages has no receiver_id and user_dna_profiles does
+            // not exist. Resolve my conversations, then the partner and the
+            // latest message per conversation.
+            const { data: myParts, error: partErr } = await this.supabase
+                .from('social_conversation_participants')
+                .select('conversation_id')
+                .eq('user_id', userId);
+            if (partErr) throw partErr;
+            const convIds = (myParts || []).map(r => r.conversation_id);
+            if (!convIds.length) return [];
 
+            const [{ data: others }, { data: msgs, error }] = await Promise.all([
+                this.supabase
+                    .from('social_conversation_participants')
+                    .select('conversation_id, user_id, profiles!user_id(id, username, avatar_url)')
+                    .in('conversation_id', convIds)
+                    .neq('user_id', userId),
+                this.supabase
+                    .from('social_messages')
+                    .select('id, conversation_id, sender_id, content, created_at')
+                    .in('conversation_id', convIds)
+                    .order('created_at', { ascending: false })
+                    .limit(200),
+            ]);
             if (error) throw error;
+
+            const partnerByConv = new Map();
+            (others || []).forEach(r => {
+                if (!partnerByConv.has(r.conversation_id)) {
+                    partnerByConv.set(r.conversation_id, {
+                        id: r.user_id,
+                        username: r.profiles?.username || 'Player',
+                        avatar_url: r.profiles?.avatar_url || null,
+                    });
+                }
+            });
+            const data = (msgs || []).map(msg => ({
+                ...msg,
+                sender_id: msg.sender_id,
+                receiver_id: msg.sender_id === userId
+                    ? partnerByConv.get(msg.conversation_id)?.id || null
+                    : userId,
+                sender: msg.sender_id === userId
+                    ? null
+                    : partnerByConv.get(msg.conversation_id) || null,
+                receiver: msg.sender_id === userId
+                    ? partnerByConv.get(msg.conversation_id) || null
+                    : null,
+            }));
 
             // Group by conversation partner
             const convMap = new Map();
@@ -876,15 +915,13 @@ export class SocialService {
      * @returns {Function} Unsubscribe function
      */
     subscribeFeed(onNewPost, onPostUpdate) {
-        // Clean up any previous channel to prevent zombie subscriptions
-        // (e.g., React StrictMode double-mount or rapid remount)
-        if (this.realtimeChannel) {
-            this.supabase.removeChannel(this.realtimeChannel);
-            this.realtimeChannel = null;
-        }
-        // Use unique channel name to prevent collision when multiple views subscribe
+        // 2026-08-15 audit: track every subscriber's channel in a Set — the
+        // old single-slot this.realtimeChannel meant a second subscriber
+        // silently killed the first one's live feed, and the first view's
+        // cleanup then removed the second view's channel.
+        if (!this._feedChannels) this._feedChannels = new Set();
         const channelId = `social_feed_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        this.realtimeChannel = this.supabase
+        const channel = this.supabase
             .channel(channelId)
             .on(
                 'postgres_changes',
@@ -950,10 +987,11 @@ export class SocialService {
             )
             .subscribe();
 
+        this._feedChannels.add(channel);
         return () => {
-            if (this.realtimeChannel) {
-                this.supabase.removeChannel(this.realtimeChannel);
-                this.realtimeChannel = null;
+            if (this._feedChannels?.has(channel)) {
+                this._feedChannels.delete(channel);
+                this.supabase.removeChannel(channel);
             }
         };
     }

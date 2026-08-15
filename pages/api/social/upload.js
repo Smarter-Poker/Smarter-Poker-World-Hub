@@ -29,7 +29,8 @@ export const config = {
 const BUCKET = 'social-media';
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_TYPES = [
-    'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
+    'image/png', 'image/jpeg', 'image/gif', 'image/webp', // svg removed: stored-XSS vector on the public bucket
+
     // iPhone Photos default formats — added 2026-04-29 to match upload-url.js
     'image/heic', 'image/heif',
     'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',

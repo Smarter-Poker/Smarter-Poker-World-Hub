@@ -633,9 +633,12 @@ export const EnhancedPostCreator = ({
         const isVideo = mimeType.startsWith('video/');
         const folder = isVideo ? 'videos' : 'photos';
 
+        // Hoisted ABOVE the try so the catch block can actually reach it —
+        // `let` inside the try was block-scoped, so every upload failure threw
+        // ReferenceError instead of showing the real error (2026-08-15 audit).
+        let bgUnsub = null;
+        let wasBackground = false;
         try {
-          let bgUnsub = null; // hoisted: catch block can safely call bgUnsub() for both video/image
-          let wasBackground = false;
           if (isVideo) {
             // ── Use compressed file if background compression finished ──
             let fileToUpload = file;
@@ -1117,7 +1120,7 @@ export const EnhancedPostCreator = ({
         {mediaFiles.length > 0 && (
           <div className="media-preview-grid-inline">
             {mediaFiles.map((file, index) => {
-              const isVideo = file.type.startsWith('video');
+              const isVideo = sniffMimeType(file).startsWith('video/');
               const fk = _fileKey(file);
               return (
                 <div key={index} style={{ width: '100%' }}>
@@ -1486,7 +1489,7 @@ export const EnhancedPostCreator = ({
         {mediaFiles.length > 0 && (
           <div className="media-preview-grid">
             {mediaFiles.map((file, index) => {
-              const isVideo = file.type.startsWith('video');
+              const isVideo = sniffMimeType(file).startsWith('video/');
               const fk = _fileKey(file);
               return (
                 <div key={index} style={{ width: '100%' }}>

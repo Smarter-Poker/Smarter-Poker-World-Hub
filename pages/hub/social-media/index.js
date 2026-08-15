@@ -107,6 +107,18 @@ import {
 
 import { feedCache } from '../../../src/lib/feedCache';
 
+// 2026-08-15 audit: typing-indicator broadcasts used to construct a brand-new
+// RealtimeChannel PER KEYSTROKE (supabase.channel() registers a new channel
+// object every call) — ~100 leaked channel objects per 30s of typing. One
+// module-scope sender instance is enough; send() on an unjoined channel uses
+// the HTTP broadcast path, which is exactly what these fire-and-forget
+// typing events want.
+let _typingSendChannel = null;
+function getTypingChannel() {
+  if (!_typingSendChannel) _typingSendChannel = supabase.channel('social-feed');
+  return _typingSendChannel;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔗 LINK PREVIEW CARD - Fetches and displays rich link metadata for feed posts
 // ═══════════════════════════════════════════════════════════════════════════
@@ -799,8 +811,7 @@ const PostCard = React.memo(
       // Stop typing indicator immediately on submit
       if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
       try {
-        supabase
-          .channel('social-feed')
+        getTypingChannel()
           .send({
             type: 'broadcast',
             event: 'typing',
@@ -1011,6 +1022,8 @@ const PostCard = React.memo(
               )}
               <button
                 onClick={() => onDelete(post.id)}
+                aria-label="Delete post"
+                title="Delete post"
                 style={{
                   background: 'none',
                   border: 'none',
@@ -1018,7 +1031,7 @@ const PostCard = React.memo(
                   color: C.textSec,
                   fontSize: 16,
                 }}
-              ></button>
+              >🗑</button>
             </div>
           )}
           {post.authorId !== currentUserId && currentUserId && (
@@ -1776,7 +1789,11 @@ const PostCard = React.memo(
                         objectFit: 'cover',
                         cursor: 'pointer',
                       }}
-                      onClick={() => setLightboxUrl(post.mediaUrls[0])}
+                      onClick={() => {
+                        setLightboxImages(post.mediaUrls);
+                        setLightboxIndex(0);
+                        setLightboxUrl(post.mediaUrls[0]);
+                      }}
                       onError={(e) => {
                         e.target.style.display = 'none';
                       }}
@@ -2122,7 +2139,7 @@ const PostCard = React.memo(
             }}
             aria-label={bookmarked ? 'Remove from saved' : 'Save this post'}
           >
-            {bookmarked ? '' : ''} Save{bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}
+            {bookmarked ? '🔖 ' : ''}Save
           </button>
         </div>
 
@@ -2174,7 +2191,7 @@ const PostCard = React.memo(
                     : (Object.values(typists || {}).length - 1) * 12,
               }}
             >
-              <span>{Object.values(typists || {})[0].name.split(' ')[0]} is typing</span>
+              <span>{(Object.values(typists || {})[0]?.name || 'Someone').split(' ')[0]} is typing</span>
               <div style={{ display: 'flex' }}>
                 <TypingDot delay="-0.32s" />
                 <TypingDot delay="-0.16s" />
@@ -2733,7 +2750,7 @@ const PostCard = React.memo(
                     // Broadcast typing indicator
                     if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
                     try {
-                      const ch = supabase.channel('social-feed');
+                      const ch = getTypingChannel();
                       ch.send({
                         type: 'broadcast',
                         event: 'typing',
@@ -2752,8 +2769,7 @@ const PostCard = React.memo(
                     }
                     typingDebounceRef.current = setTimeout(() => {
                       try {
-                        supabase
-                          .channel('social-feed')
+                        getTypingChannel()
                           .send({
                             type: 'broadcast',
                             event: 'typing',
@@ -3114,6 +3130,12 @@ const PostCard = React.memo(
       prevProps.post.isLiked === nextProps.post.isLiked &&
       prevProps.post.isBookmarked === nextProps.post.isBookmarked &&
       prevProps.post.content === nextProps.post.content &&
+      // 2026-08-15 audit: these fields are mutated by the realtime UPDATE
+      // handler — omitting them made those updates invisible.
+      prevProps.post.thumbnail_url === nextProps.post.thumbnail_url &&
+      prevProps.post.mediaUrls === nextProps.post.mediaUrls &&
+      prevProps.post.metadata === nextProps.post.metadata &&
+      prevProps.post.shareCount === nextProps.post.shareCount &&
       prevProps.currentUserId === nextProps.currentUserId
     );
   }
@@ -5203,6 +5225,40 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                     >
                       {post.content}
                     </p>
+                    {/* 2026-08-15 audit: media uploaded fine but was never
+                        rendered — club posts showed text only. */}
+                    {Array.isArray(post.media_urls) && post.media_urls.length > 0 && (
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: post.media_urls.length > 1 ? '1fr 1fr' : '1fr',
+                          gap: 4,
+                          marginTop: 10,
+                        }}
+                      >
+                        {post.media_urls.slice(0, 4).map((mu, mi) =>
+                          post.content_type === 'video' && mi === 0 ? (
+                            <video
+                              key={mi}
+                              src={mu}
+                              controls
+                              playsInline
+                              preload="metadata"
+                              poster={post.thumbnail_url || undefined}
+                              style={{ width: '100%', borderRadius: 8, maxHeight: 360, background: '#000' }}
+                            />
+                          ) : (
+                            <img
+                              key={mi}
+                              src={mu}
+                              alt=""
+                              loading="lazy"
+                              style={{ width: '100%', borderRadius: 8, objectFit: 'cover', maxHeight: 360 }}
+                            />
+                          )
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div
                     style={{
@@ -5598,7 +5654,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
               </div>
             </div>
             <button
-              onClick={() => window.open('/commander/tournaments', '_blank')}
+              onClick={() => window.open('/hub/commander/tournaments', '_blank')}
               style={{ ...btnPrimary, whiteSpace: 'nowrap', fontSize: 12 }}
             >
               Open Commander
@@ -5649,7 +5705,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                   <div
                     key={t.id || i}
                     onClick={() =>
-                      t.id && window.open(`/commander/tournaments/${t.id}/public`, '_blank')
+                      t.id && window.open('/hub/commander/tournaments', '_blank')
                     }
                     style={{
                       display: 'flex',
@@ -6607,7 +6663,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
         const lt = liveTourneys[0];
         return (
           <div
-            onClick={() => lt.id && window.open(`/commander/tournaments/${lt.id}/public`, '_blank')}
+            onClick={() => lt.id && window.open('/hub/commander/tournaments', '_blank')}
             style={{
               position: 'fixed',
               bottom: 24,
@@ -7061,7 +7117,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             const occupiedCount = seatArr.filter((s) => s.taken).length;
             const openSeats = game.max_seats - occupiedCount;
             const myReservation = (game.seats || []).find(
-              (s) => s.player_name === playerName.trim()
+              (s) => (s.player_id && userId ? s.player_id === userId : s.player_name === playerName.trim())
             );
 
             // Arc-length parameterized ellipse: equal visual spacing
@@ -7350,7 +7406,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         cursor: 'pointer',
                       }}
                       onClick={() =>
-                        window.open(`/commander/dealer/${game.table_number || 1}`, '_blank')
+                        window.open('/hub/commander', '_blank')
                       }
                     >
                       <div
@@ -7393,7 +7449,9 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                     {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
                       const pos = seatPositions[idx];
                       const isOccupied = !!seat.taken;
-                      const isMe = seat.taken?.player_name === playerName.trim();
+                      const isMe = seat.taken?.player_id && userId
+                        ? seat.taken.player_id === userId
+                        : seat.taken?.player_name === playerName.trim();
                       const firstName = seat.taken?.player_name?.split(' ')[0] || '';
                       const fullName = seat.taken?.player_name || '';
                       const avatarUrl = seat.taken?.avatar_url || null;
@@ -7685,11 +7743,17 @@ function ClubPagesView({
     const fetchClubPages = async () => {
       setLoading(true);
       try {
-        const uid = getAnonUserId();
+        // 2026-08-15 audit: this sent getAnonUserId() ("anon-…", not a UUID)
+        // with no bearer token, so the API's follow lookup never ran —
+        // is_following was false on every card and "Show Following" always
+        // filtered everything out. Send the real user + token instead.
+        const authedUser = getAuthUser();
+        const accessToken = getAccessToken();
         const baseParams = { sort: 'popular', limit: '80' };
         if (search) baseParams.search = search;
-        if (uid) baseParams.user_id = uid;
-        if (showFollowedOnly) baseParams.followed_only = 'true';
+        if (authedUser?.id && accessToken) baseParams.user_id = authedUser.id;
+        if (showFollowedOnly && baseParams.user_id) baseParams.followed_only = 'true';
+        const fetchHeaders = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 
         let allPages = [];
         if (category === 'all') {
@@ -7697,7 +7761,8 @@ function ClubPagesView({
           const [hgRes, charRes, clubRes] = await Promise.all(
             ['home_games', 'charity', 'clubs'].map((cat) =>
               fetch(
-                `/api/poker/pages?${new URLSearchParams({ ...baseParams, category: cat })}`
+                `/api/poker/pages?${new URLSearchParams({ ...baseParams, category: cat })}`,
+                { headers: fetchHeaders }
               ).then((r) => r.json())
             )
           );
@@ -7706,7 +7771,8 @@ function ClubPagesView({
           if (clubRes.success) allPages.push(...(clubRes.data || []));
         } else {
           const res = await fetch(
-            `/api/poker/pages?${new URLSearchParams({ ...baseParams, category })}`
+            `/api/poker/pages?${new URLSearchParams({ ...baseParams, category })}`,
+            { headers: fetchHeaders }
           );
           if (!res.ok) throw new Error(`Request failed (${res.status})`);
           const json = await res.json();
@@ -8550,6 +8616,10 @@ function SocialMediaPage() {
   const [liveStreams, setLiveStreams] = useState([]);
   const [watchingStream, setWatchingStream] = useState(null);
   const processedStreamIdRef = useRef(null);
+  const processedPostIdRef = useRef(null);
+  // "N new posts" pill — replaces the destructive full-feed reset on
+  // realtime INSERT (2026-08-15 audit).
+  const [newPostsCount, setNewPostsCount] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false); // Scroll-to-top FAB
   const [pullRefreshState, setPullRefreshState] = useState('idle'); // 'idle' | 'pulling' | 'refreshing'
   const pullStartY = useRef(0);
@@ -8694,13 +8764,12 @@ function SocialMediaPage() {
           if (payload.new.author_id === user.id) return;
           if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
             console.log('[Social] 🔄 New post detected via realtime:', payload.new.id);
-          // Trigger feed reload to pick up new posts
-          broadcastSync('smarter_poker_social_sync', {
-            action: 'refresh_feed',
-            tabId: BROADCAST_TAB_ID,
-          });
-          // Also refresh local feed
-          await loadFeed(0, false);
+          // 2026-08-15 audit: this used to loadFeed(0,false) on EVERY post
+          // platform-wide, wiping all loaded pages and resetting the reader's
+          // scroll mid-read (and broadcast the same reset to other tabs).
+          // Now: show a non-destructive "new posts" pill instead. Each tab
+          // has its own subscription, so no cross-tab broadcast is needed.
+          setNewPostsCount((n) => Math.min(n + 1, 99));
         }
       )
       .on(
@@ -9455,6 +9524,61 @@ function SocialMediaPage() {
         }
       })();
     }
+    // Handle ?post=<postId> deep link (notifications, search, share links)
+    if (router.query.post) {
+      const postId = router.query.post;
+      if (processedPostIdRef.current !== postId) {
+        processedPostIdRef.current = postId;
+        (async () => {
+          try {
+            const { data: p } = await supabase
+              .from('social_posts')
+              .select('*, author:profiles!author_id(id, username, full_name, display_name, avatar_url)')
+              .eq('id', postId)
+              .eq('is_deleted', false)
+              .maybeSingle();
+            if (p) {
+              const meta = p.metadata || {};
+              const formatted = {
+                id: p.id,
+                authorId: p.author_id,
+                content: p.content,
+                contentType: p.content_type,
+                mediaUrls: p.media_urls || [],
+                thumbnailUrl: p.thumbnail_url || null,
+                thumbnail_url: p.thumbnail_url || null,
+                likeCount: p.like_count || 0,
+                commentCount: p.comment_count || 0,
+                shareCount: p.share_count || 0,
+                reactions: [],
+                isLiked: false,
+                isBookmarked: false,
+                viewCount: p.view_count || 0,
+                createdAt: p.created_at,
+                link_url: p.link_url || null,
+                link_title: p.link_title || null,
+                link_description: p.link_description || null,
+                link_image: p.link_image || null,
+                link_site_name: p.link_site_name || null,
+                metadata: meta,
+                author: {
+                  name: meta.page_name || p.author?.display_name || p.author?.full_name || p.author?.username || 'Player',
+                  username: p.author?.username || null,
+                  avatar: meta.page_avatar_url || p.author?.avatar_url || null,
+                },
+              };
+              setPosts((prev) => [formatted, ...prev.filter((x) => x.id !== formatted.id)]);
+              if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+              toast.info('That post is no longer available');
+            }
+          } catch (e) {
+            console.warn('[post param] failed:', e);
+          }
+          router.replace('/hub/social-media', undefined, { shallow: true });
+        })();
+      }
+    }
     // Handle ?stream=<streamId> query param (from go-live notifications)
     if (router.query.stream && user) {
       const streamId = router.query.stream;
@@ -9477,7 +9601,7 @@ function SocialMediaPage() {
         })();
       }
     }
-  }, [user, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream]);
+  }, [user, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream, router.query.post]);
 
   //  REFRESH NOTIFICATIONS when modal opens — always show latest data
   useEffect(() => {
@@ -10376,8 +10500,27 @@ function SocialMediaPage() {
     // Clear any existing undo timer
     if (undoDeleteRef.current) clearTimeout(undoDeleteRef.current);
 
-    // Show undo toast
-    toast.success('Post deleted', 5000);
+    // Real Undo (2026-08-15 audit): the dialog promised an undo that never
+    // existed. Tapping the toast cancels the pending delete and restores.
+    toast.action(
+      'Post deleted — tap to undo',
+      () => {
+        if (undoDeleteRef.current) {
+          clearTimeout(undoDeleteRef.current);
+          undoDeleteRef.current = null;
+        }
+        if (deletedPost) {
+          setPosts((prev) => {
+            if (prev.some((p) => p.id === deletedPost.id)) return prev;
+            const updated = [...prev];
+            updated.splice(Math.min(deletedIndex, updated.length), 0, deletedPost);
+            return updated;
+          });
+        }
+      },
+      'success',
+      5000
+    );
 
     // Schedule actual deletion after 5s
     undoDeleteRef.current = setTimeout(async () => {
@@ -10408,7 +10551,9 @@ function SocialMediaPage() {
           return;
         }
         try {
-          localStorage.removeItem('sp-feed-cache');
+          // invalidatePosts clears BOTH IndexedDB and localStorage — the old
+          // localStorage-only clear let deleted posts reappear from IDB cache.
+          await feedCache.invalidatePosts();
         } catch (e) {
           console.warn('[App] Handled exception:', e);
         }
@@ -11618,6 +11763,7 @@ function SocialMediaPage() {
                         key={p.id}
                         onClick={() => {
                           setShowGlobalSearch(false);
+                          router.push(`/hub/social-media?post=${p.id}`);
                         }}
                         style={{
                           padding: '10px 16px',
@@ -12931,8 +13077,8 @@ function SocialMediaPage() {
               Delete This Post?
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
-              This post will be removed from the feed. You have a few seconds to close this dialog
-              and undo the deletion before it is permanent.
+              This post will be removed from the feed. You can tap the
+              &ldquo;Post deleted&rdquo; message within 5 seconds to undo.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -13025,12 +13171,35 @@ function SocialMediaPage() {
           onClose={() => setShareModalPost(null)}
           onShared={(platform) => {
             if (shareModalPost._onSuccess) shareModalPost._onSuccess();
-            // Refresh feed after sharing to feed
-            if (platform === 'feed') {
-              setPosts((prev) => [...prev]); // trigger re-render
-            }
           }}
         />
+      )}
+      {newPostsCount > 0 && (
+        <button
+          onClick={async () => {
+            setNewPostsCount(0);
+            if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+            await loadFeed(0, false);
+          }}
+          style={{
+            position: 'fixed',
+            top: 76,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1200,
+            background: '#2374E1',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 20,
+            padding: '8px 18px',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+          }}
+        >
+          {newPostsCount === 1 ? '1 new post' : `${newPostsCount} new posts`} ↑
+        </button>
       )}
     </PageTransition>
   );

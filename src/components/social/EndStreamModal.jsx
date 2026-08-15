@@ -628,9 +628,35 @@ export function EndStreamModal({
             Save to Lives
           </button>
 
+          {/* Keep for later — always enabled. Without this, a failed
+              recording (Safari codec gap / finalize timeout) left Delete as
+              the ONLY working button (2026-08-15 audit). */}
+          <button
+            onClick={() => onClose?.(null)}
+            disabled={isUploading}
+            style={{
+              width: '100%',
+              padding: '12px 24px',
+              borderRadius: 8,
+              border: `1px solid ${C.border}`,
+              background: 'transparent',
+              color: C.text,
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: isUploading ? 'not-allowed' : 'pointer',
+              opacity: isUploading ? 0.6 : 1,
+            }}
+          >
+            Close — decide later
+          </button>
+
           {/* Delete - Destructive */}
           <button
-            onClick={handleDelete}
+            onClick={() => {
+              if (typeof window !== 'undefined'
+                  && !window.confirm('Delete this stream? The feed post and the stream record will be permanently removed.')) return;
+              handleDelete();
+            }}
             disabled={isUploading}
             style={{
               width: '100%',

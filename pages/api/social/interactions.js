@@ -232,44 +232,45 @@ export default async function handler(req, res) {
               return res.status(201).json({ comment: data });
 
           } else if (['like', 'love', 'haha', 'wow', 'sad', 'angry'].includes(interaction_type)) {
-              // Toggle reaction — supports all 6 emoji reaction types
-              // Check if user has ANY existing reaction on this post
-              const { data: existing } = await getSupabase()
-                  .from('social_interactions')
-                  .select('id, interaction_type')
+              // 2026-08-15 audit: reactions live in social_likes — the table
+              // the feed, fn_get_social_feed and every isLiked read use.
+              // Writing them to social_interactions made likes through this
+              // route invisible while still inflating like_count (which is
+              // owned by trig_sync_like_count on social_likes — the manual
+              // atomicIncrement calls double-counted).
+              const { data: existingRows, error: exErr } = await getSupabase()
+                  .from('social_likes')
+                  .select('id, reaction_type')
                   .eq('post_id', post_id)
                   .eq('user_id', user_id)
-                  .in('interaction_type', ['like', 'love', 'haha', 'wow', 'sad', 'angry'])
-                  .maybeSingle();
+                  .limit(1);
+              if (exErr) return res.status(500).json({ success: false, error: 'Internal server error' });
+              const existing = existingRows?.[0] || null;
 
               if (existing) {
-                  if (existing.interaction_type === interaction_type) {
-                      // Same reaction — toggle OFF (remove)
-                      const { data: deletedRows } = await getSupabase()
-                          .from('social_interactions')
+                  if (existing.reaction_type === interaction_type) {
+                      // Same reaction — toggle OFF (trigger decrements like_count)
+                      const { error: delErr } = await getSupabase()
+                          .from('social_likes')
                           .delete()
-                          .eq('id', existing.id)
-                          .select('id');
-                      if (deletedRows?.length > 0) {
-                          await atomicIncrement('like_count', -1);
-                      }
+                          .eq('id', existing.id);
+                      if (delErr) return res.status(500).json({ success: false, error: 'Internal server error' });
                       return res.status(200).json({ action: 'unreacted', reacted: false });
                   } else {
                       // Different reaction — SWITCH type (no count change)
-                      const { error: err_social_interactions_um2a4 } = await getSupabase()
-                        .from('social_interactions')
-                        .update({ interaction_type })
+                      const { error: swErr } = await getSupabase()
+                        .from('social_likes')
+                        .update({ reaction_type: interaction_type })
                           .eq('id', existing.id);
-                      if (err_social_interactions_um2a4) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_um2a4.message);
-                      return res.status(200).json({ action: 'switched', reacted: true, from: existing.interaction_type, to: interaction_type });
+                      if (swErr) console.warn('[Supabase] Reaction switch failed:', swErr.message);
+                      return res.status(200).json({ action: 'switched', reacted: true, from: existing.reaction_type, to: interaction_type });
                   }
               } else {
-                  // No existing reaction — INSERT new
+                  // No existing reaction — INSERT (trigger increments like_count)
                   const { error } = await getSupabase()
-                      .from('social_interactions')
-                      .insert({ post_id, user_id, interaction_type });
+                      .from('social_likes')
+                      .insert({ post_id, user_id, reaction_type: interaction_type });
                   if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
-                  await atomicIncrement('like_count', 1);
                   return res.status(201).json({ action: 'reacted', reacted: true });
               }
 
@@ -306,6 +307,20 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'post_id required' });
           }
 
+          const REACTION_TYPES = new Set(['like', 'love', 'haha', 'wow', 'sad', 'angry']);
+
+          // Reactions live in social_likes (trigger-maintained counter);
+          // everything else (bookmark/share/report) stays in social_interactions.
+          if (interaction_type && REACTION_TYPES.has(interaction_type)) {
+              const { error: likeDelErr } = await getSupabase()
+                  .from('social_likes')
+                  .delete()
+                  .eq('post_id', post_id)
+                  .eq('user_id', user_id);
+              if (likeDelErr) return res.status(500).json({ success: false, error: 'Internal server error' });
+              return res.status(200).json({ success: true });
+          }
+
           let deleteQuery = getSupabase()
               .from('social_interactions')
               .delete()
@@ -321,6 +336,13 @@ export default async function handler(req, res) {
           const { data: deletedRows, error: deleteError } = await deleteQuery;
           if (deleteError) return res.status(500).json({ success: false, error: 'Internal server error' });
 
+          // Untyped delete: also clear any social_likes reaction (trigger
+          // handles the counter for it).
+          if (!interaction_type) {
+              await getSupabase().from('social_likes').delete()
+                  .eq('post_id', post_id).eq('user_id', user_id);
+          }
+
           // Detect whether this post_id belongs to social_reels or social_posts
           let deleteSource = 'posts';
           const { data: reelCheck } = await getSupabase()
@@ -333,8 +355,10 @@ export default async function handler(req, res) {
 
            // Decrement counts using atomic RPCs for deleted interactions
           if (deletedRows && deletedRows.length > 0) {
-              const reactionTypes = new Set(['like', 'love', 'haha', 'wow', 'sad', 'angry']);
-              const reactionsRemoved = deletedRows.filter(i => reactionTypes.has(i.interaction_type)).length;
+              // like_count is owned by trig_sync_like_count on social_likes —
+              // legacy reaction rows deleted from social_interactions must NOT
+              // decrement it (they never went through the trigger's insert).
+              const reactionsRemoved = 0;
               const sharesRemoved = deletedRows.filter(i => i.interaction_type === 'share').length;
 
               const atomicDecrement = async (field) => {

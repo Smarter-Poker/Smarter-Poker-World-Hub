@@ -569,6 +569,7 @@ export function GoLiveModal({
   // Bug20: canvas refs for applying beauty filter to the outgoing LiveKit stream
   const beautyCanvasRef = useRef(null);
   const beautyAnimFrameRef = useRef(null);
+  const beautyHiddenTimerRef = useRef(null); // hidden-tab draw timer (2026-08-15)
   // BUG-FIX-9: guest (co-host) realtime viewer count channel.
   // The host heartbeat updates live_streams.viewer_count in the DB; guests
   // subscribe to this Postgres channel so their viewer counter stays in sync.
@@ -592,9 +593,14 @@ export function GoLiveModal({
           .select('id, title, started_at')
           .eq('broadcaster_id', user.id)
           .eq('status', 'live')
-          .maybeSingle()
-          .then(({ data }) => {
-            if (data) setExistingLiveStream(data);
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .then(({ data, error }) => {
+            // limit(1) not maybeSingle(): two orphaned live rows made
+            // maybeSingle() error out and the reconnect banner never showed
+            // for exactly the user who needed it most.
+            if (error) console.warn('[GoLive] existing-stream check failed:', error.message);
+            if (data?.[0]) setExistingLiveStream(data[0]);
             setCheckingExistingStream(false);
           })
           .catch(() => setCheckingExistingStream(false));
@@ -695,7 +701,19 @@ export function GoLiveModal({
         }
         ctx.filter = 'brightness(1.06) contrast(0.92) saturate(1.12) blur(0.4px)';
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        beautyAnimFrameRef.current = requestAnimationFrame(draw);
+        // rAF stops in hidden tabs, freezing the published canvas track for
+        // every viewer while audio keeps rolling. Fall back to a 33ms timer
+        // whenever the document is hidden (2026-08-15 audit fix).
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+          beautyAnimFrameRef.current = null;
+          beautyHiddenTimerRef.current = setTimeout(draw, 33);
+        } else {
+          if (beautyHiddenTimerRef.current) {
+            clearTimeout(beautyHiddenTimerRef.current);
+            beautyHiddenTimerRef.current = null;
+          }
+          beautyAnimFrameRef.current = requestAnimationFrame(draw);
+        }
       };
       draw();
       const canvasStream = canvas.captureStream(30);
@@ -735,6 +753,10 @@ export function GoLiveModal({
       if (beautyAnimFrameRef.current) {
         cancelAnimationFrame(beautyAnimFrameRef.current);
         beautyAnimFrameRef.current = null;
+      }
+      if (beautyHiddenTimerRef.current) {
+        clearTimeout(beautyHiddenTimerRef.current);
+        beautyHiddenTimerRef.current = null;
       }
       beautyCanvasRef.current = null;
     };

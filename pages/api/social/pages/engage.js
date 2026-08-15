@@ -51,12 +51,20 @@ export default async function handler(req, res) {
           if (action === 'like') {
               const reaction_type = req.body.reaction_type || 'like';
               // Toggle like
-              const { data: existing } = await getSupabase()
+              // .neq bookmark: bookmarks share this table — the old lookup
+              // matched the bookmark row and the update branch converted it
+              // into a like, silently destroying the bookmark. limit(1)
+              // instead of maybeSingle: duplicates must not error-out as
+              // "no existing row" and insert another duplicate.
+              const { data: existingRows, error: exErr } = await getSupabase()
                   .from('social_page_post_likes')
                   .select('id, reaction_type')
                   .eq('post_id', post_id)
                   .eq('user_id', user_id)
-                  .maybeSingle();
+                  .neq('reaction_type', 'bookmark')
+                  .limit(1);
+              if (exErr) return res.status(500).json({ success: false, error: exErr.message });
+              const existing = existingRows?.[0] || null;
 
               if (existing) {
                   // If same reaction, unlike. If different reaction, update.
