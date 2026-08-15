@@ -644,7 +644,17 @@ export function EndStreamModal({
               recording (Safari codec gap / finalize timeout) left Delete as
               the ONLY working button (2026-08-15 audit). */}
           <button
-            onClick={() => onClose?.(null)}
+            onClick={() => {
+              // 2026-08-15 final sweep: the recording is never uploaded on
+              // this path — say so, and confirm before throwing it away.
+              if (
+                videoBlob &&
+                typeof window !== 'undefined' &&
+                !window.confirm('Close without saving? Your recording will be discarded.')
+              )
+                return;
+              onClose?.(null);
+            }}
             disabled={isUploading}
             style={{
               width: '100%',
@@ -659,7 +669,7 @@ export function EndStreamModal({
               opacity: isUploading ? 0.6 : 1,
             }}
           >
-            Close — decide later
+            {videoBlob ? 'Discard recording & close' : 'Close'}
           </button>
 
           {/* Delete - Destructive */}
