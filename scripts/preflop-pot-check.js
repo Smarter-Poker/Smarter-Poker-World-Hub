@@ -285,6 +285,7 @@ check('#14 postflop: adding the amount leaves an explicit POT untouched', () => 
 const { pioQueryService } = require(path.join(ROOT, 'src/services/PIOQueryService.js'));
 const { deterministicEngine } = require(path.join(ROOT, 'src/engines/DeterministicGTOEngine.js'));
 const { filterRowsToDeclaredStreet, declaredStreetOf, streetOfCachedRow } = require(path.join(ROOT, 'src/lib/training/declaredStreet.js'));
+const { v2ToAppMatrix } = require(path.join(ROOT, 'src/utils/v2Matrix.js'));
 
 console.log('\n=== Preflop route: the arena can deal a preflop spot ===');
 
@@ -661,6 +662,62 @@ const summarize = () => {
     // node_type, per-node pot) AHEAD of the facing-bet data landing, so the
     // chip badge lights up the moment the machines deliver -- these pin the
     // reader to that contract.
+    check('#14 v2: a bet with NO pot returns 0, never raw solver chips', () => {
+        // This used to return `chips` raw, so a solver node reading b488 would
+        // paint "488" on the felt as big blinds. A blank badge is a missing
+        // feature; a wrong badge is a lie the player acts on.
+        const scenario = { strategy_matrix: { node: 'r:0:b488' } };
+        const got = deterministicEngine._villainBetBB(scenario, 10);
+        return got === 0 || 'got ' + got;
+    });
+
+    check('#14 v2: a ROOT pot rebases a first-action bet', () => {
+        // v2 supplies pot_bb (root pot, big blinds) which v2Matrix converts to
+        // solver chips at 100/bb. 488 chips into a 650-chip root pot is 75% of
+        // pot, so on a felt pot of 8bb the badge reads 6.0.
+        const scenario = { strategy_matrix: { node: 'r:0:b488', pot: 650, pot_is_root: true } };
+        const got = deterministicEngine._villainBetBB(scenario, 8);
+        return Math.abs(got - 6) < 0.05 || 'got ' + got;
+    });
+
+    check('#14 v2: a ROOT pot must NOT rebase a deep bet', () => {
+        // `r:0:c:b488:c:7c:c` is a turn node whose real pot is far larger than
+        // the root's; rebasing against the root would overstate the bet.
+        const scenario = { strategy_matrix: { node: 'r:0:c:b488', pot: 650, pot_is_root: true } };
+        const got = deterministicEngine._villainBetBB(scenario, 8);
+        return got === 0 || 'got ' + got;
+    });
+
+    check('#14 v1: a per-NODE pot still rebases at any depth', () => {
+        // Without the root flag the pot is the pot AT the node, which is the
+        // correct denominator wherever the node sits.
+        const scenario = { strategy_matrix: { node: 'r:0:c:b488', pot: 650 } };
+        const got = deterministicEngine._villainBetBB(scenario, 8);
+        return Math.abs(got - 6) < 0.05 || 'got ' + got;
+    });
+
+    check('#14 v2Matrix carries the pot through, in the node\'s own unit', () => {
+        const v2 = {
+            actions: ['x'], frequencies: { x: new Array(1326).fill(1) },
+            hand_evs_bb: [], pot_bb: 6.5, node: 'r:0', street: 'flop', board: [],
+        };
+        const out = v2ToAppMatrix(v2);
+        if (!out) return 'null matrix';
+        if (out.pot !== 650) return 'pot ' + out.pot + ', want 650 chips';
+        if (out.pot_bb !== 6.5) return 'pot_bb ' + out.pot_bb;
+        return out.pot_is_root === true || 'pot_is_root not set';
+    });
+
+    check('#14 v2Matrix omits the pot entirely when the row has none', () => {
+        const v2 = {
+            actions: ['x'], frequencies: { x: new Array(1326).fill(1) },
+            hand_evs_bb: [], node: 'r:0', street: 'flop', board: [],
+        };
+        const out = v2ToAppMatrix(v2);
+        return (out && !('pot' in out) && !('pot_is_root' in out))
+            || 'pot keys present: ' + JSON.stringify(Object.keys(out || {}));
+    });
+
     check('#14 nodes[]: a facing_bet entry with per-node pot rebases onto the felt pot', () => {
         const scenario = { strategy_matrix: { nodes: [
             { node_path: 'r:0', node_type: 'hero_first', pot: 40 },

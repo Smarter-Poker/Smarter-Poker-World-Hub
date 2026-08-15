@@ -2398,7 +2398,13 @@ export class DeterministicGTOEngine {
                 if (isFinite(nodePot) && nodePot > 0) {
                     return Math.round(((chips / nodePot) * pot) * 10) / 10;
                 }
-                return Math.round(chips * 10) / 10;
+                // No per-node pot means the chip count is uninterpretable: 488
+                // is a small bet into a huge pot or an overbet into a tiny one,
+                // and nothing here can tell which. This used to fall through to
+                // `chips` RAW, which would paint "488" on the felt as big
+                // blinds. A blank badge is a missing feature; a wrong badge is
+                // a lie the player will act on.
+                return 0;
             }
         }
 
@@ -2407,11 +2413,19 @@ export class DeterministicGTOEngine {
         if (tail) {
             const chips = parseInt(tail[1], 10);
             const solverPot = Number(sm.pot);
+            // `pot_is_root` marks a denominator that is the pot at the ROOT of
+            // the solve rather than at this node -- which is what the v2
+            // pipeline supplies (see src/utils/v2Matrix.js). It is the right
+            // denominator only when the bet IS the first action after the
+            // root; on `r:0:c:b488:...` the real pot has grown well beyond it,
+            // and rebasing against the root would overstate the bet as a
+            // fraction of pot. Decline rather than approximate.
+            const potIsUsable = !sm.pot_is_root || /^r:0:b\d+$/.test(node);
             if (isFinite(chips) && chips > 0) {
-                if (isFinite(solverPot) && solverPot > 0) {
+                if (isFinite(solverPot) && solverPot > 0 && potIsUsable) {
                     return Math.round(((chips / solverPot) * pot) * 10) / 10;
                 }
-                return Math.round(chips * 10) / 10;
+                return 0;
             }
         }
 
