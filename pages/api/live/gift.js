@@ -14,7 +14,7 @@
  *      free/earned diamonds: 100 diamonds/30 days
  *      purchased/won diamonds: 500 diamonds/30 days
  *  - Accounts 90+ days: standard max-per-gift cap (10,000) + velocity detection
- *  - Per-broadcaster rolling 30-day receive cap: 1,000 diamonds
+ *  - Receiving is NOT capped. See RECEIVER_30DAY_REVIEW_THRESHOLD below.
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 import { randomUUID } from 'crypto';
@@ -32,7 +32,39 @@ const NEW_USER_BLOCK_DAYS = 30;
 const GRADUATION_DAYS = 120;
 const FREE_EARNED_30DAY_LIMIT = 100;
 const PURCHASED_WON_30DAY_LIMIT = 500;
-const RECEIVER_30DAY_RECEIVE_LIMIT = 1000; // per broadcaster per 30-day rolling window
+// 2026-08-15 economy redesign (Dan: "1000 diamonds every 30 days seems very
+// low, we want diamonds flying around and being purchased").
+//
+// The old rule was a HARD BLOCK at 1,000 diamonds received per broadcaster per
+// 30 days. It was the single worst constraint in the economy:
+//   * It fired on the most popular broadcasters — exactly the rooms where
+//     purchase intent is highest — and made their viewers' gifts FAIL.
+//   * A single gift may be up to 10,000, so one whale gift was 10x the
+//     receiver's entire monthly allowance. The caps contradicted each other.
+//   * Senders graduate to unlimited at 120 days; receivers never graduated.
+//
+// How the majors actually do it (researched 2026-08-15): NONE of them cap
+// receipt. They throttle the ENTRANCE and the EXIT, never the middle.
+//   * YouTube Super Chat: viewer spend capped at $500/day and $2,000/week,
+//     max $500 per message. No cap on what a creator receives.
+//   * TikTok LIVE: no published receive cap; the control is at cash-out —
+//     one withdrawal per day, up to ~$1,000, $100 minimum.
+// The exit is the anti-abuse choke point because the abuse is laundering:
+// buy -> gift -> withdraw.
+//
+// Smarter.poker has NO diamond cash-out at all. Diamonds are a closed loop
+// (the only cashout path in the codebase is Club Arena chip_balance, a
+// separate per-club chip economy). With no exit to real money there is no
+// laundering vector for a receive cap to close, so the cap bought us nothing
+// and cost us every gift above 1,000.
+//
+// Free-diamond farming — the one real concern — is already throttled at the
+// SENDER, by source tier: free/earned diamonds are capped at 100 per 30 days
+// (FREE_EARNED_30DAY_LIMIT). Capping the receiver was redundant with that.
+//
+// Replaced with an observability threshold: we still compute the 30-day
+// receive total and log loudly past this line, but we never reject the gift.
+const RECEIVER_30DAY_REVIEW_THRESHOLD = 250000; // log-only. NOT a block.
 
 const PURCHASED_WON_TYPES = new Set([
   'purchase',
@@ -267,7 +299,13 @@ export default async function handler(req, res) {
   // ── GUARD: Source-tier rolling 30-day cap (accounts < 120 days, not paid, or flagged) ──
   const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  if (!isKingfish && !isFullyUnrestricted) {
+  // 2026-08-15 economy redesign: a FRESH PAID sender (bought diamonds, still
+  // inside the 7-day post-purchase window) is governed by the 500/24h cap
+  // above — applying the 500-per-30-DAYS purchased/won cap on top of it made
+  // the daily allowance a lie: someone who bought 5,000 diamonds could gift
+  // 500 of them in their entire first week, not 500 per day. The 24h cap is
+  // the intended chargeback-window control; this one would double-bind it.
+  if (!isKingfish && !isFullyUnrestricted && !isFreshPaid) {
     // BUG FIX (Pass 4): Use direct RPCs for aggregations instead of paginated HTTP fetching
     const { data: alreadySent } = await supabase.rpc('sum_diamond_transactions', {
       p_user_id: user.id,
@@ -318,15 +356,16 @@ export default async function handler(req, res) {
     p_start: rolling30StartReceive,
   });
 
-  if (!isKingfish && (broadcasterReceiveTotal || 0) + parsedAmount > RECEIVER_30DAY_RECEIVE_LIMIT) {
-    return res.status(429).json({
-      error: `This broadcaster has reached their 30-day gift receive limit (${RECEIVER_30DAY_RECEIVE_LIMIT} diamonds/30 days)`,
-      gateType: 'broadcaster_receive_cap',
-      title: 'Broadcaster Cap Reached',
-      popup_message: 'Broadcaster Receive Limit Reached',
-      popup_explanation: `This broadcaster has reached their 30-day gift receive limit of ${RECEIVER_30DAY_RECEIVE_LIMIT.toLocaleString()} diamonds. Please try again later or select a different broadcaster to gift.`,
-      next_send_message: 'Please Try Again In A Few Days',
-    });
+  // 2026-08-15: log-only. A broadcaster is never blocked from RECEIVING —
+  // see the RECEIVER_30DAY_REVIEW_THRESHOLD note above. This line exists so an
+  // implausible concentration still shows up in the logs for review, and so
+  // is_farming_flagged can be applied by a human rather than by a rule that
+  // silently kills revenue.
+  if ((broadcasterReceiveTotal || 0) + parsedAmount > RECEIVER_30DAY_REVIEW_THRESHOLD) {
+    console.warn(
+      `[REVIEW:LIVE_GIFT_RECEIVE] Broadcaster ${receiver_id} is past the 30-day review threshold: ` +
+        `${(broadcasterReceiveTotal || 0) + parsedAmount}/${RECEIVER_30DAY_REVIEW_THRESHOLD} diamonds. Not blocked.`
+    );
   }
 
   // STREAM-POLISH-R3 GIFT-1: per-gift UUID is now sourced from the
