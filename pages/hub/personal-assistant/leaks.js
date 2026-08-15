@@ -2047,7 +2047,7 @@ export default function LeakFinderPage() {
               <p style={styles.demoBannerText}>
                 You are viewing sample data. Sign in and run detection to analyse your own hands.
               </p>
-              <a className="pa-btn" href="/auth" style={{ ...btn('primary', { block: true }), textDecoration: 'none', minHeight: 48 }}>
+              <a className="pa-btn" href="/auth/signin" style={{ ...btn('primary', { block: true }), textDecoration: 'none', minHeight: 48 }}>
                 Sign in to analyse my hands
               </a>
             </section>
