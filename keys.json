@@ -1,0 +1,74 @@
+[
+  {
+    "id": 109835740,
+    "name": "deploy-key",
+    "fingerprint": "7a:30:46:ad:4e:fd:94:06:3f:9f:51:94:ed:3a:b8:e1",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICbfpGx8YV1Al3VIAY8uIr7aIDX2kfG3R587U9UVip/s smarter.poker@deploy",
+    "labels": {},
+    "created": "2026-03-27T15:07:25Z"
+  },
+  {
+    "id": 111265593,
+    "name": "openclaw-deploy-key",
+    "fingerprint": "39:a4:23:7a:6b:9b:57:b7:e4:0f:4d:97:b8:6f:90:a9",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOlgbxQ9o5gRyIK0QHcmv5UlKUK+h5Au64OYEP49YExI openclaw-dispatcher@smarter.poker",
+    "labels": {},
+    "created": "2026-04-23T23:35:35Z"
+  },
+  {
+    "id": 111299606,
+    "name": "workers-deploy-key",
+    "fingerprint": "21:40:30:5d:10:2d:65:9e:3a:60:c1:68:95:22:85:57",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHNALy1KTT9mzVkZl2om/cIECi0ljVb4feNOGuvZty4A workers-deploy@smarter.poker",
+    "labels": {},
+    "created": "2026-04-24T15:26:51Z"
+  },
+  {
+    "id": 112066893,
+    "name": "sanya-key",
+    "fingerprint": "4c:4a:c8:1c:a7:e3:12:15:99:65:77:f1:3b:ab:ad:b4",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzoNOiTmlWlB0tGrL7CPjHGSX+VeoOkDqeLjAeWfQwU",
+    "labels": {},
+    "created": "2026-05-09T22:27:25Z"
+  },
+  {
+    "id": 112671226,
+    "name": "pnrx-sandbox-deploy",
+    "fingerprint": "4f:35:9a:9f:90:ae:d7:af:1f:cf:1f:16:ab:da:43:43",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMdhWcXmNGB+gjJ6IDR7HhOWFnEqkHu2S5EDW2PWNLO9 claude-sandbox-deploy",
+    "labels": {},
+    "created": "2026-05-22T19:03:09Z"
+  },
+  {
+    "id": 112722955,
+    "name": "ovh-vps-key",
+    "fingerprint": "39:10:aa:ef:cb:65:bf:64:30:9a:24:51:b9:73:7b:c1",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG3Co5pWBcoxZrloPyMwgGPsrV0nz/yMHtvTJnIQ1JBR ovh-vps",
+    "labels": {},
+    "created": "2026-05-23T21:56:32Z"
+  },
+  {
+    "id": 113449102,
+    "name": "hezner-1",
+    "fingerprint": "8b:51:56:b3:52:99:86:3d:a6:8d:6c:49:bd:72:e8:cb",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPL6tPvyFRb1/ngEtk2Js8fGBFurpacqSdDgdaDBVrde hezner-1",
+    "labels": {},
+    "created": "2026-06-07T19:50:25Z"
+  },
+  {
+    "id": 113760005,
+    "name": "aws-1",
+    "fingerprint": "17:ae:97:2d:54:ec:31:c4:15:e6:fc:78:bd:ca:bc:3a",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK5Cn0cnO1TAKfZAWonKBs91ucTW6HhHnATuejRhOhVa aws-1",
+    "labels": {},
+    "created": "2026-06-14T19:22:41Z"
+  },
+  {
+    "id": 115340621,
+    "name": "kilo-access",
+    "fingerprint": "4a:13:99:77:93:28:31:45:90:47:c9:99:05:35:61:9f",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAl5hH42jfshb9nPWcbJokrZDkD7AcqzyWPBt6YtQ/xF hetzner-access",
+    "labels": {},
+    "created": "2026-07-18T15:48:12Z"
+  }
+]
