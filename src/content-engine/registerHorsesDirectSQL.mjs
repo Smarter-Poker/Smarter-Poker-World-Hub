@@ -10,12 +10,12 @@ import { createClient } from '@supabase/supabase-js';
 // Production credentials
 const supabase = createClient(
     'https://kuklfnapbkmacvwxktbh.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 async function registerHorses() {
     console.log('🐴 REGISTER HORSES AS OFFICIAL USERS\n');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Step 1: Fetch horses from content_authors
     console.log('📋 Fetching horses from content_authors...');
@@ -104,9 +104,9 @@ async function registerHorses() {
             if (error.message.includes('does not exist')) {
                 console.error('❌ Table bot_profiles does not exist!');
                 console.log('\n📌 Please run this SQL in Supabase Dashboard first:\n');
-                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                 console.log(createTableSQL);
-                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                 return;
             }
             console.error(`❌ Batch ${batchNum} error:`, error.message);
@@ -117,10 +117,10 @@ async function registerHorses() {
         }
     }
 
-    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`🎉 SUCCESS! ${inserted} horses registered.`);
     console.log(`   Player Numbers: #101 - #${100 + inserted}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Verify
     const { data: samples } = await supabase
