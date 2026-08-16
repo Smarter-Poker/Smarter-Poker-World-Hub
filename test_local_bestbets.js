@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
   console.log('Logging in...');
   await page.goto('http://localhost:3000/auth/login');
   await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
-  await page.fill('input[type="password"]', 'Bek454545!!');
+  await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
   await page.click('button[type="submit"]');
   
   await page.waitForNavigation({ waitUntil: 'networkidle' });

@@ -10,7 +10,7 @@ async function run() {
 
   const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
     email: 'daniel@bekavactrading.com',
-    password: 'Bek454545!!'
+    password: process.env.TEST_USER_PASSWORD
   });
   
   if (authErr) throw authErr;

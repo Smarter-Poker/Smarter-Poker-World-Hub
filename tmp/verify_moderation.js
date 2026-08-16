@@ -11,7 +11,7 @@ async function testPhase2() {
   console.log('1. Signing in as test admin...');
   const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
     email: 'daniel@bekavactrading.com',
-    password: 'Bek454545!!'
+    password: process.env.TEST_USER_PASSWORD
   });
   if (authErr) throw authErr;
   
