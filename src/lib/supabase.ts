@@ -21,7 +21,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
 // the one the whole browser app authenticates through, so it resolves the key
 // through the same helper as authUtils rather than trusting the raw env value.
 // See src/lib/supabaseKeys.js.
-const _anonResolved = resolveAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+const _anonResolved = resolveAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim());
 const supabaseAnonKey = _anonResolved.key;
 const _anonWarning = anonKeyWarning(_anonResolved.source);
 if (_anonWarning) console.warn(_anonWarning);
