@@ -96,59 +96,9 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
             </mesh>
 
             {/* ═══════════════════════════════════════════════════════════════
-                3D BEVEL BORDER — thin, sleek, physically lit
-                Top & Left  = bright face  (light hits here)
-                Bottom & Right = dark face  (shadow side)
-                Each strip is a flat plane tilted slightly on Z to sit proud of card
+                3D BEVEL BORDER REMOVED
+                User requested clean edge with no blue lines or bevels.
                 ═══════════════════════════════════════════════════════════════ */}
-
-            {/* TOP — lit face (bright highlight) */}
-            <mesh position={[0, cardHeight / 2 - b / 2, 0.02]}>
-                <planeGeometry args={[cardWidth, b]} />
-                <meshStandardMaterial
-                    color="#c8e8ff"
-                    metalness={0.85}
-                    roughness={0.15}
-                    emissive="#88ccff"
-                    emissiveIntensity={0.25}
-                />
-            </mesh>
-
-            {/* LEFT — lit face (bright highlight) */}
-            <mesh position={[-cardWidth / 2 + b / 2, 0, 0.02]}>
-                <planeGeometry args={[b, cardHeight]} />
-                <meshStandardMaterial
-                    color="#b0d8f8"
-                    metalness={0.8}
-                    roughness={0.2}
-                    emissive="#66aaee"
-                    emissiveIntensity={0.18}
-                />
-            </mesh>
-
-            {/* BOTTOM — shadow face (dark edge) */}
-            <mesh position={[0, -cardHeight / 2 + b / 2, 0.02]}>
-                <planeGeometry args={[cardWidth, b]} />
-                <meshStandardMaterial
-                    color="#080e1a"
-                    metalness={0.9}
-                    roughness={0.1}
-                    emissive="#000000"
-                    emissiveIntensity={0}
-                />
-            </mesh>
-
-            {/* RIGHT — shadow face (dark edge) */}
-            <mesh position={[cardWidth / 2 - b / 2, 0, 0.02]}>
-                <planeGeometry args={[b, cardHeight]} />
-                <meshStandardMaterial
-                    color="#0c1422"
-                    metalness={0.9}
-                    roughness={0.1}
-                    emissive="#000000"
-                    emissiveIntensity={0}
-                />
-            </mesh>
 
             {/* INNER RIM — razor-thin glass highlight just inside the card edge */}
             <mesh position={[0, 0, 0.025]}>
