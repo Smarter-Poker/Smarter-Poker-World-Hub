@@ -301,11 +301,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:37:32.534198+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:43:58.786165+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 1,
-    "scrape_count": 28,
+    "scrape_count": 29,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Big Stack Poker Club": {
@@ -320,11 +320,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:38:03.561660+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:44:28.418820+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 23,
+    "scrape_count": 24,
     "script": "scripts/scrape_charity_v5.py"
   },
   "The Reserve Poker Club": {
@@ -339,11 +339,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:38:07.138039+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:44:31.879596+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 3,
-    "scrape_count": 25,
+    "scrape_count": 26,
     "script": "scripts/scrape_charity_v5.py"
   },
   "River Room Players Club": {
@@ -358,11 +358,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:38:18.396596+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:44:43.158542+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 7,
-    "scrape_count": 25,
+    "scrape_count": 26,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Westfield Lions Club Poker": {
@@ -377,11 +377,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:38:33.298502+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
-    "last_http_status": 0,
+    "last_scraped": "2026-08-16T07:45:11.503695+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
+    "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 23,
+    "scrape_count": 24,
     "script": "scripts/scrape_charity_v5.py"
   },
   "OP Social Club / Outlaw Poker": {
@@ -396,11 +396,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:38:47.501266+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:45:23.848189+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 0,
     "last_schedules_found": 0,
-    "scrape_count": 18,
+    "scrape_count": 19,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Queens Club Inc.": {
@@ -415,11 +415,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:39:12.140685+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:45:44.426982+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 0,
     "last_schedules_found": 0,
-    "scrape_count": 21,
+    "scrape_count": 22,
     "script": "scripts/scrape_charity_v5.py"
   },
   "High Stax Poker": {
@@ -434,11 +434,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:39:22.685694+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:45:55.489686+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 0,
     "last_schedules_found": 0,
-    "scrape_count": 21,
+    "scrape_count": 22,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Concord Casino": {
@@ -453,11 +453,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:40:01.531950+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:46:33.532329+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 19,
+    "scrape_count": 20,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Gate City Casino": {
@@ -472,11 +472,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:40:06.135922+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:46:40.239048+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 4,
-    "scrape_count": 24,
+    "scrape_count": 25,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Pop's Poker": {
@@ -491,11 +491,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:40:08.223040+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:46:42.575754+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 4,
-    "scrape_count": 24,
+    "scrape_count": 25,
     "script": "scripts/scrape_charity_v5.py"
   },
   "RVA Charity Poker": {
@@ -510,11 +510,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:40:14.580399+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:46:49.703891+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 1,
-    "scrape_count": 24,
+    "scrape_count": 25,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Evlos Charity Poker": {
@@ -529,11 +529,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:40:19.192573+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:46:54.473347+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 2,
-    "scrape_count": 24,
+    "scrape_count": 25,
     "script": "scripts/scrape_charity_v5.py"
   },
   "ACES Charity Poker": {
@@ -548,11 +548,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:40:47.226797+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:47:22.669012+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 19,
+    "scrape_count": 20,
     "script": "scripts/scrape_charity_v5.py"
   },
   "TGT Poker Room": {
@@ -567,11 +567,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:40:51.934195+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:47:26.218530+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 7,
-    "scrape_count": 24,
+    "scrape_count": 25,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Chicago Charitable Games (CCG Poker)": {
@@ -586,11 +586,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:40:59.943378+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:47:33.973748+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 5,
-    "scrape_count": 23,
+    "scrape_count": 24,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Windy City Poker Championship": {
@@ -605,11 +605,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:41:07.527117+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:47:39.400572+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 1,
-    "scrape_count": 22,
+    "scrape_count": 23,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Monroe Boat Club (MBC-A Charity Poker)": {
@@ -697,11 +697,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:41:51.152383+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:48:19.712733+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 17,
+    "scrape_count": 18,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Charity Series of Poker (CSOP)": {
@@ -748,11 +748,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-08-10T07:41:13.028357+00:00",
-    "last_batch_id": "2cc374db-5de9-4efa-8dd6-25492f9cc183",
+    "last_scraped": "2026-08-16T07:47:44.576874+00:00",
+    "last_batch_id": "f4745e6c-c62a-4d84-880f-dbc5eadb3548",
     "last_http_status": 200,
-    "last_schedules_found": 8,
-    "scrape_count": 22,
+    "last_schedules_found": 7,
+    "scrape_count": 23,
     "script": "scripts/scrape_charity_v5.py"
   }
 }
