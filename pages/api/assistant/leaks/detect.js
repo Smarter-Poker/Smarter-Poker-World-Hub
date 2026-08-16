@@ -968,6 +968,68 @@ function updateTrendData(existingTrend, currentValue) {
 }
 
 /**
+ * Normalise one card into the two-character form the rest of the platform
+ * speaks: rank + single-letter suit, e.g. "Ah", "Tc", "6s".
+ *
+ * 2026-08-16: the engine stores cards in TWO shapes and NEITHER is the one the
+ * UI reads:
+ *
+ *   hand_history.hole_cards -> [{ rank: "4", suit: "clubs" }, ...]
+ *   hand_history.board      -> ["6spades", "Ahearts", ...]
+ *
+ * The leak-example renderer does `cards.filter(Boolean).join(' ')`, so a hero
+ * holding rendered as literally "[object Object] [object Object]", and the
+ * one-tap "practice this hand" link built `?h=[obj` from
+ * `snap.hero_cards.join('')`. The board fared slightly better — "6spades
+ * Ahearts" is at least legible — but it is not what the drill parser accepts
+ * either.
+ *
+ * Normalising HERE, at the write, rather than at each of the several read
+ * sites, is deliberate: `leak_hand_examples` was empty (0 rows platform-wide —
+ * the insert had never once succeeded, fixed earlier today), so there is no
+ * legacy shape to stay compatible with. Every future row is canonical.
+ *
+ * The vocabulary is not guessed. Both columns were sampled in production and
+ * each yields exactly 52 distinct values: ranks 2-9 T J Q K A (never "10"),
+ * suits spelled out in full.
+ *
+ * Returns null for anything unrecognised, so a bad card is dropped rather than
+ * rendered as garbage.
+ */
+const SUIT_LETTER = { clubs: 'c', diamonds: 'd', hearts: 'h', spades: 's' };
+
+function toCardCode(card) {
+  if (!card) return null;
+
+  // { rank: "4", suit: "clubs" } — the hole_cards shape.
+  if (typeof card === 'object') {
+    const rank = String(card.rank ?? '').trim();
+    const suit = SUIT_LETTER[String(card.suit ?? '').trim().toLowerCase()];
+    return rank && suit ? `${rank}${suit}` : null;
+  }
+
+  if (typeof card !== 'string') return null;
+  const raw = card.trim();
+  if (!raw) return null;
+
+  // "6spades" — the board shape. Also accepts an already-canonical "6s", which
+  // makes this safe to apply twice.
+  const m = /^([2-9TJQKA]|10)(clubs|diamonds|hearts|spades|[cdhs])$/i.exec(raw);
+  if (!m) return null;
+  const rank = m[1].toUpperCase() === '10' ? 'T' : m[1].toUpperCase();
+  const suitRaw = m[2].toLowerCase();
+  const suit = SUIT_LETTER[suitRaw] || suitRaw;
+  return `${rank}${suit}`;
+}
+
+/** Map a whole holding / board, dropping anything unparseable. Null if empty. */
+function toCardCodes(cards) {
+  if (!Array.isArray(cards)) return null;
+  const out = cards.map(toCardCode).filter(Boolean);
+  return out.length > 0 ? out : null;
+}
+
+/**
  * Link relevant hand examples to all detected leaks.
  * Fetches recent hands ONCE, matches each leak's pattern against them, and
  * saves all examples in a single batch upsert.
@@ -1024,8 +1086,10 @@ async function linkHandExamples(userId, leaksWithIds) {
             // Hero's own showdown holding, if this hand reached showdown and
             // they were in it. Null when the hand ended before showdown or the
             // hero mucked — mucked cards are deliberately never persisted.
-            hero_cards: hand.hole_cards?.[userId] ?? null,
-            board: hand.board,
+            // Both normalised to "Ah"-style codes — see toCardCode() above for
+            // why the raw engine shapes could not be stored as-is.
+            hero_cards: toCardCodes(hand.hole_cards?.[userId]),
+            board: toCardCodes(hand.board),
             button_seat: hand.button_seat ?? null,
             pot_size: hand.pot_size,
             leak_action: leakMatch.action,
