@@ -12,7 +12,7 @@ const supabaseClient = createClient(
 
 async function run() {
   const email = 'daniel@bekavactrading.com';
-  const password = 'Bek454545!!';
+  const password = process.env.TEST_USER_PASSWORD;
   
   // 1. Sign in to get user ID
   const { data: authData, error: authErr } = await supabaseClient.auth.signInWithPassword({
