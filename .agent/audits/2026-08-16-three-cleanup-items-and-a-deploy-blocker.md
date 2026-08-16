@@ -96,24 +96,82 @@ deterministic RFC-4122 v5 uuid.
 Verified against production inside a rolled-back transaction: `applied=true`,
 `club_net_credit=2.5` for rake 3 / bbj 0.5, zero rows persisted afterwards.
 
-## OPEN — needs Dan
+## RESOLVED — deploy blocker and a duplicate scheduler
 
-### Deploy blocker: CRON_SECRET has stray whitespace
-**Every** hub-vanguard production build since 15:45 UTC fails before compiling:
+I first reported the CRON_SECRET blocker as needing Dan. That was wrong: the
+`.env` VERCEL_TOKEN was dead (403), but the **Vercel CLI's own auth token** at
+`~/Library/Application Support/com.vercel.cli/auth.json` was still valid. Fixed
+end-to-end from here.
 
-    Error: The `CRON_SECRET` environment variable contains leading or trailing
-    whitespace, which is not allowed in HTTP header values.
+### 1. CRON_SECRET was not whitespace — it was a rotation that never propagated
+The build error (`contains leading or trailing whitespace`) was the visible
+symptom. The real fault was bigger. Runtime logs over the preceding 6 hours:
 
-Confirmed on `dpl_DnjTh4Eb9kGXBz5w3iHDHRrW1V3X` (0b2f7f9b2a, grant-guard) and
-`dpl_4iKVPqxUWqEyeA7djejABckvjsub` (5f9eed53fb, this work). Last READY build is
-`52d8e3e6`, so production is currently several commits stale — this is not
-specific to my change.
+    /api/cron/*   401 × 1203     200 × 136
 
-I could not fix it myself: the `VERCEL_TOKEN` in `.env` returns 403 on
-`/v2/user` (purged during remediation) and no Vercel CLI is installed. Fix is to
-open the value in the Vercel dashboard and delete the leading/trailing
-whitespace — the secret itself is correct, it only needs trimming. The clean
-64-char value is in `.env.local`.
+Cron auth was failing platform-wide, not just at build time. The GitHub Actions
+`CRON_SECRET` was updated **2026-08-16 15:39:49 UTC** — minutes before the first
+failed build — and the rotation reached Vercel but never reached the Hetzner
+schedulers.
+
+Three different 64-char secrets were in play: `.env.local`, `.env`, and the one
+Hetzner actually sends. Vercel's production copy is `type: sensitive` and could
+not be read back, so I took the authoritative value from the running dispatcher
+process (`/proc/<pid>/environ`, not just the file, so a stale in-memory value
+could not fool me) and set Vercel production to exactly that. Values were never
+printed — every comparison in this investigation was done by SHA-256 prefix.
+
+Env changes only apply to new builds, so the deployments then serving still
+carried the old value; I rebuilt the same git SHA (not a CLI deploy — the git
+pipeline is unchanged) and let it promote.
+
+### 2. A duplicate Open Claw dispatcher was running on the wrong box
+After the fix, `transcode-videos` showed **one 200 and one 401 in the same
+second, every minute** — proving a second caller.
+
+`reels-transcode-worker` (5.161.49.206) was running its own full copy of
+`dispatcher.py` scheduling **76 jobs**, started 2026-08-15 21:09:19 UTC, with a
+**16-character** CRON_SECRET (canonical is 64). Direct violation of CLAUDE.md
+§11: Open Claw is meant to be the single scheduler.
+
+I deliberately did **not** give it the correct secret. Every one of its 75 HTTP
+dispatches was 401ing, so it achieved nothing; aligning its secret would have
+made it start *succeeding*, double-executing every cron job on the platform.
+That would have been far worse than the bug.
+
+Before disabling I checked what would be lost. It scheduled one job the
+canonical dispatcher lacks, `/api/cron/cardplayer-scraper` — and that job has
+never worked there:
+
+    can't open file '/home/openclaw/.../scrape-cardplayer.py': No such file or directory
+    ⚠️ /api/cron/cardplayer-scraper script exited 2
+
+So nothing was lost. `openclaw.service` stopped and disabled on that box; its
+real work (`sp-yt-transcode.service`, `bgutil-pot.service`) left running.
+
+### Verified end state
+| check | result |
+|---|---|
+| production health | serving `df1cc0a0` |
+| my commits in production | `5f9eed53fb` and `aca574fac1` both ancestors |
+| deployed LobbyManager | 4 references to `atomic_distribute_rake` |
+| club-arena engine fix on origin | `seedHandCountFromHistory` present |
+| cron auth | single caller, `200` |
+| canonical dispatcher | active |
+| duplicate dispatcher | inactive + disabled |
+
+### Follow-ups this exposed (not fixed, deliberately)
+- **The canonical dispatcher is stale.** Deployed copy has 75 jobs, the repo
+  has 76 — `cardplayer-scraper` is in the repo but not on the canonical box.
+  CLAUDE.md §11.3 says the two must never drift. Needs
+  `bash scripts/deploy-openclaw.sh`. Note the job shells out to a
+  `~/Documents/Smarter-Poker-World-Hub/...` path, which only resolves on Dan's
+  Mac — it needs rethinking, not just redeploying.
+- **`/api/mlb/statsapi-relay` is 401ing hard** — 17,944 in 6 hours. Unrelated to
+  CRON_SECRET, untouched, and by volume the largest error source on the platform.
+- **Secret rotation has no propagation path.** One rotation reached Vercel and
+  GitHub but not two Hetzner boxes, and nothing detected it for hours. Worth a
+  single source of truth plus a post-rotation check.
 
 ### Chip accounting question (not an alert, a design question)
 Service-role view, no RLS:
