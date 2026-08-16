@@ -14,6 +14,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
+import { resolveAnonKey, anonKeyWarning } from './supabaseKeys';
 
 // Storage key used by Supabase client (must match supabase.ts config)
 const AUTH_STORAGE_KEY = 'smarter-poker-auth';
@@ -33,13 +34,29 @@ const AUTH_STORAGE_KEY = 'smarter-poker-auth';
 // instead of one clear config error. This module is imported by browser code
 // at module scope, so a missing env var must not throw here (that would white
 // screen the whole app) — we export an empty string and log once, loudly.
+//
+// [2026-08-16] SUPERSEDES the 2026-08-03 note above. The env var itself held
+// the REVOKED legacy anon JWT, and because NEXT_PUBLIC_* is inlined at build
+// time that dead key was compiled straight into the client bundle (6 copies in
+// the shipped JS); Supabase answered every request carrying it with
+// 401 {"message":"Legacy API keys are disabled"}. Reading the env var raw here
+// is what let it through, so the key is now resolved through ./supabaseKeys —
+// resolveAnonKey() substitutes the publishable key whenever the configured
+// value is legacy-format or empty, which means a legacy value in the
+// environment can no longer reach the browser. (.trim() semantics are
+// preserved: resolveAnonKey trims the configured value itself.)
+// Note this file SHADOWS src/lib/authUtils.js under Next's module resolution
+// (.ts is tried before .js), which is why the same fix applied to the .js
+// never shipped. This is a guard, not the fix: NEXT_PUBLIC_SUPABASE_ANON_KEY
+// still has to be corrected at source.
 // ═══════════════════════════════════════════════════════════════════════════
 export const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co').trim();
-const RAW_SUPABASE_ANON_KEY = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
-if (!RAW_SUPABASE_ANON_KEY) {
-    console.error('[authUtils] NEXT_PUBLIC_SUPABASE_ANON_KEY is not set. Every Supabase request will fail until this environment variable is configured.');
+const _anonResolved = resolveAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+export const SUPABASE_ANON_KEY = _anonResolved.key;
+const _anonWarning = anonKeyWarning(_anonResolved.source);
+if (_anonWarning) {
+    console.warn(_anonWarning);
 }
-export const SUPABASE_ANON_KEY = RAW_SUPABASE_ANON_KEY;
 
 /**
  * Get the current authenticated user from localStorage.
