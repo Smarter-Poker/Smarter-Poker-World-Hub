@@ -49,7 +49,7 @@ async function testPhase2() {
          console.warn("OpenAI Auto-Triage did not flag the review. Response:", data);
          // Try extracting from DB to verify raw state
          if (reviewId) {
-            const { data: dbRev } = await adminClient.from('venue_reviews').select('is_flagged, flag_reason').eq('id', reviewId).single();
+            const { data: dbRev } = await adminClient.from('venue_reviews').select('is_flagged, flag_reason').eq('id', reviewId).maybeSingle();
             console.log("DB State:", dbRev);
          }
       } else {
@@ -72,7 +72,7 @@ async function testPhase2() {
       console.log('Admin Delete Response:', delData);
       
       console.log('\n4. Verifying Trust Score Increments on Profile...');
-      const { data: prof } = await adminClient.from('profiles').select('deleted_reviews_count, can_review').eq('id', userId).single();
+      const { data: prof } = await adminClient.from('profiles').select('deleted_reviews_count, can_review').eq('id', userId).maybeSingle();
       console.log('Profile updated state:', prof);
       if (prof.deleted_reviews_count === 1) {
           console.log("SUCCESS: Trust logic successfully tracked the deleted review.");
