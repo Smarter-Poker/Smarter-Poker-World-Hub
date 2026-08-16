@@ -15,7 +15,7 @@ const fs = require('fs');
     console.log('Waiting for login fields...');
     await page.waitForSelector('input[type="email"]');
     await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
-    await page.fill('input[type="password"]', 'Bek454545!!');
+    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
     
     console.log('Clicking login...');
     await page.click('button[type="submit"], button:has-text("Enter The Stable")');
