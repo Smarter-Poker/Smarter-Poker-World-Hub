@@ -165,6 +165,110 @@ Hetzner support (`info@hetzner.com`, +49 9831 505-0).
 5. **Still unrotated** from the original incident: Supabase Postgres superuser
    password, PokerAtlas, Bravo admin + API token, `CRON_SECRET`.
 
+---
+
+# Round two — openclaw-dispatcher recovered, and it wasn't just mining
+
+Dan could not log in to the Hetzner console to do items 1–4 above. Items 2 and 4
+turned out not to need it: the Cloud API covers rescue mode, reboots, snapshots
+and firewalls. Only token rotation is console-only.
+
+## `openclaw-dispatcher` (178.104.160.250) — recovered
+
+**Why the lockout happened:** `~/.ssh/openclaw_ed25519` on Dan's Mac is a
+**mismatched keypair** — the private key does not correspond to its own `.pub`
+(`identity_sign: private key contents do not match public`). Root's
+`authorized_keys` on that host held the *correct* openclaw public key, so the
+only usable entries left were the three attacker keys. That is the whole
+explanation for "none of Dan's keys work"; it was a broken local key file, not
+the attacker locking us out. Worth fixing or deleting that file.
+
+**Recovery, non-destructive:**
+
+1. Forensic snapshot first — image `420604818`,
+   `forensic-2026-08-16-openclaw-dispatcher-pre-rescue`. No backups or snapshots
+   existed for any server in the project before this.
+2. Rescue mode with all four legitimate keys attached, then a **hard** reset
+   (ACPI reboot is not trustworthy on a box someone else controls). The API
+   returns a rescue root password; it was not read — key auth was attached
+   instead.
+3. Mounted `/dev/sda1` read-write and repaired the disk offline.
+4. Reset back to normal boot. Total downtime ≈ 4 minutes.
+
+**What was on it** — the same operator, confirmed by hash:
+
+| | |
+|---|---|
+| Miner | `/root/.system-cache/systemd-bench`, `sha256 b20f39fc…944b49` — identical to both other hosts |
+| Persistence | root crontab `@reboot sleep 90` + `*/30 * * * *` → `/etc/xmrig-restore/restore.sh` |
+| Attacker keys | `sanya-key`, `ovh-vps`, `hetzner-access` in root's `authorized_keys` (mtime 2026-07-18) |
+| History | same Russian-commented `install_bench.sh` sequence |
+
+Repaired: payloads quarantined (`chmod 000`, retained as evidence), cron
+persistence stripped, `authorized_keys` rewritten to exactly two known-good keys,
+sshd hardening drop-in installed. Verified after reboot: system running, zero
+failed units, `openclaw.service` active, no payload directories, no xmrig cron.
+
+## The part that isn't mining: a proxy exit node
+
+`docker ps` after reboot showed a container named **`remnanode`** —
+`remnawave/node:latest`, a Remnawave/XRay VLESS proxy node:
+
+```yaml
+network_mode: host      # full host networking
+cap_add: [NET_ADMIN]    # can manipulate the host's network stack
+restart: always
+NODE_PORT=2222          # listening to the internet
+XTLS_API_PORT
+```
+
+Installed **2026-05-15**, and the install commands (`mkdir -p /opt/remnanode`,
+`curl -fsSL https://get.docker.com | sh`, `docker compose up -d`) sit in the same
+`/root/.bash_history` as the miner. A sweep found it on **two** hosts:
+`openclaw-dispatcher` and `workers-dispatcher`. The engine host and
+`reels-transcode-worker` were clean.
+
+This matters more than the mining. Mining steals CPU; a proxy exit node means
+**third-party traffic has been egressing from IP addresses registered to Daniel
+Bekavac since mid-May**, and whatever that traffic was attributes to him. Both
+nodes are now stopped, their restart policy set to `no`, and their compose
+directories quarantined with logs and `docker inspect` output preserved.
+
+## Firewalls — created
+
+The project had **zero** firewalls; every port every process bound was reachable
+from the internet. Notably `:8080` on the engine host was open to the world,
+serving the engine API in plaintext, even though Caddy already fronts it on 443
+via `localhost:8080`.
+
+| Firewall | ID | Applies to | Allows |
+|---|---|---|---|
+| `engine-public` | 11471061 | pepnationrx / engine | tcp 22, 80, 443 + icmp |
+| `workers-ssh-only` | 11471062 | openclaw-dispatcher, workers-dispatcher, reels-transcode-worker | tcp 22 + icmp |
+
+Port 22 stays open to all sources deliberately: `auto-deploy-hetzner.yml` SSHes
+from GitHub Actions runners, whose IP ranges are far too numerous for a Hetzner
+rule list. Password auth is off fleet-wide, so key-only is the control there.
+
+Verified after application: `engine.smarter.poker` 200, `smarter.poker` 200,
+`:8080` now filtered from the internet, SSH working on all four hosts.
+
+## Final fleet state
+
+| Host | Miner | Proxy node | Attacker keys | Password auth | Firewall |
+|---|---|---|---|---|---|
+| pepnationrx / engine | none | none | removed | off | ✔ |
+| openclaw-dispatcher | removed | removed | removed | off | ✔ |
+| workers-dispatcher | removed | removed | removed | off | ✔ |
+| reels-transcode-worker | removed | none | none found | off | ✔ |
+
+## Still console-only — Dan
+
+**Rotate the Hetzner API token.** It is the last outstanding item and the Cloud
+API cannot rotate its own credentials. It was in the `.env` the attacker read, it
+is still valid, and it can delete every server and every snapshot in the project.
+Customer ID `K0397552326`.
+
 ## Method note
 
 No credential value was printed at any point in this work. The Hetzner API token
