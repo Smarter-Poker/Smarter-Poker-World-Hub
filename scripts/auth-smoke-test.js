@@ -11,7 +11,7 @@ async function signIn() {
   console.log('Signing in to get JWT...');
   const { data, error } = await supabase.auth.signInWithPassword({
     email: 'daniel@bekavactrading.com',
-    password: 'Bek454545!!'
+    password: process.env.TEST_USER_PASSWORD
   });
   if (error) throw error;
   return data.session.access_token;
