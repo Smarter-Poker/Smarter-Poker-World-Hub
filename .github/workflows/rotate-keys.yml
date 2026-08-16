@@ -1,0 +1,26 @@
+name: Rotate SSH Keys on Hetzner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HETZNER_OLD_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          echo "${{ secrets.HETZNER_HOST_KEY }}" > ~/.ssh/known_hosts || true
+          chmod 644 ~/.ssh/known_hosts || true
+          printf '#!/bin/bash\nexec ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=20 root@${{ secrets.HETZNER_HOST }} "$@"\n' > ~/hssh
+          chmod +x ~/hssh
+
+      - name: Update Authorized Keys
+        run: |
+          echo "==== UPDATING KEYS ===="
+          ~/hssh 'echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEsf5SJFsUCngcQqv73QBvkuPfi5fJwPkG+wTMIjFw5T smarter.poker@deploy-new" > ~/.ssh/authorized_keys'
+          ~/hssh 'chmod 600 ~/.ssh/authorized_keys'
+          echo "==== NEW KEYS ===="
+          ~/hssh "cat ~/.ssh/authorized_keys"
