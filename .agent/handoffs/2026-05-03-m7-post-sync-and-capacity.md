@@ -250,7 +250,7 @@ CX22 (2 vCPU, 4GB RAM) handles 6 concurrent ffmpeg jobs OK because most of the t
    ```
    Expected: ~240/hr at 6-way concurrency. ~10,289 / 240 = ~43 hours to drain.
 
-9. Smoke test the player on production at https://smarter.poker/hub/social-media (375px mobile-emulation, test account `daniel@bekavactrading.com` / `Bek454545!!`):
+9. Smoke test the player on production at https://smarter.poker/hub/social-media (375px mobile-emulation, test account `daniel@bekavactrading.com` / `<TEST_USER_PASSWORD — see .env.local, never commit>`):
    - Open Reels feed
    - Confirm NO duplicate content (same video appearing twice in different formats)
    - Confirm horse-posted videos still play (likely as iframe initially while queue drains, transitioning to native as worker completes)

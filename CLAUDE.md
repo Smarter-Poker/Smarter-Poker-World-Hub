@@ -342,7 +342,7 @@ For Tier 3: Read `.memory/WORKING-RULES.md` and `.memory/REALIGN-PROTOCOL.md` fi
 5. Verify deployment via Vercel MCP or dashboard
 
 ### Test Account
-Email: `daniel@bekavactrading.com` / Password: `Bek454545!!`
+Email: `daniel@bekavactrading.com` / Password: `<TEST_USER_PASSWORD — see .env.local, never commit>`
 All features unlocked. Works on localhost and production.
 
 ---

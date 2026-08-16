@@ -8,7 +8,7 @@ setup('authenticate', async ({ page }) => {
 
   // Fill in the static test account credentials prescribed in the browser-testing workflow
   await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
-  await page.fill('input[type="password"]', 'Bek454545!!');
+  await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
   await page.click('button[type="submit"]');
 
   // Verify successful authentication by waiting for the redirection to the hub landing page

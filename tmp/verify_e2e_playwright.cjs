@@ -32,7 +32,7 @@ require('dotenv').config({ path: '.agent/skills/credentials/.env' });
     console.log('Signing in...');
     await page.waitForSelector('input[type="email"]');
     await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
-    await page.fill('input[type="password"]', 'Bek454545!!');
+    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
     await page.click('button[type="submit"]');
     
     // Check local storage token to hit the API natively, or just use UI to post!

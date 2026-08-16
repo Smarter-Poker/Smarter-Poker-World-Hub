@@ -17,7 +17,7 @@
 //   --wait <ms>            Optional. Extra wait in ms after navigation (default: 2000).
 //   --text <selector>      Optional. Print innerText of a CSS selector.
 //
-// CREDENTIALS: daniel@bekavactrading.com / Bek454545!!
+// CREDENTIALS: daniel@bekavactrading.com / ${process.env.TEST_USER_PASSWORD}
 //
 // EXIT CODES:
 //   0 = success (page loaded, no fatal errors)
@@ -40,7 +40,7 @@ const EXTRA_WAIT    = parseInt(getArg('--wait') || '2000');
 const TEXT_SEL      = getArg('--text');
 
 const TEST_EMAIL    = 'daniel@bekavactrading.com';
-const TEST_PASSWORD = 'Bek454545!!';
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD;
 const LOGIN_URL     = 'https://smarter.poker/login';
 
 // Dynamically resolve the latest installed Playwright Chromium binary.

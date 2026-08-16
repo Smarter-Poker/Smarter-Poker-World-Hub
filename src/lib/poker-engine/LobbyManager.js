@@ -1,7 +1,7 @@
 /**
  * Smarter.Poker - Core Poker Engine
  * Module: LobbyManager
- * 
+ *
  * Manages the multi-table lobby:
  *   - Table creation and destruction
  *   - Table discovery and filtering
@@ -24,7 +24,12 @@ const { resilientMutation, resilientQuery } = require('./SupabaseResilience');
 // Lazy Sentry import for financial error reporting (must not crash engine if Sentry unavailable)
 let _Sentry = null;
 function getSentry() {
-  if (!_Sentry) try { _Sentry = require('@sentry/nextjs'); } catch { _Sentry = { captureException: () => {} }; }
+  if (!_Sentry)
+    try {
+      _Sentry = require('@sentry/nextjs');
+    } catch {
+      _Sentry = { captureException: () => {} };
+    }
   return _Sentry;
 }
 
@@ -35,7 +40,7 @@ const DISPLAY_PHASE = {
   deal: 'dealing',
   preflop: 'preflop',
   flop: 'flop',
-  discard: 'flop',       // Pineapple discard happens during flop
+  discard: 'flop', // Pineapple discard happens during flop
   turn: 'turn',
   river: 'river',
   showdown: 'showdown',
@@ -176,7 +181,9 @@ class LobbyManager {
             seat.stack += amount;
             table.emit('auto_topup_success', { playerId, amount, newStack: seat.stack, seatIndex });
             table.emit('chips_added', { playerId, amount, newStack: seat.stack, seatIndex });
-            console.debug(`[LobbyManager] Auto top-up: ${playerId} tops up ${amount} chips → ${seat.stack}`);
+            console.debug(
+              `[LobbyManager] Auto top-up: ${playerId} tops up ${amount} chips → ${seat.stack}`
+            );
           }
         } else {
           // Non-fatal for top-up — just log and continue
@@ -190,8 +197,8 @@ class LobbyManager {
       turnTime: config.turnTime || config.actionTime || 30,
       timebank: config.timebank || 30,
       onExpire: (playerId) => table.autoFold(playerId),
-      onTick: () => { },     // Wired by RealtimeSync
-      onWarning: () => { },  // Wired by RealtimeSync
+      onTick: () => {}, // Wired by RealtimeSync
+      onWarning: () => {}, // Wired by RealtimeSync
     });
 
     // Wire timer into table manager for pause/resume control
@@ -248,13 +255,17 @@ class LobbyManager {
       // (600s = 10 minutes) so they use the same VIP timebank system as human VIP members.
       // No artificial extra time is granted — the ActionTimer manages when to auto-activate.
       if (timer && HorsePokerBrain.isHorse) {
-        HorsePokerBrain.isHorse(String(data.playerId)).then(isAI => {
-          if (isAI) {
-            const VIP_LIFETIME_TIMEBANK_SECONDS = 600; // 10 min Lifetime VIP bank
-            timer.initPlayer(data.playerId, VIP_LIFETIME_TIMEBANK_SECONDS);
-            console.debug(`[LobbyManager] 👑 Lifetime VIP Timebank granted to Horse ${String(data.playerId).substring(0, 8)}: ${VIP_LIFETIME_TIMEBANK_SECONDS}s`);
-          }
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        HorsePokerBrain.isHorse(String(data.playerId))
+          .then((isAI) => {
+            if (isAI) {
+              const VIP_LIFETIME_TIMEBANK_SECONDS = 600; // 10 min Lifetime VIP bank
+              timer.initPlayer(data.playerId, VIP_LIFETIME_TIMEBANK_SECONDS);
+              console.debug(
+                `[LobbyManager] 👑 Lifetime VIP Timebank granted to Horse ${String(data.playerId).substring(0, 8)}: ${VIP_LIFETIME_TIMEBANK_SECONDS}s`
+              );
+            }
+          })
+          .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
     });
     table.on('player_left', (data) => {
@@ -273,7 +284,9 @@ class LobbyManager {
             const hasLock = await ChipBridge.checkLockExists(config.tableId, data.playerId);
             if (hasLock) {
               // Lock still exists — this was an engine auto-removal
-              console.debug(`[LobbyManager] Auto-unlock: player ${data.playerId} removed from table with ${cashout} chips`);
+              console.debug(
+                `[LobbyManager] Auto-unlock: player ${data.playerId} removed from table with ${cashout} chips`
+              );
               await ChipBridge.unlockChips(clubId, data.playerId, config.tableId, cashout);
             }
           } catch (e) {
@@ -311,35 +324,48 @@ class LobbyManager {
     const gameLengthHours = config.clubSettings?.game_length_hours || config.gameLengthHours;
     if (gameLengthHours && gameLengthHours > 0) {
       const gameLengthMs = gameLengthHours * 60 * 60 * 1000;
-      const warnMs = Math.max(gameLengthMs - (5 * 60 * 1000), 0); // 5min warning
+      const warnMs = Math.max(gameLengthMs - 5 * 60 * 1000, 0); // 5min warning
 
       // 5-minute warning
       if (warnMs > 0) {
         setTimeout(() => {
-          table.emit('game_length_warning', { minutesRemaining: 5, closeAt: Date.now() + 5 * 60 * 1000 });
+          table.emit('game_length_warning', {
+            minutesRemaining: 5,
+            closeAt: Date.now() + 5 * 60 * 1000,
+          });
         }, warnMs);
       }
 
       // Auto-close: finish current hand then close
       setTimeout(() => {
-        console.debug(`[LobbyManager] Game length expired (${gameLengthHours}h) for ${config.tableId}`);
+        console.debug(
+          `[LobbyManager] Game length expired (${gameLengthHours}h) for ${config.tableId}`
+        );
 
         // Auto-extension: if players are seated and auto_extension enabled, extend
         const autoExtension = config.clubSettings?.auto_extension || config.autoExtension;
-        const seatedCount = table.seats.filter(s => s.status !== SEAT_STATUS.EMPTY).length;
+        const seatedCount = table.seats.filter((s) => s.status !== SEAT_STATUS.EMPTY).length;
 
         if (autoExtension && seatedCount >= 2) {
-          console.debug(`[LobbyManager] Auto-extending table ${config.tableId} (${seatedCount} players seated)`);
-          table.emit('game_length_extended', { hours: gameLengthHours, seatedPlayers: seatedCount });
+          console.debug(
+            `[LobbyManager] Auto-extending table ${config.tableId} (${seatedCount} players seated)`
+          );
+          table.emit('game_length_extended', {
+            hours: gameLengthHours,
+            seatedPlayers: seatedCount,
+          });
           // Schedule another check after 1 hour
-          setTimeout(() => {
-            const stillSeated = table.seats.filter(s => s.status !== SEAT_STATUS.EMPTY).length;
-            if (stillSeated < 2) {
-              this.closeTable(config.tableId);
-            } else {
-              table.emit('game_length_extended', { hours: 1, seatedPlayers: stillSeated });
-            }
-          }, 60 * 60 * 1000);
+          setTimeout(
+            () => {
+              const stillSeated = table.seats.filter((s) => s.status !== SEAT_STATUS.EMPTY).length;
+              if (stillSeated < 2) {
+                this.closeTable(config.tableId);
+              } else {
+                table.emit('game_length_extended', { hours: 1, seatedPlayers: stillSeated });
+              }
+            },
+            60 * 60 * 1000
+          );
           return;
         }
 
@@ -390,7 +416,10 @@ class LobbyManager {
           await ChipBridge.unlockChips(clubId, playerId, tableId, stack);
           console.debug(`[LobbyManager.closeTable] Unlocked ${stack} chips for ${playerId}`);
         } catch (e) {
-          console.warn(`[LobbyManager.closeTable] Failed to unlock chips for ${playerId}:`, e.message);
+          console.warn(
+            `[LobbyManager.closeTable] Failed to unlock chips for ${playerId}:`,
+            e.message
+          );
         }
       }
     }
@@ -456,12 +485,13 @@ class LobbyManager {
       // Apply filters
       if (filters.clubId && config.clubId !== filters.clubId) continue;
       if (filters.variant && config.variant !== filters.variant) continue;
-      if (filters.bettingStructure && config.bettingStructure !== filters.bettingStructure) continue;
+      if (filters.bettingStructure && config.bettingStructure !== filters.bettingStructure)
+        continue;
       if (filters.minStakes && config.bigBlind < filters.minStakes) continue;
       if (filters.maxStakes && config.bigBlind > filters.maxStakes) continue;
 
-      const seatedCount = table.seats.filter(s =>
-        s.status === 'occupied' || s.status === 'sitting_out' || s.status === 'disconnected'
+      const seatedCount = table.seats.filter(
+        (s) => s.status === 'occupied' || s.status === 'sitting_out' || s.status === 'disconnected'
       ).length;
       const openSeats = config.maxSeats - seatedCount;
 
@@ -469,11 +499,10 @@ class LobbyManager {
 
       // Calculate average stack
       const stacks = table.seats
-        .filter(s => s.status === 'occupied' && s.stack > 0)
-        .map(s => s.stack);
-      const avgStack = stacks.length > 0
-        ? Math.round(stacks.reduce((a, b) => a + b, 0) / stacks.length)
-        : 0;
+        .filter((s) => s.status === 'occupied' && s.stack > 0)
+        .map((s) => s.stack);
+      const avgStack =
+        stacks.length > 0 ? Math.round(stacks.reduce((a, b) => a + b, 0) / stacks.length) : 0;
 
       list.push({
         tableId,
@@ -532,10 +561,18 @@ class LobbyManager {
       // blinds_posted emits { smallBlind: { playerId, amount }, bigBlind: { playerId, amount }, ante }
       const blinds = [];
       if (data.smallBlind) {
-        blinds.push({ playerId: data.smallBlind.playerId, type: 'small_blind', amount: data.smallBlind.amount });
+        blinds.push({
+          playerId: data.smallBlind.playerId,
+          type: 'small_blind',
+          amount: data.smallBlind.amount,
+        });
       }
       if (data.bigBlind) {
-        blinds.push({ playerId: data.bigBlind.playerId, type: 'big_blind', amount: data.bigBlind.amount });
+        blinds.push({
+          playerId: data.bigBlind.playerId,
+          type: 'big_blind',
+          amount: data.bigBlind.amount,
+        });
       }
       history.recordBlinds(blinds);
     });
@@ -572,11 +609,12 @@ class LobbyManager {
       // showdown has { players: [{ id, holeCards, hand }], communityCards, winners: [playerId] }
       // Record shown cards from showdown event
       history.recordShowdown({
-        shownCards: data.players?.map(p => ({
-          playerId: p.id,
-          cards: p.holeCards,
-          hand: p.hand,
-        })) || [],
+        shownCards:
+          data.players?.map((p) => ({
+            playerId: p.id,
+            cards: p.holeCards,
+            hand: p.hand,
+          })) || [],
       });
     });
 
@@ -605,26 +643,31 @@ class LobbyManager {
         console.debug(`[BBJ]   Winner: ${bbjData.winnerId} (${bbjData.winnerHand})`);
 
         // Award via bbj_pools table (Phase 48f: resilient — financial critical)
-        const { data: awardResult, error: awardErr } = await resilientMutation(sb, () => sb.rpc('award_bbj', {
-          p_club_id: clubId,
-          p_table_id: config.tableId,
-          p_hand_number: bbjData.handNumber || 0,
-          p_loser_user_id: bbjData.loserId,
-          p_loser_display_name: bbjData.loserDisplayName || 'Player',
-          p_loser_hand: bbjData.loserHand,
-          p_loser_cards: bbjData.loserCards || '',
-          p_winner_user_id: bbjData.winnerId,
-          p_winner_display_name: bbjData.winnerDisplayName || 'Player',
-          p_winner_hand: bbjData.winnerHand,
-          p_winner_cards: bbjData.winnerCards || '',
-          p_payout_total_pct: tierConfig.bbjPayoutTotal,
-          p_payout_loser_pct: tierConfig.bbjPayoutLoser,
-          p_payout_winner_pct: tierConfig.bbjPayoutWinner,
-          p_payout_table_pct: tierConfig.bbjPayoutTable,
-          p_stakes_tier: tier?.label?.toLowerCase() || 'small',
-          p_game_variant: config.variant || 'nlh',
-          p_big_blind: config.bigBlind,
-        }), { critical: true });
+        const { data: awardResult, error: awardErr } = await resilientMutation(
+          sb,
+          () =>
+            sb.rpc('award_bbj', {
+              p_club_id: clubId,
+              p_table_id: config.tableId,
+              p_hand_number: bbjData.handNumber || 0,
+              p_loser_user_id: bbjData.loserId,
+              p_loser_display_name: bbjData.loserDisplayName || 'Player',
+              p_loser_hand: bbjData.loserHand,
+              p_loser_cards: bbjData.loserCards || '',
+              p_winner_user_id: bbjData.winnerId,
+              p_winner_display_name: bbjData.winnerDisplayName || 'Player',
+              p_winner_hand: bbjData.winnerHand,
+              p_winner_cards: bbjData.winnerCards || '',
+              p_payout_total_pct: tierConfig.bbjPayoutTotal,
+              p_payout_loser_pct: tierConfig.bbjPayoutLoser,
+              p_payout_winner_pct: tierConfig.bbjPayoutWinner,
+              p_payout_table_pct: tierConfig.bbjPayoutTable,
+              p_stakes_tier: tier?.label?.toLowerCase() || 'small',
+              p_game_variant: config.variant || 'nlh',
+              p_big_blind: config.bigBlind,
+            }),
+          { critical: true }
+        );
 
         if (awardErr) {
           console.warn('[BBJ] Award error:', awardErr.message);
@@ -654,31 +697,46 @@ class LobbyManager {
           // [AUDIT LOG] Record the Bad Beat Jackpot winners and losers locally in the true ledger
           try {
             const sbAudit = ChipBridge.getSupabase();
-            sbAudit.rpc('record_arena_audit_log', {
-              p_club_id: clubId,
-              p_table_id: config.tableId,
-              p_user_id: bbjData.loserId,
-              p_action_type: 'bbj_loser_pool',
-              p_amount: awardResult.loser_payout,
-              p_details: { handNumber: bbjData.handNumber, hand: bbjData.loserHand }
-            })
-              .then(({ error }) => { if (error) throw error; })
-              .catch(e => { console.warn('[LobbyManager] BBJ loser payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj', type: 'loser_payout' } }); });
+            sbAudit
+              .rpc('record_arena_audit_log', {
+                p_club_id: clubId,
+                p_table_id: config.tableId,
+                p_user_id: bbjData.loserId,
+                p_action_type: 'bbj_loser_pool',
+                p_amount: awardResult.loser_payout,
+                p_details: { handNumber: bbjData.handNumber, hand: bbjData.loserHand },
+              })
+              .then(({ error }) => {
+                if (error) throw error;
+              })
+              .catch((e) => {
+                console.warn('[LobbyManager] BBJ loser payout audit FAILED:', e?.message || e);
+                getSentry().captureException(e, { tags: { area: 'bbj', type: 'loser_payout' } });
+              });
 
-            sbAudit.rpc('record_arena_audit_log', {
-              p_club_id: clubId,
-              p_table_id: config.tableId,
-              p_user_id: bbjData.winnerId,
-              p_action_type: 'bbj_winner_pool',
-              p_amount: awardResult.winner_payout,
-              p_details: { handNumber: bbjData.handNumber, hand: bbjData.winnerHand }
-            })
-              .then(({ error }) => { if (error) throw error; })
-              .catch(e => { console.warn('[LobbyManager] BBJ winner payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj', type: 'winner_payout' } }); });
-            
-            // NOTE: We could theoretically loop the tableSharePayout to all players, 
+            sbAudit
+              .rpc('record_arena_audit_log', {
+                p_club_id: clubId,
+                p_table_id: config.tableId,
+                p_user_id: bbjData.winnerId,
+                p_action_type: 'bbj_winner_pool',
+                p_amount: awardResult.winner_payout,
+                p_details: { handNumber: bbjData.handNumber, hand: bbjData.winnerHand },
+              })
+              .then(({ error }) => {
+                if (error) throw error;
+              })
+              .catch((e) => {
+                console.warn('[LobbyManager] BBJ winner payout audit FAILED:', e?.message || e);
+                getSentry().captureException(e, { tags: { area: 'bbj', type: 'winner_payout' } });
+              });
+
+            // NOTE: We could theoretically loop the tableSharePayout to all players,
             // but tracking the two massive chip movements provides the primary BBJ absolute trace.
-          } catch (e) { console.warn('[LobbyManager] BBJ audit log error:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj' } }); }
+          } catch (e) {
+            console.warn('[LobbyManager] BBJ audit log error:', e?.message || e);
+            getSentry().captureException(e, { tags: { area: 'bbj' } });
+          }
         }
       } catch (err) {
         console.warn('[BBJ] Trigger error:', err.message);
@@ -707,9 +765,17 @@ class LobbyManager {
           p_amount: data.premium,
           p_type: 'premium',
           p_metadata: { coverage: data.amount, equity: data.trailerEquity },
-        }).then(({ error }) => {
-          if (error) console.warn('[LobbyManager] Insurance premium recording failed:', error.message);
-        }).catch(e => { console.warn('[LobbyManager] Insurance premium recording rejected:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'premium_record' } }); });
+        })
+          .then(({ error }) => {
+            if (error)
+              console.warn('[LobbyManager] Insurance premium recording failed:', error.message);
+          })
+          .catch((e) => {
+            console.warn('[LobbyManager] Insurance premium recording rejected:', e?.message || e);
+            getSentry().captureException(e, {
+              tags: { area: 'insurance', type: 'premium_record' },
+            });
+          });
 
         // [AUDIT LOG] Trace the chip movement leaving the player's account for the premium
         try {
@@ -718,12 +784,20 @@ class LobbyManager {
             p_table_id: config.tableId,
             p_user_id: data.buyerId,
             p_action_type: 'insurance_premium',
-            p_amount: -(data.premium),
-            p_details: { coverage: data.amount, equity: data.trailerEquity }
+            p_amount: -data.premium,
+            p_details: { coverage: data.amount, equity: data.trailerEquity },
           })
-            .then(({ error }) => { if (error) throw error; })
-            .catch(e => { console.warn('[LobbyManager] Insurance premium audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'premium' } }); });
-        } catch (e) { console.warn('[LobbyManager] Insurance premium error:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance' } }); }
+            .then(({ error }) => {
+              if (error) throw error;
+            })
+            .catch((e) => {
+              console.warn('[LobbyManager] Insurance premium audit FAILED:', e?.message || e);
+              getSentry().captureException(e, { tags: { area: 'insurance', type: 'premium' } });
+            });
+        } catch (e) {
+          console.warn('[LobbyManager] Insurance premium error:', e?.message || e);
+          getSentry().captureException(e, { tags: { area: 'insurance' } });
+        }
       }
     });
 
@@ -743,9 +817,19 @@ class LobbyManager {
           p_amount: data.payout,
           p_type: 'payout',
           p_metadata: { premium: data.premium, netGain: data.netGain },
-        }).then(({ error }) => {
-          if (error) { console.warn('[LobbyManager] Insurance payout recording failed:', error.message); getSentry().captureException(new Error(error.message), { tags: { area: 'insurance', type: 'payout_record' } }); }
-        }).catch(e => { console.warn('[LobbyManager] Insurance payout recording rejected:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'payout_record' } }); });
+        })
+          .then(({ error }) => {
+            if (error) {
+              console.warn('[LobbyManager] Insurance payout recording failed:', error.message);
+              getSentry().captureException(new Error(error.message), {
+                tags: { area: 'insurance', type: 'payout_record' },
+              });
+            }
+          })
+          .catch((e) => {
+            console.warn('[LobbyManager] Insurance payout recording rejected:', e?.message || e);
+            getSentry().captureException(e, { tags: { area: 'insurance', type: 'payout_record' } });
+          });
 
         // [AUDIT LOG] Trace the chip movement entering the player's account from the insurance hit
         try {
@@ -755,11 +839,19 @@ class LobbyManager {
             p_user_id: data.buyerId,
             p_action_type: 'insurance_payout',
             p_amount: data.payout,
-            p_details: { premium: data.premium, netGain: data.netGain }
+            p_details: { premium: data.premium, netGain: data.netGain },
           })
-            .then(({ error }) => { if (error) throw error; })
-            .catch(e => { console.warn('[LobbyManager] Insurance payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'payout' } }); });
-        } catch (e) { console.warn('[LobbyManager] Insurance payout error:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance' } }); }
+            .then(({ error }) => {
+              if (error) throw error;
+            })
+            .catch((e) => {
+              console.warn('[LobbyManager] Insurance payout audit FAILED:', e?.message || e);
+              getSentry().captureException(e, { tags: { area: 'insurance', type: 'payout' } });
+            });
+        } catch (e) {
+          console.warn('[LobbyManager] Insurance payout error:', e?.message || e);
+          getSentry().captureException(e, { tags: { area: 'insurance' } });
+        }
       }
     });
 
@@ -808,8 +900,8 @@ class LobbyManager {
 
     table.on('hand_complete', async (data) => {
       const finalStacks = table.seats
-        .filter(s => s.player)
-        .map(s => ({ playerId: s.player.id, stack: s.stack }));
+        .filter((s) => s.player)
+        .map((s) => ({ playerId: s.player.id, stack: s.stack }));
 
       await history.completeHand(finalStacks);
 
@@ -824,7 +916,7 @@ class LobbyManager {
           const { calculateBBJFee } = require('./RakeConfig');
 
           // ALL players dealt into this hand (not just those who invested)
-          const dealtPlayerIds = (data.players || []).map(p => p.id);
+          const dealtPlayerIds = (data.players || []).map((p) => p.id);
 
           // Calculate BBJ fee using tier-based config
           // Fee is in BB units (e.g. 0.25BB for Small stakes), applied per hand
@@ -842,19 +934,27 @@ class LobbyManager {
           //   3. BBJ routing to main/backup/promo pools
           //   4. Club treasury credit
           //   5. Ledger entries + global sequential hand ID
-          const canonicalHandId = data.handId ||
-            (data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`);
+          const canonicalHandId =
+            data.handId ||
+            (data.handNumber
+              ? `hand_${config.tableId}_${data.handNumber}`
+              : `hand_${config.tableId}_${Date.now()}`);
           // Phase 48f: resilient — financial critical
-          const { data: rakeResult, error: rakeErr } = await resilientMutation(sb, () => sb.rpc('record_rake', {
-            p_hand_id: canonicalHandId,
-            p_club_id: clubId,
-            p_table_id: config.tableId,
-            p_rake_amount: rakeAmount,
-            p_pot_size: data.potTotal || 0,
-            p_num_players: dealtPlayerIds.length || finalStacks.length,
-            p_bbj_contribution: bbjContribution,
-            p_dealt_player_ids: dealtPlayerIds.length > 0 ? dealtPlayerIds : null,
-          }), { critical: true });
+          const { data: rakeResult, error: rakeErr } = await resilientMutation(
+            sb,
+            () =>
+              sb.rpc('record_rake', {
+                p_hand_id: canonicalHandId,
+                p_club_id: clubId,
+                p_table_id: config.tableId,
+                p_rake_amount: rakeAmount,
+                p_pot_size: data.potTotal || 0,
+                p_num_players: dealtPlayerIds.length || finalStacks.length,
+                p_bbj_contribution: bbjContribution,
+                p_dealt_player_ids: dealtPlayerIds.length > 0 ? dealtPlayerIds : null,
+              }),
+            { critical: true }
+          );
 
           if (rakeErr) {
             // ── Dan 2026-08-15 — THIS CALL CANNOT SUCCEED AS WRITTEN ──
@@ -909,7 +1009,9 @@ class LobbyManager {
           } else if (rakeResult?.global_hand_id) {
             // Store global ID so it can be pushed to clients if needed in future
             // For now, log it for audit trail
-            console.debug(`[LobbyManager] Hand recorded: ${canonicalHandId} → SP-${String(rakeResult.global_hand_id).padStart(10, '0')} (rake=${rakeAmount})`);
+            console.debug(
+              `[LobbyManager] Hand recorded: ${canonicalHandId} → SP-${String(rakeResult.global_hand_id).padStart(10, '0')} (rake=${rakeAmount})`
+            );
           }
 
           // ── INCREMENT SETTLEMENT COUNTERS ──
@@ -919,11 +1021,13 @@ class LobbyManager {
           // making auto-settlement distribute nothing.
           try {
             // Phase 48f: resilient mutation
-            await resilientMutation(sb, () => sb.rpc('increment_settlement_counters', {
-              p_club_id: clubId,
-              p_rake: rakeAmount,
-              p_hands: 1,
-            }));
+            await resilientMutation(sb, () =>
+              sb.rpc('increment_settlement_counters', {
+                p_club_id: clubId,
+                p_rake: rakeAmount,
+                p_hands: 1,
+              })
+            );
           } catch (settlErr) {
             console.warn('[LobbyManager] Settlement counter increment failed:', settlErr.message);
             // Non-fatal — don't block hand progression
@@ -951,9 +1055,13 @@ class LobbyManager {
           // Credits agents up the hierarchy — don't block hand progression
           if (dealtPlayerIds.length > 0) {
             const perPlayerRake = rakeAmount / dealtPlayerIds.length;
-            const handId = data.handId || (data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`);
+            const handId =
+              data.handId ||
+              (data.handNumber
+                ? `hand_${config.tableId}_${data.handNumber}`
+                : `hand_${config.tableId}_${Date.now()}`);
             Promise.allSettled(
-              dealtPlayerIds.map(playerId =>
+              dealtPlayerIds.map((playerId) =>
                 sb.rpc('calculate_cascading_commission', {
                   p_hand_id: handId,
                   p_club_id: clubId,
@@ -961,12 +1069,16 @@ class LobbyManager {
                   p_rake_amount: perPlayerRake,
                 })
               )
-            ).then(results => {
-              const failures = results.filter(r => r.status === 'rejected' || r.value?.error);
-              if (failures.length > 0) {
-                console.warn(`[LobbyManager] ${failures.length}/${dealtPlayerIds.length} commission calcs failed`);
-              }
-            }).catch(console.warn);
+            )
+              .then((results) => {
+                const failures = results.filter((r) => r.status === 'rejected' || r.value?.error);
+                if (failures.length > 0) {
+                  console.warn(
+                    `[LobbyManager] ${failures.length}/${dealtPlayerIds.length} commission calcs failed`
+                  );
+                }
+              })
+              .catch(console.warn);
           }
         } catch (rakeErr) {
           console.warn('[LobbyManager] Rake recording failed:', rakeErr);
@@ -987,13 +1099,20 @@ class LobbyManager {
                 p_player_user_id: player.id,
                 p_amount_wagered: invested,
               })
-                .then(({ error }) => { if (error) throw error; })
-                .catch(err => { console.warn('[LobbyManager] Promo wagering RPC failed:', err?.message || err); getSentry().captureException(err, { tags: { area: 'promo_wagering' } }); });
+                .then(({ error }) => {
+                  if (error) throw error;
+                })
+                .catch((err) => {
+                  console.warn('[LobbyManager] Promo wagering RPC failed:', err?.message || err);
+                  getSentry().captureException(err, { tags: { area: 'promo_wagering' } });
+                });
             }
           }
         } catch (promoErr) {
           console.warn('[LobbyManager] Promo wagering tracking failed:', promoErr.message);
-          getSentry().captureException(promoErr, { tags: { area: 'promo_wagering', type: 'outer' } });
+          getSentry().captureException(promoErr, {
+            tags: { area: 'promo_wagering', type: 'outer' },
+          });
         }
       }
 
@@ -1001,16 +1120,21 @@ class LobbyManager {
       try {
         const sb = ChipBridge.getSupabase();
         if (sb) {
-          const potTotal = data.potTotal || data.result?.pots?.reduce((s, p) => s + p.amount, 0) || 0;
+          const potTotal =
+            data.potTotal || data.result?.pots?.reduce((s, p) => s + p.amount, 0) || 0;
           // Increment hands_dealt; update running avg_pot using exponential moving average
           // avg_pot = (old_avg * 0.9) + (new_pot * 0.1) — smoothed over many hands
           // Phase 48f: resilient mutation
-          await resilientMutation(sb, () => sb.rpc('update_table_stats', {
-            p_table_id: config.tableId,
-            p_pot_total: potTotal,
-          })).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+          await resilientMutation(sb, () =>
+            sb.rpc('update_table_stats', {
+              p_table_id: config.tableId,
+              p_pot_total: potTotal,
+            })
+          ).catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
-      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+      } catch (_) {
+        console.warn('[App] Handled exception:', _?.message || _);
+      }
     });
   }
 
@@ -1045,8 +1169,8 @@ class LobbyManager {
     // Check if table is now empty — start auto-close timer
     const entry = this.tables.get(tableId);
     if (entry) {
-      const seatedCount = entry.table.seats.filter(s =>
-        s.status === 'occupied' || s.status === 'sitting_out'
+      const seatedCount = entry.table.seats.filter(
+        (s) => s.status === 'occupied' || s.status === 'sitting_out'
       ).length;
 
       if (seatedCount === 0 && !this._emptyTimers.has(tableId)) {
@@ -1059,9 +1183,12 @@ class LobbyManager {
           entry.table.emit('table_waiting', { reason: 'empty', autoRestart: true });
         } else {
           // Standard: close after timeout
-          this._emptyTimers.set(tableId, setTimeout(() => {
-            this.closeTable(tableId);
-          }, EMPTY_TABLE_TIMEOUT_MS));
+          this._emptyTimers.set(
+            tableId,
+            setTimeout(() => {
+              this.closeTable(tableId);
+            }, EMPTY_TABLE_TIMEOUT_MS)
+          );
         }
       }
     }
@@ -1077,19 +1204,26 @@ class LobbyManager {
    */
   async _updateTablePlayerCount(tableId, table) {
     try {
-      const count = table.seats.filter(s =>
-        s.status === SEAT_STATUS.OCCUPIED || s.status === SEAT_STATUS.SITTING_OUT
+      const count = table.seats.filter(
+        (s) => s.status === SEAT_STATUS.OCCUPIED || s.status === SEAT_STATUS.SITTING_OUT
       ).length;
 
       const sb = ChipBridge.getSupabase();
       if (sb) {
         // Phase 48f: resilient mutation
-        await resilientMutation(sb, () => sb.from('tables').update({
-          current_players: count,
-          updated_at: new Date().toISOString(),
-        }).eq('id', tableId));
+        await resilientMutation(sb, () =>
+          sb
+            .from('tables')
+            .update({
+              current_players: count,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', tableId)
+        );
       }
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+    } catch (e) {
+      console.warn('[App] Handled exception:', e?.message || e);
+    }
   }
 
   _checkAutoCreateTable(templateConfig) {
@@ -1108,7 +1242,7 @@ class LobbyManager {
       if (entry.config.variant !== variant || entry.config.bigBlind !== bigBlind) continue;
       tableCount++;
 
-      const seated = entry.table.seats.filter(s => s.status !== SEAT_STATUS.EMPTY).length;
+      const seated = entry.table.seats.filter((s) => s.status !== SEAT_STATUS.EMPTY).length;
       if (seated < entry.table.maxSeats) {
         allFull = false;
         break;
@@ -1123,14 +1257,20 @@ class LobbyManager {
         tableName: `${templateConfig.tableName || 'Table'} #${tableCount + 1}`,
       };
 
-      console.debug(`[LobbyManager] Auto-creating table: all ${tableCount} ${variant} ${bigBlind}BB tables full`);
-      this.createTable(newConfig).then(result => {
-        if (result.success) {
-          console.debug(`[LobbyManager] Auto-created table ${newConfig.tableId} for ${variant} ${bigBlind}BB`);
-        }
-      }).catch(err => {
-        console.warn('[LobbyManager] Auto-create table failed:', err.message);
-      });
+      console.debug(
+        `[LobbyManager] Auto-creating table: all ${tableCount} ${variant} ${bigBlind}BB tables full`
+      );
+      this.createTable(newConfig)
+        .then((result) => {
+          if (result.success) {
+            console.debug(
+              `[LobbyManager] Auto-created table ${newConfig.tableId} for ${variant} ${bigBlind}BB`
+            );
+          }
+        })
+        .catch((err) => {
+          console.warn('[LobbyManager] Auto-create table failed:', err.message);
+        });
     }
   }
 
@@ -1184,7 +1324,9 @@ class LobbyManager {
           timestamp: Date.now(),
         };
         // Clear after 30s — DVR needs longer than flash animations
-        setTimeout(() => { if (entry._lastHandResult) entry._lastHandResult = null; }, 30000);
+        setTimeout(() => {
+          if (entry._lastHandResult) entry._lastHandResult = null;
+        }, 30000);
       }
       triggerUpdate();
     });
@@ -1199,7 +1341,9 @@ class LobbyManager {
           timestamp: Date.now(),
         };
         // Clear after 6s
-        setTimeout(() => { if (entry._lastChatMessage) entry._lastChatMessage = null; }, 6000);
+        setTimeout(() => {
+          if (entry._lastChatMessage) entry._lastChatMessage = null;
+        }, 6000);
         triggerUpdate();
       }
     });
@@ -1215,11 +1359,14 @@ class LobbyManager {
           timestamp: Date.now(),
         });
         // Keep last 5 only
-        if (entry._emojiReactions.length > 5) entry._emojiReactions = entry._emojiReactions.slice(-5);
+        if (entry._emojiReactions.length > 5)
+          entry._emojiReactions = entry._emojiReactions.slice(-5);
         // Clear old after 4s
         setTimeout(() => {
           if (entry._emojiReactions) {
-            entry._emojiReactions = entry._emojiReactions.filter(e => Date.now() - e.timestamp < 4000);
+            entry._emojiReactions = entry._emojiReactions.filter(
+              (e) => Date.now() - e.timestamp < 4000
+            );
           }
         }, 4000);
         triggerUpdate();
@@ -1244,11 +1391,15 @@ class LobbyManager {
           p_table_id: tableId,
           p_user_id: data.playerId || null,
           p_player_name: data.playerName || 'Player',
-          p_message: String(data.message)
+          p_message: String(data.message),
         })
-          .then(({ error }) => { if (error) throw error; })
-          .catch(err => console.warn('[Audit] Chat log error:', err.message));
-      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+          .then(({ error }) => {
+            if (error) throw error;
+          })
+          .catch((err) => console.warn('[Audit] Chat log error:', err.message));
+      } catch (e) {
+        console.warn('[App] Handled exception:', e?.message || e);
+      }
     });
 
     // 2. MACRO ACTIONS (Seating & Cashouts)
@@ -1262,11 +1413,15 @@ class LobbyManager {
           p_user_id: data.playerId || null,
           p_action_type: 'sit_down',
           p_amount: data.stack || 0,
-          p_details: { seatIndex: data.seatIndex }
+          p_details: { seatIndex: data.seatIndex },
         })
-          .then(({ error }) => { if (error) throw error; })
-          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+          .then(({ error }) => {
+            if (error) throw error;
+          })
+          .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
+      } catch (e) {
+        console.warn('[App] Handled exception:', e?.message || e);
+      }
     });
 
     table.on('player_left', (data) => {
@@ -1278,15 +1433,19 @@ class LobbyManager {
           p_user_id: data.playerId || null,
           p_action_type: 'stand_up',
           p_amount: data.stack || 0,
-          p_details: { reason: data.reason }
+          p_details: { reason: data.reason },
         })
-          .then(({ error }) => { if (error) throw error; })
-          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+          .then(({ error }) => {
+            if (error) throw error;
+          })
+          .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
+      } catch (e) {
+        console.warn('[App] Handled exception:', e?.message || e);
+      }
     });
 
     table.on('add_chips', (data) => {
-       try {
+      try {
         const sb = ChipBridge.getSupabase();
         sb.rpc('record_arena_audit_log', {
           p_club_id: clubId,
@@ -1294,11 +1453,15 @@ class LobbyManager {
           p_user_id: data.playerId || null,
           p_action_type: 'add_chips',
           p_amount: data.amount || 0,
-          p_details: { reason: 'rebuy' }
+          p_details: { reason: 'rebuy' },
         })
-          .then(({ error }) => { if (error) throw error; })
-          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-       } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+          .then(({ error }) => {
+            if (error) throw error;
+          })
+          .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
+      } catch (e) {
+        console.warn('[App] Handled exception:', e?.message || e);
+      }
     });
 
     // 3. MICRO ACTIONS (Hand progress)
@@ -1312,11 +1475,15 @@ class LobbyManager {
           p_user_id: data.playerId || null,
           p_action_type: `action_${data.action.type}`, // e.g. action_fold, action_bet
           p_amount: data.action.amount || 0,
-          p_details: { street: data.street, handNumber: table.handCount || 0 }
+          p_details: { street: data.street, handNumber: table.handCount || 0 },
         })
-          .then(({ error }) => { if (error) throw error; })
-          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+          .then(({ error }) => {
+            if (error) throw error;
+          })
+          .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
+      } catch (e) {
+        console.warn('[App] Handled exception:', e?.message || e);
+      }
     });
   }
 
@@ -1335,18 +1502,18 @@ class LobbyManager {
       const displayPhase = DISPLAY_PHASE[enginePhase] || enginePhase;
       const gameActionProps = state.game?.actionSequence || {}; // if any exists
 
-      const seats = (state.seats || []).map(s => {
+      const seats = (state.seats || []).map((s) => {
         if (!s.player) return { seatIndex: s.seatIndex, occupied: false };
-        
+
         let lastAction = null;
         if (state.game && state.game.bettingRound) {
-           const log = state.game.bettingRound.actionLog;
-           if (log && log.length > 0) {
-              const pActions = log.filter(a => a.playerId === s.player.id);
-              if (pActions.length > 0) {
-                 lastAction = pActions[pActions.length - 1];
-              }
-           }
+          const log = state.game.bettingRound.actionLog;
+          if (log && log.length > 0) {
+            const pActions = log.filter((a) => a.playerId === s.player.id);
+            if (pActions.length > 0) {
+              lastAction = pActions[pActions.length - 1];
+            }
+          }
         }
 
         return {
@@ -1359,15 +1526,21 @@ class LobbyManager {
           isActor: s.isCurrentActor || false,
           isDealer: s.seatIndex === (state.game?.buttonSeat ?? -1),
           isAllIn: s.isInHand && s.stack === 0,
-          displayName: s.player.displayName ? String(s.player.displayName).substring(0, 10) : 'Player',
+          displayName: s.player.displayName
+            ? String(s.player.displayName).substring(0, 10)
+            : 'Player',
           avatarUrl: s.player.avatarUrl || s.player.avatar_url || null,
-          lastAction: lastAction ? (lastAction.type === 'call' && lastAction.amount === 0 ? 'CHECK' : lastAction.type.toUpperCase()) : null,
+          lastAction: lastAction
+            ? lastAction.type === 'call' && lastAction.amount === 0
+              ? 'CHECK'
+              : lastAction.type.toUpperCase()
+            : null,
           lastActionAmount: lastAction?.amount,
         };
       });
 
       // Calculate spectator count (total connections - seated players)
-      const seatedCount = seats.filter(s => s.occupied).length;
+      const seatedCount = seats.filter((s) => s.occupied).length;
       const totalConnections = entry.sync?._connections?.size || 0;
       const spectatorCount = Math.max(0, totalConnections - seatedCount);
 
@@ -1381,13 +1554,15 @@ class LobbyManager {
       const emojiReactions = entry._emojiReactions || [];
 
       // Tournament-specific overlay data
-      const tourneyData = entry.config?.tournamentId ? {
-        blindLevel: entry.config.blindLevel || null,
-        nextLevelTime: entry.config.nextLevelTime || null,
-        avgStack: entry.config.avgStack || null,
-        playersRemaining: entry.config.playersRemaining || null,
-        totalPlayers: entry.config.totalPlayers || null,
-      } : null;
+      const tourneyData = entry.config?.tournamentId
+        ? {
+            blindLevel: entry.config.blindLevel || null,
+            nextLevelTime: entry.config.nextLevelTime || null,
+            avgStack: entry.config.avgStack || null,
+            playersRemaining: entry.config.playersRemaining || null,
+            totalPlayers: entry.config.totalPlayers || null,
+          }
+        : null;
 
       this._lobbyChannel.send({
         type: 'broadcast',
@@ -1397,7 +1572,7 @@ class LobbyManager {
           phase: displayPhase,
           communityCards: state.game?.communityCards || [],
           boards: state.game?.boards || null,
-          shownCards: (state.game?.shownCards || []).filter(sc => {
+          shownCards: (state.game?.shownCards || []).filter((sc) => {
             const key = `${tableId}:${sc.seatIndex}`;
             return this._showCardsConsent?.get(key) === true;
           }),
@@ -1405,7 +1580,7 @@ class LobbyManager {
           avgPotSize: entry.table?.avgPotSize || 0,
           pots: state.game?.pots || [],
           handNumber: state.game?.handNumber || 0,
-          currentActorSeat: seats.findIndex(s => s.isActor),
+          currentActorSeat: seats.findIndex((s) => s.isActor),
           turnEndTime: entry.timer?.turnEndTime || null,
           turnTotalTime: entry.timer?.turnTime || 15,
           seats,
@@ -1414,7 +1589,7 @@ class LobbyManager {
           emojiReactions,
           tournamentOverlay: tourneyData,
           spectatorCount,
-        }
+        },
       });
     } catch (e) {
       console.warn('[LobbyManager] Error broadcasting mini state:', e.message);

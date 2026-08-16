@@ -29,13 +29,13 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
 }
 
 export default async function handler(req, res) {
@@ -60,7 +60,8 @@ export default async function handler(req, res) {
       if (req.method === 'GET') {
         const { clubId, action: getAction } = req.query;
         // RED TEAM: Strict UUID validation on query param
-        if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
+        if (!isUUID(clubId))
+          return res.status(400).json({ success: false, error: 'Invalid clubId format' });
 
         // Verify membership
         const { data: member } = await getSupabase()
@@ -105,7 +106,10 @@ export default async function handler(req, res) {
           .eq('status', 'closed')
           .gt('rakeback_amount', 0);
 
-        const totalPending = (pendingRakebacks || []).reduce((s, r) => s + (r.rakeback_amount || 0), 0);
+        const totalPending = (pendingRakebacks || []).reduce(
+          (s, r) => s + (r.rakeback_amount || 0),
+          0
+        );
 
         // Get club's rakeback rate from settings
         const { data: club } = await getSupabase()
@@ -114,7 +118,7 @@ export default async function handler(req, res) {
           .eq('id', clubId)
           .maybeSingle();
 
-        const rakebackRate = club?.settings?.rakeback_rate || 0.10; // default 10%
+        const rakebackRate = club?.settings?.rakeback_rate || 0.1; // default 10%
 
         return res.status(200).json({
           success: true,
@@ -139,10 +143,16 @@ export default async function handler(req, res) {
         if (checkIdempotency(req, res)) return;
 
         // RED TEAM: Strict UUID + action enum whitelist
-        if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
+        if (!isUUID(clubId))
+          return res.status(400).json({ success: false, error: 'Invalid clubId format' });
         const VALID_ACTIONS = ['open', 'close', 'claim'];
         if (!VALID_ACTIONS.includes(action)) {
-          return res.status(400).json({ success: false, error: `Invalid action. Must be one of: ${VALID_ACTIONS.join(', ')}` });
+          return res
+            .status(400)
+            .json({
+              success: false,
+              error: `Invalid action. Must be one of: ${VALID_ACTIONS.join(', ')}`,
+            });
         }
 
         // Settlement lock check
@@ -161,27 +171,41 @@ export default async function handler(req, res) {
         let effectiveRole = member?.role || null;
         if (!member) {
           const { data: clubInfo } = await getSupabase()
-            .from('clubs').select('union_id').eq('id', clubId).maybeSingle();
+            .from('clubs')
+            .select('union_id')
+            .eq('id', clubId)
+            .maybeSingle();
           if (clubInfo?.union_id) {
             const { data: ua } = await getSupabase()
-              .from('union_admins').select('role')
-              .eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
+              .from('union_admins')
+              .select('role')
+              .eq('union_id', clubInfo.union_id)
+              .eq('user_id', user.id)
+              .maybeSingle();
             if (ua) {
-                effectiveRole = 'owner'; // union admins get full access
+              effectiveRole = 'owner'; // union admins get full access
             } else {
-                // Owner fallback
-                const { data: union } = await getSupabase().from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
-                if (union) effectiveRole = 'owner';
+              // Owner fallback
+              const { data: union } = await getSupabase()
+                .from('unions')
+                .select('id')
+                .eq('id', clubInfo.union_id)
+                .eq('owner_id', user.id)
+                .maybeSingle();
+              if (union) effectiveRole = 'owner';
             }
           }
         }
 
-        if (!effectiveRole) return res.status(403).json({ success: false, error: 'Not authorized for this club' });
+        if (!effectiveRole)
+          return res.status(403).json({ success: false, error: 'Not authorized for this club' });
 
         // ─── OPEN NEW PERIOD ───
         if (action === 'open') {
           if (!['owner', 'admin'].includes(effectiveRole)) {
-            return res.status(403).json({ success: false, error: 'Only owners/admins can open rakeback periods' });
+            return res
+              .status(403)
+              .json({ success: false, error: 'Only owners/admins can open rakeback periods' });
           }
 
           // Check no existing open period
@@ -193,7 +217,10 @@ export default async function handler(req, res) {
             .limit(1)
             .maybeSingle();
 
-          if (existing) return res.status(400).json({ success: false, error: 'A rakeback period is already open' });
+          if (existing)
+            return res
+              .status(400)
+              .json({ success: false, error: 'A rakeback period is already open' });
 
           // 2026-08-15 CHECK 13 fix: rakeback_periods keys players by user_id
           // (player_id/rake_contributed never existed — every rakeback query and
@@ -222,7 +249,9 @@ export default async function handler(req, res) {
         // ─── CLOSE PERIOD (calculate rakeback for all players) ───
         if (action === 'close') {
           if (!['owner', 'admin'].includes(effectiveRole)) {
-            return res.status(403).json({ success: false, error: 'Only owners/admins can close rakeback periods' });
+            return res
+              .status(403)
+              .json({ success: false, error: 'Only owners/admins can close rakeback periods' });
           }
 
           // Find open period
@@ -236,7 +265,8 @@ export default async function handler(req, res) {
             .limit(1)
             .maybeSingle();
 
-          if (!openPeriod) return res.status(400).json({ success: false, error: 'No open rakeback period found' });
+          if (!openPeriod)
+            return res.status(400).json({ success: false, error: 'No open rakeback period found' });
 
           // Get club's rakeback rate
           // ── Dan 2026-08-15 — CONTRIBUTION-WEIGHTED CREDITING REMOVED ──
@@ -268,7 +298,11 @@ export default async function handler(req, res) {
             .from('rakeback_periods')
             .update({ status: 'closed', period_end: new Date().toISOString() })
             .eq('id', openPeriod.id);
-          if (err_rakeback_periods_tvtud) console.warn('[Supabase] Silent mutation failed in rakeback_periods:', err_rakeback_periods_tvtud.message);
+          if (err_rakeback_periods_tvtud)
+            console.warn(
+              '[Supabase] Silent mutation failed in rakeback_periods:',
+              err_rakeback_periods_tvtud.message
+            );
 
           const responseObj = {
             success: true,
@@ -280,7 +314,13 @@ export default async function handler(req, res) {
             playersProcessed: 0,
             totalRakebackDistributed: 0,
           };
-          logAudit(supabaseAdmin, { actionType: 'rakeback_closed', userId: user.id, clubId, ip: extractIP(req), details: { periodClosed: openPeriod.id, crediting: 'deferred_to_equal_share_settler' } });
+          logAudit(supabaseAdmin, {
+            actionType: 'rakeback_closed',
+            userId: user.id,
+            clubId,
+            ip: extractIP(req),
+            details: { periodClosed: openPeriod.id, crediting: 'deferred_to_equal_share_settler' },
+          });
           cacheResponse(req, 200, responseObj);
           return res.status(200).json(responseObj);
         }
@@ -314,12 +354,16 @@ export default async function handler(req, res) {
 
           if (debitErr) {
             // Rollback period status
-            const ids = pending.map(p => p.id);
+            const ids = pending.map((p) => p.id);
             const { error: err_rakeback_periods_b5mtd } = await getSupabase()
               .from('rakeback_periods')
               .update({ status: 'closed' })
               .in('id', ids);
-            if (err_rakeback_periods_b5mtd) console.warn('[Supabase] Silent mutation failed in rakeback_periods:', err_rakeback_periods_b5mtd.message);
+            if (err_rakeback_periods_b5mtd)
+              console.warn(
+                '[Supabase] Silent mutation failed in rakeback_periods:',
+                err_rakeback_periods_b5mtd.message
+              );
             throw debitErr;
           }
 
@@ -332,18 +376,29 @@ export default async function handler(req, res) {
 
           if (creditErr) {
             // Rollback treasury debit — re-credit the chips we took
-            await getSupabase().rpc('fn_credit_treasury', {
-              p_club_id: clubId,
-              p_amount: totalClaim,
-            }).then(({ error }) => { if (error) throw error; }).catch(rbErr => console.warn('[rakeback] Treasury rollback failed:', rbErr.message));
+            await getSupabase()
+              .rpc('fn_credit_treasury', {
+                p_club_id: clubId,
+                p_amount: totalClaim,
+              })
+              .then(({ error }) => {
+                if (error) throw error;
+              })
+              .catch((rbErr) =>
+                console.warn('[rakeback] Treasury rollback failed:', rbErr.message)
+              );
 
             // Rollback period status
-            const ids = pending.map(p => p.id);
+            const ids = pending.map((p) => p.id);
             const { error: err_rakeback_periods_zz98s } = await getSupabase()
               .from('rakeback_periods')
               .update({ status: 'closed' })
               .in('id', ids);
-            if (err_rakeback_periods_zz98s) console.warn('[Supabase] Silent mutation failed in rakeback_periods:', err_rakeback_periods_zz98s.message);
+            if (err_rakeback_periods_zz98s)
+              console.warn(
+                '[Supabase] Silent mutation failed in rakeback_periods:',
+                err_rakeback_periods_zz98s.message
+              );
             throw creditErr;
           }
 
@@ -367,15 +422,23 @@ export default async function handler(req, res) {
               transaction_type: 'rakeback',
               notes: `Rakeback claim: ${pending.length} period(s)`,
             });
-          if (err_chip_transactions_xcocx) console.warn('[Supabase] Silent mutation failed in chip_transactions:', err_chip_transactions_xcocx.message);
+          if (err_chip_transactions_xcocx)
+            console.warn(
+              '[Supabase] Silent mutation failed in chip_transactions:',
+              err_chip_transactions_xcocx.message
+            );
 
           // Mark periods as fully claimed
-          const ids = pending.map(p => p.id);
+          const ids = pending.map((p) => p.id);
           const { error: err_rakeback_periods_6uyuf } = await getSupabase()
             .from('rakeback_periods')
             .update({ status: 'claimed' })
             .in('id', ids);
-          if (err_rakeback_periods_6uyuf) console.warn('[Supabase] Silent mutation failed in rakeback_periods:', err_rakeback_periods_6uyuf.message);
+          if (err_rakeback_periods_6uyuf)
+            console.warn(
+              '[Supabase] Silent mutation failed in rakeback_periods:',
+              err_rakeback_periods_6uyuf.message
+            );
 
           const responseObj = {
             success: true,
@@ -383,7 +446,14 @@ export default async function handler(req, res) {
             newBalance,
             periodsProcessed: pending.length,
           };
-          logAudit(supabaseAdmin, { actionType: 'rakeback_claimed', userId: user.id, clubId, amount: totalClaim, ip: extractIP(req), details: { periodsProcessed: pending.length, newBalance } });
+          logAudit(supabaseAdmin, {
+            actionType: 'rakeback_claimed',
+            userId: user.id,
+            clubId,
+            amount: totalClaim,
+            ip: extractIP(req),
+            details: { periodsProcessed: pending.length, newBalance },
+          });
           cacheResponse(req, 200, responseObj);
           return res.status(200).json(responseObj);
         }
@@ -396,10 +466,14 @@ export default async function handler(req, res) {
       console.warn('[rakeback]', err);
       return res.status(500).json(safeErrorResponse(err, 'Rakeback operation failed'));
     }
-
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+    try {
+      reportApiError(err, req);
+    } catch (_sentryErr) {
+      console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+    }
     console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+    if (!res.headersSent)
+      return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

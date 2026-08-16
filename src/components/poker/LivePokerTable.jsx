@@ -7375,18 +7375,33 @@ function LivePokerTable({
   // RENDER
   // ═══════════════════════════════════════════════════════════════════
 
+  const getSkinImage = (tid) => {
+    switch (tid) {
+      case 'royal-blue': return '/assets/tables/skin_ocean_blue.jpg';
+      case 'wine-red': return '/assets/tables/skin_crimson.jpg';
+      case 'purple-haze': return '/assets/tables/skin_electric_purple.jpg';
+      case 'emerald': return '/assets/tables/skin_golden_sand.jpg';
+      case 'classic-green': 
+      default: 
+         return '/assets/tables/skin_classic_green.jpg';
+    }
+  };
+  const skinImage = getSkinImage(themeId);
+
   return (
     <div
       style={{
         width: '100%',
         height: '100vh',
-        background: T.bgDark,
+        backgroundImage: `url(${skinImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         position: 'relative',
         overflow: 'hidden',
         fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
       }}
     >
-      {/* Table surface — vertical layout for Club Arena mobile */}
+      {/* Table surface container */}
       <div
         style={{
           position: 'absolute',
@@ -7396,30 +7411,6 @@ function LivePokerTable({
           bottom: '10%',
         }}
       >
-        {/* Poker table image — vertical orientation for portrait mode */}
-        <img
-          src="/images/poker-table-vertical.png"
-          alt=""
-          draggable={false}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            height: '100%',
-            maxWidth: '100%',
-            objectFit: 'contain',
-            pointerEvents: 'none',
-            zIndex: 0,
-          }}
-        />
-        {/* H4: Felt color overlay */}
-        <div style={{
-          position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-          height: '100%', width: '100%', zIndex: 0, pointerEvents: 'none',
-          background: (FELT_OPTIONS.find(f => f.id === feltColor) || FELT_OPTIONS[0]).gradient,
-          mixBlendMode: 'multiply', opacity: 0.6, borderRadius: 'inherit',
-        }} />
 
         {/* Table content overlay — positioned over the vertical table */}
         <div

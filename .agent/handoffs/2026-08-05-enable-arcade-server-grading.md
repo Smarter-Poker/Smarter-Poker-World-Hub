@@ -65,7 +65,7 @@ Sign in as the test account and play a full arcade run at:
 https://smarter.poker/hub/trivia/arcade?serverGrading=1
 ```
 
-Test account: `daniel@bekavactrading.com` / `Bek454545!!`
+Test account: `daniel@bekavactrading.com` / `<TEST_USER_PASSWORD — see .env.local, never commit>`
 
 The `?serverGrading=1` query flag activates the server-graded path for that
 one session without enabling it for anyone else. No other user is affected
