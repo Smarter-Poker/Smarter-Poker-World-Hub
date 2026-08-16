@@ -1,0 +1,159 @@
+diff --git a/pages/api/assistant/leaks/detect.js b/pages/api/assistant/leaks/detect.js
+index 838a8b5..e12612d 100644
+--- a/pages/api/assistant/leaks/detect.js
++++ b/pages/api/assistant/leaks/detect.js
+@@ -968,4 +968,66 @@ function updateTrendData(existingTrend, currentValue) {
+ }
+ 
++/**
++ * Normalise one card into the two-character form the rest of the platform
++ * speaks: rank + single-letter suit, e.g. "Ah", "Tc", "6s".
++ *
++ * 2026-08-16: the engine stores cards in TWO shapes and NEITHER is the one the
++ * UI reads:
++ *
++ *   hand_history.hole_cards -> [{ rank: "4", suit: "clubs" }, ...]
++ *   hand_history.board      -> ["6spades", "Ahearts", ...]
++ *
++ * The leak-example renderer does `cards.filter(Boolean).join(' ')`, so a hero
++ * holding rendered as literally "[object Object] [object Object]", and the
++ * one-tap "practice this hand" link built `?h=[obj` from
++ * `snap.hero_cards.join('')`. The board fared slightly better — "6spades
++ * Ahearts" is at least legible — but it is not what the drill parser accepts
++ * either.
++ *
++ * Normalising HERE, at the write, rather than at each of the several read
++ * sites, is deliberate: `leak_hand_examples` was empty (0 rows platform-wide —
++ * the insert had never once succeeded, fixed earlier today), so there is no
++ * legacy shape to stay compatible with. Every future row is canonical.
++ *
++ * The vocabulary is not guessed. Both columns were sampled in production and
++ * each yields exactly 52 distinct values: ranks 2-9 T J Q K A (never "10"),
++ * suits spelled out in full.
++ *
++ * Returns null for anything unrecognised, so a bad card is dropped rather than
++ * rendered as garbage.
++ */
++const SUIT_LETTER = { clubs: 'c', diamonds: 'd', hearts: 'h', spades: 's' };
++
++function toCardCode(card) {
++  if (!card) return null;
++
++  // { rank: "4", suit: "clubs" } — the hole_cards shape.
++  if (typeof card === 'object') {
++    const rank = String(card.rank ?? '').trim();
++    const suit = SUIT_LETTER[String(card.suit ?? '').trim().toLowerCase()];
++    return rank && suit ? `${rank}${suit}` : null;
++  }
++
++  if (typeof card !== 'string') return null;
++  const raw = card.trim();
++  if (!raw) return null;
++
++  // "6spades" — the board shape. Also accepts an already-canonical "6s", which
++  // makes this safe to apply twice.
++  const m = /^([2-9TJQKA]|10)(clubs|diamonds|hearts|spades|[cdhs])$/i.exec(raw);
++  if (!m) return null;
++  const rank = m[1].toUpperCase() === '10' ? 'T' : m[1].toUpperCase();
++  const suitRaw = m[2].toLowerCase();
++  const suit = SUIT_LETTER[suitRaw] || suitRaw;
++  return `${rank}${suit}`;
++}
++
++/** Map a whole holding / board, dropping anything unparseable. Null if empty. */
++function toCardCodes(cards) {
++  if (!Array.isArray(cards)) return null;
++  const out = cards.map(toCardCode).filter(Boolean);
++  return out.length > 0 ? out : null;
++}
++
+ /**
+  * Link relevant hand examples to all detected leaks.
+@@ -1025,6 +1087,8 @@ async function linkHandExamples(userId, leaksWithIds) {
+             // they were in it. Null when the hand ended before showdown or the
+             // hero mucked — mucked cards are deliberately never persisted.
+-            hero_cards: hand.hole_cards?.[userId] ?? null,
+-            board: hand.board,
++            // Both normalised to "Ah"-style codes — see toCardCode() above for
++            // why the raw engine shapes could not be stored as-is.
++            hero_cards: toCardCodes(hand.hole_cards?.[userId]),
++            board: toCardCodes(hand.board),
+             button_seat: hand.button_seat ?? null,
+             pot_size: hand.pot_size,
+diff --git a/pages/hub/personal-assistant/leaks.js b/pages/hub/personal-assistant/leaks.js
+index d10a3ce..35a5839 100644
+--- a/pages/hub/personal-assistant/leaks.js
++++ b/pages/hub/personal-assistant/leaks.js
+@@ -88,6 +88,36 @@ function isDemoLeakId(id) {
+ }
+ 
++/**
++ * 2026-08-16: this used to be `cards.filter(Boolean).join(' ')`, which renders
++ * "[object Object] [object Object]" the moment an entry is a `{rank, suit}`
++ * pair — exactly the shape the engine stores hole cards in — and "6spades
++ * Ahearts" when the entry is a long-suit board string.
++ *
++ * Writes are normalised at the source now (see toCardCode() in
++ * pages/api/assistant/leaks/detect.js), so this is defence in depth for the
++ * other card sources that feed this page, and for any row written before that
++ * fix. Unparseable entries are dropped rather than shown as noise.
++ */
++const CARD_SUIT_LETTER = { clubs: 'c', diamonds: 'd', hearts: 'h', spades: 's' };
++
++function cardText(card) {
++  if (!card) return null;
++  if (typeof card === 'object') {
++    const rank = String(card.rank ?? '').trim().toUpperCase();
++    const suit = CARD_SUIT_LETTER[String(card.suit ?? '').trim().toLowerCase()];
++    return rank && suit ? `${rank}${suit}` : null;
++  }
++  if (typeof card !== 'string') return null;
++  const raw = card.trim();
++  if (!raw) return null;
++  const m = /^([2-9TJQKA]|10)(clubs|diamonds|hearts|spades|[cdhs])$/i.exec(raw);
++  if (!m) return raw; // Unknown but non-empty — show it rather than hide it.
++  const rank = m[1].toUpperCase() === '10' ? 'T' : m[1].toUpperCase();
++  const suitRaw = m[2].toLowerCase();
++  return `${rank}${CARD_SUIT_LETTER[suitRaw] || suitRaw}`;
++}
++
+ function fmtCards(cards) {
+-  if (Array.isArray(cards)) return cards.filter(Boolean).join(' ') || '—';
++  if (Array.isArray(cards)) return cards.map(cardText).filter(Boolean).join(' ') || '—';
+   if (typeof cards === 'string' && cards.trim()) return cards.trim();
+   return '—';
+@@ -1684,14 +1714,24 @@ export default function LeakFinderPage() {
+     const q = buildPracticeQuery(leak);
+ 
+-    const heroRaw = Array.isArray(snap.hero_cards)
+-      ? snap.hero_cards.join('')
+-      : (typeof snap.hero_cards === 'string' ? snap.hero_cards : '');
+-    const hero = String(heroRaw).replace(/[\s,]/g, '');
+-    if (hero.length >= 4) q.h = hero.slice(0, 4);
+-
+-    const board = Array.isArray(snap.board)
+-      ? snap.board.filter(Boolean).join(',')
+-      : (typeof snap.board === 'string' ? snap.board : '');
+-    if (board) q.b = board;
++    // 2026-08-16: both of these used to join the RAW stored entries, so a hero
++    // holding of [{rank,suit},...] produced `?h=[obj` and a board of
++    // ["6spades",...] produced `?b=6spades,Ahearts,...`. cardText() gives the
++    // canonical "Ah" form the drill actually parses.
++    const heroCards = Array.isArray(snap.hero_cards)
++      ? snap.hero_cards.map(cardText).filter(Boolean)
++      : (typeof snap.hero_cards === 'string'
++          ? snap.hero_cards.split(/[\s,]+/).map(cardText).filter(Boolean)
++          : []);
++    // Two cards, not four characters. Identical for hold'em; for a four-card
++    // Omaha holding it takes the first two CARDS rather than slicing a card in
++    // half, which is what a raw `.slice(0, 4)` did to any non-canonical input.
++    if (heroCards.length >= 2) q.h = heroCards.slice(0, 2).join('');
++
++    const boardCards = Array.isArray(snap.board)
++      ? snap.board.map(cardText).filter(Boolean)
++      : (typeof snap.board === 'string'
++          ? snap.board.split(/[\s,]+/).map(cardText).filter(Boolean)
++          : []);
++    if (boardCards.length > 0) q.b = boardCards.join(',');
+ 
+     if (Number.isFinite(Number(snap.pot_size))) q.pot = Number(snap.pot_size);
