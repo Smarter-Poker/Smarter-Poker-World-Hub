@@ -561,15 +561,26 @@ jobs:
           fi
 
           # 6c — GitHub Actions schedule: triggers allowlist
-          # news-digest: TIME-BOXED EXCEPTION per CLAUDE.md §11.4 — its Open
-          # Claw replacement cannot deploy (SSH failures since 2026-05-17, see
-          # .agent/handoffs/2026-08-13-migrate-news-digest-to-openclaw.md), so
-          # the Actions schedule is the digest's only live scheduler. The
-          # entry was removed here prematurely (419ea6b7) while CLAUDE.md
-          # still carried the exception, leaving the gate red on every commit.
-          # Remove it here AND in CLAUDE.md §11.4 together once Open Claw is
-          # confirmed running the job.
-          ALLOWLIST="charity-scraper-v5 daily-scraper hendonmob-auto-sync jsonld-scraper poker-series-auto-pilot venue-scraper weekly-schedule-scraper stale club-arena-scheduled-deploy vercel-uniqueness-check branch-protection-watchdog push-velocity-watchdog vercel-deploy-retry news-digest"
+          #
+          # news-digest was a TIME-BOXED exception (CLAUDE.md §11.4) on the
+          # grounds that its Open Claw replacement "cannot deploy (SSH failures
+          # since 2026-05-17)".
+          #
+          # 2026-08-16 — that root cause is found and fixed. deploy-openclaw.sh
+          # was hardcoded to $HOME/.ssh/openclaw_ed25519, a key that was never
+          # created, so the script aborted at its own prereq check on every
+          # invocation and no deploy had ever succeeded. The dispatcher then
+          # crashed on start with ConflictingIdError, because
+          # mlb-analytics-noon is registered three times and job ids were
+          # derived from the path alone. Both fixed; dispatcher deployed with
+          # 85 jobs and 0 errors, and it now registers
+          #   /api/news/digest?days=7  [tue 14:00 UTC]
+          #
+          # The schedule: block is therefore removed from news-digest.yml and
+          # this allowlist entry retires with it, exactly as §11.4 required.
+          # Do not re-add either: Open Claw owns the digest now, and a second
+          # scheduler at the same instant mails the subscriber list twice.
+          ALLOWLIST="charity-scraper-v5 daily-scraper hendonmob-auto-sync jsonld-scraper poker-series-auto-pilot venue-scraper weekly-schedule-scraper stale club-arena-scheduled-deploy vercel-uniqueness-check branch-protection-watchdog push-velocity-watchdog vercel-deploy-retry"
           SCHEDULED_WORKFLOWS=$(grep -rlE '^on:|schedule:' .github/workflows/*.yml 2>/dev/null | while read wf; do
             if grep -qE '^\s*-?\s*cron:' "$wf"; then
               basename "$wf" .yml

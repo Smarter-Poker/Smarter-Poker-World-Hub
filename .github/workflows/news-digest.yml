@@ -1,9 +1,17 @@
 name: News Email Digest (Weekly)
 
+# 2026-08-16 — SCHEDULE REMOVED. Open Claw now owns this job.
+#
+# CLAUDE.md 11.4 carried news-digest.yml as an explicitly TIME-BOXED exception:
+# "Remove this entry and the CHECK 6c one together once Open Claw is running
+# it." That condition is now met -- the dispatcher registers
+#     /api/news/digest?days=7  [{'day_of_week': 'tue', 'hour': 14, 'minute': 0}]
+# which is the SAME INSTANT as the old `cron: '0 14 * * 2'` here. Leaving both
+# would have mailed the real subscriber list twice every Tuesday.
+#
+# workflow_dispatch is kept deliberately as a manual fallback, and its dry_run
+# input still defaults to 'true' so a mis-click cannot mail anyone.
 on:
-  schedule:
-    # Run weekly on Tuesday at 14:00 UTC (8am CST / 9am CDT)
-    - cron: '0 14 * * 2'
   workflow_dispatch:
     # Allow manual trigger — defaults to a dry run so a mis-click cannot mail
     # the real subscriber list.

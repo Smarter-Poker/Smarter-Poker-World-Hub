@@ -534,7 +534,19 @@ GitHub's environment to execute:
 - `branch-protection-watchdog.yml` — daily 09:00 UTC, auto-corrects `main` branch protection (added 2026-05-10 with PR #302)
 - `push-velocity-watchdog.yml` — hourly during work hours, alerts via GitHub Issue if no commits land on main for >4h (added 2026-05-10 after the 3h CHECK 6c stall)
 - `vercel-deploy-retry.yml` — already present in the CHECK 6c allowlist but previously missing from this list; recorded here to remove the doc/CI drift.
-- `news-digest.yml` — **TIME-BOXED EXCEPTION, not approved as permanent.** Weekly digest, Tuesdays 14:00 UTC. It has no GitHub-side dependency — it just calls `/api/news/digest` over HTTP with `CRON_SECRET` — so it belongs on Open Claw. It is allowlisted only because it had failed CHECK 6c on every commit since 2026-07-31, and that red gate was masking CHECK 8 and CHECK 10, the latter a real money bug (500 diamonds of drift per signup). Migrating it needs `scripts/deploy-openclaw.sh`, which requires the SSH key and Keychain-stored server IP on Dan's Mac. Steps are in `.agent/handoffs/2026-08-13-migrate-news-digest-to-openclaw.md`. **Remove this entry and the CHECK 6c one together once Open Claw is running it.**
+- ~~`news-digest.yml`~~ — **RETIRED 2026-08-16.** Migrated to Open Claw and
+  removed from this list and from the CHECK 6c allowlist together, as this
+  entry required. The stated blocker ("Open Claw replacement cannot deploy,
+  SSH failures since 2026-05-17") had a concrete cause: `deploy-openclaw.sh`
+  was hardcoded to `$HOME/.ssh/openclaw_ed25519`, a key that was never
+  created, so it aborted at its prereq check every run — no deploy had ever
+  succeeded, which is also why the dispatcher drifted 6 jobs behind the repo.
+  The dispatcher additionally crashed on boot with `ConflictingIdError`
+  because `mlb-analytics-noon` is registered 3x and job ids came from the
+  path alone. Both fixed; deployed with 85 jobs, 0 errors. The digest now
+  runs solely from Open Claw at tue 14:00 UTC. Do not re-add a GitHub
+  `schedule:` for it — two schedulers at the same instant mail the real
+  subscriber list twice.
 
 These are the ONLY permitted GitHub Actions `schedule:` cron triggers. Any
 net-new workflow with a `schedule:` trigger is blocked by CI. To add one:

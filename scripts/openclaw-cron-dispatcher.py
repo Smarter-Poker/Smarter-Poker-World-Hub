@@ -715,6 +715,18 @@ def make_job(path):
     elif path == '/api/cron/cardplayer-scraper':
         def _job():
             script_path = str(Path.home() / 'Documents' / 'Smarter-Poker-World-Hub' / 'scripts' / 'scrape-cardplayer.py')
+            # Host-portability guard (2026-08-16): SCRIPT_JOBS are Mac-primary
+            # (see precedence note above). On the Hetzner dispatcher these paths
+            # do not exist, and spawning them anyway produced a failing subprocess
+            # every scheduled tick -- that exact noise is what flagged the
+            # duplicate dispatcher on reels-transcode-worker today:
+            #   can't open file '.../scrape-cardplayer.py': No such file or directory
+            #   script exited 2
+            # Skip cleanly instead, so the same file is safe to deploy to every
+            # host and the job simply runs wherever its script actually lives.
+            if not os.path.exists(script_path):
+                log.info(f'{path}: script not present on this host ({script_path}) - skipping')
+                return
             cmd = [sys.executable, script_path]
             log.info(f'▶ Script job {path} → {" ".join(cmd)}')
             t0 = time.time()
@@ -730,6 +742,18 @@ def make_job(path):
     elif path == '/api/cron/mlb-analytics-daily':
         def _job():
             script_path = str(Path.home() / 'Documents' / 'mlb-analytics-engine' / 'run_daily.sh')
+            # Host-portability guard (2026-08-16): SCRIPT_JOBS are Mac-primary
+            # (see precedence note above). On the Hetzner dispatcher these paths
+            # do not exist, and spawning them anyway produced a failing subprocess
+            # every scheduled tick -- that exact noise is what flagged the
+            # duplicate dispatcher on reels-transcode-worker today:
+            #   can't open file '.../scrape-cardplayer.py': No such file or directory
+            #   script exited 2
+            # Skip cleanly instead, so the same file is safe to deploy to every
+            # host and the job simply runs wherever its script actually lives.
+            if not os.path.exists(script_path):
+                log.info(f'{path}: script not present on this host ({script_path}) - skipping')
+                return
             cmd = ['bash', script_path]
             log.info(f'▶ Script job {path} → {" ".join(cmd)}')
             t0 = time.time()
@@ -748,6 +772,18 @@ def make_job(path):
             # that had zero pred_market_output rows after the 3am daily run.
             # Fast path (~10-15 min). Upserts are idempotent for already-predicted games.
             script_path = str(Path.home() / 'Documents' / 'mlb-analytics-engine' / 'run_noon.sh')
+            # Host-portability guard (2026-08-16): SCRIPT_JOBS are Mac-primary
+            # (see precedence note above). On the Hetzner dispatcher these paths
+            # do not exist, and spawning them anyway produced a failing subprocess
+            # every scheduled tick -- that exact noise is what flagged the
+            # duplicate dispatcher on reels-transcode-worker today:
+            #   can't open file '.../scrape-cardplayer.py': No such file or directory
+            #   script exited 2
+            # Skip cleanly instead, so the same file is safe to deploy to every
+            # host and the job simply runs wherever its script actually lives.
+            if not os.path.exists(script_path):
+                log.info(f'{path}: script not present on this host ({script_path}) - skipping')
+                return
             cmd = ['bash', script_path]
             log.info(f'▶ Script job {path} → {" ".join(cmd)}')
             t0 = time.time()
@@ -763,6 +799,18 @@ def make_job(path):
     elif path == '/api/cron/mlb-analytics-intraday':
         def _job():
             script_path = str(Path.home() / 'Documents' / 'mlb-analytics-engine' / 'run_intraday.sh')
+            # Host-portability guard (2026-08-16): SCRIPT_JOBS are Mac-primary
+            # (see precedence note above). On the Hetzner dispatcher these paths
+            # do not exist, and spawning them anyway produced a failing subprocess
+            # every scheduled tick -- that exact noise is what flagged the
+            # duplicate dispatcher on reels-transcode-worker today:
+            #   can't open file '.../scrape-cardplayer.py': No such file or directory
+            #   script exited 2
+            # Skip cleanly instead, so the same file is safe to deploy to every
+            # host and the job simply runs wherever its script actually lives.
+            if not os.path.exists(script_path):
+                log.info(f'{path}: script not present on this host ({script_path}) - skipping')
+                return
             cmd = ['bash', script_path]
             log.info(f'▶ Script job {path} → {" ".join(cmd)}')
             t0 = time.time()
@@ -873,6 +921,24 @@ def main():
 
     registered = 0
     skipped = 0
+    # 2026-08-16: job ids must be unique per REGISTRATION, not per path.
+    #
+    # id was `path.replace('/', '_')`, but a path may legitimately appear more
+    # than once with different triggers -- /api/cron/mlb-analytics-noon is
+    # registered three times (13:00, 16:00, 17:00 UTC) as deliberate
+    # safety-nets. The second one raised
+    #     ConflictingIdError: 'Job identifier (api_cron_mlb-analytics-noon)
+    #                          conflicts with an existing job'
+    # from inside scheduler.start(), killing the process with exit 1 before a
+    # single job could fire. Combined with deploy-openclaw.sh being unrunnable
+    # (hardcoded to an SSH key that was never created), this file could never
+    # have deployed successfully -- which is exactly why the production box
+    # drifted to an older revision missing 6 jobs.
+    #
+    # Suffix duplicates with an occurrence counter: the first registration
+    # keeps its historical id (no churn for the ~75 single-registration jobs)
+    # and repeats get a stable, deterministic '#2' / '#3'.
+    _id_counts = {}
     for path, trigger_kwargs in ALL_CRONS:
         if should_skip_on_secondary(path, role):
             log.info(f'  Skipped (secondary, SCRIPT_JOB): {path}')
@@ -880,10 +946,13 @@ def main():
             continue
         effective_kwargs = apply_stagger_if_secondary(path, trigger_kwargs, role)
         trigger = CronTrigger(**effective_kwargs)
+        base_id = path.replace('/', '_').lstrip('_')
+        _id_counts[base_id] = _id_counts.get(base_id, 0) + 1
+        job_id = base_id if _id_counts[base_id] == 1 else f'{base_id}#{_id_counts[base_id]}'
         scheduler.add_job(
             make_job(path),
             trigger=trigger,
-            id=path.replace('/', '_').lstrip('_'),
+            id=job_id,
             name=path,
             misfire_grace_time=300,   # 5 min grace — if Mac was asleep, still fire
             coalesce=True,            # Don't stack if behind

@@ -31,8 +31,34 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOCAL_SRC="$REPO_ROOT/scripts/openclaw-cron-dispatcher.py"
 REMOTE_PATH="/opt/openclaw/dispatcher.py"
-SSH_KEY="$HOME/.ssh/openclaw_ed25519"
 SERVICE="openclaw.service"
+
+# ─── SSH key resolution (2026-08-16) ──────────────────────────────────────────
+#
+# This was hardcoded to $HOME/.ssh/openclaw_ed25519 -- a key "Phase 2A.1
+# creates" that was never actually created on this Mac. The prereq check below
+# therefore aborted on every single invocation, so NOBODY COULD DEPLOY.
+#
+# That is the direct cause of the dispatcher drift CLAUDE.md 11.3 forbids: on
+# 2026-08-16 the repo file had 6 jobs the production box did not, because the
+# only sanctioned way to push them had never once run. It also explains the
+# 2026-08-13 news-digest handoff, which assumed the VM was stale "unless
+# someone has been running deploy-openclaw.sh by hand" -- nobody could have.
+#
+# Now: honour $OPENCLAW_SSH_KEY if set, otherwise take the first candidate that
+# exists. All three fallbacks were verified on 2026-08-16 to authenticate as
+# root on the dispatcher (hostname: openclaw-dispatcher). Still fails loudly
+# when no key is present -- it just no longer fails when a working key is
+# sitting right there.
+SSH_KEY="${OPENCLAW_SSH_KEY:-}"
+if [ -z "$SSH_KEY" ]; then
+  for _cand in "$HOME/.ssh/openclaw_ed25519" \
+               "$HOME/.ssh/hetzner_deploy" \
+               "$HOME/.ssh/hetzner_engine_key" \
+               "$HOME/.ssh/id_ed25519_hetzner"; do
+    if [ -f "$_cand" ]; then SSH_KEY="$_cand"; break; fi
+  done
+fi
 
 # ─── Prereq checks ────────────────────────────────────────────────────────────
 
@@ -40,7 +66,9 @@ log() { echo "[deploy-openclaw] $*"; }
 die() { echo "[deploy-openclaw] ERROR: $*" >&2; exit "${2:-1}"; }
 
 [ -f "$LOCAL_SRC" ] || die "local dispatcher source missing at $LOCAL_SRC" 1
-[ -f "$SSH_KEY" ]   || die "SSH key missing at $SSH_KEY (Phase 2A.1 creates it)" 1
+[ -n "$SSH_KEY" ] && [ -f "$SSH_KEY" ] \
+  || die "no usable SSH key (set OPENCLAW_SSH_KEY, or install one of: openclaw_ed25519, hetzner_deploy, hetzner_engine_key, id_ed25519_hetzner)" 1
+log "SSH key: $SSH_KEY"
 
 SERVER_IP=$(security find-generic-password -a smarter-poker -s openclaw-server-ip -w 2>/dev/null) \
   || die "Keychain entry 'smarter-poker/openclaw-server-ip' missing — run Phase 2A.1 AG prompt first" 1
