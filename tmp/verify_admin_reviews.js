@@ -10,7 +10,7 @@ async function testAdminReviews() {
   console.log('Logging in as test admin...');
   const { data: { session }, error: authError } = await supabase.auth.signInWithPassword({
     email: 'daniel@bekavactrading.com',
-    password: 'Bek454545!!'
+    password: process.env.TEST_USER_PASSWORD
   });
 
   if (authError || !session) {
