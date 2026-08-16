@@ -28,6 +28,34 @@ function getSentry() {
   return _Sentry;
 }
 
+/**
+ * Map an arbitrary canonical hand id ("LOCA:H000016", "hand_<tableId>_42")
+ * onto a stable RFC-4122 v5 uuid.
+ *
+ * Why this exists: atomic_distribute_rake types p_hand_id as uuid and uses it
+ * as its idempotency key — ON CONFLICT (hand_id) DO NOTHING on rake_records,
+ * and v_leg_key := COALESCE(p_hand_id, gen_random_uuid()) for the distribution
+ * legs. Passing NULL therefore disables dedupe silently, and the rake call is
+ * wrapped in resilientMutation, which retries. Without a deterministic id a
+ * retry would credit the club and union wallets twice.
+ *
+ * Deterministic: the same hand id always yields the same uuid, so retries
+ * collapse onto one row; distinct hand ids do not collide.
+ *
+ * @param {string} text canonical hand id
+ * @returns {string} RFC-4122 version 5 uuid
+ */
+function toDeterministicUuid(text) {
+  const crypto = require('crypto');
+  const bytes = Buffer.from(
+    crypto.createHash('sha1').update(`smarter.poker:rake:${String(text)}`).digest()
+  ).subarray(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x50; // version 5
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC-4122 variant
+  const h = bytes.toString('hex');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
 // ── Phase mapping: engine phases → display phases ──
 const DISPLAY_PHASE = {
   idle: 'idle',
@@ -836,57 +864,72 @@ class LobbyManager {
             config.variant || 'nlh'
           );
 
-          // Call the Supabase RPC — handles:
-          //   1. Dealt-method per-player attribution (equal split)
-          //   2. Union hold split
-          //   3. BBJ routing to main/backup/promo pools
-          //   4. Club treasury credit
-          //   5. Ledger entries + global sequential hand ID
+          // ── Dan 2026-08-16 — REPOINTED AT atomic_distribute_rake ──
+          //
+          // This used to call record_rake with p_bbj_contribution and
+          // p_dealt_player_ids. Neither parameter exists, and four that do
+          // were omitted, so PostgREST named-argument resolution returned
+          // PGRST202 every single time: the hand completed, every player was
+          // paid, and ZERO rake was recorded anywhere. It only console.warn'd,
+          // so it was silent.
+          //
+          // A previous note here claimed this path was "dormant". That was
+          // wrong. On 2026-08-16 between 00:07 and 00:32 UTC it fired seven
+          // times across four tournament tables (pots up to 56,516) and every
+          // one of those hands has zero rows in rake_records.
+          //
+          // atomic_distribute_rake is the function the Hetzner engine of
+          // record already uses for all 626k+ rake_records rows. It is the
+          // right target for three reasons:
+          //   1. p_bbj is an ABSOLUTE chip amount, which is what
+          //      calculateBBJFee returns. record_rake's p_bbj_pct is a
+          //      PERCENTAGE (default 0.05) — feeding an absolute fee into it
+          //      would have silently corrupted the BBJ take.
+          //   2. It is idempotent: ON CONFLICT (hand_id) DO NOTHING on
+          //      rake_records, plus (leg_key, leg) dedupe on
+          //      rake_distribution_legs.
+          //   3. It handles union-vs-club-treasury routing; record_rake does
+          //      not.
+          //
+          // IDEMPOTENCY DEPENDS ON A STABLE hand_id. Inside the function,
+          // v_leg_key := COALESCE(p_hand_id, gen_random_uuid()) — so a NULL
+          // hand id silently disables dedupe altogether. This call is wrapped
+          // in resilientMutation, which RETRIES, and a retry with no stable id
+          // would double-credit the club and union wallets. p_hand_id is also
+          // typed uuid while our canonical ids are text ("LOCA:H000016"), so
+          // we derive a deterministic RFC-4122 v5 uuid from the canonical id:
+          // the same hand always maps to the same uuid, different hands never
+          // collide, and retries dedupe correctly.
           const canonicalHandId = data.handId ||
             (data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`);
+          const handUuid = toDeterministicUuid(canonicalHandId);
+
+          // Real per-player pot investment from GameStateMachine._finishHand().
+          // The KEYS drive equal-share rakeback attribution (every player dealt
+          // in, DECISION D-001); the values are the audit record of who
+          // actually put chips in.
+          const contributions = {};
+          for (const p of (data.players || [])) {
+            if (p?.id) contributions[p.id] = Number(p.invested) || 0;
+          }
+
           // Phase 48f: resilient — financial critical
-          const { data: rakeResult, error: rakeErr } = await resilientMutation(sb, () => sb.rpc('record_rake', {
-            p_hand_id: canonicalHandId,
-            p_club_id: clubId,
+          const { data: rakeResult, error: rakeErr } = await resilientMutation(sb, () => sb.rpc('atomic_distribute_rake', {
             p_table_id: config.tableId,
-            p_rake_amount: rakeAmount,
-            p_pot_size: data.potTotal || 0,
+            p_club_id: clubId,
+            p_hand_id: handUuid,
+            p_hand_number: Number(data.handNumber) || null,
+            p_rake: rakeAmount,
+            p_bbj: bbjContribution,
+            p_pot: data.potTotal || 0,
             p_num_players: dealtPlayerIds.length || finalStacks.length,
-            p_bbj_contribution: bbjContribution,
-            p_dealt_player_ids: dealtPlayerIds.length > 0 ? dealtPlayerIds : null,
+            p_contributions: Object.keys(contributions).length > 0 ? contributions : null,
+            p_tournament_id: config.tournamentId || null,
           }), { critical: true });
 
           if (rakeErr) {
-            // ── Dan 2026-08-15 — THIS CALL CANNOT SUCCEED AS WRITTEN ──
-            //
-            // The arguments above do not match the deployed function. The real
-            // signature is:
-            //   record_rake(p_hand_id uuid, p_club_id uuid, p_table_id uuid,
-            //               p_rake_amount numeric, p_pot_size numeric,
-            //               p_num_players integer, p_player_contributions jsonb,
-            //               p_is_tournament boolean, p_tournament_id uuid,
-            //               p_bbj_pct numeric)
-            // We pass p_bbj_contribution and p_dealt_player_ids, neither of
-            // which exists, and omit four that do. PostgREST resolves by named
-            // argument, so this is a guaranteed PGRST202. On top of that,
-            // p_hand_id is built as text ("hand_<tableId>_<n>") against a uuid
-            // parameter.
-            //
-            // It previously console.warn'd and carried on: a hand could
-            // complete, pay every player, and take ZERO rake with nothing
-            // recorded anywhere. Silent revenue loss is the worst failure mode
-            // this path could have.
-            //
-            // Evidence it has never actually run: all 626,468 rake_records rows
-            // carry the Hetzner engine's player_contributions signature and none
-            // carry this engine's hand-id format. The only route that reaches
-            // this code (/hub/poker/lobby) is unlinked from any UI. So it is
-            // dormant rather than actively losing money — but dormant and
-            // reachable is exactly how this bites later.
-            //
-            // Escalated to a durable alert so it can never fail quietly. The
-            // engine of record is the Hetzner ServerTableEngine; this second
-            // engine is queued for deletion (P1-2).
+            // Kept as a durable alert so this can never fail quietly again.
+            // Silent revenue loss is the worst failure mode this path has.
             console.error('[LobbyManager] RAKE NOT RECORDED:', rakeErr.message);
             try {
               await sb.from('financial_alerts').insert({
