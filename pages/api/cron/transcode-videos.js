@@ -58,7 +58,7 @@ export const config = {
 };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'dummy_key';
 
 // Validate binaries are strings BEFORE we hand them to spawn(), otherwise
 // Node coerces an object to "[object Object]" and spawn fails with ENOENT.
