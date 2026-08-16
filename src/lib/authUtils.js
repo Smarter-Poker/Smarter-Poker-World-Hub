@@ -22,6 +22,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { resolveAnonKey, anonKeyWarning, SUPABASE_URL_FALLBACK } from './supabaseKeys';
 
 // Supabase credentials — use env vars with hardcoded fallback for production stability
 // Dan-fix/authutils-exports (B-AUTH-EXPORTS-1): these were declared without
@@ -36,8 +37,21 @@ import { useRouter } from 'next/router';
 // trims; this file did not — so any raw fetch() that puts SUPABASE_ANON_KEY in
 // an `apikey`/Authorization header can throw "Invalid header value" or 401
 // in production builds. Keep the trim in sync with src/lib/supabase.ts.
-export const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co').trim();
-export const SUPABASE_ANON_KEY = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable__41LpJpzrfrb3hSUpEaYCA_tF53bBJx').trim();
+// [2026-08-16] The hardcoded fallback used to be the LEGACY anon JWT, and
+// legacy keys were disabled on this project at 00:38:16 UTC that day. So the
+// "fallback for production stability" had become a fallback to a guaranteed
+// 401 -- and rotating the key in Supabase could not have fixed the app while
+// source held a dead literal. Resolution now lives in one place; see
+// src/lib/supabaseKeys.js for why a publishable key may be embedded and a
+// secret key never may.
+export const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_FALLBACK).trim();
+
+const _anon = resolveAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+export const SUPABASE_ANON_KEY = _anon.key;
+{
+    const _warn = anonKeyWarning(_anon.source);
+    if (_warn) console.warn(_warn);
+}
 
 
 /**

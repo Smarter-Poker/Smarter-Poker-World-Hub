@@ -10,6 +10,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { isLegacyJwtKey, isModernKey } from '../../../src/lib/supabaseKeys';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -45,15 +46,37 @@ export default async function handler(req, res) {
                 .limit(1);
 
             checks.supabase = error ? 'degraded' : 'ok';
-            if (error) checks.supabaseError = error.code || 'unknown';
+            // `code` is empty for auth/key rejections, so this reported the
+            // literal string "unknown" while error.message held the actual
+            // cause -- during the 2026-08-16 outage it said `supabaseError:
+            // "unknown"` when the server was being told "Legacy API keys are
+            // disabled". Carry the message too; it is the difference between a
+            // five-second diagnosis and an hour of guessing. Bounded so a
+            // health endpoint can never become an information leak.
+            if (error) {
+                checks.supabaseError = error.code || 'unknown';
+                if (error.message) checks.supabaseMessage = String(error.message).slice(0, 160);
+            }
         } catch (err) {
             checks.supabase = 'down';
+            if (err && err.message) checks.supabaseMessage = String(err.message).slice(0, 160);
         }
 
         // 2. Environment check
+        //
+        // `!!key` only ever proved a variable was SET, which is exactly what
+        // was true and useless during the outage: serviceKey read `true` while
+        // every request using it was rejected. Report the key FORMAT as well --
+        // a legacy JWT is known-disabled on this project, so "set" and
+        // "usable" are different questions. Formats only; no key material.
+        const _svc = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+        const _anon = String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+        const keyFormat = (k) => (!k ? 'missing' : isLegacyJwtKey(k) ? 'legacy-jwt' : isModernKey(k) ? 'modern' : 'other');
         checks.env = {
             supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-            serviceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+            serviceKey: !!_svc,
+            serviceKeyFormat: keyFormat(_svc),
+            anonKeyFormat: keyFormat(_anon),
         };
 
         const latencyMs = Date.now() - start;

@@ -10,10 +10,21 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
+import { resolveAnonKey, anonKeyWarning } from './supabaseKeys';
 
 // CRITICAL: .trim() removes trailing newlines/whitespace that cause connection issues
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+
+// [2026-08-16] Legacy JWT API keys were disabled on this project at 00:38:16
+// UTC, so a legacy-format value in this env var is not merely old -- every
+// request carrying it returns "Legacy API keys are disabled". This client is
+// the one the whole browser app authenticates through, so it resolves the key
+// through the same helper as authUtils rather than trusting the raw env value.
+// See src/lib/supabaseKeys.js.
+const _anonResolved = resolveAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+const supabaseAnonKey = _anonResolved.key;
+const _anonWarning = anonKeyWarning(_anonResolved.source);
+if (_anonWarning) console.warn(_anonWarning);
 
 if (!supabaseUrl || !supabaseAnonKey) {
    const msg = '[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY';
