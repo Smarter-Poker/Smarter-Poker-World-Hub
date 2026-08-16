@@ -978,9 +978,13 @@ async function linkHandExamples(userId, leaksWithIds) {
     // Get recent hands that might show these leaks (single fetch for all leaks)
     const { data: hands, error: handsErr } = await getSupabase()
       .from('hand_history')
-      // 2026-08-15 CHECK 13: hero_cards → real column hole_cards (aliased so
-      // downstream keeps reading .hero_cards); user_id → players containment.
-      .select('id, actions, hero_cards:hole_cards, board, pot_size, created_at')
+      // user_id → players containment (there is no user_id column).
+      // 2026-08-16: hole_cards is a MAP keyed by user id (showdown-revealed
+      // holdings only), not a bare array — see the engine writer in
+      // services/supabase/handHistory.ts. Select it raw and pick the hero's
+      // entry below; aliasing the whole map to `hero_cards` would have put
+      // every player's shown cards into the example.
+      .select('id, actions, hole_cards, board, button_seat, pot_size, created_at')
       .contains('players', [{ userId }])
       .order('created_at', { ascending: false })
       .limit(100);
@@ -999,19 +1003,38 @@ async function linkHandExamples(userId, leaksWithIds) {
         const leakMatch = checkHandForLeak(hand, leak.leak_type);
         if (!leakMatch) continue;
 
+        // COLUMN FIX 2026-08-15: this insert has NEVER succeeded. It wrote
+        // `situation_snapshot` and `ev_loss_bb`, which are the names from the
+        // design doc (.agent/skills/personal-assistant/SCHEMA.sql) and NOT the
+        // names that were actually deployed. The real columns are `hand_data`
+        // and `ev_loss`. Postgres rejected every row with 42703, the catch
+        // below logged a console.warn, the per-row fallback retried with the
+        // same wrong names, and the endpoint still returned success:true --
+        // so `leak_hand_examples` has 0 rows platform-wide while the UI
+        // reports a clean detection run.
+        //
+        // The READ side was already corrected (useAssistant.js aliases
+        // `situation_snapshot:hand_data, ev_loss_bb:ev_loss`); only the write
+        // side was left behind. `situation_class` is populated too so the
+        // examples can be grouped by street, which is what the column is for.
         examples.push({
           leak_id: leak.id,
           hand_history_id: hand.id,
-          situation_snapshot: {
-            hero_cards: hand.hero_cards,
+          hand_data: {
+            // Hero's own showdown holding, if this hand reached showdown and
+            // they were in it. Null when the hand ended before showdown or the
+            // hero mucked — mucked cards are deliberately never persisted.
+            hero_cards: hand.hole_cards?.[userId] ?? null,
             board: hand.board,
+            button_seat: hand.button_seat ?? null,
             pot_size: hand.pot_size,
             leak_action: leakMatch.action,
             street: leakMatch.street,
           },
+          situation_class: leakMatch.street || null,
           // Use the deviation-scaled EV loss from the detection run, not a
           // second hardcoded constant
-          ev_loss_bb: leak.avg_ev_loss_bb,
+          ev_loss: leak.avg_ev_loss_bb,
         });
 
         // Limit to 5 examples per leak
