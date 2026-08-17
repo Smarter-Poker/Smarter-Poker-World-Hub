@@ -423,3 +423,77 @@ coverage:
 
 Before the coverage fix, both 14:00 lines would have read simply
 "OK - this host's secrets are still accepted".
+
+---
+
+# The hand-counter fix was half-working, and the log I insisted on is why we know
+
+Deployed this morning, it worked for 47 of 64 active tables. Two of the largest
+silently fell back:
+
+    [ServerTableEngine:87fc21ed-...] Could not seed hand counter (canceling
+    statement due to statement timeout) - continuing from #0
+
+`87fc21ed` had 12,919 prior hands. `d43fe52b` had 5,032. Both restarted at #1
+anyway — so the fix was failing on precisely the tables it was written for, and
+succeeding everywhere it barely mattered. The only reason this was visible is
+that the seed was built non-fatal *and logged its failure*; a silent
+`catch {}` would have left it looking fully deployed.
+
+## Cause
+
+`ORDER BY hand_number DESC LIMIT 1` has no supporting index. `hand_history`
+carries `(table_id)` and `(table_id, created_at DESC)` but not
+`(table_id, hand_number)`. Verified plan:
+
+    Limit  (cost=14218.45..14218.45 rows=1)
+      -> Sort  (cost=14218.45..14250.17 rows=12687)
+           Sort Key: hand_number DESC
+           -> Index Scan using idx_hand_history_table  (rows=12687)
+
+Index-scan the whole partition off a 10 GB / ~1.58M-row table, then sort it.
+
+## Why the index still is not built
+
+`CREATE INDEX CONCURRENTLY (table_id, hand_number DESC)` is the right fix and
+could not be done from here:
+
+- the API session has `statement_timeout = 2min`; the attempt was cancelled and
+  left an **invalid 53 MB index**, which has been dropped
+- `dblink` is installed but returns *"Non-superusers must provide a password"*,
+  and no DB password exists on this machine
+- `pg_cron` 1.6.4 is installed but wraps each job in a transaction, which
+  `CONCURRENTLY` forbids
+- a non-concurrent build holds a write lock, and live tables were dealing
+  **181 hands/minute** at the time
+
+Left open as task #28 for whoever holds the DB password.
+
+## What shipped instead
+
+Read the most recent 500 hands through the index that *does* exist and take the
+max. Measured on the table that timed out: **113 ms, 500 rows**, versus a
+timeout.
+
+This is a bounded approximation of `MAX`, not `MAX`, and the code says so. If
+an older run reached higher than the last 500 hands show, it seeds below that.
+Still strictly better than restarting at #0, and self-correcting once numbering
+is monotonic. Swap back to the exact `MAX` the day the index exists.
+
+Result on the next boot: **54 tables resumed, 0 failures.** `d43fe52b`, one of
+the two that previously failed, now logs
+`Hand counter resumed at #5051 (next hand: #5052)`.
+
+# New, unresolved: the rakeback settler is timing out
+
+Surfaced in the same log sweep:
+
+    [RakebackSettler.fetch_failed] Error: canceling statement due to statement
+    timeout at RakebackSettlerService._runSettlementInner
+    (dist/services/RakebackSettlerService.js:559)
+
+This is the daemon that pays rakeback, and its fetch is dying. Same family of
+problem — large tables, a query without a supporting index or bound. Not
+investigated. `fn_close_settlement_period` was changed earlier today, so
+establish whether the timeout predates that change before assuming causation.
+Task #29.
