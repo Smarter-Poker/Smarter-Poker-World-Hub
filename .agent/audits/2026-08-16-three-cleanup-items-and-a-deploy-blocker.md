@@ -763,3 +763,59 @@ earning trust, so it got ignored, and then real signal had nowhere to land.
 
 Being better than other rooms is not more detectors. Most rooms have detectors.
 Very few have detectors a human actually reviews.
+
+---
+
+# The integrity channel is now quiet, which is the point
+
+`COMMUNITY_CARD_COUNT` was a strict inequality firing on **236 distinct hands
+per hour**. Every observed instance was a board that had run AHEAD of its stage
+label — "Stage flop expects 3 community cards, got 5" — which is an all-in
+runout: the board is dealt to completion while `stage` still reads flop. The
+cards are correct, the label lags, and nothing about it touches fairness or
+money.
+
+The direction that IS a fault — a board BEHIND its street, a river played on
+four cards — was indistinguishable from that flood.
+
+Replaced with a rule about **direction**, deliberately not an inference about
+all-in state, so it cannot be wrong about what it suppresses:
+
+    actual < expected        -> flagged (cards missing)
+    actual > 5               -> flagged CRITICAL (impossible board)
+    expected < actual <= 5   -> not reported (runout label lag)
+
+Four new cases pin the asymmetry, including the exact production shape.
+`StateVerifier.test.ts` 17/17; full server suite **563/563 across 48 files**.
+
+Production after deploy, fix confirmed present in the running image:
+
+    305 hands dealt in 5 minutes
+    0 integrity warnings   0 COMMUNITY_CARD_COUNT
+    0 CHIP_CONSERVATION    0 DUPLICATE_CARD
+
+236/hour to zero, with every real check still armed. The value is not the
+silence — it is that the next thing to appear in that channel will be real.
+
+## Where the platform stands
+
+| item | state |
+|---|---|
+| Anti-cheat feed | **ON** in production, observe-only, verified no cost |
+| State verifier | **trustworthy** — signal only, no noise |
+| Rakeback settler | 21.5 s -> 259 ms, payouts proven identical |
+| Settlement function | 53x faster, equivalence proven to the cent |
+| Hand counter | exact MAX at 3.5 ms, 61 tables resumed, 0 failures |
+| Cron + secrets | aligned, with a drift watchdog that names its coverage |
+
+Open, each blocked on something outside the code:
+
+- **Solver M2** — locked out since the key rotation. Capacity, not data loss;
+  the queue is currently empty. Needs the key set on a LAN machine I cannot
+  reach (`python --version` = 3.14.x).
+- **Chip supply** — 733M in wallets vs a 2.2M mint ledger. A product/finance
+  decision about what the mint ledger is meant to cover, not an engineering fix.
+- **Collusion calibration** — well specified, but the process writing
+  `collusion_tracking` is still unlocated. An unidentified Node client holds a
+  service key and writes the anti-cheat table; that is worth resolving on
+  security grounds regardless of the calibration work.
