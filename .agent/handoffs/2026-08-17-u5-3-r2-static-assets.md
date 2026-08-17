@@ -1,6 +1,6 @@
 # HANDOFF — Phase U5.3: move Club Arena static media to Cloudflare R2
 
-**Status:** Code side COMPLETE (CA commit 45f2228ce). Blocked ONLY on
+**Status:** DEFERRED by Dan 2026-08-17 — zero real users; pure cost optimization. Do NOT execute until Dan explicitly reopens it. Code side already shipped as a no-op (CA 45f2228ce).
 Cloudflare credentials — creating the bucket/token is a human/credentialed
 step (WH RULE 0 exception; RULE 12 forbids agents creating new infra).
 

@@ -325,7 +325,7 @@ Gate U4: Both scripts pass against current HEAD. Any intentional exceptions are 
 |---|---|---|---|
 | U5.1 | Fix CA Sentry sourcemap upload in Vite build (Task #133) | nothing | CA release shows readable stack frames in Sentry |
 | U5.2 | Add CA bundle-size CI budget (Task #155) — fail build if main bundle > 5 MB | U5.1 done first | CI blocks an oversized change |
-| U5.3 | Move `public/hub/club-arena/` large static assets (cards, club-logos, avatar packs) to Cloudflare R2 (Task #44). Update SPA to load from R2 URL. | WH rewrites updated | Vercel bandwidth cut ≥ 50 MB/deploy |
+| U5.3 (**DEFERRED by Dan 2026-08-17**: zero real users, cost optimization only. Code side is done — MEDIA_BASE env flip in CA 45f2228ce; runbook in .agent/handoffs/2026-08-17-u5-3-r2-static-assets.md. Revisit when real traffic makes the Vercel bill matter. Do NOT resurrect before then.) | Move `public/hub/club-arena/` large static assets (cards, club-logos, avatar packs) to Cloudflare R2 (Task #44). Update SPA to load from R2 URL. | WH rewrites updated | Vercel bandwidth cut ≥ 50 MB/deploy |
 | U5.4 | Deprecate `scripts/build-club-arena.sh` duplicate pipelines — consolidate to single entrypoint: `bash scripts/sync-club-arena.sh` that runs build + sync + push | U5.1, U5.2 done | One and only one way to ship a CA change |
 
 Gate U5: Sentry stack traces are readable, CA bundle ≤ 5 MB, R2 URLs return 200, all deploys go through one script.
