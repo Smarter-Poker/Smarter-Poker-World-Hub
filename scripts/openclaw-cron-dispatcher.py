@@ -710,6 +710,14 @@ def _auth_drift_watchdog_job():
     """
     state = _auth_drift_state
     failures = []
+    # Track what was actually PROVEN vs merely absent. First cut of this job
+    # logged a bare "OK" after silently skipping the Supabase probe, because
+    # this host does not hold SUPABASE_SERVICE_ROLE_KEY (verified: only
+    # CRON_SECRET is in the dispatcher's environ). A watchdog that reports OK
+    # for a check it never ran is the same defect it was written to catch, so
+    # every run now names its coverage.
+    verified = []
+    absent = []
 
     secret = os.environ.get('CRON_SECRET', '')
     # The exact defect that broke every build on 2026-08-16. Vercel rejects
@@ -733,14 +741,23 @@ def _auth_drift_watchdog_job():
                 failures.append('CRON_SECRET rejected by production (401) - rotation did not reach this host')
             elif r.status_code == 200 and '"secretMalformed":true' in r.text.replace(' ', ''):
                 failures.append("production's own CRON_SECRET has surrounding whitespace - builds will fail")
+                verified.append('CRON_SECRET')
             elif r.status_code == 404:
+                absent.append('CRON_SECRET probe endpoint not deployed yet (404)')
                 log.warning('[auth-drift] probe endpoint missing (404) - deploy pending?')
+            else:
+                verified.append('CRON_SECRET')
         except Exception as e:
             log.warning(f'[auth-drift] CRON_SECRET probe inconclusive: {type(e).__name__}: {e}')
 
     sb_key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
     sb_url = os.environ.get('NEXT_PUBLIC_SUPABASE_URL',
                             'https://kuklfnapbkmacvwxktbh.supabase.co').rstrip('/')
+    if not sb_key:
+        # Legitimate on the dispatcher, which routes HTTP and holds no service
+        # key. Recorded explicitly so "OK" can never be mistaken for "both
+        # credentials proven".
+        absent.append('SUPABASE_SERVICE_ROLE_KEY (not held on this host)')
     if sb_key:
         try:
             r = requests.get(f'{sb_url}/rest/v1/rake_records?select=id&limit=1',
@@ -749,6 +766,8 @@ def _auth_drift_watchdog_job():
             if r.status_code == 401:
                 kind = 'legacy JWT' if sb_key.startswith('eyJ') else 'key'
                 failures.append(f'SUPABASE_SERVICE_ROLE_KEY rejected (401) - this host holds a revoked {kind}')
+            else:
+                verified.append('SUPABASE_SERVICE_ROLE_KEY')
         except Exception as e:
             log.warning(f'[auth-drift] supabase probe inconclusive: {type(e).__name__}: {e}')
 
@@ -757,7 +776,14 @@ def _auth_drift_watchdog_job():
             _send_sms('smarter.poker auth drift RESOLVED - dispatcher secrets accepted again')
         state['consec_fail'] = 0
         state['alert_sent'] = False
-        log.info("[auth-drift] OK - this host's secrets are still accepted")
+        cov = 'verified: ' + (', '.join(verified) if verified else 'NOTHING')
+        if absent:
+            cov += ' | not checked: ' + '; '.join(absent)
+        log.info(f'[auth-drift] OK - {cov}')
+        # Proving nothing is not passing. If every probe was skipped the job is
+        # decorative, and decorative monitoring is what let today happen.
+        if not verified:
+            log.error('[auth-drift] NO CREDENTIAL WAS ACTUALLY VERIFIED - this watchdog is not covering anything on this host')
         return
 
     state['consec_fail'] += 1
