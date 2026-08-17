@@ -685,3 +685,81 @@ assumed:
 M2 sits on another segment behind the same gateway. Set
 `SUPABASE_SERVICE_ROLE_KEY` there to the current `sb_secret_` value; identify it
 as the box whose `python --version` is 3.14.x.
+
+---
+
+# Anti-cheat: the pipeline is 80% built and the middle link is missing
+
+## What was switched on
+
+`INTEGRITY_FEED=on` is now live on the engine (`/opt/club-arena/server/.env`,
+backed up as `.env.bak-20260817-integrity`, applied via `engine-up.sh`).
+Verified in the running process; container healthy, RestartCount 0, 282 hands
+in the following 8 minutes, zero unhandled errors.
+
+Reading `IntegrityFeed` first was worth it: it is genuinely observe-only —
+bounded 5,000-hand in-memory store, detectors every 250 hands, every path
+swallows its own errors, no enforcement and no money or gameplay effect.
+
+**But it only logs when it finds flags, and persists nothing.** Silence is
+therefore ambiguous (ran-and-found-nothing vs never-ran) and the store dies on
+restart. It should log coverage on every `analyze()` — hands ingested, store
+size, flag count even when zero — and write to `anti_cheat_flags`.
+
+## What already exists, unwired
+
+| piece | state |
+|---|---|
+| `collusion_tracking` | **169,508 rows**, live since 2026-04-20, ~235/day |
+| `anti_cheat_flags` | **0 rows** — full review schema, never written |
+| `AntiCheatPage` + `/api/club-arena/anti-cheat` | review UI, reading an empty table |
+| `detect_collusion_pairs(club, threshold, min_hands)` | exists, **never scheduled** |
+
+Collection works. The review surface is built. Nothing connects them.
+
+## The number that looks alarming and is not
+
+`collusion_tracking` IS the flag table. All 169,508 rows are `status='open'`,
+**zero** human-reviewed, with 146,194 scored 90+ and a max of 100.
+
+That reads like a scandal. It isn't. Evidence at score 100:
+
+    {"direction":"loser_to_winner","bb_per_100":-475.6,  "hands_together":36}
+    {"direction":"loser_to_winner","bb_per_100":-2104.5, "hands_together":31}
+
+Thirty-one hands. A bb/100 of ±2000 over 31 hands is a single big pot — pure
+variance. Win-rate carries no signal until thousands of shared hands. That is
+why **86% of every pair ever scored lands above 90**, and why nobody has
+reviewed a row in four months. The detector has no statistical power, so the
+queue is noise.
+
+### A mistake I made and caught
+
+I first split those pairs by joining `ai_horses.id` and got a clean-looking
+"20,000 both human". That join returns **zero matches for every row in the
+table** — `ai_horses.id` is not the player id. The result was meaningless.
+Horses *are* in there (`…000000000024` appears as `player_b`). Recorded so the
+next person does not repeat it.
+
+## Unresolved, and worth attention on its own
+
+**Nothing I can find writes `collusion_tracking`.** Something POSTs to
+`/rest/v1/collusion_tracking` 47×/24h, HTTP 201, client
+`supabase-js-node/2.104.1`, inserting exactly the table's columns. It is not in
+either repo's source, not in the `smarter-poker-workers` container, not in
+`club-arena-engine:/app/dist`, not a Mac launchd job, not a GitHub Actions
+workflow, and not in the other local repos.
+
+So an unlocated Node process holds a service key and writes the anti-cheat
+table. That deserves resolving on security grounds regardless — and a detector
+you cannot find is a detector you cannot recalibrate.
+
+## The pattern, stated plainly
+
+Three findings today, one shape: the deploy script that never ran, the verifier
+that would not say what it found, and a detector that flags 86% of everything.
+None of these were missing capability. Each was a guard that fired without
+earning trust, so it got ignored, and then real signal had nowhere to land.
+
+Being better than other rooms is not more detectors. Most rooms have detectors.
+Very few have detectors a human actually reviews.
