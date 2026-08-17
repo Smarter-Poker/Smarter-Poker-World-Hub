@@ -1887,3 +1887,171 @@ Two things learned about the tooling, worth recording:
 **Verified:** `3352059aec` built READY at 2026-08-16 15:58 UTC and holds the
 `smarter.poker` alias. The section 27 commit `0b2f7f9b2a` is an ancestor of it,
 so all four migrations and the audit record are in the deployed tree.
+
+---
+
+## 29. The anon money backlog is now ZERO (2026-08-17)
+
+Section 26 left 27 MEDIUM + 8 LOW anon-executable money functions deliberately
+undrained, because a blind sweep could kill a genuinely public surface. Both
+batches are now done, each with the evidence that made it safe.
+
+### Batch 1 — 15 mutating functions + 8 trigger functions
+
+The mutating set (`atomic_table_*`, `bbj_atomic_payout*`, `fn_idempotent_*`,
+`fn_union_*`, `add_bbj_contribution`, `promo_apply_playthrough`,
+`deduct_table_chip_lock`, `expire_settlement_locks`) all already granted EXECUTE
+to **both** `authenticated` and `service_role`. So revoking `anon` cannot break
+the browser callers (`TablePage.tsx`, `WalletService.ts`, `CashierPage.tsx`,
+`BBJService.ts`), the Hetzner engine, or the WH API routes — the only caller a
+revoke can break is a logged-out one, and a logged-out caller of
+`atomic_table_rebuy` is definitionally wrong.
+
+The 8 LOW entries are trigger functions. The question that mattered was whether
+revoking EXECUTE stops the trigger firing. **Probed rather than assumed:**
+
+```
+anon_exec_before = t
+anon_exec_after  = f
+INSERT ... AS anon  ->  error = [none]
+rows carrying the trigger's effect = 1
+```
+
+Postgres checks EXECUTE at `CREATE TRIGGER` time, not per statement. Grant
+hygiene with no runtime consequence.
+
+### Batch 2 — the 12 read-only getters
+
+Each got its own caller trace across both repos:
+
+| function | caller | context |
+|---|---|---|
+| `get_bbj_pool` | CA `UnionGamesPage.tsx` | browser, authenticated |
+| `get_player_rake_total` | CA `CommissionService.ts` | browser, authenticated |
+| `get_wallet_balance_totals` | CA `SettlementCronService.ts` | browser, authenticated |
+| `get_diamond_balance` | WH `api/training/tournaments.js` | server, service-role key |
+| `get_promo_status` | WH `api/club-arena/distribute-promo.js` | server, service-role key |
+| the other 7 | — | **no caller at all** |
+
+`is_club_settlement_locked` deserves a note: `checkSettlementLock()` queries the
+`clubs` and `settlement_locks` **tables**, it never calls the RPC of that name.
+The function has been dead code the whole time.
+
+`SettlementCronService.runCanaryCheck()` is fail-closed — an RPC error blocks
+settlement rather than letting it proceed unverified. That is the safe direction
+to fail, and it is only reached inside an authenticated settlement run.
+
+**Result:** `fn_grant_guard_health()` reports `0 MEDIUM + 0 LOW`, CRITICAL 0,
+198 functions locked, 0 lock violations.
+
+---
+
+## 30. The debit sign bug — 33.9M of error in every debit total (2026-08-17)
+
+This is the one that was actually costing money-integrity signal, and it was
+found only because a phantom RPC got implemented.
+
+`ChipFlowService.verifyLedger()` calls `rpc('verify_ledger_totals')`. That
+function had **never existed**; the call returned PGRST202 every time and fell
+through to a client-side paginated aggregation. That fallback is not merely slow
+— it is **unsound**. It aggregates `wallets` and `wallet_transactions` through
+PostgREST *as the calling user*, so RLS trims the result. A non-admin caller
+sums their own balance and calls it the platform total — and
+`runReconciliation()` raises a CRITICAL financial alert on the difference.
+
+Implementing the real RPC (SECURITY DEFINER, admin/service-role only) produced
+the first honest measurement: minted **2,200,000.01** vs wallets
+**732,692,498.85**. That gap is not drift; it meant the ledger did not describe
+the balances at all. Digging in:
+
+**74,189 rows had a negative `amount` on a `type='debit'` row.** Five writers
+encode the direction twice:
+
+| writer | what it inserts |
+|---|---|
+| `atomic_table_buyin` | `'debit', -p_amount, 'buyin'` |
+| `atomic_table_addon` | `'debit', -p_amount, 'addon'` |
+| `atomic_table_rebuy` | `'debit', -p_amount, 'rebuy'` |
+| `fn_register_for_tournament` | `-v_split.charge, 'debit', 'tournament_buyin'` |
+| `process_tournament_rebuy` | `'debit', -v_total, v_cat` |
+
+while their siblings do not — `atomic_seat_horse` writes `'debit', p_buy_in`,
+`fn_wallet_type_transfer` writes `'debit', p_amount`, `wallet_internal_transfer`
+writes `p_amount, 'debit'`.
+
+The correct convention is not a judgement call: **1,438,983 credit rows with
+zero negatives, and 513,474 positive buy-in debits** from the dominant writer,
+against 74,189 negatives from these five.
+
+### What it was costing
+
+- Every `sum(amount) FILTER (WHERE type='debit')` under-counted by **2×** the
+  affected magnitude — 16,970,046.85, so **~33.9M of error** in every debit
+  total, including the reconciliation alarm. Confirmed by the fix: debits moved
+  319,661,737.76 → 353,595,988.96, a delta of exactly 2 × 16,967,125.60.
+- `TransactionHistory.tsx` renders `{type==='credit'?'+':'-'}{tx.amount}`, so a
+  100-chip buy-in displayed as **`--100`**. `CashierPage.tsx:1974` already wraps
+  the same field in `Math.abs()` — the symptom had been patched at one call site
+  without anyone finding the writer.
+
+It was **live**: the negative-row count climbed 74,160 → 74,175 → 74,189 across
+three consecutive queries while this was being investigated.
+
+### The fix
+
+All five functions rewritten by pattern-replacement on `pg_get_functiondef()`
+(so no body could be transcribed wrongly), each with an abort-on-mismatch
+assertion; 74,189 rows backfilled; and a `CHECK (amount >= 0)` constraint added
+`NOT VALID` — which still enforces on every future INSERT/UPDATE while
+preserving 5 unexplained legacy rows (rake ×3, prize ×1, transfer ×1) for
+investigation rather than rewriting them on a guess. Probe-verified: a new
+`type='debit', amount=-1` insert is rejected.
+
+---
+
+## 31. Phantom RPCs — measured, not estimated (2026-08-17)
+
+Every `.rpc('name')` in both repos was extracted (322 distinct names) and joined
+against `pg_proc`. Eleven had no function behind them; two of those
+(`get_mlb_model_intel`, `get_mlb_player_detail`) call `mlbDb`, a **different**
+Supabase project, so they are not phantoms here. Nine are real:
+
+| RPC | caller | status |
+|---|---|---|
+| `verify_ledger_totals` | `ChipFlowService.verifyLedger` | **fixed** (§30) |
+| `get_message_reactions` | `MessagingService.getReactions` | **fixed** |
+| `join_flash_pool` | `FlashPoolPage.tsx` | **blocked — no schema exists** |
+| `claim_lucky_wheel_spin` | `BonusService` | open |
+| `increment_bonus_progress` | `BonusService` | open |
+| `bulk_add_vip_points` | `PlayerPositionStatsService` | open |
+| `bulk_update_position_stats` | `PlayerPositionStatsService` | open |
+| `record_arena_session` | `ArenaTrainingController` | open |
+| `get_unseen_questions` | WH `triviaQuestionLoader.js` | open |
+
+### Message reactions — broken at both ends
+
+`fn_toggle_message_reaction()` read and wrote `public.message_reactions`, a table
+that had **never been created**, so every call raised "relation does not exist".
+`getReactions()` called `get_message_reactions`, which also did not exist; its
+error branch returns `[]` and logs "RPC not available", which is why the UI
+showed no reactions instead of an error. A third defect sat on top: the client
+did `return data as boolean` on a jsonb `{success, added}` — a non-null object is
+always truthy, so **every removal was reported as an add**.
+
+All three fixed: table created with RLS (read a reaction if you can see the
+message, write only your own), getter created returning exactly the
+`{reaction, count, user_reacted}` shape the client already maps, and the client
+corrected (CA `ebf494775`). Add-then-remove round trip asserted inside the
+migration.
+
+### Flash pools — a UI with no backend
+
+`FlashPoolPage.tsx` has a working Join button that calls `join_flash_pool`. There
+is no `join_flash_pool` function, and no `flash_pools`, `flash_pool_players` or
+`flash_pool_entries` table — **the feature has no schema at all**. The failure
+even lies to the user: the error branch renders "Unable to join pool — you may
+already be in this pool".
+
+This is not a bug to fix; it is an unbuilt feature with a shipped front end.
+Building it is a product decision, not an audit item, so it is written down here
+rather than invented.
