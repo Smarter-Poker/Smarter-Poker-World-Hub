@@ -106,8 +106,8 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                     ? `translateY(0px) scale(1)`
                     : `translateY(150px) scale(0.5)`,
                 opacity: hasAnimatedIn ? 1 : 0,
-                flex: 1,
-                maxWidth: `clamp(140px, 17vw, 186px)`,  // Viewport-scaled card width
+                flex: orb.id === 'toke-tracker' ? 1.25 : 1,
+                maxWidth: orb.id === 'toke-tracker' ? `clamp(175px, 21vw, 230px)` : `clamp(140px, 17vw, 186px)`,  // Viewport-scaled card width
                 transition: hasAnimatedIn ? 'none' : 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease-out',
                 transformStyle: 'preserve-3d',
             }}
