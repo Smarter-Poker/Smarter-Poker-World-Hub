@@ -1,0 +1,28 @@
+-- APPLIED TO PRODUCTION 2026-08-17
+-- (fn_use_throwable_atomic_and_platform_invariants_health)
+--
+-- IMPROVEMENT PASS over the 2026-08 build phases.
+--
+-- 1. fn_use_throwable(text): one atomic server call replacing the client's
+--    3-round-trip check-then-act flow, which had two residual defects:
+--      * FREE-THROW RACE: two tabs at 499/500 both read "1 remaining" and
+--        both threw free. Serialised with a per-user advisory xact lock.
+--      * NON-ATOMIC PAID PATH: deduct_diamonds then a separate insert; a
+--        failure between them charged a diamond and recorded nothing.
+--    VIP allowance (500/UTC-month) and price (1 diamond) are now
+--    server-authoritative. Client patched in CA 7bdab4c4a with the legacy
+--    flow kept only as a deploy-skew fallback.
+--    Probe (compensated): paid path charges exactly 1 diamond and records
+--    exactly 1 usage row in the same transaction.
+--
+-- 2. fn_platform_invariants_health(): superset of fn_grant_guard_health.
+--    One call asserting every invariant this audit introduced:
+--      grant guard (6 checks) | empty stubs = 0 | debit sign constraint
+--      present + 0 regressed rows | challenge catalog >= 18 | lucky wheel
+--      weights = 100 | club RLS trio (owner-spoof WITH CHECK, giveaway
+--      WITH CHECK, staff roster read) | VIP monthly ledger wired |
+--      deduct_diamonds guards present | engine_recovery_events reachable.
+--    All rows OK = nothing from these phases has regressed. 14/14 OK at
+--    install time.
+--
+-- Full applied SQL recorded in supabase_migrations.schema_migrations.
