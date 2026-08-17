@@ -497,3 +497,73 @@ problem — large tables, a query without a supporting index or bound. Not
 investigated. `fn_close_settlement_period` was changed earlier today, so
 establish whether the timeout predates that change before assuming causation.
 Task #29.
+
+---
+
+# Rakeback settler: two problems, one symptom
+
+`[RakebackSettler.fetch_failed] canceling statement due to statement timeout`
+turned out to be two independent slow queries.
+
+## 1. The settlement function — FIXED, 53x, provably money-neutral
+
+`fn_close_settlement_period` filtered on `r.created_at::date`. Casting the
+column destroys sargability, so no `created_at` index could be used and every
+user-period scanned the whole club partition.
+
+| form | time | rows removed by filter |
+|---|---|---|
+| `::date` cast | 5,140 ms | 198,229 |
+| half-open range | 2,265 ms | — |
+| range + 2 new indexes | **96 ms** | Heap Blocks: 869 |
+
+A btree alone was never going to be enough, and the selectivity numbers say why.
+In the 7-day window: all clubs 254,744 rows; this club 125,363 (**49% — club_id
+is not selective**); this club + this user 1,042. The *jsonb containment* is the
+filtering predicate, so the GIN index is the one that matters:
+
+    idx_rake_records_contribs_gin   gin (player_contributions)
+    idx_rake_records_club_created   (club_id, created_at) WHERE rake_amount > 0
+
+Both built CONCURRENTLY, both confirmed used together in a BitmapAnd.
+`jsonb_ops` is required — `jsonb_path_ops` does **not** index the `?` operator.
+The planner ignored both until `ANALYZE`.
+
+Because this moves money, equivalence was proven before shipping — 25 real
+unpaid periods: **0 mismatches, max_abs_diff 0.000000, totals 6416.99 =
+6416.99**.
+
+## 2. The fetch itself — DIAGNOSED, deliberately NOT shipped
+
+The `fetch_failed` line is not the function; it is the `rake_records` read.
+`keysetFilter()` emits the textbook composite keyset:
+
+    or=(created_at.gt."X",and(created_at.eq."X",id.gt."Y"))
+
+Postgres cannot use `idx_rake_records_created_at_id` for that OR. It performs a
+full ordered index scan and applies the OR as a **filter**:
+
+    OR keyset form   21,534 ms   Rows Removed by Filter: 560,302
+    plain range         259 ms   same table, same LIMIT
+
+That also explains why the failure looked intermittent: the cold-start path
+(`useKeyset` false) already uses the fast form, so only cycles *with* a cursor
+died — the settler stalled precisely when it had made progress.
+
+**The fix was written, typechecked, and then reverted.** Replacing `.or(...)`
+with `.gte('created_at', cursor)` plus an in-memory skip of the already-seen
+prefix is behaviourally identical — `gte` is a strict superset of the OR
+predicate, and the skip removes exactly the surplus. But it failed 5 of 13 in
+`server/src/services/rakebackWatermark.test.ts` with *"rake_records was read
+with NO cursor filter at all"*, because the mock recognises only `.or()` as a
+cursor filter.
+
+That suite is the AUDIT M6 guard for *"a duplicate created_at across the LIMIT
+boundary is no longer skipped"* — a real exactly-once property on a money path.
+Rewriting a guard like that to accommodate my change is exactly the kind of
+thing that should not be done in a hurry, so it was reverted: **13/13 green**.
+
+To finish: teach the mock the `gte` + skip mechanism while keeping the M6
+boundary assertion, then re-apply. Or move the read into an RPC that does a true
+row-value comparison `(created_at, id) > (X, Y)` — expressible in SQL, not in
+PostgREST.
