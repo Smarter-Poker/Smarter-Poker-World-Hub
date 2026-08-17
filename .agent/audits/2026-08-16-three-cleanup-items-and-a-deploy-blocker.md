@@ -650,3 +650,38 @@ on the LAN and there is no SSH route to it.
 Set `SUPABASE_SERVICE_ROLE_KEY` on whichever machine reports
 `python --version` = 3.14.x to the current `sb_secret_` value in `.env.local`.
 Every other holder of the revoked key across the fleet has been updated.
+
+## The solver, chased to the end: M2, and it is capacity not correctness
+
+The fleet is two machines, self-identified in `solver_status`:
+
+    M1  last heartbeat 2026-08-17 22:17:58   LIVE    Python-urllib/3.12, 431 x 200
+    M2  last heartbeat 2026-08-16 00:38:44   STALE   Python-urllib/3.14, 136 x 401
+
+**M2 stopped at the exact moment of the key rotation** and has been shut out for
+~46 hours. Both run the identical loop — GET `solver_manifest`, POST
+`solver_status`, GET `solver_pipeline` — and M2 401s on all three, so it does
+nothing and retries about 2.3 times a minute.
+
+The important part: **nothing is lost or half-written.** M2 cannot claim work,
+so M1 takes all of it. And right now both report `phase: scanning` with
+*"no work found in phases scanned this pass"* — the queue is empty, so a halved
+fleet is currently costing nothing. It will cost throughput the next time solve
+work is queued.
+
+It is genuinely not reachable from here, and that was established rather than
+assumed:
+
+- **Not this Mac.** Every running Python process is 3.13. 3.14.2 *is* installed
+  (`/opt/homebrew/opt/python@3.14`) but there is no 3.14 process, no
+  `orchestrate.py`, and no launchd job referencing it.
+- **Not a VM or container.** No Docker/Parallels/VMware/UTM/VirtualBox, and the
+  only interface with an address is `en1`.
+- **Not on this subnet.** A ping sweep would miss a Windows box (ICMP is blocked
+  by default), so the subnet was re-swept with TCP probes to force ARP
+  resolution at layer 2. `10.1.10.0/24` holds exactly six devices: gateway,
+  this Mac, ipad, iphone, samsung, watch.
+
+M2 sits on another segment behind the same gateway. Set
+`SUPABASE_SERVICE_ROLE_KEY` there to the current `sb_secret_` value; identify it
+as the box whose `python --version` is 3.14.x.
