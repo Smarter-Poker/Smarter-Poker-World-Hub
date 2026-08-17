@@ -2145,3 +2145,58 @@ than invented.
 | `increment_bonus_progress` | **No progress schema at all.** `user_bonuses` holds only `daily_streak` and `last_daily_claim`; there is nowhere to store per-bonus progress. |
 | `join_flash_pool` | Whole feature unbuilt (§31). |
 | the 4 silent stubs | Need the policy they enforce. |
+
+---
+
+## 33. Open items closed + the pause-is-not-a-freeze fix (2026-08-17)
+
+### 33.1 Every deferred item from §32 is now built
+
+| item | what was built | verified by |
+|---|---|---|
+| Lucky wheel | `lucky_wheel_segments` (8 segments, weights sum 100, EV ~176 chips — calibrated to the 100–1000 daily bonus band) + `claim_lucky_wheel_spin()`: JWT-derived actor, one spin/UTC day, weighted server RNG, credits via `atomic_credit_wallet_and_log`/`add_vip_points`/`add_diamonds_to_balance` with idempotency keys. Raises the exact `'Already spun today'` string the client matches on. | in-migration asserts |
+| Bonus progress | `user_bonus_progress` + `increment_bonus_progress()` returning the new total, amount capped at 1000/call | 3 then +2 = 5 asserted |
+| Flash pools | `flash_pools` **existed** (correcting §31 — it was empty, not missing); added `flash_pool_players`, `join_flash_pool()`, and 4 seeded pools | live probe: joined with 40 chips, wallet debited exactly 40, double-join rejected, refunded |
+| `fn_increment_vip_usage` | real body: atomic upsert into `vip_feature_usage` with UTC-day `daily_usage` reset | 2 calls → one row, counts 2/2 |
+| `fn_consume_feature_use` | decrements `uses_remaining` on the newest live `feature_purchases` row | — |
+| `recalculate_leaderboard_ranks` | **the old stub could never have been called**: it took `p_leaderboard_id` and the only caller passes `p_promotion_id`, so PostgREST 404'd before reaching the empty body. Recreated with the caller's signature; dense_rank over `promotion_leaderboards` | — |
+| `fn_check_level_advancement` | abandons stale (>24 h) active arena sessions | — |
+
+Empty-body stub count is now **0** (was 4). The wallet guard earned its keep here:
+v1 of the migration tried a direct `wallets` UPDATE inside `join_flash_pool` and
+the **Phase 4.1.6a guard aborted the whole migration** — exactly its job. v2
+routes through `atomic_deduct_wallet_and_log`.
+
+### 33.2 A legitimate pause read as a freeze — two kill paths, both fixed
+
+Reading the (already excellent) 3-tier watchdog for the auto-recovery work
+exposed a false-positive that inverted its purpose:
+
+**Table tier.** During a hand-for-hand pause, `handController` is null, seats
+are dealable, and pausing marks no progress — so watchdog Case B counted it as
+"dealing loop dead" and after 2 trips **killed and rebuilt the engine. The
+rebuild loses the pause flag, so the fresh engine deals a hand INTO
+hand-for-hand.**
+
+**Platform tier — worse.** `/health`'s stall filter had the same blind spot: one
+legitimately paused final-table bubble >2 min flips liveness to `'dead'`, three
+failed Docker health probes later **autoheal restarts the entire engine**,
+killing every table on the platform.
+
+Fix (CA `e5aedd153`): `isPausedByDesign()` (hand-for-hand or FSM `'paused'`)
+exempts the table from both detectors; a pause >15 min raises a
+`paused_too_long` **report, never a kill** — forcing play during a legitimate
+pause is a tournament-integrity failure, a long pause is only an incident. New
+gauge `poker_paused_tables`; stall gauges exclude paused tables.
+
+Locked by two new TableWatchdog tests: a 10-min-stale paused table takes zero
+trips across three runs; `resumeDealing()` re-engages the watchdog. Suites
+green (15/15 + FreezeRegression 5/5), tsc clean.
+
+### 33.3 Recoveries are now DB-visible
+
+`engine_recovery_events` (migration applied): every tier-1 clock re-arm, tier-2
+forced action, tier-3 kill-and-rebuild and `paused_too_long` writes a
+best-effort row. This is both an audit trail and the CLAUDE.md-mandated
+DB-visible deploy proof. Deploy verification of `e5aedd153` is scheduled
+(45 min): restart signature in `hand_history` or a first recovery-event row.
