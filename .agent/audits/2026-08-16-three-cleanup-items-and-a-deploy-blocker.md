@@ -189,3 +189,96 @@ Deciding what the mint ledger is *supposed* to cover is Dan's call, not mine.
 ### Still open from earlier
 - GTO solver 401s (`python-requests` → `solved_spots_gold`); host still unlocated.
 - Hetzner API token rotation, per the earlier request.
+
+---
+
+# Continuation — "fix everything that's broken, and keep pushing"
+
+## The real story: one key rotation, six systems, nobody propagated it
+
+A `CRON_SECRET` and Supabase key rotation landed during the 2026-08-16
+incident window. It reached Vercel and GitHub. It reached **none** of the
+workers. Nothing detected that for hours, because every failure mode was a
+silent 401.
+
+Supabase 401s, measured in 15-minute buckets:
+
+| bucket (UTC) | 401s |
+|---|---|
+| 13:45 | 3,325 |
+| 14:00 | 2,116 |
+| 15:00 | 227 |
+| 16:15 | 116 |
+| 16:30 | 11 |
+
+### Fixed this session
+
+| system | was | now |
+|---|---|---|
+| Vercel `CRON_SECRET` (production) | whitespace-corrupted, failing every build | set to the dispatcher's actual running value, builds green |
+| `openclaw-dispatcher` cron auth | 1,203 × 401 / 6h | 200 |
+| `/api/mlb/statsapi-relay` | 17,944 × 401 / 6h | 200 |
+| duplicate dispatcher on `reels-transcode-worker` | 76 jobs, 16-char secret, double-firing | stopped + disabled |
+| `sp-yt-transcode` (reels box) | revoked legacy JWT | new key, transcoding again |
+| `sp-transcode` (dispatcher box) | revoked legacy JWT | new key, polling clean |
+| Vercel `SUPABASE_SERVICE_ROLE_KEY` | stale | replaced with verified key |
+| `deploy-openclaw.sh` | **unrunnable** | resolves a working key |
+| dispatcher `ConflictingIdError` | crashed on boot | 85 jobs, 0 errors |
+| `news-digest` double-send | GH Actions + Open Claw both at tue 14:00 | Open Claw only |
+
+### Why the dispatcher had drifted for months
+
+Two independent defects, either of which alone was fatal:
+
+1. `deploy-openclaw.sh` hardcoded `SSH_KEY="$HOME/.ssh/openclaw_ed25519"` — a
+   key "Phase 2A.1 creates" that **was never created**. The script aborted at
+   its own prereq check on every invocation. No deploy had ever succeeded.
+2. Job ids were `path.replace('/', '_')`, but `mlb-analytics-noon` is
+   deliberately registered three times (13:00/16:00/17:00 UTC). The second
+   raised `ConflictingIdError` inside `scheduler.start()` and exited 1 before
+   any job fired.
+
+So the 2026-08-13 handoff's hedge — "unless someone has been running
+deploy-openclaw.sh by hand" — was unknowingly describing an impossibility.
+Both fixed. Repo and production are now byte-identical (`f02c013a06f9`).
+
+Also added: SCRIPT_JOBS (Mac-primary by design) now **skip cleanly** when their
+script is absent, instead of spawning a subprocess that exits 2 every tick.
+That noise is exactly what exposed the duplicate dispatcher.
+
+### A judgement call worth recording
+
+`reels-transcode-worker` was 401ing on all 75 of its HTTP dispatches. The
+obvious "fix" was to give it the right secret. **That would have been the worst
+possible action** — it would have started *succeeding*, double-executing every
+cron job on the platform. It was disabled instead. Its one unique job,
+`cardplayer-scraper`, had never worked there (`No such file or directory`,
+exit 2), so nothing was lost.
+
+## Still open — genuinely cannot reach
+
+### 1. GTO solver on the Windows PioSOLVER machines
+`Python-urllib/3.14` hitting `solver_manifest`, `solver_status`,
+`solver_pipeline`. `scripts/preflop-deep/README.md` places this on "the Windows
+PioSOLVER machines" — physical boxes with no SSH route from here.
+
+**Fix:** set `SUPABASE_SERVICE_ROLE_KEY` in that machine's environment to the
+current `sb_secret_…` value (the one in `.env.local`, verified 200 against all
+six solver/social tables). It is running the revoked legacy JWT.
+
+### 2. A stale browser tab
+`/realtime/v1/websocket`, 2 distinct clients: one connects (101), one loops on
+401. The deployed bundle carries the correct publishable key
+(`sb_publishable__41Lp…`, confirmed in `index-DfX99O3s-v6.js` and
+`TablePage-DuXTUm-l-v6.js`), and the handshake is not rejected at auth. This is
+an expired user session in a tab left open since before the rebuild. Resolves
+on refresh; no action needed.
+
+## The systemic gap
+
+One rotation reached two of eight systems. There is no propagation path and no
+detector. Everything above was found by reading 401 logs after the fact.
+
+Worth building: a single source of truth for these secrets, plus a post-rotation
+check that walks every consumer (Vercel envs, the three Hetzner boxes, GitHub
+secrets, the Windows solver) and asserts each one still authenticates.
