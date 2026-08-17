@@ -95,6 +95,9 @@ WORKERS_HEALTH_URL = (os.environ.get('WORKERS_BASE_URL', '').strip() or 'http://
 # until success+alert-clear cycle completes (avoids SMS storm).
 _workers_health_state = {'consec_fail': 0, 'alert_sent': False}
 
+# Same shape as above, for the auth-drift watchdog (added 2026-08-17).
+_auth_drift_state = {'consec_fail': 0, 'alert_sent': False}
+
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 # ─── PID file lock — prevents double-execution if launchd races or restart overlaps ──
@@ -367,6 +370,7 @@ ALL_CRONS = [
     # ══ INTERNAL — Phase 2A monitoring/alerting (closes plan line 285 gate) ═══
     # No HTTP egress; runs in-process. SMS-alerts via Twilio on workers outage.
     ('_internal/workers-healthcheck',             dict(minute='*/5')),      # every 5 min
+    ('_internal/auth-drift-watchdog',             dict(minute='*/5')),      # every 5 min — catches a rotation that missed this host
     ('_internal/heartbeat',                       dict(minute='*/15')),     # every 15 min
 ]
 
@@ -682,6 +686,92 @@ def _workers_healthcheck_job():
         state['alert_sent'] = True
 
 
+def _auth_drift_watchdog_job():
+    """Internal cron — proves THIS host's secrets are still accepted.
+
+    Added 2026-08-17 after a rotation reached 2 of 8 consumers.
+
+    What happened: a CRON_SECRET + Supabase service-key rotation landed on
+    Vercel and GitHub and reached none of the workers. Every resulting failure
+    was a silent 401, so nothing surfaced it. Damage before anyone noticed:
+    1,203 cron 401s and 17,944 statsapi-relay 401s in six hours, two transcode
+    workers dead on a revoked legacy JWT, and every production build failing
+    because Vercel's copy of CRON_SECRET had picked up stray whitespace.
+
+    Why it lives HERE rather than in a Vercel cron route: the drift is BETWEEN
+    hosts. A check running on Vercel validates Vercel's copy against itself and
+    always passes. This runs on the dispatcher, against the exact env the real
+    jobs use, so the moment this host's secret stops being accepted the probe
+    fails. It is also an internal job, so it adds no file under
+    pages/api/cron/ and does not trip CHECK 6 cron governance.
+
+    Probes rather than compares: we never need to learn the remote value, only
+    whether ours is still accepted.
+    """
+    state = _auth_drift_state
+    failures = []
+
+    secret = os.environ.get('CRON_SECRET', '')
+    # The exact defect that broke every build on 2026-08-16. Vercel rejects
+    # header values with surrounding whitespace at build time, and its error
+    # names the variable but not the host, which makes it easy to "fix" in the
+    # wrong place. Catch it locally and say so plainly.
+    if not secret:
+        failures.append('CRON_SECRET is empty on this host')
+    elif secret != secret.strip():
+        failures.append('CRON_SECRET has leading/trailing whitespace')
+    else:
+        try:
+            # MUST be a route that actually validates the secret and does no
+            # work. /api/health is PUBLIC — it returns 200 with no header and
+            # 200 with a garbage header, so probing it proved nothing. Every
+            # other gated route performs real work on success. Hence the
+            # dedicated no-side-effect boundary at /api/internal/cron-auth-probe.
+            r = requests.get('https://smarter.poker/api/internal/cron-auth-probe',
+                             headers={'Authorization': f'Bearer {secret}'}, timeout=10)
+            if r.status_code == 401:
+                failures.append('CRON_SECRET rejected by production (401) - rotation did not reach this host')
+            elif r.status_code == 200 and '"secretMalformed":true' in r.text.replace(' ', ''):
+                failures.append("production's own CRON_SECRET has surrounding whitespace - builds will fail")
+            elif r.status_code == 404:
+                log.warning('[auth-drift] probe endpoint missing (404) - deploy pending?')
+        except Exception as e:
+            log.warning(f'[auth-drift] CRON_SECRET probe inconclusive: {type(e).__name__}: {e}')
+
+    sb_key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+    sb_url = os.environ.get('NEXT_PUBLIC_SUPABASE_URL',
+                            'https://kuklfnapbkmacvwxktbh.supabase.co').rstrip('/')
+    if sb_key:
+        try:
+            r = requests.get(f'{sb_url}/rest/v1/rake_records?select=id&limit=1',
+                             headers={'apikey': sb_key,
+                                      'Authorization': f'Bearer {sb_key}'}, timeout=10)
+            if r.status_code == 401:
+                kind = 'legacy JWT' if sb_key.startswith('eyJ') else 'key'
+                failures.append(f'SUPABASE_SERVICE_ROLE_KEY rejected (401) - this host holds a revoked {kind}')
+        except Exception as e:
+            log.warning(f'[auth-drift] supabase probe inconclusive: {type(e).__name__}: {e}')
+
+    if not failures:
+        if state['alert_sent']:
+            _send_sms('smarter.poker auth drift RESOLVED - dispatcher secrets accepted again')
+        state['consec_fail'] = 0
+        state['alert_sent'] = False
+        log.info("[auth-drift] OK - this host's secrets are still accepted")
+        return
+
+    state['consec_fail'] += 1
+    for f in failures:
+        log.error(f'[auth-drift] {f}')
+    # Two strikes before paging. A single failure can be a transient network
+    # blip, and a false alert at 3am trains people to ignore the real one.
+    if state['consec_fail'] >= 2 and not state['alert_sent']:
+        _send_sms('SMARTER.POKER SECRET DRIFT - ' + '; '.join(failures) +
+                  '. A rotation likely did not reach this host; cron jobs and/or '
+                  'workers are silently 401ing.')
+        state['alert_sent'] = True
+
+
 def _heartbeat_job():
     """Internal cron — logs ALIVE so journalctl scrapers can detect liveness."""
     routed = len(WORKERS_PREFERRED)
@@ -692,6 +782,7 @@ def _heartbeat_job():
 # Internal jobs — fire by name, no HTTP path. Distinguished by underscore prefix.
 INTERNAL_JOBS = {
     '_internal/workers-healthcheck': _workers_healthcheck_job,
+    '_internal/auth-drift-watchdog': _auth_drift_watchdog_job,
     '_internal/heartbeat':           _heartbeat_job,
 }
 
