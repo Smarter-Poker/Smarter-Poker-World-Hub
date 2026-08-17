@@ -1,0 +1,29 @@
+-- APPLIED TO PRODUCTION 2026-08-17
+-- (daily_challenges_claimable_and_mint_safe_plus_club_challenges)
+--
+-- DAILY CHALLENGES: claiming had never worked, and the only fix on offer was
+-- a mint. user_daily_challenges held 51 rows with claimed_at NULL on every
+-- one. claim_daily_challenge was EXECUTE-denied to authenticated (dead-SAFE
+-- per audit section 20: it trusted a CALLER-SUPPLIED p_reward_amount -- the
+-- client passes challenge.reward.amount from the UI -- and a caller-supplied
+-- user id). Granting it as-was would have been an unbounded chip mint.
+--
+-- Fix, per the anti-mint rule (actor AND amount from server state):
+--   1. daily_challenge_catalog -- reward schedule seeded verbatim from the
+--      client CHALLENGE_POOL / WEEKLY / MONTHLY (18 entries, 50..15000).
+--   2. claim_daily_challenge rewritten SECURITY DEFINER, same signature:
+--      actor := auth.uid() (service_role may act for a user); reward :=
+--      catalog value -- p_reward_amount is IGNORED except to WARN on
+--      mismatch; row must be completed AND progress must meet the catalog
+--      requirement (completed=true with progress 0 is refused); idempotent;
+--      credit via atomic_credit_wallet_and_log keyed on the row id.
+--   3. Exposure ceiling is the catalog, not a caller-chosen number.
+--
+-- Also: club_challenges created. ClubsService.getClubChallenges() selected
+-- from it, it never existed, so every club challenge panel THREW. Exact
+-- columns the client selects; members read, club staff manage.
+--
+-- Live probe after apply (rolled back): claim as a real authenticated user
+-- lying with p_reward_amount=999999 credited exactly the catalog's 50;
+-- double-claim blocked; hollow completed-with-zero-progress blocked.
+-- Full applied SQL is recorded in supabase_migrations.schema_migrations.
