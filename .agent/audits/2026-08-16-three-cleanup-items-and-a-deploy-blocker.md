@@ -282,3 +282,80 @@ detector. Everything above was found by reading 401 logs after the fact.
 Worth building: a single source of truth for these secrets, plus a post-rotation
 check that walks every consumer (Vercel envs, the three Hetzner boxes, GitHub
 secrets, the Windows solver) and asserts each one still authenticates.
+
+---
+
+# Next phase — plan status, and a new watchdog
+
+## Where the platform plan actually stands (measured, not assumed)
+
+| Phase | Claim | Measured 2026-08-17 |
+|---|---|---|
+| U1 cleanup | ? | **done** — handoffs archived (11 files), club-engine gone, no stale dirs |
+| U2 dual-engine | ? | **done** — `src/engine/` removed entirely |
+| U3 split `index.ts` | ? | **effectively done** — 133 lines, `handlers/` has 22 files (U3.4's ≤100 target is the only miss) |
+| U4 Supabase CI gates | ? | **done and passing** — 128 tables / 138 RPCs, 0 phantoms; 123 client-read tables, 0 stranded |
+| U5.1 Sentry sourcemaps | ? | **done** — wired in `sync-club-arena.sh` |
+| U5.2 bundle budget | listed outstanding | **already implemented.** `ci.yml` gates gzipped total at 2048 kB with `exit 1`. Measured: 1583 kB gzipped (22% headroom), 5596 kB raw. The plan line is stale. |
+| U5.3 static → R2 | outstanding | **blocked on Cloudflare account access.** A.1/A.2 done (upload script + doc). No Cloudflare credential exists anywhere — keychain, env files, no wrangler, no `~/.cloudflared`. 87 MB in-repo: images 26M, cards 26M, assets 13M, game-card-icons 7.9M, club-logos 4M, videos 3.2M. |
+
+## New: `_internal/auth-drift-watchdog`
+
+Justified by measurement, not theory. One rotation reached 2 of 8 consumers and
+nothing noticed for hours because every failure was a silent 401.
+
+Runs on the dispatcher every 5 minutes, against the exact env the real jobs
+use. It lives there and not on Vercel because **the drift is between hosts** —
+a check running on Vercel validates Vercel's copy against itself and always
+passes. It probes rather than compares: we never need the remote value, only
+whether ours is still accepted. Two consecutive failures before it pages.
+
+It is an internal job, so `pages/api/cron/` stays at 24 files and CHECK 6 does
+not trip.
+
+### It caught its own blind spot twice, which is the point
+
+**First**, the CRON_SECRET probe pointed at `/api/health`. That endpoint is
+PUBLIC — measured: `200` with no header, `200` with `Bearer totally-wrong`. The
+watchdog would have reported healthy straight through the outage it exists to
+catch. Fixed by adding `pages/api/internal/cron-auth-probe.js`: a real auth
+boundary with zero side effects, deliberately outside `pages/api/cron/`. Every
+other gated route does real work on success (drains queues, mails digests,
+signs up synthetic users), so none was callable every 5 minutes.
+
+**Second**, it logged a bare `OK - this host's secrets are still accepted`
+while having silently skipped the Supabase probe, because the dispatcher does
+not hold `SUPABASE_SERVICE_ROLE_KEY` (verified against `/proc/<pid>/environ`:
+only `CRON_SECRET` is present). A pass for a check that never ran. Now every
+run names its coverage and errors loudly when it proves nothing:
+
+    [auth-drift] OK - verified: NOTHING | not checked: CRON_SECRET probe
+                 endpoint not deployed yet (404); SUPABASE_SERVICE_ROLE_KEY
+                 (not held on this host)
+    [auth-drift] NO CREDENTIAL WAS ACTUALLY VERIFIED - this watchdog is not
+                 covering anything on this host
+
+Deployed: 86 jobs, 0 errors, repo and production byte-identical.
+
+## BLOCKER — Vercel deploys are frozen
+
+Vercel cannot resolve any commit newer than `3be46bed4f`. Both the API and
+`vercel redeploy` return:
+
+    400 The provided GitHub repository does not contain the requested branch
+        or commit reference. Please ensure the repository is not empty.
+
+The commits are on GitHub (`git ls-remote origin main` = `be97a5a3b3bb`) and
+the project link is correct (`type=github`,
+`Smarter-Poker/Smarter-Poker-World-Hub`, `repoId=1132365826`,
+`productionBranch=main`). So this is the **GitHub App installation's access to
+the repo**, not configuration — most likely collateral from the credential
+purge during the incident.
+
+Every push still lands on `main`; none of them build. Currently unbuilt: the
+probe route and the watchdog coverage fix. Until it is re-authorized the
+watchdog will keep correctly reporting `404 / verified: NOTHING`, which is the
+honest answer.
+
+**Fix:** reinstall or re-authorize the Vercel GitHub App on the repo
+(Vercel → Project → Settings → Git, or GitHub → Settings → Applications → Vercel).
