@@ -359,3 +359,67 @@ honest answer.
 
 **Fix:** reinstall or re-authorize the Vercel GitHub App on the repo
 (Vercel → Project → Settings → Git, or GitHub → Settings → Applications → Vercel).
+
+---
+
+# Correction + end-to-end verification (2026-08-17)
+
+## I was wrong about the deploy pipeline being frozen
+
+The previous section claimed Vercel had lost GitHub App access to the repo.
+That was a bad diagnosis and it is retracted.
+
+The discriminating test I should have run first:
+
+| gitSource form | result |
+|---|---|
+| `{repoId, ref:"main", sha:"<head>"}` | 400 `incorrect_git_source_info` |
+| `{org, repo, ref:"main"}` | 400 `incorrect_git_source_info` |
+| `{repoId:"1132365826", ref:"main"}` (no sha) | **succeeds** |
+
+It also rejected the sha of a commit it had *already built successfully*
+(`3be46bed4f`). That was the tell: if it cannot resolve a commit it demonstrably
+built an hour earlier, the `sha` parameter is the problem, not repo access.
+Repo id and default branch were verified against GitHub independently
+(`id 1132365826`, `default_branch main`) — both correct all along.
+
+No re-authorization was ever needed. Deploy with a ref-only `gitSource`.
+
+A separate, real credential gap surfaced while testing: the `gh` PAT lacks
+`contents:read` (`403 Resource not accessible by personal access token` on
+`repos/.../commits/main`). Unrelated to Vercel, unfixed, noted.
+
+## Work that had been force-pushed away, now restored
+
+`626b966fd` — the hand-counter fix — was **not** in club-arena `origin/main`.
+It was removed by the force-push that `b1a1ba2cf` ("restore 7 force-pushed
+PRs") was recovering from; my commit was not among the seven restored. The
+object survived locally, so it was cherry-picked back onto current main as
+`59b7b61ca`, typechecked clean, and pushed. `seedHandCountFromHistory` is on
+origin again.
+
+Worth noting as a pattern: this is the second time today a force-push silently
+dropped committed work. RULE 13 warns about uncommitted work; committed-but-
+force-pushed-away is the same hazard one level up, and nothing detects it.
+
+## The watchdog, verified end to end
+
+`/api/internal/cron-auth-probe` is live and is a genuine boundary:
+
+    no header            -> 401
+    Bearer totally-wrong -> 401
+    correct secret       -> 200 {"ok":true,"probe":"cron-auth","secretMalformed":false}
+
+And the dispatcher's log shows the whole arc, including its own honesty about
+coverage:
+
+    14:00:03 [INFO]  OK - verified: NOTHING | not checked: CRON_SECRET probe
+                     endpoint not deployed yet (404); SUPABASE_SERVICE_ROLE_KEY
+                     (not held on this host)
+    14:00:03 [ERROR] NO CREDENTIAL WAS ACTUALLY VERIFIED - this watchdog is not
+                     covering anything on this host
+    14:05:01 [INFO]  OK - verified: CRON_SECRET | not checked:
+                     SUPABASE_SERVICE_ROLE_KEY (not held on this host)
+
+Before the coverage fix, both 14:00 lines would have read simply
+"OK - this host's secrets are still accepted".
