@@ -2255,3 +2255,57 @@ discarded. In-migration assert fails if the query ever exceeds 100ms again.
   Which balance the widget should show is a product call.
 - **Chip purchase entry point**: the server-priced purchase flow works
   end-to-end but no UI navigates to it (orphan modal, §21).
+
+---
+
+## §35 — BBJ sweep recurrence, workers deploy path breakage, cashier UI ship (2026-08-17 late)
+
+### 35.1 Promo sweep recurrence — VERIFIED LIVE
+Workers commit 601d951 added `fn_sweep_bbj_promo_all` as step 6 of `/cron/bbj-detect`.
+Deployed to the Hetzner VM (container label rev=601d951be) and verified by DB signal:
+promo_total 35.78 → (23:00 run, first on new code, success 413,784ms) → 5.57 → (23:20 run)
+→ 2.44. Residuals are post-sweep accrual from live tables. The sweep now recurs on the
+detection cadence; per-row `FOR UPDATE` in the sweep fn makes concurrent runs safe.
+
+### 35.2 Overlap defect found and fixed (workers e4a3784, tag v1.0.1)
+`cron_execution_log` showed every bbj-detect run takes ~413s against a 300s cadence:
+two full scans (and, since 601d951, two sweeps) were running at ALL times. A naive
+skip-if-running guard would stretch the effective cadence past the fixed 6-minute scan
+window and produce a permanent detection blind spot for jackpot hands. Fix shipped:
+in-process overlap guard + dynamic scan window (scan since previous run's START minus
+60s jitter, capped at 60 min; payout-exists idempotency makes wide windows safe) +
+30-min stale-in-flight escape so a hung run cannot block the detector until restart.
+VERIFIED LIVE: 23:20 firing success 411,487ms; 23:25 firing success duration 0ms (skip);
+alternating pattern is the designed steady state (~10-min effective full-scan cadence,
+zero-gap window coverage).
+
+### 35.3 Workers deploy path is BROKEN — action for Dan
+`scripts/deploy-workers.sh` fails at two independent layers:
+- Keychain `smarter-poker/github-pat-ghcr-read` PAT is dead → release.yml dispatch HTTP 401.
+- The VM's stored GHCR docker credential is also dead → `docker compose pull` = denied.
+No available credential (keychain git credential, gh CLI token, .env fine-grained PAT)
+has `workflow_dispatch`/`packages` scope. Workaround used and now repeatable:
+1. Push an annotated `v*.*.*` tag → release.yml builds the image (tags v1.0.0, v1.0.1 created).
+2. `git archive <sha> | ssh VM tar -x` → on-server `docker build` tagged as the compose
+   image name, `docker compose up -d --no-build` (server never needs GHCR).
+TO RESTORE THE SCRIPT: rotate a PAT with `repo` + `workflow` + `read:packages`, update
+keychain entry `smarter-poker/github-pat-ghcr-read`, and re-run `docker login ghcr.io`
+as the `workers` user on the VM.
+
+### 35.4 Cashier/wallet UI shipped (CA 39bb67434, WH sync 38417f01bf)
+- DynamicWallet: §24 naming trap fixed — "Club Bank" now reads `clubs.chip_pool` (what
+  `mint_club_chips` actually credits); `chip_treasury` displayed as its own Rake
+  Treasury row; both live via the existing realtime handler.
+- CashierPage: §21/§34 orphan closed — "Get Chips" entry point wired to the existing
+  ChipPurchaseModal (server-priced `purchase-chips` API), fetching live diamond balance.
+- MEDIA_BASE tsc mystery RESOLVED: 6 TS2304 errors were another agent's half-committed
+  MEDIA_BASE refactor sitting uncommitted in the shared working tree; it landed properly
+  as CA 45f2228ce. Lesson recorded: on a shared checkout, `git stash -u` scoops up
+  foreign WIP — always diff the stash against your intended files before assuming the
+  tree is yours.
+
+### 35.5 Housekeeping
+- Migration mirror gap closed: `20260817191321_vip_monthly_feature_usage_and_throwable_pricing`
+  extracted verbatim from `supabase_migrations.schema_migrations` and committed (WH 6bc5533bf9).
+- `cron_execution_log` rows stuck `running` after container restarts (3 rows) marked
+  `killed`. Future hardening candidate: boot-time sweep in the cron middleware.
