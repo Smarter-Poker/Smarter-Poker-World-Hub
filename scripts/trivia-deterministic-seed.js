@@ -235,21 +235,75 @@ function buildQuestionFromScenario(scenario, questionIndex) {
         text: getActionLabel(a),
         frequency: gtoFrequencies[a],
     }));
-    if (options.length < 2) {
-        const fillers = ['f', 'c', 'b33', 'allin'].filter(a => !validActions.includes(a));
-        while (options.length < 2 && fillers.length > 0) {
-            const fa = fillers.shift();
-            options.push({ id: fa, text: getActionLabel(fa), frequency: 0 });
-        }
+    // ── Distractor quality (2026-08-16) ───────────────────────────────────
+    // Three defects were measured in the 11,197-question pool this produced:
+    //
+    //  1. POSITION LEAKED THE ANSWER. Options were emitted highest-frequency
+    //     first and correctIndex was then looked up inside that sorted list, so
+    //     position was a deterministic function of solver output. Result:
+    //     correct_index was 1 for 57.2% of the entire pool against a 25% random
+    //     baseline. Answering B every time scored 57% with no poker knowledge.
+    //
+    //  2. THE SAME FOUR OPTIONS, THOUSANDS OF TIMES. Padding drew from a fixed
+    //     array in fixed order, so every thin node produced the identical set
+    //     ["Bet 16% pot","Check","Fold","Bet 33% pot"] — 6,285 questions shared
+    //     exactly that. Dan's report was "the answer options are all very
+    //     similar"; this is why.
+    //
+    //  3. THE ANSWER WAS ALMOST ALWAYS THE ONE REAL OPTION. Fillers carry
+    //     frequency 0, so on a thin node the only action the solver actually
+    //     plays is the answer. "Check" was correct on 78.5% of these. Even with
+    //     positions shuffled, picking the non-filler option still wins.
+    //
+    // (3) is not fixable by shuffling — it is a question-selection problem. A
+    // spot the solver plays one way ~100% of the time is not a quiz question,
+    // it is a lookup with three arbitrary decoys. So such spots are now
+    // SKIPPED, and distractors are drawn from actions the solver genuinely
+    // mixes at this node.
+    const MIN_MIXED_ACTIONS = 2;      // need a real decision, not a pure action
+    const MIN_DISTRACTOR_FREQ = 5;    // percent — a decoy must be a live option
+
+    const liveOptions = options.filter(o => (o.frequency || 0) >= MIN_DISTRACTOR_FREQ);
+    if (liveOptions.length < MIN_MIXED_ACTIONS) {
+        // Degenerate node: one dominant action and nothing the solver mixes.
+        // Previously this became a question padded with fixed decoys.
+        return null;
     }
-    // Pad to 4 with frequency-0 fillers (trivia UI expects 4 options)
-    const allFillers = ['f', 'c', 'b33', 'b75', 'allin', 'r', 'b50', 'b100'];
+
+    // Top up to 4 from OTHER SIZINGS OF THE SAME FAMILY so the decoys are
+    // plausible rather than obviously synthetic, chosen per-question instead of
+    // from one fixed ordered list.
+    const SIZING_POOL = ['b16', 'b20', 'b25', 'b33', 'b40', 'b45', 'b50', 'b75', 'b100'];
+    const answerIsBet = String(optimalAction).startsWith('b');
+    const candidatePool = (answerIsBet
+        ? SIZING_POOL
+        : [...SIZING_POOL, 'c', 'f', 'r', 'allin']
+    ).filter(x => !options.some(o => o.id === x));
+
+    // Deterministic-but-varied pick: seeded off the scenario hash so re-seeding
+    // the same node is reproducible, while different nodes differ.
+    let optSeed = 0;
+    const hashStr = String(scenario.scenario_hash || heroHand || '');
+    for (let i = 0; i < hashStr.length; i++) optSeed = (optSeed * 31 + hashStr.charCodeAt(i)) & 0x7fffffff;
+    const pickNext = () => {
+        if (!candidatePool.length) return null;
+        optSeed = (optSeed * 1103515245 + 12345) & 0x7fffffff;
+        return candidatePool.splice(optSeed % candidatePool.length, 1)[0];
+    };
     while (options.length < 4) {
-        const fa = allFillers.find(x => !options.some(o => o.id === x));
+        const fa = pickNext();
         if (!fa) break;
         options.push({ id: fa, text: getActionLabel(fa), frequency: 0 });
     }
     if (options.length < 4) return null; // can't build 4-option
+
+    // Finally: shuffle, so position carries no information. correctIndex is
+    // computed AFTER this (see below), against the shuffled array.
+    for (let i = options.length - 1; i > 0; i--) {
+        optSeed = (optSeed * 1103515245 + 12345) & 0x7fffffff;
+        const j = optSeed % (i + 1);
+        [options[i], options[j]] = [options[j], options[i]];
+    }
 
     // Board / position / explanation
     const board = parseBoardFromHash(scenario.scenario_hash);
