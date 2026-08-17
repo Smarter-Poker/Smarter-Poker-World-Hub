@@ -49,3 +49,36 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/ci/check-phantom-tables.mjs
+
+  cron-liveness:
+    name: "U4.3: Scheduled jobs actually succeed"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The runtime member of the U4 family. The other three checks are static
+      # analysis asking "does this relation / column / writer exist?". This one
+      # asks the question they cannot: does the scheduled work actually finish?
+      #
+      # Motivating incident, 2026-08-17: eight jobs failing at 100%, seven of
+      # which had NEVER succeeded once since being scheduled in early May —
+      # ~2,000 invocations, zero completions. trivia-embed-backfill ran 835
+      # times and left all 11,197 trivia_questions rows with a NULL pgvector
+      # embedding, so semantic dedup had never worked. Every one of those
+      # failures sat in cron_execution_log the whole time; nothing read it.
+      # See .agent/audits/2026-08-17-cron-triage-seven-jobs-never-worked.md
+      #
+      # Non-blocking for the same reason as U4.2 above: it currently reports 8
+      # real failures plus 14 jobs that have never fired at all. Flip
+      # continue-on-error to false once those are cleared — leaving it red
+      # permanently is exactly how the original problem survived a quarter.
+      - name: Check every scheduled cron has succeeded at least once
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/ci/check-cron-liveness.mjs

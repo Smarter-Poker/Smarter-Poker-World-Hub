@@ -1,0 +1,64 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Club Arena bundle budget (Phase U5.2)
+# ═══════════════════════════════════════════════════════════════════════════
+# Catches a step change in what smarter.poker/hub/club-arena ships: a stray
+# dependency, an uncompressed asset pack, a lazy route that stopped being lazy.
+#
+# Three budgets rather than U5.2's single "main bundle > 5 MB", because that
+# one number is ambiguous. Measured 2026-08-17:
+#
+#     initial  0.81 MB   what a user downloads before first paint
+#     code     5.47 MB   all JS/CSS including lazy chunks   <- "over 5 MB"
+#     payload 85.73 MB   the whole deployed directory
+#
+# A 5 MB gate on the middle number is red on day one while the number that
+# actually affects users is healthy. See the script header for the reasoning,
+# and for why the 75 duplicate-looking chunk names are NOT stale residue.
+#
+# Separate workflow rather than a step in build-safety-gate.yml: that gate has
+# been failing at CHECK 8 for a long time, so anything added to it inherits a
+# red status and provides no signal. Same reasoning as supabase-invariants.yml.
+#
+# Only runs when the built output or the checker itself changes — a docs commit
+# should not spend a runner on this.
+#
+# No `schedule:` trigger, per CLAUDE.md section 11.3 — scheduled work belongs
+# on Open Claw, not GitHub Actions.
+# ═══════════════════════════════════════════════════════════════════════════
+name: Club Arena Budget
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/hub/club-arena/**'
+      - 'scripts/ci/check-ca-bundle-size.mjs'
+      - '.github/workflows/club-arena-budget.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/hub/club-arena/**'
+      - 'scripts/ci/check-ca-bundle-size.mjs'
+      - '.github/workflows/club-arena-budget.yml'
+
+concurrency:
+  group: club-arena-budget-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle-budget:
+    name: "U5.2: Bundle within budget"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Blocking from the start — unlike the U4 gates this one is green today
+      # (0.81 / 5.47 / 85.73 against 1.5 / 7.0 / 110.0), so enforcing it costs
+      # nothing and it never has to go through a "warnings first" phase that
+      # everyone learns to ignore.
+      - name: Check Club Arena bundle budget
+        run: node scripts/ci/check-ca-bundle-size.mjs
