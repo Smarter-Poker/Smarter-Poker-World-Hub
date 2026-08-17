@@ -1,0 +1,55 @@
+-- APPLIED TO PRODUCTION 2026-08-17 13:50:44 UTC
+-- (finish_open_items_wheel_bonus_flashpool_and_stub_fills_v2 — v1 was ABORTED
+-- BY THE PHASE 4.1.6a WALLET GUARD when its own in-migration probe tried a
+-- direct wallets UPDATE inside join_flash_pool; that is the guard working as
+-- designed. v2 routes the debit through atomic_deduct_wallet_and_log.)
+--
+-- Close-out of every item deferred at the end of the phantom/stub phase:
+--
+-- A. LUCKY WHEEL — lucky_wheel_segments (8 seeded segments, weights sum 100,
+--    EV ~176 chips calibrated to the 100-1000 daily bonus band) +
+--    claim_lucky_wheel_spin(uuid): JWT-derived actor (service_role may act
+--    for a user), one spin per UTC day (raises the exact 'Already spun today'
+--    string the client matches), weighted server RNG, credits through
+--    atomic_credit_wallet_and_log / add_vip_points / add_diamonds_to_balance
+--    with idempotency keys. Returns {segmentId, rewardType, amount}.
+--
+-- B. BONUS PROGRESS — user_bonus_progress (PK user_id+bonus_id, RLS read-own,
+--    writes only via RPC) + increment_bonus_progress(uuid,uuid,int) returning
+--    the new total; identity-guarded, amount bounded (0, 1000].
+--
+-- C. FLASH POOLS — flash_pools existed but was EMPTY with no players table
+--    and no join RPC. Added flash_pool_players (RLS read for authenticated,
+--    writes via RPC only), join_flash_pool(uuid,uuid,numeric): identity
+--    guard, pool open + buy-in range check, debit via the guard-whitelisted
+--    atomic_deduct_wallet_and_log, membership upsert, active_players
+--    recount. Seeded 4 pools (0.5/1 to 5/10). Live-probed: exact 40-chip
+--    debit, double-join rejected, probe refunded through
+--    atomic_credit_wallet_and_log.
+--
+-- D. STUB FILLS — all four BEGIN END; stubs got real bodies:
+--    fn_increment_vip_usage(uuid,text)   atomic upsert into vip_feature_usage
+--                                        with UTC-day daily_usage reset
+--                                        (+ unique index user_id,feature)
+--    fn_consume_feature_use(uuid,text)   decrements uses_remaining on the
+--                                        newest live feature_purchases row
+--    recalculate_leaderboard_ranks(uuid) old stub took p_leaderboard_id; the
+--                                        ONLY caller passes p_promotion_id so
+--                                        PostgREST never matched it. Dropped;
+--                                        recreated with the caller's
+--                                        signature; dense_rank over
+--                                        promotion_leaderboards
+--    fn_check_level_advancement(uuid)    abandons stale (>24h) active
+--                                        arena_sessions
+--
+-- All grants: REVOKE PUBLIC/anon, GRANT authenticated + service_role. The
+-- money-relevant RPCs were auto-locked into privileged_function_lock.
+--
+-- In-migration assertions (all passed on apply): wheel weights sum 100; zero
+-- empty-body stubs remain; bonus progress 3 then +2 = 5; VIP usage 2 calls ->
+-- one row with counts 2/2; flash-pool join debits exactly 40 and double-join
+-- rejects; rank recompute is a safe no-op on an unknown promotion.
+--
+-- Full SQL applied via Supabase MCP; recorded as version 20260817135044.
+-- This mirror is documentation-of-record; the authoritative applied text is
+-- in supabase_migrations.schema_migrations.
