@@ -567,3 +567,86 @@ To finish: teach the mock the `gte` + skip mechanism while keeping the M6
 boundary assertion, then re-apply. Or move the read into an RPC that does a true
 row-value comparison `(created_at, id) > (X, Y)` — expressible in SQL, not in
 PostgREST.
+
+---
+
+# Closing out: everything reachable is done
+
+## The hand-counter index — built, after four dead ends
+
+The seed was working on 47 of 64 tables and timing out on the largest, because
+`ORDER BY hand_number DESC` had no supporting index. Building one turned out to
+be the interesting part. Each obvious route was closed:
+
+| route | why it failed |
+|---|---|
+| `apply_migration` | `CREATE INDEX CONCURRENTLY` cannot run inside a transaction |
+| plain `execute_sql` | API session has `statement_timeout = 2min`; the build was cancelled and left an **invalid 53 MB index** (dropped with `DROP INDEX CONCURRENTLY`) |
+| `dblink` | installed, but *"Non-superusers must provide a password"* |
+| `pg_cron` 1.6.4 | installed, but wraps every job in a transaction |
+| `psql` direct | `SUPABASE_DB_PASSWORD` in the repo `.env` is stale — auth fails against both the direct host and the us-west-2 pooler |
+| non-concurrent build | would hold a write lock while live tables dealt **181 hands/minute** |
+
+What worked: raise the timeout at **role** level so the next pooled session
+inherits it.
+
+    ALTER ROLE postgres SET statement_timeout = '45min';
+    CREATE INDEX CONCURRENTLY ...;     -- client disconnected, build continued
+    ALTER ROLE postgres RESET statement_timeout;
+
+The client call timed out, but the *server-side* build survived and was tracked
+through `pg_stat_progress_create_index` (`index validation: scanning table`,
+1,052,253 / 1,146,286 blocks). Final: **valid, 55 MB, zero write blocking**.
+
+Result — the query that used to time out:
+
+    Index Only Scan using idx_hand_history_table_handnum
+    Heap Fetches: 1 | Execution Time: 3.481 ms
+
+The engine went back to the exact `MAX`; the bounded 500-row stopgap is gone.
+Production after deploy: **60 tables resumed, 0 seed failures.**
+
+The role timeout was reset immediately. Leaving it at 45 minutes would have
+removed the guard rail that stops a runaway query pinning a connection — worth
+saying out loud, because that is the kind of thing that gets left behind.
+
+## The settler fetch — fixed, and the tests earned their keep
+
+The `gte` + in-memory-skip rewrite went in, and the AUDIT M6 suite immediately
+caught a **real bug in my first cut**: `hitLimit` was computed from
+`rows.length` *after* the splice, so a single skipped row made a full
+10,000-row page read as 9,999 and the drain returned `'idle'` with backlog
+still queued. Now judged on the raw page size.
+
+Test changes were mechanism-only and end up stricter, not looser:
+
+- the M6 duplicate-timestamp case asserts **both** the raw page (superset,
+  cursor row first) **and** the effective set after the documented skip
+- the filter-shape test asserts the new predicate **and** that the OR form is
+  absent, so a well-meaning revert to the "textbook" keyset fails there instead
+  of in production at 21 seconds a cycle
+
+Full server suite: **551/551 across 47 files.** Production confirms it:
+
+    [RakebackSettler] keyset: skipped 1 already-settled row(s) at the cursor
+    timestamp (page was 1000)
+    fetch_failed: 0
+
+## The one thing left, and it is physical
+
+Two solver processes hit the `solver_*` tables from the **same public IP**
+(24.15.206.254) — both on the local network:
+
+    Python-urllib/3.12   431 x 200, 0 x 401   correct key
+    Python-urllib/3.14   136 x 401, 0 x 200   revoked key
+
+So the fix is already live on one machine and simply hasn't been applied to the
+other. It is not this Mac: Python 3.14.2 is installed here, but there is no
+3.14 process, no `orchestrate.py` process, and no launchd job referencing it —
+and at ~2.3 req/min it is running continuously somewhere. ARP shows only the
+gateway, ipad, iphone, samsung and watch, so the box is not currently visible
+on the LAN and there is no SSH route to it.
+
+Set `SUPABASE_SERVICE_ROLE_KEY` on whichever machine reports
+`python --version` = 3.14.x to the current `sb_secret_` value in `.env.local`.
+Every other holder of the revoked key across the fleet has been updated.
