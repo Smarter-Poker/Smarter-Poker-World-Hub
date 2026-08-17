@@ -1,0 +1,47 @@
+-- APPLIED TO PRODUCTION 2026-08-17
+-- (bbj_pool_consolidation_and_race_proof_get_or_create_v3; v1 aborted itself
+-- when its orphan assert caught a LIVE RACE - the engine wrote 2
+-- contributions to fragment pools between repoint and delete; v2 added
+-- EXCLUSIVE locks but tripped 42P13 on an overload's parameter defaults.)
+--
+-- ═══════════════════════════════════════════════════════════════════════════
+-- BBJ POOL FRAGMENTATION: 1,884 duplicate union pools, one created per hand.
+--
+-- bbj_pools held 1,886 rows: 2 club pools and 1,884 union-level fragments
+-- (club_id NULL) for ONE union - every one nonzero, sum main_balance
+-- 16,399.54, largest fragment 7,473.29, count growing ~880 per two days.
+--
+-- Cause, from add_bbj_contribution's own body:
+--     WHERE club_id = p_club_id AND status = 'active'
+-- For a union/flash table p_club_id is NULL, and `club_id = NULL` matches
+-- NOTHING - so every contribution "found no pool", inserted a fresh row, and
+-- credited it once. One jackpot pool per hand. Every reader (the BBJ display
+-- .maybeSingle(), payout paths keyed on one pool_id) saw at most one
+-- fragment: the union ticker errored out on multiple rows, and a hit would
+-- have paid from a 7,473 fragment while 8,926 sat unreachable in the other
+-- 1,883 rows.
+--
+-- Fix:
+--   1. CONSOLIDATE under EXCLUSIVE locks on bbj_pools/bbj_contributions/
+--      bbj_winners: merge every fragment per union into the OLDEST row
+--      (every balance and counter summed, latest hit metadata kept), repoint
+--      bbj_contributions / bbj_payouts / bbj_winners, delete fragments.
+--      Conservation asserted per scope, per column. Orphan children: 0.
+--   2. UNIQUENESS as a DB invariant:
+--        uq_bbj_pools_union_active  UNIQUE(union_id) WHERE club_id IS NULL
+--                                   AND union_id IS NOT NULL AND status='active'
+--        uq_bbj_pools_club_active   UNIQUE(club_id)  WHERE club_id IS NOT NULL
+--                                   AND status='active'
+--   3. RACE-PROOF RESOLUTION: fn_resolve_bbj_pool(table, club) resolves the
+--      scope from the TABLE row (tables.union_id first, else club ->
+--      clubs.union_id), get-or-creates with ON CONFLICT DO NOTHING against
+--      those indexes, and re-reads. All three add_bbj_contribution overloads
+--      now route through it (the bigint overload keeps its DEFAULT NULL
+--      portions, COALESCEd to the 50/25/25 platform split).
+--
+-- Verified after apply: 1,886 pools -> 3; canonical union pool main
+-- 16,413.74; probes show the resolver is stable and creates no rows, a
+-- contribution lands on the canonical pool moving main by exactly its
+-- portion; 75s later the LIVE engine's contributions were landing on the
+-- canonical row (main 16,419.41, updated_at 2s old) with the count still 3.
+-- Full applied SQL in supabase_migrations.schema_migrations.

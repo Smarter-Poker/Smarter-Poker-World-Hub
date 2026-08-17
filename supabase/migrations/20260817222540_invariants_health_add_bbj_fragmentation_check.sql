@@ -1,0 +1,7 @@
+-- APPLIED TO PRODUCTION 2026-08-17
+-- (invariants_health_add_bbj_fragmentation_check_v2; v1 tripped 42702 -
+-- the OUT parameter `status` shadowed bbj_pools.status, now qualified)
+--
+-- fn_platform_invariants_health() gains check 15, bbj_pool_integrity:
+-- zero fragmented unions, zero orphaned bbj_contributions, both partial
+-- unique indexes present. 15/15 OK at install.
