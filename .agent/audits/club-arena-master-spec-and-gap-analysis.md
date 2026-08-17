@@ -2200,3 +2200,58 @@ forced action, tier-3 kill-and-rebuild and `paused_too_long` writes a
 best-effort row. This is both an audit trail and the CLAUDE.md-mandated
 DB-visible deploy proof. Deploy verification of `e5aedd153` is scheduled
 (45 min): restart signature in `hand_history` or a first recovery-event row.
+
+---
+
+## 34. UI phase: BBJ defragmentation, lobby 34x, and what checked out clean (2026-08-17)
+
+### 34.1 The BBJ fragmentation (the phase's biggest find)
+
+Covered in commit `cf4d3ff041`: 1,884 duplicate union jackpot pools — one
+created PER HAND by `WHERE club_id = NULL` matching nothing — consolidated to
+one canonical pool per scope under EXCLUSIVE locks with per-column conservation
+asserts; two partial unique indexes make recurrence impossible;
+`fn_resolve_bbj_pool()` resolves scope from the `tables` row and all three
+`add_bbj_contribution` overloads route through it. Live-verified: 1,886 → 3
+pools, the running engine's contributions landing on the canonical row 75s
+later, count still 3. The union BBJ ticker displays its true total with zero
+client changes. v1 of the migration **aborted itself** when its orphan assert
+caught the live engine writing to fragments mid-merge — the assert working.
+
+### 34.2 Club lobby: 714ms of dead-table scanning per open
+
+`tables` holds 56k rows; the biggest club has 33,375 of them but only 298 open.
+The lobby's exact query (`club_id = X AND is_deleted = false AND status <>
+'closed' ORDER BY created_at DESC`) measured:
+
+```
+Rows Removed by Filter: 33,077     Buffers read: 3,836     714 ms
+```
+
+Three partial indexes now match the three lobby queries exactly
+(`getClubTables`, `getActiveTables`, `getUnionTables`), indexing only the ~1-2%
+of rows that are open, so they stay tiny however many closed tables accumulate.
+Re-measured: **714ms → 20.9ms**, plan on `idx_tables_club_open`, zero rows
+discarded. In-migration assert fails if the query ever exceeds 100ms again.
+
+### 34.3 Verified clean (no fix needed)
+
+| surface | what was checked | result |
+|---|---|---|
+| ClubLobby data layer | parallel fetches, filtered realtime channel (`club_id=eq.X`), `diamond_wallets` self-RLS, owner/member reads | sound |
+| Union table visibility | `tables` read policy is `true` — 641 union tables visible to players | sound |
+| Multi-table | tabs rebuilt from server truth (active `table_seats`), additive merge, rogue-tab guard, MAX_TABLES cap | sound (2026-08-15 fix holding) |
+| Hand history | exact JSONB containment query as an impersonated player: 50 hands in 107ms under RLS | sound |
+| BBJ winners feed | readable under RLS (19 rows) | sound |
+
+### 34.4 Remaining items that are DESIGN decisions, not defects
+
+- **Visual overhaul** of ClubLobby/TablePage: the pages are functionally sound
+  and heavily fix-passed (12 documented fix rounds on ClubLobby alone). A
+  redesign needs direction on look/feel; blind restyling risks the working
+  mobile-first layouts.
+- **DynamicWallet** displays `chip_treasury` while mint/distribute move
+  `chip_pool` (§24's naming-trap pair) — owner mints and sees no change.
+  Which balance the widget should show is a product call.
+- **Chip purchase entry point**: the server-priced purchase flow works
+  end-to-end but no UI navigates to it (orphan modal, §21).
