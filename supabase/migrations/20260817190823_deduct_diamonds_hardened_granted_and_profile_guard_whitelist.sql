@@ -1,0 +1,30 @@
+-- APPLIED TO PRODUCTION 2026-08-17
+-- (deduct_diamonds_hardened_granted_and_profile_guard_whitelist; the first
+-- attempt was aborted by fn_guard_profile_privileged_columns when its probe
+-- exercised the deduct as an authenticated caller -- the guard working as
+-- designed, and the reason the grant alone would not have fixed anything.)
+--
+-- THROWABLES: paid throws were 42501-dead, and the function behind them
+-- carried a negative-amount diamond MINT.
+--
+--   1. ThrowableService charges 1 diamond per throw via rpc('deduct_diamonds').
+--      deduct_diamonds was EXECUTE-denied to authenticated, so once the free
+--      allowance was used, EVERY paid throw failed. throw_usage held 1 row.
+--   2. deduct_diamonds had NO amount validation: p_amount = -1000 passes the
+--      balance check (v_current < -1000 is false) and diamonds - (-1000)
+--      CREDITS the account -- a caller-priced diamond mint.
+--   3. NO identity guard: any caller could drain any OTHER user's diamonds.
+--
+-- Fixes: positive-amount check, self-only identity guard (service_role may
+-- act for any user), EXECUTE granted to authenticated, and
+-- fn_guard_profile_privileged_columns now admits writes whose call stack
+-- passes through deduct_diamonds (same PG_CONTEXT whitelist mechanism as
+-- guard_wallet_balance_write).
+--
+-- Probes (compensated): negative amount rejected; cross-user deduct rejected;
+-- self-spend of exactly 1 diamond succeeds with a ledger row.
+--
+-- Marketplace audited sound in the same pass: fn_purchase_feature prices from
+-- feature_pricing and ignores the client cost; fn_redeem_shop_item is
+-- identity-guarded; the WH marketplace-purchase API prices server-side.
+-- Full applied SQL recorded in supabase_migrations.schema_migrations.
