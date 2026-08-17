@@ -2055,3 +2055,93 @@ already be in this pool".
 This is not a bug to fix; it is an unbuilt feature with a shipped front end.
 Building it is a product decision, not an audit item, so it is written down here
 rather than invented.
+
+---
+
+## 32. Phase close-out: four more phantoms, and a worse category behind them (2026-08-17)
+
+### Arena Training was dead at the first step
+
+`ArenaTrainingController.ts` references `public.arena_sessions` in **five**
+places. The table had never been created.
+
+| call | what actually happened |
+|---|---|
+| `startSession()` | INSERT fails → throws "Failed to start training session". Nobody has ever been able to begin a session. |
+| `recordAnswer()` ×2 | SELECT/UPDATE fail → "Session not found". |
+| `getUnlockedLevel()` | SELECT fails → the error branch `return 1`. Every user reads as **locked to level 1**. |
+| `record_arena_session()` | RPC did not exist. |
+
+`getUnlockedLevel()` is the instructive one: it fails **closed and silently**, so
+the feature looked like "nobody has progressed yet" rather than "this is broken".
+
+Table created with exactly the columns the client selects, RLS scoped to the
+owner, and `record_arena_session()` derives pass/score from the **stored** answer
+counts, never from the caller-supplied `p_mastery_rate`. Asserted in-migration by
+replaying a session where the caller claims 0.99 mastery over a stored 4/20 —
+it still fails.
+
+**No diamond payout was added.** The call site says "for Diamond rewards", but no
+reward schedule exists anywhere in schema or client. Inventing per-level amounts
+would be minting currency from a guess — precisely what §20 forbids.
+
+### `get_unseen_questions` — the anti-join that was never there
+
+`triviaQuestionLoader.loadQuestionsForUser()` calls it as step 1, its own comment
+describing it as "the server-side anti-join if the database exposes it". It never
+existed, so every call fell through to a client-side pipeline pulling at least
+`max(200, count*5)` rows with up to 3 retries and filtering in JavaScript.
+Verified against the heaviest real user — 333 questions already seen, pool of
+11,197 — 20 rows returned, **0 already-seen leaked**. The fallback stays; it also
+covers the userId-less case.
+
+### `PlayerPositionStatsService` — deleted, not implemented
+
+Its two phantom RPCs (`bulk_update_position_stats`, `bulk_add_vip_points`) were
+the wrong thing to build, twice over:
+
+- **Position stats are already server-side.** Trigger
+  `hand_history_position_stats` on `hand_history` is ENABLED;
+  `player_position_stats` holds 3,450 rows across 575 users and was written
+  today. A client writer would have raced the trigger and double-counted.
+- **VIP points are deliberately not client-grantable.** Both `add_vip_points`
+  overloads and `fn_award_vip_points_from_rake` grant EXECUTE to `service_role`
+  **only**. The service built a `vipPayload` with a client-chosen `amount` per
+  user, so a browser-callable `bulk_add_vip_points` would have been a points
+  mint — and VIP points redeem through `fn_redeem_vip_points`.
+
+It also had zero callers: `TablePage.tsx` imported it and never invoked it.
+Import removed, file deleted (CA `93737d4e7`).
+
+### ⚠ NEW CATEGORY — silent stubs, worse than phantoms
+
+A phantom RPC at least returns PGRST202. A function that **exists with an empty
+body** returns success and does nothing, so no error ever surfaces. There are
+exactly four:
+
+| function | client-callable | consequence |
+|---|---|---|
+| `fn_check_level_advancement(uuid)` | **yes** | Arena level advancement never evaluated |
+| `fn_consume_feature_use(uuid, text)` | no | VIP feature quota never consumed |
+| `fn_increment_vip_usage(uuid, text)` | no | VIP usage never counted |
+| `recalculate_leaderboard_ranks(uuid)` | no | leaderboard ranks never recalculated |
+
+Each body is literally `BEGIN END;`.
+
+**Behavioural proof, the same shape as the `cashout_requests` zero-rows proof in
+§16:** `vip_feature_usage` and `vip_monthly_usage` both hold **0 rows**. The two
+functions that should write them have never written anything, so whatever
+per-tier VIP limits exist are entirely unenforced.
+
+Filling these in requires the policy they are supposed to enforce — the VIP quota
+schedule and the leaderboard ranking rule — so they are written down here rather
+than invented.
+
+### Still open, and why
+
+| item | why it is not fixed |
+|---|---|
+| `claim_lucky_wheel_spin` | `user_lucky_wheel_spins` and `spin_bonus_pools` exist, but **no segment/prize table** does. The client expects `{segmentId, rewardType, amount}` — the amounts are the product decision. |
+| `increment_bonus_progress` | **No progress schema at all.** `user_bonuses` holds only `daily_streak` and `last_daily_claim`; there is nowhere to store per-bonus progress. |
+| `join_flash_pool` | Whole feature unbuilt (§31). |
+| the 4 silent stubs | Need the policy they enforce. |
