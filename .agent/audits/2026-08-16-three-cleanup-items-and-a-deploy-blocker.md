@@ -1200,3 +1200,101 @@ the table instead of trusting the response code.
    The watchdog will flip to `success` on its own once v2 solves resume.
 2. **M2's service-role key** — still the original item, still capacity-only.
 3. **Rotate the two dead deploy credentials** from Appendix G4.
+
+---
+
+## Appendix I — sweeping the cron surface (2026-08-18)
+
+With the task list clear, swept the scheduled-job surface the same way: read
+production telemetry rather than guess. Three findings, one of them the cause
+of several others.
+
+### I1. The email deliverability probe failed daily on correct DNS
+
+`email-deliverability-check` returned 503 every morning and wrote `error` to
+`cron_health_log`. `probe_heartbeats` shows the identical single failure on
+2026-08-15, -16 and -17:
+
+    spf_includes_resend — SPF exists but does not include Resend
+                          "v=spf1 include:spf.privateemail.com ~all"
+
+**The DNS is right; the check was wrong.** SPF is evaluated against the
+envelope sender (Return-Path), not the visible From. Resend sends via Amazon
+SES and uses `send.<domain>` as that Return-Path, so its SPF record belongs
+there. Live:
+
+    smarter.poker        "v=spf1 include:spf.privateemail.com ~all"
+    send.smarter.poker   "v=spf1 include:amazonses.com ~all"
+    resend._domainkey    present
+    _dmarc               "v=DMARC1; p=none;"
+    MX                   mx1/mx2.privateemail.com
+
+Both records are correct — root covers Private Email (which the MX confirms is
+the real mailbox host), subdomain covers Resend. The check demanded
+`include:spf.resend.com` on the **root**, which Resend never asks for, and
+satisfying it would have meant putting `include:amazonses.com` on
+`smarter.poker` — authorising the whole of Amazon SES to send as
+`@smarter.poker`. **The probe was pushing toward a worse configuration than the
+live one.**
+
+Cost: a daily 503 plus a Sentry alert on the one channel meant to warn that
+signup and password-reset mail has broken. Same crying-wolf failure as the
+collusion detector (Appendix G) and the state verifier.
+
+Fixed to query `send.<DOMAIN>`; verified against live DNS with a negative
+control (`send.example.com` correctly fails). Test pinned and confirmed to FAIL
+when the route is reverted. CHECK 8 47/47. Deployed — production serves the fix.
+
+### I2. `deploy-error-poll` has failed 720 out of 720 times in 24h
+
+`cron_execution_log` (224,204 rows, and actively written by a `/cron/*`
+middleware — the workers service is NOT unmonitored, an early read of mine that
+was wrong) shows one job dominating every failure count:
+
+    /cron/deploy-error-poll   ok=0  bad=720  every 2 minutes  HTTP 500
+
+Root cause: `VERCEL_TOKEN` is present in the container but revoked —
+`403 {"code":"forbidden","invalidToken":true}`. Per CLAUDE.md §1.6 this route
+IS the deploy self-healing system, so **failed production builds have not been
+auto-fixed** for as long as the token has been dead. The Vercel CLI's own
+`auth.json` token is also 403.
+
+Cannot be fixed from here — minting a Vercel token needs Dan's account, the one
+category RULE 0 still allows a handoff for. Written to
+`.agent/handoffs/2026-08-18-rotate-three-dead-credentials.md`.
+
+### I3. The 404 cluster had a single upstream cause
+
+Seven jobs were 404ing on schedule: `trivia-theme-backfill`,
+`trivia-embed-backfill`, `trivia-regression-tests`, `trivia-player-retag`,
+`trivia-pool-monitor`, `trivia-quality-audit`, `video-library-reels`.
+
+All seven are registered in `src/index.ts` with real handlers. They 404'd
+because **the deployed container was stale**: the GHCR credentials died
+(Appendix G4), so `deploy-workers.sh` could not run, `main` drifted ahead of the
+running image, and every route added since never reached production.
+
+Resolved as a side effect of this session's `--build-on-server` deploys. All
+seven verified returning **200** afterwards. The registry path is still broken
+and is item 2 of the handoff.
+
+### I4. Three dead credentials, none of them detected
+
+    github-pat-ghcr-read   401 Bad credentials
+    VM docker credential   denied
+    VERCEL_TOKEN           403 invalidToken
+
+Every one was found by reading production data during this session, not by any
+alarm. `deploy-error-poll` was failing 720 times a day into a table nobody
+reads. Task #26's secret-consumer drift detector is the natural home for an
+automated check that stored credentials still authenticate; it currently covers
+neither Vercel nor GHCR.
+
+### Correction to my own earlier read
+
+I initially counted "58 workers routes, 1 writes cron_health_log, 57
+unmonitored" and was about to build a shared health wrapper. That was wrong —
+`src/index.ts:110` already installs a `/cron/*` middleware writing every
+request to `cron_execution_log`, 224k rows deep. Checking before building
+avoided adding redundant infrastructure (RULE 12). The real gap is not
+collection, it is that **nothing reads what is collected**.
