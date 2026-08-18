@@ -95,10 +95,60 @@ async function checkSpfRecord() {
         const body = await resp.json();
         const txts = (body?.Answer || []).map((a) => a.data || '').join(' | ');
         const hasSpf = /v=spf1/i.test(txts);
-        const includesResend = /include:_?spf\.resend\.com/i.test(txts) || /include:resend\.com/i.test(txts);
         if (!hasSpf) return { check: 'spf_record', ok: false, detail: 'No SPF record found for ' + DOMAIN };
-        if (!includesResend) return { check: 'spf_includes_resend', ok: false, detail: 'SPF exists but does not include Resend — ' + txts.slice(0, 200) };
-        return { check: 'spf_includes_resend', ok: true, detail: 'SPF authorizes Resend' };
+
+        // Resend's SPF does NOT live on the root domain, and looking for it
+        // there failed this probe every single day.
+        //
+        // SPF is evaluated against the envelope sender (Return-Path), not the
+        // visible From. Resend sends via Amazon SES and uses `send.<domain>`
+        // as that Return-Path, so its SPF record belongs there. Live DNS:
+        //   smarter.poker        "v=spf1 include:spf.privateemail.com ~all"
+        //   send.smarter.poker   "v=spf1 include:amazonses.com ~all"
+        // Both are correct. The root record covers Private Email, which the MX
+        // records (mx1/mx2.privateemail.com) confirm is the real mailbox host;
+        // the subdomain record covers Resend.
+        //
+        // The old test demanded `include:spf.resend.com` on the ROOT, which
+        // Resend never asks for. Satisfying it would have meant adding
+        // `include:amazonses.com` to smarter.poker - authorising the whole of
+        // Amazon SES to send as @smarter.poker, far broader than needed. The
+        // check was pushing toward a WORSE configuration than the live one.
+        //
+        // Cost of the false positive: a daily 503, `error` in cron_health_log
+        // and a Sentry alert, on the one channel meant to warn that signup and
+        // password-reset mail has broken. Identical failure recorded in
+        // probe_heartbeats on 2026-08-15, -16 and -17.
+        const sendResp = await fetch(
+            `https://cloudflare-dns.com/dns-query?name=send.${DOMAIN}&type=TXT`,
+            { headers: { accept: 'application/dns-json' }, signal: AbortSignal.timeout(8000) },
+        );
+        if (!sendResp.ok) {
+            return { check: 'spf_includes_resend', ok: false, detail: `DoH returned ${sendResp.status} for send.${DOMAIN}` };
+        }
+        const sendBody = await sendResp.json();
+        const sendTxts = (sendBody?.Answer || []).map((a) => a.data || '').join(' | ');
+        // Accept the SES include Resend actually provisions, or a literal
+        // resend.com include on either name in case they change instructions.
+        const resendAuthorized =
+            /include:amazonses\.com/i.test(sendTxts) ||
+            /include:_?spf\.resend\.com/i.test(sendTxts) ||
+            /include:_?spf\.resend\.com/i.test(txts);
+
+        if (!resendAuthorized) {
+            return {
+                check: 'spf_includes_resend',
+                ok: false,
+                detail:
+                    `No Resend SPF on send.${DOMAIN} (expected include:amazonses.com). ` +
+                    `send.${DOMAIN} = "${sendTxts.slice(0, 120) || '(no TXT)'}"`,
+            };
+        }
+        return {
+            check: 'spf_includes_resend',
+            ok: true,
+            detail: `Root SPF present; Resend authorized via send.${DOMAIN}`,
+        };
     } catch (e) {
         return { check: 'spf_record', ok: false, detail: `DNS lookup failed: ${e?.message}` };
     }
