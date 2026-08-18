@@ -3105,3 +3105,73 @@ every variant string a table can report (short keys AND display names like
 "Pot Limit Omaha Hi-Lo") maps onto a row that actually renders, and any real
 big blind lights exactly one tier of the ladder. Client tsc clean, suite
 1453/1453.
+
+## §46 — BBJ deep dive: a divergent client copy of payout logic, a wallet showing $0, and a red suite (2026-08-18, CA da274c487)
+
+Dan asked for a full sweep for gaps, stubs, errors and wiring issues before any
+more polish. Five real findings — three of them pre-existing and none cosmetic.
+
+### 46.1 BBJService was a second, WRONG implementation of the money rules
+583 lines, of which exactly ONE method was reachable from the app
+(`executePromoRain`). The rest was not merely dead:
+
+- `calculateContribution()` returned a flat `bigBlind * 0.5`. The live schedule
+  is stakes-tiered — 0.6bb at nano down to 0.03bb at nosebleeds — so it was
+  wrong by up to 20x. **It had unit tests asserting the wrong number**, which is
+  worse than no tests: the mistake looked verified.
+- `checkBBJTrigger()` implemented "Quad 2s or better" — a FOURTH wrong
+  qualifying rule in this codebase (widget: Quad 8s, FAQ: Quad 8s, jackpot page:
+  Quad 2s). Like the server bug that mispaid $99k, it never checked the WINNING
+  hand was quads or better, never checked both hole cards played, and ignored
+  every per-variant floor.
+- `recordContribution()` / `executePromoPayout()` were client paths toward money
+  movement.
+
+Checked whether a browser could actually move jackpot money: **no**. Every
+money-moving BBJ function is service-role only — `bbj_record_contribution`,
+`bbj_atomic_payout_v2`, `fn_bbj_repair_unbanked` and
+`fn_bbj_promo_payout_atomic` all report anon=false AND authenticated=false. The
+one the app really calls, `fn_bbj_promo_rain`, is authenticated + SECURITY
+DEFINER with its own ownership check. So the dead code could only ever have
+failed — but a divergent copy of qualification and fee logic in the browser is a
+liability with no upside. Reduced to 87 lines: the single genuine client action.
+
+Deleted `tests/unit/BBJService.test.ts` (201 lines enshrining the wrong rules)
+and the benchmarks for the removed methods.
+
+### 46.2 The wallet showed union players a $0 jackpot
+`DynamicWallet` — the wallet widget visible across the app — resolved the pool
+by `club_id` only. This is the SAME union defect already fixed on the table
+banner, the lobby ticker and `BBJService.getPool`; it simply had one more home.
+Every member of a club inside a union saw $0 or a stale club-pool figure while
+the real union pool grew. Now resolves union-first.
+
+Its realtime subscription had the matching half of the bug: filtered on
+`club_id` while the fetch (now) reads the union row — i.e. it was watching a row
+the widget never displays. The filter now follows the same scope, using the
+union id the component already tracks (`currentUnionIdRef`) so it re-subscribes
+on the existing `isClubInUnion` transition rather than racing the fetch.
+
+### 46.3 The client test suite was red for everyone
+`tests/unit/PlayerPositionStatsService.test.ts` was orphaned on origin by
+commit 93737d4e7, which deleted the service but left its test. Not a BBJ issue
+— found while verifying — but it meant `npx vitest run` failed for anyone.
+Removed; suite green at 1432/1432 (server 662/662).
+
+### 46.4 Hardening
+`BBJRecentHits` now guards a non-array `recipients` payload. jsonb arrives
+parsed, but this panel renders money and must not blank the whole view on a
+shape surprise.
+
+### 46.5 Visual pass on the banner
+It is a button now (it opens the jackpot view), so: `cursor: help` → `pointer`,
+a real `:focus-visible` ring since it is keyboard-reachable, a slow gold sheen
+sweep so a static number still reads as a live pool, and a scale/glow bump
+whenever the amount GROWS. Every one of them is disabled under
+`prefers-reduced-motion`.
+
+### 46.6 Process note
+A foreign agent ran `git reset --hard` mid-session and destroyed this work
+uncommitted (Dan's documented hazard). Re-applied and committed immediately,
+then pushed via the temp-index technique. Worth repeating the lesson: commit
+before running any verification that takes minutes.
