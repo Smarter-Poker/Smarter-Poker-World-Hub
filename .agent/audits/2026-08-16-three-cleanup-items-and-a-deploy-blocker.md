@@ -1342,3 +1342,69 @@ false because the locator kept matching the announcer after the real banner
 unmounted). Use `div[role="alert"]`.
 
 Auth guard suites 10/10; the handleSignup/validatePassword guard untouched.
+
+---
+
+## Appendix K — the login boxes, round two: measured, not theorized (2026-08-18)
+
+Dan reported the oversized boxes STILL present after Appendix J, plus his
+account "not allowing me to enter" with correct credentials.
+
+### K1. The credentials were never wrong
+
+Verified first, directly against the auth API with the test-account password:
+HTTP 200, valid session. Account record clean (confirmed, not banned, last
+successful sign-in 2026-08-17 22:36 UTC). The login failure was mechanical,
+not credential: his screenshot shows the inflated password box covering the
+Sign In overlay — taps landed in the input, the form never submitted.
+**The "login issue" and the "oversized boxes" were one bug.**
+
+### K2. What the boxes actually were
+
+Appendix J's fixes were real but incomplete, and the tell was in my own
+verification numbers, celebrated at the time as a win: both inputs measured
+**exactly 44px** tall while their inline height said 3.4% (~20px). Nothing
+renders at exactly 44px by coincidence.
+
+`src/index.css` (~line 407), imported site-wide by `_app.js`:
+
+    button:not(.sp-icon-btn), a, input, select, textarea {
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+A correct mobile accessibility rule for normal pages — and fatal on the one
+page whose geometry is owned by baked artwork. The art slots are ~20px tall,
+~25px apart on a phone. Forced 44px minimums mean the email and password
+boxes MUST overlap (44px on 25px spacing = the stacked "extra boxes" in every
+screenshot), and the password box ended 2px above the Sign In overlay —
+real-device rounding put it on top and ate the tap.
+
+Also shipped in this round, correct but insufficient alone:
+`-webkit-appearance: none` + explicit font stack (real-iOS native input
+chrome), and a proper viewport meta with `initial-scale=1` (production had
+been serving Next's bare default — nobody had ever declared one).
+
+### K3. The fix and the proof
+
+`.login-art-card` opt-out scoped to the card: `input, button
+{ min-height: 0 !important }`. The 44px rule stays for every normal page.
+
+Measured on production (iPhone 13 viewport) after deploy `6406d14d`:
+
+    email    195x20  y 419-439
+    password 179x20  y 444-464   email/password: CLEAR
+    sign-in          y 490-516   password/sign-in: CLEAR (26px gap)
+
+And the exact reported flow, end to end through the production UI:
+daniel@bekavactrading.com + correct password -> tap Sign In -> lands on
+**https://smarter.poker/hub**.
+
+### K4. Lesson, bluntly
+
+Appendix J's verification measured 44px boxes and called them "Apple's exact
+recommended tap target" — reading the bug as a feature because the number
+was famous. The correct reaction to a measurement that contradicts the CSS
+you just wrote is to explain the discrepancy, not to admire it. The global
+rule was findable in one grep the moment 44 was treated as a question
+instead of an answer.
