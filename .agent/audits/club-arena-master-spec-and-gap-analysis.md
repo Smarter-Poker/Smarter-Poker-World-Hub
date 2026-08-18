@@ -2740,3 +2740,115 @@ sweep truly recurs at 5 minutes (promo_total 8.33 residual).
 - Payout % tiers and fees match Dan's schedule screenshot exactly.
 
 Invariants 15/15 OK.
+
+---
+
+## §41 — BBJ SOLVENCY OVERHAUL: the "impossible 87 hits / $210k", explained and fixed (2026-08-18)
+
+Dan flagged the pool counters as impossible and set the hard rule: a BBJ
+payout can NEVER exceed what is inside main + backup. Full forensics:
+
+### 41.1 What the numbers actually were
+The pool COUNTERS (hit_count 87, total_paid_out $210k, and one club pool
+showing paid > contributed by ~$11k) are NOT the money that moved. The
+AUTHORITATIVE ledger is bbj_payouts, which is 1:1 with bbj_winners (39 rows
+each, 0 orphans either direction) and sums to $148,121.61 — matching
+bbj_payout_recipients exactly. Across all 39, ZERO exceeded the pool
+balance at hit (max 55% = the mid-stakes tier, avg 43%). No real payout
+ever violated the rule.
+
+### 41.2 Where the phantom 48 hits / $62k came from
+FOUR legacy payers still existed and polluted the counters:
+- fn_union_bbj_pool_payout (authenticated-exec): caller-supplied shares,
+  credited club_members.chip_balance DIRECTLY and wrote NO ledger row while
+  bumping hit_count/total_paid_out — the primary counter polluter.
+- award_bbj: caller-supplied percent with NO pool-sufficiency clamp — a
+  percent > 100 would pay more than the pool and drive main_balance
+  NEGATIVE. Wrote bbj_winners only, credited no one.
+- bbj_atomic_payout (v1, authenticated-exec): superseded, credited nobody.
+- bbj_promo_payout: superseded by fn_bbj_promo_payout_atomic.
+Only bbj_atomic_payout_v2 (engine) and fn_bbj_promo_payout_atomic (admin
+promo) are called by live code. Compounding it, the $99k boat-over-boat
+detector bug (§40, fixed) inflated hit FREQUENCY.
+
+### 41.3 The overhaul (migration 20260818172856)
+1. bbj_atomic_payout_v2 hardened with a STRUCTURAL clamp:
+   v_total := LEAST(v_total, main+backup) plus a hard assert rejecting any
+   percent outside (0,100]. The pool debit drains main first then backup and
+   can never go negative. Dan's rule is now load-bearing regardless of the
+   caller's percent.
+2. All four legacy payers retired (refuse + REVOKE from authenticated/anon;
+   grants service-role only where kept).
+3. Counters reconciled to the authoritative ledger: total_paid_out and
+   hit_count set = SUM/COUNT(bbj_payouts); dead pool_amount column zeroed.
+   Result: total_paid_out now $148,121.61 across 39 hits (was 210k/87).
+4. New bbj_solvency invariant: 0 payouts exceeding pool at hit AND 0 legacy
+   payers authenticated-executable. Health is now 16/16.
+Probes (rolled back): every legacy payer refuses; v2 rejects percent 150;
+v2 at 100% of a 100+40 pool pays <= 140 and never drives the pool negative.
+
+### 41.4 Verified
+bbj_solvency = OK [payouts exceeding pool=0, legacy payers auth-exec=0].
+total_paid_out reconciled to ledger ($148,121.61 == SUM(bbj_payouts)).
+Invariants 16/16. Combined with §40 (winner-must-hold-quads, both-cards-
+play) the jackpot now fires only on true bad beats and can never overpay
+the pool.
+
+## §42 — BBJ run-back: per-variant table widget, live union-aware ticker, celebration upgrade (2026-08-18)
+
+Dan re-ran the BBJ deep-dive with a build-out mandate ("improve the bbj in every
+possible way, including the graphics and animations"). §40–41 fixed the money;
+this pass fixed what players actually SEE.
+
+**Self-check first (counter reconciliation fallout).** §41 zeroed the legacy
+`bbj_pools.pool_amount` column. Grep of the client confirmed every display
+(BBJDisplay.tsx, DynamicWallet.tsx, BadBeatJackpotPage.tsx) reads
+`main_balance` — zeroing broke nothing.
+
+**What was wrong at the table (all fixed, CA e06c72ffe):**
+
+1. **The widget lied about the rules.** `TableModalsLayer` hardcoded
+   `qualifyingHand="Quad 8s or better"` — wrong for every variant we spread
+   (NLH is Aces full of Jacks losing to Quads+; PLO is Quad Kings+). New
+   `getBBJQualifyingInfo()` in client RakeConfig normalizes whatever the table
+   state carries (variant keys like `plo4` OR display names like "No Limit
+   Hold'em") and returns the correct rule + hole-card requirement line.
+   Pinned by an 8-test matrix (`tests/rakeconfig-bbj-label.test.ts`).
+2. **Client plo6 advertised a jackpot the engine never pays.** Client config
+   said 8-high SF qualifies; the server (the detector) marks PLO6 ineligible.
+   Synced client → ineligible, and the widget now renders NOTHING for
+   ineligible variants instead of advertising an impossible jackpot.
+3. **Union tables showed a $0 jackpot.** `TablePage` looked up the pool by
+   `club_id` only. Union clubs bank the jackpot in the UNION pool (server
+   checks union first) — so every union table's banner read 0 while the real
+   jackpot grew. Pool resolution now mirrors the server (union first), in both
+   TablePage and `BBJService.getPool`.
+4. **The banner was a one-shot snapshot.** Loaded once on mount; never grew
+   with contributions, never reset after a hit. Now subscribed to the pool row
+   via Supabase realtime (`bbj_pools` confirmed in the `supabase_realtime`
+   publication) — the jackpot ticks up live as hands rake and drops the moment
+   a hit drains it. The widget's existing lerp animation makes the tick smooth.
+5. **Popover unreachable on phones.** Hover-only; primary client is 375px
+   touch. Tap now toggles it.
+
+**Celebration upgrade (BBJCelebration.tsx):**
+- Retina-sharp canvas: renders at `devicePixelRatio` (capped 2) with CSS-pixel
+  layout — was visibly soft on every retina/mobile screen.
+- Particle budget scales with viewport area (min 35% on a 375px phone) —
+  300 shadow-blurred particles chugged on low-end phones.
+- `prefers-reduced-motion` honored: particle storm skipped entirely, static
+  overlay still shows every number.
+- The per-variant qualifying rule from the server `bbj_hit` event
+  (`qualifyingHandLabel`, already emitted — was stored client-side and never
+  shown) now renders as a banner under the title, threaded
+  TablePage → TableModalsLayer → BBJCelebration.
+
+**Server hardening (bbj.ts):** all three pool lookups (cache re-read, fresh
+lookup, payout) now filter `status='active'`; auto-create sets it explicitly.
+Verified safe first: column is NOT NULL DEFAULT 'active', all 3 production
+pools active.
+
+**Verification:** server tsc clean, client tsc clean, server suite 643/643,
+new client label tests 8/8, invariants 16/16 (bbj_solvency OK), commit
+e06c72ffe pushed (engine auto-deploy pending at write time — verified below).
+Foreign-agent worktree edits (TimeBank street-limit work) left untouched.
