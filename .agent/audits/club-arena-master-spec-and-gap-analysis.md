@@ -2966,3 +2966,62 @@ near-miss build. Foreign-agent `git reset --hard` wiped the FeeReconciler edits
 mid-work (Dan's documented hazard) — re-applied and committed immediately;
 all pushes used the temp-index technique so foreign working trees stay
 untouched.
+
+## §44 — The jackpot page was telling players four untrue things (2026-08-18, CA d65a22b6c)
+
+Dan asked how the BBJ area's UI/UX could be better. Auditing the live surfaces
+found less a styling problem than a HONESTY problem — the page stated facts
+that were wrong, and one 771-line component that was never mounted at all.
+
+### 44.1 A third wrong qualifying-hand string
+`BadBeatJackpotPage` said "Qualifying Hand: Quad 2s or better beaten". That is
+the THIRD distinct wrong rule found in this codebase (the table widget said
+"Quad 8s", the FAQ said "Quad 8s") and it was wrong for every game we spread.
+Replaced by `BBJRulesPanel`, a per-variant table generated from the same config
+the server pays from, so it cannot drift into fiction again. A test now asserts
+no eligible variant can ever render "Quad 2s"/"Quad 8s".
+
+### 44.2 A chip amount labelled as a hand count
+"Hands Dealt" displayed `bbj_pools.total_contributed` — chips, not hands. The
+page showed 128,633 "hands dealt" when it meant 128,633 chips collected. And
+the pool's own `hands_contributed` counter has drifted from the ledger (161,442
+counter vs 261,316 actual rows), so `fn_bbj_pool_facts` counts from
+bbj_contributions — the §41 lesson applied again. Now two honest cards: hands
+contributed, and chips collected.
+
+### 44.3 "Your Contribution" could never render
+It read `bbj_contributions.player_id` — NULL on all 550,782 rows, because
+`bbj_record_contribution` never writes it. The card always computed 0 and was
+therefore always hidden, after pulling up to 10,000 rows to the client to
+discover that.
+
+The fee comes out of the POT, which every player in the hand funded, and
+`rake_records.player_contributions` maps user_id -> chips they put in. So a
+player's honest share is `fee x (their pot contribution / pot size)`, which is
+what `fn_bbj_my_contribution` now returns — for `auth.uid()` ONLY, so it cannot
+be used to profile other players. Uses the existing GIN index on
+player_contributions; measured 830ms cold / 134ms warm over 90 days. Probed: no
+auth returns zeros, a real player attributed 127.51 chips across 927 hands.
+
+### 44.4 The payout structure implied the whole pool
+It showed 50/25/25 with no hint that a table pays only its stakes-tiered slice.
+A player at 0.10/0.20 reading a $9,000 pool and "50% to the bad beat" would
+reasonably expect $4,500; the true figure is 15% of the pool split three ways,
+so $675. The new "What it pays" tab shows the full 15-85% ladder with live chip
+figures per tier, and the payout bars now say they apply to the tiered share.
+
+### 44.5 Hit history hid the people
+The query selected `winner_display_name` / `loser_display_name` (populated on
+all 39 rows) and rendered neither — a hit list with no names reads like test
+data. Names now lead each row.
+
+### 44.6 771 lines of dead, broken UI removed
+`src/components/bbj/BBJDisplay.tsx` — a full tabbed jackpot UI (winners,
+qualifying hands, rules, tiers) — was mounted NOWHERE, and passed `{}` as its
+own qualifying-hands data, so even if mounted its rules tab would have been
+blank. Deleted; the useful idea is what BBJRulesPanel now renders from live
+config.
+
+**Verified:** client tsc clean, client suite 1442/1442, BBJ label/rules tests
+13/13, DB functions probed for both correctness and refusal, migration
+20260818224125 mirrored. Pushed via temp-index (foreign agents active).
