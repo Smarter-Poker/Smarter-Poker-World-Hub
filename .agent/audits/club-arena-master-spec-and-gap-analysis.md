@@ -2740,3 +2740,56 @@ sweep truly recurs at 5 minutes (promo_total 8.33 residual).
 - Payout % tiers and fees match Dan's schedule screenshot exactly.
 
 Invariants 15/15 OK.
+
+---
+
+## §41 — BBJ SOLVENCY OVERHAUL: the "impossible 87 hits / $210k", explained and fixed (2026-08-18)
+
+Dan flagged the pool counters as impossible and set the hard rule: a BBJ
+payout can NEVER exceed what is inside main + backup. Full forensics:
+
+### 41.1 What the numbers actually were
+The pool COUNTERS (hit_count 87, total_paid_out $210k, and one club pool
+showing paid > contributed by ~$11k) are NOT the money that moved. The
+AUTHORITATIVE ledger is bbj_payouts, which is 1:1 with bbj_winners (39 rows
+each, 0 orphans either direction) and sums to $148,121.61 — matching
+bbj_payout_recipients exactly. Across all 39, ZERO exceeded the pool
+balance at hit (max 55% = the mid-stakes tier, avg 43%). No real payout
+ever violated the rule.
+
+### 41.2 Where the phantom 48 hits / $62k came from
+FOUR legacy payers still existed and polluted the counters:
+- fn_union_bbj_pool_payout (authenticated-exec): caller-supplied shares,
+  credited club_members.chip_balance DIRECTLY and wrote NO ledger row while
+  bumping hit_count/total_paid_out — the primary counter polluter.
+- award_bbj: caller-supplied percent with NO pool-sufficiency clamp — a
+  percent > 100 would pay more than the pool and drive main_balance
+  NEGATIVE. Wrote bbj_winners only, credited no one.
+- bbj_atomic_payout (v1, authenticated-exec): superseded, credited nobody.
+- bbj_promo_payout: superseded by fn_bbj_promo_payout_atomic.
+Only bbj_atomic_payout_v2 (engine) and fn_bbj_promo_payout_atomic (admin
+promo) are called by live code. Compounding it, the $99k boat-over-boat
+detector bug (§40, fixed) inflated hit FREQUENCY.
+
+### 41.3 The overhaul (migration 20260818172856)
+1. bbj_atomic_payout_v2 hardened with a STRUCTURAL clamp:
+   v_total := LEAST(v_total, main+backup) plus a hard assert rejecting any
+   percent outside (0,100]. The pool debit drains main first then backup and
+   can never go negative. Dan's rule is now load-bearing regardless of the
+   caller's percent.
+2. All four legacy payers retired (refuse + REVOKE from authenticated/anon;
+   grants service-role only where kept).
+3. Counters reconciled to the authoritative ledger: total_paid_out and
+   hit_count set = SUM/COUNT(bbj_payouts); dead pool_amount column zeroed.
+   Result: total_paid_out now $148,121.61 across 39 hits (was 210k/87).
+4. New bbj_solvency invariant: 0 payouts exceeding pool at hit AND 0 legacy
+   payers authenticated-executable. Health is now 16/16.
+Probes (rolled back): every legacy payer refuses; v2 rejects percent 150;
+v2 at 100% of a 100+40 pool pays <= 140 and never drives the pool negative.
+
+### 41.4 Verified
+bbj_solvency = OK [payouts exceeding pool=0, legacy payers auth-exec=0].
+total_paid_out reconciled to ledger ($148,121.61 == SUM(bbj_payouts)).
+Invariants 16/16. Combined with §40 (winner-must-hold-quads, both-cards-
+play) the jackpot now fires only on true bad beats and can never overpay
+the pool.
