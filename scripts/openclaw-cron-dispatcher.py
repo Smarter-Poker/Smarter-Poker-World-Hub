@@ -293,6 +293,7 @@ ALL_CRONS = [
     ('/api/cron/vip-diamond-stipend',             dict(day=1, hour=0, minute=5)),  # monthly, 1st @ 00:05 UTC
     ('/api/cron/collusion-scan',                  dict(minute='*/30')),       # every 30 min — 4-pattern detector incl. TIMING_CORRELATION (x67c)
     ('/api/cron/chip-supply-snapshot',            dict(minute=0)),           # hourly — M4 chip-conservation series. fn_snapshot_chip_supply existed but was never scheduled: ONE row (2026-08-08), so deltas stayed NULL and nothing ever reconciled.
+    ('/api/cron/solver-watchdog',                 dict(minute=20)),          # hourly - the v2 backfill died 2026-08-15 and nothing surfaced it for 3 days
 
     # ══ WAVE 4 — Live Streaming Infrastructure (2026-04-28) ═══════════════════
     # Zombie cleanup: marks stale live streams (>6h) as ended, cleans viewers.
@@ -482,6 +483,7 @@ WORKERS_PREFERRED = {
     #     uses hyphen instead of slash; value-side mapping handles it)
     '/api/cron/collusion-scan':                '/cron/collusion-scan',
     '/api/cron/chip-supply-snapshot':          '/cron/chip-supply-snapshot',
+    '/api/cron/solver-watchdog':               '/cron/solver-watchdog',
     '/api/cron/commander-daily-aggregate':     '/cron/commander-daily-aggregate',
     '/api/cron/daily-challenges':              '/cron/daily-challenges',
     '/api/cron/freeroll-qualification-sync':   '/cron/freeroll-qualification-sync',
