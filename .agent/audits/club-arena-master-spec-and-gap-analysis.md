@@ -2484,3 +2484,34 @@ cent on every hand), rake 12.32 + bbj 1.00 collected, blank-winner
 detector 0. Users can run it two or three times, from preflop, flop, or
 turn, with pots split correctly and rake + BBJ taken exactly once.
 593/593 server tests.
+
+### 37.8 The human-facing half: two more wiring breaks fixed (02:45 UTC)
+
+Horses proved the engine; auditing the HUMAN path found the feature was
+still unusable by actual players:
+
+- **/rit rejected the chooser phase** (CA 1f0880a55, deployed, engine
+  /health = 1f0880a5). The handler required `response` in
+  {accept,decline}, but the client's chooser phase sends only
+  `{ tableId, runs }` - a human chooser's 1/2/3 pick was 400'd at the
+  HTTP layer, so no human could ever START a run-it-twice. Horse
+  responses bypass HTTP (in-engine), which masked it. Handler now takes
+  either runs or response; 4 new handler tests pin both phases and both
+  400 paths. 597/597 server tests.
+- **rit_result was discarded by a client stub** (CA 7bec698af, shipped
+  in WH sync f6fda1d4c6). The event is the ONLY place the extra boards
+  exist client-side (RIT boards never enter the engine's community-card
+  state), and the TablePage handler threw it away - a human in a RIT
+  hand watched the pot ship with no runout shown. New RunItTwiceResult
+  overlay renders every board (2 or 3) plus net payouts with usernames
+  for all viewers; auto-dismisses in 12s. (The orphaned RunItTwiceBoard
+  component was heads-up/2-run only and could not render the real event.)
+- **Insurance per-street flow reviewed** against the parity fix: it deals
+  its own streets from any board length, recursion terminates at
+  result.complete → finalizeRunout, and it now genuinely starts at the
+  first undealt street. No live insurance tables; no regression.
+
+Cumulative live tally since 02:20 UTC: 7 RIT hands, 5 of them THREE-run,
+0 tournament leaks (gate holding), 0 conservation violations, rake 23.53
++ bbj 2.50 collected, blank-winner detector 0 across the hour, platform
+invariants 15/15 OK.
