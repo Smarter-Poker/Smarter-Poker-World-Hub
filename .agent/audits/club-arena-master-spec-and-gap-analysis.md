@@ -2852,3 +2852,33 @@ pools active.
 new client label tests 8/8, invariants 16/16 (bbj_solvency OK), commit
 e06c72ffe pushed (engine auto-deploy pending at write time — verified below).
 Foreign-agent worktree edits (TimeBank street-limit work) left untouched.
+
+### §42.1 — Second improvement pass: payout truth, personalization, departed-player notice (2026-08-18, CA 1d30ff26b)
+
+Dan asked what ELSE could improve the BBJ and overall UX. Three gaps found
+and shipped:
+
+1. **The banner teased money low stakes can never win.** The widget shows
+   the full main pool, but a table only pays its stakes-tiered slice (nano
+   15% ... nosebleeds 85%). Worse, the client's own config said
+   `bbjPayoutTotal: 100` for everyone, and its tier boundaries had drifted
+   from the server's. New `getBBJPayoutPercentForBB()` mirrors the server's
+   getTierForBB boundaries EXACTLY (pinned by a 12-case boundary test), and
+   the popover now shows "This table hits for 40% of the pool (≈ $X) — 50%
+   bad beat / 25% winner / 25% table".
+2. **The celebration was generic.** It now shows "YOU WON +$X" with the
+   viewer's actual share (bad-beat holder / hand winner / table share), and
+   observers see a neutral line instead of a false "your balance" claim.
+3. **Departed players were paid silently.** The payout RPC wallet-credits
+   recipients who left the table before settlement — with no signal. The
+   server now inserts a notification row per departed recipient after a
+   successful payout (non-fatal by design: the money is already durably
+   placed by the atomic RPC; a failed insert costs only the note).
+
+Also verified: the jackpot page + BBJDisplay "Previous Winners" read
+bbj_winners — the authoritative ledger §41 reconciled — with realtime.
+
+Push note: foreign-agent time-bank WIP blocked a worktree merge, so this
+landed via the temp-index technique on top of their commits (f54c1f3ed);
+their uncommitted files untouched. tsc clean both sides, server 643/643,
+client label/payout tests 10/10, engine deploy verified below.
