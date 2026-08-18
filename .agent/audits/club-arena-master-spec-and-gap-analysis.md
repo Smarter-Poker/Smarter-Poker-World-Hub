@@ -2398,3 +2398,61 @@ destroyed by crediting a state COPY) — both fixes coexist; mine rebased on top
 - NOT fixable by an agent: GHCR PAT + VM registry login rotation (§35.3);
   E1 live exercise (zero natural RIT hands in 24h - standing blank-winner
   detector in place); 21 diverged ancient WH branches (needs Dan's say-so).
+
+---
+
+## §37 — Run It Twice/Three: from dead feature to live and cent-exact (2026-08-18)
+
+Dan's directive: users must be able to run it two or three times, pots split
+correctly, rake + BBJ taken out, no gaps. Found FOUR stacked defects that
+together meant ZERO RIT hands had ever occurred in live traffic:
+
+### 37.1 Horses never answered rit_offer (CA 2ff8a0458)
+No responder existed anywhere server-side: any horse in the all-in set let
+the 10s offer expire → hand always ran once. Horses now respond with
+human-like delays (chooser picks 2, 3 every third hand, deterministic by
+hand number; responders accept), guarded against stale hands/dead offers.
+
+### 37.2 Consent race (CA 2ff8a0458)
+`chosenRuns` defaulted to the table max at offer time and responders
+accepting quickly flipped the offer to accepted BEFORE the chooser picked -
+silently discarding the chooser's choice. Completion now requires
+`chooserDecided`; early accepts are recorded and the chooser's pick is the
+completing action; late picks can't mutate settled offers; picks above the
+table max clamp. 8 consent tests.
+
+### 37.3 Preflop all-in rake/BBJ leak — ALL runout paths (CA 2ff8a0458)
+Only advanceStage() ever set `sawFlop`; runOutCommunityCards (single-run),
+dealNextStreet (insurance), and the RIT board path never did. With
+noFlopNoDrop always true on live tables, EVERY preflop all-in hand paid no
+rake and funded no jackpot. VERIFIED LIVE across the deploy boundary:
+01:17-01:20 preflop all-in runouts show rake 0.00 on pots of 2,522 / 3,360
+/ 13,699; from 01:26 the same shape collects rake 2.50-5.00 + bbj 0.12-0.50.
+
+### 37.4 RIT gated on a column nothing writes (CA bcb417580)
+Engine read `tables.run_it_twice_enabled` (39/710 open tables, an old
+script's leftovers). The product writes `run_it_twice` (CreateTableModal)
+and `allow_run_it_twice` (TableCreationPage) and the lobby ADVERTISES the
+feature off `run_it_twice` - on ~every table. 22 eligible all-in runouts
+in one measured 40-min window never received an offer. Engine now derives
+owner intent: (run_it_twice AND allow_run_it_twice) OR legacy column;
+insurance mutual exclusion unchanged.
+
+### 37.5 Hand history completeness (CA d1a9d5508)
+RIT boards were built outside HandController → a preflop all-in RIT hand
+recorded NO board. Board 0 (canonical, BBJ-eligible) is now the hand's
+community_cards; extra runouts appended to actions as rit_board_2/3.
+
+### 37.6 Proof
+- RunItTwice.money.test.ts drives the REAL dealAndResolveRIT at the real
+  all-in runout point: 2 runs, 3 runs, 3-way side pots - chips conserved
+  to the cent (stacks + rake + bbjFee == buy-ins), rake/BBJ once (not per
+  board), winners recorded and summing to the net pot, all recipients
+  all-in participants. Single-run preflop leak pinned. 588/588 pass.
+- LIVE (first RIT hands in platform history, 01:37-01:38 UTC):
+  ca37cf62: pot 299.22, rake 5.00, bbj 0.50; boards SPLIT - two winners
+  146.86 each = 293.72 = net pot exactly; both boards recorded.
+  3da5894e: pot 109.27, rake 3.00, bbj 0.30; one player swept both boards,
+  paid exactly 105.97. Blank-winner detector: 0 (E1 holding).
+- 3-run hands: money path test-proven; live occurrence pending (chooser
+  horses pick 3 every third RIT hand - will accumulate naturally).
