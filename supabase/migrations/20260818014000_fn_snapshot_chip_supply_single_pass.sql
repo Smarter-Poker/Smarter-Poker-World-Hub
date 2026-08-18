@@ -1,0 +1,30 @@
+-- Applied to production 2026-08-18 via Supabase MCP apply_migration as
+-- 20260818_fn_snapshot_chip_supply_single_pass. Mirrored per CLAUDE.md RULE 2.
+--
+-- fn_snapshot_chip_supply() scanned wallet_transactions (2,048,502 rows /
+-- 582 MB) THREE times: totals, then group-by-category for credits, then again
+-- for debits. One parallel seq scan measures 2.4s, so three is ~7.2s before the
+-- wallets / table_seats / previous-snapshot queries. PostgREST connects as
+-- `authenticator` (statement_timeout=8s), so the function sat just over the
+-- line and died with "canceling statement due to statement timeout".
+--
+-- THAT is why chip_supply_snapshots held exactly ONE row (2026-08-08) with
+-- every delta NULL since the M4 audit built it. The design was right; it could
+-- not complete.
+--
+-- Single GROUP BY (type, category) pass returns 18 rows; both totals and both
+-- category maps derive from that. Measured end-to-end through the live cron
+-- route: 3,889 ms, ~2x headroom. First real output:
+--   snapshots_available=2, has_comparable_prior=true,
+--   unexplained_delta=28,765,423.76
+--
+-- No index added - wallet_transactions takes a write on every hand and
+-- removing two redundant scans was sufficient.
+--
+-- Totals are sum() of exact per-group sum()s, identical to summing the raw
+-- column; round(,2) applies only inside the jsonb maps, as before. Delta
+-- arithmetic and NULL-on-first-snapshot are unchanged.
+--
+-- Full body as applied is in the MCP migration of the same name; this mirror
+-- carries the rationale. ROLLBACK: restore the three-scan body from
+-- 20260808_m4_chip_supply_snapshots (it will time out again at 8s).
