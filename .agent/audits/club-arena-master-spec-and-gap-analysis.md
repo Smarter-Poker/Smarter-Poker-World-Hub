@@ -2620,3 +2620,48 @@ if the pot is chopped, insurance is voided."
 Final sweep: engine serving f58a882c, 613/613 tests, RIT live (4 hands/1h,
 0 conservation violations), blank-winner detector 0, insurance dark until
 an owner enables it (0 tx - correct), invariants 15/15 OK.
+
+---
+
+## §39 — Multiway RIT per Dan's rules + a chooser bug the proofs caught (2026-08-18 16:40)
+
+Dan's rules verbatim: RIT can be multiway — every player at the table if
+all all-in; the player with the best ACTUAL hand at the time (not the best
+percentage to win) decides the run count; ALL all-in players must accept;
+one decline runs the pot once.
+
+### 39.1 Verified as specified (RunItTwice.multiway.test.ts, CA 2ac71be40)
+- Chooser = best MADE hand, pinned with the sharpest case: an overpair
+  out-chooses a monster straight-flush combo draw that is the EQUITY
+  favorite; three-way preflop, pocket aces choose.
+- Full-table 6-way consent against the real engine: five accepts leave
+  the offer pending, the sixth completes it; ONE decline anywhere kills
+  it for everyone (pot runs once).
+- 6-way 3-run money: five side pots, over-shove excess refunded uncalled
+  before rake, chips conserved to the cent, winners sum to the contested
+  net pot, all three boards recorded.
+- A declined offer flows through the REAL 250ms wait to a single-board
+  completion with no RIT markers.
+
+### 39.2 The proofs caught a live bug: preflop chooser was wrong
+Since the parity fix, preflop all-ins park on an EMPTY board - and
+evaluateHand cannot rank a bare 2-card holding: it selected KK over AA
+as chooser. Preflop chooser selection now compares hole-card strength
+(pair > unpaired, higher pair, then kickers); postflop the full
+evaluator rules unchanged. This mattered for every preflop multiway
+all-in since 51f951290 (~14h) - the wrong player got the 1/2/3 choice;
+money was never wrong (the chooser only picks the run count).
+
+### 39.3 Display improvements shipped with it
+- rit_result now carries per_board_winners (exact winner set per board,
+  splits and side pots included); the result overlay labels each run
+  with who won it.
+- The responder prompt resolved the chooser to a display NAME - it was
+  rendering the raw UUID of whoever asked to run it twice.
+- Regression from a stale-based foreign edit reverted: an uncommitted
+  working-tree change had deleted the committed rit_result overlay
+  wiring in TablePage; restored from HEAD and re-patched.
+
+Live post-deploy (engine 2ac71be4): 4 RIT hands in the first 10 minutes,
+0 conservation violations, blank-winner detector 0, invariants 15/15.
+619/619 server tests, client tsc clean.
