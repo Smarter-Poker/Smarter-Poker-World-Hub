@@ -1298,3 +1298,47 @@ unmonitored" and was about to build a shared health wrapper. That was wrong —
 request to `cron_execution_log`, 224k rows deep. Checking before building
 avoided adding redundant infrastructure (RULE 12). The real gap is not
 collection, it is that **nothing reads what is collected**.
+
+---
+
+## Appendix J — /auth/login: four reports, one root cause (2026-08-18)
+
+Dan reported, with screenshots: mobile "blue boxes" making typing nearly
+impossible, an undismissable full-width error after a wrong password, no
+visible field boxes at all on desktop, and the card cut off at the bottom.
+
+All four trace to one design fact: **the background image bakes in every
+control EXCEPT the email/password fields** — that band of the card is empty
+art. The real `<input>` elements were styled nearly invisible
+(`rgba(0,8,25,0.65)` on black, 1.5px cyan border) at **14px** font.
+
+- Desktop: fields effectively invisible — nowhere to type.
+- Mobile: iOS Safari auto-zooms the page when focusing ANY input under 16px.
+  The zoomed viewport is the "blue boxes everywhere" screenshot; the 10px
+  floating labels sat 7px above 15px-tall inputs and collided.
+- Error banner: zIndex 20 directly over the email field, no dismiss — one
+  wrong password left the form dead.
+- Cutoff: `height: 100vh` + `overflow: hidden`; on mobile 100vh includes the
+  area under browser chrome.
+
+Fix (b28db4818c): fields restyled as real visible boxes matching the baked
+design language, **16px font** (the zoom trigger), placeholders replacing the
+colliding labels, inputs grown to the empty art band (44px tap targets — 
+Apple's exact recommendation), banner made pointer-events:none with a
+self-enabled X + 8s auto-expiry + cleared on first keystroke (success
+messages persist for magic-link flows), container `minHeight: 100dvh` +
+auto overflow.
+
+Verified **in production** on an iPhone 13 viewport via Playwright:
+fields visible at 195×44px, font 16px, page fits the viewport, and the exact
+reported failure flow re-run — wrong password → banner shows correct text →
+cleared by typing TRUE, cleared by X TRUE, auto-expired at ~8s TRUE, email
+field clickable under a live banner TRUE.
+
+Verification note for future agents: Next.js injects
+`#__next-route-announcer__` which is also `[role="alert"]` and always
+"visible". It poisoned the first verification pass (every clear reported
+false because the locator kept matching the announcer after the real banner
+unmounted). Use `div[role="alert"]`.
+
+Auth guard suites 10/10; the handleSignup/validatePassword guard untouched.
