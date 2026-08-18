@@ -3072,3 +3072,36 @@ recipient role `bad_beat` at 2657.66, limit clamped to 25, limit 0 floors to 1.
 splits, recipients reconcile to the total, exactly one of each key role, and
 the matchup line can never invert). Client tsc clean, suite 1451/1451.
 Pushed via temp-index (foreign agents active).
+
+### §45.1 — One jackpot surface: every game, every stake, from the table AND the lobby (CA 16e83cec2)
+
+Dan: the jackpot view should also show the payout % per stakes and the
+qualifying hands for each game, and it should open from the BBJ button at the
+top of a table OR inside the lobby.
+
+The tap-through previously showed only the CURRENT table's rule and payout.
+Now three tabs:
+
+- **Last 5 jackpots** — as shipped in §45.
+- **Qualifying hands** — the rule for every game we spread, generated from the
+  same config the server pays from (NLH/FLH, PLO4, PLO8, PLO5, and PLO6 /
+  Short Deck shown explicitly as not eligible).
+- **Payouts** — the full 15→85% stakes ladder with live chip figures per tier,
+  plus the 50/25/25 split of that tier's share.
+
+Opened at a table, the player's own rows are marked **YOUR GAME** / **YOUR
+STAKES** and a summary of what a hit would pay right there sits above the
+tables. Opened from the lobby there is no table context, so it renders the full
+tables with nothing marked rather than inventing a stake — the lobby ticker now
+opens this same sheet instead of navigating away to the jackpot page.
+
+Structural notes: `BBJRulesPanel` gained `section` / `embedded` / highlight
+props so the modal renders a single section without nesting a tab bar inside a
+tab bar, and `BBJInfoModal` moved to `components/bbj/` now that it is not
+table-only.
+
+Two tests pin the highlighting, which is the part most likely to rot silently:
+every variant string a table can report (short keys AND display names like
+"Pot Limit Omaha Hi-Lo") maps onto a row that actually renders, and any real
+big blind lights exactly one tier of the ladder. Client tsc clean, suite
+1453/1453.
