@@ -2374,3 +2374,27 @@ destroyed by crediting a state COPY) — both fixes coexist; mine rebased on top
 - Client TimeBankDisplay caps its bar at 120s for VIP while a fresh VIP
   session now starts at 150s (30 base + 120) — bar clamps at 100%, cosmetic
   only, noted not fixed.
+
+### 36.6 Fix-everything pass before next phase (2026-08-18 01:00 UTC)
+
+- **TimeBankDisplay scale fixed** (CA b9fbf17e4): VIP max is now 30s base +
+  120s quota = 150s. Component confirmed UNMOUNTED (TablePage renders its
+  own indicator, initialized from the now-real table_seats columns) - fixed
+  so future wiring doesn't resurrect the wrong scale. §36.5 item closed.
+- **cron_execution_log zombie rows now self-heal** (workers b773177,
+  v1.0.2): rows stuck 'running' >30 min are marked 'killed' at boot and
+  every 10 min. First boot sweep reaped 9 zombies (more than the 3
+  hand-cleaned - other cron jobs had them too). Verified live via container
+  log '[cron-sweep] marked 9 stale rows'. Standing count of stale rows: 0.
+- **deploy-workers.sh has a working path again**: --build-on-server
+  (git-archive HEAD → VM docker build → compose up → health probe), the
+  flow that shipped the last three workers deploys by hand. Dogfooded for
+  this very deploy: rev b773177ddb5 live, health OK. The GHCR path's error
+  message now states the PAT is dead and points at the fallback. PAT
+  rotation remains Dan's action (§35.3) to restore the registry path.
+- **bbj-detect steady state re-verified post-restart**: alternating ~410s
+  full runs and 0ms overlap-skips, every firing success, promo_total 21.60
+  (active accrual between sweeps), invariants 15/15 OK.
+- NOT fixable by an agent: GHCR PAT + VM registry login rotation (§35.3);
+  E1 live exercise (zero natural RIT hands in 24h - standing blank-winner
+  detector in place); 21 diverged ancient WH branches (needs Dan's say-so).
