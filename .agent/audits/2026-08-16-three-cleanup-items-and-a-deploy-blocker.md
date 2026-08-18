@@ -1105,3 +1105,98 @@ caller that had never once been used. A detector nobody had ever counted by
 player type. A reconciliation that could not finish inside its own statement
 timeout. In each case the headline in the task list was wrong, and reading the
 data before writing code changed what got built.
+
+---
+
+## Appendix H — #16 solver: the task named the wrong problem (2026-08-18)
+
+Filed as "Solver M2 locked out since the key rotation — capacity, not data
+loss." Checking the data before touching anything found something larger.
+
+### H1. What is actually true
+
+| measure | value |
+|---|---|
+| solved_spots_gold | 8,410,279 spots |
+| carry strategy_matrix_v2 | 1,891,817 (**22.5%**) |
+| v2 remaining | **6,518,462** (77.5%) |
+| v2 solved in last 24h | **0** |
+| last v2 solve | **2026-08-15 09:57** (~64h before this audit) |
+| M1 | alive, reporting every few seconds |
+| M2 | silent since 2026-08-16 00:38 (~49h) |
+
+**M2 is not the cause.** It went quiet roughly fifteen hours *after* v2 had
+already stopped. The v2 re-solve pass is dead on both machines.
+
+**And the backlog is growing.** M1 stayed alive the whole time creating NEW v1
+spots — 49,532 in 24 hours — none of which have v2. Measured live during this
+session, `v2_remaining` rose from 6,518,462 to 6,518,694 in minutes.
+
+The reason nobody noticed: from a distance throughput looks *better*.
+`solved_spots_gold` grew 70,076 rows in the last 48h versus 31,462 in the prior
+48h. The fleet is busy. It is just busy doing the half of the job that was
+already done.
+
+### H2. Severity, stated honestly
+
+**Not user-facing.** `browse-solutions.js:96`:
+
+    const matrix = (spot.strategy_matrix_v2 ? v2ToAppMatrix(spot.strategy_matrix_v2) : null)
+                   || spot.strategy_matrix || {};
+
+It prefers v2 and falls back to v1, so a player always gets a matrix — 77.5% of
+spots simply serve the older pre-PioSOLVER strategy. `custom-train.js` and
+`aggregate-report.js` never read v2 at all. This is a quality gap, not an
+outage, which is exactly the sort of thing that stays invisible for three days.
+
+### H3. What was fixed, and what was not
+
+The solver runs on LAN machines this codebase cannot reach, so **the solver was
+not restarted** — that still needs doing on the boxes themselves, and M2's
+`SUPABASE_SERVICE_ROLE_KEY` still needs the `sb_secret_` value.
+
+What was in reach was the reason it went unnoticed. `/cron/solver-watchdog`
+(workers `dca7731`, scheduled hourly at :20 via Open Claw) reports machine
+silence and v2 stall into the **existing** `cron_health_log` — unique on
+`cron_name`, so it is a current-state row, not an append log. No new infra
+(RULE 12).
+
+Thresholds live in an exported pure function so they are testable without a
+database. Five tests, including the real 2026-08-15 scenario reconstructed from
+production, a boundary case, and — deliberately — that the check goes **quiet**
+once the backlog is finished rather than alarming forever after success. A
+watchdog that fires permanently is one people learn to ignore, which is how the
+collusion detector in Appendix G ended up with 169,523 unread rows.
+
+Backed by `fn_solver_v2_progress()`. The naive count over 8.4M wide jsonb rows
+measures **27,399 ms** against an 8s `statement_timeout` — a watchdog written
+that way could never run, which is the same failure it exists to catch. Partial
+index (40 MB, CONCURRENTLY) plus a `reltuples` estimate brings it to 486 ms.
+
+### H4. My own watchdog silently recorded nothing
+
+First production run returned HTTP 200 with a completely correct verdict —
+`M2 silent for 49.5h`, `v2 backfill stalled: 6,518,694 spots remaining, no v2
+solve for 64.2h`. I checked `cron_health_log` anyway. **No row.**
+
+`cron_health_log_last_status_check` permits only `success|error|timeout`; I had
+written `ok`/`warn`, so every upsert was rejected — and the route swallowed the
+error with `console.warn` and returned 200 regardless. A monitor that reports
+health while persisting nothing is worse than no monitor, and I had rebuilt
+that exact defect inside the route written to end it.
+
+Fixed both: the verdict maps onto the allowed vocabulary, and a failed write now
+returns **500** instead of a cheerful 200. Verified after redeploy —
+`last_status=error`, `last_duration_ms=3844`, both problems in `error_message`,
+`v2_remaining` and `hours_since_v2` in `metadata`.
+
+The lesson is the one this whole session keeps producing: **checking the 200 is
+not checking the outcome.** The only reason this was caught is that I queried
+the table instead of trusting the response code.
+
+### H5. Still open for Dan
+
+1. **Restart the v2 backfill on the LAN boxes** — nothing here can reach them.
+   The watchdog will flip to `success` on its own once v2 solves resume.
+2. **M2's service-role key** — still the original item, still capacity-only.
+3. **Rotate the two dead deploy credentials** from Appendix G4.
