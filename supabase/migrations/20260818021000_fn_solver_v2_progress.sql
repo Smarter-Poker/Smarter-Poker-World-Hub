@@ -1,0 +1,36 @@
+-- Applied to production 2026-08-18 via Supabase MCP apply_migration as
+-- 20260818_fn_solver_v2_progress. Mirrored per CLAUDE.md RULE 2.
+--
+-- Cheap liveness/progress read for the GTO solver fleet, plus the partial
+-- index it depends on:
+--
+--   CREATE INDEX CONCURRENTLY idx_solved_spots_gold_solved_v2_at
+--     ON public.solved_spots_gold (solved_v2_at)
+--     WHERE solved_v2_at IS NOT NULL;    -- 40 MB
+--
+-- CONCURRENTLY because solved_spots_gold takes writes continuously (~360 rows
+-- per 10 min), and therefore run via execute_sql - CONCURRENTLY cannot run
+-- inside apply_migration's transaction.
+--
+-- WHY: the v2 re-solve pass stopped 2026-08-15 09:57 and nothing surfaced it
+-- for nearly three days. 8,410,279 spots, only 1,891,817 (22.5%) with
+-- strategy_matrix_v2, 6,518,462 remaining, ZERO solved in 24h. M1 stayed alive
+-- creating NEW v1 spots throughout, so the backlog GREW while the process that
+-- clears it was dead - and aggregate throughput rose (70,076 over 48h vs
+-- 31,462 the prior 48h), which is why nothing looked wrong.
+--
+-- WHY IT MUST BE CHEAP: count(*) FILTER (WHERE strategy_matrix_v2 IS NOT NULL)
+-- over 8.4M wide jsonb rows measures 27,399 ms; authenticator carries
+-- statement_timeout=8s. A watchdog written that way could never run.
+-- Index-backed: 486 ms. total_spots_estimate is deliberately reltuples - the
+-- watchdog needs to know whether v2 is MOVING, not the exact denominator.
+--
+-- The post-apply block asserts grants AND a <4s runtime. That assertion earned
+-- its place: it caught an 11.7s intermediate state (freshly built CONCURRENTLY
+-- index, visibility map unset, ~1.9M heap fetches) and aborted the first
+-- attempt rather than shipping a watchdog that could not complete.
+--
+-- Full body as applied is in the MCP migration of the same name.
+-- ROLLBACK:
+--   DROP FUNCTION IF EXISTS public.fn_solver_v2_progress();
+--   DROP INDEX CONCURRENTLY IF EXISTS public.idx_solved_spots_gold_solved_v2_at;
