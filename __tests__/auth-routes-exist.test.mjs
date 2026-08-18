@@ -65,13 +65,31 @@ const CONTENT_GUARDS = [
     },
     {
         file: 'src/lib/authUtils.ts',
-        // Two accepted shapes, both of which export a trimmed value:
+        // Three accepted shapes, all of which export a trimmed value:
         //   (a) trimmed inline at the export site, or
         //   (b) trimmed into RAW_SUPABASE_ANON_KEY first, then re-exported
-        //       (the shape introduced by ba48e491e4's credential cleanup).
-        // Still fails if the .trim() is dropped, which is the point of the guard.
-        pattern: /(export const SUPABASE_ANON_KEY[\s\S]{0,400}\.trim\(\))|(RAW_SUPABASE_ANON_KEY\s*=\s*\([\s\S]{0,200}\.trim\(\)[\s\S]{0,600}export const SUPABASE_ANON_KEY\s*=\s*RAW_SUPABASE_ANON_KEY)/,
+        //       (the shape introduced by ba48e491e4's credential cleanup), or
+        //   (c) resolved through resolveAnonKey() from ./supabaseKeys, which
+        //       trims the configured value itself (shape introduced by
+        //       e9d4ddce16 / #612, which pulled the revoked legacy anon key).
+        //
+        // (c) added 2026-08-18. That refactor moved the trim into the helper, so
+        // this guard started failing on CORRECT code and had taken the entire
+        // Build Safety Gate red — every run since. The invariant is unchanged
+        // and is now pinned at BOTH ends: the companion supabaseKeys.js guard
+        // below asserts resolveAnonKey still trims, so dropping the trim there
+        // still fails CI.
+        pattern: /(export const SUPABASE_ANON_KEY[\s\S]{0,400}\.trim\(\))|(RAW_SUPABASE_ANON_KEY\s*=\s*\([\s\S]{0,200}\.trim\(\)[\s\S]{0,600}export const SUPABASE_ANON_KEY\s*=\s*RAW_SUPABASE_ANON_KEY)|(resolveAnonKey\([\s\S]{0,300}export const SUPABASE_ANON_KEY\s*=\s*\w+\.key)/,
         why: 'authUtils.ts must export a TRIMMED SUPABASE_ANON_KEY — next.config.js aliases authUtils.js to this file, so callers importing the constant get undefined without this export (B-AUTH-EXPORTS-1).',
+    },
+    {
+        // Companion to the authUtils guard above. Trimming now lives here, so
+        // this is where it has to be pinned: resolveAnonKey must trim the
+        // configured value before returning it, or the prod Vercel env value's
+        // trailing newline reaches the apikey header and every fetch throws.
+        file: 'src/lib/supabaseKeys.js',
+        pattern: /export function resolveAnonKey\([\s\S]{0,200}\.trim\(\)/,
+        why: 'resolveAnonKey() must .trim() the configured anon key — authUtils.ts exports its return value directly, so an untrimmed key here breaks every authenticated fetch.',
     },
     {
         file: 'pages/api/auth/quick-signup.js',

@@ -1,0 +1,53 @@
+# CODEOWNERS — Smarter Poker World Hub
+#
+# Created 2026-08-18. SIGNUP-HARDENING-PHASE-3.md line 113 lists
+# ".github/CODEOWNERS (extended with auth-critical paths)" as a shipped
+# deliverable and line 15 claims "Auth-critical paths now require team review",
+# but the file was never committed. The guard that enforces it
+# (__tests__/phase-3-deliverables.test.mjs:23, run by CHECK 8 of the Build
+# Safety Gate) has therefore been failing with ENOENT on every run — the
+# protection was documented but absent.
+#
+# Owners listed here are requested for review automatically. GitHub silently
+# ignores unknown handles, so @Smarter-Poker is used: it is the account that
+# owns this repository and authors its commits.
+
+# ─── Default ────────────────────────────────────────────────────────────────
+*                                       @Smarter-Poker
+
+# ─── AUTH-CRITICAL PATHS ────────────────────────────────────────────────────
+# A regression in any of these takes signup or sign-in down for every user.
+# Deleting or truncating them is additionally caught by the next.config.js
+# IIFE and __tests__/auth-routes-exist.test.mjs, but review is the first gate.
+
+/pages/auth/                            @Smarter-Poker
+/pages/api/auth/                        @Smarter-Poker
+/middleware.ts                          @Smarter-Poker
+/config/geo-blocks.json                 @Smarter-Poker
+/src/lib/supabase.ts                    @Smarter-Poker
+/__tests__/auth-routes-exist.test.mjs   @Smarter-Poker
+/pages/api/cron/signup-probe.js         @Smarter-Poker
+/docs/SIGNUP_RUNBOOK.md                 @Smarter-Poker
+
+# Trimming of the Supabase anon key lives here and in authUtils.ts; an
+# untrimmed key reaches the apikey header and every authenticated fetch throws.
+/src/lib/authUtils.ts                   @Smarter-Poker
+/src/lib/supabaseKeys.js                @Smarter-Poker
+
+# ─── MONEY PATHS ────────────────────────────────────────────────────────────
+# Diamond balances, rake distribution and chip purchases. Reviewed for the
+# same reason as auth: a silent regression here costs real money.
+
+/pages/api/diamonds/                    @Smarter-Poker
+/pages/api/store/                       @Smarter-Poker
+/pages/api/club-arena/purchase-chips.js @Smarter-Poker
+/src/lib/poker-engine/LobbyManager.js   @Smarter-Poker
+
+# ─── DEPLOY AND SCHEDULING CONTROL ──────────────────────────────────────────
+# CLAUDE.md section 11 makes Open Claw the single scheduler; the dispatcher and
+# the safety gate are the mechanisms that keep that true.
+
+/scripts/git-safe-push.sh               @Smarter-Poker
+/scripts/openclaw-cron-dispatcher.py    @Smarter-Poker
+/.github/workflows/                     @Smarter-Poker
+/vercel.json                            @Smarter-Poker
