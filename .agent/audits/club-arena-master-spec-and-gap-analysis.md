@@ -2515,3 +2515,84 @@ Cumulative live tally since 02:20 UTC: 7 RIT hands, 5 of them THREE-run,
 0 tournament leaks (gate holding), 0 conservation violations, rake 23.53
 + bbj 2.50 collected, blank-winner detector 0 across the hour, platform
 invariants 15/15 OK.
+
+---
+
+## §38 — Insurance deep dive: contract-exact pricing, signed bank, probed money path (2026-08-18)
+
+Context: insurance_transactions had ZERO rows in platform history - every
+open table has insurance_enabled=false (a real owner toggle in
+CreateTableModal/TableConfigPage writing the correct column - dark by
+choice, NOT a wiring trap like RIT's was). So the entire money path had
+never executed. Everything below was verified by test/probe before any
+owner can flip it on.
+
+### 38.1 Pricing did not match the contract (CA f58a882cc)
+Settlement PUSHES on a chop (FIX 118: premium refunded, no payout), but
+the premium was (1 - potShareEquity) x 1.2 - pot-share equity counts a
+chop as a partial loss, so every chop-prone spot was overcharged for
+outcomes the house must refund (a chop-dominated spot priced at ~60% of
+stake for near-always-void coverage). InsuranceEquity now returns the
+contract's outcome probabilities (strictLossPct / pushPct alongside
+pot-share equity) and the premium is insured x P(strict loss | not-push)
+x margin. Near-certain chops (>=99%) and cannot-lose leaders get NO
+offer. No-tie spots price identically to before (regression anchor test).
+
+### 38.2 Pricing precision restored (same commit)
+Live pricing had silently moved to the Monte-Carlo worker (2000
+ties-split iterations, ~1% stderr) because the exact enumerator's
+sampling burned ~45 CSPRNG syscalls per board. Sampling now uses
+SeededRandom (deterministic per spot: the same all-in always prices the
+same), so EXACT enumeration is back on the pricing path - flop/turn
+fully exact (<=990 boards), preflop 6,000 seeded samples. The MC worker
+still powers the on-screen equity broadcast.
+
+### 38.3 Horse liveness (same commit)
+Horses never answered insurance offers: a horse leader stalls an
+insurance table ~15s per street (up to ~45s per all-in hand, re-offered
+each street). A horse leader now declines FOR THE HAND after ~1s and the
+pause collapses to instant runout. Horses never buy insurance (the
+margin is pure EV loss; horse chips are house chips).
+
+### 38.4 The bank could not pay (migration 20260818154656) — PROBE-CAUGHT
+record_insurance_transaction banked club insurance in
+club_wallets.chip_balance, which carries CHECK (chip_balance >= 0). The
+FIRST payout exceeding collected premiums would have ERRORED at
+settlement: table stack already credited, bank never debited,
+alert-and-under-collect. Union clubs were fine (insurance_wallet has no
+check). Fix: club_wallets.insurance_balance - a SIGNED underwriting
+account mirroring union semantics - upserted (not bare-UPDATEd: a club
+without a wallet row must not lose the bank side). Probes executed the
+real paths against production schema in a rolled-back subtransaction:
+premium collection, idempotent replay (wallet moved exactly once),
+payout beyond premiums (bank goes negative), push (ledger row, no
+movement), missing-wallet-row upsert. Grants re-asserted service-only.
+
+### 38.5 Verified sound (no fix needed)
+- /insurance handler <-> client GameServerAPI params match exactly
+  (tableId/response/coveragePercent/declineForHand - checked for the
+  /rit-class mismatch; none).
+- Engine stack mutations at settlement: payout credited to both stack
+  copies, premium deducted with the M16 shortfall alert, chop=push,
+  winner-pays-premium; ledger write is retried + read-back-confirmed
+  with a durable alert on definitive failure (insuranceLedger.test.ts).
+- Offer lifecycle: leader-only offers, per-street re-evaluation
+  preserving accepted coverage, decline-now vs decline-for-hand, expiry
+  via DeadlineScheduler, 20s safety net behind the 15s offer timeout.
+- Client UI: InsuranceModal/Panel wired to insurance_offers, slider
+  preview via /insurance-preview.
+
+### 38.6 Improvements considered and deliberately deferred
+- Enabling insurance on live tables is an OWNER choice (the toggle works);
+  flipping it platform-wide is Dan's product call - note RIT and insurance
+  are mutually exclusive per table (FIX 92), so enabling insurance turns
+  RIT off there.
+- Offer insurance when RIT is declined (coexistence) - product design.
+- Exact preflop enumeration in the worker (currently 6k seeded samples,
+  +/-0.6%; the margin is 20%).
+- insurance ledger integrity check in fn_platform_invariants_health once
+  live volume exists.
+
+Live regression check post-deploy: RIT still flowing (3 hands/30m, 0
+conservation violations), blank-winner detector 0, 2,469 hands/10m,
+invariants 15/15. Tests 596/596 (13 insurance-specific).
