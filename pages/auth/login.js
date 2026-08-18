@@ -390,6 +390,7 @@ export default function LoginPage() {
     >
       {/* Aspect-ratio locked container — image is 682×1024 (2:3) */}
       <div
+        className="login-art-card"
         style={{
           position: 'relative',
           width: '100%',
@@ -403,6 +404,25 @@ export default function LoginPage() {
         }}
       >
         <style>{`
+          /* THE ACTUAL CAUSE of the oversized overlapping boxes, found by
+             measurement: src/index.css line ~407 applies a global mobile
+             touch-target rule - input, button, a { min-height: 44px } -
+             imported site-wide by _app.js. On this page every control is
+             positioned over baked artwork in slots the art dictates
+             (~20px tall on a phone, ~25px apart), so a forced 44px minimum
+             makes the two inputs OVERLAP each other (44px boxes on 25px
+             spacing = the stacked 'extra boxes' in Dan's screenshots) and
+             pushed the password box to within 2px of the Sign In overlay -
+             on real devices it covered it, eating the tap: 'entered the
+             correct data but its not allowing me to enter'. Measured before
+             this fix: both inputs exactly 44px regardless of their inline
+             height. The 44px rule is right for normal pages; this page's
+             geometry is owned by the artwork, so it opts out. */
+          .login-art-card input,
+          .login-art-card button {
+            min-height: 0 !important;
+          }
+
                     input:-webkit-autofill,
                     input:-webkit-autofill:hover,
                     input:-webkit-autofill:focus,
