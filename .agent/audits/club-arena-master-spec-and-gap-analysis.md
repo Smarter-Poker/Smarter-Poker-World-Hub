@@ -2309,3 +2309,68 @@ as the `workers` user on the VM.
   extracted verbatim from `supabase_migrations.schema_migrations` and committed (WH 6bc5533bf9).
 - `cron_execution_log` rows stuck `running` after container restarts (3 rows) marked
   `killed`. Future hardening candidate: boot-time sweep in the cron middleware.
+
+---
+
+## §36 — VIP time banks made real + two silent persistence defects (2026-08-18)
+
+### 36.1 The VIP time-bank quota existed in three disconnected pieces
+Dan's requirement: VIP members get time banks as a working perk. Found state:
+the engine handed EVERY player the table default (120 uses = 1800s) of time
+bank per session, in memory, VIP or not (`TimeBankEngine DEFAULT_CONFIG` +
+`time_bank_max_uses ?? 120`). The client displayed a VIP quota of 120
+seconds/month (`VIP_GOLD_LIMITS`) read from `vip_feature_usage_monthly` —
+which nothing in the activation path wrote. Diamond purchases landed in
+`feature_purchases ('time_bank_seconds')` — which nothing read. Net: the
+perk was meaningless (everyone got 60x the non-VIP base), the monthly ledger
+never moved, and purchased extensions were burned diamonds.
+
+### 36.2 Wiring shipped (migration 20260817235234 + CA 2bb23eb43)
+- `fn_time_bank_allowance(uuid[])` (service-only, batched): EXTRA seconds =
+  VIP monthly remaining (120s/month; unit DEFINED as seconds — nothing wrote
+  the feature's row before) + purchased uses × 15s.
+- `fn_consume_time_bank(uuid,int)` (service-only, advisory-locked per user):
+  VIP monthly pool first, then purchased uses FIFO; shortfall reported,
+  never fails an in-flight hand. In-migration probes: 120 → consume 45 → 75;
+  overdraw consumes 75 vip + 1 purchased use with 30s shortfall; non-VIP
+  extra 0. State restored before commit.
+- Engine: hand-init batch fetch for NEW players only (fail-open to 30s
+  base); accounting hook commits only the excess beyond session base, once
+  per use; manual /timebank on an empty bank refreshes from DB once (mid-
+  session diamond top-up usable without re-seating; turn re-validated after
+  the await). `TimeBankEngine.rebase()` added. TimeBankVip.test.ts (7 tests).
+
+### 36.3 Silent defect found during verification: seat persistence NEVER wrote
+All 22,805 `table_seats` rows had `time_bank_uses_remaining = 4` — the
+INSERT default. Settlement passed `p.time_bank_uses_remaining` from
+HandController players, which never carry the field (undefined), and
+syncStacks skips undefined: the persist had never written once in the
+table's history. Fixed (CA bf0bef466): ask TimeBankEngine at sync time,
+persist seconds too. VERIFIED LIVE post-deploy: active seats at tables with
+fresh hands now show 150s/10 uses for VIP (30 base + 120 monthly) and
+30s/2 uses for non-VIP — 152 vip seats and 127 non-vip seats measured, with
+only 4 residual rows still at the old default.
+
+### 36.4 E1 closed: run-it-twice hands record winners again (CA fbbe0a54e)
+`dealAndResolveRIT` pre-set winner IDs + board-0 showdown state but never
+`currentHandWinners`; `finalizeRunout(true)`'s empty WINNERS event preserves
+(empty) pre-set state — so every RIT hand logged `winners []` and shipped
+pot_win/pot_distributed with no per-winner data (stacks correct; record and
+animations blank). Fix populates `currentHandWinners` from the net RIT
+distribution and appends other paid players to `currentHandWinnerIds` AFTER
+the board-0 winner — ORDER IS LOAD-BEARING: `detectBBJHit` reads index 0 and
+board 0 is the only BBJ-eligible board (Dan's 2026-07-21 rule).
+Verification caveat, recorded honestly: live traffic has ZERO RIT hands in
+24h (~250k hands — horses do not consent to RIT), so this cannot be
+live-verified until a human pair runs one. Standing detector: any ended hand
+with `jsonb_array_length(winners) = 0` (currently 0 across 6h/73k hands).
+Note: an independent agent fix landed the same hour (d0abf2fda, RIT pot
+destroyed by crediting a state COPY) — both fixes coexist; mine rebased on top.
+
+### 36.5 Also observed
+- Another agent's MEDIA_BASE refactor (45f2228ce) and RIT stack fix
+  (d0abf2fda) landed mid-phase; formatting ping-pong from lint-staged
+  produced net-zero diffs that were discarded, foreign WIP left untouched.
+- Client TimeBankDisplay caps its bar at 120s for VIP while a fresh VIP
+  session now starts at 150s (30 base + 120) — bar clamps at 100%, cosmetic
+  only, noted not fixed.
