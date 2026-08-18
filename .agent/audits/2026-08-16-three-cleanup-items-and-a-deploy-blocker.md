@@ -950,3 +950,158 @@ real user-facing error as test noise. In each case the fix was to make the
 guard answer the question it claims to answer — and in F2 and F3, testing the
 fix before shipping it caught two further bugs in my own work.
 
+
+---
+
+## Appendix G — the three deferred items, decided and closed (2026-08-18)
+
+Dan: "YOU DECIDE THEN PROCEED." Taking #34 (security), #33 (security +
+calibration) and #32 (engineering half only, the business call stays his).
+
+Every one of the three turned out to be **misfiled**. In each case the
+mechanism was already built and correct; what was broken was smaller, more
+specific, and different from the headline.
+
+### G1. #34 — "deduct_diamonds executable by browsers"
+
+Not the hole the title implies. The function self-checks:
+
+    IF COALESCE(auth.role(),'') <> 'service_role'
+       AND (auth.uid() IS NULL OR auth.uid() IS DISTINCT FROM p_user_id) THEN
+      RETURN ... 'Cannot deduct diamonds for another user';
+
+So a browser could never drain another player. The real exposure was narrower:
+bypassing `/api/diamonds/spend`'s ALLOWED_SOURCES to write arbitrary
+source/type/description into `diamond_transactions`, and replaying a known
+`p_reference_id` to get `{success:true, idempotent:true}` back with **no new
+deduction** — free item for any flow trusting that result client-side.
+
+The only browser caller was a legacy fallback in `ThrowableService.ts`. Three
+facts made deleting it the right move rather than repairing it:
+  - `fn_use_throwable` is live and is already the primary path — SECURITY
+    DEFINER, derives the user from `auth.uid()`, takes no user_id or amount
+    parameter, advisory-locked. That is the correct shape, and it keeps its
+    `authenticated` grant.
+  - `diamond_transactions` has **0 rows** with `transaction_type='throwable'`
+    all-time. The paid path never charged a single real player.
+  - the fallback was independently broken: it checked only `deductError` and
+    never the returned `success` flag, and insufficient funds comes back as
+    `data.success=false` with NO postgres error — so it fell through and
+    recorded a **free throw**.
+
+Deleted (CA `d3899e89e`), grant revoked (`20260818010142`, pre-flight +
+post-apply assertions + pasted rollback). Verified: authenticated **false**,
+service_role **true**, fn_use_throwable authenticated **true**, anon **false**.
+Build Safety Gate CHECK 10 `authenticated_cannot_update_economic_columns`
+PASS.
+
+### G2. #33 — "miscalibrated AND its writer is unidentified"
+
+**The writer was never unidentified.** It is `/api/cron/collusion-scan`,
+scheduled `*/30` at `openclaw-cron-dispatcher.py:294` and routed to the workers
+service at line 482. It runs on the **private** VM (`10.0.0.3:8081`), which is
+why a public probe 404s. The earlier search looked for the table name in code —
+which appears only in migrations — instead of the route. Not a security
+incident.
+
+The calibration half was real and worse than filed:
+
+| measure | value |
+|---|---|
+| rows since 2026-04-20 | 169,523 |
+| WIN_RATE_ANOMALY | 169,505 (99.99%), avg suspicion_score **97** |
+| CHIP_DUMP | 18 rows, avg 81, none >=90 |
+| distinct pairs flagged | 81,301, from just **573** players |
+| players flagged | 573, of which **572 are horses (99.8%)** |
+| ever reviewed | **0** |
+
+573 players is ~164,000 possible pairings, so it had flagged roughly **half of
+every pair that exists**. The single human, `kingfish`, had played **6 hands**
+and drew 4 flags. The rule fires on >=30 shared hands and |bb/100| >= 80;
+attributing a whole multiway pot delta to two named players is very noisy, so
+across a field of horses grinding thousands of hands essentially every pair
+clears it. CHIP_DUMP sitting next to it at 18 rows in four months is what a
+working detector looks like.
+
+Fixed at write time (workers `edf5691`): drop a finding only when **both**
+players are horses, so horse/human survives and a horse leaking chips to a
+human still surfaces. If the horse lookup errors the scan returns 500 rather
+than falling back — falling back means quietly resuming the 170k-row
+behaviour. Response reports `suppressed_horse_pairs`. The test asserts all
+three rules and was confirmed to **fail 3/3** against the pre-fix source.
+
+Backlog cleared (`status='cleared'`, not deleted — it is the evidence for the
+recalibration): review queue **169,523 open -> 4 open**, and those 4 are
+exactly the human-involved rows.
+
+### G3. #32 — "chip supply has no single ledger"
+
+Also misfiled. M4 had already done the hard thinking and built the right
+thing. Absolute conservation is **unknowable** on this database —
+`category='mint'` is 3 rows totalling 2,200,000.01 against ~732M in wallets,
+several categories stopped being written entirely, ~776M unexplained — so M4
+deliberately refused to invent a genesis figure, on the grounds that a
+confident-looking wrong number is the original bug. It built
+`fn_snapshot_chip_supply()` + `chip_supply_snapshots` around the one thing that
+IS knowable: conservation **between** snapshots needs no genesis, and
+Δholdings = Δ(credits − debits) is exactly the invariant an unbacked credit
+violates. Deltas are NULL on a first snapshot by design.
+
+**Why it never produced anything: the function timed out.**
+`wallet_transactions` is 2,048,502 rows / 582 MB and the body scanned it THREE
+times — totals, then group-by-category for credits, then again for debits. One
+parallel seq scan measures 2.4 s, so three is ~7.2 s before the wallets,
+table_seats and prior-snapshot queries. PostgREST connects as `authenticator`,
+which carries `statement_timeout=8s`. It sat just over the line. The table held
+exactly **one** row (2026-08-08) with every delta NULL.
+
+Rewritten to a single `GROUP BY (type, category)` pass — 18 rows, from which
+both totals and both category maps derive. Identical outputs; `round(,2)` still
+only inside the jsonb maps. No index: the table takes a write every hand and
+removing two redundant scans was enough.
+
+Then the missing caller: `/cron/chip-supply-snapshot` in workers, scheduled
+hourly through Open Claw (§11, not `vercel.json`).
+
+**First reconciliation output in the platform's history**, measured through the
+live cron route:
+
+    elapsed 3,889 ms   snapshots_available=2   has_comparable_prior=true
+    unexplained_delta = 28,765,423.76
+
+Caveat stated plainly: that delta spans 2026-08-08 → now, a window that
+includes the known-incomplete logging period, so it is **not** yet a clean
+signal. The hourly series from here is. What to do about a persistent non-zero
+delta is Dan's call, not mine — this work exists to give him the number, not to
+decide what it means.
+
+### G4. Two deploy pipelines were dead in the same way
+
+`deploy-workers.sh` verifies the image via GHCR before deploying. The keychain
+PAT `github-pat-ghcr-read` returns **401 Bad credentials**, and the VM's own
+docker credential returns **denied** — so no workers deploy could complete from
+either end. This is the identical failure mode as `deploy-openclaw.sh` earlier
+today (hardcoded key that never existed). Worked around via the script's
+documented GHCR-free `--build-on-server` path: builds HEAD's tree on the VM, no
+registry. Deployed rev `2e505f052e4`, health OK.
+
+**Both credentials still need rotating** — that is a real follow-up. The
+deploys are unblocked, not the credentials fixed.
+
+### G5. A mistake of mine, recorded
+
+Adding the chip-supply registration to workers `src/index.ts`, I staged a file
+that already carried another agent's uncommitted import for a route they had
+not committed yet. That pushed an import with no module and took workers main
+red. I landed their two files (202-line route, 164-line test, typecheck clean,
+9/9 passing) rather than strip the import, since the work was finished. Lesson:
+in a shared tree, check what is already dirty in a file before adding to it.
+
+### Theme, again
+
+Same as F. **The mechanism was built and correct in all three cases; what
+failed was one specific thing nobody measured.** A grant left open for a
+caller that had never once been used. A detector nobody had ever counted by
+player type. A reconciliation that could not finish inside its own statement
+timeout. In each case the headline in the task list was wrong, and reading the
+data before writing code changed what got built.
