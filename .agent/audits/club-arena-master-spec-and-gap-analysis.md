@@ -2882,3 +2882,87 @@ Push note: foreign-agent time-bank WIP blocked a worktree merge, so this
 landed via the temp-index technique on top of their commits (f54c1f3ed);
 their uncommitted files untouched. tsc clean both sides, server 643/643,
 client label/payout tests 10/10, engine deploy verified below.
+
+## §43 — BBJ build-out: seat floats, near-miss, lobby ticker, admin analytics — and 2 chips of real money destruction (2026-08-18)
+
+Dan: "GO AHEAD AND FULLY BUILD AND ADD ALL YOUR IDEAS." All four shipped, plus
+a money bug the work surfaced.
+
+### 43.1 Per-seat BBJ credit floats (CA e794c0867)
+Gold "BBJ +$X" rises from every seat the jackpot credited, distinct from the
+pot-win +N float (brighter gold, coin-edge border, slower rise), timed with the
+celebration and cleared after 4.5s. Reduced-motion safe. Driven off
+`updatedStacks` — exactly the set the engine credited at the table.
+
+### 43.2 Near-miss detection (CA e794c0867)
+`detectBBJNearMiss` reports hands where a player made a REAL qualifying losing
+hand but missed on exactly one condition: winner lacked quads, both cards did
+not play, pot under 10bb, too few players. Deliberately conservative — it fires
+only on a genuine qualifying hand, so "you lost with two pair" never triggers
+it. Display only: moves no money, cannot gate a payout, wrapped in try/catch so
+a cosmetic banner can never break settlement. 8 tests including "never
+contradicts a real hit" and no-spam guards for ordinary beats and ineligible
+variants.
+
+### 43.3 Lobby hits ticker (CA 2e17064e1)
+`BBJTicker` — live pool + recent REAL hits from bbj_winners (the ledger §41
+reconciled against), realtime INSERT updates, mounted in the club lobby.
+Found dead state on the way in: ClubHomePage subscribed `jackpotAmount` to
+bbj_pools realtime and rendered it NOWHERE. The feed fed nothing.
+
+### 43.4 Club-admin jackpot health (CA 2e17064e1, DB 20260818221621)
+Funding rate 24h/7d (+ per-day), hit cadence, biggest hit, days since last hit,
+net pool position, main/backup/promo split bar. Backed by `fn_bbj_analytics`:
+SECURITY DEFINER, club-admin gated (union admins allowed via any owning-union
+club), computed from bbj_contributions + bbj_winners — never the legacy
+counters. Probed live: admin numbers match direct queries exactly
+(c24=9328.36, hands24=19021, hits=16, paid=75605.36); non-admin refused;
+no-auth (service_role, uid NULL) refused.
+
+### 43.5 THE REAL FIND: 2 chips destroyed, and recovery that could not run
+The engine's own hourly drift audit was reporting 2.00 chips of positive drift.
+The prior audit note dismissed a similar 0.50 as a window-boundary artifact.
+This one was not: over a CLOSED window (25h ago → 1h ago), 4 of 40,144 hands
+had a rake_records row booking a BBJ fee with NO bbj_contributions row and ZERO
+amount mismatches elsewhere. `atomic_distribute_rake` credits the club wallet
+only `rake - bbj`, deliberately withholding the jackpot slice because
+`bbj_record_contribution` is what banks it — so those chips left the pot and
+ceased to exist.
+
+**Why the existing recovery never fired.** The engine's path is
+"logBBJCollection returns false → queue to pending_fee_distributions".
+That table held ZERO rows for these hands, and none at all in 25h — so
+logBBJCollection never returned false; it was never reached. Two of the four
+failed 52ms apart on DIFFERENT tables in DIFFERENT clubs: the signature of the
+process dying between the rake transaction and the banking call, not an RPC
+error. **Recovery that lives in the engine process cannot survive the engine
+process dying.**
+
+**The fix** (DB 20260818222557, CA c5a7205b6): `fn_bbj_repair_unbanked` works
+from rake_records — written inside the same atomic transaction that withheld
+the fee — so it recovers no matter how the engine went away. Idempotent by
+construction (the INSERT carries its own NOT EXISTS guard in-statement; the
+pool moves only for rows that actually inserted, via UPDATE ... FROM ins), and
+it skips the last 5 minutes so it can never race the live path. Wired into the
+hourly cycle BEFORE the audit, and every recovery is reported — money that had
+to be repaired is a signal about engine stability, not routine bookkeeping.
+
+One refinement caught by probing: stamping recovered rows `now()` banked the
+money correctly but left the windowed drift still reading 2.00 (the recovered
+row falls outside the audit window while the rake row stays inside), so the
+alarm would keep crying wolf about money already recovered. Recovered rows are
+now backdated to the original hand time — which is also the honest ledger
+entry, since every downstream report buckets by created_at.
+
+**Verified live:** probe repaired exactly 4 hands / 2.00 chips, second run 0
+(idempotent), windowed drift 2.00 → 0.0000. Ran for real: 4 hands recovered
+(2 into the union pool, 2 into a club pool), 0 unbanked hands remain, repeat
+run 0.
+
+### 43.6 Verification
+Server tsc clean, client tsc clean, server suite 662/662, client suite
+1442/1442, invariants 16/16. Engine deployed and confirmed serving the
+near-miss build. Foreign-agent `git reset --hard` wiped the FeeReconciler edits
+mid-work (Dan's documented hazard) — re-applied and committed immediately;
+all pushes used the temp-index technique so foreign working trees stay
+untouched.
