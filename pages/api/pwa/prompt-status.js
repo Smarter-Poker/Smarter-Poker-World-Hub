@@ -71,8 +71,30 @@ export default async function handler(req, res) {
       }
 
       const ip = getClientIp(req);
-      if (isRateLimited(ip)) {
+      const throttled = isRateLimited(ip);
+
+      // Writes still get a hard 429 - that is the actual abuse surface.
+      if (throttled && req.method !== 'GET') {
           return res.status(429).json({ error: 'Too many requests' });
+      }
+
+      // GET must NOT 429. This limiter is keyed on x-forwarded-for at
+      // 10 req/min, and every Club Arena page load calls this endpoint - so
+      // any shared egress IP (a poker club's venue wifi, an office, a house
+      // with several players, or carrier CGNAT) trips it and the browser
+      // console fills with "Failed to load resource: 429". Confirmed live:
+      // 6 x 429 on /api/pwa/prompt-status across 3 page loads. The
+      // 2026-08-12 audit saw these and filed them as "an artifact of a rapid
+      // automated sweep" - they are not, they are reachable by real users
+      // sharing an IP.
+      // Every other failure branch in this GET already fails open with
+      // 200 {dismissed:false} (missing table, query error, throw), so the
+      // hard 429 was the one inconsistent path. Fail open the same way: the
+      // Supabase query is still skipped, so the DB protection the limiter
+      // exists for is preserved - we just stop surfacing a client-visible
+      // error for a non-critical install-prompt read.
+      if (throttled && req.method === 'GET') {
+          return res.status(200).json({ dismissed: false, throttled: true });
       }
 
       // ─── GET: Check if this IP already responded ───
