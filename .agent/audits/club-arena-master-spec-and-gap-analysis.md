@@ -2596,3 +2596,27 @@ movement), missing-wallet-row upsert. Grants re-asserted service-only.
 Live regression check post-deploy: RIT still flowing (3 hands/30m, 0
 conservation violations), blank-winner detector 0, 2,469 hands/10m,
 invariants 15/15. Tests 596/596 (13 insurance-specific).
+
+### 38.7 Dan's rules pinned: run-once only, chopped pot voids (2026-08-18 16:10)
+
+Dan's directive verbatim: "insurance is only allowed for running it once;
+if the pot is chopped, insurance is voided."
+
+- **Run-once only — enforced at two layers, both test-pinned** (CA
+  ba0398b3f + 10c5fc1a9, 613/613): (1) config layer FIX 92 - a table with
+  both features gets RIT force-disabled at engine start, so an insured
+  table always runs exactly once; (2) runtime layer - the REAL
+  handleAllInRunout drives the insurance path FIRST whenever insurance is
+  enabled (RIT offer block unreachable), and a RIT hand never produces an
+  insurance offer. One hand can never carry both.
+- **Chop voids — every shape pinned**: leader ties the pot -> VOID
+  (premium refunded, no payout); leader among multiple winners (side-pot
+  split) -> VOID, never double-paid; two OTHER players chop while the
+  leader loses -> insurance PAYS (the rule is about the LEADER sharing a
+  pot, not any chop anywhere). Pricing (§38.1) already charges only for
+  P(strict loss | not-push), so premiums and the void rule are actuarially
+  consistent end to end.
+
+Final sweep: engine serving f58a882c, 613/613 tests, RIT live (4 hands/1h,
+0 conservation violations), blank-winner detector 0, insurance dark until
+an owner enables it (0 tx - correct), invariants 15/15 OK.
