@@ -34,6 +34,16 @@ export default function LoginPage() {
     const [existingUser, setExistingUser] = useState(null); // Track if already signed in
     const [oauthLoading, setOauthLoading] = useState(''); // Google OAuth loading state
 
+    // Error banners auto-expire. The old banner had no dismiss and sat on top
+    // of the email field, so one wrong password left the form unusable until a
+    // full page reload. Success messages (e.g. "magic link sent") stay - the
+    // user may need to read those while switching to their inbox.
+    useEffect(() => {
+        if (!error) return undefined;
+        const t = setTimeout(() => setError(null), 8000);
+        return () => clearTimeout(t);
+    }, [error]);
+
     // Honor ?redirect= param from useRequireAuth() — send user back to the page they came from
     const getRedirectUrl = () => {
         const r = router.query.redirect;
@@ -345,18 +355,25 @@ export default function LoginPage() {
         <div style={{
             position: 'relative',
             width: '100%',
-            height: '100vh',
+            // minHeight 100dvh + auto overflow, NOT height 100vh + hidden:
+            // 100vh on mobile includes the area under the browser chrome, and
+            // with overflow hidden the bottom of the card (Magic Link, Sign Up,
+            // copyright) was simply unreachable - reported cut off on desktop
+            // too on short windows. dvh tracks the real visible viewport, and
+            // a too-short window now scrolls instead of amputating the form.
+            minHeight: '100dvh',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
             backgroundColor: '#000',
-            overflow: 'hidden'
+            overflowY: 'auto',
+            overflowX: 'hidden'
         }}>
             {/* Aspect-ratio locked container — image is 682×1024 (2:3) */}
             <div style={{
                 position: 'relative',
                 width: '100%',
-                maxWidth: 'min(100vw, 66.6vh)',
+                maxWidth: 'min(100vw, 66.6dvh)',
                 aspectRatio: '682 / 1024',
                 backgroundImage: `url('/images/dynamic-login-bg.jpg')`,
                 backgroundSize: 'cover',
@@ -372,28 +389,35 @@ export default function LoginPage() {
                         transition: background-color 5000s ease-in-out 0s;
                         -webkit-text-fill-color: #fff !important;
                     }
+                    /* The background image bakes in every control EXCEPT the
+                       email/password fields - that band of the card is empty
+                       art. These inputs are therefore the only field visuals
+                       the user ever sees, so they must read as real fields on
+                       every screen. Styled to match the baked buttons around
+                       them (Send Magic Link's neutral border, same radius).
+
+                       font-size MUST stay >= 16px: iOS Safari auto-zooms the
+                       whole page when focusing any input below 16px, which is
+                       exactly the "blue boxes everywhere, impossible to type"
+                       mobile bug this replaced (the old boxes were 14px). */
                     .login-input-box {
-                        background: rgba(0, 8, 25, 0.65) !important;
-                        border: 1.5px solid rgba(0, 212, 255, 0.4) !important;
-                        border-radius: 6px !important;
+                        background: rgba(8, 16, 34, 0.92) !important;
+                        border: 1px solid rgba(255, 255, 255, 0.22) !important;
+                        border-radius: 8px !important;
                         color: #fff !important;
-                        font-size: 14px !important;
+                        font-size: 16px !important;
+                        caret-color: #00d4ff;
                         transition: border-color 0.2s, box-shadow 0.2s;
                     }
-                    .login-input-box:focus {
-                        border-color: rgba(0, 212, 255, 0.8) !important;
-                        box-shadow: 0 0 8px rgba(0, 212, 255, 0.35) !important;
-                        outline: none !important;
+                    .login-input-box::placeholder {
+                        color: rgba(255, 255, 255, 0.45);
+                        font-size: 13px;
+                        letter-spacing: 0.04em;
                     }
-                    .login-field-label {
-                        position: absolute;
-                        color: rgba(255,255,255,0.7);
-                        font-size: 10px;
-                        font-weight: 600;
-                        letter-spacing: 0.1em;
-                        text-transform: uppercase;
-                        zIndex: 10;
-                        pointer-events: none;
+                    .login-input-box:focus {
+                        border-color: rgba(0, 212, 255, 0.7) !important;
+                        box-shadow: 0 0 10px rgba(0, 212, 255, 0.25) !important;
+                        outline: none !important;
                     }
                 `}</style>
 
@@ -452,54 +476,70 @@ export default function LoginPage() {
                 {/* ── Main Auth Form ── */}
                 <form onSubmit={mode === 'login' ? handleLogin : handleSignup} autoComplete="on" style={{ position: 'absolute', inset: 0, margin: 0, padding: 0 }}>
 
-                    {/* Error / Success banner */}
+                    {/* Error / Success banner.
+                        pointer-events none on the container: the old banner sat
+                        at zIndex 20 directly over the email field with no way
+                        to dismiss it, so after one wrong password the form was
+                        dead - "you can't X off or do anything after that". Only
+                        the X re-enables pointer events for itself. Errors also
+                        auto-expire and clear the moment the user types. */}
                     {(error || message) && (
-                        <div style={{
-                            position: 'absolute', top: '62%', left: '24%', width: '52%',
-                            padding: '7px 10px',
+                        <div role="alert" style={{
+                            position: 'absolute', top: '61.5%', left: '24%', width: '52%',
+                            padding: '6px 26px 6px 10px',
                             background: error ? 'rgba(220,38,38,0.92)' : 'rgba(34,197,94,0.92)',
                             border: `1px solid ${error ? '#f87171' : '#4ade80'}`,
-                            borderRadius: 8, color: '#fff', fontSize: '0.75rem', textAlign: 'center', zIndex: 20
+                            borderRadius: 8, color: '#fff', fontSize: '0.7rem', lineHeight: 1.35,
+                            textAlign: 'center', zIndex: 20, pointerEvents: 'none'
                         }}>
                             {error || message}
+                            <button
+                                type="button"
+                                aria-label="Dismiss"
+                                onClick={() => { setError(null); setMessage(null); }}
+                                style={{
+                                    position: 'absolute', top: 2, right: 4,
+                                    width: 22, height: 22, lineHeight: '20px',
+                                    background: 'transparent', border: 'none', color: '#fff',
+                                    fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                    pointerEvents: 'auto', padding: 0
+                                }}
+                            >
+                                {'×'}
+                            </button>
                         </div>
                     )}
 
-                    {/* EMAIL ADDRESS label */}
-                    <span className="login-field-label" style={{ top: '64.5%', left: '25%' }}>
-                        EMAIL ADDRESS
-                    </span>
-
-                    {/* Email input */}
+                    {/* Email input — the background art has no field boxes in
+                        this band, so this IS the visible field. Placeholder
+                        replaces the old floating label, which collided with the
+                        input at phone sizes. */}
                     <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => { setEmail(e.target.value); if (error) setError(null); }}
                         required
                         autoComplete="email"
+                        placeholder="Email Address"
                         className="login-input-box"
                         style={{
-                            position: 'absolute', top: '65.8%', left: '25%', width: '50%', height: '2.5%',
+                            position: 'absolute', top: '64.9%', left: '25%', width: '50%', height: '3.4%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
                         }}
                     />
-
-                    {/* PASSWORD label */}
-                    <span className="login-field-label" style={{ top: '69.0%', left: '25%' }}>
-                        PASSWORD
-                    </span>
 
                     {/* Password input */}
                     <input
                         type={showPassword ? 'text' : 'password'}
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => { setPassword(e.target.value); if (error) setError(null); }}
                         required
                         minLength={6}
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                        placeholder="Password"
                         className="login-input-box"
                         style={{
-                            position: 'absolute', top: '70.3%', left: '25%', width: '46%', height: '2.5%',
+                            position: 'absolute', top: '69.1%', left: '25%', width: '46%', height: '3.4%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
                         }}
                     />
@@ -509,7 +549,7 @@ export default function LoginPage() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         style={{
-                            position: 'absolute', top: '70.3%', left: '71.5%', width: '3.5%', height: '2.5%',
+                            position: 'absolute', top: '69.1%', left: '71.5%', width: '3.5%', height: '3.4%',
                             background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 11,
                             color: 'rgba(255,255,255,0.5)', fontSize: '14px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
