@@ -662,6 +662,15 @@ export default function App({ Component, pageProps }) {
         <>
           {/* PWA Manifest — route-based: Commander gets its own manifest/icon/title */}
           <Head>
+            {/* Nobody ever declared a viewport meta - production served
+                Next's bare default 'width=device-width' with NO
+                initial-scale. Without initial-scale=1, mobile Safari applies
+                its own scaling heuristics, which amplified the
+                native-input-chrome bug on /auth/login (oversized fields,
+                focus zoom). Declared once here per Next.js convention
+                (_app, not _document). */}
+            <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
             {shouldCapitalize && (
               <style dangerouslySetInnerHTML={{
             __html: `
