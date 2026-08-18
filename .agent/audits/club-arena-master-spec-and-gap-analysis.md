@@ -2456,3 +2456,31 @@ community_cards; extra runouts appended to actions as rit_board_2/3.
   paid exactly 105.97. Blank-winner detector: 0 (E1 holding).
 - 3-run hands: money path test-proven; live occurrence pending (chooser
   horses pick 3 every third RIT hand - will accumulate naturally).
+
+### 37.7 Two more defects found chasing live silence, then full live proof (02:30 UTC)
+
+After 37.1-37.5 shipped, live RIT hands appeared (2 at 01:37-38) then went
+silent despite 48 eligible all-in runouts in 20 minutes. Sampled hands
+showed why - every live all-in was a TURN shove:
+
+- **Offers fired AFTER the next street was dealt** (CA 51f951290). The
+  all-in-runout check sat below advanceStage's street-dealing switch, so a
+  turn all-in had the river on board (board=5) by offer time - RIT and
+  insurance both silently impossible in the single most common real spot -
+  and a flop all-in ran only the river twice instead of turn+river. The
+  park now happens BEFORE dealing (matching ALL_IN_RUNOUT's own comment);
+  every downstream path was already board-length generic. The insurance
+  per-street flow also now genuinely starts at the first undealt street.
+- **RIT ran in tournaments** (CA 359622ff5). The intent columns default
+  true on tournament tables too; a live 3-run tournament hand (41627f9a)
+  split 1,760.88 into 586.96/1,173.92 - fractional amounts against
+  INTEGER tournament chips (sync floors = chip destruction), and no major
+  app offers RIT in MTTs. Gated off for tournament_id/game_type=tournament.
+
+LIVE PROOF (02:20-02:30 UTC window, all post-fix): 4 RIT hands, all cash
+tables (tournament gate holding), 3 of 4 TURN all-ins, 3 of 4 THREE-run
+boards, 0 conservation violations (winners == pot - rake - bbj to the
+cent on every hand), rake 12.32 + bbj 1.00 collected, blank-winner
+detector 0. Users can run it two or three times, from preflop, flop, or
+turn, with pots split correctly and rake + BBJ taken exactly once.
+593/593 server tests.
