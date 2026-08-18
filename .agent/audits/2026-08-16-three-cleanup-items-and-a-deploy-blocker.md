@@ -819,3 +819,134 @@ Open, each blocked on something outside the code:
   `collusion_tracking` is still unlocated. An unidentified Node client holds a
   service key and writes the anti-cheat table; that is worth resolving on
   security grounds regardless of the calibration work.
+
+---
+
+## Appendix F — closing out CI red before the next phase (2026-08-18)
+
+Instruction: "MAKES SURE EVERYTHING IS FULLY FUNCTIONAL, PUSHED AND PUBLISHED
+BEFORE MOVING ONTO THE NEXT PHASE." Two repos were green in the working tree but
+red in CI. Neither turned out to be a production defect; one hid a real one.
+
+### F1. Phantom RPCs were a stale snapshot, not missing functions
+
+The VIP time-bank commit added `.rpc('fn_time_bank_allowance')` and
+`.rpc('fn_consume_time_bank')`. The phantom-ref gate called both phantoms.
+
+Checked the live DB rather than the manifest:
+
+    fn_time_bank_allowance(p_user_ids uuid[])
+    fn_consume_time_bank(p_user_id uuid, p_seconds integer)
+
+Both present in `public`. The checked-in `supabase-schema-manifest.json` simply
+had not been regenerated. Regenerated through the MCP query documented in
+`gen-schema-manifest.mjs` (no service-role key on this host). Diff was exactly
+those two names: 774 tables unchanged, functions 1737 -> 1739. Gate now reports
+`0 tables, 0 rpcs`; confirmed green in CI run 32083556644.
+
+Production was never broken. Worth noting the failure mode: a generated
+artifact checked into the repo will drift silently every time schema is applied
+straight to prod, and the gate reports that drift as if it were a code defect.
+
+### F2. The E2E suite tested the site mid-deploy
+
+E2E last passed 22:24 UTC and failed every run after 22:37 — but the first
+failing commit was **docs-only**, which cannot break anything. That ruled out a
+code cause immediately.
+
+`Wait for Production Deploy` was `sleep 60`. Vercel Next.js builds take 3-5 min
+(CLAUDE.md 1.4). With 13 pushes in 90 minutes the tests routinely navigated
+into an in-flight deploy: `page.goto: Test timeout`, transient 413s. Red CI,
+healthy site.
+
+Proof it was never the product: the exact CI command against production passed
+6/6 in 11.9s locally while CI was red.
+
+Replaced with a poll for 3 **consecutive** 200s (10-min cap) so a mid-deploy
+blip resets the streak instead of being tested through. Two bugs in that fix
+were caught by testing it before shipping:
+
+  - the trailing-slash URL **308-redirects**, so the poll could never observe
+    200 — it would have spun 10 minutes and hard-failed every run. An
+    always-red guard is worse than the flaky one it replaced. Now uses the
+    no-slash URL the tests use, plus `-L`.
+  - curl already prints `000` on connection failure, so `|| echo 000` made the
+    error read `last HTTP 000000`.
+
+Verified all three paths: healthy -> 0; unreachable -> 1 with an accurate code;
+scripted `200,200,404,200,200,200` resets the streak and needs six polls.
+CI run 32084070511: every job green, including the E2E that had failed four
+runs straight.
+
+### F3. The flaky test was hiding a real user-facing 429
+
+One test still came back "1 flaky": `No console errors on critical pages`. It
+waited on `networkidle` — but Club Arena holds Supabase Realtime websockets
+open and polls, so the network never reliably goes idle, and this test makes
+three sequential navigations inside one 30s budget (3x the exposure). The other
+five tests pair `networkidle` with an explicit `toBeVisible`, which is what
+actually gates them; none of them flake.
+
+Switching that test to `domcontentloaded` stopped it flaking — and made it
+**fail deterministically**, which surfaced the real defect underneath:
+
+    6 x "Failed to load resource: the server responded with a status of 429"
+    -> https://smarter.poker/api/pwa/prompt-status
+
+`/api/pwa/prompt-status` is called on every Club Arena page load and carried a
+second, hand-rolled limiter (10 req/min keyed on `x-forwarded-for`) applied to
+**all** methods, including the GET read. The shared `LIMITS.write` limiter
+directly above it already covered writes.
+
+Any shared egress IP trips it: a poker club's venue wifi, an office, a
+household with several players, carrier CGNAT. For a club platform that is the
+normal case, not an edge case.
+
+Measured on production before the fix:
+
+    GET x14 -> 200 200 200 200 200 200 200 200 200 200 429 429 429 429
+
+The 2026-08-12 audit recorded these same 429s and filed them as "an artifact of
+a rapid automated sweep". They are reachable by real users sharing an IP. That
+dismissal is the same one I nearly made.
+
+Every other failure branch in that GET already fails open with
+`200 {dismissed:false}` — missing table, query error, throw. The hard 429 was
+the single inconsistent path. It now fails open the same way and still skips
+the Supabase query, so the DB protection the limiter exists for is preserved.
+Writes keep the hard 429.
+
+Verified on production serving `9e700d1b`:
+
+    GET  x20 -> 200 (all twenty)          [was 10x200 then 429]
+    GET body when throttled -> {"dismissed":false,"throttled":true}
+    POST x14 -> 429 (all fourteen)        [abuse protection intact]
+
+Client behaviour is unchanged: `checkServerDismissed` returned false on
+`!res.ok` before and returns false on `{dismissed:false}` now.
+
+E2E then passed 6/6 on three consecutive runs, no flaky.
+
+### F4. Two hygiene defects found on the way
+
+  - `test-results/` was not gitignored (only `playwright-report/` was). One
+    failing run leaves 4.2 MB of screenshots, videos and trace zips that any
+    blanket `git add -A` would have committed — and `git-safe-push.sh` does
+    `git add -A` in four places. Added to `.gitignore`.
+  - The WH working tree is under an **active Antigravity reset loop**: six
+    `reset: moving to origin/main` entries in the last 25 reflog ops (CLAUDE.md
+    Phase 0.7 flags >=2). It reverted the prompt-status edit twice mid-session.
+    The commit survived because it was already committed; the fix landed by
+    merging and pushing in a single atomic command. This is exactly the hazard
+    CLAUDE.md WORKING RULE 13 describes, observed live.
+
+### Theme
+
+Same one as the rest of this session: **guards that run but verify nothing, or
+verify the wrong thing.** A manifest that reports its own staleness as a code
+defect. A deploy wait that waits a fixed 60s for a 3-5 minute build. A flaky
+test whose flakiness masked a genuine 429. A prior audit that explained away a
+real user-facing error as test noise. In each case the fix was to make the
+guard answer the question it claims to answer — and in F2 and F3, testing the
+fix before shipping it caught two further bugs in my own work.
+
