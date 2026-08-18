@@ -3025,3 +3025,50 @@ config.
 **Verified:** client tsc clean, client suite 1442/1442, BBJ label/rules tests
 13/13, DB functions probed for both correctness and refusal, migration
 20260818224125 mirrored. Pushed via temp-index (foreign agents active).
+
+## §45 — Tap the jackpot, see the last 5 hits (2026-08-18, CA 0789931b2, DB 20260818231619)
+
+Dan: "we should be showing the last 5 jackpots, what the hands were, what the
+payouts were, who got paid what (PokerBros style) — displayed when you click on
+the BBJ amount at the top of a table."
+
+**Shipped.** Tapping the jackpot banner opens a bottom sheet (centered card on
+wider screens) with two tabs:
+- **Last 5 jackpots** — each hit shows the total, how long ago, and the matchup;
+  expanding it lists EVERY recipient with their role (bad beat / won the hand /
+  at the table) and exact payout, with the viewer's own row badged "YOU". The
+  most recent hit is expanded by default.
+- **This table** — the qualifying rule for this game, the stakes-tiered % this
+  table pays, and that share split 50/25/25 in real chips.
+
+### 45.1 The naming trap — and a live display bug it exposed
+`bbj_payouts` / `bbj_winners` name their columns from the JACKPOT's point of
+view, not the hand's, and the two are crossed:
+
+| column | who it actually is |
+|---|---|
+| `winner_user_id` / `winner_display_name` / `winner_hand` | the **bad-beat holder** — LOST the hand, WON the jackpot, receives `loser_share` (50%) |
+| `loser_user_id` / `loser_display_name` / `loser_hand` | the player who **WON the hand**, receives `winner_share` (25%) |
+
+Verified against `bbj_payout_recipients` on every hit: `winner_user_id` is
+always the uid that received the 50%, and on every hit where the two hand names
+differ, `loser_hand` is the STRONGER hand (Royal Flush over Straight Flush, SF
+over Quads, Quads over a Full House) — i.e. it belongs to the pot winner,
+exactly as the money says.
+
+This was already live and wrong: the jackpot page rendered
+`{loser_hand} beat by {winner_hand}`, which printed **"Royal Flush beat by Four
+of a Kind"** — a royal flush being beaten by quads. Corrected to
+"<bad-beat hand> lost to <winning hand>" with the right name against each.
+
+`fn_bbj_recent_hits` therefore derives each recipient's role from which uid
+actually received which share, never from the column names, so this trap cannot
+be re-introduced by a future reader of the schema.
+
+### 45.2 Verification
+Probed as a normal authenticated user (not service_role): 5 rows returned, top
+recipient role `bad_beat` at 2657.66, limit clamped to 25, limit 0 floors to 1.
+6 new tests pin the payout contract (largest share is the bad beat, 50/25/25
+splits, recipients reconcile to the total, exactly one of each key role, and
+the matchup line can never invert). Client tsc clean, suite 1451/1451.
+Pushed via temp-index (foreign agents active).
