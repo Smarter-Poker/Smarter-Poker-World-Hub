@@ -2665,3 +2665,78 @@ money was never wrong (the chooser only picks the run count).
 Live post-deploy (engine 2ac71be4): 4 RIT hands in the first 10 minutes,
 0 conservation violations, blank-winner detector 0, invariants 15/15.
 619/619 server tests, client tsc clean.
+
+---
+
+## §40 — Bad Beat Jackpot full audit: the $99k rule, a retired parallel payer, and a 400x cron win (2026-08-18 17:20)
+
+### 40.1 How it works (verified end to end)
+- FEE: per qualifying hand (pot >= 10BB, flop seen - the §37 sawFlop fix
+  made preflop all-ins contribute), tiered by stakes: 0.6bb nano/micro →
+  0.03bb nosebleeds. Collected in settlement, banked via add_bbj_contribution
+  → fn_resolve_bbj_pool (canonical per scope since the §34 consolidation),
+  allocated 50/25/25 main/backup/promo (pivot 30/40/30 past $100k main).
+- TRIGGER (engine detectBBJHit at settlement, first runout only, board 0 on
+  RIT hands): NLH/FLH aces-full-of-jacks+ must lose, loser holds an Ace;
+  PLO4/PLO8/pineapple quad-kings+; PLO5 8-high SF+; plo6/short-deck
+  ineligible; 3+ dealt; tournaments excluded.
+- PAYOUT (bbj_atomic_payout_v2, sole payer): stakes-tiered % of main pool
+  (15/25/40/55/70/85 by tier), split 50% bad-beat holder / 25% hand winner
+  / 25% table (dealt-in others), rounding folded into the loser so records
+  == credits == debit. Seated recipients credited ON THE TABLE STACK
+  (engine mirrors in memory and re-syncs - they leave with the chips);
+  departed dealt-in players get a direct wallet credit via the whitelisted
+  RPC. Claim-key idempotent with per-recipient credit RE-DRIVE on retry.
+  After a hit, backup_balance reseeds the new main. bbj_winners row written
+  in the same transaction. Ledger verified clean: 39 payouts, 0 duplicate
+  hand keys, 0 share-sum mismatches, 0 recipient-sum mismatches.
+- ANIMATIONS: bbj_hit (hand names) → bbj_payout_complete (amounts +
+  updatedStacks) → 3s-delayed BBJCelebration overlay (canvas confetti /
+  fireworks / chip rain, rolling payout counter) with stack sync and
+  unmount-safe timers. Wired and sound.
+
+### 40.2 THE $99K FINDING (CA 227e1a787, deployed, engine 227e1a78)
+detectBBJHit never checked the WINNER's hand. Dan's rule: AAAJJ+ must lose
+TO QUADS OR A STRAIGHT FLUSH - but any bigger full house triggered it.
+Live ledger: 25 of 39 payouts, $99,066 of $148,121 (64% of all jackpot
+money ever paid), were boat-over-boat hands the rule excludes. Fixed: the
+winning hand must be quads+. Also fixed in the same pass:
+- "Both cards from hand must play" (declared in BBJ_RULES, enforced
+  nowhere): hold'em-family hands now require BOTH the loser's and the
+  winner's best five to strictly need both hole cards (board-boat with a
+  dead kicker and board-quads-plus-kicker no longer qualify); Settlement
+  passes the final board. Omaha is game-enforced.
+- Multiple qualifying losers resolve to the STRONGEST beat (was seat
+  order). splitIfMultipleQualify: documented-not-implemented (needs a
+  two-holder atomic payout; astronomically rare).
+- 15-test qualification matrix pins every rule per game. 636/636 server.
+
+### 40.3 A second, WRONG payer retired (migration 20260818170329 + workers 16d7e8c)
+The workers' bbj-detect cron drove a parallel path: fn_bbj_check_eligible
+matched players.best_hand_label - a field the engine never writes (inert!),
+and had it matched it would have paid the QUAD-ACES HOLDER without
+checking they lost, with zero qualifications and unresolvable union pools;
+fn_bbj_payout drained the DEAD pool_amount column, had no idempotency,
+credited wallets instead of table stacks, and split 50% to the wrong
+player. Both DB functions now refuse permanently (probed: no money moves),
+grants service-only. The worker's scan (one RPC per settled hand) is
+removed; it keeps the promo sweep.
+
+### 40.4 Cron collapse - 400x
+Removing the scan cut /cron/bbj-detect from ~413,000ms to 357-610ms,
+VERIFIED in cron_execution_log. Every 5-minute firing now runs (the
+overlap guard's skip-every-other steady state is gone) and the promo
+sweep truly recurs at 5 minutes (promo_total 8.33 residual).
+
+### 40.5 Remaining notes
+- bbj_pools.pool_amount / hands_contributed are dead legacy columns with
+  garbage values (41k on the club pool); nothing reads them since the
+  retirement. Deferred: drop or zero them (schema surgery, low risk of
+  confusion documented here).
+- Pool hit_count (87) predates the payout ledger (39 rows since 07-25);
+  the delta is pre-v2 history, not missing money.
+- processBBJPayout selects the pool without status='active' (safe today:
+  3 canonical pools post-consolidation; noted for hardening).
+- Payout % tiers and fees match Dan's schedule screenshot exactly.
+
+Invariants 15/15 OK.
