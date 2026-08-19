@@ -3643,3 +3643,99 @@ proved by probe: registering the fee for a real 1.00/0.10 tournament wrote one
 rake row and moved the club's rake counter by exactly 0.10, then rolled back.
 The model is right and the plumbing works when called; production evidence does
 not yet exist because no one has ever registered for a tournament.
+
+---
+
+## §54 — Tournament buy-in rake routes to the union; global hand numbering verified LIVE (2026-08-19)
+
+Closes the three-part requirement opened in §53. Both halves are now verified
+against production rather than asserted.
+
+### 54.1 Tournament rake was landing in the wrong wallet
+
+Dan's rule: tournament HANDS are never raked. The BUY-IN is raked, 10+1, and the
++1 is the rake. Two things must then happen: the fee is **held in the union
+wallet** (or the club wallet if the club is a standalone with no union), and the
+player who paid it gets it credited to their **weekly `rake_generated`**.
+
+`record_tournament_buyin_rake` credited `club_wallets.chip_balance`
+unconditionally. So for a club inside a union, its **cash-game** rake correctly
+flowed to the union while its **tournament** rake stopped at the club — the two
+revenue streams for the same club disagreed about who owns the money. Fixed in
+`20260819040000_tournament_buyin_rake_routes_to_union.sql` (applied as
+`tournament_buyin_rake_routes_to_union_v2`).
+
+The player-credit half already worked and was left alone: the function writes a
+`rake_records` row whose `player_contributions` is
+`jsonb_build_object(p_player_id::text, p_amount)`, and `RakebackSettlerService`
+explicitly processes tournament/SNG fee rows, keying idempotency on
+`rake_records.id` because these rows carry no `hand_id`. `rakeback_stats_applied`
+is written every minute and holds 2.3M+ rows.
+
+A first migration attempt failed with `cannot remove parameter defaults from
+existing function`; the shipped version DROPs first and re-declares the three
+defaults.
+
+**Verification method matters here.** The first probe ran against live union and
+club rows and read a `rake_wallet` delta of **+12.20** against an expected
++11.00, with 3 `union_wallet_transactions` rows instead of 1. That was not a bug
+in the function — it was real cash-game rake landing in the same wallet during
+the ~400ms the probe held open. In READ COMMITTED, later statements in the
+transaction see other sessions' commits, so *any* before/after delta measured
+against a live wallet on this platform is unreliable. The probe was rewritten to
+create a **synthetic** union, two clubs, two club_wallets and two tournaments
+inside the rolled-back subtransaction, so no concurrent traffic could touch them.
+
+Re-probed, 15/15 exact:
+
+| Assertion | Want | Got |
+|---|---|---|
+| union `rake_wallet` | 11.00 | 11.00 |
+| union `chip_balance` | 11.00 | 11.00 |
+| union `total_rake_collected` | 11.00 | 11.00 |
+| union club `club_wallets.chip_balance` | **0.00** | 0.0000 |
+| union club `period_rake_collected` | 11.00 | 11.0000 |
+| union club `lifetime_rake_collected` | 11.00 | 11.0000 |
+| `union_wallet_transactions` rows | 1 | 1 |
+| `rake_records` rows | 1 | 1 |
+| `player_contributions` | `{payer: 11.00}` | `{payer: 11.00}` |
+| `source` | `tournament_buyin` | `tournament_buyin` |
+| `clubs.total_rake` | 11.00 | 11.00 |
+| `tournaments.total_rake` | 11.00 | 11.0000 |
+| standalone `club_wallets.chip_balance` | 11.00 | 11.0000 |
+| standalone `period_rake_collected` | 11.00 | 11.0000 |
+| standalone `club_wallet_transactions` rows | 1 | 1 |
+
+The union club keeps `period_rake_collected` / `lifetime_rake_collected` — those
+are accounting counters for "rake this club generated", which is a different
+question from "who holds the chips". Only `chip_balance` moved to the union.
+
+**Still open (not a regression, pre-existing):** `fn_calculate_rakeback` is an
+explicit stub returning `not_implemented`.
+
+### 54.2 Global hand numbering — verified on production traffic
+
+§53 shipped the allocator; this is the live proof it took effect. Engine
+`1593f177`, uptime 603s at time of check.
+
+- **All 59 live tables** report `handCount` ≥ 1,000,000 in `/health`.
+- `hand_history` first globally-numbered row at **01:23:07 UTC**, matching engine
+  boot — i.e. numbering switched over exactly at the deploy, not gradually.
+- **2,022 globally-numbered hands across 61 tables, 2,022 distinct values,
+  0 duplicates.**
+- Allocation-order vs deal-time rank correlation **0.9975**. It is not 1.000 by
+  design: the number is allocated at *deal start* while `created_at` is stamped
+  at *hand end*, and hands finish out of order across 59 concurrent tables. Dan's
+  requirement is ascending **from when the hand was dealt**, which is what the
+  allocator guarantees.
+- `uq_hand_history_global_hand_number` (UNIQUE, partial `WHERE hand_number >=
+  1000000`) enforces this at the database, not just in engine code.
+
+**On gaps.** 45 numbers inside the observed range had no `hand_history` row. All
+45 sat in the top ~145 of the range — they are hands in flight (~17s average hand
+duration × 59 tables). The settled region has no scattered holes, so "grab any
+hand number and identify that hand" holds for every completed hand. Gaps are
+intrinsic to any sequence allocator and are *not* a violation of the rule that
+matters: a sequence never reuses or resets a value, which is precisely what Dan
+required. A burned number is a hand that was dealt; it is never a *different*
+hand later.
