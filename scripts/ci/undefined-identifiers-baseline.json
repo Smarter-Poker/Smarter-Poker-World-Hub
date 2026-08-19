@@ -58,11 +58,6 @@
     "src/content-engine/services/HorseBehaviorService.js::FollowerCount": 1,
     "src/content-engine/services/HorseBehaviorService.js::Hour": 4,
     "src/content-engine/services/HorseBehaviorService.js::Milestone": 1,
-    "src/lib/poker-brain/ocr.js::Tesseract": 1,
-    "src/lib/poker-engine/brain/holdem-brain.js::flopTimingTell": 1,
-    "src/lib/poker-engine/brain/router.js::isSoftPlayAllowed": 1,
-    "src/lib/poker-engine/brain/router.js::recordSoftPlay": 1,
-    "src/lib/poker-engine/brain/session-analytics.js::cacheKey": 1,
-    "src/lib/sentry.js::__non_webpack_require__": 1
+    "src/lib/poker-engine/brain/holdem-brain.js::flopTimingTell": 1
   }
 }

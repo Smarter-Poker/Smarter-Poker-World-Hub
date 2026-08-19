@@ -645,8 +645,12 @@ async function persistOpponentJournal(horseId, opponentId, profile) {
 }
 
 async function loadOpponentJournal(horseId, tableId, opponentId) {
+    // Declared OUTSIDE the try. The catch at the bottom of this function reads
+    // cacheKey, and a const declared inside the try block is not in scope there
+    // -- so on any failure the error path threw its own ReferenceError on top of
+    // the error it was trying to record, and the cache was never marked.
+    const cacheKey = `${horseId}:${opponentId}`;
     try {
-        const cacheKey = `${horseId}:${opponentId}`;
         const cached = _journalCache.get(cacheKey);
         if (cached && (Date.now() - cached.timestamp) < JOURNAL_CACHE_TTL) {
             return cached.loaded;

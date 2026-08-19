@@ -75,6 +75,11 @@ const overrideConfig = [
         afterAll: 'readonly', vi: 'readonly', jest: 'readonly',
         // OpenCV, loaded from a <script> tag by the card-scanner.
         cv: 'readonly',
+        // Tesseract.js, loaded from a CDN at runtime by src/lib/poker-brain/ocr.js.
+        // Its one use is already behind a `typeof Tesseract === 'undefined'` check.
+        Tesseract: 'readonly',
+        // webpack injects this to reach the real require() from inside a bundle.
+        __non_webpack_require__: 'readonly',
       },
     },
     linterOptions: { reportUnusedDisableDirectives: false },

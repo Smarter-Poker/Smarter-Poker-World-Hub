@@ -24,7 +24,10 @@ const { selectCounterStrategy, _loadThreatIntel, isBlacklisted, getRangeRotation
         chaosSuppressionMap, showdownExposureMap, tiltMap,
         timeAbuseSuspicion, tableTimebankBlacklist, frequencyObfuscatorMap } = require('./anti-exploit');
 
-const { recordPerformanceAction } = require('./session-analytics');
+// isSoftPlayAllowed and recordSoftPlay are used further down this file and were
+// never destructured, so the softplay branch threw ReferenceError. Both are
+// exported from session-analytics, which this line already requires.
+const { recordPerformanceAction, isSoftPlayAllowed, recordSoftPlay } = require('./session-analytics');
 
 const { makeFallbackDecision, evaluatePostflopHand, makeFlopHeuristicDecision,
         makeTurnRiverHeuristicDecision, handleDonkBet, getDrawEquity,
