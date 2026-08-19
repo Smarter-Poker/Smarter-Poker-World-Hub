@@ -74,7 +74,7 @@ export default async function handler(req, res) {
           // Get item (scoped to this club) — BUG FIX: was .select('id'), making is_active/price undefined
           const { data: item, error: itemErr } = await getSupabase()
               .from('club_shop_items')
-              .select('id, price, is_active, name, description, item_type')
+              .select('id, price, is_active, name, description, item_type, stock')
               .eq('id', itemId)
               .eq('club_id', clubId)
               .maybeSingle();
@@ -118,6 +118,36 @@ export default async function handler(req, res) {
               });
           }
 
+          // Limited-quantity items: take a unit BEFORE money moves, so two
+          // concurrent buyers cannot both get the last one. Every failure path
+          // below releases it again.
+          let stockClaimed = false;
+          if (item.stock !== null && item.stock !== undefined) {
+              const { data: claim, error: claimErr } = await getSupabase().rpc('fn_claim_shop_stock', {
+                  p_club_id: clubId,
+                  p_item_id: itemId,
+              });
+              if (claimErr) throw claimErr;
+              if (!claim?.claimed) {
+                  return res.status(400).json({
+                      success: false,
+                      error: claim?.error === 'sold_out' ? 'This item is sold out' : 'Item unavailable',
+                      soldOut: claim?.error === 'sold_out',
+                  });
+              }
+              stockClaimed = claim.unlimited !== true;
+          }
+
+          const releaseStock = async () => {
+              if (!stockClaimed) return;
+              stockClaimed = false;
+              try {
+                  await getSupabase().rpc('fn_release_shop_stock', { p_club_id: clubId, p_item_id: itemId });
+              } catch (e) {
+                  console.warn('[marketplace-purchase] stock release failed:', e?.message || e);
+              }
+          };
+
           // Deduct chips atomically
           const { error: deductErr } = await getSupabase().rpc('fn_debit_chips', {
               p_club_id: clubId,
@@ -126,6 +156,7 @@ export default async function handler(req, res) {
           });
 
           if (deductErr) {
+              await releaseStock();
               if (deductErr.message?.includes('Insufficient')) {
                   return res.status(400).json({ success: false, error: 'Insufficient chips', available: balance, price });
               }
@@ -143,6 +174,7 @@ export default async function handler(req, res) {
               });
 
           if (purchaseErr) {
+              await releaseStock();
               // Rollback chip deduction atomically. CRITICAL: capture the
               // refund error — if THIS fails, the user paid for nothing and
               // ops needs to know immediately. Previously the call swallowed
