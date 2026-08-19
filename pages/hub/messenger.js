@@ -348,6 +348,12 @@ function MessengerPage() {
     const [callRoomName, setCallRoomName] = useState('');
     const [showUserInfo, setShowUserInfo] = useState(false);
     const [showPushPrompt, setShowPushPrompt] = useState(false);
+
+    // CLUB ARENA widget: the club inboxes live inside this messenger rather than
+    // in a second app. Collapsed by default for someone who is here for personal
+    // messages; opened automatically when the messenger is entered from Club
+    // Arena (?clubId=), which is the only time we know the user came for a club.
+    const [clubDrawerOpen, setClubDrawerOpen] = useState(false);
     const [pushPromptHandled, setPushPromptHandled] = useState(() => {
         if (typeof window !== 'undefined') {
             return localStorage.getItem('messenger_push_prompt_handled') === '1';
@@ -2997,6 +3003,78 @@ function MessengerPage() {
         };
     }, [user?.id, pushReady, pushSubscribed, pushPromptHandled, setExternalUserId]);
 
+    /**
+     * Persist "the user has answered the push prompt" everywhere it is read:
+     * local state, localStorage, and profiles.messenger_preferences. The RPC is
+     * an atomic JSONB merge; the fallback is a read-modify-write, which is only
+     * safe here because this flag is one-way (false -> true).
+     */
+    const persistPushPromptHandled = useCallback(async () => {
+        setPushPromptHandled(true);
+        try {
+            localStorage.setItem('messenger_push_prompt_handled', '1');
+        } catch (e) {
+            console.warn('[Messenger] push prompt localStorage write failed:', e?.message || e);
+        }
+        if (!user?.id) return;
+        try {
+            const { error } = await supabase.rpc('fn_merge_messenger_preferences', {
+                p_user_id: user.id,
+                p_key: 'pushPromptHandled',
+                p_value: true,
+            });
+            if (!error) return;
+            throw error;
+        } catch (_) {
+            try {
+                const { data: cur } = await supabase
+                    .from('profiles')
+                    .select('messenger_preferences')
+                    .eq('id', user.id)
+                    .maybeSingle();
+                const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
+                const { error: prefErr } = await supabase
+                    .from('profiles')
+                    .update({ messenger_preferences: merged })
+                    .eq('id', user.id);
+                if (prefErr) {
+                    console.warn('[Messenger] push prompt pref persist failed:', prefErr.message);
+                }
+            } catch (e2) {
+                console.warn('[Messenger] push prompt pref persist failed:', e2?.message || e2);
+            }
+        }
+    }, [user?.id]);
+
+    const handlePushEnable = useCallback(async () => {
+        let success = false;
+        try {
+            if (subscribePush) success = await subscribePush();
+        } catch (e) {
+            console.warn('[Messenger] push subscribe failed:', e?.message || e);
+        }
+        await persistPushPromptHandled();
+        setShowPushPrompt(false);
+        if (success) setToast({ type: 'success', message: 'Push Notifications Enabled' });
+    }, [subscribePush, persistPushPromptHandled]);
+
+    const handlePushDismiss = useCallback(async () => {
+        await persistPushPromptHandled();
+        setShowPushPrompt(false);
+    }, [persistPushPromptHandled]);
+
+    // Opened from Club Arena -> the club inbox is what they came for.
+    useEffect(() => {
+        if (router.query.clubId || router.query.forceIdentity) setClubDrawerOpen(true);
+    }, [router.query.clubId, router.query.forceIdentity]);
+
+    // Aggregate unread across every club the user holds a page for, so the
+    // collapsed widget can say whether opening it is worth the tap.
+    const clubUnreadTotal = (ownedPages || []).reduce(
+        (sum, p) => sum + (Number(p?.unread_count) || 0),
+        0
+    );
+
     // Start a Jitsi call - Now uses real-time signaling for instant popup
     const startCall = async (type) => {
         if (!activeConversation || !user) return;
@@ -3515,11 +3593,11 @@ function MessengerPage() {
             <Toast toast={toast} onDismiss={() => setToast(null)} theme={C} />
 
             {/* Push Notification Subscription Banner */}
-                        {showPushPrompt && !pushSubscribed && (
+            {showPushPrompt && !pushSubscribed && (
                 <PushPromptModal
-                    showPushPrompt={showPushPrompt}
                     setShowPushPrompt={setShowPushPrompt}
-                    enablePushNotifications={enablePushNotifications}
+                    onEnable={handlePushEnable}
+                    onDismiss={handlePushDismiss}
                     C={C}
                     isMobile={isMobile}
                 />
@@ -3897,9 +3975,103 @@ function MessengerPage() {
                         theme={C}
                     />
 
-                    {/* Identity Switcher Widgets */}
-                    {hasClubPage && (
+                    {/* ── CLUB ARENA widget ──────────────────────────────────
+                        The club inboxes are not a second messenger; they are a
+                        section of this one. Collapsed it is a labelled row with
+                        the aggregate club unread count. Opened it is the identity
+                        strip: Me, then one tile per club, each switching the
+                        inbox via context_entity_id — private DMs stay private,
+                        the club context only decides which inbox they land in.
+
+                        Gate note: hasClubPage is ownedPages.length > 0, which is
+                        false for the whole window between mount and the pages
+                        fetch resolving — and stays false forever if that fetch
+                        fails or the session is not readable yet. Gating on it
+                        alone meant the section silently did not exist on the one
+                        entry point it was built for. When we arrived from Club
+                        Arena (?clubId=) we know the user came for a club, so the
+                        section renders and says what it is waiting for. */}
+                    {(hasClubPage || router.query.clubId || router.query.forceIdentity) && (
                         <div style={{ padding: '0 16px 12px 16px', borderBottom: `1px solid ${C.border}`, marginBottom: 8, flexShrink: 0 }}>
+                            <button
+                                type="button"
+                                onClick={() => setClubDrawerOpen((v) => !v)}
+                                aria-expanded={clubDrawerOpen}
+                                aria-controls="club-arena-inboxes"
+                                style={{
+                                    width: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    padding: '10px 0',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: isClubMode ? C.blue : C.text,
+                                    font: 'inherit',
+                                    textAlign: 'left',
+                                }}
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 26,
+                                        height: 26,
+                                        borderRadius: 8,
+                                        background: isClubMode ? `${C.blue}22` : `${C.textSec}18`,
+                                        color: isClubMode ? C.blue : C.textSec,
+                                        fontSize: 13,
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    ♠
+                                </span>
+                                <span style={{ flex: 1, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em' }}>
+                                    CLUB ARENA
+                                </span>
+                                {!clubDrawerOpen && clubUnreadTotal > 0 && (
+                                    <span
+                                        style={{
+                                            background: '#ef4444',
+                                            color: 'white',
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            borderRadius: 10,
+                                            minWidth: 18,
+                                            height: 18,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            padding: '0 5px',
+                                        }}
+                                    >
+                                        {clubUnreadTotal > 99 ? '99+' : clubUnreadTotal}
+                                    </span>
+                                )}
+                                <span
+                                    aria-hidden="true"
+                                    style={{
+                                        color: C.textSec,
+                                        fontSize: 11,
+                                        transform: clubDrawerOpen ? 'rotate(90deg)' : 'none',
+                                        transition: 'transform 0.2s ease',
+                                    }}
+                                >
+                                    ▶
+                                </span>
+                            </button>
+
+                            {clubDrawerOpen && !hasClubPage && (
+                                <div style={{ padding: '4px 0 10px 0', fontSize: 12, color: C.textSec }}>
+                                    Loading your clubs...
+                                </div>
+                            )}
+
+                            {clubDrawerOpen && hasClubPage && (
+                            <div id="club-arena-inboxes">
                             <div className="no-scrollbar" style={{ display: 'flex', gap: 20, overflowX: 'auto', padding: '4px 0 8px 0' }}>
                                 {/* Personal Identity */}
                                 <div onClick={() => switchToPersonal()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
@@ -4005,9 +4177,38 @@ function MessengerPage() {
                             }}>
                                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: isClubMode ? C.blue : C.textSec, boxShadow: isClubMode ? `0 0 6px ${C.blue}` : 'none' }} />
                                 <span style={{ fontSize: 11, color: isClubMode ? C.blue : C.textSec, fontWeight: 600, letterSpacing: '0.01em' }}>
-                                    {isClubMode ? `MESSAGING AS: ${clubPage?.name.toUpperCase()}` : 'MESSAGING AS: PERSONAL ACCOUNT'}
+                                    {isClubMode ? `MESSAGING AS: ${clubPage?.name?.toUpperCase() || 'CLUB'}` : 'MESSAGING AS: PERSONAL ACCOUNT'}
                                 </span>
                             </div>
+                            </div>
+                            )}
+
+                            {/* Collapsed but scoped to a club: say so, and give a
+                                one-tap way back. Otherwise the inbox looks empty
+                                for no visible reason. */}
+                            {!clubDrawerOpen && isClubMode && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 4 }}>
+                                    <span style={{ fontSize: 11, color: C.blue, fontWeight: 600 }}>
+                                        {clubPage?.name || 'Club'} inbox
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => switchToPersonal()}
+                                        style={{
+                                            marginLeft: 'auto',
+                                            background: 'none',
+                                            border: `1px solid ${C.border}`,
+                                            borderRadius: 8,
+                                            color: C.textSec,
+                                            fontSize: 11,
+                                            padding: '3px 8px',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Back to personal
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -4050,8 +4251,20 @@ function MessengerPage() {
                         {conversations.length === 0 ? (
                             <div style={{ padding: 40, textAlign: 'center' }}>
                                 <div style={{ fontSize: 48, marginBottom: 12 }}></div>
-                                <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>No Conversations Yet</div>
-                                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Search For People To Start Messaging!</div>
+                                {/* An empty CLUB inbox is not the same as an empty
+                                    personal one, and saying "No Conversations Yet"
+                                    for both reads as a bug the first time a club
+                                    inbox is opened. */}
+                                <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>
+                                    {isClubMode
+                                        ? `No messages in ${clubPage?.name || 'this club'} yet`
+                                        : 'No Conversations Yet'}
+                                </div>
+                                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>
+                                    {isClubMode
+                                        ? 'Conversations you start while messaging as this club appear here. Your personal messages stay in your own inbox.'
+                                        : 'Search For People To Start Messaging!'}
+                                </div>
                                 <button
                                     onClick={() => {
                                         setComposing(true);
