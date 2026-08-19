@@ -4261,3 +4261,209 @@ right rather than something to compare against and hope.
 
 And the reporting rule that follows from §59.4: *green on my machine* is not a
 result. A suite is verified when it is green somewhere I did not set up.
+
+---
+
+## 60. The engine was breaking the law the client enforced
+
+This section covers 2026-08-19, the day the seat law turned out to be enforced
+in exactly one place, and pulling that thread found four more defects behind it.
+
+It started as a routine check — confirm Dan's cash seat law still held in
+production — and the count came back **6 cash tables over the law**, created
+within the hour.
+
+### 60.1 The law had one gate, and the engine did not go through it
+
+The law (plo6 6, plo5 7, plo4 8, plo8 8, everything else 9) lived in
+`src/config/tableSeating.ts` and was enforced in `TableService.createTable`,
+whose only caller is the club's Create Table modal. So it covered every table
+a HUMAN makes.
+
+`HorseFleetManager.DEFAULT_TABLES` — which creates the cash tables the horse
+fleet actually plays on, and runs `ensureAllTablesExist()` on every boot — had
+its own hardcoded numbers:
+
+```
+PLO5 1.00/2.00   maxPlayers: 8    the law says 7
+PLO6 1.00/2.00   maxPlayers: 7    the law says 6
+```
+
+`server/` had **zero** references to the seat law: no import, no local copy.
+The rule existed in the client and in prose. `HandController.ts` and
+`ServerTableEngineRunout.ts` both contain comments reasoning that they need not
+defend against deck exhaustion *because* "PLO6 is 6-max and PLO5 is 7-max" —
+an assumption that was false in production the whole time.
+
+The arithmetic is why it mattered rather than merely being untidy. PLO5 at 8
+seats deals 40 of 52 cards and leaves 12; PLO6 at 7 deals 42 and leaves 10.
+Run It Twice wants up to 15. `PokerEngine.deal()` **throws**
+`'Not enough cards in deck'` rather than dealing short, so a full over-seated
+table does not degrade — it fails mid-hand.
+
+Fixed in three parts, because correcting the two numbers would have left the
+same hole open:
+
+- `server/src/config/tableSeating.ts` — the law where the engine can reach it.
+  A copy rather than an import: `server/tsconfig.json` sets `rootDir './src'`,
+  so importing across that boundary changes the compiled layout of a live
+  engine. This repo already had the problem (the rake schedule) and already had
+  the answer (declare twice, gate in CI).
+- Both HorseFleetManager insert sites now clamp through it, and a config that
+  disagrees is **reported** (`HorseFleet.seat_law_override`) rather than
+  silently corrected. Silent correction is how 8 and 7 survived.
+- `scripts/ci/check-seat-law-parity.mjs`, blocking, comparing client law,
+  server law and the fleet config array. Proved against two canaries.
+
+Shipped `19adcddda`. The 6 live rows were clamped with `LEAST(max_players, cap)`
+— cash only, all six empty at the time — leaving **0 cash tables over the law**
+and tournaments untouched at 3–9.
+
+### 60.2 Every boot added another copy of the same table
+
+Looking for how those 6 rows got created surfaced something larger. The
+existence check in `ensureAllTablesExist()` was:
+
+```ts
+const { data: existing } = await supabase.from('tables')...maybeSingle();
+```
+
+PostgREST answers `.maybeSingle()` with **PGRST116 when more than one row
+matches**. The error was destructured away, so the moment a second same-named
+row existed, `existing` came back `null` and the code created a third — and
+every copy it added made the next boot certain to add one more.
+
+Production held:
+
+| name | copies |
+|---|---|
+| NLH 1.00/2.00 | 120 |
+| NLH 2.00/5.00 | 120 |
+| PLO4 1.00/2.00 | 83 |
+| PLO5 1.00/2.00 | 83 |
+| PLO6 1.00/2.00 | 81 |
+| PLO8 / Short Deck / Pineapple | 1 each |
+
+487 duplicates. The three configs that never happened to get a second row still
+had exactly one, which is what a self-amplifying bug looks like from outside:
+it cannot start on its own, and it cannot stop.
+
+The lookup now uses `.order('created_at').limit(1)`, which cannot error on
+multiplicity, and the error is **checked** — any read failure skips that config
+rather than inserting. Inserting when you could not find out whether the row
+exists is the actual defect; `.maybeSingle()` was just the route to it. Shipped
+`f73df9b2a`, with a CONTROL test that runs the OLD lookup against 81 rows and
+watches it create the 82nd.
+
+### 60.3 Closing a table lasted until the next deploy
+
+Dan chose the cleanup: keep 3 per config, retire the rest. 393 idle duplicates
+were closed — and the cleanup would have lasted about four minutes.
+
+`cleanupStaleData()` runs on every boot, and its normal-mode branch read:
+
+```ts
+.in('status', ['waiting', 'running', 'closed'])
+```
+
+It did not merely reset counts; it **resurrected every closed cash table**. So
+`'closed'` meant nothing for cash. A club admin closing a table through
+`fn_admin_close_table` found it open again after the next deploy, with nothing
+recording why — a defect nobody had reported, sitting in plain sight.
+
+Filter is now `['waiting', 'running']`. Closed is a decision, not a state to
+clean up. The fleet still reopens the tables it owns. Shipped `3753d83e0`.
+
+### 60.4 A promise with no implementation behind it
+
+`spawnOverflowTables()` carried this comment:
+
+> empty overflow tables simply idle (the stale-table lifecycle owns closing)
+
+There is no stale-table lifecycle. A search across server, client, RPCs, edge
+functions and pg_cron found **nothing anywhere that closes an idle cash table**.
+The closest thing, `HorseLifecycleManager.cleanupStaleSeats`, retires *seats*
+and leaves the table row untouched. The comment describes a contract with a
+component that was never written — which is why a creation cap of 3 per config
+coexisted with 121 rows of one name.
+
+`retireSurplusTables()` is that missing half, and it needs two pieces:
+
+1. A surplus table is no longer seeded — otherwise it can never empty, and an
+   occupied table must never be closed, so it could never be retired either.
+2. Once genuinely empty (no live seat rows, `current_players` zero, status
+   still waiting or running) it is closed. Anyone still sitting keeps it open;
+   it retires on a later cycle.
+
+`status = 'closed'`, never `DELETE`: `trg_auto_cashout_on_table_close` cashes
+out any remaining human seat, and a delete would bypass it and strand chips.
+`MAX_TABLES_PER_CONFIG` is hoisted to module scope so spawning and retiring
+read the same number — two numbers would make the fleet spawn and retire the
+same table forever. Shipped `96034c23a`.
+
+### 60.5 A money RPC that existed in production and nowhere in the repo
+
+Separately, CI went red on the phantom-reference gate:
+
+```
+PHANTOM RPCS DETECTED (.rpc() -> missing function):
+  fn_register_horse_for_tournament
+```
+
+The function was real and correct — audited before being blessed rather than
+just unblocked: horses-only hard gate, `FOR UPDATE` on the tournament row,
+wallet debit before the insert, refund on the `unique_violation` race,
+`rake_records` written, pools updated, and `EXECUTE` granted to nothing but
+`service_role`. It fixed genuine accounting: horses used to be INSERTed into
+`tournament_players` with no debit, no rake and no prize contribution while
+prize pools still paid out in full.
+
+But it lived only in the database. Rebuilding the schema from this repo would
+have silently restored the free-INSERT path that mints chips. Both halves fixed
+in `8ac65dbea`: the migration recorded (body verified byte-identical to
+production by md5, not read over), and the CI manifest refreshed — confirmed by
+comparing the canonical sha256 of *manifest + that one name* against the live
+schema, so nothing else had drifted.
+
+### 60.6 The one I broke, and how
+
+Pushing the §60.3 fix, I hashed a `GameServer.ts` blob built from `f73df9b2a`
+and pushed it after `origin/main` had already advanced to `5bfe90291` — whole-
+blob push, so it silently reverted that commit's GameServer half: the
+`waitForAllTablesParked()` / `beginBreakCountdown()` work that makes the
+synchronized break start after the last hand rather than at :55. Its other four
+files stayed, so main carried a `GameServer.ts` that no longer matched them.
+
+Caught within two minutes by checking what the base had been, and restored
+exactly in `3753d83e0`. The restore was clean because `5bfe90291` already
+contained my edit — I had made it in the shared working tree before that agent
+committed.
+
+The mechanism is worth naming, because the reasoning that led to it was
+careful and still wrong. I rebased my hunk onto the origin blob **specifically
+to avoid publishing another agent's uncommitted work** — a good instinct — and
+then let the verification run before pushing. Re-read `origin/main`
+*immediately before hashing*, not before verifying. The push command now
+asserts the base is still the commit that was verified and aborts if it moved.
+
+### 60.7 The through-line
+
+Five defects, one shape: **a rule with one gate on it**.
+
+| the rule | where it was enforced | what walked around it |
+|---|---|---|
+| cash seat law | `TableService.createTable` | the engine's own table seeder |
+| one table per config | `spawnOverflowTables` creation cap | nothing counted the other way |
+| a closed table stays closed | nowhere | every boot reopened it |
+| a schema object exists | the CI manifest | applied straight to prod |
+| the pot spec's baseline | a file in /tmp | any clean checkout |
+
+Each was written by someone who checked the path they were looking at. The gap
+is never in the guarded path — it is in the second caller nobody enumerated. The
+question that finds these is not "is this enforced?" but "**who else writes this
+row?**", and the answer has to come from grepping every writer, not from
+recalling the design.
+
+Every one of them is now backed by something that fails loudly: a blocking CI
+gate, a reported override, a test that pins the neighbours as well as the
+target. None of them are backed by a comment.
