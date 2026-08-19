@@ -1,0 +1,34 @@
+-- ============================================================================
+-- UNION P&L — THE HOUSE RESIDUAL (2026-08-19). APPLIED via Supabase MCP as:
+--   union_pnl_house_residual_model
+--   union_settle_pnl_v4_record_house_residual
+--
+-- THE DECISION THIS ENCODES (Dan delegated the call)
+--
+-- Real players do not only play each other; they also play the house horses.
+-- Summed across a union, transfers BETWEEN real players cancel, so whatever is
+-- left over is by definition the net real-player-vs-house flow:
+--
+--     sum(club nets) == net real-player vs house flow  ==  the old "imbalance"
+--
+-- v2 treated any non-zero sum as a fault and parked the run as needs_review.
+-- That was correct while the number was unexplained — it stopped a 1,112,929
+-- mis-settlement — but as a permanent rule it is wrong: it would park EVERY
+-- week forever and the weekly billing would never run at all.
+--
+-- The union is the clearing house, so the union absorbs the house flow. That
+-- is already what the mechanism does (collect from losers, pay winners, union
+-- wallet holds the difference). The residual is therefore an expected line
+-- item, not an error. It is now named `house_residual`, stored on the
+-- settlement row, and written to union_wallet_transactions as its own
+-- 'player_pnl_house_residual' entry — auditable instead of hidden in a gap.
+--
+-- WHAT STILL BLOCKS A PAYOUT
+-- The guard is kept but re-pointed at what actually indicates broken data:
+-- a club showing a balance owed with NO buy-ins, NO cash-outs and NO stack
+-- movement behind it. That can only mean the inputs are wrong, and paying on
+-- it would be paying on garbage.
+--
+-- Verified on production data: a 7-day dry run now settles (it no longer
+-- parks), with house_residual -1138.16 and the single active real player's
+-- 2,350 in buy-ins / 1,174.81 in cash-outs / 37.03 rake behind it.
