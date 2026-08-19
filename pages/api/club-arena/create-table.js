@@ -94,6 +94,46 @@ export default async function handler(req, res) {
               }
           }
 
+          // ── UNION GOVERNANCE (2026-08-19) ─────────────────────────────
+          // Hard rule: clubs inside a union do not create union-visible games.
+          //   - Union admins create UNION tables (union_id stamped).
+          //   - Club owners/admins may still create PRIVATE club games
+          //     (is_private = true — visible only inside the club).
+          // The trg_tables_union_ownership DB trigger enforces the same rule
+          // for every other writer.
+          let tableUnionId = null;
+          let tableIsPrivate = false;
+          if (clubInfo?.union_id) {
+              const requestedPrivate = req.body.isPrivate === true || settings?.private_game === true;
+              let isUnionAdminCaller = false;
+              const { data: uaGov } = await getSupabase()
+                  .from('union_admins')
+                  .select('role')
+                  .eq('union_id', clubInfo.union_id)
+                  .eq('user_id', user.id)
+                  .maybeSingle();
+              if (uaGov) {
+                  isUnionAdminCaller = true;
+              } else {
+                  const { data: unGov } = await getSupabase()
+                      .from('unions')
+                      .select('id')
+                      .eq('id', clubInfo.union_id)
+                      .eq('owner_id', user.id)
+                      .maybeSingle();
+                  if (unGov) isUnionAdminCaller = true;
+              }
+              if (requestedPrivate) {
+                  tableIsPrivate = true; // private club game — never union-visible
+              } else if (isUnionAdminCaller) {
+                  tableUnionId = clubInfo.union_id; // union-owned table
+              } else {
+                  return res.status(403).json({
+                      error: 'This club is in a union. Only union admins create union tables — set isPrivate: true to create a private club game instead.',
+                  });
+              }
+          }
+
           // ── E-02: Validate numeric inputs — reject NaN/Infinity ────────
           const sbResult = clampFloat(smallBlind, 0.01, 100000, 1);
           const bbResult = clampFloat(bigBlind, 0.02, 200000, 2);
@@ -153,6 +193,8 @@ export default async function handler(req, res) {
               .from('tables')
               .insert({
                   club_id: clubId,
+                  union_id: tableUnionId,
+                  is_private: tableIsPrivate,
                   created_by: user.id,
                   name: cleanName,
                   game_type: gt,
@@ -191,7 +233,7 @@ export default async function handler(req, res) {
                       bomb_pot_ante_multiplier: Math.max(1, Math.min(10, parseInt(cleanSettings.bomb_pot_ante_multiplier) || 2)),
                       auto_muck: cleanSettings.auto_muck !== false,
                       // ── Game Modes ──
-                      private_game: cleanSettings.private_game || false,
+                      private_game: cleanSettings.private_game || tableIsPrivate || false,
                       vip_only: cleanSettings.vip_only || false,
                       double_board: cleanSettings.double_board || false,
                       triple_board: cleanSettings.triple_board || false,
