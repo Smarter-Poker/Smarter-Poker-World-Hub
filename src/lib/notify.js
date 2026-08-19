@@ -65,6 +65,14 @@ const BODY_MAX = 500;
 export async function notify(supabase, args = {}) {
     const out = { ok: false, notificationId: null, push: null };
     if (!supabase || !args.userId || !args.type || !args.title) {
+        // Silently dropping notifications is how a feature "works on my machine"
+        // and never fires in production. Say something.
+        console.warn('[notify] dropped -- missing required field:', {
+            hasClient: Boolean(supabase),
+            userId: args.userId || null,
+            type: args.type || null,
+            title: args.title || null,
+        });
         return out;
     }
 
@@ -81,7 +89,12 @@ export async function notify(supabase, args = {}) {
                 type: args.type,
                 title,
                 message: body,
+                // Both columns: `action_url` is what this gateway has always
+                // written, `link` is what older readers in the repo expect.
+                // The feed coalesces them, but anything reading `.link`
+                // directly would otherwise get null.
                 action_url: url,
+                link: url,
                 data: args.data || null,
                 actor_id: args.actorId || null,
                 read: false,
@@ -114,7 +127,10 @@ export async function notify(supabase, args = {}) {
                 actions: args.actions,
                 relatedEntityId: args.relatedEntityId,
             });
-            out.ok = true;
+            // NOTE: deliberately does NOT set out.ok. `ok` means the in-app
+            // notification row landed. A push that was correctly suppressed by
+            // the user's own preferences is not a failure, and a push that
+            // succeeded does not make a failed bell insert a success.
         } catch (e) {
             console.warn('[notify] enqueuePush threw:', e?.message || e);
         }
@@ -169,7 +185,9 @@ export function notifyTournamentStarting(supabase, userId, tournamentName, start
         title: 'Tournament starting',
         body: `${tournamentName} begins in ${startsInMinutes} minutes`,
         url: url || '/hub/tournaments',
-        tag: 'tournament-start',
+        // Per-tournament: a constant tag would make a second tournament's
+        // alert silently replace the first on the lock screen.
+        tag: `tournament-start:${tournamentName || 'any'}`,
         requireInteraction: true,
     });
 }
@@ -181,7 +199,7 @@ export function notifyLateRegClosing(supabase, userId, tournamentName, url) {
         title: 'Late registration closing',
         body: `Last call to enter ${tournamentName}`,
         url: url || '/hub/tournaments',
-        tag: 'late-reg',
+        tag: `late-reg:${tournamentName || 'any'}`,
     });
 }
 
@@ -203,7 +221,7 @@ export function notifySeatOpen(supabase, userId, tableName, url) {
         body: `A seat opened at ${tableName}`,
         url: url || '/hub/club-arena/',
         requireInteraction: true,
-        tag: 'seat-open',
+        tag: `seat-open:${tableName || 'any'}`,
     });
 }
 
@@ -223,7 +241,7 @@ export function notifyDiamondsReceived(supabase, userId, amount, fromName) {
         type: 'diamond_received',
         title: 'Diamonds received',
         body: fromName ? `${fromName} sent you ${Number(amount).toLocaleString()} diamonds` : `${Number(amount).toLocaleString()} diamonds landed in your account`,
-        url: '/hub/wallet',
+        url: '/hub/diamond-store',
     });
 }
 
@@ -243,7 +261,7 @@ export function notifyAchievement(supabase, userId, achievementName, url) {
         type: 'achievement',
         title: 'Achievement unlocked',
         body: achievementName,
-        url: url || '/hub/club-arena/challenges',
+        url: url || '/hub/club-arena/',
     });
 }
 
@@ -253,8 +271,8 @@ export function notifyDailyChallenge(supabase, userId, title, body) {
         type: 'daily_challenge',
         title: title || 'Daily challenges are live',
         body: body || 'A fresh set of challenges just dropped',
-        url: '/hub/club-arena/challenges',
-        tag: 'daily-challenge',
+        url: '/hub/club-arena/',
+        tag: 'daily-challenge', // constant on purpose: one per day, collapsing is correct
     });
 }
 
@@ -264,7 +282,7 @@ export function notifyVip(supabase, userId, title, body) {
         type: 'vip',
         title,
         body: body || '',
-        url: '/hub/vip',
+        url: '/hub/promotions',
     });
 }
 
@@ -274,8 +292,8 @@ export function notifyLiveStarted(supabase, userId, streamerName, url) {
         type: 'live',
         title: `${streamerName} is live`,
         body: 'Tap to watch the stream',
-        url: url || '/hub/live',
-        tag: 'live',
+        url: url || '/hub/lives',
+        tag: `live:${streamerName || 'any'}`,
     });
 }
 

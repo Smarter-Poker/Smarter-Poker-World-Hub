@@ -18,7 +18,11 @@
  */
 
 import { deliverPushNow } from './push-deliver';
-import { eventToTypeKey, pushTypeAllowed } from './push-prefs';
+import {
+    eventToTypeKey, pushTypeAllowed,
+    legacyPrefAllowed, LEGACY_PREF_COLUMNS,
+    isWithinQuietHours, isUrgentType,
+} from './push-prefs';
 import { isPushConfigured } from './web-push';
 
 const TITLE_MAX = 120;
@@ -32,27 +36,73 @@ const BODY_MAX = 500;
  * settings page and must still get notified.
  */
 async function checkGate(supabase, userId, event) {
+    const key = eventToTypeKey(event);
+    const urgent = isUrgentType(key);
+
     try {
-        const { data, error } = await supabase
-            .from('notification_preferences')
-            .select('push_enabled, mute_all, push_type_prefs')
-            .eq('user_id', userId)
-            .maybeSingle();
+        // Both preference tables in one round trip. `notification_preferences`
+        // is the new per-type store; `user_notification_preferences` is the
+        // legacy table that /hub/settings has always written. Honouring only
+        // one of them silently breaks a promise the UI made to the user.
+        const [{ data, error }, legacyRes] = await Promise.all([
+            supabase
+                .from('notification_preferences')
+                .select('push_enabled, mute_all, push_type_prefs, quiet_hours_start, quiet_hours_end, quiet_hours_tz, daily_push_cap')
+                .eq('user_id', userId)
+                .maybeSingle(),
+            supabase
+                .from('user_notification_preferences')
+                .select(['user_id', ...LEGACY_PREF_COLUMNS].join(','))
+                .eq('user_id', userId)
+                .maybeSingle(),
+        ]);
+        const legacyRow = legacyRes?.data || null;
 
         if (error) {
             // A read failure must not silence the user.
             console.warn('[push-enqueue] prefs read failed, defaulting to allow:', error.message);
             return { allowed: true, reason: 'prefs_read_failed_default_allow' };
         }
-        if (!data) return { allowed: true, reason: 'no_prefs_row_default_allow' };
+        if (!data) {
+            // No new-style row yet, but a legacy opt-out must still be honoured.
+            if (!legacyPrefAllowed(legacyRow, key)) {
+                return { allowed: false, reason: `legacy_disabled:${key}` };
+            }
+            return { allowed: true, reason: 'no_prefs_row_default_allow' };
+        }
 
         if (data.mute_all === true) return { allowed: false, reason: 'mute_all' };
         if (data.push_enabled === false) return { allowed: false, reason: 'push_disabled' };
 
-        const key = eventToTypeKey(event);
         if (!pushTypeAllowed(data.push_type_prefs, key)) {
             return { allowed: false, reason: `type_disabled:${key}` };
         }
+        if (!legacyPrefAllowed(legacyRow, key)) {
+            return { allowed: false, reason: `legacy_disabled:${key}` };
+        }
+
+        // Quiet hours and the daily cap are courtesy limits, not consent.
+        // Genuinely time-critical pushes (a ringing call, a seat about to be
+        // forfeited, a tournament starting) pierce both -- suppressing those
+        // would make the feature actively harmful.
+        if (!urgent && isWithinQuietHours(data)) {
+            return { allowed: false, reason: 'quiet_hours' };
+        }
+
+        const cap = Number(data.daily_push_cap || 0);
+        if (!urgent && cap > 0) {
+            const since = new Date(Date.now() - 86400_000).toISOString();
+            const { count } = await supabase
+                .from('push_outbox')
+                .select('id', { count: 'exact', head: true })
+                .eq('recipient_user_id', userId)
+                .eq('status', 'sent')
+                .gte('sent_at', since);
+            if ((count || 0) >= cap) {
+                return { allowed: false, reason: `daily_cap_reached:${cap}` };
+            }
+        }
+
         return { allowed: true, reason: 'allowed' };
     } catch (e) {
         console.warn('[push-enqueue] gate threw, defaulting to allow:', e?.message || e);

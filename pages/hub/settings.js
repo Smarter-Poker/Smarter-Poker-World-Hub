@@ -34,6 +34,7 @@ import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../..
 import { getBlockedUsers, unblockUser } from '../../src/services/privacy-service';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import styles from '../../src/components/settings/settingsStyles';
+import PushNotificationToggle from '../../src/components/notifications/PushNotificationToggle';
 
 // Phase 2: Hoisted to module scope — static array, no need to re-create on every render
 const SETTINGS_SECTIONS = [
@@ -1344,17 +1345,37 @@ export default function SettingsPage() {
                                             onChange={(v) => updateSetting('emailNotifications', v)}
                                         />
                                         <Toggle
-                                            label="Push Notifications"
-                                            description="Browser And Mobile Alerts"
-                                            value={settings.pushNotifications}
-                                            onChange={(v) => updateSetting('pushNotifications', v)}
-                                        />
-                                        <Toggle
                                             label="Sound Effects"
                                             description="In-App Sound Effects"
                                             value={settings.soundEffects}
                                             onChange={(v) => updateSetting('soundEffects', v)}
                                         />
+                                    </div>
+
+                                    {/*
+                                      REAL device enrollment. This replaced a
+                                      "Push Notifications" toggle that only wrote
+                                      localStorage + profiles.app_settings and never
+                                      subscribed anything -- flipping it did nothing
+                                      at all. This card performs the actual
+                                      PushManager.subscribe() and registers the
+                                      device server-side.
+                                    */}
+                                    <div style={{ paddingTop: '8px' }}>
+                                        <PushNotificationToggle
+                                            title="Push Notifications On This Device"
+                                            description="Alerts on this phone or computer, even when Smarter Poker is closed."
+                                            showTypePrefs={false}
+                                        />
+                                        <a
+                                            href="/hub/settings/notifications"
+                                            style={{
+                                                display: 'inline-block', marginTop: '10px', fontSize: '0.9rem',
+                                                color: '#2dd4bf', textDecoration: 'none',
+                                            }}
+                                        >
+                                            Choose exactly which alerts reach your phone &rarr;
+                                        </a>
                                     </div>
 
                                     <div style={{ paddingTop: '8px' }}>

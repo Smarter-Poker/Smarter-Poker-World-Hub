@@ -18,11 +18,17 @@
  * 'granted', so it can never steal the permission dialog from the first-run
  * flow. Throttled to once per hour per device. Errors are never surfaced.
  *
+ * It also relays the service worker's SP_PUSH_RECEIVED message onto the app's
+ * existing `smarter_poker_notif_sync` broadcast, so when a push lands while the
+ * app is open the header bell, the club-arena bell and the notifications page
+ * all refresh immediately instead of waiting out their poll interval.
+ *
  * Renders nothing.
  */
 import { useEffect, useRef } from 'react';
 import { enablePush, isWebPushSupported, notificationPermission } from '../../lib/push-client';
 import { getAuthUser } from '../../lib/authUtils';
+import { broadcastSync } from '../../lib/broadcastSync';
 
 const SYNC_KEY = 'sp_push_sync_at';
 const THROTTLE_MS = 60 * 60 * 1000; // 1 hour
@@ -62,9 +68,19 @@ export default function PushSubscriptionSync() {
         };
         document.addEventListener('visibilitychange', onVisible);
 
+        // Relay SW push events to the in-app refresh channel.
+        const onSwMessage = (e) => {
+            if (e?.data?.type !== 'SP_PUSH_RECEIVED') return;
+            try {
+                broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications' });
+            } catch { /* broadcast is best-effort */ }
+        };
+        navigator.serviceWorker?.addEventListener?.('message', onSwMessage);
+
         return () => {
             clearTimeout(boot);
             document.removeEventListener('visibilitychange', onVisible);
+            navigator.serviceWorker?.removeEventListener?.('message', onSwMessage);
         };
     }, []);
 

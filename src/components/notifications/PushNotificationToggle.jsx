@@ -66,6 +66,8 @@ export default function PushNotificationToggle({
     const [testing, setTesting] = useState(false);
     const [prefs, setPrefs] = useState({});
     const [muteAll, setMuteAll] = useState(false);
+    const [quietHours, setQuietHours] = useState({ start: null, end: null, tz: null });
+    const [dailyCap, setDailyCap] = useState(0);
     const [loadingPrefs, setLoadingPrefs] = useState(true);
     const mounted = useRef(true);
 
@@ -104,6 +106,8 @@ export default function PushNotificationToggle({
             if (!mounted.current) return;
             setPrefs(json.prefs || {});
             setMuteAll(json.muteAll === true);
+            if (json.quietHours) setQuietHours(json.quietHours);
+            if (typeof json.dailyCap === 'number') setDailyCap(json.dailyCap);
         } catch { /* non-fatal */ } finally {
             if (mounted.current) setLoadingPrefs(false);
         }
@@ -209,6 +213,55 @@ export default function PushNotificationToggle({
     };
 
     // ---- render ------------------------------------------------------------
+    const saveQuietHours = async (next) => {
+        const previous = quietHours;
+        setQuietHours(next);
+        try {
+            const res = await authFetch('/api/notifications/push-types', {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    quiet_hours_start: next.start,
+                    quiet_hours_end: next.end,
+                    // Always send the zone alongside the window, otherwise a
+                    // window saved on a phone in Chicago would be evaluated in
+                    // UTC and fire at the wrong time.
+                    quiet_hours_tz: next.tz
+                        || Intl.DateTimeFormat().resolvedOptions().timeZone
+                        || 'UTC',
+                }),
+            });
+            if (!res.ok) throw new Error('save failed');
+            // Deliberately does NOT re-read the response into state: a PATCH
+            // that only changed the timezone would echo start/end as undefined
+            // and silently switch quiet hours back off. Optimistic state plus
+            // rollback-on-error is correct here.
+        } catch {
+            if (mounted.current) { setQuietHours(previous); toast('error', 'Could not save quiet hours'); }
+        }
+    };
+
+    const saveDailyCap = async (value) => {
+        const previous = dailyCap;
+        setDailyCap(value);
+        try {
+            const res = await authFetch('/api/notifications/push-types', {
+                method: 'PATCH',
+                body: JSON.stringify({ daily_push_cap: value }),
+            });
+            if (!res.ok) throw new Error('save failed');
+        } catch {
+            if (mounted.current) { setDailyCap(previous); toast('error', 'Could not save the daily limit'); }
+        }
+    };
+
+    const hourLabel = (h) => {
+        if (h === null || typeof h === 'undefined') return 'Off';
+        const am = h < 12;
+        const twelve = h % 12 === 0 ? 12 : h % 12;
+        return `${twelve}:00 ${am ? 'AM' : 'PM'}`;
+    };
+    const quietOn = quietHours.start !== null && quietHours.end !== null;
+
     const blocked = permission === 'denied';
     const needsIosInstall = !supported && isIos() && !isIosStandalonePwa();
 
@@ -277,6 +330,79 @@ export default function PushNotificationToggle({
                             <p className="text-xs text-gray-400">Stops every push without unsubscribing this device.</p>
                         </div>
                         <Switch checked={muteAll} onChange={handleMuteAll} label="Mute all push notifications" />
+                    </div>
+
+                    {/* Quiet hours: a poker product pushes around the clock.
+                        Without this, a seat alert at 4am is a reason to turn
+                        notifications off entirely and never come back. */}
+                    <div className="mt-6 border-t border-white/10 pt-5">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h4 className="text-sm font-semibold">Quiet Hours</h4>
+                                <p className="text-xs text-gray-400">
+                                    Hold non-urgent alerts overnight. Calls, open seats and tournament
+                                    starts still come through.
+                                </p>
+                            </div>
+                            <Switch
+                                checked={quietOn}
+                                onChange={(next) => saveQuietHours(next
+                                    ? { start: 22, end: 8, tz: quietHours.tz }
+                                    : { start: null, end: null, tz: quietHours.tz })}
+                                label="Enable quiet hours"
+                            />
+                        </div>
+
+                        {quietOn && (
+                            <div className="mt-3 flex flex-wrap items-center gap-3">
+                                <label className="text-xs text-gray-400">
+                                    From
+                                    <select
+                                        value={quietHours.start ?? 22}
+                                        onChange={(e) => saveQuietHours({ ...quietHours, start: Number(e.target.value) })}
+                                        className="ml-2 rounded-md border border-white/10 bg-[#0B1120] px-2 py-1 text-sm text-white"
+                                    >
+                                        {Array.from({ length: 24 }, (_, h) => (
+                                            <option key={h} value={h}>{hourLabel(h)}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <label className="text-xs text-gray-400">
+                                    Until
+                                    <select
+                                        value={quietHours.end ?? 8}
+                                        onChange={(e) => saveQuietHours({ ...quietHours, end: Number(e.target.value) })}
+                                        className="ml-2 rounded-md border border-white/10 bg-[#0B1120] px-2 py-1 text-sm text-white"
+                                    >
+                                        {Array.from({ length: 24 }, (_, h) => (
+                                            <option key={h} value={h}>{hourLabel(h)}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <span className="text-xs text-gray-500">
+                                    {quietHours.tz || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}
+                                </span>
+                            </div>
+                        )}
+
+                        <div className="mt-5 flex items-center justify-between gap-4">
+                            <div>
+                                <h4 className="text-sm font-semibold">Daily Limit</h4>
+                                <p className="text-xs text-gray-400">
+                                    Cap non-urgent pushes per day. Urgent alerts are never capped.
+                                </p>
+                            </div>
+                            <select
+                                value={dailyCap}
+                                onChange={(e) => saveDailyCap(Number(e.target.value))}
+                                className="rounded-md border border-white/10 bg-[#0B1120] px-2 py-1 text-sm text-white"
+                            >
+                                <option value={0}>No limit</option>
+                                {[5, 10, 20, 50].map((n) => (
+                                    <option key={n} value={n}>{n} per day</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <h4 className="mt-6 text-sm font-semibold">Alert Categories</h4>

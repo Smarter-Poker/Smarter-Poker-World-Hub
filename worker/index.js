@@ -17,7 +17,7 @@
  *
  * BUMP THIS when changing push behaviour so devices pick up the new worker.
  */
-const SP_SW_VERSION = 'sp-push-v1';
+const SP_SW_VERSION = 'sp-push-v2';
 
 // ---------------------------------------------------------------------------
 // Activation. Claim clients so a fresh worker takes over without a reload.
@@ -78,6 +78,35 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.registration
             .showNotification(title, options)
+            .then(() => {
+                // App-icon badge (installed PWA). Best-effort: unsupported on
+                // several platforms, and a badge failure must never swallow the
+                // notification that already displayed.
+                try {
+                    if (typeof data.badgeCount === 'number' && self.navigator && self.navigator.setAppBadge) {
+                        self.navigator.setAppBadge(data.badgeCount).catch(() => {});
+                    } else if (self.navigator && self.navigator.setAppBadge) {
+                        self.navigator.setAppBadge().catch(() => {});
+                    }
+                } catch (e) { /* ignore */ }
+
+                // Tell any open tab a notification landed so the header bell and
+                // unread badge update instantly instead of waiting for their
+                // polling interval.
+                return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+                    .then((cs) => {
+                        for (const c of cs) {
+                            try {
+                                c.postMessage({
+                                    type: 'SP_PUSH_RECEIVED',
+                                    event: data.event || null,
+                                    url: url,
+                                });
+                            } catch (e) { /* ignore */ }
+                        }
+                    })
+                    .catch(() => {});
+            })
             .catch(() => {
                 // An older OS may reject an option it does not understand
                 // (actions, renotify, timestamp). Degrade rather than show nothing.
@@ -114,6 +143,13 @@ function sendReceipt() {
 // ---------------------------------------------------------------------------
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
+
+    // Opening a notification means the user has seen it -- clear the app badge.
+    try {
+        if (self.navigator && self.navigator.clearAppBadge) {
+            self.navigator.clearAppBadge().catch(() => {});
+        }
+    } catch (e) { /* ignore */ }
 
     // Declining a call must dismiss without yanking the user into the app.
     if (event.action === 'decline') return;

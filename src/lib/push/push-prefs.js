@@ -69,6 +69,7 @@ export const PUSH_TYPES = [
     { key: 'diamond_received', group: 'Rewards and Account', label: 'Diamonds Received', desc: 'Someone sent you diamonds' },
     { key: 'bonus', group: 'Rewards and Account', label: 'Bonuses', desc: 'A bonus lands in your account' },
     { key: 'achievement', group: 'Rewards and Account', label: 'Achievements', desc: 'You unlock a badge or milestone' },
+    { key: 'daily_challenge', group: 'Rewards and Account', label: 'Daily Challenges', desc: 'A fresh set of daily challenges drops' },
     { key: 'vip', group: 'Rewards and Account', label: 'VIP Status', desc: 'VIP renewals, stipends and expiry warnings' },
     { key: 'venue_claim', group: 'Rewards and Account', label: 'Venue Claims', desc: 'Updates on a venue you claimed' },
     { key: 'system', group: 'Rewards and Account', label: 'System and Security', desc: 'Account, security and platform notices' },
@@ -147,6 +148,108 @@ export function pushTypeAllowed(prefs, key) {
 }
 
 /** Group PUSH_TYPES for rendering. Returns [{ group, types: [...] }]. */
+
+/**
+ * LEGACY PREFERENCE BRIDGE.
+ *
+ * smarter.poker already had a notification settings UI (/hub/settings ->
+ * Notifications) writing boolean columns on `user_notification_preferences`,
+ * years before push_type_prefs existed. Those switches were invisible to the
+ * push gate, so a user who turned "Tournament reminders" off in the UI they can
+ * actually reach would still have been pushed. That is a silent broken promise,
+ * and it is exactly the class of bug this stack exists to remove.
+ *
+ * This maps each push type onto the legacy column that governs it. The gate
+ * honours BOTH tables and suppresses if EITHER says no.
+ */
+export const LEGACY_PREF_COLUMN = {
+    new_message: 'messenger_alerts',
+    incoming_call: 'messenger_alerts',
+    missed_call: 'messenger_alerts',
+
+    friend_request: 'friend_activity',
+    friend_accept: 'friend_activity',
+    new_follow: 'friend_activity',
+    mention: 'social_mentions',
+    like: 'home_game_post_likes',
+    comment: 'home_game_post_comments',
+
+    live: 'live_notifications',
+    live_invite: 'live_notifications',
+    live_gift: 'live_notifications',
+
+    home_game_new: 'home_game_new_game_posted',
+    home_game_rsvp: 'home_game_rsvp_confirmations',
+    home_game_reminder: 'home_game_reminders',
+    home_game_cancelled: 'home_game_cancellations',
+    home_group_announcement: 'home_game_announcements',
+    home_group_request: 'home_game_host_requests',
+
+    tournament_starting: 'tournament_reminders',
+    late_reg_closing: 'tournament_reminders',
+    venue_alert: 'venue_alerts',
+    club_announcement: 'club_updates',
+
+    diamond_received: 'diamond_rewards',
+    bonus: 'diamond_rewards',
+    daily_challenge: 'daily_challenges',
+};
+
+/** Every legacy column the gate may need to read. */
+export const LEGACY_PREF_COLUMNS = Array.from(new Set(Object.values(LEGACY_PREF_COLUMN)));
+
+/**
+ * Legacy gate. Same default-on semantics: only an explicit `false` suppresses.
+ */
+export function legacyPrefAllowed(legacyRow, key) {
+    if (!key || !legacyRow) return true;
+    const col = LEGACY_PREF_COLUMN[key];
+    if (!col) return true;
+    return legacyRow[col] !== false;
+}
+
+/**
+ * QUIET HOURS.
+ *
+ * Returns true when `now` falls inside the user's do-not-disturb window.
+ * Windows wrap midnight (start 22, end 7 means 22:00 -> 07:00), which is the
+ * normal case and the reason this is not a naive `start <= h && h < end`.
+ *
+ * Evaluated in the USER'S timezone, not the server's. A poker product pushes
+ * around the clock; getting this wrong means waking people at 4am.
+ */
+export function isWithinQuietHours(prefs, now = new Date()) {
+    if (!prefs) return false;
+    const start = prefs.quiet_hours_start;
+    const end = prefs.quiet_hours_end;
+    if (start == null || end == null) return false;
+    if (start === end) return false; // zero-length window = disabled
+
+    let hour;
+    try {
+        hour = Number(new Intl.DateTimeFormat('en-US', {
+            hour: 'numeric', hour12: false, timeZone: prefs.quiet_hours_tz || 'UTC',
+        }).format(now));
+        if (Number.isNaN(hour)) return false;
+        if (hour === 24) hour = 0; // some ICU builds emit 24 for midnight
+    } catch {
+        return false; // an invalid timezone must never block a notification
+    }
+
+    // Wrapping window (e.g. 22 -> 7) vs simple window (e.g. 1 -> 6).
+    return start > end ? (hour >= start || hour < end) : (hour >= start && hour < end);
+}
+
+/**
+ * Types urgent enough to pierce quiet hours and the daily cap. A ringing call
+ * or a seat that is about to be forfeited is time-critical; a post like is not.
+ */
+export const URGENT_TYPES = new Set(['incoming_call', 'seat_open', 'tournament_starting']);
+
+export function isUrgentType(key) {
+    return URGENT_TYPES.has(key);
+}
+
 export function groupedPushTypes() {
     return PUSH_GROUPS.map((group) => ({
         group,

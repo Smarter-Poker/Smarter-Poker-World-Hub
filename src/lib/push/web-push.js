@@ -75,7 +75,7 @@ const DEFAULT_BADGE = '/notification-icon.png';
  *
  * @param {object} subscription { endpoint, p256dh, auth } or a raw PushSubscription JSON
  * @param {object} payload  { title, body, url, tag, icon, badge, requireInteraction, vibrate, actions, data }
- * @param {object} opts     { ttl, urgency, topic }
+ * @param {object} opts     { ttl, urgency, topic, timeoutMs }
  */
 export async function sendWebPush(subscription, payload = {}, opts = {}) {
     const configError = ensureConfigured();
@@ -113,6 +113,10 @@ export async function sendWebPush(subscription, payload = {}, opts = {}) {
                 TTL: typeof opts.ttl === 'number' ? opts.ttl : 86400,
                 // `high` tells the push service not to batch this for battery.
                 urgency: opts.urgency || 'high',
+                // Without this a single wedged push endpoint stalls the whole
+                // dispatch run until the serverless function is killed, and the
+                // outbox rows it was holding stay stuck in `processing`.
+                timeout: typeof opts.timeoutMs === 'number' ? opts.timeoutMs : 10_000,
                 ...(opts.topic ? { topic: opts.topic } : {}),
             }
         );

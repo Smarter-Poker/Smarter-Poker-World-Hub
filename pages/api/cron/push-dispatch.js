@@ -31,6 +31,14 @@ import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { sendWebPush, isPushConfigured } from '../../../src/lib/push/web-push';
 
+// Vercel's default Pages-Router function timeout is short, and this route
+// fans out to every subscription of up to BATCH_LIMIT recipients. Give it room,
+// then police ourselves with TIME_BUDGET_MS so we always exit cleanly and leave
+// unprocessed rows `pending` for the next tick instead of being killed
+// mid-flight (which is what strands rows in `processing`).
+export const config = { maxDuration: 300 };
+
+const TIME_BUDGET_MS = 240_000;
 const BATCH_LIMIT = 100;
 const MAX_ATTEMPTS = 5;
 const STUCK_AFTER_MINUTES = 15;
@@ -59,6 +67,7 @@ async function handler(req, res) {
     }
     if (!authed) return res.status(401).json({ error: 'Unauthorized' });
 
+    const startedAt = Date.now();
     const supabase = getSupabase();
     const slot = currentSlot();
 
@@ -123,7 +132,20 @@ async function handler(req, res) {
         // ---- 4. Send -------------------------------------------------------
         const nowIso = new Date().toISOString();
 
+        let ranOutOfTime = false;
+
         for (const row of rows) {
+            // Stop cleanly before the platform kills us. Remaining rows are
+            // still `processing`; requeue_stuck_push_outbox reclaims them.
+            if (Date.now() - startedAt > TIME_BUDGET_MS) {
+                ranOutOfTime = true;
+                await supabase.from('push_outbox')
+                    .update({ status: 'pending', failure_reason: 'time_budget_exhausted' })
+                    .eq('id', row.id);
+                stats.skipped += 1;
+                continue;
+            }
+
             if (!row.recipient_user_id) {
                 await supabase.from('push_outbox')
                     .update({ status: 'skipped', failure_reason: 'no_recipient' })
@@ -159,16 +181,23 @@ async function handler(req, res) {
             let accepted = 0;
             let lastError = null;
 
-            for (const sub of subs) {
-                const result = await sendWebPush(sub, payload);
+            // One recipient's devices go out in parallel. A slow Apple endpoint
+            // must not delay that user's Android tablet, and sequential sends
+            // across 100 recipients is what pushes this run past its budget.
+            const results = await Promise.all(subs.map((sub) => sendWebPush(sub, payload)));
+
+            await Promise.all(results.map(async (result, i) => {
+                const sub = subs[i];
                 if (result.ok) {
                     accepted += 1;
                     await supabase.from('push_subscriptions')
                         .update({ last_used_at: nowIso, failure_count: 0, last_failure_reason: null })
                         .eq('id', sub.id);
-                } else if (result.expired) {
+                    return;
+                }
+                lastError = result.error;
+                if (result.expired) {
                     stats.deactivated += 1;
-                    lastError = result.error;
                     await supabase.from('push_subscriptions')
                         .update({
                             is_active: false,
@@ -176,19 +205,18 @@ async function handler(req, res) {
                             updated_at: nowIso,
                         })
                         .eq('id', sub.id);
-                } else {
-                    lastError = result.error;
-                    const { data: cur } = await supabase
-                        .from('push_subscriptions').select('failure_count').eq('id', sub.id).maybeSingle();
-                    await supabase.from('push_subscriptions')
-                        .update({
-                            failure_count: (cur?.failure_count || 0) + 1,
-                            last_failure_reason: String(result.error || 'unknown').slice(0, 300),
-                            updated_at: nowIso,
-                        })
-                        .eq('id', sub.id);
+                    return;
                 }
-            }
+                const { data: cur } = await supabase
+                    .from('push_subscriptions').select('failure_count').eq('id', sub.id).maybeSingle();
+                await supabase.from('push_subscriptions')
+                    .update({
+                        failure_count: (cur?.failure_count || 0) + 1,
+                        last_failure_reason: String(result.error || 'unknown').slice(0, 300),
+                        updated_at: nowIso,
+                    })
+                    .eq('id', sub.id);
+            }));
 
             if (accepted > 0) {
                 stats.sent += 1;
@@ -210,7 +238,7 @@ async function handler(req, res) {
             }
         }
 
-        await finish(null);
+        await finish(ranOutOfTime ? 'time_budget_exhausted' : null);
         return res.status(200).json({ ok: true, ...stats, slot });
     } catch (e) {
         await finish(`threw:${e?.message || e}`);

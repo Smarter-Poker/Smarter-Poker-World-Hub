@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
         const { data } = await supabase
             .from('notification_preferences')
-            .select('push_enabled, mute_all, push_type_prefs')
+            .select('push_enabled, mute_all, push_type_prefs, quiet_hours_start, quiet_hours_end, quiet_hours_tz, daily_push_cap')
             .eq('user_id', user.id)
             .maybeSingle();
 
@@ -46,6 +46,13 @@ export default async function handler(req, res) {
             // No row means default-on, which is `true` here on purpose.
             pushEnabled: data ? data.push_enabled !== false : true,
             muteAll: data?.mute_all === true,
+            quietHours: {
+                start: data?.quiet_hours_start ?? null,
+                end: data?.quiet_hours_end ?? null,
+                // Fall back to the browser's zone on the client when unset.
+                tz: data?.quiet_hours_tz || null,
+            },
+            dailyCap: Number(data?.daily_push_cap || 0),
         });
     }
 
@@ -83,6 +90,43 @@ export default async function handler(req, res) {
     if (touchedTypes) patch.push_type_prefs = next;
     if (typeof body.push_enabled === 'boolean') patch.push_enabled = body.push_enabled;
     if (typeof body.mute_all === 'boolean') patch.mute_all = body.mute_all;
+
+    // ---- quiet hours -------------------------------------------------------
+    // null clears the window. Anything outside 0-23 is rejected rather than
+    // silently clamped, so a broken client cannot quietly mute someone forever.
+    if ('quiet_hours_start' in body || 'quiet_hours_end' in body) {
+        const norm = (v) => {
+            if (v === null || v === '' || typeof v === 'undefined') return null;
+            const n = Number(v);
+            if (!Number.isInteger(n) || n < 0 || n > 23) return NaN;
+            return n;
+        };
+        const qs = norm(body.quiet_hours_start);
+        const qe = norm(body.quiet_hours_end);
+        if (Number.isNaN(qs) || Number.isNaN(qe)) {
+            return res.status(400).json({ error: 'quiet_hours_start and quiet_hours_end must be whole hours 0-23, or null' });
+        }
+        patch.quiet_hours_start = qs;
+        patch.quiet_hours_end = qe;
+    }
+    if (typeof body.quiet_hours_tz === 'string' || body.quiet_hours_tz === null) {
+        const tz = body.quiet_hours_tz;
+        if (tz) {
+            // Validate against ICU so an unusable zone never reaches the gate.
+            try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); }
+            catch { return res.status(400).json({ error: `Unknown timezone: ${tz}` }); }
+        }
+        patch.quiet_hours_tz = tz || null;
+    }
+
+    // ---- daily cap ---------------------------------------------------------
+    if ('daily_push_cap' in body) {
+        const cap = Number(body.daily_push_cap);
+        if (!Number.isInteger(cap) || cap < 0 || cap > 500) {
+            return res.status(400).json({ error: 'daily_push_cap must be a whole number between 0 and 500 (0 = unlimited)' });
+        }
+        patch.daily_push_cap = cap;
+    }
 
     if (Object.keys(patch).length <= 2) {
         return res.status(400).json({ error: 'Nothing to update' });
