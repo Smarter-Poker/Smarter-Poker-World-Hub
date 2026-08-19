@@ -529,67 +529,52 @@ export default async function handler(req, res) {
         if (agInvErr) console.warn('[settle-period] Agent invoice error:', agInvErr.message);
       }
 
-      // ── UNION PLAYER P&L SQUARING (2026-08-19) ──────────────────────────
-      // Wins/losses are tracked per player on union tables and rolled up to
-      // the player's home club. Weekly net = realized flows (cashouts -
-      // buyins) + change in chips still seated at union tables across the
-      // period. Positive net -> the union owes the club; negative -> the club
-      // owes the union. Recorded as a settlement invoice for the weekly
-      // square-up (chips already moved player-to-player at the tables).
+      // ── UNION PLAYER P&L SQUARING (2026-08-19, rewritten after audit) ──
+      // The first implementation was record-only and silently dead:
+      //   - it inserted invoice_type 'union_club_pnl', which violated a CHECK
+      //     constraint, and the error was swallowed by a console.warn — so the
+      //     weekly square-up wrote NOTHING, every time;
+      //   - it moved no chips at all;
+      //   - it settled realized_net + stack_delta, which by the seat/wallet
+      //     identity equals (inter-club transfer - rake). Since the rake was
+      //     already swept to the union per hand, that double-charged it.
+      // Settlement now lives in fn_union_settle_player_pnl_guarded: one
+      // transaction for the whole union, rake-neutral, collect-then-pay,
+      // idempotent, and it refuses to move chips unless the club nets prove
+      // zero-sum. NOTE: the weekly production run is the workers repo
+      // (/cron/auto-settlement); this endpoint is the manual/admin path.
       let playerPnl = null;
       if (club.union_id) {
-        const { data: pnl, error: pnlErr } = await supabaseAdmin.rpc('fn_union_club_player_pnl', {
-          p_club_id: clubId,
-          p_union_id: club.union_id,
-          p_start: period.start_at,
-          p_end: new Date().toISOString(),
-        });
+        const { data: pnlRes, error: pnlErr } = await supabaseAdmin.rpc(
+          'fn_union_settle_player_pnl_guarded',
+          {
+            p_union_id: club.union_id,
+            p_start: period.start_at,
+            p_end: new Date().toISOString(),
+          }
+        );
+
         if (pnlErr) {
-          console.warn('[settle-period] player P&L rpc failed:', pnlErr.message);
-        } else if (pnl) {
-          const seatedNow = Number(pnl.seated_stack) || 0;
-          const seatedStart = period.seated_stack_snapshot == null
-            ? seatedNow // first period after rollout: no snapshot — stack delta treated as 0
-            : Number(period.seated_stack_snapshot) || 0;
-          const stackDelta = Math.round((seatedNow - seatedStart) * 100) / 100;
-          const netPnl = Math.round(((Number(pnl.realized_net) || 0) + stackDelta) * 100) / 100;
-          playerPnl = {
-            buyins: Number(pnl.buyins) || 0,
-            cashouts: Number(pnl.cashouts) || 0,
-            realized_net: Number(pnl.realized_net) || 0,
-            winnings: Number(pnl.winnings) || 0,
-            losses: Number(pnl.losses) || 0,
-            players: Number(pnl.players) || 0,
-            seated_start: seatedStart,
-            seated_end: seatedNow,
-            stack_delta: stackDelta,
-            net: netPnl,
-          };
-
-          const { error: pnlUpdErr } = await supabaseAdmin
-            .from('settlement_periods')
-            .update({
-              total_player_winnings: playerPnl.winnings,
-              total_player_losses: playerPnl.losses,
-            })
-            .eq('id', pid);
-          if (pnlUpdErr) console.warn('[settle-period] player P&L period update failed:', pnlUpdErr.message);
-
-          const unionOwesClub = netPnl >= 0;
-          const { error: pnlInvErr } = await supabaseAdmin.from('settlement_invoices').insert({
-            club_id: clubId,
-            period_id: pid,
-            invoice_type: 'union_club_pnl',
-            from_entity_type: unionOwesClub ? 'union' : 'club',
-            from_entity_id: unionOwesClub ? String(club.union_id) : String(clubId),
-            to_entity_type: unionOwesClub ? 'club' : 'union',
-            to_entity_id: unionOwesClub ? String(clubId) : String(club.union_id),
-            gross_amount: Math.abs(netPnl),
-            net_amount: Math.abs(netPnl),
-            breakdown: { ...playerPnl, period_number: period.period_number },
-            status: 'generated',
+          // Fail loud: a swallowed error here is exactly how this went
+          // unnoticed. The period is NOT closed if the P&L leg breaks.
+          return res.status(500).json({
+            success: false,
+            error: `Union player P&L settlement failed: ${pnlErr.message}. Period left open.`,
           });
-          if (pnlInvErr) console.warn('[settle-period] player P&L invoice insert error:', pnlInvErr.message);
+        }
+
+        playerPnl = pnlRes || null;
+
+        if (playerPnl && playerPnl.needs_review) {
+          return res.status(409).json({
+            success: false,
+            needsReview: true,
+            error:
+              `Union player P&L did not balance (imbalance ${playerPnl.imbalance}, ` +
+              `tolerance ${playerPnl.tolerance}). No chips were moved and the period ` +
+              `was left open for review.`,
+            playerPnl,
+          });
         }
       }
 
