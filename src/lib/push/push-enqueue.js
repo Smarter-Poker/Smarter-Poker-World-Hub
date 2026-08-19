@@ -21,7 +21,7 @@ import { deliverPushNow } from './push-deliver';
 import {
     eventToTypeKey, pushTypeAllowed,
     legacyPrefAllowed, LEGACY_PREF_COLUMNS,
-    isWithinQuietHours, isUrgentType,
+    isWithinQuietHours, isUrgentType, isDiagnosticEvent,
 } from './push-prefs';
 import { isPushConfigured } from './web-push';
 
@@ -37,7 +37,9 @@ const BODY_MAX = 500;
  */
 async function checkGate(supabase, userId, event) {
     const key = eventToTypeKey(event);
-    const urgent = isUrgentType(key);
+    // Diagnostics count as urgent for courtesy limits: a "Send Test" that is
+    // swallowed by quiet hours reports a broken subscription that is fine.
+    const urgent = isUrgentType(key) || isDiagnosticEvent(event);
 
     try {
         // Both preference tables in one round trip. `notification_preferences`

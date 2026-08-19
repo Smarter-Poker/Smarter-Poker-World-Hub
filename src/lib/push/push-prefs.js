@@ -127,6 +127,18 @@ const EVENT_ALIASES = {
 // of their subscription.
 const UNGATED_EVENTS = new Set(['admin_test', 'self_test', 'diagnostic']);
 
+/**
+ * True for the diagnostic sends behind the "Send Test" button.
+ *
+ * These must pierce quiet hours and the daily cap as well as the per-type gate.
+ * A test that is silently swallowed because it is 11pm tells the user their
+ * subscription is broken when it is perfectly healthy -- which is the exact
+ * failure this whole stack exists to eliminate.
+ */
+export function isDiagnosticEvent(event) {
+    return Boolean(event) && UNGATED_EVENTS.has(String(event).trim());
+}
+
 export function eventToTypeKey(event) {
     if (!event) return null;
     const e = String(event).trim();
