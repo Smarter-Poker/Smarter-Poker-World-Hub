@@ -41,7 +41,22 @@ export NVM_DIR="$HOME/.nvm"
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 # ─── Configuration ──────────────────────────────────────────────────────────
-CA_SRC="$HOME/Documents/club-arena"
+# CA source directory. This script used to hardcode ~/Documents/club-arena, the
+# PRE-RENAME clone. When that directory still exists and is stale, every run
+# publishes an old bundle stamped with the CURRENT origin/main sha — so the
+# source repo looks correct while production serves something else. That has
+# silently reverted shipped work more than once (2026-08-19: the Player Stats
+# rebuild was overwritten twice this way, and an earlier LeaderboardPage sync
+# hit the same trap). Prefer the canonical repo; the legacy path is only a
+# fallback, and it announces itself.
+CA_SRC="${CA_SRC_OVERRIDE:-}"
+if [ -z "$CA_SRC" ]; then
+  if [ -d "$HOME/Documents/Smarter-Poker-Club-Arena/.git" ]; then
+    CA_SRC="$HOME/Documents/Smarter-Poker-Club-Arena"
+  else
+    CA_SRC="$HOME/Documents/club-arena"
+  fi
+fi
 WH="$HOME/Documents/Smarter-Poker-World-Hub"
 DEST="$WH/public/hub/club-arena"
 DIST_TMP="/tmp/club-arena-sync-$$"
@@ -65,6 +80,43 @@ log "Preflight..."
 [ -d "$CA_SRC" ] || die "CA source not found at $CA_SRC"
 [ -f "$CA_SRC/package.json" ] || die "No package.json in $CA_SRC"
 [ -d "$WH/.git" ] || die "WH is not a git repo"
+log "  building from: $CA_SRC"
+case "$CA_SRC" in
+  */club-arena) warn "using the PRE-RENAME clone — verify it tracks the same remote" ;;
+esac
+
+# STALE-SOURCE GUARD. The failure this prevents: a local tree behind origin/main
+# gets built, and the resulting bundle is committed with a message naming the
+# CURRENT sha — so the commit claims to ship code that is not in it, CI's correct
+# build is overwritten, and the regression is invisible in the source repo.
+# Override with ALLOW_STALE_CA=1 only if you know why.
+if [ -d "$CA_SRC/.git" ]; then
+  if git -C "$CA_SRC" fetch origin main --quiet 2>/dev/null; then
+    CA_HEAD="$(git -C "$CA_SRC" rev-parse HEAD)"
+    CA_REMOTE="$(git -C "$CA_SRC" rev-parse origin/main)"
+    if [ "$CA_HEAD" != "$CA_REMOTE" ]; then
+      if [ "${ALLOW_STALE_CA:-0}" = "1" ]; then
+        warn "CA HEAD ${CA_HEAD:0:9} != origin/main ${CA_REMOTE:0:9} (ALLOW_STALE_CA=1)"
+      else
+        die "CA source is not at origin/main.
+    HEAD:        $CA_HEAD
+    origin/main: $CA_REMOTE
+  Publishing from here would ship a bundle that does not match the sha this
+  commit will claim, overwriting whatever CI built. Fix with:
+    cd $CA_SRC && git pull --ff-only
+  or re-run with ALLOW_STALE_CA=1 if the difference is deliberate."
+      fi
+    else
+      ok "CA source is at origin/main (${CA_HEAD:0:9})"
+    fi
+    # Uncommitted source changes silently end up in the published bundle.
+    if ! git -C "$CA_SRC" diff --quiet -- src 2>/dev/null; then
+      warn "uncommitted changes under $CA_SRC/src — they WILL ship in this bundle"
+    fi
+  else
+    warn "could not fetch origin/main in $CA_SRC — skipping the stale-source check"
+  fi
+fi
 
 if [ -d "$WH/.git/rebase-merge" ] || [ -d "$WH/.git/rebase-apply" ]; then
   die "WH has an in-progress rebase. Abort it first: cd $WH && git rebase --abort"
