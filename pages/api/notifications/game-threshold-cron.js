@@ -138,6 +138,7 @@ async function handler(req, res) {
                 const pushResult = await sendPushNotification({
                     externalIds: chunkUserIds,
                     event: 'venue_alert',
+                    notifyType: 'venue_alert',
                     heading: 'Game Size Alert',
                     content: `${venue.name} just hit your threshold with ${liveTablesCount} active tables.`,
                     url: `https://smarter.poker/hub/venues/${encodeURIComponent(venue.name)}`

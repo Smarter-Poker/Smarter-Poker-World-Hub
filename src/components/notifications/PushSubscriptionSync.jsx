@@ -26,7 +26,7 @@
  * Renders nothing.
  */
 import { useEffect, useRef } from 'react';
-import { enablePush, isWebPushSupported, notificationPermission } from '../../lib/push-client';
+import { enablePush, isWebPushSupported, notificationPermission, isOptedOut } from '../../lib/push-client';
 import { getAuthUser } from '../../lib/authUtils';
 import { broadcastSync } from '../../lib/broadcastSync';
 
@@ -35,6 +35,12 @@ const THROTTLE_MS = 60 * 60 * 1000; // 1 hour
 
 export default function PushSubscriptionSync() {
     const running = useRef(false);
+    // In-memory mirror of the throttle. localStorage reads THROW when storage is
+    // blocked (Safari private mode); the old code caught that, left `last` at 0,
+    // and the `if (last && ...)` guard short-circuited to false — so the throttle
+    // silently vanished and a full enablePush() ran on EVERY visibilitychange,
+    // i.e. every tab switch.
+    const lastRunRef = useRef(0);
 
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
@@ -43,13 +49,17 @@ export default function PushSubscriptionSync() {
             if (running.current) return;
             if (!isWebPushSupported()) return;
             if (notificationPermission() !== 'granted') return; // never prompt
+            // Respect an explicit "turn push off on this device". Without this
+            // the repair loop re-subscribes what the user just switched off.
+            if (isOptedOut()) return;
             if (!getAuthUser()?.id) return;
 
-            let last = 0;
-            try { last = Number(localStorage.getItem(SYNC_KEY) || 0); } catch { /* private mode */ }
-            if (last && Date.now() - last < THROTTLE_MS) return;
+            let last = lastRunRef.current;
+            try { last = Math.max(last, Number(localStorage.getItem(SYNC_KEY) || 0)); } catch { /* private mode */ }
+            if (Date.now() - last < THROTTLE_MS) return;
 
             running.current = true;
+            lastRunRef.current = Date.now();
             try {
                 await enablePush();
                 try { localStorage.setItem(SYNC_KEY, String(Date.now())); } catch { /* ignore */ }

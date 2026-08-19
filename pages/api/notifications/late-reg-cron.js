@@ -110,6 +110,7 @@ async function handler(req, res) {
                 const pushResult = await sendPushNotification({
                     externalIds: chunkUserIds,
                     event: 'late_reg_closing',
+                    notifyType: 'late_reg_closing',
                     heading: 'Late Registration Alert',
                     content: `${tournament.tournament_name} at ${tournament.venue_name} is in or approaching late registration.`,
                     url: `https://smarter.poker/hub/venues/${encodeURIComponent(tournament.venue_name)}`

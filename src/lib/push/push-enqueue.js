@@ -172,7 +172,15 @@ export async function enqueuePush(supabase, args = {}) {
                 icon_url: args.icon || null,
                 badge_url: args.badge || null,
                 related_entity_id: args.relatedEntityId || null,
-                status: 'pending',
+                // 'processing', NOT 'pending'. The cron claims on
+                // status='pending', so inserting as pending opened a window
+                // where a dispatch run fired between this INSERT and the inline
+                // send below -- delivering the same push twice. Claiming the row
+                // for ourselves up front closes it; if this process dies here,
+                // requeue_stuck_push_outbox releases the row after the stale
+                // window and the cron picks it up.
+                status: 'processing',
+                claimed_at: new Date().toISOString(),
             })
             .select('id')
             .maybeSingle();
@@ -186,10 +194,20 @@ export async function enqueuePush(supabase, args = {}) {
         out.reason = `outbox_insert_threw:${e?.message || e}`;
     }
 
-    // Not configured -- leave the row pending. The moment VAPID env vars land,
-    // the dispatch cron drains the backlog instead of it being lost.
+    // Not configured -- hand the row back to the queue so the dispatch cron
+    // drains the backlog the moment VAPID env vars land. It was claimed as
+    // 'processing' above, so it must be released explicitly or it would sit
+    // until the stale-claim sweep.
     if (!isPushConfigured()) {
         out.reason = 'vapid_not_configured_queued';
+        if (outboxId) {
+            try {
+                await supabase
+                    .from('push_outbox')
+                    .update({ status: 'pending', claimed_at: null })
+                    .eq('id', outboxId);
+            } catch { /* the stale sweep is the backstop */ }
+        }
         return out;
     }
 
@@ -210,24 +228,38 @@ export async function enqueuePush(supabase, args = {}) {
     out.accepted = delivery.accepted;
 
     if (outboxId) {
+        // NOTE: `attempts` is deliberately NOT written here. That column is
+        // owned by claim_push_outbox_batch, which increments it on every claim.
+        // Writing attempts:1 from the inline path reset the cron's counter and
+        // broke the MAX_ATTEMPTS ceiling, so a permanently failing row could be
+        // retried indefinitely.
+        //
+        // Every update is also scoped to .eq('status','processing') so we only
+        // ever finalise the row WE claimed. If the stale sweep has already
+        // released it to another runner, our late write is a no-op rather than
+        // resurrecting a row that runner is mid-send on.
         try {
             if (delivery.accepted > 0) {
                 await supabase
                     .from('push_outbox')
-                    .update({ status: 'sent', sent_at: new Date().toISOString(), attempts: 1 })
-                    .eq('id', outboxId);
+                    .update({ status: 'sent', sent_at: new Date().toISOString() })
+                    .eq('id', outboxId)
+                    .eq('status', 'processing');
             } else {
                 const noSub = delivery.errors.some((e) => e.error === 'no_subscription');
                 await supabase
                     .from('push_outbox')
                     .update({
+                        // No devices is terminal for THIS send; anything else is
+                        // released back to the queue for the cron to retry.
                         status: noSub ? 'skipped' : 'pending',
-                        attempts: 1,
+                        claimed_at: noSub ? undefined : null,
                         failure_reason: noSub
                             ? 'no_subscription'
                             : String(delivery.errors[0]?.error || 'inline_delivery_failed').slice(0, 300),
                     })
-                    .eq('id', outboxId);
+                    .eq('id', outboxId)
+                    .eq('status', 'processing');
             }
         } catch { /* ignore */ }
     }

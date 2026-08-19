@@ -28,6 +28,10 @@ import { vapidConfig, isPushConfigured } from '../../../src/lib/push/web-push';
 import { notify, notifyAdmins } from '../../../src/lib/notify';
 
 const ZOMBIE_RECEIPT_DAYS = 3;
+// Ceiling on per-user alerts in one run. Each alert is a notifications insert
+// plus a full enqueuePush; an unbounded serial loop would exceed the function
+// timeout and the run would report nothing at all.
+const MAX_ALERTS_PER_RUN = 100;
 const DISPATCH_STALE_MINUTES = 30;
 
 let _supabase = null;
@@ -55,20 +59,35 @@ async function handler(req, res) {
 
     // ---- CHECK 1: zombie subscriptions ------------------------------------
     try {
-        const { data: subs } = await supabase
+        const { data: subs, error: subsErr } = await supabase
             .from('push_subscriptions')
-            .select('id, user_id, device_label, last_used_at, last_receipt_at')
+            .select('id, user_id, device_label, last_used_at, last_receipt_at, created_at')
             .eq('is_active', true)
-            .gte('last_used_at', usedSince);
+            .gte('last_used_at', usedSince)
+            // GRACE PERIOD. Without this a device that enrolled ten minutes ago
+            // and was pushed once has last_receipt_at = null (phone asleep, the
+            // beacon has not fired yet) and is immediately branded a zombie --
+            // so the user's very first experience of push is an alarming
+            // "notifications are not reaching you" message. Only subscriptions
+            // older than the window can qualify.
+            .lt('created_at', zombieCutoff);
+
+        // A failed query must not read as "0 zombies, all healthy". That is the
+        // green-dashboard-silent-phones failure this watchdog exists to catch,
+        // and it was reintroduced here by discarding `error`.
+        if (subsErr) throw new Error(subsErr.message);
 
         const zombies = (subs || []).filter(
             (s) => !s.last_receipt_at || s.last_receipt_at < zombieCutoff
         );
         report.zombies = zombies.length;
 
-        // One alert per user, not per endpoint.
+        // One alert per user, not per endpoint. Capped: this loop does a
+        // notifications insert plus a full enqueuePush per user, and an
+        // unbounded serial loop will blow the function timeout at any real
+        // scale -- which would mean the whole run reports nothing.
         const seen = new Set();
-        for (const z of zombies) {
+        for (const z of zombies.slice(0, MAX_ALERTS_PER_RUN)) {
             if (seen.has(z.user_id)) continue;
             seen.add(z.user_id);
             // No push on this one -- the whole point is that push is not reaching them.
@@ -90,24 +109,36 @@ async function handler(req, res) {
 
     // ---- CHECK 2: staff with no reachable device --------------------------
     try {
-        const { data: staff } = await supabase
+        const { data: staff, error: staffErr } = await supabase
             .from('profiles')
             .select('id, username, role')
             .in('role', ['admin', 'god']);
+        if (staffErr) throw new Error(staffErr.message);
 
-        const unreachable = [];
-        for (const p of staff || []) {
-            const { data: active } = await supabase
-                .from('push_subscriptions')
-                .select('id')
-                .eq('user_id', p.id)
-                .eq('is_active', true)
-                .limit(1);
-            if (!active || active.length === 0) unreachable.push(p);
-        }
+        const staffIds = (staff || []).map((p) => p.id);
+
+        // One query instead of one per admin (the old N+1 loop).
+        const { data: activeSubs, error: activeErr } = await supabase
+            .from('push_subscriptions')
+            .select('user_id')
+            .in('user_id', staffIds.length ? staffIds : ['00000000-0000-0000-0000-000000000000'])
+            .eq('is_active', true);
+        if (activeErr) throw new Error(activeErr.message);
+
+        const reachable = new Set((activeSubs || []).map((s) => s.user_id));
+        const unreachable = (staff || []).filter((p) => !reachable.has(p.id));
         report.staffUnreachable = unreachable.length;
 
-        for (const p of unreachable) {
+        // NOBODY has enrolled a device yet -- that is a rollout state, not a
+        // fault. Alerting every admin every day about it just trains them to
+        // ignore the alert before the first real one arrives.
+        const { count: globalActive } = await supabase
+            .from('push_subscriptions')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_active', true);
+        const nobodyEnrolled = !globalActive;
+
+        for (const p of nobodyEnrolled ? [] : unreachable) {
             await notify(supabase, {
                 userId: p.id,
                 type: 'system',
@@ -117,9 +148,10 @@ async function handler(req, res) {
                 url: '/hub/settings/notifications',
             });
         }
-        if (unreachable.length > 0) {
+        if (unreachable.length > 0 && !nobodyEnrolled) {
             problems.push(`${unreachable.length} staff account(s) cannot receive push`);
         }
+        report.nobodyEnrolled = nobodyEnrolled;
     } catch (e) {
         problems.push(`staff check failed: ${e?.message || e}`);
     }

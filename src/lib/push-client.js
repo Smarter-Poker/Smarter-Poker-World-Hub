@@ -260,14 +260,39 @@ export async function enablePush() {
 
         // -- STEP 4: persist ---------------------------------------------------
         await persistSubscription(subscription);
+        clearOptOut();
         return { ok: true, permission: 'granted' };
     } catch (e) {
         return { ok: false, error: e?.message || 'Could not enable notifications.' };
     }
 }
 
+/**
+ * Explicit opt-out marker.
+ *
+ * Turning push off does NOT revoke the OS permission — Notification.permission
+ * stays 'granted'. PushSubscriptionSync only skips when permission is not
+ * granted, so without this marker it would silently re-subscribe the device on
+ * the next boot or visibility change, undoing a deliberate user choice. That is
+ * a consent bug, not a UX wrinkle.
+ */
+const OPT_OUT_KEY = 'sp_push_opt_out';
+
+export function isOptedOut() {
+    try { return Boolean(localStorage.getItem(OPT_OUT_KEY)); } catch { return false; }
+}
+function setOptOut() {
+    try { localStorage.setItem(OPT_OUT_KEY, String(Date.now())); } catch { /* ignore */ }
+}
+function clearOptOut() {
+    try { localStorage.removeItem(OPT_OUT_KEY); } catch { /* ignore */ }
+}
+
 /** Turn push off on this device: unsubscribe locally AND deactivate server-side. */
 export async function disablePush() {
+    // Record the choice even if the unsubscribe below fails — the user asked
+    // for off, and the sync loop must honour that regardless.
+    setOptOut();
     if (!isWebPushSupported()) return { ok: true };
     try {
         const registration = await withTimeout(navigator.serviceWorker.ready, T.ready, 'Service worker startup');
@@ -277,11 +302,17 @@ export async function disablePush() {
             'Reading the existing subscription'
         );
         if (subscription) {
-            await fetch('/api/push/subscribe', {
-                method: 'DELETE',
-                headers: authHeaders(),
-                body: JSON.stringify({ endpoint: subscription.endpoint }),
-            }).catch(() => null);
+            // Timeout the DELETE: it is awaited before the local unsubscribe, so
+            // a stalled request used to block "off" entirely.
+            await withTimeout(
+                fetch('/api/push/subscribe', {
+                    method: 'DELETE',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ endpoint: subscription.endpoint }),
+                }),
+                T.save,
+                'Removing your subscription'
+            ).catch(() => null);
             try { await subscription.unsubscribe(); } catch { /* ignore */ }
         }
         return { ok: true };

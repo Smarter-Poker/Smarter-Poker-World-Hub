@@ -204,9 +204,22 @@ self.addEventListener('pushsubscriptionchange', (event) => {
 
                 const json = sub.toJSON();
                 // /api/push/subscribe needs a Bearer JWT from localStorage, which
-                // a service worker cannot read. /api/push/rotate accepts the OLD
-                // endpoint as proof of device identity instead. See that route's
-                // header for the security argument.
+                // a service worker cannot read. /api/push/rotate is session-less
+                // instead -- see that route's header for the security argument.
+                //
+                // oldKeys is the PROOF OF POSSESSION. The old subscription's
+                // auth secret is known only to the browser that owns it and to
+                // the server, so echoing it proves this really is the same
+                // device rotating itself, rather than someone who merely learned
+                // the endpoint string. Without it the server quarantines the new
+                // row (is_active=false) until an authenticated re-enrolment.
+                let oldKeys = null;
+                try {
+                    if (event.oldSubscription && typeof event.oldSubscription.toJSON === 'function') {
+                        oldKeys = event.oldSubscription.toJSON().keys || null;
+                    }
+                } catch (e) { /* Safari may not populate oldSubscription */ }
+
                 await fetch('/api/push/rotate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -214,6 +227,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
                         oldEndpoint: (event.oldSubscription && event.oldSubscription.endpoint) || null,
                         endpoint: sub.endpoint,
                         keys: json.keys,
+                        oldKeys,
                     }),
                 });
                 console.log(`[SW ${SP_SW_VERSION}] Push subscription self-healed.`);

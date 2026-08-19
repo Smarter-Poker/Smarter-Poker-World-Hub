@@ -77,6 +77,7 @@ export default async function handler(req, res) {
 
           const pushResult = await sendPushNotification({
               externalIds: [userId],
+              notifyType: 'venue_alert',
               heading: `${venueEmoji} Poker Venue Nearby`,
               content: `You're near ${venueName}! Tap to log a session.`,
               url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/bankroll-manager?venue=${venueId}`,

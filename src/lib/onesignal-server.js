@@ -22,6 +22,7 @@
 import { createClient } from './supabaseServerClient';
 import { enqueuePush } from './push/push-enqueue';
 import { isPushConfigured } from './push/web-push';
+import { notify } from './notify';
 
 let _supabase = null;
 function getSupabase() {
@@ -29,6 +30,18 @@ function getSupabase() {
     return _supabase;
 }
 
+/**
+ * @param {string|null} notifyType  When set, the send goes through notify() so
+ *   it fires BOTH pipelines: a row in `notifications` (which lights the header
+ *   bell through Realtime) and the web push. When null, push only.
+ *
+ *   Default is null for backward compatibility: two callers
+ *   (home-games follow.js and request-seat.js) already insert their own
+ *   notifications rows, and routing them through notify() would give the user
+ *   two identical bell entries for one event. Every OTHER caller was
+ *   push-only, meaning the notification was invisible to anyone who missed the
+ *   OS banner — those now pass a notifyType.
+ */
 export async function sendPushNotification({
     playerIds,
     externalIds,
@@ -39,6 +52,7 @@ export async function sendPushNotification({
     url,
     data = {},
     event = null,
+    notifyType = null,
     options = {},
 } = {}) {
     if (!isPushConfigured()) {
@@ -62,8 +76,8 @@ export async function sendPushNotification({
 
     try {
         const results = await Promise.all(
-            targets.map((userId) =>
-                enqueuePush(supabase, {
+            targets.map(async (userId) => {
+                const common = {
                     userId,
                     title: heading || 'Smarter Poker',
                     body: content || '',
@@ -74,8 +88,21 @@ export async function sendPushNotification({
                     tag: collapseId || undefined,
                     requireInteraction: options.requireInteraction === true,
                     actions: options.actions,
-                })
-            )
+                };
+
+                if (!notifyType) return enqueuePush(supabase, common);
+
+                // Both pipelines. notify() returns { ok, notificationId, push },
+                // so normalise back to the enqueuePush shape the counters below
+                // expect.
+                const res = await notify(supabase, {
+                    ...common,
+                    type: notifyType,
+                    event: event || notifyType,
+                    data,
+                });
+                return res.push || { sent: false, skipped: false };
+            })
         );
 
         const delivered = results.filter((r) => r.sent).length;

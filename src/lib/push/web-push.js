@@ -123,16 +123,42 @@ export async function sendWebPush(subscription, payload = {}, opts = {}) {
         return { ok: true, statusCode: res?.statusCode || 201 };
     } catch (err) {
         const statusCode = err?.statusCode;
-        // 404 Not Found / 410 Gone -- the endpoint no longer exists. This is the
-        // single most important branch in the whole stack: without it, dead
-        // subscriptions accumulate forever and every dispatch run burns time on
-        // devices that were reinstalled months ago.
-        const expired = statusCode === 404 || statusCode === 410;
+        // PERMANENT vs TRANSIENT. Getting this wrong in either direction is
+        // expensive: too narrow and dead rows are retried forever, too broad and
+        // a blip deactivates a live device.
+        //
+        //   404 / 410 -- endpoint gone. The canonical dead-subscription signal.
+        //   403       -- VAPID signature rejected. Happens when the subscription
+        //                was created under a different key. Permanent: it can
+        //                never succeed with the key we hold.
+        //   400       -- malformed request for this endpoint (bad keys).
+        //   undefined -- the throw came from web-push's own encryption/validation
+        //                BEFORE any HTTP call, i.e. the stored p256dh/auth cannot
+        //                encrypt. Also permanent. Previously this fell through as
+        //                "transient" and was retried on every dispatch run for
+        //                the life of the deployment.
+        const expired =
+            statusCode === 404 ||
+            statusCode === 410 ||
+            statusCode === 403 ||
+            statusCode === 400 ||
+            statusCode === undefined;
+
+        // Server-side only. The detail is genuinely useful for diagnosis but
+        // must never reach a column the user can read (see `error` below).
+        if (err?.body) {
+            console.warn('[web-push] send failed', statusCode, String(err.body).slice(0, 300));
+        }
         return {
             ok: false,
             expired,
             statusCode,
-            error: err?.body ? String(err.body).slice(0, 300) : (err?.message || 'push failed'),
+            // Do NOT surface the remote response body to the caller: it is
+            // written into push_subscriptions.last_failure_reason, which the
+            // row's owner can read back through RLS. Returning it turned a
+            // failed send into an exfiltration channel. Log it server-side and
+            // hand back only a status code.
+            error: statusCode ? `http_${statusCode}` : (err?.message || 'push failed').slice(0, 120),
         };
     }
 }

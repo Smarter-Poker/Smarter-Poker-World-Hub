@@ -14,6 +14,13 @@
 
 import { sendWebPush, isPushConfigured } from './web-push';
 
+/**
+ * Consecutive transient failures before an endpoint is retired. Permanent
+ * errors (404/410/403/400) deactivate immediately via `expired`; this covers
+ * the endpoint that merely never works.
+ */
+const FAILURE_THRESHOLD = 10;
+
 export async function deliverPushNow(supabase, userId, payload, opts = {}) {
     const result = { attempted: 0, accepted: 0, expired: 0, errors: [] };
 
@@ -85,18 +92,32 @@ export async function deliverPushNow(supabase, userId, payload, opts = {}) {
                 return;
             }
 
-            // Transient failure -- count it. push-health surfaces repeat offenders.
+            // Transient failure -- count it, and retire the endpoint once it has
+            // failed enough times.
+            //
+            // failure_count used to be write-only: incremented here and in
+            // push-dispatch, reset on success, and READ BY NOTHING. An endpoint
+            // that failed on every single send therefore stayed is_active=true
+            // forever and was retried on every dispatch run for the life of the
+            // deployment. Deactivating at a threshold is what makes the counter
+            // mean something.
             try {
                 const { data: row } = await supabase
                     .from('push_subscriptions')
                     .select('failure_count')
                     .eq('id', sub.id)
                     .maybeSingle();
+                const nextCount = (row?.failure_count || 0) + 1;
+                const retire = nextCount >= FAILURE_THRESHOLD;
+                if (retire) result.expired += 1;
                 await supabase
                     .from('push_subscriptions')
                     .update({
-                        failure_count: (row?.failure_count || 0) + 1,
-                        last_failure_reason: String(res.error || 'unknown').slice(0, 300),
+                        failure_count: nextCount,
+                        is_active: !retire,
+                        last_failure_reason: retire
+                            ? `failure_threshold_${nextCount}`
+                            : String(res.error || 'unknown').slice(0, 300),
                         updated_at: nowIso,
                     })
                     .eq('id', sub.id);

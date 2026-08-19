@@ -110,7 +110,16 @@ const BUILD_VERSION = process.env.NEXT_PUBLIC_BUILD_ID
 
 if (typeof window !== 'undefined') {
   const CACHE_VERSION_KEY = 'smarter_poker_cache_version';
-  const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+  // localStorage THROWS SecurityError when storage is blocked (Safari "Block All
+  // Cookies", locked-down enterprise webviews, Firefox with dom.storage disabled).
+  // This runs at MODULE SCOPE, so an uncaught throw here means React never mounts
+  // and the entire site is a white screen for those users.
+  let storedVersion = null;
+  try {
+    storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+  } catch (e) {
+    storedVersion = null;
+  }
 
   if (storedVersion && storedVersion !== BUILD_VERSION) {
     console.log('[Cache Buster] New version detected! Clearing caches...');
@@ -144,9 +153,16 @@ if (typeof window !== 'undefined') {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
         registrations.forEach(registration => {
-          const url = registration.active?.scriptURL || registration.installing?.scriptURL || '';
-          const isCurrentPwaWorker = /\/sw\.js(\?|$)/.test(url);
-          if (isCurrentPwaWorker) return; // keep it — it owns the push subscription
+          // `waiting` MUST be in this chain. A registration that has installed
+          // but not yet activated has active === null and installing === null,
+          // so the old two-term lookup produced '' and fell through to
+          // unregister() — destroying the push subscription of the very worker
+          // this guard exists to protect.
+          const worker = registration.active || registration.waiting || registration.installing;
+          const url = worker?.scriptURL || '';
+          // Fail CLOSED: an unknown scriptURL is left alone, never unregistered.
+          if (!url) return;
+          if (/\/sw\.js(\?|$)/.test(url)) return; // keep it — it owns the push subscription
           console.log('[Cache Buster] Unregistering foreign service worker:', url);
           registration.unregister();
         });
@@ -164,8 +180,10 @@ if (typeof window !== 'undefined') {
     }
   }
 
-  // Store current version
-  localStorage.setItem(CACHE_VERSION_KEY, BUILD_VERSION);
+  // Store current version (same storage-blocked hazard as the read above)
+  try {
+    localStorage.setItem(CACHE_VERSION_KEY, BUILD_VERSION);
+  } catch (e) { /* storage blocked — cache-busting simply no-ops */ }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SUPABASE ABORT ERROR DEFENSE — Suppress harmless navigator.locks AbortError
@@ -276,7 +294,7 @@ const ChunkLoadRecovery = dynamic(
   { ssr: false }
 );
 
-// Dynamic import for New User Welcome Modal (500💎 + 30-Day VIP announcement)
+// Dynamic import for New User Welcome Modal (500 diamonds + 30-Day VIP announcement)
 const NewUserWelcomeModal = dynamic(
   () => import('../src/components/gates/NewUserWelcomeModal'),
   { ssr: false }

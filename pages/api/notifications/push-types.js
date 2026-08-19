@@ -59,35 +59,41 @@ export default async function handler(req, res) {
     // ---- PATCH -------------------------------------------------------------
     const body = typeof req.body === 'string' ? safeParse(req.body) : (req.body || {});
 
-    const { data: existing } = await supabase
-        .from('notification_preferences')
-        .select('push_type_prefs')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-    const next = { ...(existing?.push_type_prefs || {}) };
+    // TYPE TOGGLES go through set_push_type_pref, which merges inside Postgres
+    // (`||` to set, `-` to clear) against the CURRENT row. The previous
+    // read-modify-write here discarded the read error, so a transient failure
+    // made `next` start empty and the write then wiped every prior opt-out;
+    // and because the UI saves instantly per toggle, two quick taps raced and
+    // the second write silently discarded the first.
     const patch = { user_id: user.id, updated_at: new Date().toISOString() };
-    let touchedTypes = false;
+    const typeUpdates = [];
 
     if (typeof body.key === 'string') {
         if (!PUSH_TYPE_KEYS.has(body.key)) {
             return res.status(400).json({ error: `Unknown push type: ${body.key}` });
         }
-        if (body.enabled === false) next[body.key] = false;
-        else delete next[body.key];
-        touchedTypes = true;
+        typeUpdates.push([body.key, body.enabled !== false]);
     }
 
     if (body.push_type_prefs && typeof body.push_type_prefs === 'object') {
         for (const [k, v] of Object.entries(body.push_type_prefs)) {
             if (!PUSH_TYPE_KEYS.has(k)) continue;
-            if (v === false) next[k] = false;
-            else delete next[k];
+            typeUpdates.push([k, v !== false]);
         }
-        touchedTypes = true;
     }
 
-    if (touchedTypes) patch.push_type_prefs = next;
+    let mergedPrefs = null;
+    for (const [k, enabled] of typeUpdates) {
+        const { data: merged, error: mergeErr } = await supabase.rpc('set_push_type_pref', {
+            p_key: k,
+            p_enabled: enabled,
+        });
+        if (mergeErr) {
+            console.warn('[push-types] merge failed:', mergeErr.message);
+            return res.status(500).json({ error: 'Could not save that preference' });
+        }
+        mergedPrefs = merged;
+    }
     if (typeof body.push_enabled === 'boolean') patch.push_enabled = body.push_enabled;
     if (typeof body.mute_all === 'boolean') patch.mute_all = body.mute_all;
 
@@ -128,20 +134,37 @@ export default async function handler(req, res) {
         patch.daily_push_cap = cap;
     }
 
-    if (Object.keys(patch).length <= 2) {
+    // patch always carries user_id + updated_at; anything more is a real change.
+    const hasScalarPatch = Object.keys(patch).length > 2;
+
+    if (!hasScalarPatch && typeUpdates.length === 0) {
         return res.status(400).json({ error: 'Nothing to update' });
     }
 
-    const { error } = await supabase
-        .from('notification_preferences')
-        .upsert(patch, { onConflict: 'user_id' });
+    if (hasScalarPatch) {
+        const { error } = await supabase
+            .from('notification_preferences')
+            .upsert(patch, { onConflict: 'user_id' });
+        // Log the Postgres detail server-side; return a generic message.
+        if (error) {
+            console.warn('[push-types] upsert failed:', error.message);
+            return res.status(500).json({ error: 'Could not save your notification settings' });
+        }
+    }
 
-    if (error) return res.status(500).json({ error: error.message });
+    // Prefer the merged value the RPC returned. Only re-read when nothing
+    // touched the type map.
+    let prefs = mergedPrefs;
+    if (prefs === null) {
+        const { data: current } = await supabase
+            .from('notification_preferences')
+            .select('push_type_prefs')
+            .eq('user_id', user.id)
+            .maybeSingle();
+        prefs = current?.push_type_prefs || {};
+    }
 
-    return res.status(200).json({
-        ok: true,
-        prefs: touchedTypes ? next : (existing?.push_type_prefs || {}),
-    });
+    return res.status(200).json({ ok: true, prefs });
 }
 
 function safeParse(s) {

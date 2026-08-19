@@ -86,26 +86,42 @@ export default class MyDocument extends Document {
                                 if (e.target && e.target.tagName === 'SCRIPT') {
                                     var src = e.target.src || '';
                                     if (src.includes('_next/static/chunks')) {
-                                        console.warn('⚠️ Stale chunk failed. Nuking PWA cache & reloading...');
+                                        console.warn('Stale chunk failed. Clearing caches and reloading...');
                                         if (sessionStorage.getItem('reloaded_stale_chunk')) {
                                             console.warn('Already attempted reload. Halting to prevent infinite loop.');
                                             return;
                                         }
                                         sessionStorage.setItem('reloaded_stale_chunk', '1');
-                                        
+
+                                        // PUSH FIX (2026-08-19): this used to unregister EVERY service
+                                        // worker, which destroys the PushSubscription the PWA worker owns.
+                                        // Stale chunks are fixed by clearing CACHES, not by unregistering
+                                        // the worker, so we now delete caches and leave /sw.js alone.
+                                        // Foreign workers (legacy OneSignal, old scopes) are still removed.
+                                        var done = function() { window.location.reload(true); };
+                                        var work = [];
+                                        try {
+                                            if (window.caches && caches.keys) {
+                                                work.push(caches.keys().then(function(keys) {
+                                                    return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                                                }));
+                                            }
+                                        } catch (err) { /* caches unavailable */ }
                                         if ('serviceWorker' in navigator) {
-                                            navigator.serviceWorker.getRegistrations().then(function(regs) {
+                                            work.push(navigator.serviceWorker.getRegistrations().then(function(regs) {
                                                 var promises = [];
                                                 for (var i = 0; i < regs.length; i++) {
-                                                    promises.push(regs[i].unregister());
+                                                    var r = regs[i];
+                                                    var w = r.active || r.waiting || r.installing;
+                                                    var u = (w && w.scriptURL) || '';
+                                                    // Unknown state: leave it alone rather than fail open.
+                                                    if (!u || /\\/sw\\.js(\\?|$)/.test(u)) continue;
+                                                    promises.push(r.unregister());
                                                 }
-                                                Promise.all(promises).then(function() {
-                                                    window.location.reload(true);
-                                                });
-                                            });
-                                        } else {
-                                            window.location.reload(true);
+                                                return Promise.all(promises);
+                                            }));
                                         }
+                                        Promise.all(work).then(done, done);
                                     }
                                 }
                             }, true);
