@@ -331,3 +331,78 @@ Test data removed and the test user's `mute_all` restored to its original value.
 - Migrations applied with in-transaction assertions covering the mirror,
   `_push=none` and `_push=inline`.
 - Production served `4bf7fae8` for the proof above.
+
+---
+
+## LINE-BY-LINE AUDIT ROUND 4 (2026-08-19, 23:00-23:20 UTC)
+
+### Vercel account confirmed
+Every Vercel call this engagement used team `smarter-poker`
+(`team_SVD8r7AOPH065G3usBxVvrBc`, admin@smarter.poker), project `hub-vanguard`
+(`prj_op66GkZyZcygXQKm76iyycfVFAQx`), aliased to smarter.poker -- exactly the
+canonical target in CLAUDE.md 1.1. Re-checked that exactly ONE Vercel project is
+linked to the repo, so the duplicate-project regression has not returned.
+
+### The biggest risk the mirror introduced -- and the fix
+The mirror trigger is what finally connected the gateway to reality, but
+`notifications` takes bulk writes. Measured from production history, rows
+created in a SINGLE SECOND:
+
+| rows  | type                     | date       |
+|-------|--------------------------|------------|
+| 1,682 | friend_accept            | 2026-05-13 |
+|   997 | home_group_friend_joined | 2026-05-12 |
+|   721 | friend_accept            | 2026-05-12 |
+|   350 | live                     | 2026-05-16 |
+
+Those are backfills, not organic activity. Mirrored naively, the next backfill
+is a mass-push incident -- thousands of phones buzzing about events that already
+happened -- plus an ~85-minute drain at 100 rows per 5-minute slot that starves
+every real notification behind it.
+
+Guards added:
+- **Per-user pending cap (20)** in the trigger. Bounds the blast radius per
+  person; the in-app bell still receives everything, which is the durable record.
+- **Staleness (30 min)** in the trigger: a backdated row is not news.
+- **MAX_DELIVERY_AGE_MS (60 min)** in the dispatcher, for rows that sit through
+  an outage rather than arriving backdated.
+- **BATCH_LIMIT 100 -> 300.** The real limiter is the time budget, since
+  per-recipient device sends are parallel and each send is capped at 10s.
+
+Assertions in the migration prove the cap engages at exactly 20 (not early, not
+late) and that a backdated row is never mirrored.
+
+### Admin visibility
+`/admin/push-health` reported `skipped: N` and never why -- yet telling "users
+opted out" apart from "we are broken" is the only question the page exists to
+answer. Suppression reasons are now grouped and classified as
+`user_choice` / `not_enrolled` / `throttled` / `fault`, so a green count reads as
+working-as-intended and only red demands action.
+
+### Concurrent work by another agent, reviewed and preserved
+Another agent was editing this stack at the same time. Their changes were
+reviewed rather than clobbered, and shipped together after a joint build:
+- **web-push.js** -- narrows "permanent failure" back to 404/410 only. An
+  earlier pass had added 403, 400 and `undefined` statusCode. That is dangerous:
+  a 403 is usually SERVER-side VAPID key skew, which returns 403 for every
+  subscription at once, so treating it as permanent would deactivate 100% of
+  push_subscriptions in a single 5-minute tick and force the whole user base to
+  re-enrol. A bare `undefined` is usually a socket timeout, not a dead endpoint.
+- **push-deliver.js** -- shared `recordSendFailure()` with a failure threshold,
+  replacing a copy that had drifted between the inline and dispatch paths.
+- **club-arena/notify.js** -- operator-precedence bug that made BASE_URL the
+  literal string `"https://undefined"` whenever NEXT_PUBLIC_SITE_URL was set
+  without VERCEL_URL.
+
+### Verification
+- `npx next build` clean: 924 route lines, all 11 push routes present.
+  (Note: "ISR Build Failed: Invalid API key" appears in every local build,
+  including known-good ones -- it is SUPABASE_SERVICE_ROLE_KEY missing from the
+  local shell, not a regression.)
+- 25 files parse clean, 39 relative imports resolve, 8 Immutable Rules pass.
+- Open Claw `/api/cron/push-dispatch`: four consecutive 200s (1.4s-2.8s).
+- **Both gate branches proven live in production:** a plain notification insert
+  was mirrored, claimed, and suppressed with `mute_all` when the user was muted;
+  and with the user unmuted the identical flow passed the gate and terminated at
+  `no_subscription`. The gate demonstrably both blocks and allows on real infra.
+- Test data removed; the test user's `mute_all` restored to its original value.
