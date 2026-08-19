@@ -2675,7 +2675,13 @@ function MessengerPage() {
                     'Content-Type': 'application/json',
                     ...(startToken ? { Authorization: `Bearer ${startToken}` } : {}),
                 },
-                body: JSON.stringify({ otherUserId: otherUser.id }),
+                body: JSON.stringify({
+                    otherUserId: otherUser.id,
+                    // Club mode: scope the new conversation to the club identity so it
+                    // lands in the club inbox (personal inbox for the recipient).
+                    contextEntityId: isClubMode && clubPage ? clubPage.id : null,
+                    contextEntityType: isClubMode && clubPage ? 'club' : null,
+                }),
             });
             if (!resp.ok) {
                 const errData = await resp.json().catch(() => ({}));

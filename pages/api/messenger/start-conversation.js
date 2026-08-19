@@ -77,9 +77,18 @@ export default async function handler(req, res) {
         // every call to the (broken) inline path below — and any partial-insert
         // failure there left conversations with only ONE participant row,
         // which is what caused KingFish's Johnny conversation to vanish.
+        // Identity context: when the initiator acts AS a club page, contextEntityId
+        // is that page id. Recorded only on the initiator participant row so the
+        // conversation lands in the club inbox for them and the personal inbox for
+        // the recipient. null = personal conversation (default).
+        const rawCtx = req.body && req.body.contextEntityId;
+        const contextEntityId = rawCtx && String(rawCtx).length > 0 ? String(rawCtx) : null;
+        const contextEntityType = contextEntityId ? (req.body.contextEntityType || 'club') : null;
         const { data: rpcResult, error: rpcErr } = await supabase.rpc('fn_get_or_create_conversation', {
             p_user_id: user.id,
             p_other_user_id: otherUserId,
+            p_context_entity_id: contextEntityId,
+            p_context_entity_type: contextEntityType,
         });
 
         if (!rpcErr) {
@@ -174,7 +183,9 @@ export default async function handler(req, res) {
             foundId = shared?.[0]?.conversation_id || null;
         }
 
-        if (foundId) {
+        // Only reuse an existing thread for PERSONAL conversations. A club-context
+        // request must get its own conversation so the identity inbox stays separate.
+        if (foundId && !contextEntityId) {
             // Existing conversation — check its current request status
             const { data: convRow } = await supabase
                 .from('social_conversations')
@@ -209,6 +220,8 @@ export default async function handler(req, res) {
                 is_group: false,
                 is_request: !areFriends,
                 request_sender_id: !areFriends ? user.id : null,
+                context_entity_id: contextEntityId,
+                context_entity_type: contextEntityType,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             })
@@ -228,8 +241,8 @@ export default async function handler(req, res) {
         const { error: partErr, data: partData } = await supabase
             .from('social_conversation_participants')
             .insert([
-                { conversation_id: newConv.id, user_id: user.id, joined_at: new Date().toISOString(), last_read_at: new Date().toISOString() },
-                { conversation_id: newConv.id, user_id: otherUserId, joined_at: new Date().toISOString(), last_read_at: new Date().toISOString() },
+                { conversation_id: newConv.id, user_id: user.id, joined_at: new Date().toISOString(), last_read_at: new Date().toISOString(), context_entity_id: contextEntityId, context_entity_type: contextEntityType },
+                { conversation_id: newConv.id, user_id: otherUserId, joined_at: new Date().toISOString(), last_read_at: new Date().toISOString(), context_entity_id: null, context_entity_type: null },
             ])
             .select('user_id');
 
