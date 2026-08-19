@@ -152,3 +152,93 @@ the network call is verified; the wire format itself is covered by the RFC 8291
 round-trip conformance tests.
 
 Probe rows were deleted. push_subscriptions remains 0 until a real device enrolls.
+
+---
+
+## LINE-BY-LINE AUDIT ROUND 2 (2026-08-19, 22:00 UTC)
+
+3,524 lines of the stack reviewed. Every claim below was checked against the
+codebase or production, not assumed.
+
+### Defects found and fixed
+
+1. **Two disconnected preference systems.** `/hub/settings` has always written
+   boolean columns on `user_notification_preferences`; the push gate only read
+   `notification_preferences.push_type_prefs`. A user who switched "Tournament
+   reminders" off in the UI they can actually reach would still have been
+   pushed. The gate now reads BOTH tables in one round trip and suppresses if
+   either says no (`LEGACY_PREF_COLUMN`, 25 mappings, each asserted to be a
+   registered push type).
+
+2. **The "Push Notifications" toggle in /hub/settings did nothing.** It wrote
+   `localStorage` + `profiles.app_settings` and never called `subscribe()`.
+   Replaced with the real device-enrollment card.
+
+3. **The whole settings surface was unreachable.** `/hub/settings/notifications`
+   had ZERO inbound links anywhere in the app. Now linked from the settings
+   Notifications section.
+
+4. **`daily_challenge` was not in the type registry**, so it could never be
+   silenced -- an un-mutable notification. Registered.
+
+5. **Four dead deep links** in `notify.js`: `/hub/wallet`, `/hub/vip`,
+   `/hub/live`, `/hub/club-arena/challenges` do not exist. Corrected to
+   `/hub/diamond-store`, `/hub/promotions`, `/hub/lives`, `/hub/club-arena/`.
+   All 8 remaining links are now asserted against the real `pages/` tree.
+
+6. **Constant push tags collapsed unrelated notifications.** A second streamer
+   going live silently replaced the first on the lock screen; same for
+   tournaments, late reg and open seats. Now per-entity. `daily-challenge`
+   deliberately keeps a constant tag -- there is one per day and collapsing a
+   repeat is correct.
+
+7. **`notify()` failure modes.** It dropped notifications silently when a
+   required field was missing (now logs), wrote `action_url` but never `link`
+   (now both), and let a successful push set `ok: true` even when the bell
+   insert had failed (now `ok` means the bell row landed, nothing else).
+
+8. **No per-send timeout.** One wedged push endpoint could stall an entire
+   dispatch run and strand its rows in `processing`. 10s timeout added.
+
+9. **Unbounded dispatch runtime.** Explicit `maxDuration`, a wall-clock budget
+   that returns unprocessed rows to `pending` rather than being killed
+   mid-flight, and parallel per-recipient device fan-out.
+
+10. **Self-test suppressed by quiet hours** (a bug introduced by the quiet-hours
+    work itself, caught before it shipped). Diagnostics now pierce quiet hours
+    and the cap; a "Send Test" that is silently swallowed reports a broken
+    subscription that is perfectly healthy.
+
+### Checked and found NOT broken (verified, not assumed)
+- `ON CONFLICT (user_id)` upserts: a non-partial
+  `notification_preferences_user_id_key` already exists, so the partial index
+  added with the push stack was merely redundant (now dropped), not fatal.
+- `updateNotificationPref` uses `.update()` not upsert, but the section loader
+  creates the default row first, so it is safe.
+- `PushSubscriptionSync` is mounted exactly once (an earlier grep matched a
+  comment in `_app.js`, not a second mount).
+- The emoji flagged in `pages/hub/settings.js` is pre-existing; none on the
+  lines this work added.
+
+### Enhancements shipped
+- **Quiet hours** -- timezone-aware, correctly wraps midnight, evaluated in the
+  user's zone. Urgent types (`incoming_call`, `seat_open`,
+  `tournament_starting`) pierce it, because suppressing those is harmful.
+- **Daily cap** -- optional, 0 = unlimited (the default, so nothing changes for
+  existing users). Urgent types are never capped.
+- **App-icon badge** via the Badging API, cleared on notification click.
+- **Instant in-app refresh** -- the SW posts `SP_PUSH_RECEIVED`, relayed onto
+  the app's existing `smarter_poker_notif_sync` broadcast so the header bell
+  updates immediately instead of waiting out its poll interval. SW is now
+  `sp-push-v2`.
+
+### Verification
+- `npx next build` clean; all 11 push routes + both pages compiled.
+- 54 unit assertions on gate / quiet-hours / legacy-bridge / diagnostic logic.
+- Production serves commit `b5f0bb7e`; worker `sp-push-v2` confirmed live with
+  badge, receipt, rotate and SP_PUSH_RECEIVED handlers.
+- Open Claw `/api/cron/push-dispatch`: three consecutive 200s post-change
+  (1.4s-2.9s). 9 dispatch runs recorded.
+- Migration `20260819210000` applied with post-apply assertions; quiet-hours
+  columns live, cap index created, redundant index dropped, real unique index
+  intact.
