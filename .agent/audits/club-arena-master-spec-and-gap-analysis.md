@@ -4144,3 +4144,120 @@ Also corrected in this pass: I pushed one commit while five tests were red.
 They turned out to be phantom failures from my own working tree — clean
 `origin/main` was green — but I established that *after* pushing. Pushes are
 gated on the suite's exit code now, not run alongside it.
+
+---
+
+## 59. Spin & Go is 3-handed, and three guards that were not guarding
+
+Dan, 2026-08-19: *"SPINS ARE ALWAYS 3 HANDED. MAKE SURE THAT YOU HAVE DOUBLE
+CHECKED ALL YOUR WORK, THAT THERE ARE NO BUGS, GAPS, STUBS, REGRESSIONS,
+ERROR'S OR WIRING ISSUES ANYWHERE BEFORE CLAIMING SUCCESS."*
+
+The data was already right. What was missing was anything that would keep it
+right. Three separate guards turned out to be decorative, and the third is the
+worst thing I have written this month.
+
+### 59.1 The rule had no owner
+
+Every Spin & Go in production was 3-handed — 6,252 tournaments, 1,772 tables,
+no exceptions. But that was a property of the seed data, not of the code. The
+seat count came from `config.maxPlayers` in `SPIN_CONFIGS`, so a future config
+with `maxPlayers: 6` would have quietly created 6-handed Spins and nothing
+anywhere would have objected.
+
+`server/src/services/TournamentRecurringService.ts` now declares the rule once:
+
+```ts
+export const SPIN_SEATS = 3;
+```
+
+and the SPIN insert uses `max_players: SPIN_SEATS, min_players: SPIN_SEATS`
+rather than the config. A config that disagrees is not silently obeyed and not
+silently ignored — `createSpin` reports it as
+`TournamentRecurring.spin_seat_count_override`, so the contradiction surfaces
+instead of becoming the new behaviour. `SpinSeatCount.test.ts` (7 tests) pins
+it, including the case where a config asks for something other than 3.
+
+Shipped as `69271dea3`; `engine.smarter.poker/health` reports version
+`69271dea`, so the rule is live rather than merely committed.
+
+### 59.2 The near-miss: my first patch made every SNG 3-handed
+
+The SPIN, SNG and both MTT inserts in that file are near-identical blocks. My
+first edit anchored on the shape of the insert rather than on the tournament
+type, and it landed on the **SNG** block — which would have made every future
+Sit & Go 3-handed while leaving Spins exactly as broken as before.
+
+It never reached a commit, because the test asserting *SNG still uses
+`config.maxPlayers`* went red. That test existed only because I had written the
+SPIN tests to also state what must **not** change. That is the whole lesson:
+a test that pins the thing you are changing catches typos; a test that pins the
+neighbours you are not changing catches the edit landing in the wrong place.
+The neighbour assertion is the one that earned its keep.
+
+Re-anchored on `tournament_type: 'SPIN'`, which is unique in the file.
+
+### 59.3 A guard that stopped guarding when the code moved
+
+`tests/e2e/top-rail-seat.spec.ts` (bug-list item 10 — the top-centre player box
+resting on the rail) read the seat ring out of `TablePage.tsx` by regex. PR #114
+moved the seat geometry into `src/lib/tableSeatGeometry.ts`. The regex then
+matched nothing, `TOP_CENTRE_Y` became `NaN`, and every comparison against
+`NaN` is `false` — so the spec did not fail. It stopped asserting anything and
+reported success.
+
+This is the failure mode that matters most, because it is invisible: the suite
+still says 64/64 and the thing it was watching is unwatched. The fix is a
+`RING_SOURCES` list that is searched in order and **throws loudly** when no
+source yields a ring, so a future move is a red test rather than a silent
+retirement. Shipped as `5669041e6`.
+
+### 59.4 The suite passed only on the machine it was written on
+
+`tests/e2e/pot-above-chips.spec.ts` compared the pot's position against the
+*previous* stylesheet, and read that stylesheet from `/tmp/TablePage.before.css`
+— a snapshot sitting on the laptop the fix was written on. Locally: 64/64,
+three consecutive clean runs, exit 0. On the first clean CI checkout:
+`ENOENT: no such file or directory`, the spec file failing at import, the whole
+E2E job red at `5669041e6`.
+
+I had reported that suite as green. It was green **where I ran it**, which is
+not the same claim and I made the wrong one.
+
+Fixed in `725a52bff`:
+
+- the baseline is now `tests/e2e/fixtures/TablePage.before.css`, committed, and
+  byte-identical to `git show 7e62f4faa^:src/pages/TablePage.css` — verified by
+  `diff`, not by eye — so the comparison is reproducible by anyone rather than
+  by me;
+- `tests/tests-are-portable.test.ts` scans every `.test.ts` / `.spec.ts` under
+  `tests/`, `src/` and `server/src/` for paths rooted at `/tmp`, `/Users`,
+  `/home`, `/private`, `/var/folders`, `~` or a Windows drive.
+
+That guard carries the §59.3 lesson: it asserts it found more than 20 files and
+that a known file is among them, so it cannot pass by walking an empty tree. It
+was proved against a canary — a scratch test containing the exact deleted line
+— which turned it red, and removing the canary turned it green again.
+
+Verification of the fix was run the honest way: the machine-local file was
+**deleted** first, then the full suite run under CI's own conditions
+(`CI=true`, `BASE_URL=https://smarter.poker/hub/club-arena`, one worker).
+64/64, exit 0.
+
+### 59.5 Method note
+
+Three guards, three ways of not guarding, one shape:
+
+| guard | why it stopped working | how it now fails loudly |
+|---|---|---|
+| SPIN seat count | never existed — the value came from config | `SPIN_SEATS` is the single owner; a disagreeing config is reported |
+| item-10 top-rail spec | the code moved; the regex missed; `NaN` compares false | `RING_SOURCES` throws when no source yields a ring |
+| pot-above-chips spec | depended on untracked machine state | fixture committed; a portability test scans for the whole class |
+
+The through-line: **a test that cannot find what it is measuring must fail, not
+pass.** Every one of these read a value, got nothing usable, and carried on. I
+now treat "the assertion input is missing" as an error condition in its own
+right rather than something to compare against and hope.
+
+And the reporting rule that follows from §59.4: *green on my machine* is not a
+result. A suite is verified when it is green somewhere I did not set up.
