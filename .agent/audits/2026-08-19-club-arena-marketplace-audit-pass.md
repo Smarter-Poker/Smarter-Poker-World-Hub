@@ -97,3 +97,47 @@ production APIs. Get a JWT with
 `POST https://<ref>.supabase.co/auth/v1/token?grant_type=password` using the
 publishable key and `TEST_USER_*` from `.env.local`, then call the live
 endpoints directly. Code review alone would not have caught this one.
+
+## Addendum 2 — 8th defect: a DB constraint made the re-buy fix unreachable
+
+Re-running the live chain after deploying the ownership fix, the re-buy after
+redemption returned 500. Cause: `club_shop_purchases` carried
+`uq_shop_purchase_per_buyer UNIQUE (club_id, buyer_id, item_id)` — the table
+was a SET, not a LEDGER, so one purchase per item per buyer FOREVER. The
+API-level fix could never take effect.
+
+Silver lining: the failure exercised the rollback path for real — chips were
+debited, the insert failed, `fn_credit_chips` refunded, and the balance was
+intact (5500) afterwards. That compensation logic is now proven, not assumed.
+
+Dropped the constraint (migration
+`20260819_club_shop_purchases_allow_repeat_buys.sql`) and added the two
+lookup indexes the unique index had been providing. Duplicate protection now
+rests on idempotency keys + the unredeemed-inventory rule + rate limits, and
+`club_shop_inventory.purchase_id` stays UNIQUE so delivery remains 1:1.
+
+### Final production verification (test account, live endpoints)
+
+| # | Check | Result |
+|---|---|---|
+| A | storefront read | 12 items, all with artwork, role owner |
+| B | buy chips WITH clubId | 10 diamonds -> club balance 1000 -> 2000 |
+| C | insufficient-chips purchase | 400 with exact amounts |
+| D | buy item | 200, chips debited, `item_type` returned |
+| E | delivery trigger | inventory row created with `item_id` |
+| F | re-buy while owned | 400 `alreadyOwned` |
+| G | redeem (user JWT RPC) | `{"success": true}` |
+| H | re-buy after redeem | **200 — the fix works** |
+| I | re-buy again while owned | 400 `alreadyOwned` |
+| J | idempotency (same key x2) | 2nd call `idempotent: true`, chips 0 |
+| K | non-member club | 400 "Not a member of this club" |
+| L | malformed clubId | 400 "Invalid clubId format" |
+| M | admin create | item_type derived from category |
+| N | admin create, bad category | coerced to Time Banks |
+| O | admin update | 200; invalid category -> 400 |
+| P | admin toggle | 200, is_active flipped |
+| Q | delete unsold item | 200 |
+| R | delete SOLD item | 400 `hasSales`, history preserved |
+
+Ledger after testing: 2 purchases, 2 inventory rows (1 owned, 1 redeemed),
+12 catalog items, no test leftovers.

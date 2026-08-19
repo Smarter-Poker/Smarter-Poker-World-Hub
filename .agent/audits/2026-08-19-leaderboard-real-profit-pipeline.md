@@ -73,3 +73,39 @@ Deployed via CA build-for-world-hub.yml -> WH public/hub/club-arena -> Vercel.
 - horse_hand_results has no repo-visible writer and only partial coverage —
   do not build on it.
 - Drop _lb_backfill_daily after a verification window.
+
+## Security follow-up (same day) — gate made fail-closed
+`promo_apply_playthrough` is EXECUTE-able by `authenticated` (pre-existing
+grant), so adding a player_stats write inside it needed a caller gate. The
+first version (20260819g) allowed the write when
+`auth.role()='service_role' OR session_user='postgres'`. Safe in production —
+PostgREST connects as `authenticator`, never `postgres` — but the DENY path
+could not be proven from an admin SQL session, where session_user IS postgres.
+A control that cannot be tested is a control nobody can trust.
+
+Migration 20260819h re-gates solely on the caller's JWT role:
+allow `auth.role()='service_role'`, or `auth.role() IS NULL AND current_user IN
+(postgres, supabase_admin)` for migrations/backfill; deny authenticated, anon,
+everything else. Now directly testable, and tested:
+
+- Attack sim: `SET LOCAL ROLE authenticated` + authenticated JWT claims,
+  `promo_apply_playthrough(club, self, 999999999)` -> total_losses delta 0.00
+  (assertion would have raised).
+- Engine unaffected: winnings +4,313.27 / losses +4,409.31 over a 25s window,
+  difference = rake.
+- Promo money logic (FOR UPDATE lock, release credit, zeroing, chip_transactions
+  row, wagered accrual) confirmed byte-identical to the prior version.
+
+## Production verification (final)
+- smarter.poker serves `LeaderboardService-Df-P0Q6--v6.js` containing all three
+  new RPC names, and `LeaderboardPage-DfHIpT43-v6.js` containing
+  getGlobalLeaderboard / getGlobalUserRank / globalSupported / rank-change-anim.
+  No emoji in the shipped chunk.
+- All 16 metric x period combinations (profit, hands_played, tournaments_won,
+  roi) x (daily, weekly, monthly, all_time) return full 50-row result sets for
+  both club and global scope.
+- Club weekly profit: 50/50 rows nonzero, 50 distinct values, 50 with a real
+  rank_change (including negatives). Global all-time: 50/50 nonzero, 46 with
+  rank_change.
+- fn_user_rank_period -> rank 1 of 575 for the top JAQK player, matching the
+  "1st / out of 575 players" bar; fn_user_rank_global_period -> 3 of 577.
