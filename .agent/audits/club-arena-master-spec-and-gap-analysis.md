@@ -3175,3 +3175,62 @@ A foreign agent ran `git reset --hard` mid-session and destroyed this work
 uncommitted (Dan's documented hazard). Re-applied and committed immediately,
 then pushed via the temp-index technique. Worth repeating the lesson: commit
 before running any verification that takes minutes.
+
+## §47 — Real cards on every hit, and the rule that was failing OPEN ($11,392) (2026-08-18, CA 83026728f)
+
+Dan: "use the actual cards we use in the club arena, to display them." Doing
+that surfaced a live money bug — the cards themselves were the evidence.
+
+### 47.1 The hit history now shows the real deck
+`fn_bbj_recent_hits` returns `bad_beat_cards`, `hand_winner_cards` and `board`,
+rendered with `<CardImage>` — the same component the table uses, so the art and
+the 4-colour/2-colour setting match exactly.
+
+Plumbing notes: `bbj_payouts.hand_id` is NULL on every row, so the hand is
+reached the way `bbj_winners` is joined — `(table_id, hand_number)` →
+`hand_history` (verified: resolves for every recent hit). `hand_history.board`
+is JSONB (not `text[]`) holding strings like `"6diamonds"`; `hole_cards` is an
+object keyed by user_id. Both are normalised to `{rank,suit}` in SQL, then
+mapped to CardImage's one-letter suits client-side, with `10 → T` and anything
+unrecognised dropped rather than rendered as a broken card. Hole-card coverage
+in history is PARTIAL — often only one player's cards were stored — so each
+hand renders only when present; the board almost always resolves and carries
+the story alone.
+
+### 47.2 The cards exposed it: three payouts on board-made hands
+The very first hit rendered had a board of **6♦ 6♣ 6♠ 6♥ 4♦** — quads on the
+board. When the board makes quads, NO player can have both hole cards playing
+(at most one kicker plays), so `requireBothHoleCards` must reject it. A sweep
+found **3 of the 15 payouts with a stored board were board-made quads —
+$11,392.67 — the most recent at 15:14 that same day**, well after the
+both-cards rule shipped.
+
+**Cause: the rule failed OPEN.** `bothPlayOk()` returned `true` when no board
+was supplied, commented "legacy behavior". That did not skip a cosmetic check —
+it silently disabled a money rule, and board-made hands are precisely where the
+rule is load-bearing.
+
+Proved rather than assumed: a test reconstructing the real stored hand #1668
+shows the current detector **rejects it correctly when given the board** and
+**pays when the board is absent**. So the logic was right; the input path was
+not, and the fallback converted a missing input into free money.
+
+Now fails closed. A qualifying hand always needs a five-card board, so refusing
+to pay when we cannot see one cannot cost a legitimate jackpot, while paying
+blind demonstrably costs real money. A missing board is a bug upstream to fix,
+not a payout to wave through.
+
+### 47.3 A test that was passing because the rule was off
+Four existing tests supplied no board and so had been passing through the
+fallback. Rewritten against real boards — and one could not be. **"quad-aces
+loser outranks an aces-full loser" is physically IMPOSSIBLE** once both-cards is
+enforced: quad aces needs two aces in hand and two on the board, consuming all
+four, leaving none for the aces-full loser, who must hold one to qualify in
+NLH. It only ever passed because the missing board disabled the rule. Restated
+with cards that can actually be dealt.
+
+**Verified:** server 666/666, client 135 files green, tsc clean both sides,
+engine deployed and serving 83026728. Still outstanding (logged, not yet
+chased): WHY the board was empty at settlement for those hands — the fix means
+it now costs a missed jackpot rather than a wrong payout, which is the safe
+side to be wrong on.
