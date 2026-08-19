@@ -567,7 +567,31 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         selectOrb(cardId as any);
 
         // Commander card → Club Commander management software (standalone app)
-        if (cardId === 'club-commander') {
+                if (cardId === 'club-commander') {
+            const authStr = localStorage.getItem('smarter-poker-auth');
+            if (authStr) {
+                try {
+                    const auth = JSON.parse(authStr);
+                    if (auth?.session?.access_token) {
+                        fetch('/api/auth/commander-sso', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${auth.session.access_token}` }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.url) {
+                                window.location.href = data.url;
+                            } else {
+                                window.location.href = 'https://commander.smarter.poker/commander/login';
+                            }
+                        })
+                        .catch(() => {
+                            window.location.href = 'https://commander.smarter.poker/commander/login';
+                        });
+                        return;
+                    }
+                } catch (err) {}
+            }
             window.location.href = 'https://commander.smarter.poker/commander/login';
             return;
         }
@@ -609,7 +633,31 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         const targetRoute = `/hub/${orbId}`;
 
         // Commander card → Club Commander management software (standalone app)
-        if (orbId === 'club-commander') {
+                if (orbId === 'club-commander') {
+            const authStr = localStorage.getItem('smarter-poker-auth');
+            if (authStr) {
+                try {
+                    const auth = JSON.parse(authStr);
+                    if (auth?.session?.access_token) {
+                        fetch('/api/auth/commander-sso', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${auth.session.access_token}` }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.url) {
+                                window.location.href = data.url;
+                            } else {
+                                window.location.href = 'https://commander.smarter.poker/commander/login';
+                            }
+                        })
+                        .catch(() => {
+                            window.location.href = 'https://commander.smarter.poker/commander/login';
+                        });
+                        return;
+                    }
+                } catch (err) {}
+            }
             window.location.href = 'https://commander.smarter.poker/commander/login';
             return;
         }
