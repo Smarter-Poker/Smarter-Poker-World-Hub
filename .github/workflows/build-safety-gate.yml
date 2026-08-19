@@ -497,6 +497,98 @@ jobs:
           echo "✓ No merge conflict markers found"
 
       # ═══════════════════════════════════════════════════════════════
+      # CHECK 15: Commit author identity (Vercel BLOCKED-deploy guard)
+      #
+      # Vercel refuses to build a commit whose GitHub author it cannot
+      # resolve to a user account. Such a deployment enters state BLOCKED:
+      # the build never starts, so there are NO build logs and nothing in
+      # this workflow's other checks can see it. The only visible symptom
+      # is a red "Blocked" row in the Vercel dashboard, which is easy to
+      # miss for hours.
+      #
+      # 2026-08-19 incident: five production deployments were BLOCKED in
+      # one afternoon. Every one of them was authored
+      #   Claude (Cowork) <...@gmail.com>
+      # and carried NO githubCommitAuthorLogin in its metadata. Every
+      # deployment that went READY that day was authored either by the
+      # noreply alias or by github-actions[bot]. One of the blocked
+      # commits (e0405913, shop admin unification) sat unbuilt on main
+      # until an unrelated later commit happened to sweep it up.
+      #
+      # `author.username` is populated by GitHub only when it can map the
+      # commit author to a real account — it is exactly the signal Vercel
+      # keys on, so testing it here predicts the block before anyone has
+      # to notice it in the dashboard.
+      #
+      # This is RULE 3 in .agent/CLAUDE_AGENT_RULES.md. scripts/git-safe-push.sh
+      # already auto-corrects user.email, so a commit reaching this check
+      # with a bad identity came in through a path that bypassed it
+      # (typically the GitHub API/MCP, which authors as the token owner).
+      #
+      # Fix for a flagged commit — re-author and force-push, e.g.:
+      #   git commit --amend --author="Smarter-Poker \
+      #     <254329056+Smarter-Poker@users.noreply.github.com>"
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 15: Commit author resolves to a GitHub user"
+        if: github.event_name == 'push'
+        env:
+          COMMITS_JSON: ${{ toJSON(github.event.commits) }}
+        run: |
+          echo "Verifying commit author identity on pushed commits..."
+
+          # No commits in payload (e.g. a tag or branch-create push) — nothing to check
+          COUNT=$(echo "$COMMITS_JSON" | jq 'length')
+          if [ "$COUNT" = "0" ] || [ "$COUNT" = "null" ]; then
+            echo "✓ No commits in push payload — nothing to verify"
+            exit 0
+          fi
+
+          # A commit GitHub cannot attribute has an empty/absent author.username.
+          # That is the precise condition that makes Vercel mark the deployment
+          # BLOCKED, so it is what we test rather than guessing at emails.
+          UNRESOLVED=$(echo "$COMMITS_JSON" | jq -r '
+            .[]
+            | select((.author.username // "") == "")
+            | "  \(.id[0:9])  \(.author.name // "?") <\(.author.email // "?")>\n      \((.message // "") | split("\n")[0])"
+          ')
+
+          # RULE 3: never commit from a personal mailbox. Kept as a separate,
+          # narrower signal so the failure message can name the actual rule.
+          PERSONAL=$(echo "$COMMITS_JSON" | jq -r '
+            .[]
+            | select((.author.email // "") | test("@(gmail|yahoo|hotmail|outlook|icloud|proton(mail)?)\\."; "i"))
+            | "  \(.id[0:9])  \(.author.email)"
+          ')
+
+          FAILED=0
+
+          if [ -n "$UNRESOLVED" ]; then
+            echo "::error::FATAL: commit author does not resolve to a GitHub user."
+            echo "Vercel will mark the resulting production deployment BLOCKED and never build it:"
+            echo "$UNRESOLVED"
+            FAILED=1
+          fi
+
+          if [ -n "$PERSONAL" ]; then
+            echo "::error::RULE 3 violation: commit authored from a personal email address:"
+            echo "$PERSONAL"
+            FAILED=1
+          fi
+
+          if [ "$FAILED" = "1" ]; then
+            echo ""
+            echo "Required identity for this repo:"
+            echo "  Smarter-Poker <254329056+Smarter-Poker@users.noreply.github.com>"
+            echo "  (github-actions[bot] is also accepted, for CI-authored commits)"
+            echo ""
+            echo "Re-author the commit above and force-push, then the deployment will build."
+            echo "See .agent/CLAUDE_AGENT_RULES.md RULE 3 and ~/Documents/AUTHOR_IDENTITY.md"
+            exit 1
+          fi
+
+          echo "✓ All $COUNT pushed commit(s) resolve to a GitHub user"
+
+      # ═══════════════════════════════════════════════════════════════
       # CHECK 8: Auth-critical files exist on disk
       # Single source of truth: __tests__/auth-routes-exist.test.mjs
       # See docs/runbooks/07-auth-outage.md for the 2026-05-02 incident

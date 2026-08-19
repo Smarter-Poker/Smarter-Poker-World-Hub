@@ -261,6 +261,14 @@ To skip for emergency hotfixes ONLY: `--skip-build` flag.
 - CHECK 3: No raw `@supabase/supabase-js` imports in API routes
 - CHECK 4: No merge conflict markers in source files
 - CHECK 5: TypeScript compilation (advisory, does not block)
+- CHECK 15: Commit author resolves to a GitHub user (RULE 3). Vercel will not
+  build a commit it cannot attribute — the deployment goes to **BLOCKED** with
+  no build logs at all, so nothing else in this gate can see it and the only
+  symptom is a red row in the Vercel dashboard. Added 2026-08-19 after five
+  production deployments were blocked in one afternoon, every one of them
+  authored `Claude (Cowork) <...@gmail.com>`. Commits must be authored
+  `Smarter-Poker <254329056+Smarter-Poker@users.noreply.github.com>` or
+  `github-actions[bot]`.
 
 Has `cancel-in-progress: true` so rapid pushes don't queue 15 stale builds.
 
