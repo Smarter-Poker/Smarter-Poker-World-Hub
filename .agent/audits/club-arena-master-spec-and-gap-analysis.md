@@ -3379,3 +3379,66 @@ into `fn_platform_invariants_health` as a 17th check,
 **Verified:** invariants now **17/17 OK**, conservation self-test green
 ("conserves: paid 1588.87, pool fell by exactly that"), no other check
 regressed.
+
+## §50 — CORRECTION: the backup jackpot is a RESERVE and never pays a BBJ (2026-08-18)
+
+Dan: "the back up jackpot is specifically that, a back up jackpot, it should
+never be funding or 'paying out' a BBJ from a back up jackpot."
+
+That corrects a model error running through this audit trail — and, notably,
+through two fixes I made **in it**:
+
+1. **§41's structural clamp** `LEAST(v_total, main + backup)` was written to
+   stop overpaying, but it explicitly authorised paying up to main PLUS backup.
+   The reserve was a payout source *by design*.
+2. **§49's drain fix** stopped the minting and made backup cover any shortfall.
+   Conservation-correct — and still paying a jackpot out of the reserve.
+
+So §49 fixed the arithmetic while preserving the wrong policy. Worth recording
+plainly: verifying that money is *conserved* is not the same as verifying it
+came from the *right pool*, and my self-test asserted only the former.
+
+### 50.1 What is now true
+A hit pays from the MAIN pool only:
+
+```
+v_total := ROUND(main * pct/100, 2)
+v_total := LEAST(v_total, main)     -- clamp to MAIN, never main+backup
+main   -= v_total                    -- backup_balance is absent from the UPDATE
+```
+
+The backup keeps accruing its 25% share of every contribution and is never
+debited by a payout. Because the payout is a percentage of main and clamped to
+main, the pool can never go negative and the reserve is unreachable.
+
+Verified on the harshest case — main 50, backup 5,000, asking for 100%:
+**paid exactly 50.00, main → 0.00, backup untouched at 5,000.00.**
+
+### 50.2 The self-test now enforces the rule, not the arithmetic
+`fn_bbj_selftest_payout_conservation` runs the real payer at 100% of main and
+now fails if *any* of these break: the reserve moves at all, main does not fall
+by exactly the amount paid, or the payout exceeds main. Invariant
+`bbj_payout_conservation` reports "main -X, backup untouched (Y), payout within
+main".
+
+### 50.3 Seeding is a product decision, deliberately not invented
+What the reserve is *for* — presumably seeding the next jackpot after a hit —
+is not implemented. If wanted it must be an explicit TRANSFER (debit backup,
+credit main), never a payout source and never a duplication. Flagged for Dan
+rather than guessed at.
+
+### 50.4 Sweep of the remaining BBJ surface
+- Every function that writes `backup_balance` was enumerated. Only three CREDIT
+  it (`bbj_record_contribution`, `add_bbj_contribution`, `fn_bbj_repair_unbanked`
+  — all funding paths). After this change **nothing debits it.**
+- `fn_union_fund_bbj_pool` is authenticated-executable, SECURITY INVOKER, and
+  carries no explicit owner check — it relies entirely on RLS. Probed as an
+  ordinary authenticated user: returns "union wallet not found" (RLS hides the
+  row, so it cannot be spent) and the pool moved 0.00. Safe, though
+  defence-by-RLS is more fragile than an explicit check; logged, not changed.
+- `union_wallets` (service_role-only policy) and `bbj_pools` (RLS on, no UPDATE
+  policy) both block authenticated writes.
+- Server `processBBJPayout` reads `backup_balance` only for reporting; it gates
+  solely on `main_balance <= 0`.
+
+**Verified:** invariants 17/17 OK with the stricter self-test in place.

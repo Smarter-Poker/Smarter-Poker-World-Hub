@@ -1,0 +1,34 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- APPLIED TO PRODUCTION: 2026-08-18 via mcp apply_migration
+-- (name bbj_backup_is_a_reserve_never_a_payout_source). Mirror only.
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Dan: "the back up jackpot is specifically that, a back up jackpot, it should
+-- never be funding or 'paying out' a BBJ from a back up jackpot."
+--
+-- TWO things in the payer contradicted that, and BOTH were introduced by
+-- earlier "fixes" in this same audit trail:
+--
+--   1. §41's structural clamp: v_total := LEAST(v_total, v_main + v_backup).
+--      Written to stop overpaying, it explicitly authorised a payout of up to
+--      main PLUS backup — making the reserve a payout source by design.
+--   2. §49's drain: backup covered any shortfall main could not.
+--      Conservation-correct, but still paying a jackpot out of the reserve.
+--
+-- Correct model, now implemented: a hit pays from the MAIN pool only. The
+-- backup accrues its own 25% share of every contribution and sits there as a
+-- reserve. It is never debited to satisfy a payout.
+--
+--   v_total := ROUND(v_main * pct/100, 2)
+--   v_total := LEAST(v_total, v_main)   -- clamp to MAIN, not main+backup
+--   main   -= v_total                    -- backup is absent from the UPDATE
+--
+-- Verified on the hardest case: main=50, backup=5000, requesting 100% ->
+-- paid exactly 50.00, main -> 0.00, backup untouched at 5000.00.
+--
+-- What the reserve is FOR (seeding the next jackpot after a hit) remains a
+-- PRODUCT decision and is deliberately not implemented. If wanted, it must be
+-- an explicit TRANSFER (debit backup, credit main) — never a payout source,
+-- never a duplication.
+--
+-- The applied function body lives in the database; this mirror records the
+-- change and the reasoning.

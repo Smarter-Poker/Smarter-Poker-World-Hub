@@ -1,0 +1,13 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- APPLIED TO PRODUCTION: 2026-08-18 via mcp apply_migration
+-- (name bbj_selftest_backup_untouched_by_payouts). Mirror only.
+-- ═══════════════════════════════════════════════════════════════════════════
+-- The self-test now enforces the RULE, not merely conservation. Conservation
+-- alone would still pass if a payout drained the reserve — exactly what Dan
+-- ruled out. Against the REAL payer, at 100% of main (the harshest case), in a
+-- rolled-back subtransaction, it asserts:
+--   1. backup_balance is completely UNCHANGED by a payout
+--   2. main falls by exactly the amount paid (no minting, no over-draw)
+--   3. the payout never exceeds the main balance it was computed from
+-- Wired into fn_platform_invariants_health as 'bbj_payout_conservation'.
+-- Full body as applied is in the database.
