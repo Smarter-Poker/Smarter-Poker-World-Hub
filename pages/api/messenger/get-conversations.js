@@ -193,11 +193,24 @@ export default async function handler(req, res) {
         console.warn('[get-conversations] fn_get_user_conversations not deployed; using fallback waterfall.');
 
         // ── FALLBACK waterfall (only when RPC doesn't exist) ──
-        const { data: participations, error: partError } = await getSupabase()
+        // The context filter has to be applied here too. It was not, and the
+        // consequence is not cosmetic: in club mode this returned EVERY
+        // conversation the user participates in -- private personal DMs
+        // included -- rendered underneath the "MESSAGING AS: <CLUB>" header.
+        // And the trigger is not only "migration not yet deployed": isMissingRpc
+        // above also matches PGRST202, which PostgREST returns for a stale
+        // schema cache, which is a routine post-deploy condition.
+        //
+        // IS NOT DISTINCT FROM semantics, matching the RPC: null means the
+        // personal inbox, and .eq() would never match a NULL column.
+        let participationQuery = getSupabase()
             .from('social_conversation_participants')
             .select('conversation_id, last_read_at')
-            .eq('user_id', userId)
-            .limit(500);
+            .eq('user_id', userId);
+        participationQuery = contextEntityId
+            ? participationQuery.eq('context_entity_id', contextEntityId)
+            : participationQuery.is('context_entity_id', null);
+        const { data: participations, error: partError } = await participationQuery.limit(500);
 
         if (partError) {
             // eslint-disable-next-line no-console

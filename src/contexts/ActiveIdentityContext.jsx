@@ -91,12 +91,34 @@ export function ActiveIdentityProvider({ children }) {
                     if (mounted && res2.ok) {
                         const json2 = await res2.json();
                         if (json2.success && json2.data && json2.data.length > 0) {
-                            // Merge without duplicates by ID
-                            const existingIds = new Set(pagesFound.map(p => p.id));
+                            // Merge by id, FIELD-WISE. Skipping duplicates
+                            // outright meant the step-2 venue lookup won, and
+                            // that endpoint does not return unread_count --
+                            // only this owner_id + include_memberships call
+                            // does (it runs fn_get_all_identity_unread_counts).
+                            // So for anyone with commander_staff in
+                            // localStorage the enriched copy was discarded and
+                            // every club badge read 0 until the 5-minute live
+                            // sync happened to fire. Later fields win only
+                            // where the earlier record has nothing.
+                            const byId = new Map(pagesFound.map(p => [p.id, p]));
                             for (const p of json2.data) {
-                                if (!existingIds.has(p.id)) {
+                                const existing = byId.get(p.id);
+                                if (!existing) {
                                     pagesFound.push(p);
-                                    existingIds.add(p.id);
+                                    byId.set(p.id, p);
+                                    continue;
+                                }
+                                for (const [k, v] of Object.entries(p)) {
+                                    if (v !== null && v !== undefined &&
+                                        (existing[k] === null || existing[k] === undefined)) {
+                                        existing[k] = v;
+                                    }
+                                }
+                                // unread_count is the whole point of the second
+                                // call, so it always wins when present.
+                                if (p.unread_count !== null && p.unread_count !== undefined) {
+                                    existing.unread_count = p.unread_count;
                                 }
                             }
                         }
@@ -160,14 +182,29 @@ export function ActiveIdentityProvider({ children }) {
     // loop where: parent sets clubId → context updates → storage listener fires →
     // context updates again → forceIdentity fires again → repeat.
     const forceAppliedRef = useRef(false);
+    // Which forceId the ref above was set FOR. The provider sits above
+    // <PageErrorBoundary key={router.asPath}> in _app.js, so it survives every
+    // client-side navigation — and this effect depended only on [ownedPages]
+    // while reading the URL imperatively. Result: navigating in-app to
+    // ?clubId=<uuid> never re-ran it. The club drawer opened (messenger.js
+    // watches router.query) while the identity stayed personal, so outgoing
+    // messages carried contextEntityId: null and the user silently messaged as
+    // themselves inside the club inbox. Only a full document load worked, which
+    // is why the iframe looked fine and in-app links did not.
+    const lastForceIdRef = useRef(null);
+    const router = useRouter();
     useEffect(() => {
         if (typeof window === 'undefined' || ownedPages.length === 0) return;
-        if (forceAppliedRef.current) return; // Already applied — do not re-apply
 
         const params = new URLSearchParams(window.location.search);
         const forceId = params.get('forceIdentity') || params.get('clubId');
 
+        // Apply once per DISTINCT forceId. Re-running for the same one would
+        // undo a manual switch the user made after arriving.
+        if (forceAppliedRef.current && lastForceIdRef.current === forceId) return;
+
         if (forceId) {
+            lastForceIdRef.current = forceId;
             if (forceId === 'personal') {
                 setActiveIdentity({ mode: 'personal', clubPage: null });
                 forceAppliedRef.current = true;
@@ -187,8 +224,10 @@ export function ActiveIdentityProvider({ children }) {
                 }
             }
         }
-    // Only re-run when ownedPages loads/changes — NOT on activeIdentity changes (that's the loop)
-    }, [ownedPages]);
+    // ownedPages: the pages have to exist before we can match one.
+    // router.asPath: the URL is an input to this effect, so it belongs here.
+    // activeIdentity is deliberately absent — that is the flip-flop loop.
+    }, [ownedPages, router.asPath]);
 
     const switchToPersonal = useCallback(() => {
         console.debug('[ActiveIdentity] Switching to personal');
@@ -230,10 +269,20 @@ export function ActiveIdentityProvider({ children }) {
                 const res = await fetch(`/api/social/pages?id=${activeIdentity.clubPage.id}`);
                 if (!mounted) return; // Guard: component unmounted during fetch
                 if (!res.ok) {
-                    // 404 or server error — page likely deleted
-                    console.warn('[ActiveIdentity] Stale club page detected (HTTP', res.status, '), resetting');
-                    setActiveIdentity({ mode: 'personal', clubPage: null });
-                    setOwnedPages(prev => prev.filter(p => p.id !== activeIdentity.clubPage.id));
+                    // ONLY a 404 means "this page is gone". Treating every
+                    // non-2xx as deletion meant one transient 5xx from Supabase
+                    // or the edge silently dropped the user back to their
+                    // personal identity and stripped the page from ownedPages --
+                    // and in the Club Arena iframe the forceApplied gate then
+                    // blocked re-application, so it never came back without a
+                    // reload.
+                    if (res.status === 404) {
+                        console.warn('[ActiveIdentity] Club page 404 — page deleted, resetting to personal');
+                        setActiveIdentity({ mode: 'personal', clubPage: null });
+                        setOwnedPages(prev => prev.filter(p => p.id !== activeIdentity.clubPage.id));
+                    } else {
+                        console.warn('[ActiveIdentity] Club page check failed (HTTP', res.status, ') — keeping identity, this is not evidence of deletion');
+                    }
                     return;
                 }
                 const json = await res.json();

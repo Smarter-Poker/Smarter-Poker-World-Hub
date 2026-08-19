@@ -3981,8 +3981,17 @@ function MessengerPage() {
                         the aggregate club unread count. Opened it is the identity
                         strip: Me, then one tile per club, each switching the
                         inbox via context_entity_id — private DMs stay private,
-                        the club context only decides which inbox they land in. */}
-                    {hasClubPage && (
+                        the club context only decides which inbox they land in.
+
+                        Gate note: hasClubPage is ownedPages.length > 0, which is
+                        false for the whole window between mount and the pages
+                        fetch resolving — and stays false forever if that fetch
+                        fails or the session is not readable yet. Gating on it
+                        alone meant the section silently did not exist on the one
+                        entry point it was built for. When we arrived from Club
+                        Arena (?clubId=) we know the user came for a club, so the
+                        section renders and says what it is waiting for. */}
+                    {(hasClubPage || router.query.clubId || router.query.forceIdentity) && (
                         <div style={{ padding: '0 16px 12px 16px', borderBottom: `1px solid ${C.border}`, marginBottom: 8, flexShrink: 0 }}>
                             <button
                                 type="button"
@@ -4055,7 +4064,13 @@ function MessengerPage() {
                                 </span>
                             </button>
 
-                            {clubDrawerOpen && (
+                            {clubDrawerOpen && !hasClubPage && (
+                                <div style={{ padding: '4px 0 10px 0', fontSize: 12, color: C.textSec }}>
+                                    Loading your clubs...
+                                </div>
+                            )}
+
+                            {clubDrawerOpen && hasClubPage && (
                             <div id="club-arena-inboxes">
                             <div className="no-scrollbar" style={{ display: 'flex', gap: 20, overflowX: 'auto', padding: '4px 0 8px 0' }}>
                                 {/* Personal Identity */}
