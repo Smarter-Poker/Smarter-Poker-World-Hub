@@ -3308,3 +3308,74 @@ statistics were rewritten.
 resolver cross-checked against every club, counters now equal to the ledger
 (a one-row difference immediately after is live traffic landing mid-query —
 248 contributions arrive every 10 minutes).
+
+## §49 — The payer was MINTING the backup pool on every hit (2026-08-18)
+
+Next-phase sweep, starting with the one BBJ money path never verified: what
+happens to the backup pool after a hit. It was creating chips.
+
+### 49.1 The bug
+`bbj_atomic_payout_v2` — the sole payer since §41 — updated balances as:
+
+```
+main_balance   = GREATEST(0, main - v_total)
+                 + GREATEST(0, backup - GREATEST(0, v_total - main))
+backup_balance = GREATEST(0, backup - GREATEST(0, v_total - main))
+```
+
+In the normal case (the payout fits inside main) the shortfall is zero, so it
+reads:
+
+```
+main_new   = main - total + backup    <- the WHOLE backup added to main
+backup_new = backup                   <- and backup keeps it too
+```
+
+**The backup pool was duplicated into main on every single payout.**
+
+Proved on production data in a rolled-back probe rather than argued from the
+source: main 10,584.07 + backup 742.72 = 11,326.79 before; a 1,587.61 payout
+left main 9,739.18 + backup 742.72 = 10,481.90, where conservation demands
+9,739.18. Exactly **742.72 minted — the backup balance, to the cent**.
+
+Dan's rule — "the BBJ can never pay out more than what's inside the main BBJ or
+the backup BBJ" — was enforced on the CLAMP in §41 and silently broken on the
+DRAIN, in the very same UPDATE statement.
+
+### 49.2 The fix
+Pay from main; cover any shortfall from backup; debit backup by exactly what it
+covered. Chips move, they never multiply. Only the two balance expressions
+changed — the rest of the function is byte-identical.
+
+Re-probed after the fix, both paths conserve to 0.00: a normal payout inside
+main, and a forced payout larger than main so backup has to cover the
+shortfall.
+
+A deliberate "reseed main from backup after a hit" policy, if wanted, must be a
+TRANSFER (debit backup, credit main), never a duplication. That is a product
+decision and was deliberately not invented here.
+
+### 49.3 No balance adjustment was made, and why
+Reconstructing the historical inflation is not possible and would be guesswork.
+Measured from first principles (contributions credited to main+backup, minus
+payouts), both live pools sit BELOW expectation — −8,393.72 and −11,033.32 —
+not above. The minting inflated, while the four retired legacy payers §41 found
+moved money without ledger rows and deflated. The two effects are tangled and
+cannot be separated from the surviving data.
+
+So: the bug is fixed going forward, and **no balance was rewritten**. Adjusting
+either way would be inventing money, which is exactly the failure mode this
+whole audit trail exists to prevent.
+
+### 49.4 Why nothing caught it, and what does now
+Every existing money check asked whether a payout EXCEEDED the pool. None asked
+whether the pool GREW. `fn_bbj_selftest_payout_conservation` now runs the REAL
+payer against a real funded pool in a rolled-back subtransaction and asserts
+main+backup fell by exactly the amount paid — exercising the actual function,
+not a copy of its maths, so it cannot drift from what it tests. It is wired
+into `fn_platform_invariants_health` as a 17th check,
+`bbj_payout_conservation`.
+
+**Verified:** invariants now **17/17 OK**, conservation self-test green
+("conserves: paid 1588.87, pool fell by exactly that"), no other check
+regressed.

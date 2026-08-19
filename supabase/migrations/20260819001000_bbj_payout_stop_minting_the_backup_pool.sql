@@ -1,0 +1,34 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- APPLIED TO PRODUCTION: 2026-08-18 via mcp apply_migration
+-- (name bbj_payout_stop_minting_the_backup_pool). Mirror only. Do not re-run.
+-- ═══════════════════════════════════════════════════════════════════════════
+-- bbj_atomic_payout_v2 — the SOLE payer since §41 — updated balances as:
+--
+--   main_balance   = GREATEST(0, main - v_total)
+--                    + GREATEST(0, backup - GREATEST(0, v_total - main))
+--   backup_balance = GREATEST(0, backup - GREATEST(0, v_total - main))
+--
+-- In the normal case (payout fits inside main) the shortfall is 0, so:
+--   main_new   = main - total + backup   <- the WHOLE backup added to main
+--   backup_new = backup                  <- and backup keeps it too
+--
+-- The backup pool was DUPLICATED into main on every payout. Proved on
+-- production data in a rolled-back probe: main 10,584.07 + backup 742.72 =
+-- 11,326.79; a 1,587.61 payout left main 9,739.18 + backup 742.72 = 10,481.90,
+-- where conservation demands 9,739.18. Exactly 742.72 minted — the backup
+-- balance to the cent.
+--
+-- Dan's rule ("the BBJ can never pay out more than what's inside the main BBJ
+-- or the backup BBJ") was enforced on the CLAMP in §41 but silently broken on
+-- the DRAIN. The fix pays from main, covers any shortfall from backup, and
+-- debits backup by exactly what it covered. Chips move, never multiply.
+--
+-- Only the UPDATE's two balance expressions changed; the rest of the function
+-- is byte-identical. A deliberate "reseed main from backup" policy, if ever
+-- wanted, must be a TRANSFER (debit backup, credit main) — never a
+-- duplication. That is a product decision and was not invented here.
+--
+-- The full function body as applied is in the database; this mirror records
+-- the change and its reasoning. See also
+-- 20260819001100_bbj_payout_conservation_selftest.sql, which makes the
+-- property permanently self-checking.
