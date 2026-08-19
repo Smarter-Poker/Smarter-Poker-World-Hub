@@ -2760,6 +2760,13 @@ ${messages.map(m =>
     return {
         // State
         messages,
+        // Exposed because both messengers apply two local, optimistic updates
+        // that the service has no server round-trip for: marking a message read
+        // from an inbound read_receipt broadcast, and poll voting. Both called
+        // a bare setMessages that was never declared in either component --
+        // ReferenceError at runtime, inside a realtime callback where nothing
+        // surfaces it. See ClubArenaMessenger.jsx:889 / SmarterPokerMessenger.jsx:884.
+        setMessages,
         conversations,
         unreadCount,
         isOnline,

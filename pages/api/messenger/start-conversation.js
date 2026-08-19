@@ -46,11 +46,77 @@ async function checkFriendship(supabase, userId, otherUserId) {
                 .eq('status', 'accepted')
                 .maybeSingle(),
         ]);
+        // A query ERROR is not evidence of "not friends". Returning false on
+        // failure routes a message between established friends into the
+        // recipient's Message Requests folder, where they most likely never
+        // see it. Surface it instead of guessing, and let the caller decide.
+        if (f1.error || f2.error) {
+            const err = f1.error || f2.error;
+            console.warn('[start-conversation] friendship lookup errored:', err?.message || err);
+            return null; // unknown
+        }
         return !!(f1.data || f2.data);
     } catch (e) {
         console.warn('[start-conversation] Friendship check failed:', e?.message || e);
-        return false; // Default to non-friend (safe fallback — goes to requests)
+        return null; // unknown — see above
     }
+}
+
+/**
+ * Is this user allowed to send as this social page?
+ *
+ * Nothing checked this. contextEntityId was read from the body, string-coerced
+ * and written straight onto the participant row, so any caller could stamp any
+ * UUID -- including one that is not a page at all -- into
+ * social_conversation_participants.context_entity_id. It does not expose
+ * anyone else's inbox (the read filter is anchored to your own participant
+ * row), but those columns exist to drive club scoping, and letting a client
+ * write arbitrary values into them poisons everything built on top.
+ */
+async function resolveActingPage(supabase, userId, pageId) {
+    const isUuid = typeof pageId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pageId);
+    if (!isUuid) return null;
+
+    const { data: page } = await supabase
+        .from('social_pages')
+        .select('id, owner_id, linked_entity_id, linked_entity_type')
+        .eq('id', pageId)
+        .maybeSingle();
+    if (!page) return null;
+    if (page.owner_id === userId) return page;
+
+    if (page.linked_entity_type === 'club' && page.linked_entity_id) {
+        const { data: membership } = await supabase
+            .from('club_members')
+            .select('role')
+            .eq('club_id', page.linked_entity_id)
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (membership && ['owner', 'admin'].includes(membership.role)) return page;
+    }
+    return null;
+}
+
+/**
+ * Has either side blocked the other?
+ *
+ * messenger_blocked is written and read by the client (useMessengerService),
+ * and by nothing on the server. No route in pages/api/messenger/ consulted it,
+ * so a blocked user could call this endpoint or send-message directly and their
+ * messages were inserted and delivered. Blocking was decoration.
+ */
+async function isBlockedEitherWay(supabase, userId, otherUserId) {
+    const { data, error } = await supabase
+        .from('messenger_blocked')
+        .select('blocker_id, blocked_id')
+        .or(`and(blocker_id.eq.${userId},blocked_id.eq.${otherUserId}),and(blocker_id.eq.${otherUserId},blocked_id.eq.${userId})`)
+        .limit(1);
+    if (error) {
+        console.warn('[start-conversation] block lookup errored:', error.message);
+        return false; // fail open on a lookup error rather than blocking everyone
+    }
+    return Array.isArray(data) && data.length > 0;
 }
 
 export default async function handler(req, res) {
@@ -67,8 +133,17 @@ export default async function handler(req, res) {
 
         const supabase = getSupabase();
 
-        // Check friendship status upfront — determines if this is a request or direct message
-        const areFriends = await checkFriendship(supabase, user.id, otherUserId);
+        // Blocking is enforced here, not only in the client's local state.
+        if (await isBlockedEitherWay(supabase, user.id, otherUserId)) {
+            return res.status(403).json({ success: false, error: 'Cannot start a conversation with this user' });
+        }
+
+        // Check friendship status upfront — determines if this is a request or
+        // direct message. null means the lookup failed; treat unknown as
+        // friends-so-deliver rather than silently burying a real friend's
+        // message in Requests.
+        const friendship = await checkFriendship(supabase, user.id, otherUserId);
+        const areFriends = friendship === null ? true : friendship;
 
         // Try RPC first (works with service role).
         // CRITICAL: param names are p_user_id / p_other_user_id (verified via
@@ -82,7 +157,15 @@ export default async function handler(req, res) {
         // conversation lands in the club inbox for them and the personal inbox for
         // the recipient. null = personal conversation (default).
         const rawCtx = req.body && req.body.contextEntityId;
-        const contextEntityId = rawCtx && String(rawCtx).length > 0 ? String(rawCtx) : null;
+        const requestedCtx = rawCtx && String(rawCtx).length > 0 ? String(rawCtx) : null;
+        // Verified, not trusted. An unverifiable claim degrades to a personal
+        // conversation rather than failing the request, so a stale client still
+        // gets a working thread.
+        const actingPage = requestedCtx ? await resolveActingPage(supabase, user.id, requestedCtx) : null;
+        if (requestedCtx && !actingPage) {
+            console.warn('[start-conversation] rejected unverified acting page', requestedCtx, 'for user', user.id);
+        }
+        const contextEntityId = actingPage ? actingPage.id : null;
         const contextEntityType = contextEntityId ? (req.body.contextEntityType || 'club') : null;
         const { data: rpcResult, error: rpcErr } = await supabase.rpc('fn_get_or_create_conversation', {
             p_user_id: user.id,
@@ -158,15 +241,24 @@ export default async function handler(req, res) {
 
         console.warn('[start-conversation] RPC not deployed; using inline fallback:', msg);
 
-        // Find existing direct conversation
-        const { data: existing } = await supabase
+        // Find existing direct conversation IN THE SAME IDENTITY CONTEXT.
+        // Without the context predicate this path could not match a club-mode
+        // thread, and the reuse branch below was skipped outright whenever a
+        // context was set — so every "message this user" click in club mode
+        // minted a brand-new conversation and the club inbox filled with empty
+        // duplicates of the same thread. Mirrors the RPC, which matches on
+        // context_entity_id IS NOT DISTINCT FROM.
+        let existingQuery = supabase
             .from('social_conversation_participants')
             .select('conversation_id, social_conversations!inner(id, is_group)')
             .eq('user_id', user.id)
-            .eq('social_conversations.is_group', false)
-            // Cap at 500 — users with >500 convs may hit duplicate but this path is only
-            // active when fn_get_or_create_conversation RPC isn't deployed (migration pending).
-            .limit(500);
+            .eq('social_conversations.is_group', false);
+        existingQuery = contextEntityId
+            ? existingQuery.eq('context_entity_id', contextEntityId)
+            : existingQuery.is('context_entity_id', null);
+        // Cap at 500 — users with >500 convs may hit duplicate but this path is only
+        // active when fn_get_or_create_conversation RPC isn't deployed (migration pending).
+        const { data: existing } = await existingQuery.limit(500);
 
         const myConvIds = (existing || []).map(p => p.conversation_id);
 
@@ -183,9 +275,10 @@ export default async function handler(req, res) {
             foundId = shared?.[0]?.conversation_id || null;
         }
 
-        // Only reuse an existing thread for PERSONAL conversations. A club-context
-        // request must get its own conversation so the identity inbox stays separate.
-        if (foundId && !contextEntityId) {
+        // Reuse is now safe in BOTH modes: the candidate set above is already
+        // filtered to this identity context, so a club-context request can only
+        // ever match a club-context thread.
+        if (foundId) {
             // Existing conversation — check its current request status
             const { data: convRow } = await supabase
                 .from('social_conversations')

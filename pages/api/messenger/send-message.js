@@ -77,6 +77,82 @@ export default async function handler(req, res) {
 
           const userId = user.id;
 
+          // ── Club identity: verify it, never take the client's word ──
+          // media_metadata was only checked for "plain object under 8 KB". The
+          // inbox renderer (get-conversations.js) reads is_club_identity /
+          // club_name / club_avatar straight out of the OTHER party's message
+          // and uses them to replace the displayed name and avatar of the
+          // sender. So a stock account could send
+          //   { is_club_identity: true, club_name: 'Shark Club',
+          //     club_avatar: '<the real club avatar>' }
+          // and the recipient's inbox would render that thread as the club.
+          // Full impersonation of any club page, from any account.
+          //
+          // Fix: the claim is checked here and the displayed fields are
+          // rewritten from the database, so the client can only ever say WHICH
+          // page it is acting as -- never what that page is called or looks
+          // like. Failing the check strips the claim rather than rejecting the
+          // message, so a stale client degrades to a normal personal message
+          // instead of losing the user's text.
+          if (safeMetadata && safeMetadata.is_club_identity) {
+              const claimedPageId =
+                  typeof safeMetadata.club_id === 'string' &&
+                  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(safeMetadata.club_id)
+                      ? safeMetadata.club_id
+                      : null;
+
+              let verifiedPage = null;
+              if (claimedPageId) {
+                  const { data: page } = await getSupabase()
+                      .from('social_pages')
+                      .select('id, name, avatar_url, owner_id, linked_entity_id, linked_entity_type')
+                      .eq('id', claimedPageId)
+                      .maybeSingle();
+
+                  if (page) {
+                      if (page.owner_id === userId) {
+                          verifiedPage = page;
+                      } else if (page.linked_entity_type === 'club' && page.linked_entity_id) {
+                          // Club staff may speak as the club. Ordinary members
+                          // may not -- a 578-member club where anyone can post
+                          // as the club is not an identity, it is a megaphone.
+                          const { data: membership } = await getSupabase()
+                              .from('club_members')
+                              .select('role')
+                              .eq('club_id', page.linked_entity_id)
+                              .eq('user_id', userId)
+                              .maybeSingle();
+                          if (membership && ['owner', 'admin'].includes(membership.role)) {
+                              verifiedPage = page;
+                          }
+                      }
+                  }
+              }
+
+              if (verifiedPage) {
+                  safeMetadata = {
+                      ...safeMetadata,
+                      is_club_identity: true,
+                      club_id: verifiedPage.id,
+                      club_name: verifiedPage.name,
+                      club_avatar: verifiedPage.avatar_url,
+                  };
+              } else {
+                  const stripped = { ...safeMetadata };
+                  delete stripped.is_club_identity;
+                  delete stripped.club_id;
+                  delete stripped.club_name;
+                  delete stripped.club_avatar;
+                  safeMetadata = stripped;
+                  console.warn(
+                      '[send-message] rejected unverified club identity claim from user',
+                      userId,
+                      'for page',
+                      claimedPageId || '(malformed)'
+                  );
+              }
+          }
+
           // Verify participant access
           const { data: participant, error: partError } = await getSupabase()
               .from('social_conversation_participants')
@@ -87,6 +163,38 @@ export default async function handler(req, res) {
 
           if (partError || !participant) {
               return res.status(403).json({ success: false, error: 'Not a participant in this conversation' });
+          }
+
+          // Blocking, enforced on the server. messenger_blocked was read and
+          // written only by the client (useMessengerService), and no route in
+          // pages/api/messenger/ ever consulted it -- so a blocked user could
+          // POST here directly and the message was inserted and delivered.
+          // Checked both directions: blocking is mutual in effect.
+          try {
+              const { data: others } = await getSupabase()
+                  .from('social_conversation_participants')
+                  .select('user_id')
+                  .eq('conversation_id', conversationId)
+                  .neq('user_id', userId);
+              const otherIds = (others || []).map((o) => o.user_id).filter(Boolean);
+              if (otherIds.length > 0) {
+                  const { data: blocks } = await getSupabase()
+                      .from('messenger_blocked')
+                      .select('blocker_id, blocked_id')
+                      .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`);
+                  const blocked = (blocks || []).some(
+                      (b) =>
+                          (b.blocker_id === userId && otherIds.includes(b.blocked_id)) ||
+                          (b.blocked_id === userId && otherIds.includes(b.blocker_id))
+                  );
+                  if (blocked) {
+                      return res.status(403).json({ success: false, error: 'Cannot send to this conversation' });
+                  }
+              }
+          } catch (blockErr) {
+              // Fail open on a lookup failure -- silently dropping everyone's
+              // messages because one query hiccuped is the worse outcome.
+              console.warn('[send-message] block check failed:', blockErr?.message || blockErr);
           }
 
           // 5. Secure RPC execution using Service Role
