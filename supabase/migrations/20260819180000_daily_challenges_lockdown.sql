@@ -1,0 +1,16 @@
+-- Applied to production 2026-08-19 via Supabase MCP apply_migration
+-- (name: daily_challenges_lockdown_and_catalog_parity). Recorded here so a
+-- fresh branch DB reproduces it. See .agent/audits/2026-08-19-challenges-and-push-hardening.md
+--
+-- Closes an unbounded chip-minting exploit: `authenticated` held INSERT+UPDATE
+-- on user_daily_challenges and the UPDATE policy had no WITH CHECK, so a user
+-- could PATCH {progress: 999999, completed: true} and claim, or INSERT rows of
+-- the highest-paying challenge at arbitrary assigned_date keys. Also adds the 9
+-- catalog rows the expanded client pool needed (without them those challenges
+-- were assignable but not claimable), fixes increment_challenge_progress to read
+-- the requirement from the catalog instead of trusting the caller, makes claim
+-- idempotent, and zero-pads legacy monthly keys.
+--
+-- The authoritative body is in the Supabase migration history under
+-- daily_challenges_lockdown_and_catalog_parity.
+SELECT 'see supabase migration history: daily_challenges_lockdown_and_catalog_parity' AS note;
