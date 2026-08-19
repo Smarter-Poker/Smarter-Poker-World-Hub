@@ -14,7 +14,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
@@ -30,6 +30,7 @@ const {
     itemHasSales,
     HAS_SALES_ERROR,
 } = require('../../../src/lib/club-arena/shopItemRules');
+const { isUUID } = require('../../../src/lib/club-arena/validate');
 
 let _sb = null;
 function sb() {
@@ -72,6 +73,7 @@ export default async function handler(req, res) {
         const { action, clubId } = req.body || {};
         if (!action) return res.status(400).json({ success: false, error: 'action required' });
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
+        if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
 
         const auth = await verifyAdmin(token, clubId);
         if (auth.error) return res.status(auth.status).json({ success: false, error: auth.error });

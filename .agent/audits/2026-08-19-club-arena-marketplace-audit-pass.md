@@ -343,3 +343,96 @@ sink to the bottom of every sort, and a stock field in the Manage form.
 
 - `marketplace-items` purchase-count query was an unbounded scan of
   `club_shop_purchases`; now bounded at 10k like its sibling.
+
+---
+
+# Audit pass 5 — what four rounds missed
+
+## F1 (critical, self-inflicted): the stock claim leaked on every unexpected error
+
+`marketplace-purchase.js` released the claimed unit on exactly two paths (chip
+debit failure, purchase-insert failure). **Every other throw after the claim**
+— the `chip_transactions` insert, `logAudit`, the post-purchase balance read,
+the idempotency `res.json` patch — landed in the inner catch with no release.
+
+Worse than the leak: on those paths the chips were *already* debited and the
+purchase row *already* inserted (so the trigger had delivered the item), yet the
+buyer got `500 Purchase failed`. They believe they lost the chips; a retry is
+then refused with `alreadyOwned`. A limited drop of 10 silently becomes 9
+sellable units, permanently — and until this pass, stock could not be edited.
+
+Fixed three ways: the inner catch now releases; everything after the commit
+point is wrapped so it can no longer 500 a purchase that succeeded; and stock
+became editable (below) so a leak is recoverable.
+
+## F6 (critical): two tabs could both buy the same item
+
+The "do you already own an unredeemed copy?" check was a SELECT followed by an
+action — a TOCTOU. The client mints a fresh `X-Idempotency-Key` on every click
+(`clubArenaApi.ts`), so the idempotency cache never de-duped a genuine
+double-buy. Both requests passed the read, both debited, both inserted.
+`uq_shop_purchase_per_buyer` had been deliberately dropped so consumables could
+be re-bought, and `club_shop_inventory` was unique only on `purchase_id`.
+
+An advisory lock cannot fix this from the API layer — each PostgREST call runs
+in its own transaction, so `pg_advisory_xact_lock` releases before the follow-up
+statements run. (I implemented that first and discarded it.) The invariant now
+lives in the schema: a **partial** unique index on
+`(user_id, club_id, item_id) WHERE status = 'owned'`. Redeemed history still
+accumulates, consumables stay re-buyable, and the loser of a race is refunded
+by the existing rollback and told it already owns the item.
+
+## F21 (economic): table skins granted nothing distinct; avatars collided
+
+`fn_redeem_shop_item` wrote a generic `feature_purchases('theme_unlock')` row
+and **threw `grant_spec.theme_id` away**. A club selling two different skins
+sold the same flag twice — full price, nothing new. For avatars it was silent:
+`shopItemRules` defaulted `avatar_id` to the constant `'club_shop_avatar'`, and
+`avatar_unlocks` dedupes, so every avatar created without an explicit id (i.e.
+every avatar created from the World Hub form, which sends none) redeemed to a
+no-op that still reported success.
+
+New `theme_unlocks` table records which theme; both avatar and theme now fall
+back to the **item id** rather than a shared constant, so two items can never
+collapse onto one unlock.
+
+## Also fixed
+
+- `fn_redeem_shop_item` failed **open** when `auth.uid()` is NULL (`x <> NULL`
+  is NULL, so the ownership `IF` was skipped and it granted someone else's row).
+- A deleted catalogue row let redemption silently consume the copy and grant
+  nothing while returning success — now `item_gone`.
+- Idempotency cached **5xx** responses for the full TTL, so a transient failure
+  was replayed as a permanent "Purchase failed" over a purchase that committed.
+  Only sub-500 responses are cached now.
+- `checkIdempotency` ran *before* auth and the rate limit, so an unauthenticated
+  caller could grow the in-memory key map without any throttle.
+- `manage-shop` GET was entirely unrate-limited while doing `select *` plus a
+  10k-row purchase scan.
+- An unknown `grantType` silently downgraded a paid item to `{type:'none'}`
+  instead of 400ing; and changing `category` alone left the old grant attached.
+- `shop-items.js` still imported raw `@supabase/supabase-js` (Code Safety Rule 4)
+  — so when GoTrue degrades, one admin surface authenticates and the other 401s.
+- `fn_release_shop_stock` had no ceiling.
+- Confirm modal used `fmtChips`, which abbreviates 1,499 and 1,500 both to
+  "1.5K" — the modal showed equal numbers with Confirm greyed and no reason.
+- The Cashier's chip modal hard-coded +10/20/30/50% bonuses while the server's
+  real premium is +11/25/43/67%. It now reads the same `store-catalog` the
+  marketplace uses, and surfaces the server's error instead of "Purchase failed".
+
+## Process finding: my commits were BLOCKED by Vercel all day
+
+Vercel refuses to build a commit whose GitHub author it cannot resolve to a
+user. I had been committing as `Claude (Cowork) <…@gmail.com>`, which is both a
+personal email (forbidden by RULE 3) and unresolvable — so those deployments
+went straight to BLOCKED with no build logs. The work still reached production
+because later correctly-authored commits carry the whole tree, but each of my
+pushes depended on someone else's commit to ship it. Identity corrected to
+`Smarter-Poker <254329056+Smarter-Poker@users.noreply.github.com>`.
+
+Vercel state verified this pass: team `smarter-poker`, project `hub-vanguard`
+(`prj_op66GkZyZcygXQKm76iyycfVFAQx`) git-linked to the repo on `main`, and
+`check-vercel-project-uniqueness.mjs` reports exactly one project linking it.
+The `smarter-poker-world-hub` project still exists but is **git-disconnected**
+(harmless); note its id is now `prj_cAdaLHhlih322O1SjK3pUrcHk2KN`, not the id
+recorded in CLAUDE.md's dead-duplicates table.

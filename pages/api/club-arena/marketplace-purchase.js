@@ -7,9 +7,10 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
-const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { requireEmailVerified } = require('../../../src/lib/emailVerifiedGate');
+const { isUUID } = require('../../../src/lib/club-arena/validate');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -35,16 +36,17 @@ export default async function handler(req, res) {
       const bad = Object.keys(req.body || {}).filter(k => !ALLOWED.has(k));
       if (bad.length > 0) return res.status(400).json({ success: false, error: `Unknown fields: ${bad.join(', ')}` });
 
-      // Idempotency guard — prevent double-tap purchases
-      if (checkIdempotency(req, res)) return;
-
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
+      // Rate limit + auth BEFORE checkIdempotency: the idempotency map is an
+      // in-memory Map keyed by a client-supplied header, so an unauthenticated
+      // caller sending a fresh key per request could grow it without limit.
+      if (!applyRateLimit(req, res, 'club-arena/marketplace-purchase')) return;
 
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const user = authData?.user;
+      const user = authUser;
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      // Idempotency guard — prevent double-tap purchases
+      if (checkIdempotency(req, res)) return;
 
       // [Phase 6.1.12] Email must be verified before chip/diamond purchases
       const emailGate = requireEmailVerified(user);
@@ -52,13 +54,25 @@ export default async function handler(req, res) {
 
       const { clubId, itemId } = req.body;
       if (!clubId || !itemId) return res.status(400).json({ success: false, error: 'clubId and itemId required' });
+      if (!isUUID(clubId) || !isUUID(itemId)) {
+          return res.status(400).json({ success: false, error: 'Invalid clubId or itemId format' });
+      }
 
       // Settlement lock check
       const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
       if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
-      // Rate limit
-      if (!applyRateLimit(req, res, 'club-arena/marketplace-purchase')) return;
+      // Declared out here so the outer catch can give a claimed unit back.
+      let stockClaimed = false;
+      const releaseStock = async () => {
+          if (!stockClaimed) return;
+          stockClaimed = false;
+          try {
+              await getSupabase().rpc('fn_release_shop_stock', { p_club_id: clubId, p_item_id: itemId });
+          } catch (e) {
+              console.warn('[marketplace-purchase] stock release failed:', e?.message || e);
+          }
+      };
 
       try {
           // Get member
@@ -121,7 +135,6 @@ export default async function handler(req, res) {
           // Limited-quantity items: take a unit BEFORE money moves, so two
           // concurrent buyers cannot both get the last one. Every failure path
           // below releases it again.
-          let stockClaimed = false;
           if (item.stock !== null && item.stock !== undefined) {
               const { data: claim, error: claimErr } = await getSupabase().rpc('fn_claim_shop_stock', {
                   p_club_id: clubId,
@@ -137,16 +150,6 @@ export default async function handler(req, res) {
               }
               stockClaimed = claim.unlimited !== true;
           }
-
-          const releaseStock = async () => {
-              if (!stockClaimed) return;
-              stockClaimed = false;
-              try {
-                  await getSupabase().rpc('fn_release_shop_stock', { p_club_id: clubId, p_item_id: itemId });
-              } catch (e) {
-                  console.warn('[marketplace-purchase] stock release failed:', e?.message || e);
-              }
-          };
 
           // Deduct chips atomically
           const { error: deductErr } = await getSupabase().rpc('fn_debit_chips', {
@@ -175,6 +178,13 @@ export default async function handler(req, res) {
 
           if (purchaseErr) {
               await releaseStock();
+              // uq_shop_inventory_owned_per_item (partial unique on status='owned')
+              // is the race-proof form of the ownership check above: two tabs can
+              // both pass the SELECT, only one can pass this. The loser is
+              // refunded below and told it already owns the item.
+              const isDuplicateOwned =
+                  purchaseErr.code === '23505' ||
+                  /uq_shop_inventory_owned_per_item|duplicate key/i.test(purchaseErr.message || '');
               // Rollback chip deduction atomically. CRITICAL: capture the
               // refund error — if THIS fails, the user paid for nothing and
               // ops needs to know immediately. Previously the call swallowed
@@ -201,6 +211,13 @@ export default async function handler(req, res) {
                       console.warn('[marketplace-purchase] audit log of refund failure also failed:', auditErr?.message || auditErr);
                   }
               }
+              if (isDuplicateOwned) {
+                  return res.status(400).json({
+                      success: false,
+                      error: 'You already own an unused copy of this item. Redeem it before buying another.',
+                      alreadyOwned: true,
+                  });
+              }
               throw purchaseErr;
           }
 
@@ -219,15 +236,26 @@ export default async function handler(req, res) {
               console.warn('[marketplace-purchase] chip_transactions insert failed (purchase still successful):', txErr?.message || txErr);
           }
 
-          logAudit(supabaseAdmin, { actionType: 'marketplace_purchase', userId: user.id, clubId, amount: price, ip: extractIP(req), details: { itemId, itemName: item.name, itemType: item.item_type } });
+          // The purchase is COMMITTED from here on. Nothing below may throw a
+          // 500 — the chips are spent and the item is delivered, so an audit or
+          // balance-read hiccup must not tell the buyer it failed.
+          try {
+              logAudit(supabaseAdmin, { actionType: 'marketplace_purchase', userId: user.id, clubId, amount: price, ip: extractIP(req), details: { itemId, itemName: item.name, itemType: item.item_type } });
+          } catch (auditErr) {
+              console.warn('[marketplace-purchase] audit log failed (purchase still successful):', auditErr?.message || auditErr);
+          }
 
-          // Read actual post-deduction balance (avoids stale value from concurrent operations)
-          const { data: updatedMember } = await getSupabase()
-              .from('club_members')
-              .select('chip_balance')
-              .eq('club_id', clubId)
-              .eq('user_id', user.id)
-              .maybeSingle();
+          let updatedMember = null;
+          try {
+              ({ data: updatedMember } = await getSupabase()
+                  .from('club_members')
+                  .select('chip_balance')
+                  .eq('club_id', clubId)
+                  .eq('user_id', user.id)
+                  .maybeSingle());
+          } catch (balErr) {
+              console.warn('[marketplace-purchase] post-purchase balance read failed:', balErr?.message || balErr);
+          }
 
           return res.status(200).json({
               success: true,
@@ -235,6 +263,9 @@ export default async function handler(req, res) {
               item: { name: item.name, type: item.item_type },
           });
       } catch (err) {
+          // CRITICAL (audit pass 5): every throw after the stock claim used to
+          // leak a unit permanently — a limited drop of 10 quietly became 9.
+          try { await releaseStock(); } catch (_e) { /* logged inside */ }
           console.warn('[marketplace-purchase]', err);
           return res.status(500).json({ success: false, error: 'Purchase failed' });
       }
