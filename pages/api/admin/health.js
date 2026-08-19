@@ -111,7 +111,7 @@ export default async function handler(req, res) {
               serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? '[SET]' : '[NOT SET]',
           },
           sentry: getSentryStatus(),
-          onesignal: getOneSignalStatus(),
+          push: getOneSignalStatus(),
           twilio: {
               configured: isTwilioConfigured(),
               hasAccountSid: !!process.env.TWILIO_ACCOUNT_SID,

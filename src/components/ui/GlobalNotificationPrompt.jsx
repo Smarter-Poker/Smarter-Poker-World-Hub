@@ -1,37 +1,44 @@
 /**
- * GLOBAL NOTIFICATION PROMPT — Wraps NotificationPrompt with auth check
- * Automatically shows push notification prompt after user logs in
+ * GLOBAL NOTIFICATION PROMPT -- auth-aware mount point for the push stack.
+ *
+ * Rewired 2026-08-19 from OneSignal to the self-hosted VAPID stack. Mounts two
+ * things for every signed-in user, on every route:
+ *
+ *   FirstRunNotificationPrompt -- asks once per account per browser
+ *   PushSubscriptionSync       -- silently repairs a rotated subscription
+ *
+ * PushSubscriptionSync is the important one. Without it, a subscription that
+ * the browser rotates in the background is never re-registered, the first-run
+ * prompt has already been marked done forever, and that device goes silent
+ * permanently while the server keeps reporting successful sends.
  */
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser } from '../../lib/authUtils';
-import NotificationPrompt from '../notifications/NotificationPrompt';
+import FirstRunNotificationPrompt from '../notifications/FirstRunNotificationPrompt';
+import PushSubscriptionSync from '../notifications/PushSubscriptionSync';
 
 export default function GlobalNotificationPrompt() {
     const [userId, setUserId] = useState(null);
 
     useEffect(() => {
-        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+        // Read from the auth cache first to avoid the Supabase locks AbortError.
         const user = getAuthUser();
-        if (user) {
-            setUserId(user.id);
-        }
+        if (user) setUserId(user.id);
 
-        // Listen for auth changes (this is safe - event-based)
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (session?.user) {
-                setUserId(session.user.id);
-            } else {
-                setUserId(null);
-            }
+            setUserId(session?.user?.id || null);
         });
 
         return () => subscription?.unsubscribe();
     }, []);
 
-    // Only show prompt if user is logged in
     if (!userId) return null;
 
-    return <NotificationPrompt userId={userId} />;
+    return (
+        <>
+            <PushSubscriptionSync />
+            <FirstRunNotificationPrompt userId={userId} />
+        </>
+    );
 }
-

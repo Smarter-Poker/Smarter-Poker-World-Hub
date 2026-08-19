@@ -1,6 +1,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { withSentry } from '../../../src/lib/sentry';
 import { sendPushNotification } from '../../../src/lib/onesignal-server';
+// NOTE: onesignal-server is now a VAPID-backed compatibility shim. See that file.
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 async function handler(req, res) {
@@ -35,7 +36,7 @@ async function handler(req, res) {
                 id,
                 user_id,
                 tournament_id,
-                users:user_id ( id, onesignal_player_id )
+                users:user_id ( id )
             `)
             .eq('alert_type', 'late_reg')
             .eq('is_active', true);
@@ -60,13 +61,16 @@ async function handler(req, res) {
 
         if (tErr) throw tErr;
 
-        // 3. Process time windows and batch by tournament to avoid Vercel timeouts and OneSignal rate limits
+        // 3. Process time windows and batch by tournament to avoid Vercel timeouts and push-service rate limits
         const alertsByTournament = {};
         for (const alert of alerts) {
             const tournament = tournaments?.find(t => t.id === alert.tournament_id);
-            const playerId = alert.users?.onesignal_player_id;
-            
-            if (!tournament || !playerId) continue;
+        // PUSH MIGRATION 2026-08-19: OneSignal removed. Targeting is now by
+        // Supabase user id (externalIds), which maps directly onto
+        // push_subscriptions.user_id. onesignal_player_id is a dead column.
+        const targetUserId = alert.user_id || alert.users?.id;
+
+            if (!tournament || !targetUserId) continue;
 
             // Treat DB local string as a pure Date. Coerce the current time to Eastern Time 
             // wall-clock string, then parse it identically so they are compared without TZ diffs.
@@ -85,14 +89,14 @@ async function handler(req, res) {
                 if (!alertsByTournament[tournament.id]) {
                     alertsByTournament[tournament.id] = { tournament, targets: [] };
                 }
-                alertsByTournament[tournament.id].targets.push({ playerId, alertId: alert.id });
+                alertsByTournament[tournament.id].targets.push({ userId: targetUserId, alertId: alert.id });
             }
         }
 
         let processedCount = 0;
         let errorsCount = 0;
 
-        // Vercel/OneSignal Throttler Helper 
+        // Throttler helper 
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
         // Use sequential execution over `Promise.allSettled` network stampeding to prevent 429 Too Many Requests
@@ -100,12 +104,13 @@ async function handler(req, res) {
             const chunkSize = 2000;
             for (let i = 0; i < targets.length; i += chunkSize) {
                 const chunkTargets = targets.slice(i, i + chunkSize);
-                const chunkPlayerIds = chunkTargets.map(t => t.playerId);
+                const chunkUserIds = chunkTargets.map(t => t.userId);
                 const chunkAlertIds = chunkTargets.map(t => t.alertId);
                 
                 const pushResult = await sendPushNotification({
-                    playerIds: chunkPlayerIds,
-                    heading: 'Late Registration Alert! ⏳',
+                    externalIds: chunkUserIds,
+                    event: 'late_reg_closing',
+                    heading: 'Late Registration Alert',
                     content: `${tournament.tournament_name} at ${tournament.venue_name} is in or approaching late registration.`,
                     url: `https://smarter.poker/hub/venues/${encodeURIComponent(tournament.venue_name)}`
                 });
@@ -114,9 +119,9 @@ async function handler(req, res) {
                     const { error: err_user_pwa_alerts_jkpw8 } = await supabase.from('user_pwa_alerts').update({ last_triggered_at: new Date().toISOString(), is_active: false })
                         .in('id', chunkAlertIds);
                     if (err_user_pwa_alerts_jkpw8) console.warn('[Supabase] Silent mutation failed in user_pwa_alerts:', err_user_pwa_alerts_jkpw8.message);
-                    processedCount += chunkPlayerIds.length;
+                    processedCount += chunkUserIds.length;
                 } else {
-                    errorsCount += chunkPlayerIds.length;
+                    errorsCount += chunkUserIds.length;
                 }
                 
                 // Sleep 250ms natively between simultaneous bulk-drops to defend against API strict rate checks

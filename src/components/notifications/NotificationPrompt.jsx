@@ -8,7 +8,7 @@
  * - Server-side tracking by IP ensures persistence across cache clears
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useOneSignal } from '../../contexts/OneSignalContext';
+import { usePush } from '../../contexts/PushContext';
 
 const PROMPT_KEY = 'push_prompt_responded'; // universal key — shared across all pages/routes
 
@@ -48,7 +48,7 @@ function recordOnServer(action, userId) {
 }
 
 export default function NotificationPrompt({ userId, onDismiss }) {
-    const { isInitialized, isSubscribed, subscribe, setExternalUserId, permission, playerId } = useOneSignal();
+    const { isInitialized, isSubscribed, subscribe, setExternalUserId, permission, playerId } = usePush();
     const [visible, setVisible] = useState(false);
     const [loading, setLoading] = useState(false);
     const mountedRef = useRef(true);    // Track if component is still mounted

@@ -1,59 +1,49 @@
 /**
- * 🔔 TRAINING NOTIFICATIONS UTILITY
+ * TRAINING NOTIFICATIONS UTILITY
  * ═══════════════════════════════════════════════════════════════════════════
  * Send push notifications for training achievements, challenges, and milestones
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker';
 
 /**
- * Send push notification via OneSignal
+ * REWIRED 2026-08-19: this file used to POST directly to the OneSignal REST API.
+ * OneSignal is gone. Sends now go through enqueuePush(), so they are gated by
+ * notification_preferences, recorded in push_outbox and retried by
+ * /api/cron/push-dispatch like every other notification in the product.
+ *
+ * SERVER ONLY -- imports the service-role Supabase client.
  */
-async function sendPushNotification({ userId, title, message, url, data }) {
-    if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
-        console.warn('[TrainingNotifications] OneSignal not configured');
+import { createClient } from '../lib/supabaseServerClient';
+import { enqueuePush } from '../lib/push/push-enqueue';
+import { isPushConfigured } from '../lib/push/web-push';
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) _supabase = createClient();
+    return _supabase;
+}
+
+async function sendPushNotification({ userId, title, message, url, data, event }) {
+    if (!isPushConfigured()) {
+        console.warn('[TrainingNotifications] Push is not configured (VAPID keys missing)');
         return false;
     }
+    if (!userId) return false;
 
     try {
-        const notification = {
-            app_id: ONESIGNAL_APP_ID,
-            contents: { en: message },
-            headings: { en: title },
-            url: url ? `${BASE_URL}${url}` : undefined,
-            web_url: url ? `${BASE_URL}${url}` : undefined,
-            include_external_user_ids: [userId],
-            channel_for_external_user_ids: 'push',
-            data: data || {},
-            ios_sound: 'default',
-            android_sound: 'default',
-            priority: 10,
-            android_visibility: 1,
-        };
-
-        const response = await fetch('https://onesignal.com/api/v1/notifications', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${ONESIGNAL_REST_API_KEY}`,
-            },
-            body: JSON.stringify(notification),
+        const result = await enqueuePush(getSupabase(), {
+            userId,
+            title,
+            body: message,
+            url: url ? `${BASE_URL}${url}` : '/hub/training',
+            event: event || 'achievement',
+            relatedEntityId: null,
         });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            console.warn('[TrainingNotifications] OneSignal error:', result);
-            return false;
-        }
-
-        console.debug('[TrainingNotifications] Sent:', title, 'to', userId);
-        return true;
+        return Boolean(result.sent || result.outboxId);
     } catch (error) {
-        console.warn('[TrainingNotifications] Error:', error);
+        console.warn('[TrainingNotifications] Error:', error?.message || error);
         return false;
     }
 }
@@ -64,8 +54,8 @@ async function sendPushNotification({ userId, title, message, url, data }) {
 export async function notifyAchievementUnlock(userId, achievement) {
     return sendPushNotification({
         userId,
-        title: '🏅 Achievement Unlocked!',
-        message: `${achievement.icon || '🏆'} ${achievement.name} - ${achievement.diamondReward || 0}💎 earned!`,
+        title: 'Achievement Unlocked',
+        message: `${achievement.name} - ${achievement.diamondReward || 0} diamonds earned`,
         url: '/hub/training/achievements',
         data: {
             type: 'achievement',
@@ -83,8 +73,8 @@ export async function notifyChallengeComplete(userId, challenge) {
 
     return sendPushNotification({
         userId,
-        title: `🎯 ${typeLabel} Challenge Complete!`,
-        message: `${challenge.icon || '🏆'} ${challenge.name} - Claim your ${challenge.diamond_reward || 0}💎 reward!`,
+        title: `${typeLabel} Challenge Complete`,
+        message: `${challenge.name} - claim your ${challenge.diamond_reward || 0} diamond reward`,
         url: '/hub/training',
         data: {
             type: 'challenge',
@@ -100,8 +90,8 @@ export async function notifyChallengeComplete(userId, challenge) {
 export async function notifyStreakMilestone(userId, streakDays, reward) {
     return sendPushNotification({
         userId,
-        title: '🔥 Streak Milestone!',
-        message: `${streakDays}-day training streak achieved! Claim your ${reward}💎 reward!`,
+        title: 'Streak Milestone!',
+        message: `${streakDays}-day training streak achieved! Claim your ${reward} reward!`,
         url: '/hub/training/streaks',
         data: {
             type: 'streak',
@@ -124,7 +114,7 @@ export async function notifyLeaderboardRank(userId, newRank, periodType) {
 
     return sendPushNotification({
         userId,
-        title: '🏆 Leaderboard Update!',
+        title: 'Leaderboard Update!',
         message: `You moved to #${newRank} on the ${periodLabel} leaderboard!`,
         url: '/hub/training/leaderboard',
         data: {
@@ -141,8 +131,8 @@ export async function notifyLeaderboardRank(userId, newRank, periodType) {
 export async function notifyDailyBonus(userId, bonusAmount) {
     return sendPushNotification({
         userId,
-        title: '💎 Daily Bonus Ready!',
-        message: `Your ${bonusAmount}💎 daily training bonus is waiting! Start a session to claim it.`,
+        title: 'Daily Bonus Ready!',
+        message: `Your ${bonusAmount} daily training bonus is waiting! Start a session to claim it.`,
         url: '/hub/training',
         data: {
             type: 'daily_bonus',
@@ -157,7 +147,7 @@ export async function notifyDailyBonus(userId, bonusAmount) {
 export async function notifyPerfectRound(userId, gameName, perfectCount) {
     return sendPushNotification({
         userId,
-        title: '💎 Perfect Round!',
+        title: 'Perfect Round!',
         message: `100% accuracy on ${gameName}! That's ${perfectCount} perfect rounds total!`,
         url: '/hub/training/achievements',
         data: {

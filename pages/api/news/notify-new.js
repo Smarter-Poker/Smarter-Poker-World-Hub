@@ -186,10 +186,10 @@ export default async function handler(req, res) {
 
       const pushConfig = await resolvePushConfig();
       if (!pushConfig.configured) {
-          log('not_configured', { reason: 'OneSignal keys missing' });
+          log('not_configured', { reason: 'VAPID keys missing' });
           return res.status(503).json({
               success: false,
-              error: 'Push is not configured (OneSignal credentials missing). No notification was sent.'
+              error: 'Push is not configured (VAPID keys missing). No notification was sent.'
           });
       }
 

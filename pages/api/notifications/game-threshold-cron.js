@@ -2,6 +2,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { normalizeForMatch, resolveVenueName } from '../poker/venue-dedup';
 import { withSentry } from '../../../src/lib/sentry';
 import { sendPushNotification } from '../../../src/lib/onesignal-server';
+// NOTE: onesignal-server is now a VAPID-backed compatibility shim. See that file.
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 async function handler(req, res) {
@@ -36,7 +37,7 @@ async function handler(req, res) {
                 user_id,
                 venue_id,
                 threshold,
-                users:user_id ( id, onesignal_player_id )
+                users:user_id ( id )
             `)
             .eq('alert_type', 'table_size')
             .eq('is_active', true);
@@ -92,13 +93,16 @@ async function handler(req, res) {
             return e.hasBravo ? e.bravo : e.other;
         };
 
-        // 3. Process thresholds and batch by venue to avoid Vercel timeouts and OneSignal rate limits
+        // 3. Process thresholds and batch by venue to avoid Vercel timeouts and push-service rate limits
         const alertsByVenue = {};
         for (const alert of alerts) {
             const venue = venues?.find(v => v.id === alert.venue_id);
-            const playerId = alert.users?.onesignal_player_id;
-            
-            if (!venue || !playerId) continue;
+        // PUSH MIGRATION 2026-08-19: OneSignal removed. Targeting is now by
+        // Supabase user id (externalIds), which maps directly onto
+        // push_subscriptions.user_id. onesignal_player_id is a dead column.
+        const targetUserId = alert.user_id || alert.users?.id;
+
+            if (!venue || !targetUserId) continue;
 
             const liveTablesCount = liveCountFor(venue.name);
             
@@ -113,14 +117,14 @@ async function handler(req, res) {
                 if (!alertsByVenue[venue.id]) {
                     alertsByVenue[venue.id] = { venue, liveTablesCount, targets: [] };
                 }
-                alertsByVenue[venue.id].targets.push({ playerId, alertId: alert.id });
+                alertsByVenue[venue.id].targets.push({ userId: targetUserId, alertId: alert.id });
             }
         }
 
         let processedCount = 0;
         let errorsCount = 0;
 
-        // Vercel/OneSignal Throttler Helper 
+        // Throttler helper 
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
         // Use sequential execution over `Promise.allSettled` network stampeding to prevent 429 Too Many Requests
@@ -128,12 +132,13 @@ async function handler(req, res) {
             const chunkSize = 2000;
             for (let i = 0; i < targets.length; i += chunkSize) {
                 const chunkTargets = targets.slice(i, i + chunkSize);
-                const chunkPlayerIds = chunkTargets.map(t => t.playerId);
+                const chunkUserIds = chunkTargets.map(t => t.userId);
                 const chunkAlertIds = chunkTargets.map(t => t.alertId);
                 
                 const pushResult = await sendPushNotification({
-                    playerIds: chunkPlayerIds,
-                    heading: 'Game Size Alert! 🎯',
+                    externalIds: chunkUserIds,
+                    event: 'venue_alert',
+                    heading: 'Game Size Alert',
                     content: `${venue.name} just hit your threshold with ${liveTablesCount} active tables.`,
                     url: `https://smarter.poker/hub/venues/${encodeURIComponent(venue.name)}`
                 });
@@ -142,9 +147,9 @@ async function handler(req, res) {
                     const { error: err_user_pwa_alerts_dej24 } = await supabase.from('user_pwa_alerts').update({ last_triggered_at: new Date().toISOString() })
                         .in('id', chunkAlertIds);
                     if (err_user_pwa_alerts_dej24) console.warn('[Supabase] Silent mutation failed in user_pwa_alerts:', err_user_pwa_alerts_dej24.message);
-                    processedCount += chunkPlayerIds.length;
+                    processedCount += chunkUserIds.length;
                 } else {
-                    errorsCount += chunkPlayerIds.length;
+                    errorsCount += chunkUserIds.length;
                 }
                 
                 // Sleep 250ms natively between simultaneous bulk-drops to defend against API strict rate checks

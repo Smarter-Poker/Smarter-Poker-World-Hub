@@ -84,7 +84,7 @@ import { SoundEngine } from '../src/audio/SoundEngine';
 import { AvatarProvider, useAvatar } from '../src/contexts/AvatarContext';
 import useEasterEggSweep from '../src/hooks/useEasterEggSweep';
 import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
-import { OneSignalProvider } from '../src/contexts/OneSignalContext';
+import { PushProvider } from '../src/contexts/PushContext';
 import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContext';
 import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
@@ -126,11 +126,28 @@ if (typeof window !== 'undefined') {
       });
     }
 
-    // Unregister all service workers (except OneSignal will re-register itself)
+    // ═══════════════════════════════════════════════════════════════════════
+    // WEB PUSH FIX (2026-08-19) — DO NOT unregister the PWA service worker here.
+    //
+    // This block used to call registration.unregister() on EVERY service worker
+    // on every version bump. Unregistering a service worker DESTROYS its
+    // PushSubscription. Since BUILD_VERSION changes on every deploy, every
+    // deploy silently wiped every user's push subscription while the server
+    // kept reporting success against endpoints that no longer existed. That is
+    // the root cause of "notifications never actually push to the phone."
+    //
+    // Caches are still cleared above, which is what actually fixes stale
+    // chunks. Only FOREIGN service workers (legacy OneSignal, old scopes) are
+    // unregistered now; the current /sw.js is left alone, and
+    // PushSubscriptionSync repairs the subscription on the next boot.
+    // ═══════════════════════════════════════════════════════════════════════
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
         registrations.forEach(registration => {
-          console.log('[Cache Buster] Unregistering service worker');
+          const url = registration.active?.scriptURL || registration.installing?.scriptURL || '';
+          const isCurrentPwaWorker = /\/sw\.js(\?|$)/.test(url);
+          if (isCurrentPwaWorker) return; // keep it — it owns the push subscription
+          console.log('[Cache Buster] Unregistering foreign service worker:', url);
           registration.unregister();
         });
       });
@@ -729,7 +746,7 @@ export default function App({ Component, pageProps }) {
               <UnreadProvider>
                 <AvatarProvider>
                   <ExternalLinkProvider>
-                    <OneSignalProvider>
+                    <PushProvider>
                       <TrainingSettingsProvider>
                         <NavigationGuard>
                           <ActiveIdentityProvider>
@@ -794,7 +811,7 @@ export default function App({ Component, pageProps }) {
                           </ActiveIdentityProvider>
                         </NavigationGuard>
                       </TrainingSettingsProvider>
-                    </OneSignalProvider>
+                    </PushProvider>
                   </ExternalLinkProvider>
                 </AvatarProvider>
               </UnreadProvider>

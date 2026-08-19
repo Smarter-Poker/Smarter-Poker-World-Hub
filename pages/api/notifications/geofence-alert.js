@@ -1,7 +1,7 @@
 /**
  * /api/notifications/geofence-alert.js
  *
- * Server-side endpoint that sends a targeted OneSignal push notification
+ * Server-side endpoint that sends a targeted Web Push notification
  * when a user enters a geofence zone near a poker venue.
  *
  * POST body: { userId, venueId, venueName, venueType }
@@ -11,14 +11,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { sendPushNotification } from '../../../src/lib/onesignal-server';
+import { isPushConfigured } from '../../../src/lib/push/web-push';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
 
-const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+// PUSH MIGRATION 2026-08-19: OneSignal removed. Delivery is self-hosted VAPID
+// Web Push; the config gate below now checks the VAPID keys instead.
 
 // Rate-limit map: userId:venueId -> timestamp (in-memory, per-instance)
 const rateLimitMap = new Map();
@@ -54,7 +55,7 @@ export default async function handler(req, res) {
           return res.status(403).json({ success: false, error: 'Cannot send geofence alerts for other users' });
       }
 
-      if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
+      if (!isPushConfigured()) {
           return res.status(503).json({ success: false, error: 'Push notifications not configured' });
       }
 
@@ -116,8 +117,8 @@ export default async function handler(req, res) {
               return res.status(200).json({ success: true, messageId: pushResult.result.id });
           }
 
-          console.warn('[GeofenceAlert] OneSignal error:', pushResult.error);
-          return res.status(500).json({ success: false, error: pushResult.error || 'OneSignal push failed' });
+          console.warn('[GeofenceAlert] push error:', pushResult.error);
+          return res.status(500).json({ success: false, error: pushResult.error || 'Push failed' });
       } catch (err) {
           console.warn('[GeofenceAlert] Server error:', err);
           return res.status(500).json({ success: false, error: err.message });

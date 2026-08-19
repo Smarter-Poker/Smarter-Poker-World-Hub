@@ -1,0 +1,120 @@
+/**
+ * GET /api/admin/push-health-data
+ *
+ * Backs /admin/push-health. Admin/god only -- the role is read from the DB for
+ * the JWT-verified caller, never from anything the client sent.
+ *
+ * Answers the one question a push dashboard has to answer honestly:
+ * WHO CANNOT BE REACHED, and is it because they opted out or because we are
+ * broken? Send-result dashboards cannot tell those apart, because FCM and Apple
+ * return 2xx for endpoints belonging to devices that no longer exist.
+ */
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { isPushConfigured, vapidConfig } from '../../../src/lib/push/web-push';
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) _supabase = createClient();
+    return _supabase;
+}
+
+const ZOMBIE_DAYS = 3;
+
+export default async function handler(req, res) {
+    if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const supabase = getSupabase();
+    const { user } = await getServerUserWithFallback(req, supabase);
+    if (!user?.id) return res.status(401).json({ error: 'Not authenticated' });
+
+    const { data: me } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+    if (!me || !['admin', 'god'].includes(me.role)) {
+        return res.status(403).json({ error: 'Admin required' });
+    }
+
+    const now = Date.now();
+    const zombieCutoff = new Date(now - ZOMBIE_DAYS * 86400_000).toISOString();
+
+    try {
+        const [{ data: staff }, { data: subs }, { data: lastRun }] = await Promise.all([
+            supabase.from('profiles').select('id, username, email, role').in('role', ['admin', 'god']),
+            supabase.from('push_subscriptions')
+                .select('id, user_id, device_label, is_active, last_used_at, last_receipt_at, last_failure_reason, created_at'),
+            supabase.from('push_dispatch_runs')
+                .select('started_at, finished_at, claimed, sent, failed, skipped, note')
+                .eq('job', 'push-dispatch').order('started_at', { ascending: false }).limit(10),
+        ]);
+
+        const byUser = new Map();
+        for (const s of subs || []) {
+            if (!byUser.has(s.user_id)) byUser.set(s.user_id, []);
+            byUser.get(s.user_id).push(s);
+        }
+
+        const staffStatus = (staff || []).map((p) => {
+            const rows = byUser.get(p.id) || [];
+            const active = rows.filter((r) => r.is_active);
+            let status = 'ok';
+            if (rows.length === 0) status = 'never_enabled';
+            else if (active.length === 0) status = 'subscription_dead';
+            else if (active.every((r) => !r.last_receipt_at || r.last_receipt_at < zombieCutoff)) status = 'zombie';
+            return {
+                id: p.id,
+                username: p.username,
+                email: p.email,
+                role: p.role,
+                status,
+                devices: active.length,
+                totalDevices: rows.length,
+                lastReceiptAt: active.map((r) => r.last_receipt_at).filter(Boolean).sort().pop() || null,
+                lastFailure: active.map((r) => r.last_failure_reason).filter(Boolean)[0] || null,
+            };
+        }).sort((a, b) => (a.status === 'ok' ? 1 : 0) - (b.status === 'ok' ? 1 : 0));
+
+        const activeSubs = (subs || []).filter((s) => s.is_active);
+        const zombies = activeSubs.filter(
+            (s) => s.last_used_at && (!s.last_receipt_at || s.last_receipt_at < zombieCutoff)
+        );
+
+        const [{ count: pending }, { count: failed }, { count: skipped }, { count: sent24 }] = await Promise.all([
+            supabase.from('push_outbox').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+            supabase.from('push_outbox').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
+            supabase.from('push_outbox').select('id', { count: 'exact', head: true }).eq('status', 'skipped'),
+            supabase.from('push_outbox').select('id', { count: 'exact', head: true })
+                .eq('status', 'sent').gte('sent_at', new Date(now - 86400_000).toISOString()),
+        ]);
+
+        const lastRunAt = lastRun?.[0]?.started_at ? Date.parse(lastRun[0].started_at) : null;
+
+        return res.status(200).json({
+            config: {
+                configured: isPushConfigured(),
+                keyMatches: !((process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '').trim()
+                    && (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '').trim() !== vapidConfig().publicKey),
+            },
+            dispatch: {
+                lastRunAt: lastRun?.[0]?.started_at || null,
+                minutesSince: lastRunAt ? Math.round((now - lastRunAt) / 60000) : null,
+                recent: lastRun || [],
+            },
+            subscriptions: {
+                total: (subs || []).length,
+                active: activeSubs.length,
+                zombies: zombies.length,
+            },
+            outbox: {
+                pending: pending || 0,
+                failed: failed || 0,
+                skipped: skipped || 0,
+                sentLast24h: sent24 || 0,
+            },
+            staff: staffStatus,
+        });
+    } catch (e) {
+        return res.status(500).json({ error: e?.message || 'Failed to load push health' });
+    }
+}

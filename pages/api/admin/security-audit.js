@@ -115,11 +115,11 @@ export default async function handler(req, res) {
           process.env.NEXT_PUBLIC_SENTRY_DSN ? 'Sentry DSN configured' : 'Sentry not configured - errors won\'t be tracked'
       );
 
-      // OneSignal
+      // Web Push (VAPID)
       addCheck(
-          'OneSignal push notifications',
-          process.env.ONESIGNAL_APP_ID && process.env.ONESIGNAL_REST_API_KEY ? 'pass' : 'warn',
-          process.env.ONESIGNAL_APP_ID ? 'OneSignal configured' : 'OneSignal not configured - push notifications disabled'
+          'Web Push (VAPID) notifications',
+          process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY ? 'pass' : 'warn',
+          process.env.VAPID_PUBLIC_KEY ? 'VAPID keys configured' : 'VAPID keys not configured - push notifications disabled'
       );
 
       // Twilio
@@ -245,7 +245,7 @@ export default async function handler(req, res) {
               recommendations: [
                   ...(failed > 0 ? ['Fix all FAILED checks immediately'] : []),
                   ...(!process.env.NEXT_PUBLIC_SENTRY_DSN ? ['Set up Sentry for error tracking (free tier available)'] : []),
-                  ...(!process.env.ONESIGNAL_APP_ID ? ['Configure OneSignal for push notifications (free tier)'] : []),
+                  ...(!process.env.VAPID_PUBLIC_KEY ? ['Set VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / NEXT_PUBLIC_VAPID_PUBLIC_KEY to enable push'] : []),
                   ...(!process.env.ADMIN_API_TOKEN ? ['Set ADMIN_API_TOKEN to protect admin endpoints'] : []),
                   'Add Content-Security-Policy header',
                   'Enable rate limiting on API routes',

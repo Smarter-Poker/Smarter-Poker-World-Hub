@@ -4,10 +4,10 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState } from 'react';
-import { useOneSignal } from '../../contexts/OneSignalContext';
+import { usePush } from '../../contexts/PushContext';
 
 export default function PushNotificationBell({ style = {} }) {
-    const { isSubscribed, permission, subscribe, unsubscribe, isInitialized } = useOneSignal();
+    const { isSubscribed, permission, subscribe, unsubscribe, isInitialized } = usePush();
     const [loading, setLoading] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
 
