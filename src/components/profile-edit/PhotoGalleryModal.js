@@ -20,7 +20,7 @@ export default function PhotoGalleryModal({ isOpen, onClose, userPhotos }) {
                     }}>
                         <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>📷 My Photos</h2>
                         <button
-                            onClick={() => setPhotoGalleryOpen(false)}
+                            onClick={onClose}
                             style={{
                                 background: 'none', border: 'none', color: 'white',
                                 fontSize: 28, cursor: 'pointer'

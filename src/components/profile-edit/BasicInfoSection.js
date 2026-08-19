@@ -1,11 +1,27 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { C } from './constants';
+import { supabase } from '../../lib/supabase';
+import { getProfileJwt } from './utils';
+import { ProfilePictureHistory } from '../social/ProfilePictureHistory';
 const CollapsibleSection = dynamic(() => import('./CollapsibleSection'), { ssr: false });
 const ProfileField = dynamic(() => import('./ProfileField'), { ssr: false });
 const PokerResumeBadge = dynamic(() => import('./PokerResumeBadge'), { ssr: false });
 
-export default function BasicInfoSection({ profile, updateField, setProfile }) {
+// usernameStatus, user, setLibraryOpen, setOriginalProfile and setMessage all
+// exist in pages/hub/profile-edit.js and were referenced here after the split
+// without ever being passed or destructured. The username availability hint
+// and the whole avatar block threw ReferenceError on render.
+export default function BasicInfoSection({
+    profile,
+    updateField,
+    setProfile,
+    usernameStatus,
+    user,
+    setLibraryOpen,
+    setOriginalProfile,
+    setMessage,
+}) {
     return (
 <CollapsibleSection id="sec-basic" title="Basic Information" icon="👤">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>

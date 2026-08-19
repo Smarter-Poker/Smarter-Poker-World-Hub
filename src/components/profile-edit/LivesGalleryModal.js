@@ -20,7 +20,7 @@ export default function LivesGalleryModal({ isOpen, onClose, userLives, user, se
                     }}>
                         <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>🔴 My Lives</h2>
                         <button
-                            onClick={() => setLivesGalleryOpen(false)}
+                            onClick={onClose}
                             style={{
                                 background: 'none', border: 'none', color: 'white',
                                 fontSize: 28, cursor: 'pointer'

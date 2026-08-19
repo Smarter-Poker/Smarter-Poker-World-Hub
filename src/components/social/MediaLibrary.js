@@ -420,7 +420,7 @@ export function MediaLibrary({
     // Lightbox navigation
     const handleLightboxNav = (direction) => {
         const newIndex = lightboxIndex + direction;
-        if (newIndex >= 0 && NewIndex < media.length) {
+        if (newIndex >= 0 && newIndex < media.length) {
             setLightboxIndex(newIndex);
             setLightboxMedia(media[newIndex]);
         }

@@ -20,7 +20,7 @@ export default function ReelsGalleryModal({ isOpen, onClose, userReels }) {
                     }}>
                         <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>My Reels</h2>
                         <button
-                            onClick={() => setReelsGalleryOpen(false)}
+                            onClick={onClose}
                             style={{
                                 background: 'none', border: 'none', color: 'white',
                                 fontSize: 28, cursor: 'pointer'

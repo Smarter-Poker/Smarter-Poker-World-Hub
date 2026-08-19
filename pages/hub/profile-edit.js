@@ -789,7 +789,16 @@ export default function ProfilePage() {
                     )}
 
                     {/* Basic Info */}
-                    <BasicInfoSection profile={profile} updateField={updateField} setProfile={setProfile} />
+                    <BasicInfoSection
+                        profile={profile}
+                        updateField={updateField}
+                        setProfile={setProfile}
+                        usernameStatus={usernameStatus}
+                        user={user}
+                        setLibraryOpen={setLibraryOpen}
+                        setOriginalProfile={setOriginalProfile}
+                        setMessage={setMessage}
+                    />
 
                     {/* Location */}
                     <CollapsibleSection id="sec-location" title="Location" icon="📍">

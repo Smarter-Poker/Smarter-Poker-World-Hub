@@ -1,11 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { C } from './constants';
+import { getAccessToken } from '../../lib/authUtils';
+import { busEmit } from '../../engine/EventBus';
+import { broadcastSync } from '../../lib/broadcastSync';
 const CollapsibleSection = dynamic(() => import('./CollapsibleSection'), { ssr: false });
 const ProfileField = dynamic(() => import('./ProfileField'), { ssr: false });
 const PokerResumeBadge = dynamic(() => import('./PokerResumeBadge'), { ssr: false });
 
 export default function PokerResumeSection({ profile, updateField, saving, setProfile, setMessage }) {
+    // The refresh spinner state was lost when this section was split out of
+    // pages/hub/profile-edit.js: every setIsRefreshing call survived, the
+    // useState behind them did not. Each one threw ReferenceError, so the
+    // Hendon Mob sync button died on its first line and the stats never
+    // refreshed.
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
     return (
 <CollapsibleSection id="sec-resume" title="Poker Resume" icon="🏆">
                         <p style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>

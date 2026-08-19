@@ -140,6 +140,7 @@ export function ProfilePictureHistory({
     supabase,
     onSelectPicture,
     onViewAll,
+    onPictureRestored,
     limit = 8,
 }) {
     const [history, setHistory] = useState([]);
