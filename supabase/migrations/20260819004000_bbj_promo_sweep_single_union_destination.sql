@@ -1,0 +1,23 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- APPLIED TO PRODUCTION: 2026-08-18 via mcp apply_migration
+-- (name bbj_promo_sweep_single_union_destination). Mirror only.
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Two sweep functions wrote the union promo slice to two DIFFERENT tables:
+--   fn_sweep_bbj_promo      -> unions.promo_wallet (+ promo_funded_from_bbj)
+--   fn_sweep_bbj_promo_all  -> union_wallets.promo_wallet
+-- The union dashboard reads union_wallets.promo_wallet, which holds the real
+-- balance, so nothing was mis-displayed. But unions.promo_wallet read 0.00
+-- while its own lifetime counter said 32,179.03 — the tell that whichever
+-- function ran last decided where the money went. Had the club-scoped sweep
+-- been used on a union club, that promo would have landed in a column no
+-- screen reads: invisible money with a counter insisting it exists.
+--
+-- fn_sweep_bbj_promo now writes to union_wallets.promo_wallet, matching the
+-- sweep-all path and the UI, and resolves union pools correctly (the old
+-- club_id-only lookup could never find one, since union pools have club_id
+-- NULL). unions.promo_funded_from_bbj is kept as the lifetime counter it is.
+-- Unionless clubs still credit clubs.promo_balance with a chip_transactions
+-- row — verified reconciling exactly (27,595.48 both sides).
+--
+-- Probed: sweeping 123.45 from a union pool moved union_wallets.promo_wallet
+-- by exactly +123.45 and unions.promo_wallet by 0.00.

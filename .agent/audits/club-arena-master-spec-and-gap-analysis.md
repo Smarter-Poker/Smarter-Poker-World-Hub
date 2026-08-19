@@ -3500,3 +3500,68 @@ amounts at both allocations. The `bbj_payout_conservation` invariant now reads:
 "full hit: paid 800.00, reserve reseeded main to 5000.00; partial hit: paid
 850.00, reserve untouched". Server **695/695**, client **136 files green**,
 invariants **17/17**.
+
+## §52 — Real-time crediting verified end-to-end: 3 BBJ wallets + rake, per hand (2026-08-18)
+
+Dan: "all 3 wallets must be credited in real time after each hand, for BBJ,
+rake must be credited in real time after each hand to the correct wallets as
+well." Verified against live production traffic, not by reading code.
+
+### 52.1 BBJ — all three pools, every hand
+Over the last hour: **4,972 raked hands, 1,592 carrying a BBJ fee.**
+
+| check | result |
+|---|---|
+| fee-bearing hands with no contribution row | **0** |
+| rows with a NULL main/backup/promo portion | **0** |
+| rows where the three portions don't re-sum to the fee | **0** |
+| average credit lag (hand settled → pools credited) | **0.250 s** |
+| worst credit lag | 2.218 s |
+
+Ledger rows are not proof the balances moved, so a live 30-second snapshot was
+taken and compared against the ledger written in that window:
+
+| pool | main Δ / expected | backup Δ / expected | promo Δ / expected |
+|---|---|---|---|
+| union pool | +2.00 / 2.00 | +1.04 / 1.04 | +0.96 / 0.96 |
+| club pool | +1.50 / 1.50 | +0.77 / 0.77 | +0.73 / 0.73 |
+
+All three wallets, exact to the cent, in real time.
+
+### 52.2 Rake — correct wallets, every hand
+Per-hand (immune to window-boundary effects), last 90 minutes: **7,589 raked
+hands, 0 missing the club-accumulator leg, 0 legs with a wrong amount.** Rake
+17,670.63 − BBJ withheld 1,130.16 = **16,540.47 credited to clubs, gap 0.00.**
+
+Routing is also correct by club type: 3,722 union-club hands all produced a
+`union_rake` leg (0 missing); 3,873 independent-club hands produced none
+(0 strays) and route to `chip_treasury` instead.
+
+A live 30-second wallet window showed one club +0.10 against expectation — a
+transaction-boundary artifact (a hand crediting inside the observation window
+whose ledger row is stamped at transaction start, outside it). The per-hand
+check above is exact and confirms it is an artifact, not an over-credit.
+
+### 52.3 Promo, downstream — fully reconciled, one latent trap fixed
+Promo collected all-time reconciles across four destinations:
+`union_wallets.promo_wallet` 32,179.03 + `clubs.promo_balance` 27,595.48
+(matching its `bbj_promo_sweep` ledger exactly) + 9.49 still unswept ≈ the
+58,770.80 collected, with the small excess explained by manual pool funding
+(`fn_union_fund_bbj_pool` also credits promo).
+
+**The trap:** the two sweep functions wrote to DIFFERENT union tables —
+`fn_sweep_bbj_promo` to `unions.promo_wallet`, `fn_sweep_bbj_promo_all` to
+`union_wallets.promo_wallet`. The dashboard reads the latter, so nothing was
+mis-displayed today, but `unions.promo_wallet` reading 0.00 against its own
+32,179.03 lifetime counter is the tell. Had the club-scoped sweep run on a
+union club, that promo would have landed where no screen reads it. Unified to
+`union_wallets.promo_wallet`; the club-scoped sweep also now resolves union
+pools (its `club_id`-only lookup could never find one, since union pools have
+`club_id` NULL). Probed: sweeping 123.45 moved `union_wallets` +123.45 and
+`unions.promo_wallet` 0.00.
+
+### 52.4 Stated honestly, not claimed
+Tournament tables are gated out of BBJ in the engine, but **no tournament hand
+has ever reached rake_records** (0 all-time), so that gate is unexercised by
+production data. The code path exists; the evidence does not. Recorded rather
+than counted as verified.
