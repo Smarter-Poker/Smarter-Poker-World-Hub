@@ -1,0 +1,45 @@
+-- ============================================================================
+-- UNION — FINAL HARDENING (2026-08-19). APPLIED via Supabase MCP as:
+--   chip_transactions_table_id_attribution
+--   union_pnl_set_based_all_clubs
+--   union_settle_pnl_v5_single_pass
+--   union_governance_invariant_check
+--
+-- 1. chip_transactions.table_id
+--    The union P&L must scope table cash-outs to UNION tables. The wallet
+--    ledger could (wallet_transactions.table_id); the chip ledger could not —
+--    there was no table_id at all, so cash-outs were scoped by club, and a
+--    PRIVATE club game's cash-out fell inside the union settlement scope.
+--    atomic_credit_wallet_and_log already RECEIVED p_table_id (it used it to
+--    resolve club_id) and simply discarded it. Now stamped.
+--    Legacy rows have table_id NULL and are still matched by club, so history
+--    does not silently change.
+--
+--    Fixed in the same function: it falls back to a HARDCODED club id
+--    ('a41434bb-…' = SHARK CLUB) when it cannot resolve a club, so every
+--    unattributable credit platform-wide was being booked against one real
+--    club's ledger. club_id is NOT NULL so the fallback stays, but it is now
+--    flagged in metadata ('club_attribution':'fallback_unresolved') so those
+--    rows are findable instead of blending in.
+--
+-- 2. fn_union_pnl_all_clubs — one set-based pass for the whole union
+--    The settlement called a per-club function in a loop, and each call
+--    re-derived the same union-wide attribution and re-scanned the same
+--    ledgers: O(clubs) full scans, degrading exactly as a union grows.
+--    v5 computes every club in ONE pass and joins rake in SQL. Verified to
+--    return figures identical to the per-club version it replaces.
+--
+-- 3. fn_union_governance_check()
+--    Every rule this project enforces fails SILENTLY, as data drift rather
+--    than a build error, so no code-level CI gate can see it. These invariants
+--    had been checked by hand with ad-hoc SQL after each change. They are now
+--    stated once and asserted weekly by the settlement worker (PHASE 8), which
+--    notifies union owners/admins on a CRITICAL break:
+--      - club-owned cash tables / tournaments inside a union
+--      - clubs.union_id mirror drift
+--      - private games carrying a union_id
+--      - missing ownership triggers
+--      - tables RLS losing its is_private clause
+--      - union rake accumulating with no rakeback for 14 days
+--      - settlements parked for review and forgotten
+--    One row per BROKEN invariant; empty means healthy. Verified clean.
