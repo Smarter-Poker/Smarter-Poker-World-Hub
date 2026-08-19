@@ -137,3 +137,111 @@ DROP INDEX IF EXISTS public.idx_hand_history_players_gin;
 - Position stats cover the 59 of Dan's 92 hands that have a `button_seat`;
   hands without one are excluded rather than guessed. Worth having the engine
   always stamp `button_seat` on `hand_history`.
+
+---
+
+# Addendum — second pass (line-by-line re-read + hardening)
+
+Went back over the shipped page line by line. Findings below were all real; each
+one is fixed and deployed.
+
+## Wrong numbers
+
+- **`tournament_registrations` is empty platform-wide (0 rows).** Every player's
+  Tournaments tab read zeros. Real entries live in `tournament_players`
+  (41,684 rows). Buy-ins are now reconstructed from the tournament plus that
+  player's rebuys/add-on, and winnings include `bounty_winnings`. Verified
+  against a real account: 1,313 entries, 269 cashes, ITM 20.5%, ROI -46.2%.
+- **`PositionWinRates` rendered a hands-won percentage in a field labelled and
+  colour-banded as bb/100.** An ordinary 18% win rate displayed as
+  "18.00 bb/100 — Exceptional" with the progress bar pegged.
+- **`BankrollTracker`'s period filter sliced the last N *entries*, not days.**
+  Each point is a session, so "Last 7 Days" could span months for a weekend
+  player, and peak / trough / max-drawdown / winning-days all inherited the
+  wrong window. Period P/L also subtracted the first session out of its own
+  window, and a zero baseline rendered the literal string `+∞%`.
+- **`SessionHistory`'s "Avg $/hr" was an unweighted mean of per-session rates**,
+  so a five-minute heater counted as much as an eight-hour grind. Break-even
+  sessions counted as losses for streak purposes.
+- **CSV export emitted raw fractions** (`vpip: 0.234`) while the screen showed
+  `23.4%`. Now exported as percentages with a unit column.
+
+## Lies to the player
+
+- **A failed load rendered the "No Stats Yet" empty state** — telling a player
+  with thousands of hands that they had never played. There is now a distinct
+  error panel with a Try Again button, and a failed refresh over good data is
+  labelled "showing your last loaded stats" instead of passing stale numbers
+  off as current.
+- **The skeleton watchdog fired at 10s, mid-retry.** `retryFetch` makes three
+  attempts with 1s + 2s backoff, so the timer routinely fired while the request
+  was still alive and flashed the empty state. Now 20s, and it sets an error
+  state rather than silently declaring "no data".
+- **Only Overview had an empty state.** A player with no hands saw a wall of
+  `0.0%` rows, a position diagram reading `0.00 bb/100 · ↓ Leak` seven times,
+  and blank charts on the other four tabs.
+- **The hero gauge was labelled "Win Rate" and banded 35/45/55**, but hands-won
+  is 10–20% in real poker — so every honest player rendered red on a near-empty
+  arc. Relabelled "Hands Won", rebanded 10/15/22, arc scaled to a 40% ceiling.
+- **`AdvancedStatsSummary`'s standalone fetch still used the original bug:**
+  `player_stats … .maybeSingle()` filtered only by `user_id`, which errors the
+  moment a player has rows in two clubs — and it selected none of the advanced
+  columns, so six of its eight cards could only ever read zero. It now reads
+  `ca_player_stats_full().overall` like the parent.
+- **`PositionWinRates` had no loading or error state:** on failure it silently
+  showed seven zeroed positions forever, and the callouts asserted
+  "Strongest: UTG 0.00" and "Weakest: UTG 0.00" at the same time. It also drew
+  a half-finished hover tooltip — an empty bordered box with no text in it.
+
+## Robustness
+
+- The RPC payload now goes through `normalizeFull()`; every number is coerced,
+  so a null or absent field renders 0 instead of throwing `.toFixed()` in the
+  hero and taking the whole page down.
+- Refreshes arriving mid-flight are queued and replayed once instead of being
+  dropped (the bus events are debounced, not queued).
+- The index-refresh **write** is throttled to once per 5 minutes; it previously
+  fired on every bus event and every tab focus, i.e. repeatedly during play.
+- `sessionRows` is memoised — it is the `initialSessions` prop for two children
+  whose effects key on identity, so a fresh `[]` per render re-ran both on every
+  tab click.
+- Tab list hoisted to one `TABS` constant; swipe and pills could previously
+  drift apart.
+
+## Analysis window: 1500 → 750 hands
+
+Measured per-hand cost is ~3.8ms (a random heap fetch plus per-hand JSONB
+expansion of `players`, `actions`, `winners`). At 1500 hands the heaviest
+account measured **5.7s warm and was cancelled outright under load** against the
+8s `authenticated` timeout. At 750 it measures **2.1s**. Ordinary players are
+unaffected — under 750 hands you get your entire history; above it the window is
+stated in the UI rather than presented as a lifetime total.
+
+## New
+
+- **Per-stake breakdown** (by big blind): hands, won, profit, bb/100 — so a
+  player can see which game size is carrying or bleeding their results instead
+  of one blended number. Verified the per-stake profits sum to the overall
+  figure (-350.99 + -530.09 + -1.75 = -882.83).
+
+## Operational notes
+
+- **The `git reset --hard origin/main` sync loop wiped a working tree of
+  uncommitted edits mid-session** (RULE 13, reflog shows `reset: moving to
+  origin/main`). Re-applied and committed immediately. Commit early, commit
+  often — do not hold edits in the working tree.
+- **A push that cherry-picks only the tip of a branch silently drops its
+  parent.** That happened here: the child-component commit landed, the
+  page-level commit did not, and CI then rebuilt the arena bundle from that
+  half-state — so production served the old page while the source repo looked
+  correct. Verify the shipped chunk, not just the push.
+- **Do not run oversized backfill batches against a live table.** A 500k-hand
+  batch held the refresh advisory lock for 14 minutes, which stopped the index
+  ceiling advancing, which grew the live window every stats call had to scan,
+  which pushed the RPC to a timeout. Cancelled it; normal operation uses
+  3,000-hand batches that finish in ~1-2s.
+- Vercel: verified the work is on the **smarter-poker** team
+  (`team_SVD8r7AOPH065G3usBxVvrBc`), project `hub-vanguard`
+  (`prj_op66GkZyZcygXQKm76iyycfVFAQx`), which is the canonical project for this
+  repo. Commits authored as `agent@smarter.poker` build normally (a personal
+  mailbox is what trips CHECK 15).
