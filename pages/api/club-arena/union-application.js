@@ -257,78 +257,45 @@ export default async function handler(req, res) {
 
       const rate = parseFloat(commissionRate) || 0.90;
 
-      // ── UNION GOVERNANCE (2026-08-19) ─────────────────────────────────
-      // HARD RULE: a club must close all of its own tables before joining a
-      // union. Live tournaments cannot be auto-migrated, so they block the
-      // approval; open cash tables are auto-closed with full refunds (same
-      // semantics as fn_admin_close_table — refund each seat from its actual
-      // stack with the engine's own idempotency key, vacate, close).
-      const { data: liveTournaments } = await supabaseAdmin
-        .from('tournaments')
-        .select('id, name')
-        .eq('club_id', app.club_id)
-        .eq('is_private', false)
-        .in('status', ['ANNOUNCED', 'SCHEDULED', 'REGISTERING', 'LATE_REG', 'RUNNING'])
-        .limit(5);
-      if (liveTournaments?.length) {
-        return res.status(409).json({
+      // ── UNION GOVERNANCE (2026-08-19, hardened after audit) ───────────
+      // HARD RULE: a club closes all of its own (non-private) tables before
+      // joining a union. This was an inline JS loop; it is now a single
+      // SECURITY DEFINER transaction because the loop had four money bugs:
+      //   - non-atomic refunds (a mid-loop failure credited some wallets
+      //     while those players still held the same chips on a live table)
+      //   - closed tables were resurrected by the engine boot sweep and the
+      //     fleet name-match, coming back club-owned INSIDE a union
+      //   - it also closed the club's PRIVATE games, which the rules keep
+      //   - an unchecked seats query could close a table refunding nobody
+      // fn_union_close_club_tables_for_join does refund -> vacate -> close
+      // (with is_deleted so it survives the engine sweeps) in one transaction,
+      // and refuses outright if the club still has live public tournaments.
+      const { data: closeRes, error: closeErr } = await supabaseAdmin.rpc(
+        'fn_union_close_club_tables_for_join',
+        { p_club_id: app.club_id }
+      );
+
+      if (closeErr) {
+        return res.status(500).json({
           success: false,
-          error: `${app.club_name} still has ${liveTournaments.length} live tournament(s). They must finish or be cancelled before the club can join the union.`,
+          error: `Could not close ${app.club_name}'s tables — approval aborted, nothing was changed. (${closeErr.message})`,
+        });
+      }
+      if (closeRes && closeRes.success === false) {
+        if (closeRes.error === 'live_tournaments') {
+          return res.status(409).json({
+            success: false,
+            error: `${app.club_name} still has ${closeRes.live_tournaments} live tournament(s). They must finish or be cancelled before the club can join the union.`,
+          });
+        }
+        return res.status(500).json({
+          success: false,
+          error: `Could not close ${app.club_name}'s tables: ${closeRes.error}`,
         });
       }
 
-      const { data: openTables } = await supabaseAdmin
-        .from('tables')
-        .select('id, name')
-        .eq('club_id', app.club_id)
-        .is('tournament_id', null)
-        .eq('is_deleted', false)
-        .not('status', 'in', '("closed","deleted")');
-
-      let closedTables = 0;
-      let refundedSeats = 0;
-      for (const t of openTables || []) {
-        const { data: seats } = await supabaseAdmin
-          .from('table_seats')
-          .select('id, user_id, stack')
-          .eq('table_id', t.id)
-          .is('left_at', null);
-        for (const s of seats || []) {
-          if (Number(s.stack) > 0) {
-            const { error: refundErr } = await supabaseAdmin.rpc('atomic_credit_wallet_and_log', {
-              p_user_id: s.user_id,
-              p_amount: s.stack,
-              p_category: 'cashout',
-              p_description: 'Table closed: club joined a union',
-              p_table_id: t.id,
-              p_hand_id: null,
-              p_related_entity_id: s.id,
-              p_idempotency_key: `cashout:${s.id}`,
-            });
-            if (refundErr) {
-              // Conservation: never close a table whose players could not be
-              // refunded — abort the whole approval so nothing is half-done.
-              return res.status(500).json({
-                success: false,
-                error: `Refund failed while closing table "${t.name}" — approval aborted, nothing was changed for this table. (${refundErr.message})`,
-              });
-            }
-            refundedSeats++;
-          }
-        }
-        const { error: seatErr } = await supabaseAdmin
-          .from('table_seats')
-          .update({ left_at: new Date().toISOString() })
-          .eq('table_id', t.id)
-          .is('left_at', null);
-        if (seatErr) console.warn('[union-application] seat vacate failed:', seatErr.message);
-        const { error: closeErr } = await supabaseAdmin
-          .from('tables')
-          .update({ status: 'closed', current_players: 0 })
-          .eq('id', t.id);
-        if (closeErr) console.warn('[union-application] table close failed:', closeErr.message);
-        closedTables++;
-      }
+      const closedTables = closeRes?.tables_closed ?? 0;
+      const refundedSeats = closeRes?.seats_refunded ?? 0;
 
       // Fully integrate club into union (same logic as manage-union add_club)
       const { error: err_union_clubs_dam40 } = await supabaseAdmin
