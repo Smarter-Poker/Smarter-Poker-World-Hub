@@ -18,6 +18,18 @@ import { createClient } from '@supabase/supabase-js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+// 2026-08-19 (audit pass 4): this route and manage-shop.js are the two admin
+// write paths for club_shop_items. They had different rules -- items created
+// here granted NOTHING on redeem, accepted any image URL, and could be hard
+// deleted (CASCADING away the purchase history). Both now share one module.
+const {
+    VALID_CATEGORIES,
+    ITEM_TYPE_BY_CATEGORY,
+    buildGrantSpec,
+    normalizeImageUrl,
+    itemHasSales,
+    HAS_SALES_ERROR,
+} = require('../../../src/lib/club-arena/shopItemRules');
 
 let _sb = null;
 function sb() {
@@ -46,8 +58,6 @@ async function verifyAdmin(token, clubId) {
     }
     return { user };
 }
-
-const VALID_CATEGORIES = ['Time Banks', 'Table Skins', 'Throwables', 'Emotes', 'Avatars', 'Exclusive'];
 
 export default async function handler(req, res) {
     try {
@@ -82,6 +92,15 @@ export default async function handler(req, res) {
             }
             const cat = VALID_CATEGORIES.includes(category) ? category : 'Time Banks';
 
+            const img = normalizeImageUrl(imageUrl);
+            if (img.error) return res.status(400).json({ success: false, error: img.error });
+
+            // Without a grant_spec the item is decorative: members pay chips and
+            // fn_redeem_shop_item takes no branch. Derived from the category
+            // unless the caller states one explicitly.
+            const grant = buildGrantSpec(cat, req.body.grantType, req.body.grantQty, req.body.grantRef);
+            if (grant.error) return res.status(400).json({ success: false, error: grant.error });
+
             const { data, error } = await sb()
                 .from('club_shop_items')
                 .insert({
@@ -90,7 +109,9 @@ export default async function handler(req, res) {
                     price: numPrice,
                     description: description ? String(description).trim().slice(0, 500) : null,
                     category: cat,
-                    image_url: imageUrl ? String(imageUrl).trim().slice(0, 500) : null,
+                    item_type: ITEM_TYPE_BY_CATEGORY[cat] || null,
+                    grant_spec: grant.spec,
+                    image_url: img.skip ? null : img.value,
                     is_active: true
                 })
                 .select()
@@ -132,6 +153,9 @@ export default async function handler(req, res) {
         if (action === 'delete') {
             const { itemId } = req.body;
             if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
+            if (await itemHasSales(sb(), clubId, itemId)) {
+                return res.status(400).json({ success: false, error: HAS_SALES_ERROR, hasSales: true });
+            }
             const { error } = await sb()
                 .from('club_shop_items')
                 .delete()

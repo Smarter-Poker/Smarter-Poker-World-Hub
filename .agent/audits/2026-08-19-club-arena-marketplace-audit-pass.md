@@ -296,3 +296,50 @@ Fixed properly: timers live in a ref, are cleared **only on unmount**, and call
   read from `feature_purchases` / `avatar_unlocks` under their own RLS.
 - Modal focus returns to the triggering button; category vocabulary comes from
   the server catalog; admin list survives a transient load failure.
+
+---
+
+# Audit pass 4 — the OTHER admin route, and limited stock
+
+## Two admin write paths, two different rule sets
+
+`club_shop_items` has two server write paths:
+
+| Route | Used by | grant_spec | https image check | delete-with-sales guard |
+|---|---|---|---|---|
+| `/api/club-arena/manage-shop` | Club Arena Manage tab | yes | yes | yes |
+| `/api/club-arena/shop-items` | World Hub `/hub/diamond-store` Club Shop tab | **no** | **no** | **no** |
+
+So an owner administering their shop from smarter.poker created items that
+looked identical in the store and **granted nothing on redeem** — the exact
+class of bug fixed in pass 2, still reachable from the other surface. That route
+could also hard-delete a sold item (CASCADING `club_shop_purchases` and wiping
+the club's revenue history) and accept any image URL.
+
+Both routes now import `src/lib/club-arena/shopItemRules.js`, which owns the
+category vocabulary, the category→item_type and category→grant_type maps,
+`buildGrantSpec`, `normalizeImageUrl` and `itemHasSales`. The rules cannot
+drift again because there is only one copy.
+
+While consolidating, `buildGrantSpec` was made forgiving about a missing
+`grantQty` (defaults to 1) instead of returning a 400. The old behaviour meant
+any caller that didn't know about grants — including the World Hub form —
+would have started failing on the two most common categories the moment grants
+became mandatory.
+
+## Limited stock
+
+`club_shop_items.stock` (NULL = unlimited, 0 = sold out) with
+`fn_claim_shop_stock` / `fn_release_shop_stock`. The claim is a conditional
+`UPDATE ... WHERE stock > 0 RETURNING`, so two concurrent buyers cannot both
+take the last unit; the purchase route claims **before** debiting chips and
+releases on every failure path, so a failed purchase never eats stock. Both
+RPCs are service_role-only, asserted in the migration.
+
+Client: `N left` / `SOLD OUT` badges, Buy disabled when sold out, sold-out items
+sink to the bottom of every sort, and a stock field in the Manage form.
+
+## Also
+
+- `marketplace-items` purchase-count query was an unbounded scan of
+  `club_shop_purchases`; now bounded at 10k like its sibling.
