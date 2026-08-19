@@ -3247,3 +3247,64 @@ no evidence the board is failing to reach the detector on the current build —
 the three known cases are all pre-fix. The fail-closed change means that if it
 ever does, the cost is a missed jackpot rather than a wrong payout, which is
 the safe side to be wrong on.
+
+## §48 — Closing the loop: fail-closed made observable, four copies of the union rule made one, counters reconciled (2026-08-18, CA 175abdb0a)
+
+Dan: "fix this and everything else that still needs to be completed and then
+optimize everything."
+
+### 48.1 Fail-closed must not be silent (a gap I introduced)
+§47 made `detectBBJHit` refuse to pay when it cannot see a five-card board.
+Correct for money — but silence is the wrong failure mode: a parse or plumbing
+regression would quietly stop paying jackpots forever and nobody would know.
+Settlement now reports any showdown that reaches the detector with fewer than
+five parsed board cards, including the raw value, so the plumbing gets fixed
+instead of the rule getting blamed. Worth stating plainly: refusing to pay is
+only the safe default if someone finds out it happened.
+
+### 48.2 One definition of the union rule (the recurring bug, killed at source)
+"Union clubs bank the jackpot in the UNION pool" had been re-implemented by
+hand in FOUR client surfaces and was wrong in THREE:
+
+| surface | was |
+|---|---|
+| table banner | club-only → $0 for union clubs |
+| lobby ticker | club-only → $0 |
+| DynamicWallet | club-only → $0, and subscribed to a row it never read |
+| BBJService.getPool | club-only |
+
+Each was fixed separately over this session, which is the tell: the rule was
+never the problem, four copies of it were. `fn_bbj_pool_for_club` is now the
+single definition — verified against every club in production with **zero
+mismatches** against the server's own resolution.
+
+It is also the optimisation. Round trips per surface:
+- TablePage: tables → clubs → bbj_pools (3 serial) → tables → RPC (2). This one
+  runs on **every table open**.
+- Lobby ticker: 2 → 1.
+- DynamicWallet: loses the serial `clubs` pre-query added earlier in this
+  session and returns to a single call inside its existing `Promise.all`.
+
+### 48.3 Contribution counters reconciled to the ledger
+§41 fixed the payout counters after the impossible "$210k paid". The
+CONTRIBUTION counters had drifted the same way and were never touched:
+
+```
+pool f9806a7f  hands 162,278 vs 262,152 ledger   chips 129,052.83 vs 129,051.83
+pool 0867a7fd  hands 232,564 vs 290,862 ledger   chips 113,801.55 vs 154,897.45
+pool 6077bff0  hands   6,201 vs       0 ledger
+```
+
+The second understated collections by **41,095.90 chips** — a number operators
+read and trust on the union dashboard. Reconciled to `bbj_contributions`, the
+same authority `fn_bbj_pool_facts` already displays from.
+
+Deliberately NOT touched: `main_balance` / `backup_balance` / `promo_balance`.
+Those are the running pool, not a sum of contributions; rewriting them from
+contributions alone would erase every payout ever made. Only the two cumulative
+statistics were rewritten.
+
+**Verified:** client 135 files green, server 666/666, tsc clean both sides, the
+resolver cross-checked against every club, counters now equal to the ledger
+(a one-row difference immediately after is live traffic landing mid-query —
+248 contributions arrive every 10 minutes).
