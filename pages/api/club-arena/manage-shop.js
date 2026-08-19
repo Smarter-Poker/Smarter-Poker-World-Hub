@@ -59,6 +59,8 @@ function normalizeImageUrl(raw) {
     if (raw === undefined) return { skip: true };
     if (raw === null || String(raw).trim() === '') return { value: null };
     const v = String(raw).trim().slice(0, 500);
+    // '//evil.example/x.gif' starts with '/' but resolves to a THIRD PARTY.
+    if (v.startsWith('//')) return { error: 'imageUrl must use https' };
     if (v.startsWith('/')) return { value: v };
     let parsed;
     try { parsed = new URL(v); } catch (_e) { return { error: 'imageUrl must be a valid URL' }; }
