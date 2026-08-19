@@ -486,9 +486,12 @@ async function dispatchHostNotification(supabase, ctx) {
     const { error: notifErr } = await supabase.from('notifications').insert({
       user_id: host_user_id,
       type: 'home_game_seat_request',
+      // _push:'inline' stops the DB mirror trigger double-pushing this row;
+      // the explicit sendPushNotification() below owns delivery.
+      type: 'home_game_seat_request',
       title: titleText,
       message: bodyText,
-      data: metadata,
+      data: { ...(metadata || {}), _push: 'inline' },
       actor_id: requester_user_id,
       link: manageUrl,
       read: false,
