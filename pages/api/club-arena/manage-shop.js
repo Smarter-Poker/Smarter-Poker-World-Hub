@@ -11,6 +11,18 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
+// Canonical shop categories (kept in sync with shop-items.js and the
+// Club Arena marketplace UI) + the item_type each category maps to.
+const VALID_CATEGORIES = ['Time Banks', 'Table Skins', 'Throwables', 'Emotes', 'Avatars', 'Exclusive'];
+const ITEM_TYPE_BY_CATEGORY = {
+    'Time Banks': 'time_bank',
+    'Table Skins': 'table_skin',
+    'Throwables': 'throwable',
+    'Emotes': 'emote',
+    'Avatars': 'avatar',
+    'Exclusive': 'exclusive',
+};
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -111,15 +123,17 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'Name and positive price required' });
           }
 
+          const cat = VALID_CATEGORIES.includes(category) ? category : 'Time Banks';
           const { data: item, error } = await getSupabase()
             .from('club_shop_items')
             .insert({
               club_id: clubId,
-              name: name.trim(),
-              description: description?.trim() || '',
+              name: name.trim().slice(0, 200),
+              description: description?.trim().slice(0, 500) || '',
               price: parseInt(price),
-              category: category || 'general',
-              image_url: imageUrl || null,
+              category: cat,
+              item_type: ITEM_TYPE_BY_CATEGORY[cat] || null,
+              image_url: imageUrl ? String(imageUrl).trim().slice(0, 500) : null,
               is_active: true,
             })
             .select()
@@ -133,16 +147,25 @@ export default async function handler(req, res) {
           if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
 
           const updates = {};
-          if (name !== undefined) updates.name = name.trim();
-          if (description !== undefined) updates.description = description.trim();
+          if (name !== undefined) {
+            if (typeof name !== 'string' || !name.trim()) return res.status(400).json({ success: false, error: 'Name cannot be empty' });
+            updates.name = name.trim().slice(0, 200);
+          }
+          if (description !== undefined) updates.description = String(description ?? '').trim().slice(0, 500);
           if (price !== undefined) {
             const p = parseInt(price, 10);
             if (Number.isNaN(p) || p <= 0) return res.status(400).json({ success: false, error: 'Positive integer price required' });
+            if (p > 1000000000) return res.status(400).json({ success: false, error: 'Price exceeds maximum' });
             updates.price = p;
           }
-          if (category !== undefined) updates.category = category;
-          if (imageUrl !== undefined) updates.image_url = imageUrl;
-          if (isActive !== undefined) updates.is_active = isActive;
+          if (category !== undefined) {
+            if (!VALID_CATEGORIES.includes(category)) return res.status(400).json({ success: false, error: 'Invalid category' });
+            updates.category = category;
+            updates.item_type = ITEM_TYPE_BY_CATEGORY[category] || null;
+          }
+          if (imageUrl !== undefined) updates.image_url = imageUrl ? String(imageUrl).trim().slice(0, 500) : null;
+          if (isActive !== undefined) updates.is_active = !!isActive;
+          if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'No fields to update' });
 
           const { error } = await getSupabase()
             .from('club_shop_items')
@@ -178,6 +201,24 @@ export default async function handler(req, res) {
 
         if (action === 'delete') {
           if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
+
+          // 2026-08-19: club_shop_purchases.item_id is ON DELETE CASCADE, so a
+          // hard delete of a sold item silently erases its purchase history and
+          // the club's revenue stats. Refuse; the admin should hide it instead.
+          const { data: soldRows } = await getSupabase()
+            .from('club_shop_purchases')
+            .select('id')
+            .eq('club_id', clubId)
+            .eq('item_id', itemId)
+            .limit(1);
+
+          if (soldRows && soldRows.length > 0) {
+            return res.status(400).json({
+              success: false,
+              error: 'This item has sales. Deleting it would erase its purchase history -- hide it instead.',
+              hasSales: true,
+            });
+          }
 
           const { error } = await getSupabase()
             .from('club_shop_items')

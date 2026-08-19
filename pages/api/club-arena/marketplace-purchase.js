@@ -93,19 +93,27 @@ export default async function handler(req, res) {
               });
           }
 
-          // RED TEAM: Check if user already owns this item (prevents duplicate purchases)
-          const { data: existingPurchase } = await getSupabase()
-              .from('club_shop_purchases')
+          // RED TEAM: Block buying while an UNREDEEMED copy is still in inventory.
+          // 2026-08-19 fix: the old check looked at club_shop_purchases (permanent
+          // history), which made every item a lifetime one-shot -- consumables like
+          // Time Banks and Throwables could never be re-bought after redemption.
+          // Ownership truth is club_shop_inventory.status = 'owned' (rows are
+          // delivered by trg_deliver_shop_purchase and flipped by
+          // fn_redeem_shop_item). Double-tap protection is unchanged: the
+          // X-Idempotency-Key guard and rate limit above still apply.
+          const { data: unusedCopies } = await getSupabase()
+              .from('club_shop_inventory')
               .select('id')
               .eq('club_id', clubId)
-              .eq('buyer_id', user.id)
+              .eq('user_id', user.id)
               .eq('item_id', itemId)
-              .maybeSingle();
+              .eq('status', 'owned')
+              .limit(1);
 
-          if (existingPurchase) {
+          if (unusedCopies && unusedCopies.length > 0) {
               return res.status(400).json({
                   success: false,
-                  error: 'You already own this item',
+                  error: 'You already own an unused copy of this item. Redeem it before buying another.',
                   alreadyOwned: true,
               });
           }
