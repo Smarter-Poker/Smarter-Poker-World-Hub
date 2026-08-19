@@ -3,6 +3,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeMessage } from '../../../src/utils/messageSanitizer';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { notifyNewMessage } from '../../../src/lib/notify';
 
 let _supabase = null;
 function getSupabase() {
@@ -170,13 +171,14 @@ export default async function handler(req, res) {
           // pages/api/messenger/ ever consulted it -- so a blocked user could
           // POST here directly and the message was inserted and delivered.
           // Checked both directions: blocking is mutual in effect.
+          let otherIds = [];
           try {
               const { data: others } = await getSupabase()
                   .from('social_conversation_participants')
                   .select('user_id')
                   .eq('conversation_id', conversationId)
                   .neq('user_id', userId);
-              const otherIds = (others || []).map((o) => o.user_id).filter(Boolean);
+              otherIds = (others || []).map((o) => o.user_id).filter(Boolean);
               if (otherIds.length > 0) {
                   const { data: blocks } = await getSupabase()
                       .from('messenger_blocked')
@@ -214,6 +216,48 @@ export default async function handler(req, res) {
           const realMsgId = rpcResult?.message_id || (typeof rpcResult === 'string' ? rpcResult : null);
 
           if (!rpcResult?.success && !realMsgId) throw new Error('RPC returned failure');
+
+          // ── Notify the recipients ────────────────────────────────────────
+          // Until now a direct message produced NOTHING: no bell entry, no
+          // push. Delivery relied entirely on Supabase Realtime, so a message
+          // only landed if the recipient already had the app open. Someone
+          // messaging you was silent on a locked phone.
+          //
+          // Routed through notify() rather than a bare insert so it delivers
+          // INLINE (a message that arrives up to 5 minutes late via the outbox
+          // cron is useless) while still passing the full preference gate --
+          // mute_all, push_enabled, per-type prefs, the legacy messenger_alerts
+          // column, quiet hours and the daily cap.
+          //
+          // Never awaited into the response path: the message is already
+          // committed and the sender must not wait on fan-out. Failures are
+          // swallowed by notify() itself, which never throws.
+          try {
+              if (otherIds.length > 0) {
+                  const { data: senderProfile } = await getSupabase()
+                      .from('profiles')
+                      .select('username, full_name')
+                      .eq('id', userId)
+                      .maybeSingle();
+                  const senderName =
+                      senderProfile?.username || senderProfile?.full_name || 'Someone';
+
+                  // Never put message media or metadata in a lock-screen preview.
+                  const preview =
+                      messageType && messageType !== 'text'
+                          ? `Sent ${messageType === 'image' ? 'a photo' : 'an attachment'}`
+                          : String(content || '').slice(0, 140);
+
+                  await Promise.all(
+                      otherIds.map((recipientId) =>
+                          notifyNewMessage(getSupabase(), recipientId, senderName, preview, conversationId)
+                      )
+                  );
+              }
+          } catch (notifyErr) {
+              // A notification problem must never fail a message that was sent.
+              console.warn('[send-message] notify failed:', notifyErr?.message || notifyErr);
+          }
 
           return res.json({ success: true, msgId: realMsgId, content: content });
       } catch (e) {

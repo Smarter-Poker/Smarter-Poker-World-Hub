@@ -18,6 +18,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
+import { validatePushEndpoint } from '../../../src/lib/push/push-endpoint';
 
 let _supabase = null;
 function getSupabase() {
@@ -31,7 +32,14 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    if (!applyRateLimit(req, res, { max: 60, windowMs: 60_000, scope: 'push-receipt' })) return;
+    // Receipts are unauthenticated (a service worker cannot read the Bearer
+    // token) and therefore bucket purely by IP. 60/min is far too tight: every
+    // user behind one carrier CGNAT shares the bucket, so a broadcast push to a
+    // few hundred people on the same mobile network would 429 most receipts --
+    // and a missing receipt is exactly what push-health reads as a ZOMBIE
+    // device. The write is a single idempotent timestamp column, so the cost of
+    // a high ceiling is negligible compared to the cost of false zombies.
+    if (!applyRateLimit(req, res, { max: 1000, windowMs: 60_000, scope: 'push-receipt' })) return;
 
     const body = typeof req.body === 'string' ? safeParse(req.body) : (req.body || {});
     const endpoint = body?.endpoint;
@@ -41,11 +49,23 @@ export default async function handler(req, res) {
         return res.status(204).end();
     }
 
+    // Validate the shape before it reaches a query. This route is session-less
+    // by necessity, so the endpoint string is the only thing identifying the
+    // row; an arbitrary string here is at best a wasted write and at worst a
+    // probe. Same allowlist the subscribe/rotate paths use.
+    if (!validatePushEndpoint(endpoint).ok) {
+        return res.status(204).end();
+    }
+
     try {
+        // Scope the update to ACTIVE rows only. A receipt cannot revive a
+        // subscription we already retired, and letting it touch inactive rows
+        // would let a stale worker keep a dead endpoint looking healthy.
         await getSupabase()
             .from('push_subscriptions')
             .update({ last_receipt_at: new Date().toISOString() })
-            .eq('endpoint', endpoint);
+            .eq('endpoint', endpoint)
+            .eq('is_active', true);
     } catch {
         // Receipts are telemetry. Losing one is acceptable; erroring is not.
     }

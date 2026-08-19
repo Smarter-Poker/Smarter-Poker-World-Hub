@@ -101,6 +101,41 @@ export default function PushHealthPage() {
                                 />
                             </div>
 
+                            {data.funnel && (
+                                <>
+                                    <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Delivery Funnel</h2>
+                                    <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
+                                        Last {data.funnel.windowHours}h. Push services return success for
+                                        devices that no longer exist, so &quot;sent&quot; is not proof of anything.
+                                        The only honest number is Confirmed &mdash; the service worker
+                                        beaconing back after it actually drew the notification.
+                                    </p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginTop: 12 }}>
+                                        <Stat label="Queued" value={data.funnel.queued} />
+                                        <Stat label="Sent" value={data.funnel.sent} />
+                                        <Stat label="Suppressed" value={data.funnel.suppressed} />
+                                        <Stat
+                                            label="Delivery rate"
+                                            value={data.funnel.deliveryRate == null ? 'n/a' : `${data.funnel.deliveryRate}%`}
+                                        />
+                                        <Stat label="Devices pushed" value={data.funnel.devicesPushed} />
+                                        <Stat
+                                            label="Devices confirmed"
+                                            value={data.funnel.devicesConfirmed}
+                                            bad={data.funnel.devicesPushed > 0 && data.funnel.devicesConfirmed === 0}
+                                        />
+                                        <Stat
+                                            label="Confirm rate"
+                                            value={data.funnel.confirmRate == null ? 'n/a' : `${data.funnel.confirmRate}%`}
+                                            // A large gap between sent and confirmed is the
+                                            // zombie-fleet signature: we think we are reaching
+                                            // people and no phone is drawing anything.
+                                            bad={data.funnel.confirmRate != null && data.funnel.confirmRate < 50}
+                                        />
+                                    </div>
+                                </>
+                            )}
+
                             <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Why Pushes Were Suppressed</h2>
                             <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
                                 Last 7 days. Green and grey are working as intended -- a suppressed

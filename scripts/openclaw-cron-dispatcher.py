@@ -375,7 +375,13 @@ ALL_CRONS = [
     # delivery in push-enqueue is the primary path; this is the durability net,
     # so */5 latency is acceptable. Handler takes the standard CRON_SECRET
     # bearer this dispatcher already sends.
-    ('/api/cron/push-dispatch',                   dict(minute='*/5')),      # every 5 min — outbox retry/drain
+    # Every minute, not every 5. This is the delivery path for anything that
+    # did NOT go through notify() inline -- which is most of the product, since
+    # the mirror trigger picks up all 21 direct-insert routes and the DB
+    # notification triggers. At */5 a seat alert or a group announcement could
+    # sit five minutes before it reached a phone. The run is cheap when idle:
+    # it claims a dedup slot, finds nothing pending and exits in ~1.5s.
+    ('/api/cron/push-dispatch',                   dict(minute='*')),      # every minute — outbox drain
     # push-health: daily watchdog. Zombie subscriptions (accepted-but-never-
     # displayed via last_receipt_at), staff with no active subscription, VAPID
     # config drift, and dispatch liveness (via push_dispatch_runs). Alerts

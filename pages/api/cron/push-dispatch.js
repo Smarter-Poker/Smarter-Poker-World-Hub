@@ -1,7 +1,7 @@
 /**
  * ===========================================================================
  *  CRON: /api/cron/push-dispatch
- *  Schedule: every 5 minutes, from Open Claw (Hetzner), NOT vercel.json.
+ *  Schedule: every minute, from Open Claw (Hetzner), NOT vercel.json.
  *            See CLAUDE.md section 11 -- vercel.json crons are frozen.
  *
  *  THE DURABILITY LAYER.
@@ -31,7 +31,7 @@ import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { sendWebPush, isPushConfigured } from '../../../src/lib/push/web-push';
 import { recordSendFailure } from '../../../src/lib/push/push-deliver';
-import { loadGateContext, gateDecision, needsDailyCount, countSentToday } from '../../../src/lib/push/push-gate';
+import { loadGateContext, gateDecision, needsDailyCount, countSentTodayBatch } from '../../../src/lib/push/push-gate';
 
 // Vercel's default Pages-Router function timeout is short, and this route
 // fans out to every subscription of up to BATCH_LIMIT recipients. Give it room,
@@ -54,7 +54,12 @@ const BATCH_LIMIT = 300;
 const MAX_DELIVERY_AGE_MS = 60 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const STUCK_AFTER_MINUTES = 15;
-const SLOT_MINUTES = 5;
+// MUST match the Open Claw firing interval. The slot is a dedupe key: two
+// dispatchers alive at once collide on it instead of double-sending. If this is
+// coarser than the schedule, every run inside the same slot is discarded as
+// "already claimed" -- at minute='*' with SLOT_MINUTES=5 that silently threw
+// away 4 of every 5 runs and quietly restored the old 5-minute latency.
+const SLOT_MINUTES = 1;
 
 let _supabase = null;
 function getSupabase() {
@@ -155,6 +160,14 @@ async function handler(req, res) {
             return res.status(200).json({ ok: true, ...stats, slot });
         }
 
+        // Daily-cap counts for the whole batch in one query, but ONLY for the
+        // users who actually have a cap configured -- most do not, so this is
+        // usually a no-op.
+        const capUserIds = rows
+            .filter((r) => needsDailyCount(gateCtx.get(r.recipient_user_id) || {}, r.event))
+            .map((r) => r.recipient_user_id);
+        const capCounts = await countSentTodayBatch(supabase, capUserIds);
+
         // ---- 4. Send -------------------------------------------------------
         const nowIso = new Date().toISOString();
 
@@ -205,7 +218,12 @@ async function handler(req, res) {
             const entry = gateCtx.get(row.recipient_user_id) || { prefs: null, legacy: null };
             const gateOpts = {};
             if (needsDailyCount(entry, row.event)) {
-                gateOpts.sentToday = await countSentToday(supabase, row.recipient_user_id);
+                // Precomputed in ONE query before the loop. This used to be a
+                // per-row `count: exact` awaited inside the send loop -- up to
+                // BATCH_LIMIT sequential round trips competing with the same
+                // TIME_BUDGET_MS that decides whether rows get requeued, which
+                // undid the batching loadGateContext exists to provide.
+                gateOpts.sentToday = capCounts.get(row.recipient_user_id) || 0;
             }
             const gate = gateDecision(entry, row.event, gateOpts);
             if (!gate.allowed) {

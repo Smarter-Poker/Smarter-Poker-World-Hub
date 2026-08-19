@@ -20,6 +20,7 @@ import {
 import { getAccessToken } from '../../lib/authUtils';
 import { groupedPushTypes } from '../../lib/push/push-prefs';
 import { useToastStore } from '../../stores/toastStore';
+import { supabase } from '../../lib/supabase';
 
 // Belt-and-suspenders over the per-step timeouts inside push-client. If
 // anything at all wedges, the spinner still resolves and the user gets a
@@ -67,6 +68,7 @@ export default function PushNotificationToggle({
     const [prefs, setPrefs] = useState({});
     const [muteAll, setMuteAll] = useState(false);
     const [quietHours, setQuietHours] = useState({ start: null, end: null, tz: null });
+    const [devices, setDevices] = useState(null); // null = not loaded yet
     const [dailyCap, setDailyCap] = useState(0);
     const [loadingPrefs, setLoadingPrefs] = useState(true);
     const mounted = useRef(true);
@@ -157,6 +159,7 @@ export default function PushNotificationToggle({
                     setSubscribed(true);
                     setPermission('granted');
                     toast('success', 'Notifications enabled on this device');
+                    loadDevices();
                 } else {
                     setPermission(notificationPermission());
                     toast('error', result.error || 'Could not enable notifications');
@@ -166,6 +169,7 @@ export default function PushNotificationToggle({
                 if (!mounted.current) return;
                 setSubscribed(false);
                 toast('info', 'Notifications turned off on this device');
+                loadDevices();
             }
         } finally {
             clearTimeout(guard);
@@ -236,6 +240,61 @@ export default function PushNotificationToggle({
     };
 
     // ---- render ------------------------------------------------------------
+    // ---- enrolled devices --------------------------------------------------
+    // Read directly through RLS ("user reads own push subs"). No API route is
+    // needed and none should exist: the policy already scopes this to the
+    // caller, so a server round trip would only re-implement the same check.
+    const loadDevices = useCallback(async () => {
+        try {
+            const { data, error } = await supabase
+                .from('push_subscriptions')
+                .select('id, device_label, user_agent, is_active, last_used_at, last_receipt_at, created_at')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            if (mounted.current) setDevices(data || []);
+        } catch {
+            if (mounted.current) setDevices([]); // an empty list is honest; a spinner forever is not
+        }
+    }, []);
+
+    useEffect(() => { if (showTypePrefs) loadDevices(); }, [showTypePrefs, loadDevices]);
+
+    const revokeDevice = async (id) => {
+        const previous = devices;
+        setDevices((d) => (d || []).filter((x) => x.id !== id));
+        try {
+            // Allowed by the "user deletes own push subs" policy.
+            const { error } = await supabase.from('push_subscriptions').delete().eq('id', id);
+            if (error) throw error;
+            toast('info', 'Device removed');
+            // If they revoked the device they are sitting on, the local
+            // PushSubscription is now orphaned -- drop it so the UI and the
+            // browser agree instead of showing "On" for a device the server
+            // has forgotten.
+            const stillHere = await hasLocalSubscription();
+            const revokedSelf = !(previous || []).some(
+                (x) => x.id !== id && x.is_active
+            );
+            if (stillHere && revokedSelf) {
+                await disablePush();
+                if (mounted.current) setSubscribed(false);
+            }
+        } catch {
+            if (mounted.current) { setDevices(previous); toast('error', 'Could not remove that device'); }
+        }
+    };
+
+    const relativeTime = (iso) => {
+        if (!iso) return 'never';
+        const mins = Math.round((Date.now() - Date.parse(iso)) / 60000);
+        if (!Number.isFinite(mins)) return 'never';
+        if (mins < 1) return 'just now';
+        if (mins < 60) return `${mins}m ago`;
+        const hrs = Math.round(mins / 60);
+        if (hrs < 24) return `${hrs}h ago`;
+        return `${Math.round(hrs / 24)}d ago`;
+    };
+
     const saveQuietHours = async (next) => {
         const previous = quietHours;
         setQuietHours(next);
@@ -353,6 +412,59 @@ export default function PushNotificationToggle({
                             <p className="text-xs text-gray-400">Stops every push without unsubscribing this device.</p>
                         </div>
                         <Switch checked={muteAll} onChange={handleMuteAll} label="Mute all push notifications" />
+                    </div>
+
+                    {/* Your devices. Makes "one account per device" and dead
+                        subscriptions legible to the person they affect, instead
+                        of only to an admin on /admin/push-health. */}
+                    <div className="mt-6 border-t border-white/10 pt-5">
+                        <h4 className="text-sm font-semibold">Your Devices</h4>
+                        <p className="mb-3 text-xs text-gray-400">
+                            Every phone or computer signed in to this account. Confirmed is the
+                            last time a notification actually appeared on it.
+                        </p>
+
+                        {devices === null ? (
+                            <p className="text-sm text-gray-500">Loading devices...</p>
+                        ) : devices.length === 0 ? (
+                            <p className="text-sm text-gray-500">
+                                No devices yet. Turn on the switch above to add this one.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {devices.map((d) => {
+                                    // Sent to but never confirmed = the push service accepted it
+                                    // and the device never displayed it. That is the zombie case.
+                                    const zombie = d.is_active && d.last_used_at && !d.last_receipt_at;
+                                    return (
+                                        <div key={d.id} className="flex items-center justify-between gap-3 rounded-lg bg-white/5 px-3 py-2">
+                                            <div className="min-w-0">
+                                                <p className="truncate text-sm">
+                                                    {d.device_label || 'Unknown device'}
+                                                    {!d.is_active && (
+                                                        <span className="ml-2 text-xs text-gray-500">(inactive)</span>
+                                                    )}
+                                                    {zombie && (
+                                                        <span className="ml-2 text-xs text-amber-300">(not confirming)</span>
+                                                    )}
+                                                </p>
+                                                <p className="truncate text-xs text-gray-500">
+                                                    Confirmed {relativeTime(d.last_receipt_at)}
+                                                    {d.last_used_at ? ` - last sent ${relativeTime(d.last_used_at)}` : ''}
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => revokeDevice(d.id)}
+                                                className="shrink-0 rounded-md border border-white/10 px-2 py-1 text-xs text-gray-300 hover:bg-white/10"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     {/* Quiet hours: a poker product pushes around the clock.

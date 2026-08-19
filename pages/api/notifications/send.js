@@ -25,6 +25,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { enqueuePush } from '../../../src/lib/push/push-enqueue';
 import { isPushConfigured } from '../../../src/lib/push/web-push';
+import { LEGACY_PREF_COLUMNS } from '../../../src/lib/push/push-prefs';
 
 let _supabase = null;
 function getSupabase() {
@@ -128,23 +129,52 @@ export default async function handler(req, res) {
           const supabase = getSupabase();
 
           // ── Enforce per-category opt-outs (user_notification_preferences) ──
+          //
+          // `category` is raw request input interpolated into a PostgREST select.
+          // Two problems, both fixed here:
+          //
+          //   1. An unknown column made PostgREST return 400. The error was
+          //      DISCARDED, `prefs` came back null, `if (prefs)` was false, and
+          //      the whole opt-out check was SKIPPED -- so a user who had turned
+          //      that category off was pushed anyway. A silent consent bypass
+          //      triggered by nothing more than a typo in the caller.
+          //   2. Interpolating unvalidated input into a select list is a
+          //      column-injection primitive. Allowlisting removes it entirely.
           let finalUserIds = Array.from(new Set(externalUserIds.filter(Boolean)));
           if (category && finalUserIds.length > 0) {
-              const { data: prefs } = await supabase
+              if (!LEGACY_PREF_COLUMNS.includes(category)) {
+                  return res.status(400).json({
+                      success: false,
+                      error: `Unknown notification category: ${category}`,
+                  });
+              }
+
+              const { data: prefs, error: prefsErr } = await supabase
                   .from('user_notification_preferences')
                   .select(`user_id, ${category}`)
                   .in('user_id', finalUserIds);
 
-              if (prefs) {
-                  const optedOut = new Set(prefs.filter((p) => p[category] === false).map((p) => p.user_id));
-                  finalUserIds = finalUserIds.filter((id) => !optedOut.has(id));
-                  if (finalUserIds.length === 0) {
-                      return res.status(200).json({
-                          success: true,
-                          message: 'Notification skipped: all target users opted out.',
-                          skipped: true,
-                      });
-                  }
+              // Fail CLOSED on a read failure. Sending to everyone because we
+              // could not read their preferences is the wrong default when the
+              // question is "did this person ask us not to contact them".
+              if (prefsErr) {
+                  console.warn('[notifications/send] preference read failed:', prefsErr.message);
+                  return res.status(503).json({
+                      success: false,
+                      error: 'Could not verify notification preferences; nothing was sent.',
+                  });
+              }
+
+              const optedOut = new Set(
+                  (prefs || []).filter((p) => p[category] === false).map((p) => p.user_id)
+              );
+              finalUserIds = finalUserIds.filter((id) => !optedOut.has(id));
+              if (finalUserIds.length === 0) {
+                  return res.status(200).json({
+                      success: true,
+                      message: 'Notification skipped: all target users opted out.',
+                      skipped: true,
+                  });
               }
           }
 

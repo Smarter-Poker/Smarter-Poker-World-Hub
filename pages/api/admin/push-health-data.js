@@ -12,6 +12,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { isPushConfigured, vapidConfig } from '../../../src/lib/push/web-push';
+import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
 function getSupabase() {
@@ -49,6 +50,11 @@ export default async function handler(req, res) {
         res.setHeader('Allow', 'GET');
         return res.status(405).json({ error: 'Method not allowed' });
     }
+
+    // This route pulls the whole subscription table plus several exact counts.
+    // Every other route in the stack is rate limited; an admin holding refresh
+    // should not be a self-inflicted load generator.
+    if (!applyRateLimit(req, res, { max: 30, windowMs: 60_000, scope: 'push-health-data' })) return;
 
     const supabase = getSupabase();
     const { user } = await getServerUserWithFallback(req, supabase);
@@ -141,6 +147,46 @@ export default async function handler(req, res) {
 
         const lastRunAt = lastRun?.[0]?.started_at ? Date.parse(lastRun[0].started_at) : null;
 
+        // ---- DELIVERY FUNNEL --------------------------------------------
+        // The whole point of this stack is that "accepted by FCM" is NOT
+        // "shown on a phone" -- push services return 2xx for devices that were
+        // wiped months ago. The only honest measure of delivery is the receipt
+        // the service worker beacons back after showNotification() resolves.
+        //
+        // Queued -> Sent tells you whether the dispatcher is keeping up.
+        // Sent -> Displayed tells you whether phones are actually rendering
+        // them. A healthy system has a small gap (phones asleep, receipts
+        // rate-limited); a large or growing gap is the zombie-fleet signature.
+        let funnel = null;
+        try {
+            const since24 = new Date(now - 86400_000).toISOString();
+            const [{ count: queued24 }, { count: suppressed24 }] = await Promise.all([
+                supabase.from('push_outbox').select('id', { count: 'exact', head: true })
+                    .gte('created_at', since24),
+                supabase.from('push_outbox').select('id', { count: 'exact', head: true })
+                    .in('status', ['skipped', 'failed']).gte('created_at', since24),
+            ]);
+
+            // Device-level confirmation: of the subscriptions we pushed to in
+            // the window, how many beaconed a receipt inside it.
+            const pushed = activeSubs.filter((s) => s.last_used_at && s.last_used_at >= since24);
+            const confirmed = pushed.filter((s) => s.last_receipt_at && s.last_receipt_at >= since24);
+
+            funnel = {
+                windowHours: 24,
+                queued: queued24 || 0,
+                sent: sent24 || 0,
+                suppressed: suppressed24 || 0,
+                devicesPushed: pushed.length,
+                devicesConfirmed: confirmed.length,
+                // Null rather than a fake 100% when there is nothing to measure.
+                confirmRate: pushed.length
+                    ? Math.round((confirmed.length / pushed.length) * 100)
+                    : null,
+                deliveryRate: queued24 ? Math.round(((sent24 || 0) / queued24) * 100) : null,
+            };
+        } catch { /* diagnostics only -- never break the page */ }
+
         return res.status(200).json({
             config: {
                 configured: isPushConfigured(),
@@ -163,6 +209,11 @@ export default async function handler(req, res) {
                 skipped: skipped || 0,
                 sentLast24h: sent24 || 0,
             },
+            funnel,
+            // skipReasons was computed and then dropped on the floor -- the
+            // "did they opt out or are we broken" breakdown never reached the
+            // page it was written for.
+            skipReasons,
             staff: staffStatus,
         });
     } catch (e) {

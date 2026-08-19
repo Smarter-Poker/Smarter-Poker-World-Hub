@@ -10,6 +10,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { notify } from '../../../src/lib/notify';
 
 let _supabase = null;
 function getSupabase() {
@@ -85,26 +86,30 @@ export default async function handler(req, res) {
     const typeLabel = callType === 'video' ? 'Video' : 'Voice';
     const reasonLabel = reason === 'declined' ? 'Declined' : 'Missed';
 
-    // Insert notification for the callee
-    const { error: insertErr } = await getSupabase()
-        .from('notifications')
-        .insert({
-            user_id: calleeId,
-            type: 'missed_call',
-            title: callerName,
-            message: `${reasonLabel} ${typeLabel} Call`,
-            actor_id: user.id,
-            link: '/hub/messenger',
-            data: {
-                callType: callType || 'voice',
-                reason: reason || 'missed',
-                caller_avatar: profile?.avatar_url || null,
-            }
-        });
+    // Routed through notify() rather than a bare insert. A bare insert only
+    // reached the phone via the mirror trigger and the 5-minute outbox cron --
+    // a "you missed a call" that lands four minutes later is close to useless.
+    // notify() delivers inline while still honouring the full preference gate.
+    const result = await notify(getSupabase(), {
+        userId: calleeId,
+        type: 'missed_call',
+        title: callerName,
+        body: `${reasonLabel} ${typeLabel} Call`,
+        url: '/hub/messenger',
+        actorId: user.id,
+        // One tag per caller so a run of missed calls collapses on the lock
+        // screen instead of stacking one banner per attempt.
+        tag: `missed-call:${user.id}`,
+        data: {
+            callType: callType || 'voice',
+            reason: reason || 'missed',
+            caller_avatar: profile?.avatar_url || null,
+        },
+    });
 
-    if (insertErr) {
-        console.warn('[MISSED-CALL-NOTIFICATION] Insert error:', insertErr);
-        return res.status(500).json({ success: false, error: insertErr.message });
+    if (!result.ok) {
+        console.warn('[MISSED-CALL-NOTIFICATION] notify failed for callee', calleeId);
+        return res.status(500).json({ success: false, error: 'Could not record the missed call' });
     }
 
     return res.json({ success: true });
