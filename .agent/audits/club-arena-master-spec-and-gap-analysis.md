@@ -3739,3 +3739,114 @@ intrinsic to any sequence allocator and are *not* a violation of the rule that
 matters: a sequence never reuses or resets a value, which is precisely what Dan
 required. A burned number is a hand that was dealt; it is never a *different*
 hand later.
+
+---
+
+## §55 — Dan's 18-item play-testing bug list, worked end to end (2026-08-19)
+
+Dan played the game and filed 18 items. All 18 are closed. The pattern worth
+recording is that **most of them were not missing features — they were features
+that had been built and then never connected**, or two numbers in different
+files that nobody had ever compared. Six of the eighteen were dead wiring.
+
+### 55.1 The dead-wiring cluster
+
+| # | Symptom | What was actually wrong |
+|---|---|---|
+| 9 | "buy more time banks does nothing" | It called `activateTimeBank` — the endpoint for USING a bank. Nothing ever purchased. `fn_purchase_feature`, `feature_pricing` and the engine's `refreshTimeBankFromDb` all already existed and were never called together. |
+| 6 | no pot push | `.pot-display--collect` and its `--collect-dx/dy` had been in the stylesheet since it was written, commented "set by JS". Nothing set them. That animation had never run once. |
+| 16 | no live win percentages | Equity was computed on a worker pool and broadcast — **once**, at the all-in. The run-out was a synchronous `while (board < 5)` loop, so all three streets landed in one tick. Nothing was missing from the maths; what was missing was *time*. The paced per-street loop already existed for insurance tables and ordinary all-ins simply never used it. |
+| 4b | PLO had no RAISE POT preflop | Preflop offered 2X/3X/4X/5X only. With `maxRaise` set to the pot cap, 4X and 5X clamped to the same number — 5X was already an unlabelled POT. |
+| 8 | chips not in front of the player | The dealer button travels 0.28 toward centre; bet chips travelled 0.22. Nobody had ever compared the two constants, so on every side seat the button stood in front of the chips. |
+| 17 | rebuy never dealt in | `processPendingAddOns` ran in exactly one place: settlement, at the end of a hand. Bust → filtered out by `stack > 0` → table drops below two funded seats → no hand → no settlement → chips never applied. A closed loop, with the player's money already debited. |
+
+### 55.2 Bugs found *while* fixing other bugs
+
+Three defects nobody had reported, each surfaced by pulling on one of Dan's:
+
+- **The postflop POT button over-bet.** It computed `currentBet + callAmount +
+  (pot + callAmount)` — one call too many. Facing a bet it offered MORE than a
+  pot-sized raise. Invisible in PLO because `maxRaise` clamped it back; real
+  money in no-limit. There is now one exported `potSizedRaiseTo` that both the
+  button and the pot-limit cap call, so they cannot drift apart again.
+- **A rate limiter players tripped on themselves.** The 250ms action window was
+  keyed by `userId` alone, so it was shared across every table a player sat at.
+  Multi-tabling is ordinary play, and folding at one table and calling at
+  another inside 250ms *rejected* the second action — that was the "Server
+  error (429)" Dan photographed. Now keyed per user **and** table.
+- **Eight chips each showing the wrong number.** A pot shipped to one winner is
+  a fan of 3–8 chips and every chip was labelled with its own 1/Nth share, so a
+  1,000 pot showed eight chips reading "125".
+
+### 55.3 The one-sided-card mistake, made twice
+
+Items 4 and 5 have the same root cause in two different places: **an animation
+that rotates a single-sided element and expects it to read as a flip.**
+
+- The **flop** span from `rotateY(180deg)`, but the element was the FACE — half
+  a turn of a one-sided card shows the face mirrored, never a back, so the card
+  was legible before it landed. Fixed with a real two-surface card
+  (`backface-visibility: hidden`) and two phases: three cards land face down,
+  *then* they fan open left to right.
+- The **hole cards** started at `rotateY(90deg)` — edge-on, zero width, nothing
+  to draw. That flash of nothing is exactly the "glitch once before display".
+  These never turn over at all, so they now just arrive, together, with no
+  rotation and no overshoot.
+
+### 55.4 The one item that needed Dan
+
+Item 10 ("the top player's box must sit on top of the rail") is geometrically
+over-constrained and could not be resolved by reasoning alone. Measured: with
+the avatar ABOVE the nameplate, the box sits ~3.9% of the table below the seat
+centre, so putting the box on the rail band (~8.5%) needs a seat centre near
+4.6% — which pushes the seat, and bust art drawn rising from its feet, off the
+canvas into the BBJ banner. That is precisely why another agent had pushed
+these seats DOWN to y=11 hours earlier, which is what produced Dan's report.
+
+Every valid solution had a visible cost, so Dan chose: shrink the top row. A
+56px avatar shortens the seat from 112px to 84px, halving the offset, and the
+box reaches the rail with everything still inside the canvas.
+
+**The lesson to keep:** two agents fixing adjacent symptoms in opposite
+directions on the same day is what produced this. The seat y was moved 8.5 → 11
+to fix art overflow, which broke box placement, which was reported as a new
+bug. Neither change was wrong on its own.
+
+### 55.5 Verification method
+
+Visual bugs are the easy ones to *claim* fixed. Everything geometric here is
+measured against the real stylesheets in Playwright — no dev server, no login,
+so the specs cannot go stale against a running game:
+
+- `hero-card-row.spec.ts` — PLO cards exactly 1.50x at four breakpoints,
+  hold-em unchanged, row centred to 0.00px, no overflow
+- `pot-above-chips.spec.ts` — the pot is **pixel-identical** before and after
+  being promoted out of `.table-surface`, and a chip on the pot centre now
+  renders beneath it
+- `top-rail-seat.spec.ts` — the box straddles the rail band, everything stays
+  inside the canvas
+- `flop-fan-open.spec.ts` — samples the live rotation matrix over time
+- `hero-cards-no-glitch.spec.ts` — samples card width across the animation; a
+  zero reading is the edge-on frame
+
+**Several specs carry CONTROL cases that assert the OLD behaviour was broken.**
+`hero-cards-no-glitch` was run against the previous stylesheet and all 7 checks
+fail there. The paced-runout tests were checked with the fix reverted and fail
+on the assertion rather than passing anyway. A test that passes both ways
+proves nothing, and on this codebase that has to be demonstrated, not assumed.
+
+One correction worth recording: the first pot-vs-chips probe used
+`elementFromPoint`, which returned the pot even *before* the fix — because the
+chip layer is `pointer-events: none`, which excludes it from hit testing but
+**not from painting**, and painting was the bug. The control case caught it.
+
+### 55.6 Deploy status at time of writing
+
+GitHub Actions began failing account-wide at ~02:36 UTC — every workflow, every
+branch, jobs failing in 1–4s with **zero steps executed**. That is a runner or
+billing block, not a code failure (the same commits build, typecheck and test
+clean locally).
+
+Consequence: engine `60e89d89` is live and carries the 429 fix and the rebuy
+sweep. The paced all-in run-out is committed but **not deployed** and will go
+out on the next successful `auto-deploy-hetzner` run, which deploys HEAD.
