@@ -1,0 +1,41 @@
+name: Undefined Identifier Guard
+
+# .eslintrc.json sets "no-undef": "off". On 2026-08-19 that let two separate
+# undefined identifiers reach production in a single day -- one of which took
+# the messenger down for two days behind an error boundary, and one of which
+# broke the Vercel build and blocked a security fix from deploying.
+#
+# This runs the rule anyway, with a baseline of the 175 that already existed,
+# and fails only on NEW ones. Rationale and the baseline policy are documented
+# in scripts/ci/check-undefined-identifiers.mjs.
+#
+# No `schedule:` trigger, per the cron-governance rule: push and PR only.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: undefined-identifier-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Check for new undefined identifiers
+        run: node scripts/ci/check-undefined-identifiers.mjs
