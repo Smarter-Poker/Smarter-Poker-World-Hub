@@ -406,3 +406,71 @@ reviewed rather than clobbered, and shipped together after a joint build:
   and with the user unmuted the identical flow passed the gate and terminated at
   `no_subscription`. The gate demonstrably both blocks and allows on real infra.
 - Test data removed; the test user's `mute_all` restored to its original value.
+
+---
+
+## ROUND 5 -- closing the last gaps (2026-08-19, 23:20-00:00 UTC)
+
+### DIRECT MESSAGES PRODUCED NOTHING
+`send-message.js` had no notification logic at all. No bell row, no push.
+Delivery relied entirely on Supabase Realtime, so a message only landed if the
+recipient already had the app open -- someone messaging you was completely
+silent on a locked phone. Confirmed by search: no API route and no DB trigger
+anywhere ever created a `new_message` notification.
+
+Now routed through `notify()`, which delivers INLINE (a message arriving a cron
+tick late is useless) while still passing the full preference gate, including
+the legacy `messenger_alerts` column. Media messages send "Sent a photo" rather
+than leaking metadata onto a lock screen. This is also the first real caller of
+the typed helpers, which until now were all dead.
+
+### LATENCY
+- Missed calls moved from the mirror + cron path to inline `notify()`.
+- Open Claw `push-dispatch`: `*/5` -> every minute.
+- `SLOT_MINUTES` 5 -> 1 to match, and this coupling matters: the slot is a
+  dedupe key, so firing every minute against 5-minute slots silently discards
+  4 of every 5 runs as "already claimed". That was observed live before the fix
+  deployed -- the dispatcher fired at 23:36/37/38 while only 23:35 recorded a
+  run -- and confirmed resolved afterwards with consecutive slots at
+  23:40/41/42/43. Worst-case latency for anything not delivered inline is now
+  ~60s, down from ~5 minutes.
+
+### DEVICE MANAGEMENT
+"Your devices" on the notification settings page: every enrolled device, when it
+last CONFIRMED a notification (not merely when one was sent), a "not confirming"
+flag for the zombie case, and a per-device Remove. Reads and deletes go straight
+through the RLS policies from round 3 -- no API route, because the policy
+already scopes it to the caller. Revoking the device you are sitting on also
+drops the local PushSubscription so the browser and the UI cannot disagree.
+
+### DEAD CODE REMOVED
+`PushNotificationBell.jsx` (zero importers; the header already has a bell) and
+`NotificationPrompt.jsx` (291 lines of OneSignal-era code calling
+`/api/notifications/link-user`, which now returns 410, and reading `playerId`,
+which no longer exists). Both superseded by `FirstRunNotificationPrompt`.
+
+### A LIVE PRODUCTION BUG CAUGHT BY VERIFYING
+A latency probe came back `processing` instead of completing. The dispatch run
+log explained it: `threw:(0 , j.countSentTodayBatch) is not a function`. Two
+agents working this stack had briefly landed a dispatcher calling a gate export
+that had not shipped yet. Already fixed on origin (`restore countSentTodayBatch
+export`); runs have been clean every minute since. Worth recording because the
+symptom was a single stuck row -- exactly the kind of thing that looks like
+nothing and means the whole delivery path is down.
+
+The stuck row is left to `requeue_stuck_push_outbox` rather than being fixed by
+hand: that reclaim path exists precisely for a run that dies mid-batch, and
+letting it do its job is the proof it works.
+
+### Concurrent work reviewed and preserved
+- `notifications/send.js` -- `category` was raw request input interpolated into
+  a PostgREST select. That was my code; their fix is correct.
+- `push/receipt.js` -- 60/min per IP is far too tight for an unauthenticated
+  endpoint bucketed by IP: everyone behind one carrier CGNAT shares a bucket, so
+  a broadcast would 429 most receipts and fake a zombie fleet.
+- `push-health-data.js` -- rate limited.
+- `push-health.js` -- surfaces the sent-vs-confirmed gap.
+
+### Vercel account
+Confirmed again: team `smarter-poker`, project `hub-vanguard`, alias
+smarter.poker, and exactly ONE Vercel project linked to the repo.
