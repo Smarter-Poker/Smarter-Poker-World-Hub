@@ -26,7 +26,11 @@
 import { Hono } from 'hono';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sendPushNotification } from '../../../src/lib/pushAlerts';
+// NOT src/lib/pushAlerts -- its sendPushNotification is a client-side stub
+// (`export const sendPushNotification = async () => {}`), so this geofence
+// check-in prompt was silently discarded: no outbox row, no log, no error.
+// notify() fires the in-app bell and the web push together.
+import { notifyVenueAlert } from '../../../src/lib/notify';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getGrokClient } from '../../../src/lib/grokClient';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
@@ -232,12 +236,13 @@ app.post('/record-geofence', async (c) => {
     }
 
     try {
-      await sendPushNotification(userId, 'venue_alert', {
-        title: 'At the poker table?',
-        body: `Are you currently at ${venue_name || 'a saved venue'}? Tap to check in!`,
-        url: `/hub/venues/${venue_id}`,
-        data: { action: 'checkin', venueId: venue_id },
-      });
+      await notifyVenueAlert(
+        supabase,
+        userId,
+        'At the poker table?',
+        `Are you currently at ${venue_name || 'a saved venue'}? Tap to check in!`,
+        `/hub/venues/${venue_id}`
+      );
     } catch (pushErr) {
       console.warn('[Record Geofence] Failed to send push:', pushErr);
     }

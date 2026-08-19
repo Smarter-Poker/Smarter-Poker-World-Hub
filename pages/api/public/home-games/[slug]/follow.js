@@ -319,9 +319,13 @@ async function dispatchFollowNotification(supabase, { page, follower_user_id }) 
         const { error: err_notifications_vjuvs } = await supabase.from('notifications').insert({
             user_id: host_user_id,
             type: 'home_game_new_follower',
+            // _push:'inline' stops fn_mirror_notification_to_push_outbox mirroring
+            // this row -- the explicit sendPushNotification() below already
+            // handles push. Without it the user got TWO pushes for one follow.
+            type: 'home_game_new_follower',
             title: titleText,
             message: bodyText,
-            data: metadata,
+            data: { ...(metadata || {}), _push: 'inline' },
             actor_id: follower_user_id,
             link: manageUrl,
             read: false,
