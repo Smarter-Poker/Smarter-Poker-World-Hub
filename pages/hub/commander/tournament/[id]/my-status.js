@@ -77,9 +77,16 @@ export default function MyTournamentStatus() {
                 const clockState = settings.clock_state || null;
 
                 if (currentBlind) {
+                    // Break-aware level number: breaks occupy structure slots but do
+                    // not consume a level number (matches the clock API's
+                    // currentBlind.level numbering).
+                    let displayLevel = 0;
+                    for (let i = 0; i <= currentLevel && i < blindStructure.length; i++) {
+                        if (!blindStructure[i]?.is_break) displayLevel++;
+                    }
                     let timeRemaining = 0;
                     if (clockState) {
-                        const levelDuration = (currentBlind.duration || 0) * 60 * 1000;
+                        const levelDuration = (currentBlind.duration ?? currentBlind.duration_minutes ?? 0) * 60 * 1000;
                         const elapsed = clockState.isRunning
                             ? Date.now() - new Date(clockState.levelStartedAt).getTime() - (clockState.pausedDuration || 0)
                             : clockState.pausedAt
@@ -88,7 +95,8 @@ export default function MyTournamentStatus() {
                         timeRemaining = Math.max(0, Math.floor((levelDuration - elapsed) / 1000));
                     }
                     setClock({
-                        current_level: currentLevel + 1,
+                        current_level: displayLevel || 1,
+                        is_break: !!currentBlind.is_break,
                         time_remaining: timeRemaining,
                         is_running: clockState?.isRunning || false,
                         small_blind: currentBlind.small_blind,
@@ -105,7 +113,7 @@ export default function MyTournamentStatus() {
                 setMyEntry(entryResult.data);
                 setChipValue(String(entryResult.data.current_chips || ''));
             }
-        } catch (err) { console.warn(err); setError('Failed to load tournament data'); }
+        } catch (err) { console.warn(err); setError('Failed To Load Tournament Data'); }
         finally { setLoading(false); }
     }, [id, authUser]);
 
@@ -206,12 +214,13 @@ export default function MyTournamentStatus() {
             if (json.success) {
                 busEmit.dataMutated('tournaments');
                 setSaved(true);
-                setMyEntry(prev => ({ ...prev, current_chips: json.data.current_chips }));
+                setMyEntry(prev => ({ ...prev, current_chips: json.data?.current_chips ?? prev?.current_chips }));
                 setTimeout(() => setSaved(false), 3000);
             } else {
-                setError(json.error || 'Failed to update');
+                const errText = typeof json.error === 'string' ? json.error : json.error?.message;
+                setError(errText || 'Failed To Update');
             }
-        } catch (err) { setError('Network error'); }
+        } catch (err) { setError('Network Error'); }
         finally { setSaving(false); }
     };
 
@@ -276,7 +285,7 @@ export default function MyTournamentStatus() {
 
     if (!tournament) return (
         <div className="min-h-screen bg-[#18191A] flex items-center justify-center p-6">
-            <p className="text-[#B0B3B8] text-lg">Tournament not found</p>
+            <p className="text-[#B0B3B8] text-lg">Tournament Not Found</p>
         </div>
     );
 
@@ -287,7 +296,7 @@ export default function MyTournamentStatus() {
     return (
         <CommanderPageShell>
         <>
-            <SEOHead title={`${t.name} — My Status`} description="Your tournament status" noindex={true} />
+            <SEOHead title={`${t.name} - My Status`} description="Your Tournament Status" noindex={true} />
             <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] pb-20">
                 {/* Header */}
                 <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-4">
@@ -318,7 +327,7 @@ export default function MyTournamentStatus() {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-white">Enable Notifications</p>
-                                <p className="text-xs text-[#B0B3B8]">Get alerts for blinds, breaks, and seat assignments</p>
+                                <p className="text-xs text-[#B0B3B8]">Get Alerts For Blinds, Breaks, And Seat Assignments</p>
                             </div>
                             <button
                                 onClick={handleEnablePush}
@@ -337,7 +346,7 @@ export default function MyTournamentStatus() {
                         <div className="grid grid-cols-3 gap-3 text-center">
                             <div>
                                 <p className="text-xs text-[#B0B3B8] uppercase">Level</p>
-                                <p className="text-xl font-bold text-white">{clock.current_level || '?'}</p>
+                                <p className="text-xl font-bold text-white">{clock.is_break ? 'Break' : (clock.current_level || '?')}</p>
                             </div>
                             <div>
                                 <p className="text-xs text-[#B0B3B8] uppercase">Time</p>
@@ -351,8 +360,8 @@ export default function MyTournamentStatus() {
                         {clock.small_blind && (
                             <div className="mt-3 pt-3 border-t border-[#3A3B3C] text-center">
                                 <p className="text-sm text-[#B0B3B8]">
-                                    Blinds: <span className="font-bold text-white">{clock.small_blind.toLocaleString()}/{clock.big_blind.toLocaleString()}</span>
-                                    {clock.ante > 0 && <span className="text-[#F59E0B]"> ante {clock.ante.toLocaleString()}</span>}
+                                    Blinds: <span className="font-bold text-white">{clock.small_blind?.toLocaleString()}/{clock.big_blind?.toLocaleString()}</span>
+                                    {clock.ante > 0 && <span className="text-[#F59E0B]"> Ante {clock.ante.toLocaleString()}</span>}
                                 </p>
                                 {clock.average_stack && (
                                     <p className="text-xs text-[#6A6B6D] mt-1">
@@ -368,7 +377,7 @@ export default function MyTournamentStatus() {
                 {!myEntry ? (
                     <div className="mx-4 mt-4 bg-[#242526] border border-[#3A3B3C] rounded-2xl p-6 text-center">
                         <Users className="w-10 h-10 text-[#3A3B3C] mx-auto mb-3" />
-                        <p className="text-[#B0B3B8]">You are not registered in this tournament</p>
+                        <p className="text-[#B0B3B8]">You Are Not Registered In This Tournament</p>
                         <button onClick={() => router.push(`/hub/commander/tournament/${id}/register`)}
                             className="mt-3 px-6 py-2.5 bg-[#1877F2] text-white rounded-xl text-sm font-medium active:bg-[#1565D8]">
                             Register Now
@@ -387,7 +396,7 @@ export default function MyTournamentStatus() {
                                 <div>
                                     <Hash className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
                                     <p className="text-lg font-bold text-white">
-                                        {myEntry.table_number ? `T${myEntry.table_number}` : '—'}
+                                        {myEntry.table_number ? `T${myEntry.table_number}` : '-'}
                                         {myEntry.seat_number ? `/S${myEntry.seat_number}` : ''}
                                     </p>
                                     <p className="text-[9px] text-[#B0B3B8] uppercase">Table/Seat</p>
@@ -405,7 +414,7 @@ export default function MyTournamentStatus() {
                         {/* Eliminated Banner */}
                         {isEliminated && (
                             <div className="mx-4 mt-3 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-4 text-center">
-                                <p className="text-sm font-bold text-[#EF4444]">Eliminated — {myEntry.finish_position ? `Finished ${myEntry.finish_position}${myEntry.finish_position === 1 ? 'st' : myEntry.finish_position === 2 ? 'nd' : myEntry.finish_position === 3 ? 'rd' : 'th'}` : 'Better luck next time'}</p>
+                                <p className="text-sm font-bold text-[#EF4444]">Eliminated, {myEntry.finish_position ? `Finished ${myEntry.finish_position}${myEntry.finish_position === 1 ? 'st' : myEntry.finish_position === 2 ? 'nd' : myEntry.finish_position === 3 ? 'rd' : 'th'}` : 'Better Luck Next Time'}</p>
                                 {myEntry.payout_amount > 0 && (
                                     <p className="text-lg font-bold text-[#31A24C] mt-1">${myEntry.payout_amount.toLocaleString()}</p>
                                 )}
@@ -425,7 +434,7 @@ export default function MyTournamentStatus() {
                                     value={chipValue}
                                     onChange={e => setChipValue(e.target.value)}
                                     onKeyDown={e => { if (e.key === 'Enter' && chipValue) handleUpdateChips(); }}
-                                    placeholder="Enter your current chips"
+                                    placeholder="Enter Your Current Chips"
                                     className="w-full px-4 py-4 bg-[#18191A] border-2 border-[#3A3B3C] rounded-xl text-2xl font-mono font-bold text-white text-center focus:border-[#1877F2] focus:outline-none"
                                 />
                                 <button
@@ -437,7 +446,7 @@ export default function MyTournamentStatus() {
                                 </button>
                                 {error && <p className="text-xs text-[#EF4444] mt-2 text-center">{error}</p>}
                                 <p className="text-[10px] text-[#6A6B6D] mt-2 text-center">
-                                    Self-reported counts are visible on the public tournament page and leaderboard
+                                    Self-Reported Counts Are Visible On The Public Tournament Page And Leaderboard
                                 </p>
                             </div>
                         )}
@@ -494,7 +503,7 @@ export default function MyTournamentStatus() {
                                     onClick={() => setShowStoryPreview(true)}
                                     className="w-full py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl text-sm text-[#B0B3B8] font-medium flex items-center justify-center gap-2 active:bg-[#3A3B3C]"
                                 >
-                                    <Share2 className="w-4 h-4" /> Share to Story
+                                    <Share2 className="w-4 h-4" /> Share To Story
                                 </button>
                             )}
                         </div>

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 function ordinal(n) {
-    if (!n) return '—';
+    if (!n) return '-';
     const s = ['th', 'st', 'nd', 'rd'];
     const v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
@@ -139,7 +139,7 @@ export default function MyTournaments() {
 
     return (
         <>
-            <SEOHead title="My Tournaments" description="Your tournament history on Smarter.Poker" noindex={true} />
+            <SEOHead title="My Tournaments" description="Your Tournament History On Smarter.Poker" noindex={true} />
             <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] pb-20">
                 {/* Header */}
                 <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-4">
@@ -147,7 +147,7 @@ export default function MyTournaments() {
                         <button onClick={() => router.back()} className="text-[#B0B3B8] active:text-white">←</button>
                         <div>
                             <h1 className="text-xl font-bold text-white">My Tournaments</h1>
-                            <p className="text-xs text-[#B0B3B8]">{stats.played} tournaments played</p>
+                            <p className="text-xs text-[#B0B3B8]">{stats.played} Tournaments Played</p>
                         </div>
                     </div>
                 </div>
@@ -177,8 +177,8 @@ export default function MyTournaments() {
                     {tournaments.length === 0 ? (
                         <div className="text-center py-12">
                             <Trophy className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                            <p className="text-[#B0B3B8] text-sm">No tournaments yet</p>
-                            <p className="text-[#6A6B6D] text-xs mt-1">Enter a tournament to see your history here</p>
+                            <p className="text-[#B0B3B8] text-sm">No Tournaments Yet</p>
+                            <p className="text-[#6A6B6D] text-xs mt-1">Enter A Tournament To See Your History Here</p>
                         </div>
                     ) : tournaments.map(t => {
                         const isWin = t.finish_position === 1;

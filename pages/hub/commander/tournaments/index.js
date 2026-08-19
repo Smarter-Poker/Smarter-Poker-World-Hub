@@ -36,7 +36,7 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
       {/* Status banner */}
       {isLive && (
         <div className="bg-[#10B981]/20 border-b-2 border-[#10B981] text-[#10B981] text-center py-1.5 text-xs font-bold uppercase tracking-wider">
-          LIVE NOW - {tournament.players_remaining} players remaining
+          LIVE NOW - {tournament.players_remaining ?? 0} Players Remaining
         </div>
       )}
 
@@ -70,7 +70,7 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
           </div>
           <div className="flex items-center gap-2 text-[#CBD5E1]">
             <DollarSign size={16} className="text-[#64748B]" />
-            <span>${tournament.buyin_amount} + ${tournament.buyin_fee}</span>
+            <span>${(tournament.buyin_amount ?? 0).toLocaleString()} + ${(tournament.buyin_fee ?? 0).toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-2 text-[#CBD5E1]">
             <Users size={16} className="text-[#64748B]" />
@@ -164,12 +164,15 @@ export default function PlayerTournamentsHub() {
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
-      if (data.entry) {
+      // The entries API returns {success, data:{entry}}; keep the legacy
+      // top-level {entry} shape as a fallback.
+      if (data.success !== false && (data.data?.entry || data.entry)) {
         setMyRegistrations([...myRegistrations, tournament.id]);
-        setMessage({ type: 'success', text: `Successfully registered for ${tournament.name}` });
+        setMessage({ type: 'success', text: `Successfully Registered For ${tournament.name}` });
         setTimeout(() => setMessage(null), 4000);
       } else {
-        setMessage({ type: 'error', text: data.error || 'Registration failed' });
+        const errText = typeof data.error === 'string' ? data.error : data.error?.message;
+        setMessage({ type: 'error', text: errText || 'Registration Failed' });
         setTimeout(() => setMessage(null), 4000);
       }
     } catch (err) {
@@ -201,7 +204,7 @@ export default function PlayerTournamentsHub() {
     <>
       <SEOHead
                 title="Tournaments"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 
@@ -283,8 +286,8 @@ export default function PlayerTournamentsHub() {
               <h3 className="text-lg font-bold text-white">No Tournaments Found</h3>
               <p className="text-[#64748B] mt-1">
                 {filter === 'registered'
-                  ? 'You haven\'t registered for any tournaments yet'
-                  : 'Check back later for upcoming tournaments'
+                  ? 'You Haven\'t Registered For Any Tournaments Yet'
+                  : 'Check Back Later For Upcoming Tournaments'
                 }
               </p>
             </div>

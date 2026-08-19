@@ -84,7 +84,7 @@ export default function TournamentRegisterPage() {
       }
     } catch (err) {
       console.warn('Failed to fetch tournament:', err);
-      setError('Failed to load tournament');
+      setError('Failed To Load Tournament');
     } finally {
       setLoading(false);
     }
@@ -117,12 +117,12 @@ export default function TournamentRegisterPage() {
 
       if (data.success) {
         setRegistered(true);
-        setMyEntry(data.data.entry);
+        setMyEntry(data.data?.entry || null);
       } else {
-        setError(data.error?.message || 'Failed to register');
+        setError(data.error?.message || 'Failed To Register');
       }
     } catch (err) {
-      setError('Connection error. Please try again.');
+      setError('Connection Error. Please Try Again.');
     } finally {
       setRegistering(false);
     }
@@ -159,10 +159,10 @@ export default function TournamentRegisterPage() {
         setRegistered(false);
         setMyEntry(null);
       } else {
-        setError(data.error?.message || 'Failed to unregister');
+        setError(data.error?.message || 'Failed To Unregister');
       }
     } catch (err) {
-      setError('Connection error. Please try again.');
+      setError('Connection Error. Please Try Again.');
     } finally {
       setRegistering(false);
     }
@@ -207,7 +207,7 @@ export default function TournamentRegisterPage() {
     <>
       <SEOHead
                 title="Tournament Registration"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 
@@ -264,12 +264,12 @@ export default function TournamentRegisterPage() {
               <DetailRow
                 icon={DollarSign}
                 label="Buy-In"
-                value={`$${tournament.buyin_amount} + $${tournament.buyin_fee} fee`}
+                value={`$${(tournament.buyin_amount ?? 0).toLocaleString()} + $${(tournament.buyin_fee ?? 0).toLocaleString()} Fee`}
               />
               <DetailRow
                 icon={Users}
                 label="Entries"
-                value={`${tournament.current_entries || 0}${tournament.max_entries ? ` / ${tournament.max_entries}` : ''} players`}
+                value={`${tournament.current_entries || 0}${tournament.max_entries ? ` / ${tournament.max_entries}` : ''} Players`}
               />
               <DetailRow
                 icon={Trophy}
@@ -279,7 +279,7 @@ export default function TournamentRegisterPage() {
               <DetailRow
                 icon={Clock}
                 label="Starting Stack"
-                value={`${tournament.starting_chips?.toLocaleString()} chips`}
+                value={`${(tournament.starting_chips ?? 0).toLocaleString()} Chips`}
               />
             </div>
 
@@ -343,35 +343,46 @@ export default function TournamentRegisterPage() {
           </div>
 
           {/* Blind Structure Preview */}
-          {parseBlinds(tournament.blind_structure) && parseBlinds(tournament.blind_structure).length > 0 && (
-            <div className="mt-6 cmd-panel p-4">
-              <h3 className="font-semibold text-white mb-3">Blind Structure</h3>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {parseBlinds(tournament.blind_structure).slice(0, 10).map((level, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center justify-between py-2 px-3 rounded-lg ${
-                      level.is_break ? 'bg-[#F59E0B]/10' : 'bg-[#0D192E]'
-                    }`}
-                  >
-                    <span className="text-sm text-[#64748B]">
-                      {level.is_break ? 'BREAK' : `Level ${idx + 1}`}
-                    </span>
-                    <span className="text-sm font-medium text-white">
-                      {level.is_break ? `${level.duration} min` :
-                        `${level.small_blind}/${level.big_blind}${level.ante ? `/${level.ante}` : ''}`
-                      }
-                    </span>
-                  </div>
-                ))}
-                {parseBlinds(tournament.blind_structure).length > 10 && (
-                  <p className="text-xs text-[#4A5E78] text-center pt-2">
-                    +{parseBlinds(tournament.blind_structure).length - 10} more levels
-                  </p>
-                )}
+          {(() => {
+            const blinds = parseBlinds(tournament.blind_structure);
+            if (blinds.length === 0) return null;
+            // Break-aware level numbering: breaks occupy structure slots but do
+            // not consume a level number.
+            let levelNumber = 0;
+            const numbered = blinds.map((level) => {
+              if (!level?.is_break) levelNumber++;
+              return { level, displayNumber: levelNumber };
+            });
+            return (
+              <div className="mt-6 cmd-panel p-4">
+                <h3 className="font-semibold text-white mb-3">Blind Structure</h3>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {numbered.slice(0, 10).map(({ level, displayNumber }, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex items-center justify-between py-2 px-3 rounded-lg ${
+                        level.is_break ? 'bg-[#F59E0B]/10' : 'bg-[#0D192E]'
+                      }`}
+                    >
+                      <span className="text-sm text-[#64748B]">
+                        {level.is_break ? 'BREAK' : `Level ${displayNumber}`}
+                      </span>
+                      <span className="text-sm font-medium text-white">
+                        {level.is_break ? `${level.duration ?? level.duration_minutes ?? 0} Min` :
+                          `${(level.small_blind ?? 0).toLocaleString()}/${(level.big_blind ?? 0).toLocaleString()}${level.ante ? `/${level.ante.toLocaleString()}` : ''}`
+                        }
+                      </span>
+                    </div>
+                  ))}
+                  {blinds.length > 10 && (
+                    <p className="text-xs text-[#4A5E78] text-center pt-2">
+                      +{blinds.length - 10} More Levels
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </main>
       </div>
     </>

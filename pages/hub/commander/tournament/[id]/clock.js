@@ -145,7 +145,7 @@ export default function TournamentClockDisplay() {
     <>
       <SEOHead
         title="Tournament Clock"
-        description="Smarter.Poker — The Future Of The Game."
+        description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
 
@@ -154,7 +154,7 @@ export default function TournamentClockDisplay() {
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white">{tournament.name}</h1>
           <p className="text-xl text-[#64748B] mt-2">
-            ${tournament.buyin_amount} + ${tournament.buyin_fee} {tournament.tournament_type?.toUpperCase()}
+            ${(tournament.buyin_amount ?? 0).toLocaleString()} + ${(tournament.buyin_fee ?? 0).toLocaleString()} {tournament.tournament_type?.toUpperCase()}
           </p>
         </header>
 
@@ -207,12 +207,12 @@ export default function TournamentClockDisplay() {
             <StatCard
               icon={DollarSign}
               label="Prize Pool"
-              value={`$${(tournament.actual_prizepool || tournament.guaranteed_pool || 0).toLocaleString()}`}
+              value={`$${(tournament.actual_prizepool || tournament.guaranteed_pool || tournament.guaranteed_prizepool || 0).toLocaleString()}`}
             />
             <StatCard
               icon={Trophy}
               label="Avg Stack"
-              value={tournament.players_remaining ?
+              value={tournament.players_remaining && tournament.current_entries && tournament.starting_chips ?
                 Math.round((tournament.current_entries * tournament.starting_chips) / tournament.players_remaining).toLocaleString() :
                 tournament.starting_chips?.toLocaleString() || '0'
               }
