@@ -3442,3 +3442,61 @@ rather than guessed at.
   solely on `main_balance <= 0`.
 
 **Verified:** invariants 17/17 OK with the stricter self-test in place.
+
+## §51 — The reserve's real job, and the correct pivot split (2026-08-18, CA 06d1b6030)
+
+Dan supplied the rule §50 deliberately left unimplemented:
+
+> "the back up jackpot is in place for when a table hits 100% of the main bbj,
+> that a back up jackpot has funds in it so it doesn't start back at zero. it
+> should go to 50% of BBJ rake to main, 25% to back up BBJ and 25% to promo
+> funds, once a BBJ main balance hits 100K it goes 25% to main, 25% to back up
+> and 50% to promo wallet."
+
+### 51.1 Reseed — a transfer, never a payout source
+When a hit takes 100% of main and leaves it empty, the backup is TRANSFERRED
+into main so the jackpot restarts with funds. §50 still holds: no player is
+ever paid from the reserve. The transfer conserves chips — backup is debited
+exactly what main is credited.
+
+Verified in rolled-back probes:
+
+| scenario | paid | main after | backup after |
+|---|---|---|---|
+| main 800, backup 5,000, **100%** hit | 800.00 | **5,000.00** (reseeded) | **0.00** |
+| main 1,000, backup 5,000, **85%** hit | 850.00 | 150.00 | **5,000.00** (untouched) |
+
+Pool total on the full hit: 5,800 − 800 = 5,000. Conserved.
+
+### 51.2 Pivot split corrected to 25 / 25 / 50
+Past a 100,000 main balance the banking path was using **30/40/30**. It is now
+25% main / 25% back up / 50% promo. The back-up share stays flat at 25%
+because its job is to reseed, not to grow; the surplus is steered to the promo
+wallet instead of inflating an already-large jackpot.
+
+### 51.3 Three copies of one rule, all disagreeing
+- client `BBJ_POOL_ALLOCATION`: **40/30/30** — matched neither standard nor pivot
+- server config comment: pivot 30/40/30
+- server banking path: pivot 30/40/30
+- `fn_bbj_repair_unbanked`: its own hardcoded 30/40/30
+
+All four now state the same thing, with the pivot exported as a named constant
+(`BBJ_POOL_ALLOCATION_PIVOT`, `BBJ_PIVOT_THRESHOLD`) rather than inlined — the
+same "one definition" treatment §48 gave the union rule, applied to the rule
+that decides where every rake chip goes.
+
+### 51.4 A negative money value, caught by the new tests
+The promo portion is computed as the remainder so the three shares always
+re-sum to the fee. In binary floating point that subtraction can land a hair
+BELOW zero — measured **−1.7e-18** — banking a negative promo portion.
+Arithmetically trivial, but it is a negative money value written to the ledger,
+and that is exactly what a CHECK constraint or a future invariant trips over.
+Rounded at the source.
+
+### 51.5 Verification
+10 new tests pin the split at and across the pivot boundary, assert it is never
+the retired 30/40/30, and prove no chip is lost or created across awkward fee
+amounts at both allocations. The `bbj_payout_conservation` invariant now reads:
+"full hit: paid 800.00, reserve reseeded main to 5000.00; partial hit: paid
+850.00, reserve untouched". Server **695/695**, client **136 files green**,
+invariants **17/17**.

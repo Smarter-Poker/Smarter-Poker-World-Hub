@@ -1,0 +1,38 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- APPLIED TO PRODUCTION: 2026-08-18 via mcp apply_migration
+-- (names bbj_backup_reseeds_main_and_pivot_allocation +
+--  bbj_selftest_reserve_rules_full, plus an in-place patch wiring the reseed
+--  into bbj_atomic_payout_v2). Mirror only. Do not re-run.
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Dan, 2026-08-18: "the back up jackpot is in place for when a table hits 100%
+-- of the main bbj, that a back up jackpot has funds in it so it doesn't start
+-- back at zero. it should go to 50% of BBJ rake to main, 25% to back up BBJ and
+-- 25% to promo funds, once a BBJ main balance hits 100K it goes 25% to main,
+-- 25% to back up and 50% to promo wallet."
+--
+-- 1. RESEED. A payout still never SPENDS the reserve (§50). But when a hit
+--    takes 100% of main and leaves it empty, fn_bbj_reseed_main_from_backup
+--    TRANSFERS the backup into main so the jackpot restarts with funds. A
+--    transfer conserves chips: backup is debited exactly what main is credited,
+--    and no player is ever paid from it. Called from bbj_atomic_payout_v2
+--    immediately after the payout UPDATE, guarded on main <= 0.
+--
+-- 2. PIVOT SPLIT. Past a 100,000 main balance: 25% main / 25% back up / 50%
+--    promo (was 30/40/30). The back-up share stays flat at 25% because its job
+--    is to reseed, not to grow; the surplus is steered to the promo wallet
+--    rather than inflating an already-large jackpot.
+--    fn_bbj_repair_unbanked carried its own copy of the old numbers and was
+--    corrected in the same migration.
+--
+-- Verified in rolled-back probes:
+--   main 800 / backup 5000, 100% hit -> paid 800.00, main reseeded to 5000.00,
+--     backup 0.00, pool total 5800 - 800 = 5000 (conserved)
+--   main 1000 / backup 5000, 85% hit -> paid 850.00, main 150.00,
+--     backup untouched at 5000.00
+--
+-- The self-test fn_bbj_selftest_payout_conservation now asserts BOTH
+-- directions (reseed on a full hit, no movement on a partial one) and reports
+-- through the bbj_payout_conservation invariant.
+--
+-- Applied bodies live in the database; this mirror records the change and the
+-- reasoning.
