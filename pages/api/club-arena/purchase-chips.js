@@ -18,8 +18,17 @@
  * CHIP_PACKAGES below — the server's copy — and the buyer is taken from the JWT,
  * so a caller can neither pick their own price nor buy on someone else's behalf.
  *
- * Body: { packageId: string }
- * Returns: { success, chipsCredited, diamondsCharged, diamondBalanceAfter }
+ * Body: { packageId: string, clubId?: uuid }
+ * Returns: { success, chipsCredited, diamondsCharged, diamondBalanceAfter, destination }
+ *
+ * 2026-08-19 — CLUB-SCOPED CREDIT.
+ * fn_purchase_chips credits the GLOBAL player wallet, but the Club Arena shop,
+ * buy-ins and cashier all spend club_members.chip_balance. Buying chips from
+ * the marketplace therefore charged diamonds and left the shop still saying
+ * "insufficient chips" (verified live on the test account). When `clubId` is
+ * supplied we call fn_purchase_club_chips instead, which deducts diamonds and
+ * credits that club's balance atomically. Without `clubId` the legacy global
+ * wallet behaviour is unchanged, so existing callers are unaffected.
  */
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
@@ -42,6 +51,8 @@ function getSupabase() {
  * src/components/wallet/ChipPurchaseModal.tsx, which is presentation only —
  * this table is what is actually charged and credited.
  */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const CHIP_PACKAGES = {
     small:  { chips: 1000,   diamonds: 10 },
     medium: { chips: 5000,   diamonds: 45 },
@@ -63,7 +74,7 @@ export default async function handler(req, res) {
         }
 
         // Field allowlist — reject any attempt to smuggle an amount or a price.
-        const allowed = new Set(['packageId']);
+        const allowed = new Set(['packageId', 'clubId']);
         const unknown = Object.keys(req.body || {}).filter((k) => !allowed.has(k));
         if (unknown.length > 0) {
             return res.status(400).json({ success: false, error: `Unknown fields: ${unknown.join(', ')}` });
@@ -80,15 +91,36 @@ export default async function handler(req, res) {
         // Idempotency: one purchase per user per package per minute-bucket. A
         // double-tap on a laggy network replays the same reference, and
         // deduct_diamonds returns the original result instead of charging twice.
-        const bucket = Math.floor(Date.now() / 60000);
-        const referenceId = `chip_purchase:${user.id}:${packageId}:${bucket}`;
+        // Optional club destination. Chips spent in Club Arena live on
+        // club_members.chip_balance, so the marketplace passes the active club.
+        const rawClubId = req.body?.clubId;
+        let clubId = null;
+        if (rawClubId !== undefined && rawClubId !== null && rawClubId !== '') {
+            clubId = String(rawClubId);
+            if (!UUID_RE.test(clubId)) {
+                return res.status(400).json({ success: false, error: 'Invalid clubId format' });
+            }
+        }
 
-        const { data: result, error: rpcErr } = await getSupabase().rpc('fn_purchase_chips', {
-            p_user_id: user.id,
-            p_amount: pkg.chips,
-            p_diamonds_cost: pkg.diamonds,
-            p_reference_id: referenceId,
-        });
+        const bucket = Math.floor(Date.now() / 60000);
+        const referenceId = clubId
+            ? `chip_purchase:${user.id}:${packageId}:${clubId}:${bucket}`
+            : `chip_purchase:${user.id}:${packageId}:${bucket}`;
+
+        const { data: result, error: rpcErr } = clubId
+            ? await getSupabase().rpc('fn_purchase_club_chips', {
+                  p_user_id: user.id,
+                  p_club_id: clubId,
+                  p_amount: pkg.chips,
+                  p_diamonds_cost: pkg.diamonds,
+                  p_reference_id: referenceId,
+              })
+            : await getSupabase().rpc('fn_purchase_chips', {
+                  p_user_id: user.id,
+                  p_amount: pkg.chips,
+                  p_diamonds_cost: pkg.diamonds,
+                  p_reference_id: referenceId,
+              });
 
         if (rpcErr) {
             console.warn('[purchase-chips] RPC error:', rpcErr.message);
@@ -96,8 +128,8 @@ export default async function handler(req, res) {
         }
 
         if (!result?.success) {
-            // Insufficient diamonds is a client error, not a server fault.
-            const insufficient = /insufficient/i.test(result?.error || '');
+            // Insufficient diamonds / not-a-member are client errors, not server faults.
+            const insufficient = /insufficient|not a member/i.test(result?.error || '');
             return res.status(insufficient ? 400 : 500).json({
                 success: false,
                 error: result?.error || 'Purchase failed',
@@ -111,6 +143,9 @@ export default async function handler(req, res) {
             chipsCredited: result.chips_credited,
             diamondsCharged: result.diamonds_charged,
             diamondBalanceAfter: result.diamond_balance_after,
+            destination: clubId ? 'club' : 'player_wallet',
+            clubId: clubId || undefined,
+            clubBalanceAfter: result.club_balance_after,
             idempotent: result.idempotent === true,
         });
     } catch (err) {

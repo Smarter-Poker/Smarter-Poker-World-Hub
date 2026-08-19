@@ -57,3 +57,43 @@ product artwork and an admin item editor added.
 - WH pre-push TS gate can block asset-only pushes on pre-existing type errors
   in untouched files (src/components/memory/MemoryCampaignView.tsx,
   src/lib/liveHelp/contextCollector.ts) — those 4 errors predate today.
+
+---
+
+## Addendum — live end-to-end test found a 7th defect (chips went to the wrong wallet)
+
+Ran the real flow against production with the test account
+(`daniel@bekavactrading.com`) rather than trusting code reading. Results:
+
+| Step | Result |
+|---|---|
+| `GET marketplace-items` | 200 — 12 items, all with artwork, role `owner`, balance 1000 |
+| `GET vip/check-status` | 200 — diamonds + `vipTier: lifetime` |
+| Buy with insufficient chips | 400, exact message + `available`/`price` (correct) |
+| `POST purchase-chips {small}` | 200 — 10 diamonds charged, `chipsCredited: 1000` |
+| Re-read club balance | **still 1000 — the chips never arrived** |
+
+**Root cause.** `fn_purchase_chips` credits the GLOBAL player wallet
+(`credit_player_wallet` -> `wallets.balance` WHERE `wallet_type='PLAYER'`),
+but the shop, buy-ins and the cashier all spend `club_members.chip_balance`
+(`fn_debit_chips` takes `p_club_id`). Chips are per-club; that wallet is not.
+So "Get Chips" was a money sink from the marketplace's point of view — pay
+diamonds, still can't buy anything. This pre-dates the rebuild (the old
+`ChipPurchaseModal` had the same behaviour) but the rebuild put the button
+directly next to the store, making it a user-visible dead end.
+
+**Fix.** New RPC `fn_purchase_club_chips(user, club, amount, diamonds, ref)` —
+deducts diamonds and credits `club_members.chip_balance` in one transaction, so
+a failed credit rolls back the diamond charge. Requires existing membership (no
+silent club joins) and treats a replayed `reference_id` as idempotent without
+double-crediting. `EXECUTE` revoked from anon/authenticated, asserted in the
+migration. `/api/club-arena/purchase-chips` now accepts an optional `clubId`
+and routes to it; omitting `clubId` keeps the legacy global-wallet path so
+existing callers are unaffected. `ChipsTab` sends the active club and disables
+buying with a clear message when none is selected.
+
+**Testing note for future agents:** the sandbox CAN reach Supabase auth and
+production APIs. Get a JWT with
+`POST https://<ref>.supabase.co/auth/v1/token?grant_type=password` using the
+publishable key and `TEST_USER_*` from `.env.local`, then call the live
+endpoints directly. Code review alone would not have caught this one.
