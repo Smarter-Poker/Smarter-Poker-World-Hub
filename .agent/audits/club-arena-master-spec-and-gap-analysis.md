@@ -3893,8 +3893,19 @@ down. Both pairs now live in `tableGeometry.ts`.
 has left, so a deck that cannot supply the next street leaves the board short
 and the condition never becomes false.
 
-Reachable, not theoretical: an 8-max PLO6 hand needs 48 hole cards plus a
-5-card board out of 52, and the fleet runs seven- and eight-max PLO6 tables.
+> **CORRECTED 2026-08-19 — this justification was WRONG. See §57.** Dan: *"YOU
+> CAN'T HAVE 8 MAX PLO6. ITS ALWAYS 6 MAX FOR PLO 6 AND 7 MAX FOR PLO5."* There
+> is no 8-max PLO6 configuration, and `PokerEngine.deal()` **throws** rather
+> than returning a short array, so the board can never silently stop growing.
+> The loop could not spin by either route. The claim below came from a stale
+> code comment that I repeated without checking it against the rules or the
+> deal path. The bounds were kept (they are free and make the exit structural)
+> but they fix nothing that was observed, and the comments in the code now say
+> so. Left visible rather than quietly deleted, because the reasoning failure
+> is the useful part.
+
+~~Reachable, not theoretical: an 8-max PLO6 hand needs 48 hole cards plus a
+5-card board out of 52, and the fleet runs seven- and eight-max PLO6 tables.~~
 
 - The **synchronous** loop has no `await` in it, so a non-growing board does not
   hang one table — it freezes the whole engine process and every table on it.
@@ -3965,3 +3976,73 @@ my own — a pattern matching an explanatory comment, and a minifier that keeps 
 space after the colon (`--seat-avatar-size: 56px`). Both looked like missing
 fixes for a moment. A verification script that can report a false negative is
 worth as little as a test that passes both ways.
+
+
+---
+
+## §57 — CORRECTION: the seat caps, and a bug hiding behind a bad justification (2026-08-19)
+
+Dan, correcting §56: *"YOU CAN'T HAVE 8 MAX PLO6. ITS ALWAYS 6 MAX FOR PLO 6
+AND 7 MAX FOR PLO5."*
+
+### 57.1 What I got wrong
+
+§56 justified a loop bound with "an 8-max PLO6 hand needs 48 hole cards plus 5
+board out of 52". Wrong twice:
+
+1. **The configuration does not exist.** PLO6 is 6-max, PLO5 is 7-max.
+2. **`PokerEngine.deal()` THROWS** `'Not enough cards in deck'` — it never
+   returns a short array. So the board cannot quietly stop growing, and the
+   loop would exit by exception rather than spin. The scenario was unreachable
+   by *either* route.
+
+The claim came from a stale code comment in `TablePage.tsx` ("53 seven-max plo6
++ 472 eight-max tables live in the fleet") that I repeated without checking it
+against the rules or the deal path. **A confident sentence in a code comment is
+not evidence.** I verified the geometry work by measurement in that same pass
+and then took this on faith because it was written down.
+
+### 57.2 The real bug it was covering
+
+Checking the claim against the database found something worse than the thing I
+invented: **nothing in the codebase enforces a seat cap per variant at all.**
+`getPlayerCountCaps` is about rake caps by player count, not seats. The
+create-table modal offered the same three options — Heads Up (2) / 6-Max /
+Full Ring (9) — for *every* game, so PLO6 at 9-max was one click away.
+
+Production, from `tables` grouped by variant and seat count:
+
+| variant | seats | tables | cards needed / 52 |
+|---|---|---|---|
+| plo6 | **7** | 76 | 47 |
+| plo5 | **8** | 163 | 45 |
+| plo5 | **9** | 9,891 | **50 — two spare** |
+| plo6 | 6 *(rule)* | — | 41 |
+| plo5 | 7 *(rule)* | — | 40 |
+
+**10,130 tables violate the rule.** No current configuration overdraws the deck
+— so my §56 hang was never reachable — but plo5 at 9-max sits two cards from the
+edge, and PLO6 at 9-max *would* need 59 of 52. Since `deal()` throws, an
+over-seated PLO6 table would not degrade gracefully; it would fail mid-hand.
+
+Fixed forward: `src/config/tableSeating.ts` is the single definition,
+`TableService.createTable` enforces it for every caller (not just the modal),
+and the modal offers only legal options and clamps the seat count when the
+variant changes. 24 tests, including that every variant at its cap fits inside
+52 cards and that the exact configurations found in production are rejected.
+
+**Existing rows are untouched** — rewriting `max_players` on 10,130 live tables
+is Dan's call, and some have players seated right now.
+
+### 57.3 The lesson worth keeping
+
+This is the second time in one session that a bug turned out to be *two numbers
+that were only ever correct together, with nothing linking them* — the dealer
+button vs the bet chips (§56.1), and now the variant vs its seat count. Both
+were fixed the same way: one module that owns the relationship, so the pair
+cannot drift.
+
+And a method note that cost real credibility: in the §56 pass I measured the
+things I doubted and asserted the things I had read somewhere. The measured
+claims held. The read-somewhere claim was false, shipped, and had to be
+corrected by the person I was reporting to.
