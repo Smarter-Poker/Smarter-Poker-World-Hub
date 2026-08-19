@@ -886,7 +886,7 @@ export const ChatWindow = ({
             // Listen for read receipts
             channel.on('broadcast', { event: 'read_receipt' }, (payload) => {
                 if (payload.payload?.userId !== currentUser.id) {
-                    setMessages(prev => prev.map(m =>
+                    svc.setMessages(prev => prev.map(m =>
                         (m.id === payload.payload.messageId && m.sender_id === currentUser.id)
                             ? { ...m, status: 'read' } : m
                     ));
@@ -1012,7 +1012,7 @@ export const ChatWindow = ({
         // P7-7: Poll Voting
         if (action === 'votePoll') {
             // Local UI simulation for Phase 7
-            setMessages(prev => prev.map(m => {
+            svc.setMessages(prev => prev.map(m => {
                 if (m.id === payload.messageId && m.poll) {
                     const newPoll = { ...m.poll };
                     if (newPoll.userVotedIndex !== undefined) newPoll.options[newPoll.userVotedIndex].votes -= 1;
