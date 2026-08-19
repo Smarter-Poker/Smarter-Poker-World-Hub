@@ -369,6 +369,19 @@ ALL_CRONS = [
     # on the manual button harmless; workflow_dispatch is kept for that.)
     ('/api/news/digest?days=7',                   dict(day_of_week='tue', hour=14, minute=0)),
 
+    # ══ WEB PUSH (VAPID) — PepNationLab parity clone, added 2026-08-19 ═══════
+    # push-dispatch drains push_outbox rows that inline delivery missed (crash
+    # between outbox INSERT and send, or transient FCM/APNs failure). Inline
+    # delivery in push-enqueue is the primary path; this is the durability net,
+    # so */5 latency is acceptable. Handler takes the standard CRON_SECRET
+    # bearer this dispatcher already sends.
+    ('/api/cron/push-dispatch',                   dict(minute='*/5')),      # every 5 min — outbox retry/drain
+    # push-health: daily watchdog. Zombie subscriptions (accepted-but-never-
+    # displayed via last_receipt_at), staff with no active subscription, VAPID
+    # config drift, and dispatch liveness (via push_dispatch_runs). Alerts
+    # admins in-app through notifyAdmins(). 13:00 UTC = 8am Chicago.
+    ('/api/cron/push-health',                     dict(hour=13, minute=0)), # daily 13:00 UTC — push watchdog
+
     # ══ INTERNAL — Phase 2A monitoring/alerting (closes plan line 285 gate) ═══
     # No HTTP egress; runs in-process. SMS-alerts via Twilio on workers outage.
     ('_internal/workers-healthcheck',             dict(minute='*/5')),      # every 5 min
