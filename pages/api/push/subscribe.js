@@ -127,6 +127,19 @@ export default async function handler(req, res) {
 
         if (upsertErr) return res.status(500).json({ error: upsertErr.message });
 
+        // Retire the endpoint this subscription supersedes. The browser rotates
+        // endpoints on VAPID-key change and on a failed-then-retried subscribe;
+        // without this the superseded row stays is_active=true, inflating the
+        // device count and costing a wasted send on every future notification.
+        const replaces = body?.replacesEndpoint;
+        if (replaces && typeof replaces === 'string' && replaces !== endpoint) {
+            await supabase
+                .from('push_subscriptions')
+                .update({ is_active: false, last_failure_reason: 'superseded', updated_at: nowIso })
+                .eq('user_id', user.id)
+                .eq('endpoint', replaces);
+        }
+
         await supabase
             .from('notification_preferences')
             .upsert({ user_id: user.id, push_enabled: true, browser_push: true, updated_at: nowIso },

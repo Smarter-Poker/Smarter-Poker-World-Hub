@@ -18,105 +18,33 @@
  */
 
 import { deliverPushNow } from './push-deliver';
-import {
-    eventToTypeKey, pushTypeAllowed,
-    legacyPrefAllowed, LEGACY_PREF_COLUMNS,
-    isWithinQuietHours, isUrgentType, isDiagnosticEvent,
-} from './push-prefs';
+import { loadGateContext, gateDecision, needsDailyCount, countSentToday } from './push-gate';
 import { isPushConfigured } from './web-push';
 
 const TITLE_MAX = 120;
 const BODY_MAX = 500;
 
 /**
- * Read the gate. Returns { allowed, reason }.
- *
- * DEFAULT-ON: a user with no notification_preferences row is ALLOWED. Only an
- * explicit opt-out suppresses. 990 existing profiles have never touched the
- * settings page and must still get notified.
+ * Read the gate for ONE user. Delegates to src/lib/push/push-gate.js so the
+ * inline path and the dispatch cron cannot drift apart -- they must agree on
+ * what a user consented to.
  */
 async function checkGate(supabase, userId, event) {
-    const key = eventToTypeKey(event);
-    // Diagnostics count as urgent for courtesy limits: a "Send Test" that is
-    // swallowed by quiet hours reports a broken subscription that is fine.
-    const urgent = isUrgentType(key) || isDiagnosticEvent(event);
-
     try {
-        // Both preference tables in one round trip. `notification_preferences`
-        // is the new per-type store; `user_notification_preferences` is the
-        // legacy table that /hub/settings has always written. Honouring only
-        // one of them silently breaks a promise the UI made to the user.
-        const [{ data, error }, legacyRes] = await Promise.all([
-            supabase
-                .from('notification_preferences')
-                .select('push_enabled, mute_all, push_type_prefs, quiet_hours_start, quiet_hours_end, quiet_hours_tz, daily_push_cap')
-                .eq('user_id', userId)
-                .maybeSingle(),
-            supabase
-                .from('user_notification_preferences')
-                .select(['user_id', ...LEGACY_PREF_COLUMNS].join(','))
-                .eq('user_id', userId)
-                .maybeSingle(),
-        ]);
-        const legacyRow = legacyRes?.data || null;
-
-        if (error) {
-            // A read failure must not silence the user.
-            console.warn('[push-enqueue] prefs read failed, defaulting to allow:', error.message);
-            return { allowed: true, reason: 'prefs_read_failed_default_allow' };
+        const ctx = await loadGateContext(supabase, [userId]);
+        const entry = ctx.get(userId) || { prefs: null, legacy: null };
+        const opts = {};
+        if (needsDailyCount(entry, event)) {
+            opts.sentToday = await countSentToday(supabase, userId);
         }
-        if (!data) {
-            // No new-style row yet, but a legacy opt-out must still be honoured.
-            if (!legacyPrefAllowed(legacyRow, key)) {
-                return { allowed: false, reason: `legacy_disabled:${key}` };
-            }
-            return { allowed: true, reason: 'no_prefs_row_default_allow' };
-        }
-
-        if (data.mute_all === true) return { allowed: false, reason: 'mute_all' };
-        if (data.push_enabled === false) return { allowed: false, reason: 'push_disabled' };
-
-        if (!pushTypeAllowed(data.push_type_prefs, key)) {
-            return { allowed: false, reason: `type_disabled:${key}` };
-        }
-        if (!legacyPrefAllowed(legacyRow, key)) {
-            return { allowed: false, reason: `legacy_disabled:${key}` };
-        }
-
-        // Quiet hours and the daily cap are courtesy limits, not consent.
-        // Genuinely time-critical pushes (a ringing call, a seat about to be
-        // forfeited, a tournament starting) pierce both -- suppressing those
-        // would make the feature actively harmful.
-        if (!urgent && isWithinQuietHours(data)) {
-            return { allowed: false, reason: 'quiet_hours' };
-        }
-
-        const cap = Number(data.daily_push_cap || 0);
-        if (!urgent && cap > 0) {
-            const since = new Date(Date.now() - 86400_000).toISOString();
-            const { count } = await supabase
-                .from('push_outbox')
-                .select('id', { count: 'exact', head: true })
-                .eq('recipient_user_id', userId)
-                .eq('status', 'sent')
-                .gte('sent_at', since);
-            if ((count || 0) >= cap) {
-                return { allowed: false, reason: `daily_cap_reached:${cap}` };
-            }
-        }
-
-        return { allowed: true, reason: 'allowed' };
+        return gateDecision(entry, event, opts);
     } catch (e) {
+        // A gate failure must never silence a user.
         console.warn('[push-enqueue] gate threw, defaulting to allow:', e?.message || e);
         return { allowed: true, reason: 'gate_error_default_allow' };
     }
 }
 
-/**
- * @param {object} supabase service-role Supabase client
- * @param {object} args { userId, title, body, url, event, tag, icon, badge,
- *                        requireInteraction, actions, relatedEntityId, force }
- */
 export async function enqueuePush(supabase, args = {}) {
     const out = { sent: false, outboxId: null, skipped: false, reason: null, accepted: 0 };
 

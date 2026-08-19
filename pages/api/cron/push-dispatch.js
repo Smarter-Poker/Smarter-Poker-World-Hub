@@ -30,6 +30,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { sendWebPush, isPushConfigured } from '../../../src/lib/push/web-push';
+import { loadGateContext, gateDecision, needsDailyCount, countSentToday } from '../../../src/lib/push/push-gate';
 
 // Vercel's default Pages-Router function timeout is short, and this route
 // fans out to every subscription of up to BATCH_LIMIT recipients. Give it room,
@@ -124,6 +125,20 @@ async function handler(req, res) {
         const rows = batch || [];
         stats.claimed = rows.length;
 
+        // GATE AT SEND TIME, not at queue time.
+        //
+        // Rows arrive here from two places: enqueuePush (already gated once)
+        // and the DB trigger that mirrors every `notifications` row, which has
+        // never seen a preference in its life. Gating here is what makes the
+        // trigger path safe, and it also means a user who mutes at 22:00 is not
+        // pushed by a row that was queued at 21:58.
+        //
+        // Batched: two queries for the whole run, then pure in-memory decisions.
+        const gateCtx = await loadGateContext(
+            supabase,
+            rows.map((r) => r.recipient_user_id).filter(Boolean)
+        );
+
         if (rows.length === 0) {
             await finish('nothing_pending');
             return res.status(200).json({ ok: true, ...stats, slot });
@@ -149,6 +164,21 @@ async function handler(req, res) {
             if (!row.recipient_user_id) {
                 await supabase.from('push_outbox')
                     .update({ status: 'skipped', failure_reason: 'no_recipient' })
+                    .eq('id', row.id);
+                stats.skipped += 1;
+                continue;
+            }
+
+            // ---- preference gate ------------------------------------------
+            const entry = gateCtx.get(row.recipient_user_id) || { prefs: null, legacy: null };
+            const gateOpts = {};
+            if (needsDailyCount(entry, row.event)) {
+                gateOpts.sentToday = await countSentToday(supabase, row.recipient_user_id);
+            }
+            const gate = gateDecision(entry, row.event, gateOpts);
+            if (!gate.allowed) {
+                await supabase.from('push_outbox')
+                    .update({ status: 'skipped', failure_reason: gate.reason })
                     .eq('id', row.id);
                 stats.skipped += 1;
                 continue;

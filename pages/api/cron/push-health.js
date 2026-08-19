@@ -33,11 +33,38 @@ const ZOMBIE_RECEIPT_DAYS = 3;
 // timeout and the run would report nothing at all.
 const MAX_ALERTS_PER_RUN = 100;
 const DISPATCH_STALE_MINUTES = 30;
+// A daily watchdog that re-nags the same person every single day trains them to
+// ignore it, which defeats the whole point. Each person hears about a given
+// problem at most once per this window.
+const ALERT_COOLDOWN_DAYS = 7;
 
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) _supabase = createClient();
     return _supabase;
+}
+
+/**
+ * Returns the subset of userIds that have NOT already received `title` within
+ * the cooldown window, so a persistent problem is reported once a week rather
+ * than once a day. Fails OPEN (returns everyone) -- a lookup failure must not
+ * silence a genuine alert.
+ */
+async function filterRecentlyAlerted(supabase, userIds, title, sinceIso) {
+    if (!userIds.length) return [];
+    try {
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('user_id')
+            .in('user_id', userIds)
+            .eq('title', title)
+            .gte('created_at', sinceIso);
+        if (error) return userIds;
+        const already = new Set((data || []).map((n) => n.user_id));
+        return userIds.filter((id) => !already.has(id));
+    } catch {
+        return userIds;
+    }
 }
 
 async function handler(req, res) {
@@ -55,6 +82,7 @@ async function handler(req, res) {
 
     const now = Date.now();
     const zombieCutoff = new Date(now - ZOMBIE_RECEIPT_DAYS * 86400_000).toISOString();
+    const cooldownSince = new Date(now - ALERT_COOLDOWN_DAYS * 86400_000).toISOString();
     const usedSince = new Date(now - ZOMBIE_RECEIPT_DAYS * 86400_000).toISOString();
 
     // ---- CHECK 1: zombie subscriptions ------------------------------------
@@ -87,21 +115,28 @@ async function handler(req, res) {
         // unbounded serial loop will blow the function timeout at any real
         // scale -- which would mean the whole run reports nothing.
         const seen = new Set();
+        const ZOMBIE_TITLE = 'Notifications May Not Be Reaching This Device';
+        const zombieUserIds = Array.from(new Set(zombies.map((z) => z.user_id)));
+        const zombieToAlert = new Set(
+            await filterRecentlyAlerted(supabase, zombieUserIds, ZOMBIE_TITLE, cooldownSince)
+        );
+
         for (const z of zombies.slice(0, MAX_ALERTS_PER_RUN)) {
             if (seen.has(z.user_id)) continue;
+            if (!zombieToAlert.has(z.user_id)) continue; // told them within the cooldown
             seen.add(z.user_id);
             // No push on this one -- the whole point is that push is not reaching them.
             await notify(supabase, {
                 userId: z.user_id,
                 type: 'system',
                 withPush: false,
-                title: 'Notifications May Not Be Reaching This Device',
+                title: ZOMBIE_TITLE,
                 body: 'We sent you push notifications but your device never confirmed them. Open notification settings and turn push back on.',
                 url: '/hub/settings/notifications',
             });
         }
         if (zombies.length > 0) {
-            problems.push(`${zombies.length} zombie subscription(s) across ${seen.size} user(s)`);
+            problems.push(`${zombies.length} zombie subscription(s) across ${zombieUserIds.length} user(s)`);
         }
     } catch (e) {
         problems.push(`zombie check failed: ${e?.message || e}`);
@@ -138,12 +173,18 @@ async function handler(req, res) {
             .eq('is_active', true);
         const nobodyEnrolled = !globalActive;
 
-        for (const p of nobodyEnrolled ? [] : unreachable) {
+        const STAFF_TITLE = 'Push Notifications Are Off';
+        const staffToAlert = nobodyEnrolled
+            ? new Set()
+            : new Set(await filterRecentlyAlerted(
+                supabase, unreachable.map((p) => p.id), STAFF_TITLE, cooldownSince));
+
+        for (const p of unreachable.filter((x) => staffToAlert.has(x.id))) {
             await notify(supabase, {
                 userId: p.id,
                 type: 'system',
                 withPush: false,
-                title: 'Push Notifications Are Off',
+                title: STAFF_TITLE,
                 body: 'Your staff account has no device registered for push. Enable notifications so you receive live alerts.',
                 url: '/hub/settings/notifications',
             });

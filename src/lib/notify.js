@@ -79,6 +79,16 @@ export async function notify(supabase, args = {}) {
     const title = String(args.title).slice(0, TITLE_MAX);
     const body = args.body ? String(args.body).slice(0, BODY_MAX) : null;
     const url = args.url || null;
+    const wantsPush = args.withPush !== false;
+
+    // Stamp how push was handled for this row. The DB trigger
+    // fn_mirror_notification_to_push_outbox mirrors every UNMARKED notification
+    // into push_outbox -- that bridge is what makes the 21 API routes and the
+    // friend-request DB triggers push-enabled without touching them. Rows that
+    // came through here are already decided, so they must carry a marker:
+    //   'inline' -> enqueuePush below is handling it (mirroring = double send)
+    //   'none'   -> caller passed withPush:false and means it (bell only)
+    const notifData = { ...(args.data || {}), _push: wantsPush ? 'inline' : 'none' };
 
     // -- Branch A: in-app bell ------------------------------------------------
     try {
@@ -95,7 +105,7 @@ export async function notify(supabase, args = {}) {
                 // directly would otherwise get null.
                 action_url: url,
                 link: url,
-                data: args.data || null,
+                data: notifData,
                 actor_id: args.actorId || null,
                 read: false,
                 is_read: false,
@@ -114,7 +124,7 @@ export async function notify(supabase, args = {}) {
     }
 
     // -- Branch B: web push ---------------------------------------------------
-    if (args.withPush !== false) {
+    if (wantsPush) {
         try {
             out.push = await enqueuePush(supabase, {
                 userId: args.userId,

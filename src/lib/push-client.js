@@ -155,7 +155,7 @@ async function getRegistration() {
     return withTimeout(navigator.serviceWorker.ready, T.ready, 'Service worker startup');
 }
 
-async function persistSubscription(subscription) {
+async function persistSubscription(subscription, replacedEndpoint) {
     const json = subscription.toJSON();
     const res = await withTimeout(
         fetch('/api/push/subscribe', {
@@ -166,6 +166,11 @@ async function persistSubscription(subscription) {
                 keys: json.keys,
                 userAgent: navigator.userAgent,
                 deviceLabel: deviceLabel(),
+                // The endpoint this one supersedes, so the server can retire it.
+                // Without this the old row stays is_active=true forever: it
+                // inflates the device count on /admin/push-health and every send
+                // burns a request on it until the push service finally 404s.
+                replacesEndpoint: replacedEndpoint || undefined,
             }),
         }),
         T.save,
@@ -225,8 +230,11 @@ export async function enablePush() {
             'Reading the existing subscription'
         );
 
+        let replacedEndpoint = null;
+
         if (subscription && !applicationServerKeyMatches(subscription, vapidKey)) {
             // Subscribed under a different VAPID key -- every send would 403.
+            replacedEndpoint = subscription.endpoint || null;
             try { await subscription.unsubscribe(); } catch { /* ignore */ }
             subscription = null;
         }
@@ -245,7 +253,10 @@ export async function enablePush() {
                 // -- one automatic retry: drop whatever is stuck, try once more.
                 try {
                     const stale = await registration.pushManager.getSubscription();
-                    if (stale) await stale.unsubscribe();
+                    if (stale) {
+                        replacedEndpoint = replacedEndpoint || stale.endpoint || null;
+                        await stale.unsubscribe();
+                    }
                 } catch { /* ignore */ }
                 subscription = await withTimeout(
                     registration.pushManager.subscribe({
@@ -259,7 +270,11 @@ export async function enablePush() {
         }
 
         // -- STEP 4: persist ---------------------------------------------------
-        await persistSubscription(subscription);
+        // Never report the endpoint we just created as the one it replaced.
+        await persistSubscription(
+            subscription,
+            replacedEndpoint && replacedEndpoint !== subscription.endpoint ? replacedEndpoint : null
+        );
         clearOptOut();
         return { ok: true, permission: 'granted' };
     } catch (e) {
