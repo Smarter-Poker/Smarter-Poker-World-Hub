@@ -3565,3 +3565,81 @@ Tournament tables are gated out of BBJ in the engine, but **no tournament hand
 has ever reached rake_records** (0 all-time), so that gate is unexercised by
 production data. The code path exists; the evidence does not. Recorded rather
 than counted as verified.
+
+## §53 — Global hand numbering, felt masthead, tournament rake model (2026-08-18)
+
+Three requirements from Dan, verified before building rather than assumed.
+
+### 53.1 Hand numbers — the real defect
+It was a per-table counter (`this.handCount++`) that restarted at 0 on every
+engine start. **The most recent 20,000 hands carry only 7,468 distinct
+numbers** — "Hand #196" exists on many tables at once, so a hand number
+identifies nothing and cannot be used to investigate anything.
+
+Now allocated from a Postgres sequence at the moment the hand is dealt:
+unique platform-wide forever, ascending in true deal order across every table,
+club, union, cash game and tournament.
+
+**Why a sequence** and not `MAX()+1` or an in-engine counter: it cannot issue
+the same value twice under concurrent deals across tables and engine instances,
+it survives restarts and redeploys (the in-memory counter did not — that is
+exactly how numbers were resetting), and it never rolls back, so a crashed hand
+can never free its number for reuse.
+
+**Why not batched per table:** a block would let table A hold
+1,000,100–1,000,199 while table B deals 1,000,200, breaking the
+ascending-by-deal-time property that makes the numbers useful for asking "what
+happened next".
+
+**Gaps are correct, not a defect.** A hand dealt then abandoned consumes its
+number permanently — the price of "never reused", and harmless: every number
+still resolves to at most one hand.
+
+**On allocation failure the engine REFUSES TO DEAL.** A hand that cannot be
+numbered also cannot be settled, raked, recorded, or paid a jackpot — all need
+the same database. Dealing anyway would move real money that no number could
+ever identify, which is the exact situation this work exists to end. It retries
+three times first.
+
+Enforcement is at the storage layer: a partial unique index (`>= 1000000`).
+Legacy rows keep their duplicated numbers rather than having history falsified,
+and the 1,000,000 start (legacy max: 13,811) makes the two eras impossible to
+confuse.
+
+`this.handCount` now HOLDS the global number — ~30 call sites already mean
+"which hand is this" and are correct unchanged; the few that mean "how many"
+use the new `handsDealtThisSession`. Crash-recovery counter seeding was
+removed: there is no counter to resume when every number is allocated fresh.
+
+6 tests drive the real allocator on the real engine class — exact value, no
+reuse across 25 hands, strictly ascending, retry on transient failure, refusal
+when unallocatable, and rejection of nonsense values (0, null, legacy-range).
+Worth noting: **no existing test touched `dealHand`**, so this path had zero
+coverage before.
+
+### 53.2 Felt masthead
+Union name now renders beside the club when the club belongs to one, fetched in
+the SAME query as the club name via the `union_id` relation rather than a
+second round trip.
+
+Bug found while there: the date used `new Date()` evaluated on every render, so
+the felt always showed TODAY rather than the day the hand was played — wrong
+precisely where that masthead is read, on replays and screenshots. Pinned once
+per table session.
+
+### 53.3 Tournament rake — model confirmed correct, path unexercised
+Per-hand rake AND the BBJ fee are both gated off for tournament tables
+(`!isTournamentTable()` guards the rake distribution, the BBJ fee, and the BBJ
+percent itself). The 10+1 model is in the data: **9,465 of 9,583 tournaments
+carry a `buy_in_fee` of exactly 10%** of the buy-in.
+
+`record_tournament_buyin_rake` writes the fee as a `rake_records` row with
+`is_tournament=true`, `source='tournament_buyin'`, `bbj_contribution=0`, and
+credits the club wallet — correct, and correctly separate from per-hand rake.
+
+**Stated honestly: there are ZERO tournament registrations in the database**, so
+this path has never run in production. Rather than call it verified, it was
+proved by probe: registering the fee for a real 1.00/0.10 tournament wrote one
+rake row and moved the club's rake counter by exactly 0.10, then rolled back.
+The model is right and the plumbing works when called; production evidence does
+not yet exist because no one has ever registered for a tournament.
