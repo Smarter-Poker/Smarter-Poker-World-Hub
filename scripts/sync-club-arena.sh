@@ -124,11 +124,28 @@ cd "$WH"
 OLD_ASSETS=$(ls "$DEST/assets/" 2>/dev/null | wc -l | tr -d ' ')
 log "  old: $OLD_ASSETS assets, new: $ASSET_COUNT assets"
 
-# Wipe only the churny parts — index.html + assets/. Preserve cards/, images/,
-# club-logos/, videos/ etc. which are bulky statics not in a fresh build.
-rm -rf "$DEST/assets"
+# Dan 2026-08-19 [P0 — broken "+" button]: this used to `rm -rf $DEST/assets`
+# before copying, which DELETES the hashed chunks that every already-open
+# session is still running against. The moment a deploy landed, any player with
+# the app open got "Failed to fetch dynamically imported module ..." the next
+# time they hit a lazy route (Dan hit it on the lobby "+"). Their HTML is
+# cached, so reloading served the same dead references.
+#
+# Assets are CONTENT-HASHED, so new builds never collide with old files: we can
+# simply overlay the new ones and leave the previous generation in place. Open
+# sessions keep working; new sessions get the new index.html. Stale files are
+# pruned on a delay below, well after any reasonable session has ended.
 cp "$DIST_TMP/index.html" "$DEST/index.html"
-cp -r "$DIST_TMP/assets" "$DEST/assets"
+mkdir -p "$DEST/assets"
+cp -R "$DIST_TMP/assets/." "$DEST/assets/"
+
+# Prune assets that are no longer referenced AND older than the grace window,
+# so the directory cannot grow without bound. 3 days ≫ any live session.
+ASSET_GRACE_DAYS=3
+if [ -d "$DEST/assets" ]; then
+  PRUNED=$(find "$DEST/assets" -type f -mtime +$ASSET_GRACE_DAYS -print -delete 2>/dev/null | wc -l | tr -d ' ')
+  [ "$PRUNED" -gt 0 ] && log "  pruned $PRUNED asset(s) older than ${ASSET_GRACE_DAYS}d"
+fi
 
 # Copy any other top-level build artifacts except big static dirs CA doesn't rebuild
 for f in "$DIST_TMP"/*; do
