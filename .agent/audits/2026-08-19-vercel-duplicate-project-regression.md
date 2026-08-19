@@ -50,3 +50,10 @@ Anything that recreates this project will reintroduce the stall. If it returns
 a third time, find what creates it (a `vercel` CLI link run in the repo root,
 or a dashboard "Import Project") rather than only removing it again.
 `vercel-uniqueness-check.yml` runs the guard in CI.
+
+## Post-fix observation
+One further duplicate build (`dpl_HQyxCiHbmJ9tdqGaJSPkVqb3gUEz`) still appeared
+seconds AFTER the unlink returned 200 — a webhook already in flight when the
+link was removed, not a re-link. Re-checked immediately after: project link is
+`NONE` and the uniqueness guard reports exactly one project. The commit below
+is the controlled test push used to confirm no further duplicate builds fire.
