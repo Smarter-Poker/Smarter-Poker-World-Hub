@@ -1,5 +1,17 @@
 # Handoff — add CI CHECK 16 (club shop rules suite) to build-safety-gate.yml
 
+> **STATUS: NO LONGER BLOCKING.** The suite now runs in CI anyway:
+> `__tests__/_test-guards-exist.test.mjs` (already in CHECK 8's explicit list)
+> imports `tests/shop-item-rules.test.mjs`, so its 20 cases execute on every CI
+> run, and the file is listed in that guard's REQUIRED_TEST_FILES so deleting it
+> fails the build. `scripts/pre-push-hook.sh` CHECK 0b also runs it locally on
+> any push that touches the shop.
+>
+> The block below is still worth applying when someone has a token with the
+> `workflow` permission — a named CHECK 16 is clearer in the CI log than a
+> suite riding inside the signup guard — but nothing is unprotected meanwhile.
+> If CHECK 16 is added, drop the import from `_test-guards-exist.test.mjs`.
+
 **Why this is a handoff:** the PAT available to the Cowork session lacks the
 GitHub `workflow` scope, so the push is rejected with
 `refusing to allow a Personal Access Token to create or update workflow

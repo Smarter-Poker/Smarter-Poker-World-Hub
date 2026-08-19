@@ -120,6 +120,25 @@ fi
 
 echo -e "${GREEN}✓ CHECK 0: commit authors resolve to the canonical identity.${NC}"
 
+# ─── CHECK 0b: Club shop rules regression suite ──────────────────────────
+# shopItemRules.js is the single validator shared by BOTH admin write paths.
+# Runs on every push that touches the shop, so a break is caught here rather
+# than in a CI run nobody is watching.
+if echo "$CHANGED_FILES" | grep -qE 'club-arena/(shopItemRules|manage-shop|shop-items|marketplace-purchase)'; then
+    if [ -f tests/shop-item-rules.test.mjs ]; then
+        if node --test tests/shop-item-rules.test.mjs >/tmp/shop-rules-test.log 2>&1; then
+            echo -e "${GREEN}✓ CHECK 0b: club shop rules suite passes.${NC}"
+        else
+            echo -e "${RED}✗ CHECK 0b: club shop rules suite FAILED${NC}"
+            tail -30 /tmp/shop-rules-test.log
+            exit 1
+        fi
+    else
+        echo -e "${RED}✗ CHECK 0b: tests/shop-item-rules.test.mjs is missing — the guard was deleted.${NC}"
+        exit 1
+    fi
+fi
+
 if [ -z "$CHANGED_FILES" ]; then
     echo -e "${GREEN}✓ No changed files detected. Push allowed.${NC}"
     exit 0
