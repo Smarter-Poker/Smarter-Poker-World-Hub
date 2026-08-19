@@ -2997,6 +2997,66 @@ function MessengerPage() {
         };
     }, [user?.id, pushReady, pushSubscribed, pushPromptHandled, setExternalUserId]);
 
+    /**
+     * Persist "the user has answered the push prompt" everywhere it is read:
+     * local state, localStorage, and profiles.messenger_preferences. The RPC is
+     * an atomic JSONB merge; the fallback is a read-modify-write, which is only
+     * safe here because this flag is one-way (false -> true).
+     */
+    const persistPushPromptHandled = useCallback(async () => {
+        setPushPromptHandled(true);
+        try {
+            localStorage.setItem('messenger_push_prompt_handled', '1');
+        } catch (e) {
+            console.warn('[Messenger] push prompt localStorage write failed:', e?.message || e);
+        }
+        if (!user?.id) return;
+        try {
+            const { error } = await supabase.rpc('fn_merge_messenger_preferences', {
+                p_user_id: user.id,
+                p_key: 'pushPromptHandled',
+                p_value: true,
+            });
+            if (!error) return;
+            throw error;
+        } catch (_) {
+            try {
+                const { data: cur } = await supabase
+                    .from('profiles')
+                    .select('messenger_preferences')
+                    .eq('id', user.id)
+                    .maybeSingle();
+                const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
+                const { error: prefErr } = await supabase
+                    .from('profiles')
+                    .update({ messenger_preferences: merged })
+                    .eq('id', user.id);
+                if (prefErr) {
+                    console.warn('[Messenger] push prompt pref persist failed:', prefErr.message);
+                }
+            } catch (e2) {
+                console.warn('[Messenger] push prompt pref persist failed:', e2?.message || e2);
+            }
+        }
+    }, [user?.id]);
+
+    const handlePushEnable = useCallback(async () => {
+        let success = false;
+        try {
+            if (subscribePush) success = await subscribePush();
+        } catch (e) {
+            console.warn('[Messenger] push subscribe failed:', e?.message || e);
+        }
+        await persistPushPromptHandled();
+        setShowPushPrompt(false);
+        if (success) setToast({ type: 'success', message: 'Push Notifications Enabled' });
+    }, [subscribePush, persistPushPromptHandled]);
+
+    const handlePushDismiss = useCallback(async () => {
+        await persistPushPromptHandled();
+        setShowPushPrompt(false);
+    }, [persistPushPromptHandled]);
+
     // Start a Jitsi call - Now uses real-time signaling for instant popup
     const startCall = async (type) => {
         if (!activeConversation || !user) return;
@@ -3515,11 +3575,11 @@ function MessengerPage() {
             <Toast toast={toast} onDismiss={() => setToast(null)} theme={C} />
 
             {/* Push Notification Subscription Banner */}
-                        {showPushPrompt && !pushSubscribed && (
+            {showPushPrompt && !pushSubscribed && (
                 <PushPromptModal
-                    showPushPrompt={showPushPrompt}
                     setShowPushPrompt={setShowPushPrompt}
-                    enablePushNotifications={enablePushNotifications}
+                    onEnable={handlePushEnable}
+                    onDismiss={handlePushDismiss}
                     C={C}
                     isMobile={isMobile}
                 />
