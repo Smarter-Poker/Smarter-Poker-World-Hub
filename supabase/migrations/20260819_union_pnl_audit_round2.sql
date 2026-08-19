@@ -1,0 +1,44 @@
+-- ============================================================================
+-- UNION P&L — AUDIT ROUND 2 (2026-08-19)
+-- APPLIED to production via Supabase MCP, in order:
+--   union_pnl_retry_baseline_and_window_fixes
+--   union_settle_pnl_v3_baseline_and_supersede
+--   union_pnl_exclude_house_horses
+--
+-- Round 2 audited the round-1 FIXES. Four more defects, all found by testing
+-- the code rather than reading it:
+--
+-- A. CRITICAL — 'needs_review' PERMANENTLY BLOCKED RETRY. The idempotency
+--    index on (union_id, period_start) ignored status, so once the safety
+--    guard parked a period as needs_review, every later attempt hit
+--    unique_violation and returned {already_settled:true}. That week could
+--    never be settled again — and it reported SUCCESS while doing nothing.
+--    The index is now partial (in_progress/settled only) and a stale
+--    needs_review row is superseded on retry.
+--
+-- B. HIGH — THE FIRST WEEKLY RUN HAD NO BASELINE. Baselines were looked up
+--    with period_start < p_start, but the bootstrap row is dated when it ran
+--    (mid-period), so the next window found nothing, forced stack_delta = 0,
+--    tripped the guard — and was then permanently stuck by (A).
+--    fn_union_pnl_baseline now looks up the most recent settled snapshot
+--    before the window ENDS.
+--
+-- C. MED — SEATED STACK WAS READ AT JOB TIME, NOT AT period_end, and fixed
+--    Monday windows left a gap between periods that silently lost flows.
+--    fn_union_settle_player_pnl_weekly chains from the last settled period
+--    to now, closing both holes.
+--
+-- D. CRITICAL (MODEL) — THE SETTLEMENT WAS MEASURING HOUSE AI, NOT PLAYERS.
+--    Measured in production: of 1,156 union club members, 1,148 are horses
+--    (profiles.is_horse) and 8 are real people; 100% of the 11.7M chips
+--    seated on union tables were horse chips. Horses are seated by the engine
+--    via atomic_table_buyin (funded from the club treasury) and never touch
+--    wallet_transactions, so their chips appeared in the seated-stack delta
+--    with no matching debit. A dry run showed an imbalance of 1,112,929 —
+--    i.e. the job would have moved over a million chips between treasuries on
+--    a basis that was pure house noise. The guard refused to move any.
+--    Horses are now excluded from P&L, seated stacks, and rake attribution:
+--    the same dry run then showed an imbalance of -1,138 (a single real
+--    player's session), a ~1000x improvement in accuracy.
+--
+-- Full bodies: Supabase migration history + pg_get_functiondef.
