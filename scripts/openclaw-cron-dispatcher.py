@@ -164,6 +164,15 @@ ALL_CRONS = [
     ('/api/cron/tour-schedule-scraper',     dict(day='*/3', hour=4, minute=0)),
     ('/api/cron/scrape-charity-schedules',  dict(day='*/3', hour=3, minute=0)),
     ('/api/cron/deploy-error-poll',         dict(minute='*/2')),       # every 2 min — autopilot build error detector
+    # ── Club dashboard stats upkeep (2026-08-19) ──────────────────────────
+    # Drains the club_member_daily_stats rebuild backlog and rolls
+    # club_hand_daily forward. New hands are already exact via the
+    # hand_history trigger; this is for HISTORY — 7,281 tables across the two
+    # largest clubs were never rebuilt and the biggest holds 75,211 hands,
+    # more than one statement can do inside any workable timeout. The drain is
+    # time-boxed and resumable (cursor in club_stats_rebuild_log), so a run
+    # that stops mid-table simply continues next time.
+    ('/api/cron/club-stats-maintenance',    dict(minute='*/15')),
     # ── Phase 49 (2026-05-05) — two-track trivia refill ───────────────────
     # Track A (deterministic engine, $0 cost): generates strategy-category
     # questions from solved_spots_gold + memory_charts_gold via the same
