@@ -1,0 +1,16 @@
+-- Applied to production 2026-08-19 via Supabase MCP. Mirrored per CLAUDE.md RULE 2.
+--
+-- Five orphaned functions move chips and write NO audit row:
+--   add_chips, deduct_chip_balance, increment_club_chip_pool,
+--   increment_union_chip_balance, transfer_promo_union_to_agent
+--
+-- Reachability checked three ways, all empty: 0 app .rpc() call sites, 0
+-- triggers, 0 SQL callers; service_role-only, not client-callable. Dead today,
+-- but each is a ready-made way to move chips with no transaction record.
+--
+-- Marked DEPRECATED via COMMENT ON rather than dropped: dropping money
+-- functions on a reachability proof is a bigger bet than the problem warrants,
+-- and the bodies document the old flows. Audited equivalents already exist
+-- (fn_credit_chips, fn_debit_chips, fn_transfer_chips, distribute_chips,
+-- fn_union_send_chips_to_club, transfer_chips_agent_to_player - all log, lock
+-- FOR UPDATE and guard balances).

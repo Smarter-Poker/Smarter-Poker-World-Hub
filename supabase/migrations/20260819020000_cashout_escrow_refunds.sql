@@ -1,0 +1,34 @@
+-- Applied to production 2026-08-19 via Supabase MCP. Mirrored per CLAUDE.md RULE 2.
+--
+-- Cashout escrow was DESTROYING player chips on two terminal states.
+--
+-- Model: fn_request_cashout DEBITS club_members.chip_balance and logs
+-- 'cashout_request_escrow'. fn_approve_cashout_atomic credits the agent and
+-- never debits the player, because the debit already happened. Therefore every
+-- non-approval terminal state MUST refund.
+--
+-- BUG 1 (LIVE, CashoutService.ts:459) fn_expire_stale_cashouts flipped status
+--   to 'expired' with NO refund - escrowed chips destroyed on every TTL expiry.
+-- BUG 2 fn_reject_cashout refunded the WRONG LEDGER: escrow debits
+--   club_members.chip_balance but reject credited wallets.balance
+--   (wallet_type='PLAYER'). Club chips stayed destroyed AND unrelated wallet
+--   chips were minted. Logged to wallet_transactions, so the club audit trail
+--   never saw it.
+-- BUG 3 (found by EXERCISING, not reading) cashout_requests_status_check
+--   allowed only pending/approved/cancelled/completed/completing/cancelling -
+--   'rejected' and 'expired' were FORBIDDEN, so both functions raised 23514 on
+--   every call and neither path could ever complete.
+--
+-- Fixed: both refund club_members.chip_balance and log to chip_transactions
+-- with related_cashout_id; reject enforces the same agent/owner/admin check as
+-- approve; both server-only; defaults preserved (p_ttl_hours DEFAULT 72,
+-- p_reason DEFAULT NULL - postgres requires DROP first to change defaults);
+-- status CHECK widened to include rejected + expired, all original states kept.
+--
+-- PROVEN by rolled-back probe: escrow debits 100, reject returns to start,
+-- expire returns to start, 2 audit rows written, zero persistence after.
+-- Blast radius was ZERO - cashout_requests has never held a row.
+--
+-- Full bodies are in the MCP migrations
+-- 20260819_cashout_expiry_and_reject_must_refund_escrow and
+-- 20260819_cashout_status_check_allow_rejected_and_expired.
