@@ -238,7 +238,7 @@ export default function TrainingLeaderboard() {
                       variant="no-data"
                       title="No friends on the leaderboard yet"
                       message="Invite friends to train together and compete!"
-                      cta={{ label: 'Find Friends', onClick: () => { try { window.location.href = '/hub/friends'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[leaderboard] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ } } }}
+                      cta={{ label: 'Find Friends', onClick: () => { try { window.location.href = '/hub/friends'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[leaderboard] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
                     />
                   );
                 }
@@ -248,7 +248,7 @@ export default function TrainingLeaderboard() {
                       variant="no-data"
                       title="No data yet for this timeframe"
                       message="Be the first to put up a score in this window."
-                      cta={{ label: 'Start Training', onClick: () => { try { window.location.href = '/hub/training'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[leaderboard] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ } } }}
+                      cta={{ label: 'Start Training', onClick: () => { try { window.location.href = '/hub/training'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[leaderboard] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
                     />
                   );
                 }

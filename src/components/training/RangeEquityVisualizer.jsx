@@ -20,6 +20,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { classifyMadeHand, classifyDraws, evaluateHand } from '../../engines/HandStrengthEngine';
 import { analyzeBoard } from '../../engines/BoardTextureEngine';
 
+// Card suit maps. Used below but never defined here -- both reads threw.
+// Copied verbatim from src/components/training/MultiStreetNavigator.jsx,
+// which is where the identical pair already lives; there is no shared module
+// exporting them.
+const SuitSymbol = { h: '♥', d: '♦', c: '♣', s: '♠' };
+const SuitColor = { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#e2e8f0' };
+
 // ●● Constants ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];

@@ -747,7 +747,7 @@ export const getClinicsByCategory = (category) =>
     TRAINING_CLINICS.filter(c => c.category === category);
 
 export const getClinicsByDifficulty = (min, max) =>
-    TRAINING_CLINICS.filter(c => c.difficulty >= Min && C.difficulty <= max);
+    TRAINING_CLINICS.filter(c => c.difficulty >= min && c.difficulty <= max);
 
 export const getClinicForLeak = (leakCategory) => {
     const clinicId = LEAK_CATEGORY_MAP[leakCategory];

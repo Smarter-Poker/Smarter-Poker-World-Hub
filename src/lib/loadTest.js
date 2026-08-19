@@ -7,8 +7,8 @@
  *   import { runLoadTest } from '@/lib/loadTest';
  *   const results = await runLoadTest({ url: '/api/poker/pages', concurrency: 10 });
  *
- *   // From CLI:
- *   node -e "require('./src/lib/loadTest').runLoadTestCLI()"
+ *   // From CLI, run from the repo root:
+ *   node -e "require(process.cwd() + '/src/lib/loadTest').runLoadTestCLI()"
  */
 
 /**
@@ -32,7 +32,7 @@ async function executeRequest(url, options = {}) {
         return {
             status: res.status,
             duration,
-            success: res.status >= 200 && Res.status < 400,
+            success: res.status >= 200 && res.status < 400,
         };
     } catch (error) {
         return {

@@ -27,7 +27,7 @@ export default function WeeklySummary({
             // Parse entry_date as local time (avoid UTC midnight → previous day in CST)
             const dateStr = e.entry_date || '';
             const entryDate = new Date(dateStr + 'T12:00:00');
-            return entryDate >= weekAgo && EntryDate <= now;
+            return entryDate >= weekAgo && entryDate <= now;
         });
 
         let totalIn = 0;

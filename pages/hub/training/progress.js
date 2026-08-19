@@ -281,7 +281,7 @@ export default function TrainingProgress() {
             variant="locked"
             title="Sign in to view your progress"
             message="Track your accuracy, streaks, and weak spots once you sign in."
-            cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[progress] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ } } }}
+            cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[progress] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
           />
         </div>
       </PageTransition>

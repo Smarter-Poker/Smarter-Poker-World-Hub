@@ -256,7 +256,7 @@ export function getLocationActivityMod(profileId) {
     const localHour = (now.getUTCHours() + location.utcOffset + 24) % 24;
 
     // Very low activity 3am-7am local time
-    if (localHour >= 3 && LocalHour < 7) {
+    if (localHour >= 3 && localHour < 7) {
         return 0.3;
     }
 
@@ -278,8 +278,8 @@ export function getCurrentSeason() {
     }
 
     const month = new Date().getMonth() + 1;
-    if (month >= 6 && Month <= 8) return 'Summer Grind';
-    if (month >= 9 && Month <= 11) return 'Fall Season';
+    if (month >= 6 && month <= 8) return 'Summer Grind';
+    if (month >= 9 && month <= 11) return 'Fall Season';
     if (month === 12 || month <= 2) return 'Winter';
     return 'Spring';
 }

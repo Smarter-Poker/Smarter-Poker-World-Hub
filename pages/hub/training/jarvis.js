@@ -170,7 +170,7 @@ export default function JarvisDashboard() {
               variant="locked"
               title="Sign in for personalized insights"
               message="Jarvis tracks your patterns and surfaces tailored coaching once you sign in."
-              cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[jarvis] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ } } }}
+              cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[jarvis] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
             />
           ) : (
             <div style={styles.dashboard}>

@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSupabase } from '../../providers/SupabaseProvider';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎯 TIER CONFIGURATION

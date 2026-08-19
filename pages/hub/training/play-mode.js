@@ -175,6 +175,13 @@ function SVGCircularTimer({ timeLeft, totalTime = 24, size = 50 }) {
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function usePlayMode() {
+  // TRAIN-WIRE-FEEDBACK-HOOK-3 wired the hand-completion feedback call inside
+  // this hook, but `fb` was only ever created down in the component (line
+  // ~1032) -- a different scope. So the call at hand completion threw
+  // ReferenceError into its own try/catch and the audio/haptic feedback has
+  // never fired once. usePlayMode is itself a hook, so calling
+  // useTrainingFeedback here is the correct place for it.
+  const fb = useTrainingFeedback();
   const [gameState, setGameState] = useState('setup'); // setup | playing | handComplete | sessionComplete
   const [config, setConfig] = useState({
     format: 'cash_6max',

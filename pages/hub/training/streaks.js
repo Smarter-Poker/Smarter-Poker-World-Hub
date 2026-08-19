@@ -324,7 +324,7 @@ export default function StreaksPage() {
             variant="locked"
             title="Sign in to view your streak"
             message="Daily streaks unlock once you sign in to track your training."
-            cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[streaks] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ } } }}
+            cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[streaks] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
           />
         </div>
       </PageTransition>
