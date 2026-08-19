@@ -15,6 +15,7 @@
  */
 import React from 'react';
 import * as Sentry from '@sentry/nextjs';
+import { reportClientCrash } from '../../lib/reportClientCrash';
 
 export default class PageErrorBoundary extends React.Component {
     constructor(props) {
@@ -29,33 +30,20 @@ export default class PageErrorBoundary extends React.Component {
     componentDidCatch(error, errorInfo) {
         this.setState({ errorInfo });
 
-        // Log to console for dev visibility
-        console.warn(
-            '[PageErrorBoundary] 🔥 PAGE CRASH CAUGHT — site is still alive:',
-            error,
-            errorInfo?.componentStack
-        );
-
-        // AUDIT-11 (2026-04-30 per Dan: silent crash → World Hub redirect):
-        // Persist the error to sessionStorage so it survives the user
-        // tapping "Go to Hub" and returning later. This is the only way to
-        // collect ground-truth diagnostic data from Dan's iPhone — Sentry
-        // is server-side and not visible to the user, dev-only error
-        // display below has been hidden in prod, and toasts disappear
-        // before the user can read them on a small screen.
+        // Durable report. reportClientCrash does the console.warn and the
+        // sessionStorage mirror this method used to do inline, AND POSTs to
+        // /api/client-crash, which writes public.client_crash_log. Sentry's
+        // browser SDK never initialises in production (no DSN in the bundle),
+        // so before this the only record of a crash was a sessionStorage entry
+        // that died with the tab.
         try {
-            if (typeof sessionStorage !== 'undefined') {
-                const log = JSON.parse(sessionStorage.getItem('sp-page-crash-log') || '[]');
-                log.push({
-                    t: new Date().toISOString(),
-                    url: typeof window !== 'undefined' ? window.location.href : 'SSR',
-                    message: String(error?.message || error).slice(0, 500),
-                    stack: String(error?.stack || '').slice(0, 1500),
-                    componentStack: String(errorInfo?.componentStack || '').slice(0, 1500),
-                });
-                sessionStorage.setItem('sp-page-crash-log', JSON.stringify(log.slice(-10)));
-            }
-        } catch (_) { /* sessionStorage may be unavailable */ }
+            reportClientCrash({
+                boundary: 'page',
+                section: typeof window !== 'undefined' ? window.location.pathname : 'SSR',
+                error,
+                componentStack: errorInfo?.componentStack,
+            });
+        } catch (_) { console.warn('[PageErrorBoundary] crash reporting failed:', _?.message || _); }
 
         // Report to Sentry silently — never let reporting crash the boundary
         try {

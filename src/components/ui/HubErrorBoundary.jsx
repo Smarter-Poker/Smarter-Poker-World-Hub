@@ -11,11 +11,12 @@
  */
 import React from 'react';
 import * as Sentry from '@sentry/nextjs';
+import { reportClientCrash } from '../../lib/reportClientCrash';
 
 export class HubErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { hasError: false, error: null };
+        this.state = { hasError: false, error: null, componentStack: null };
     }
 
     static getDerivedStateFromError(error) {
@@ -25,7 +26,22 @@ export class HubErrorBoundary extends React.Component {
     componentDidCatch(error, info) {
         const name = this.props.name || 'Unknown';
         const timestamp = new Date().toISOString();
-        console.warn(`[HubErrorBoundary] "${name}" crashed at ${timestamp} —`, error, info?.componentStack);
+
+        // Keep the component stack so the details pane can name the child that
+        // actually threw — the message alone is rarely enough in a tree this deep.
+        this.setState({ componentStack: info?.componentStack || null });
+
+        // Durable report. Sentry's browser SDK never initialises in production
+        // (no DSN is baked into the bundle), so the Sentry call below is a
+        // no-op and this is the ONLY path that survives the tab closing.
+        try {
+            reportClientCrash({
+                boundary: 'hub',
+                section: name,
+                error,
+                componentStack: info?.componentStack,
+            });
+        } catch (_) { console.warn('[HubErrorBoundary] crash reporting failed:', _?.message || _); }
 
         // Fire optional onError callback so parent can react
         try { this.props.onError?.(error, name); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
@@ -48,7 +64,7 @@ export class HubErrorBoundary extends React.Component {
     }
 
     handleReset() {
-        this.setState({ hasError: false, error: null });
+        this.setState({ hasError: false, error: null, componentStack: null });
     }
 
     render() {
@@ -146,6 +162,7 @@ export class HubErrorBoundary extends React.Component {
 {String(this.state.error?.name || 'Error')}: {String(this.state.error?.message || this.state.error)}
 {'\n\n'}
 {String(this.state.error?.stack || '(no stack)')}
+{this.state.componentStack ? `\n\nComponent stack:${this.state.componentStack}` : ''}
                             </pre>
                         </details>
                     )}
