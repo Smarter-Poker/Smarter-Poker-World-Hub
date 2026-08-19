@@ -12,11 +12,12 @@
 import React from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { reportClientCrash } from '../../lib/reportClientCrash';
+import { isChunkError, canAutoReload } from '../../lib/chunkRecovery';
 
 export class HubErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { hasError: false, error: null, componentStack: null };
+        this.state = { hasError: false, error: null, componentStack: null, recovering: false };
     }
 
     static getDerivedStateFromError(error) {
@@ -43,6 +44,19 @@ export class HubErrorBoundary extends React.Component {
             });
         } catch (_) { console.warn('[HubErrorBoundary] crash reporting failed:', _?.message || _); }
 
+        // A stale chunk after a deploy is not a bug in this section -- the code
+        // it needs simply 404s. ChunkLoadRecovery handles that at the window
+        // level, but React does not re-dispatch an error a boundary caught, so
+        // it never sees this one. Recover here instead of leaving the user on a
+        // dead screen. Shared reload budget: 2 per 60s, then we stop and show
+        // the fallback rather than loop.
+        try {
+            if (isChunkError(error) && canAutoReload() && typeof window !== 'undefined') {
+                this.setState({ recovering: true });
+                setTimeout(() => window.location.reload(), 1200);
+            }
+        } catch (_) { console.warn('[HubErrorBoundary] chunk recovery failed:', _?.message || _); }
+
         // Fire optional onError callback so parent can react
         try { this.props.onError?.(error, name); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
@@ -64,13 +78,14 @@ export class HubErrorBoundary extends React.Component {
     }
 
     handleReset() {
-        this.setState({ hasError: false, error: null, componentStack: null });
+        this.setState({ hasError: false, error: null, componentStack: null, recovering: false });
     }
 
     render() {
         if (this.state.hasError) {
             const name = this.props.name || 'Section';
             const fallback = this.props.fallback;
+            const recovering = this.state.recovering;
 
             // If caller provided a custom fallback, use it
             if (fallback) return fallback;
@@ -103,11 +118,12 @@ export class HubErrorBoundary extends React.Component {
 
                     <div>
                         <h2 style={{ color: '#00d4ff', fontSize: 20, margin: '0 0 8px', fontWeight: 700 }}>
-                            {name} Temporarily Unavailable
+                            {recovering ? 'Updating to the latest version...' : `${name} Temporarily Unavailable`}
                         </h2>
                         <p style={{ color: '#8a8d91', fontSize: 14, maxWidth: 380, margin: '0 auto 24px' }}>
-                            This section encountered an issue and was isolated to protect the rest of the app.
-                            Please try refreshing — everything else is still running normally.
+                            {recovering
+                                ? 'A new build shipped while this page was open, so its code was no longer on the server. Reloading now.'
+                                : 'This section encountered an issue and was isolated to protect the rest of the app. Please try refreshing — everything else is still running normally.'}
                         </p>
                     </div>
 

@@ -16,6 +16,7 @@
 import React from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { reportClientCrash } from '../../lib/reportClientCrash';
+import { isChunkError, canAutoReload } from '../../lib/chunkRecovery';
 
 export default class PageErrorBoundary extends React.Component {
     constructor(props) {
@@ -44,6 +45,15 @@ export default class PageErrorBoundary extends React.Component {
                 componentStack: errorInfo?.componentStack,
             });
         } catch (_) { console.warn('[PageErrorBoundary] crash reporting failed:', _?.message || _); }
+
+        // Same reasoning as HubErrorBoundary: a chunk that 404s after a deploy
+        // is recoverable by reloading, and a boundary-caught error never
+        // reaches ChunkLoadRecovery's window listeners.
+        try {
+            if (isChunkError(error) && canAutoReload() && typeof window !== 'undefined') {
+                setTimeout(() => window.location.reload(), 1200);
+            }
+        } catch (_) { console.warn('[PageErrorBoundary] chunk recovery failed:', _?.message || _); }
 
         // Report to Sentry silently — never let reporting crash the boundary
         try {

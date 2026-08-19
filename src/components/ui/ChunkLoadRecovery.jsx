@@ -16,51 +16,11 @@
  */
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-
-const RELOAD_COUNTER_KEY = 'chunk_reload_count';
-const RELOAD_TIMESTAMP_KEY = 'chunk_reload_timestamp';
-const MAX_RELOADS = 2;
-const RELOAD_WINDOW_MS = 60000; // 60 seconds
-
-function canAutoReload() {
-    if (typeof window === 'undefined') return false;
-
-    try {
-        const count = parseInt(localStorage.getItem(RELOAD_COUNTER_KEY) || '0', 10);
-        const timestamp = parseInt(localStorage.getItem(RELOAD_TIMESTAMP_KEY) || '0', 10);
-        const now = Date.now();
-
-        // If window has expired, reset counter
-        if (now - timestamp > RELOAD_WINDOW_MS) {
-            localStorage.setItem(RELOAD_COUNTER_KEY, '1');
-            localStorage.setItem(RELOAD_TIMESTAMP_KEY, String(now));
-            return true;
-        }
-
-        // If within window but under limit, increment
-        if (count < MAX_RELOADS) {
-            localStorage.setItem(RELOAD_COUNTER_KEY, String(count + 1));
-            return true;
-        }
-
-        // Over limit — don't auto-reload (prevents infinite loop)
-        return false;
-    } catch (_) {
-        return false; // localStorage unavailable (private browsing, etc.)
-    }
-}
-
-function isChunkError(error) {
-    if (!error) return false;
-    const msg = String(error.message || error).toLowerCase();
-    return (
-        msg.includes('loading chunk') ||
-        msg.includes('chunkloaderror') ||
-        msg.includes('loading css chunk') ||
-        msg.includes('failed to fetch dynamically imported module') ||
-        (error.name === 'ChunkLoadError')
-    );
-}
+// isChunkError / canAutoReload moved to src/lib/chunkRecovery.js so the error
+// boundaries can share the SAME detection and the SAME reload budget. A chunk
+// error caught by a boundary never reaches the window listeners below, which
+// is exactly the case where the user is looking at a dead section.
+import { isChunkError, canAutoReload } from '../../lib/chunkRecovery';
 
 export default function ChunkLoadRecovery() {
     const router = useRouter();
