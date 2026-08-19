@@ -1,2 +1,0 @@
-import{j as e}from"./vendor-react-bG8mnJCF-v6.js";const i=({hasImage:t=!0,hasSubtitle:l=!0,lines:m=2})=>e.jsxs("div",{className:"card-skeleton",children:[t&&e.jsx("div",{className:"skeleton-image shimmer"}),e.jsxs("div",{className:"skeleton-content",children:[e.jsx("div",{className:"skeleton-title shimmer"}),l&&e.jsx("div",{className:"skeleton-subtitle shimmer"}),Array.from({length:m}).map((a,s)=>e.jsx("div",{className:"skeleton-line shimmer",style:{width:`${85-s*15}%`}},s))]})]});export{i as C};
-//# sourceMappingURL=CardSkeleton-DJ3Z_ZOt-v6.js.map
