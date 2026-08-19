@@ -35,6 +35,24 @@
  */
 
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+
+// 2026-08-19: this endpoint forwarded to Sentry and nowhere else, and Sentry's
+// browser SDK never initialises in production (no DSN is baked into the
+// bundle) — so every signup and login failure captured here went straight into
+// a black hole, which is the exact thing the header comment above says this
+// endpoint exists to prevent. It now ALSO writes public.client_crash_log,
+// boundary 'auth', section = the flow tag. Same table the error boundaries
+// use, so there is one place to look.
+let _supabase = null;
+function getSupabase() {
+    if (_supabase) return _supabase;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!key) return null;
+    _supabase = createClient(url, key);
+    return _supabase;
+}
 
 let Sentry;
 try {
@@ -87,6 +105,29 @@ export default async function handler(req, res) {
 
         if (!safeMessage && !safeStack && !safeCode) {
             return res.status(400).json({ error: 'message, stack, or code required' });
+        }
+
+        // Durable first: Sentry is best-effort, this is the record.
+        try {
+            const supabase = getSupabase();
+            if (supabase) {
+                const { error: insErr } = await supabase.from('client_crash_log').insert({
+                    boundary: 'auth',
+                    section: safeFlow,
+                    route: safeUrl ? safeUrl.split('?')[0].slice(0, 300) : null,
+                    url: safeUrl || null,
+                    error_name: safeCode || 'AuthError',
+                    message: safeMessage || null,
+                    stack: safeStack || null,
+                    component_stack: null,
+                    user_agent: safeUa || null,
+                    embedded: false,
+                    build_sha: (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 60) || null,
+                });
+                if (insErr) console.warn('[log-client-error] insert failed:', insErr.message);
+            }
+        } catch (dbErr) {
+            console.warn('[log-client-error] durable write failed:', dbErr?.message);
         }
 
         Sentry.withScope((scope) => {
