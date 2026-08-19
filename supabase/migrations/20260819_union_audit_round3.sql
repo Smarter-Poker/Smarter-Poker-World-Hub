@@ -1,0 +1,27 @@
+-- ============================================================================
+-- UNION — AUDIT ROUND 3 (2026-08-19)
+-- APPLIED to production via Supabase MCP as:
+--   private_tables_rls_and_union_pnl_visibility
+--
+-- 1. PRIVATE TABLES WERE WORLD-READABLE. The `tables` SELECT policy was
+--    literally USING (true) — despite being named "Club members can view
+--    tables", it checked nothing at all. Every client-side omission was
+--    therefore a real exposure, not just a display bug: SearchPage listed
+--    tables by name with no filters whatsoever, and TableService.getActiveTables
+--    is a platform-wide lobby helper. The moment union clubs began creating
+--    is_private games, those games were readable by any authenticated user.
+--    Fixed at the only layer that covers every present and future query.
+--    Union-owned tables stay readable (that IS the shared union lobby, and
+--    club_id can legitimately be NULL on them); only private games become
+--    club-scoped.
+--
+-- 2. THE WEEKLY UNION SETTLEMENT HAD NO READABLE SURFACE. union_pnl_settlements
+--    was service_role-only, so a union admin could not see what was settled,
+--    what was collected or paid, or why a period was parked needs_review.
+--    Adds a scoped read policy for union owners/admins, which the new
+--    "Weekly Player P&L Settlement" panel on the union dashboard consumes.
+--
+-- Note on the rest of round 3: settlement_invoices and settlement_periods
+-- were checked and ARE properly scoped by RLS (club admin / union overseer).
+-- The unscoped client queries found in that area were therefore correctness
+-- and display bugs, not data exposure — fixed in the Club Arena repo.
