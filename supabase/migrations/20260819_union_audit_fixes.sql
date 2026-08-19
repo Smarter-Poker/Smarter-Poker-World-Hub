@@ -1,0 +1,52 @@
+-- ============================================================================
+-- UNION GOVERNANCE / BILLING — AUDIT FIX PASSES 1-6 (2026-08-19)
+-- APPLIED to production via Supabase MCP as these migrations, in order:
+--   union_pnl_invoice_types_and_ownership_hardening
+--   union_settle_player_pnl_atomic
+--   union_club_rake_paid_attribution
+--   union_settle_player_pnl_rake_neutral_v2
+--   union_pnl_imbalance_guard_and_bootstrap
+--   union_join_close_club_tables_atomic
+--
+-- WHAT THE AUDIT FOUND (all verified against production, not inferred):
+--
+-- 1. CRITICAL — the weekly player win/loss square-up wrote NOTHING. The
+--    invoice used invoice_type 'union_club_pnl' and to_entity_type 'union',
+--    both rejected by CHECK constraints, and the JS only console.warn'd the
+--    error. Reproduced: 23514 check_violation. Constraints now permit them.
+--
+-- 2. CRITICAL — rake was double-charged. By the seat/wallet identity,
+--    realized_net + stack_delta == (inter-club transfer) - (rake paid).
+--    The engine already sweeps rake to the union per hand, so settling that
+--    figure collected it a second time. Settlement is now rake-neutral:
+--        settle_net = realized_net + stack_delta + rake_paid
+--    which sums to ~0 across a union — an invariant now asserted per run.
+--    Per-club rake comes from fn_union_rake_paid_by_club, weighting
+--    rake_records.player_contributions (the rakeback settler's own basis).
+--
+-- 3. CRITICAL — no chips ever moved, and nothing paid the invoice (the only
+--    invoice payer is hardcoded to 'club_to_agent'). fn_union_settle_player_pnl
+--    now collects from losing clubs and pays winning clubs in ONE transaction,
+--    ordered so the union can never pay out chips it has not first collected.
+--
+-- 4. CRITICAL — ownership triggers were BEFORE INSERT only, so the engine boot
+--    sweep (closed -> waiting) could resurrect a table with union_id dropped.
+--    UPDATE triggers added.
+--
+-- 5. HIGH — tournaments RLS was blanket "Public read access": private club
+--    tournaments were world-readable. Now scoped to club membership.
+--
+-- 6. HIGH — the join flow's table-closing loop was non-atomic (a mid-loop
+--    failure could leave chips credited to a wallet AND still on the felt),
+--    closed tables the engine then resurrected, destroyed the club's private
+--    games, and could confiscate stacks on an unchecked query.
+--    fn_union_close_club_tables_for_join replaces it.
+--
+-- SAFETY: the first run has no seated-stack baseline, so every stack_delta is
+-- forced to 0 and the books do not balance (observed imbalance ~273,886).
+-- fn_union_settle_player_pnl_guarded refuses to move chips when the invariant
+-- fails and records the run as 'needs_review'; fn_union_pnl_bootstrap seeds
+-- baselines with zero money movement. Both were run for every existing union.
+--
+-- The full applied bodies are in the Supabase migration history (list_migrations)
+-- and in the live catalog (pg_get_functiondef).
