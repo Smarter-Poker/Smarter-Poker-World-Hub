@@ -211,7 +211,19 @@ export default async function handler(req, res) {
         .from('agents')
         .update({ weekly_rake_generated: 0 })
         .eq('club_id', clubId);
-      if (err_agents_8n8q4) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_8n8q4.message);
+      if (err_agents_8n8q4) {
+        // FAIL-LOUD: if the reset does not land, every agent keeps last week's
+        // weekly_rake_generated and the NEXT close pays commission on it a
+        // second time and re-charges the union hold on it. Silently warning
+        // here meant the double-charge surfaced a week later as a mystery.
+        return res.status(500).json({
+          success: false,
+          error: `Period #${nextPeriod} opened, but resetting agents' weekly rake failed: `
+            + `${err_agents_8n8q4.message}. Reset it before the next close or that rake `
+            + `will be counted twice.`,
+          periodId: period?.id,
+        });
+      }
 
       const responseObj = {
         success: true,
@@ -228,23 +240,45 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (action === 'close') {
       // Find the open period — always use the DB's open period, not a client-provided ID
-      const { data: period } = await supabaseAdmin
+      const { data: period, error: periodErr } = await supabaseAdmin
         .from('settlement_periods')
         .select('id, period_number, start_at, seated_stack_snapshot')  // BUG FIX: was select('id') — period_number/start_at were undefined
         .eq('club_id', clubId)
         .eq('status', 'open')
         .maybeSingle();
 
+      if (periodErr) {
+        // .maybeSingle() also errors when TWO periods are open (PGRST116),
+        // which used to surface as the misleading "No open period to close".
+        return res.status(500).json({
+          success: false,
+          error: `Could not resolve the open settlement period: ${periodErr.message}. `
+            + `If more than one period is open for this club, close the duplicate first.`,
+        });
+      }
       if (!period) return res.status(404).json({ success: false, error: 'No open period to close' });
 
       const pid = period.id;
 
       // Get all agents for this club
-      const { data: agents } = await supabaseAdmin
+      // FAIL-LOUD 2026-08-19: this error was never destructured. A failed
+      // agents read produced `agents = null`, which silently meant zero
+      // commissions, actualTotalRake = 0 and unionHold = 0 — the period then
+      // closed reporting "0 commission records created" and success:true,
+      // losing an entire week of agent commissions and the union's rake hold
+      // with no signal anywhere.
+      const { data: agents, error: agentsErr } = await supabaseAdmin
         .from('agents')
         .select('id, user_id, commission_rate, weekly_rake_generated, is_prepaid, parent_agent_id')
         .eq('club_id', clubId)
         .eq('status', 'active')
+
+      if (agentsErr) {
+        return res.status(500).json({
+          success: false,
+          error: `Could not read agents for settlement: ${agentsErr.message}. Period left open — nothing was settled.`,
+        });
+      }
 
       // ═══════════════════════════════════════════════════════════
       // PROMO CHIPS ARE EXCLUDED FROM SETTLEMENT
@@ -458,6 +492,18 @@ export default async function handler(req, res) {
             });
             if (refundErr) {
               console.error('[settle-period] CRITICAL: union hold refund ALSO failed — treasury debited, union not credited:', refundErr.message);
+              // Chips have been destroyed: the club was debited, the union was
+              // never credited, and putting them back failed too. That is a
+              // conservation break and must not be reported as a success.
+              return res.status(500).json({
+                success: false,
+                error: `CRITICAL: the union hold of ${unionHold} was debited from the club `
+                  + `treasury, crediting the union failed, and the refund failed as well. `
+                  + `Those chips are unaccounted for — reconcile before settling again.`,
+                conservationBreak: true,
+                amount: unionHold,
+                periodId: pid,
+              });
             }
             // Continue the settlement either way — the hold is skipped, not fatal.
           } else {
@@ -587,7 +633,22 @@ export default async function handler(req, res) {
           settled_by: user.id,
         })
         .eq('id', pid);
-      if (err_settlement_periods_3wobo) console.warn('[Supabase] Silent mutation failed in settlement_periods:', err_settlement_periods_3wobo.message);
+      if (err_settlement_periods_3wobo) {
+        // FAIL-LOUD: this is the worst one. All the money movement above has
+        // already committed. If the period is not marked closed, it stays
+        // `open`, the caller is told "closed", and the next run re-executes
+        // EVERYTHING — re-inserting commission records, re-debiting the club
+        // treasury for the union hold and re-crediting the union. Report it so
+        // the period is closed by hand rather than settled twice.
+        return res.status(500).json({
+          success: false,
+          error: `Settlement completed but the period could not be marked closed: `
+            + `${err_settlement_periods_3wobo.message}. DO NOT re-run close for this `
+            + `period — commissions and the union hold have already been applied.`,
+          periodId: pid,
+          alreadyApplied: true,
+        });
+      }
 
       const responseObj = {
         success: true,
