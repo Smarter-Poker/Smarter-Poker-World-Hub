@@ -14,6 +14,58 @@ const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 // Canonical shop categories (kept in sync with shop-items.js and the
 // Club Arena marketplace UI) + the item_type each category maps to.
 const VALID_CATEGORIES = ['Time Banks', 'Table Skins', 'Throwables', 'Emotes', 'Avatars', 'Exclusive'];
+// grant_spec vocabulary — must match the CHECK constraint on club_shop_items
+// and the branches in fn_redeem_shop_item.
+const GRANT_TYPES = ['time_bank', 'throwable', 'emote_pack', 'table_skin', 'avatar', 'none'];
+const GRANT_TYPE_BY_CATEGORY = {
+    'Time Banks': 'time_bank',
+    'Table Skins': 'table_skin',
+    'Throwables': 'throwable',
+    'Emotes': 'emote_pack',
+    'Avatars': 'avatar',
+    'Exclusive': 'none',
+};
+
+/**
+ * Build a validated grant_spec, or return { error } for a 400.
+ * Shop items that grant nothing are explicitly {"type":"none"} rather than
+ * NULL so an admin can tell "club-fulfilled perk" from "never configured".
+ */
+function buildGrantSpec(category, grantType, grantQty, grantRef) {
+    const type = GRANT_TYPES.includes(grantType)
+        ? grantType
+        : (GRANT_TYPE_BY_CATEGORY[category] || 'none');
+
+    const spec = { type };
+
+    if (type === 'time_bank' || type === 'throwable') {
+        const qty = Math.floor(Number(grantQty));
+        if (!Number.isFinite(qty) || qty <= 0 || qty > 1000) {
+            return { error: 'grantQty must be an integer between 1 and 1000 for this grant type' };
+        }
+        spec.qty = qty;
+    }
+    if (type === 'avatar') {
+        spec.avatar_id = String(grantRef || '').trim().slice(0, 64) || 'club_shop_avatar';
+    }
+    if (type === 'table_skin') {
+        spec.theme_id = String(grantRef || '').trim().slice(0, 64) || 'club_shop_theme';
+    }
+    return { spec };
+}
+
+/** Item images must be https (or a same-origin path) — see audit 2026-08-19. */
+function normalizeImageUrl(raw) {
+    if (raw === undefined) return { skip: true };
+    if (raw === null || String(raw).trim() === '') return { value: null };
+    const v = String(raw).trim().slice(0, 500);
+    if (v.startsWith('/')) return { value: v };
+    let parsed;
+    try { parsed = new URL(v); } catch (_e) { return { error: 'imageUrl must be a valid URL' }; }
+    if (parsed.protocol !== 'https:') return { error: 'imageUrl must use https' };
+    return { value: v };
+}
+
 const ITEM_TYPE_BY_CATEGORY = {
     'Time Banks': 'time_bank',
     'Table Skins': 'table_skin',
@@ -80,24 +132,33 @@ export default async function handler(req, res) {
 
         if (error) throw error;
 
-        // Get purchase counts per item
+        // Purchase counts AND real revenue per item. Revenue must come from
+        // price_paid: multiplying today's price by historical sales let an
+        // admin rewrite reported revenue just by editing a price.
         const { data: purchases } = await getSupabase()
           .from('club_shop_purchases')
-          .select('item_id')
+          .select('item_id, price_paid')
           .eq('club_id', clubId)
           .limit(10000);
 
         const purchaseCounts = {};
+        const revenueByItem = {};
         for (const p of (purchases || [])) {
           purchaseCounts[p.item_id] = (purchaseCounts[p.item_id] || 0) + 1;
+          revenueByItem[p.item_id] = (revenueByItem[p.item_id] || 0) + (Number(p.price_paid) || 0);
         }
 
         const enriched = (items || []).map(item => ({
           ...item,
           purchase_count: purchaseCounts[item.id] || 0,
+          revenue: revenueByItem[item.id] || 0,
         }));
 
-        return res.status(200).json({ success: true, items: enriched });
+        return res.status(200).json({
+          success: true,
+          items: enriched,
+          totalRevenue: Object.values(revenueByItem).reduce((a, b) => a + b, 0),
+        });
       }
 
       // ═══════════════════════════════════════════════════════════
@@ -124,6 +185,13 @@ export default async function handler(req, res) {
           }
 
           const cat = VALID_CATEGORIES.includes(category) ? category : 'Time Banks';
+
+          const img = normalizeImageUrl(imageUrl);
+          if (img.error) return res.status(400).json({ success: false, error: img.error });
+
+          const grant = buildGrantSpec(cat, req.body.grantType, req.body.grantQty, req.body.grantRef);
+          if (grant.error) return res.status(400).json({ success: false, error: grant.error });
+
           const { data: item, error } = await getSupabase()
             .from('club_shop_items')
             .insert({
@@ -133,7 +201,8 @@ export default async function handler(req, res) {
               price: parseInt(price),
               category: cat,
               item_type: ITEM_TYPE_BY_CATEGORY[cat] || null,
-              image_url: imageUrl ? String(imageUrl).trim().slice(0, 500) : null,
+              grant_spec: grant.spec,
+              image_url: img.skip ? null : img.value,
               is_active: true,
             })
             .select()
@@ -163,8 +232,18 @@ export default async function handler(req, res) {
             updates.category = category;
             updates.item_type = ITEM_TYPE_BY_CATEGORY[category] || null;
           }
-          if (imageUrl !== undefined) updates.image_url = imageUrl ? String(imageUrl).trim().slice(0, 500) : null;
+          if (imageUrl !== undefined) {
+            const img = normalizeImageUrl(imageUrl);
+            if (img.error) return res.status(400).json({ success: false, error: img.error });
+            updates.image_url = img.value;
+          }
           if (isActive !== undefined) updates.is_active = !!isActive;
+          if (req.body.grantType !== undefined) {
+            const cat = updates.category || category;
+            const grant = buildGrantSpec(cat, req.body.grantType, req.body.grantQty, req.body.grantRef);
+            if (grant.error) return res.status(400).json({ success: false, error: grant.error });
+            updates.grant_spec = grant.spec;
+          }
           if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'No fields to update' });
 
           const { error } = await getSupabase()

@@ -141,3 +141,94 @@ rests on idempotency keys + the unredeemed-inventory rule + rate limits, and
 
 Ledger after testing: 2 purchases, 2 inventory rows (1 owned, 1 redeemed),
 12 catalog items, no test leftovers.
+
+---
+
+# Audit pass 2 (same day) — the shop was selling receipts
+
+## Headline: redeeming granted nothing
+
+`fn_redeem_shop_item` set `status='redeemed'` and returned. It touched no
+entitlement table. Every one of the 12 catalog items was decorative. The real
+systems were already live and untouched by the shop:
+
+| Item type | Real system | Read by |
+|---|---|---|
+| Time Banks | `feature_purchases(feature='time_bank_seconds')` | `fn_time_bank_allowance` — **20s per remaining use** |
+| Throwables | none existed for purchased packs | `fn_use_throwable` charged 1 diamond/throw for non-VIP |
+| Emotes | `feature_purchases(feature='emoji_pack')` | VIPService |
+| Table Skins | `feature_purchases(feature='theme_unlock')` | VIPService |
+| Avatars | `avatar_unlocks` | avatar picker |
+
+Fixed by `20260819_club_shop_grant_spec_and_real_redemption.sql`:
+`club_shop_items.grant_spec jsonb` (CHECK-constrained) describes the grant;
+`fn_redeem_shop_item` applies it atomically with the status flip and returns
+what was granted; `fn_use_throwable` now spends a purchased pack credit before
+charging diamonds, with the VIP free monthly allowance still taking precedence.
+
+Because allowance is 20s/use, "+30s" was not expressible — the seeded items
+were renamed to **Time Bank +60s** (3 uses) and **Time Bank Bundle (+100s)**.
+
+### Verified live (test account, production)
+
+    redeem Snowball Pack -> {"granted":{"type":"throwable","uses":10}}
+    feature_purchases     -> throwable / per_use / uses_remaining = 10
+    throw as VIP          -> free monthly path, pack untouched (498 free left)
+    throw as non-VIP      -> {"from_pack":true,"pack_remaining":9} then 8,
+                             diamond balance unchanged at 499542
+
+(The non-VIP check required briefly clearing `is_vip` on the test account; the
+exact prior state — `is_vip=true, vip_tier='lifetime', vip_expires_at=NULL` —
+was captured first and restored immediately after.)
+
+## Client defects found by line-by-line re-read
+
+1. **Post-Stripe wallet re-check never ran.** The 4s `setTimeout` lived in an
+   effect keyed on `searchParams`; the very next line replaced the URL, which
+   changed the dep, ran cleanup and cleared the timer. Buyers returned from
+   Stripe to a stale balance. Now a separate effect polls at 1.5s/5s/12s.
+2. **Club-switch race.** `loadShop` had no request token and every caller
+   force-cleared the `loadingRef` guard, so an older in-flight load could win
+   and paint another club's balance and `role` (which gates the Manage tab).
+   Replaced with a monotonic request token; the guard is gone.
+3. **`setItems`/`setBalance`/... called inside a `setClubId` updater** — impure,
+   double-invoked under React 19 StrictMode. Moved out.
+4. **Two contradictory "owned" definitions** (`status==='owned'` in the Store vs
+   `status!=='redeemed'` in My Items). Any third status value would have let a
+   member re-buy something they held. One shared `isOwnedRow` now.
+5. **Inventory errors were swallowed** — supabase-js resolves rather than
+   rejects, and `error` was never destructured, so a failure was indistinguishable
+   from "you own nothing".
+6. **Wallet failure asserted "You have 0 diamonds"** and disabled every purchase
+   button with no explanation. Now an explicit error + Retry banner, and the
+   tabs say the balance is unavailable instead of claiming zero.
+7. **Manage tab stuck on "Loading items..."** on any failure (`setLoaded(true)`
+   was inside the `try`), and briefly rendered the *previous* club's items,
+   where Edit/Delete would POST club B's id with club A's item.
+8. **Revenue was `purchase_count * current price`** — editing a price rewrote
+   history. Now summed server-side from `price_paid`.
+9. Silent failures on every `silent=true` refresh path (no toast, no Sentry).
+10. `searchParams` mutated in place (React Router memoizes it per location).
+11. `clubId` interpolated into the API URL unencoded and never UUID-validated.
+12. `crypto.randomUUID()` with no fallback (fails on http origins / older Safari).
+13. Toggle/Delete had no in-flight guard; double-tap fired two writes.
+14. a11y: purchase modal had no dialog role, Escape, focus or scroll lock; tab
+    strip had no tablist semantics; inputs had no labels; several tap targets
+    were 25-28px against a 44px minimum; admin rows did not wrap at 375px.
+
+## Drift elimination
+
+Chip/diamond/VIP tables were hardcoded in the client. Not an authorization hole
+(the client only ever sends ids) but a truth-in-advertising one: change a price
+server-side and the marketplace would keep rendering the old one while charging
+the new. Added `GET /api/club-arena/store-catalog` as the single source of
+truth, with the bundled tables demoted to an offline fallback. It also
+self-checks VIP prices against `src/data/diamondStoreData.js` and reports drift
+in a `warnings` array.
+
+## Also added
+
+- Store cards and the buy modal advertise the grant ("+60s table time",
+  "10 free throws"); the redeem toast reports what was actually granted.
+- Manage: choose how much a category grants, per-item earned totals, retry on
+  load failure, https-only image validation (client + server).
