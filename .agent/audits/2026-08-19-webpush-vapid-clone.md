@@ -242,3 +242,92 @@ codebase or production, not assumed.
 - Migration `20260819210000` applied with post-apply assertions; quiet-hours
   columns live, cap index created, redundant index dropped, real unique index
   intact.
+
+---
+
+## LINE-BY-LINE AUDIT ROUND 3 (2026-08-19, 22:00-23:00 UTC)
+
+### THE HEADLINE FINDING: the gateway was connected to nothing
+
+All 16 typed `notify*` helpers had **zero callers**. The only importer of
+`src/lib/notify.js` in the entire codebase was `push-health.js` — the push
+system notifying people about the push system.
+
+Meanwhile the real traffic went nowhere near it:
+- **21 API routes** insert straight into `notifications`.
+- The **only live notification type in 45 days** is `friend_request` (505 rows,
+  newest during this audit) — produced by Postgres triggers
+  (`fn_notify_friend_request`, `fn_notify_friend_accepted`), not by API code.
+
+So the stack was flawless and inert. A user who enabled notifications would have
+received nothing, ever, except health warnings.
+
+**Fix — the database becomes the bridge.** `trg_mirror_notification_to_push_outbox`
+mirrors any row landing in `notifications`, from any writer, into `push_outbox`.
+Zero call-site changes, and any future writer is covered automatically. Chosen
+over rewriting 21 routes + trigger functions, which would have been invasive and
+still missed the next writer.
+
+**Making that safe required moving the gate.** `push-gate.js` (new) extracts the
+preference gate from `push-enqueue` and makes it batchable. It had been private
+to the inline path, so anything reaching the outbox another way was delivered
+with **no preference check at all** — which the mirror trigger would have turned
+from a latent hole into a live one. `push-dispatch` now gates every row.
+
+Gating at SEND time rather than QUEUE time is also just more correct: a user who
+mutes at 22:00 is no longer pushed by a row queued at 21:58.
+
+Double-send is prevented by `notify()` stamping `data->>'_push'`:
+`'inline'` (it is handling the push) or `'none'` (`withPush:false`). Any marker
+means the JS layer already decided. Without the `'none'` case this would have
+pushed exactly the notifications a feature deliberately marked silent —
+including push-health's own "push is not reaching you" alerts.
+
+### Other defects fixed
+
+- **RLS was too permissive.** `push_subscriptions` granted authenticated users
+  `ALL` on their own rows, so a user could write *another person's* endpoint
+  into their own row and have their notifications delivered to that device — a
+  harassment vector that also bypasses one-account-per-device. Writes are now
+  service-role only (verified first that nothing client-side writes the table).
+  Also dropped a redundant `notification_preferences` ALL policy that silently
+  granted DELETE.
+- **Superseded endpoints leaked.** When the browser rotated a subscription the
+  old row stayed `is_active=true` forever, inflating device counts and burning a
+  wasted send on every notification until the push service finally 404'd. The
+  client now reports the endpoint it replaced; the server retires it.
+- **push-health re-nagged daily, forever.** Once anyone had enrolled, every
+  unreachable staff member got the same alert every day — which trains people to
+  ignore it before the first real one arrives. 7-day per-person cooldown,
+  failing open so a lookup failure cannot silence a genuine alert.
+- **A bug introduced during this round and caught before shipping:** the `_push`
+  marker was first named `data`, shadowing the destructured `const { data, error }`
+  from the insert below it — a TDZ `ReferenceError` that would have broken every
+  notification. Renamed to `notifData`.
+
+### Found and confirmed NOT broken (verified, not assumed)
+- `ON CONFLICT (user_id)` upserts — a non-partial unique index already exists.
+- `FirstRunNotificationPrompt` route suppression — `'/'` cannot match `'//'`.
+- Another agent had concurrently fixed two real bugs in this stack
+  (`push_outbox.claimed_at` stuck-detection, and an atomic
+  `set_push_type_pref` RPC replacing a read-modify-write race). Verified their
+  work and this round's changes coexist correctly in `push-types.js`.
+
+### END-TO-END PROOF IN PRODUCTION
+A plain `INSERT INTO notifications` — with zero push awareness, exactly what the
+`friend_request` trigger does — was:
+1. mirrored into `push_outbox` (correct recipient, title, body, url,
+   `event=friend_request`, `tag=friend_request:<uid>`, `status=pending`),
+2. claimed by the Open Claw dispatch cron,
+3. **gated at send time** and suppressed with `failure_reason = 'mute_all'`
+   — not `no_subscription`, which is what proves the gate actually ran.
+
+Test data removed and the test user's `mute_all` restored to its original value.
+
+### Verification
+- `npx next build` clean.
+- 25 assertions on the new gate, including precedence: an explicit `mute_all` or
+  `push_enabled=false` always beats urgency and diagnostics.
+- Migrations applied with in-transaction assertions covering the mirror,
+  `_push=none` and `_push=inline`.
+- Production served `4bf7fae8` for the proof above.
