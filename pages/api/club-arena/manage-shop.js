@@ -14,6 +14,7 @@ const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const {
     VALID_CATEGORIES,
     ITEM_TYPE_BY_CATEGORY,
+    GRANT_TYPES,
     buildGrantSpec,
     normalizeImageUrl,
     itemHasSales,
@@ -46,6 +47,9 @@ export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
+    } else if (!applyRateLimit(req, res, LIMITS.read)) {
+      // The GET does a select * plus a 10k-row purchase scan; it was unthrottled.
+      return;
     }
 
   // Idempotency guard — prevents duplicate mutations from laggy mobile networks
@@ -203,8 +207,16 @@ export default async function handler(req, res) {
             if (s2.error) return res.status(400).json({ success: false, error: s2.error });
             updates.stock = s2.value;
           }
-          if (req.body.grantType !== undefined) {
+          // The grant must travel with the category. If the caller changes the
+          // category and says nothing about grants, derive the grant from the
+          // NEW category rather than leaving a time-bank grant on an avatar.
+          if (req.body.grantType !== undefined || updates.category !== undefined) {
             const cat = updates.category || category;
+            if (req.body.grantType !== undefined && !GRANT_TYPES.includes(req.body.grantType)) {
+              // Silently downgrading an unknown type to 'none' turned a paid
+              // item into one that grants nothing. Fail loudly instead.
+              return res.status(400).json({ success: false, error: 'Invalid grantType' });
+            }
             const grant = buildGrantSpec(cat, req.body.grantType, req.body.grantQty, req.body.grantRef);
             if (grant.error) return res.status(400).json({ success: false, error: grant.error });
             updates.grant_spec = grant.spec;

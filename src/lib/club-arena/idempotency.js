@@ -71,7 +71,15 @@ function checkIdempotency(req, res) {
   const originalJson = res.json;
   res.json = function (body) {
     const status = res.statusCode || 200;
-    cacheResponse(req, status, body);
+    // 2026-08-19 audit 5: caching 5xx made a transient failure permanent for the
+    // TTL. A retry with the same key replayed "Purchase failed" even though the
+    // original request had committed. Client errors (4xx) ARE cached: those are
+    // deterministic answers ("already own this", "sold out") worth replaying.
+    if (status < 500) {
+      cacheResponse(req, status, body);
+    } else {
+      try { cache.delete(key); } catch (_e) { /* best effort */ }
+    }
     return originalJson.call(this, body);
   };
 
