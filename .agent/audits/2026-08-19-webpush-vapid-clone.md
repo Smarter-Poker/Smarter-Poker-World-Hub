@@ -100,3 +100,55 @@ OneSignal is retired. Delivery is now self-hosted VAPID Web Push (RFC 8030).
    rather than send, and drain automatically once the keys land.
 3. **Run `bash scripts/deploy-openclaw.sh`** so the Hetzner dispatcher picks up
    the two new jobs. The repo file and the live dispatcher must not drift.
+
+---
+
+## PRODUCTION VERIFICATION (2026-08-19, 21:20-21:35 UTC)
+
+Everything below was observed against live production, not inferred.
+
+**Deploy unblocked.** hub-vanguard deployments were stuck QUEUED/BLOCKED because
+the dead duplicate project `smarter-poker-world-hub`
+(prj_cAdaLHhlih322O1SjK3pUrcHk2KN) still had an in-flight build consuming the
+concurrency slot -- the exact regression in CLAUDE.md 1.1. Its build
+(dpl_HQyxCiHbmJ9tdqGaJSPkVqb3gUEz) was cancelled and the hub-vanguard queue
+drained immediately. The duplicate's git link is already None; do not re-link it.
+
+**A stuck rebase was eating the work.** The repo sat in a `.git/rebase-merge`
+state, so git-safe-push.sh looped on `rebase (abort)` and every replay wiped the
+worktree copies. Aborted, merged origin/main cleanly, no conflicts.
+
+**VAPID keys.** All four vars were present but sensitive-typed, so their values
+cannot be read back and the deployed pair could not be proven self-consistent --
+which is precisely the silent-403 failure this stack exists to prevent. Since
+push_subscriptions was empty (0 rows, nobody enrolled), all four were rewritten
+with a keypair verified locally by deriving the public key from the private
+scalar. Sensitive vars cannot target `development`, so they are set on
+production + preview. Production now serves the matching public key.
+
+**Verified live:**
+- `/api/push/vapid-public-key` -> 200, serves the verified 65-byte P-256 key
+- `/api/push/{subscribe,test}` -> 401 unauthenticated (guarded, not erroring)
+- `/api/push/receipt` -> 204 sessionless (by design)
+- `/api/cron/{push-dispatch,push-health}` -> 401 without CRON_SECRET
+- `/hub/settings/notifications` and `/admin/push-health` -> 200
+- `/sw.js` importScripts the custom worker, which contains all four handlers:
+  `push`, `notificationclick`, `pushsubscriptionchange`, `showNotification`,
+  plus the `/api/push/receipt` beacon and `/api/push/rotate` self-heal
+- `OneSignalSDKWorker.js` serves the tombstone and self-unregisters
+- `react-onesignal` is imported nowhere on main
+
+**Dispatch loop proven end to end.** Open Claw fired /api/cron/push-dispatch:
+21:15 -> 404 (route not yet deployed), 21:20 -> 200 (`nothing_pending`),
+21:25 -> transient Supabase schema-cache 500, 21:30 -> claimed 2, skipped 2.
+Two seeded probe rows were claimed via `claim_push_outbox_batch`, terminated as
+`skipped/no_subscription` with `attempts=1`, and `push_dispatch_runs` recorded
+each slot. The 21:25 failure is worth keeping: the rows stayed `pending` and were
+picked up on the next tick. That is the outbox doing its job.
+
+**Not exercisable without hardware.** The encrypted send to a real device
+requires a browser to grant notification permission and enroll. Everything up to
+the network call is verified; the wire format itself is covered by the RFC 8291
+round-trip conformance tests.
+
+Probe rows were deleted. push_subscriptions remains 0 until a real device enrolls.
