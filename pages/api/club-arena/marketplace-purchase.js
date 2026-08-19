@@ -7,7 +7,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
-const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { requireEmailVerified } = require('../../../src/lib/emailVerifiedGate');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
@@ -45,8 +45,10 @@ export default async function handler(req, res) {
       const user = authUser;
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      // Idempotency guard — prevent double-tap purchases
-      if (checkIdempotency(req, res)) return;
+      // Idempotency guard — prevent double-tap purchases. Backed by a shared
+      // table: a per-process Map does not survive serverless fan-out.
+      const { proceed } = await beginIdempotent(getSupabase(), req, res, 'marketplace-purchase');
+      if (!proceed) return;
 
       // [Phase 6.1.12] Email must be verified before chip/diamond purchases
       const emailGate = requireEmailVerified(user);
@@ -94,9 +96,42 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (itemErr || !item) return res.status(404).json({ success: false, error: 'Item not found' });
-          if (!item.is_active) return res.status(400).json({ success: false, error: 'Item not available' });
 
-          const price = item.price || 0;
+          // ONE authoritative answer for "may this member buy this now, and at
+          // what price?" — active, promo window, stock, ownership, per-user cap
+          // and sale price. Keeping these in the DB stops the storefront and
+          // the purchase route from drifting apart on the rules.
+          const { data: avail, error: availErr } = await getSupabase().rpc('fn_shop_item_availability', {
+              p_club_id: clubId,
+              p_user_id: user.id,
+              p_item_id: itemId,
+          });
+          if (availErr) throw availErr;
+
+          if (!avail?.ok) {
+              const REASONS = {
+                  not_found: ['Item not found', 404],
+                  inactive: ['Item not available', 400],
+                  not_yet_available: ['This item is not on sale yet', 400],
+                  no_longer_available: ['This offer has ended', 400],
+                  sold_out: ['This item is sold out', 400],
+                  already_owned: ['You already own an unused copy of this item. Redeem it before buying another.', 400],
+                  limit_reached: ['You have reached the purchase limit for this item', 400],
+              };
+              const [msg, status] = REASONS[avail?.reason] || ['Item unavailable', 400];
+              return res.status(status).json({
+                  success: false,
+                  error: msg,
+                  reason: avail?.reason,
+                  soldOut: avail?.reason === 'sold_out',
+                  alreadyOwned: avail?.reason === 'already_owned',
+                  limitReached: avail?.reason === 'limit_reached',
+                  limit: avail?.limit,
+              });
+          }
+
+          // Sale-aware, server-decided. The client never sends a price.
+          const price = Number(avail.price) || 0;
           const balance = member.chip_balance || 0;
 
           if (balance < price) {
@@ -104,31 +139,6 @@ export default async function handler(req, res) {
                   success: false, error: `Insufficient chips. Have ${balance}, need ${price}`,
                   available: balance,
                   price,
-              });
-          }
-
-          // RED TEAM: Block buying while an UNREDEEMED copy is still in inventory.
-          // 2026-08-19 fix: the old check looked at club_shop_purchases (permanent
-          // history), which made every item a lifetime one-shot -- consumables like
-          // Time Banks and Throwables could never be re-bought after redemption.
-          // Ownership truth is club_shop_inventory.status = 'owned' (rows are
-          // delivered by trg_deliver_shop_purchase and flipped by
-          // fn_redeem_shop_item). Double-tap protection is unchanged: the
-          // X-Idempotency-Key guard and rate limit above still apply.
-          const { data: unusedCopies } = await getSupabase()
-              .from('club_shop_inventory')
-              .select('id')
-              .eq('club_id', clubId)
-              .eq('user_id', user.id)
-              .eq('item_id', itemId)
-              .eq('status', 'owned')
-              .limit(1);
-
-          if (unusedCopies && unusedCopies.length > 0) {
-              return res.status(400).json({
-                  success: false,
-                  error: 'You already own an unused copy of this item. Redeem it before buying another.',
-                  alreadyOwned: true,
               });
           }
 

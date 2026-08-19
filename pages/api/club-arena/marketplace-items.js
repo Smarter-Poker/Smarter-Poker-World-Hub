@@ -54,9 +54,10 @@ export default async function handler(req, res) {
           // Fetch active items — BUG-10 FIX: sort by created_at desc (not price asc) for 'Newest First'
           const { data: items, error: itemsErr } = await getSupabase()
               .from('club_shop_items')
-              .select('id, name, description, price, category, image_url, item_type, grant_spec, stock')
+              .select('id, name, description, price, category, image_url, item_type, grant_spec, stock, stackable, per_user_limit, sale_price, available_from, available_until, sort_order')
               .eq('club_id', clubId)
               .eq('is_active', true)
+              .order('sort_order', { ascending: true })
               .order('created_at', { ascending: false });
 
           // BUG-11 FIX: Compute purchase_count per item so 'Most Popular' sort and 'X sold' display work

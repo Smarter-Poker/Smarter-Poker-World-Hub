@@ -57,6 +57,69 @@ URL="$2"
 # Get files changed in the commits being pushed
 CHANGED_FILES=$(git diff --name-only HEAD~5..HEAD 2>/dev/null || git diff --name-only HEAD 2>/dev/null)
 
+# ─── CHECK 0: Commit author identity (runs BEFORE the early exits) ───────
+#
+# Vercel refuses to build a commit whose GitHub author it cannot resolve to a
+# user, and marks the deployment BLOCKED with no build logs at all. CI CHECK 15
+# catches this, but only AFTER the push has landed — and the Build Safety Gate
+# is informational on main, so a red run does not stop anything. By then the
+# commit is already sitting unbuilt on main waiting for an unrelated commit to
+# sweep it up.
+#
+# 2026-08-19: an agent session pushed all afternoon as
+# `Claude (Cowork) <...@gmail.com>`; every one of those deployments was BLOCKED.
+# This check refuses the push locally, on ANY path — including a bare
+# `git push` that bypasses scripts/git-safe-push.sh.
+#
+# Deliberately placed above the "no changed files" early exits: a docs-only or
+# asset-only commit is just as unbuildable when its author cannot be resolved.
+
+CANONICAL_EMAIL="254329056+Smarter-Poker@users.noreply.github.com"
+BAD_AUTHORS=""
+
+# Inspect every commit being pushed, not just HEAD.
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+    [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+    if [ "$remote_sha" = "0000000000000000000000000000000000000000" ] || [ -z "$remote_sha" ]; then
+        RANGE="$local_sha"
+        LIMIT="--max-count=50"
+    else
+        RANGE="$remote_sha..$local_sha"
+        LIMIT=""
+    fi
+    while IFS='|' read -r sha aname aemail; do
+        [ -z "$sha" ] && continue
+        case "$aemail" in
+            *@gmail.*|*@yahoo.*|*@hotmail.*|*@outlook.*|*@icloud.*|*@proton*.*)
+                BAD_AUTHORS="${BAD_AUTHORS}  ${sha}  ${aname} <${aemail}>  (personal email — RULE 3)\n" ;;
+        esac
+    done <<EOF
+$(git log $LIMIT --format='%h|%an|%ae' "$RANGE" 2>/dev/null)
+EOF
+done < /dev/stdin
+
+if [ -n "$BAD_AUTHORS" ]; then
+    echo -e "${RED}✗ CHECK 0: commit author will be rejected by Vercel${NC}"
+    echo ""
+    printf "%b" "$BAD_AUTHORS"
+    echo ""
+    echo "Vercel cannot resolve these authors to a GitHub user, so the production"
+    echo "deployment enters state BLOCKED and never builds — with no build logs."
+    echo ""
+    echo "Required identity for this repo:"
+    echo "  Smarter-Poker <$CANONICAL_EMAIL>"
+    echo ""
+    echo "Fix the most recent commit with:"
+    echo "  git config user.name  'Smarter-Poker'"
+    echo "  git config user.email '$CANONICAL_EMAIL'"
+    echo "  git commit --amend --reset-author --no-edit"
+    echo ""
+    echo "See .agent/CLAUDE_AGENT_RULES.md RULE 3."
+    exit 1
+fi
+
+echo -e "${GREEN}✓ CHECK 0: commit authors resolve to the canonical identity.${NC}"
+
 if [ -z "$CHANGED_FILES" ]; then
     echo -e "${GREEN}✓ No changed files detected. Push allowed.${NC}"
     exit 0

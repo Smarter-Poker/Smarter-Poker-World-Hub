@@ -21,6 +21,26 @@ const {
     HAS_SALES_ERROR,
 } = require('../../../src/lib/club-arena/shopItemRules');
 
+/** '' / null => clear (NULL). undefined => leave alone. Else a bounded int. */
+function normalizeOptionalInt(raw, { min = 0, max = 1000000, label = 'value' } = {}) {
+    if (raw === undefined) return { skip: true };
+    if (raw === null || String(raw).trim() === '') return { value: null };
+    const n = Math.floor(Number(raw));
+    if (!Number.isFinite(n) || n < min || n > max) {
+        return { error: `${label} must be an integer between ${min} and ${max} (blank to clear)` };
+    }
+    return { value: n };
+}
+
+/** '' / null => clear. undefined => leave alone. Else a valid ISO timestamp. */
+function normalizeTimestamp(raw, label) {
+    if (raw === undefined) return { skip: true };
+    if (raw === null || String(raw).trim() === '') return { value: null };
+    const d = new Date(String(raw));
+    if (Number.isNaN(d.getTime())) return { error: `${label} must be a valid date` };
+    return { value: d.toISOString() };
+}
+
 /** '' / null / undefined => unlimited (NULL). Otherwise a non-negative integer. */
 function normalizeStock(raw) {
     if (raw === undefined) return { skip: true };
@@ -155,6 +175,32 @@ export default async function handler(req, res) {
           const stk = normalizeStock(req.body.stock);
           if (stk.error) return res.status(400).json({ success: false, error: stk.error });
 
+          const lim = normalizeOptionalInt(req.body.perUserLimit, { min: 1, label: 'perUserLimit' });
+          if (lim.error) return res.status(400).json({ success: false, error: lim.error });
+
+          const salePrice = normalizeOptionalInt(req.body.salePrice, { min: 0, label: 'salePrice' });
+          if (salePrice.error) return res.status(400).json({ success: false, error: salePrice.error });
+          if (!salePrice.skip && salePrice.value !== null && salePrice.value > parseInt(price)) {
+              return res.status(400).json({ success: false, error: 'salePrice cannot exceed price' });
+          }
+
+          const from = normalizeTimestamp(req.body.availableFrom, 'availableFrom');
+          if (from.error) return res.status(400).json({ success: false, error: from.error });
+          const until = normalizeTimestamp(req.body.availableUntil, 'availableUntil');
+          if (until.error) return res.status(400).json({ success: false, error: until.error });
+          if (from.value && until.value && new Date(until.value) <= new Date(from.value)) {
+              return res.status(400).json({ success: false, error: 'availableUntil must be after availableFrom' });
+          }
+
+          const sortOrder = normalizeOptionalInt(req.body.sortOrder, { min: -10000, max: 10000, label: 'sortOrder' });
+          if (sortOrder.error) return res.status(400).json({ success: false, error: sortOrder.error });
+
+          // Consumables stack by default; permanent unlocks do not. An explicit
+          // boolean from the caller wins.
+          const derivedStackable = ['time_bank', 'throwable'].includes(grant.spec.type);
+          const stackable =
+              typeof req.body.stackable === 'boolean' ? req.body.stackable : derivedStackable;
+
           const { data: item, error } = await getSupabase()
             .from('club_shop_items')
             .insert({
@@ -166,6 +212,12 @@ export default async function handler(req, res) {
               item_type: ITEM_TYPE_BY_CATEGORY[cat] || null,
               grant_spec: grant.spec,
               stock: stk.skip ? null : stk.value,
+              stackable,
+              per_user_limit: lim.skip ? null : lim.value,
+              sale_price: salePrice.skip ? null : salePrice.value,
+              available_from: from.skip ? null : from.value,
+              available_until: until.skip ? null : until.value,
+              sort_order: sortOrder.skip || sortOrder.value === null ? 0 : sortOrder.value,
               image_url: img.skip ? null : img.value,
               is_active: true,
             })
@@ -206,6 +258,28 @@ export default async function handler(req, res) {
             const s2 = normalizeStock(req.body.stock);
             if (s2.error) return res.status(400).json({ success: false, error: s2.error });
             updates.stock = s2.value;
+          }
+          if (req.body.stackable !== undefined) updates.stackable = !!req.body.stackable;
+          {
+            const lim2 = normalizeOptionalInt(req.body.perUserLimit, { min: 1, label: 'perUserLimit' });
+            if (lim2.error) return res.status(400).json({ success: false, error: lim2.error });
+            if (!lim2.skip) updates.per_user_limit = lim2.value;
+
+            const sp2 = normalizeOptionalInt(req.body.salePrice, { min: 0, label: 'salePrice' });
+            if (sp2.error) return res.status(400).json({ success: false, error: sp2.error });
+            if (!sp2.skip) updates.sale_price = sp2.value;
+
+            const f2 = normalizeTimestamp(req.body.availableFrom, 'availableFrom');
+            if (f2.error) return res.status(400).json({ success: false, error: f2.error });
+            if (!f2.skip) updates.available_from = f2.value;
+
+            const u2 = normalizeTimestamp(req.body.availableUntil, 'availableUntil');
+            if (u2.error) return res.status(400).json({ success: false, error: u2.error });
+            if (!u2.skip) updates.available_until = u2.value;
+
+            const so2 = normalizeOptionalInt(req.body.sortOrder, { min: -10000, max: 10000, label: 'sortOrder' });
+            if (so2.error) return res.status(400).json({ success: false, error: so2.error });
+            if (!so2.skip) updates.sort_order = so2.value === null ? 0 : so2.value;
           }
           // The grant must travel with the category. If the caller changes the
           // category and says nothing about grants, derive the grant from the

@@ -102,10 +102,17 @@ export default async function handler(req, res) {
             }
         }
 
+        // Prefer the caller's idempotency key: a minute bucket cannot tell a
+        // double-tap from two DELIBERATE purchases of the same package, so the
+        // second was silently swallowed and still reported success to the user.
+        const clientKey = req.headers['x-idempotency-key'];
         const bucket = Math.floor(Date.now() / 60000);
-        const referenceId = clubId
-            ? `chip_purchase:${user.id}:${packageId}:${clubId}:${bucket}`
-            : `chip_purchase:${user.id}:${packageId}:${bucket}`;
+        const referenceId =
+            typeof clientKey === 'string' && clientKey.length >= 8
+                ? `chip_purchase:${user.id}:${clientKey}`
+                : clubId
+                  ? `chip_purchase:${user.id}:${packageId}:${clubId}:${bucket}`
+                  : `chip_purchase:${user.id}:${packageId}:${bucket}`;
 
         const { data: result, error: rpcErr } = clubId
             ? await getSupabase().rpc('fn_purchase_club_chips', {
@@ -143,6 +150,7 @@ export default async function handler(req, res) {
             chipsCredited: result.chips_credited,
             diamondsCharged: result.diamonds_charged,
             diamondBalanceAfter: result.diamond_balance_after,
+            replayed: result.idempotent === true,
             destination: clubId ? 'club' : 'player_wallet',
             clubId: clubId || undefined,
             clubBalanceAfter: result.club_balance_after,

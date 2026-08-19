@@ -152,6 +152,75 @@ export default async function handler(req, res) {
         }
 
         // ─── DELETE ────────────────────────────────────────────────────
+        // ─── UPDATE (parity with manage-shop) ──────────────────────────
+        if (action === 'update') {
+            const { itemId, name, description, price, category, imageUrl, isActive } = req.body;
+            if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
+
+            const updates = {};
+            if (name !== undefined) {
+                if (typeof name !== 'string' || !name.trim()) {
+                    return res.status(400).json({ success: false, error: 'name cannot be empty' });
+                }
+                updates.name = name.trim().slice(0, 200);
+            }
+            if (description !== undefined) {
+                updates.description = description ? String(description).trim().slice(0, 500) : null;
+            }
+            if (price !== undefined) {
+                const p = Math.floor(Number(price));
+                if (!Number.isFinite(p) || p <= 0 || p > 1000000000) {
+                    return res.status(400).json({ success: false, error: 'invalid price' });
+                }
+                updates.price = p;
+            }
+            if (category !== undefined) {
+                if (!VALID_CATEGORIES.includes(category)) {
+                    return res.status(400).json({ success: false, error: 'invalid category' });
+                }
+                updates.category = category;
+                updates.item_type = ITEM_TYPE_BY_CATEGORY[category] || null;
+                // The grant must travel with the category, or the card
+                // advertises one thing and redemption grants another.
+                const g = buildGrantSpec(category, req.body.grantType, req.body.grantQty, req.body.grantRef);
+                if (g.error) return res.status(400).json({ success: false, error: g.error });
+                updates.grant_spec = g.spec;
+            }
+            if (imageUrl !== undefined) {
+                const img = normalizeImageUrl(imageUrl);
+                if (img.error) return res.status(400).json({ success: false, error: img.error });
+                updates.image_url = img.value;
+            }
+            if (isActive !== undefined) updates.is_active = !!isActive;
+            if (req.body.stock !== undefined) {
+                const raw = req.body.stock;
+                if (raw === null || String(raw).trim() === '') {
+                    updates.stock = null;
+                } else {
+                    const n = Math.floor(Number(raw));
+                    if (!Number.isFinite(n) || n < 0 || n > 1000000) {
+                        return res.status(400).json({ success: false, error: 'invalid stock' });
+                    }
+                    updates.stock = n;
+                }
+            }
+
+            if (Object.keys(updates).length === 0) {
+                return res.status(400).json({ success: false, error: 'no fields to update' });
+            }
+
+            const { error } = await sb()
+                .from('club_shop_items')
+                .update(updates)
+                .eq('id', itemId)
+                .eq('club_id', clubId);
+            if (error) {
+                console.error('[shop-items] update error:', error);
+                return res.status(500).json({ success: false, error: 'update_failed' });
+            }
+            return res.status(200).json({ success: true });
+        }
+
         if (action === 'delete') {
             const { itemId } = req.body;
             if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
