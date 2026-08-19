@@ -108,6 +108,14 @@ export default async function handler(req, res) {
                               headers: {
                                   'Content-Type': 'application/json',
                                   'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
+                                  // settle-period requires this header and 400s
+                                  // without it. This cron path omitted it, so every
+                                  // automated close/open would have failed and fallen
+                                  // through to the raw-UPDATE fallback below — closing
+                                  // the period with NO commissions, NO invoices, NO
+                                  // union hold and NO player P&L. Inert today (nothing
+                                  // schedules auto_close) but it was a loaded gun.
+                                  'X-Idempotency-Key': `auto-close-${club.id}-${new Date().toISOString().slice(0, 13)}`,
                               },
                               body: JSON.stringify({ clubId: club.id, action: 'close' }),
                           });
@@ -131,6 +139,14 @@ export default async function handler(req, res) {
                               headers: {
                                   'Content-Type': 'application/json',
                                   'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
+                                  // settle-period requires this header and 400s
+                                  // without it. This cron path omitted it, so every
+                                  // automated close/open would have failed and fallen
+                                  // through to the raw-UPDATE fallback below — closing
+                                  // the period with NO commissions, NO invoices, NO
+                                  // union hold and NO player P&L. Inert today (nothing
+                                  // schedules auto_close) but it was a loaded gun.
+                                  'X-Idempotency-Key': `auto-close-${club.id}-${new Date().toISOString().slice(0, 13)}`,
                               },
                               body: JSON.stringify({ clubId: club.id, action: 'open' }),
                           });
