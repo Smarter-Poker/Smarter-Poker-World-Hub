@@ -232,3 +232,67 @@ in a `warnings` array.
   "10 free throws"); the redeem toast reports what was actually granted.
 - Manage: choose how much a category grants, per-item earned totals, retry on
   load failure, https-only image validation (client + server).
+
+---
+
+# Audit pass 3 — adversarial re-read of the refactor
+
+## The previous Stripe fix was still broken
+
+Pass 2 moved the post-checkout wallet poll into "its own effect". It still
+never fired. The effect was keyed on `purchaseResult`; the same commit strips
+`?purchase` from the URL, which changes that key, so React ran the cleanup and
+`clearTimeout`'d all three timers ~10ms after scheduling them. A second,
+independent teardown source: `loadWallet` is a `useCallback` over `user`, and
+`useUserStore.setUser` rebuilds the user object on every write (3 times on a
+cold load), so the deps churned anyway.
+
+Fixed properly: timers live in a ref, are cleared **only on unmount**, and call
+`loadWallet` through a ref so no dependency can tear them down.
+
+## Other critical findings
+
+1. **`loadInventory` had no request token.** `loadShop` got one in pass 2 and
+   its sibling did not, on the same club-switch path. The older query can
+   resolve last and paint club A's inventory under club B — and inventory is
+   the sole input to `ownedItemIds`, so members get offered items they own or
+   blocked from items they don't.
+2. **A failed catalog fetch made every new shop item grant nothing.**
+   `FALLBACK_CATALOG.shopCategories` mapped every category to
+   `grantType: 'none'`, the client sent that explicitly, and the server honours
+   an explicit `'none'` verbatim instead of deriving from category. Result: an
+   admin creates a 5,000-chip Time Bank, it displays as a Time Bank, members
+   buy it and receive nothing. The failure was also swallowed by a bare
+   `catch {}` — zero telemetry on the condition that caused it.
+3. **Editing an item's category desynced `grant_spec`.** `update` sent
+   `category` (which rewrites `item_type`) but never `grantType`, so a row could
+   read `category='Avatars'` while advertising "+200s table time" and granting
+   time bank seconds on redeem.
+4. **Cashier "Get Chips" still credited the global wallet** — the exact bug
+   fixed in the marketplace was live on `CashierPage` via `ChipPurchaseModal`,
+   which never passed `clubId`.
+5. **`callClubArenaApi` used bare `crypto.randomUUID()`** — undefined on http
+   origins and Safari < 15.4. That is the path every purchase, chip buy and
+   admin mutation takes, so it threw before the fetch on those browsers, while
+   a `uuid()` fallback written in pass 2 sat unused two files away.
+6. **Protocol-relative image URLs bypassed the https check** on client *and*
+   server: `//evil.example/x.gif` starts with `/`, so it passed the
+   "same-origin path" branch and beaconed every member who opened the shop.
+
+## Hardening added
+
+- Server catalog responses are shape-validated per element (a package missing
+  `priceUsd` crashed the tab through `PageErrorBoundary`) and cached with a
+  5-minute TTL matching the route's `s-maxage`, so a long-lived tab cannot show
+  a stale price against a changed charge.
+- Invalid or missing `?club=` no longer leaves the previous club's shop, chip
+  balance and admin rights mounted behind a toast.
+- Effects key on `user?.id` rather than the `user` object, removing 2-3
+  redundant full page loads and bus re-subscriptions per cold load.
+- Theme/avatar ids are now settable per item. Without them every table skin a
+  club sold collapsed to one `theme_unlock`, and `avatar_unlocks` dedupes — so
+  the second avatar a player bought granted literally nothing.
+- **My Items shows live entitlement balances** (table time, throws, unlocks)
+  read from `feature_purchases` / `avatar_unlocks` under their own RLS.
+- Modal focus returns to the triggering button; category vocabulary comes from
+  the server catalog; admin list survives a transient load failure.
