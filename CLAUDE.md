@@ -14,6 +14,10 @@ This is the single source of truth for **this repo**. Updated 2026-04-29.
    regression. Violations are auto-detected. Read this FIRST.
 2. `.agent/CLAUDE_AGENT_RULES.md` — the longer, version-controlled rule
    book all agents share (RULES 1-12).
+3. `.agent/AGENT-OPERATIONS-GUIDE.md` — which shell you are in, how to push
+   and publish YOURSELF (no handoffs), where credentials live post-rotation,
+   verify-against-reality rules, the house bug shape, concurrency rules.
+   `.agent/SELF-PUBLISH-PROTOCOL.md` holds the push mechanics.
 
 Audit records go under `.agent/audits/`. (`.memory/` is gitignored by
 design — local-only.)
