@@ -19,8 +19,16 @@
 const { isHorse, getAdvancedModule } = require('./core');
 const { collusionTracker, tiltMap, showdownExposureMap, patternProfitMap,
         suspectBotMap, crossTableRadar, _persistThreatIntel,
-        recordOpponentShowdown, recordChipLeak } = require('./anti-exploit');
-const { recordPerformanceResult, evolveHorseSkill, saveKeyHand } = require('./session-analytics');
+        recordOpponentShowdown, recordChipLeak,
+        // Every name below is used in this file and was never destructured, so
+        // each call site threw ReferenceError. anti-exploit.js exports all of
+        // them; the require list simply stopped short.
+        recordOpponentAction, recordProbeBet, recordIsoSize, recordRaiseSize,
+        recordSqueeze, recordColdCall, recordBarrelVsColdCall,
+        recordActionTiming, recordRITResponse, recordTableImageHand,
+        timeAbuseSuspicion } = require('./anti-exploit');
+const { recordPerformanceResult, evolveHorseSkill, saveKeyHand,
+        getPerformanceStats, saveOpponentRead } = require('./session-analytics');
 
 async function processHandResult(handData, bb = 2) {
     if (!handData?.result) return;

@@ -117,6 +117,10 @@ import {
 import { eventBus, EventType } from '../../engine/EventBus';
 import ClubArenaMessenger from '../club-arena/ClubArenaMessenger';
 import { saveAppSetting } from '../../lib/appSettingsSync';
+// useTableConnection is called at the very top of the LivePokerTable component
+// body and was never imported, so the component threw ReferenceError on every
+// single render. The hook is exported from src/hooks/useTableConnection.js.
+import { useTableConnection } from '../../hooks/useTableConnection';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MYSTERY BOUNTY ENVELOPE OVERLAY

@@ -15,7 +15,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getDeviceFingerprint, getGPSLocation } from '../lib/anti-cheat/deviceFingerprint';
-import { busEmit } from '../engine/EventBus';
+// eventBus was used at three sites in this file and never imported. All three
+// are inside try/catch, so the ReferenceError was swallowed and the symptom
+// was silence: mystery-bounty reveals, incoming emojis and pongs never
+// reached the rest of the table's components.
+import { busEmit, eventBus } from '../engine/EventBus';
 
 const HEARTBEAT_MS = 10000;
 const API_BASE = '/api/poker/engine';
