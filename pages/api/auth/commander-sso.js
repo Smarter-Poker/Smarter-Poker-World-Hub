@@ -26,8 +26,21 @@
  *   - Only users with a valid Supabase JWT can create tokens
  *   - Commander /auth/sso deletes the token row on use (consumed-once)
  */
-import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import crypto from 'crypto';
+
+// Admin client (service-role) — module-scoped, created once
+let _adminClient = null;
+function getAdminClient() {
+  if (!_adminClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!key) throw new Error('[commander-sso] SUPABASE_SERVICE_ROLE_KEY not configured');
+    _adminClient = createClient(url, key);
+  }
+  return _adminClient;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -35,13 +48,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Validate the caller's Supabase session
-    const supabaseServer = createPagesServerClient({ req, res });
-    const { data: { user }, error: userError } = await supabaseServer.auth.getUser();
+    // Validate the caller's Supabase session using the canonical hub pattern
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabase = createClient(url, key);
 
-    if (userError || !user) {
+    const { user, error: authError } = await getServerUserWithFallback(req, supabase);
+
+    if (authError || !user) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
+
+    const admin = getAdminClient();
 
     // Generate a crypto-random one-time token
     const rawToken = crypto.randomBytes(32).toString('hex');
@@ -50,15 +68,8 @@ export default async function handler(req, res) {
     const expiresAt = new Date(Date.now() + 60 * 1000).toISOString(); // 60s TTL
 
     // Store the hashed token in Supabase
-    // Table: sso_bridge_tokens (id uuid, user_id uuid, token_hash text, expires_at timestamptz, used boolean)
-    // Created by migration 20260819_sso_bridge_tokens.sql (see below)
-    const { createClient } = await import('@supabase/supabase-js');
-    const adminClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-
-    const { error: insertError } = await adminClient
+    // Table: sso_bridge_tokens — created by supabase/migrations/20260819_sso_bridge_tokens.sql
+    const { error: insertError } = await admin
       .from('sso_bridge_tokens')
       .insert({
         user_id: user.id,
