@@ -136,4 +136,3 @@ tmp/*.tgz
 src/components/__canary_route_probe.jsx
 src/__u4probe/
 src/services/__U4ProbeService.js
-_wt_*/
