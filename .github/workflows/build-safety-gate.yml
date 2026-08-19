@@ -128,6 +128,81 @@ jobs:
           echo "✓ All $COUNT pushed commit(s) resolve to a GitHub user"
 
       # ═══════════════════════════════════════════════════════════════
+      # CHECK 16: Recent-work clobber warning (advisory)
+      #
+      # Catches the failure mode where an agent edits a STALE copy of a file
+      # and pushes the whole thing, silently reverting someone else's
+      # concurrent work. Nothing else sees this: the result compiles, the
+      # tests pass (the reverted feature usually has no test of its own), and
+      # the diff just looks like an intentional rewrite.
+      #
+      # 2026-08-19 incident: commit 714738896 (Club Arena) removed 102 lines
+      # from DynamicWallet.tsx, reverting union ledger rows and the
+      # union-first BBJ resolver that had landed hours earlier. Had it
+      # shipped, every union club would have shown a 0.00 Bad Beat Jackpot
+      # while the real balance sat in the union pool. A human reading the
+      # file caught it; CI did not.
+      #
+      # Heuristic, tuned against 60 real commits of history:
+      #   removed >= 25 lines
+      #   AND added < 75% of removed        (a rewrite adds comparable lines)
+      #   AND the file was last touched < 24h earlier
+      # That combination flags the known clobber. It also flags legitimate
+      # large deletions at roughly a 7% rate, which is why this is ADVISORY:
+      # a blocking gate at that rate would just train everyone to bypass it.
+      #
+      # NOTE: comparing commit AUTHORS does not work here — every agent on
+      # the build machine commits as the same identity, so the clobberer and
+      # the clobbered are indistinguishable by author.
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 16: Recent-work clobber warning"
+        if: github.event_name == 'push'
+        continue-on-error: true
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.event.after }}
+        run: |
+          if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "No comparable base for this push - skipping"; exit 0
+          fi
+          git fetch --no-tags --quiet origin "$BEFORE_SHA" 2>/dev/null || true
+          if ! git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            echo "Base commit not fetchable - skipping"; exit 0
+          fi
+
+          CT=$(git log -1 --format=%ct "$AFTER_SHA")
+          FLAGGED=""
+          while IFS="$(printf '\t')" read -r ADDED REMOVED FILE; do
+            [ -z "$FILE" ] && continue
+            case "$FILE" in *.js|*.jsx|*.ts|*.tsx) ;; *) continue ;; esac
+            case "${ADDED}${REMOVED}" in *-*) continue ;; esac
+            [ "$REMOVED" -lt 25 ] && continue
+            [ "$ADDED" -ge $(( REMOVED * 75 / 100 )) ] && continue
+            PCT=$(git log -1 --format=%ct "$BEFORE_SHA" -- "$FILE" 2>/dev/null)
+            [ -z "$PCT" ] && continue
+            AGE=$(( (CT - PCT) / 3600 ))
+            [ "$AGE" -ge 24 ] && continue
+            FLAGGED="${FLAGGED}  ${FILE}: -${REMOVED}/+${ADDED} lines, previously modified ${AGE}h earlier\n"
+          done <<< "$(git diff --numstat --diff-filter=M "$BEFORE_SHA" "$AFTER_SHA" 2>/dev/null)"
+
+          if [ -n "$FLAGGED" ]; then
+            echo "::warning::Possible clobber of recent work - a file lost a large block that was added within the last day"
+            printf "%b" "$FLAGGED"
+            {
+              echo "### Possible clobber of recent work"
+              echo ""
+              printf "%b" "$FLAGGED"
+              echo ""
+              echo "If this was NOT intentional, you likely edited a stale copy. Verify with:"
+              echo '```'
+              echo "git diff origin/main -- <file>"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No recent-work clobber detected"
+          fi
+
+      # ═══════════════════════════════════════════════════════════════
       # CHECK 7: Storage bucket file_size_limit guard (RUNS FIRST)
       # Positioned before npm install so it runs even if install fails.
       # The social-media bucket file_size_limit was silently set to NULL on
