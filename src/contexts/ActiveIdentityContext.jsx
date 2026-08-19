@@ -13,6 +13,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/router';
 import { getAuthUser } from '../lib/authUtils';
 
 const ActiveIdentityContext = createContext({
