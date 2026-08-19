@@ -3850,3 +3850,118 @@ clean locally).
 Consequence: engine `60e89d89` is live and carries the 429 fix and the rebuy
 sweep. The paced all-in run-out is committed but **not deployed** and will go
 out on the next successful `auto-deploy-hetzner` run, which deploys HEAD.
+
+---
+
+## §56 — Re-audit of the 18-item pass: five more defects, one of them mine (2026-08-19)
+
+Dan: *"go through them all again line by line... then check for any bugs, gaps,
+stubs, regressions, wiring issues or errors before claiming success."*
+
+Every item was re-verified against **origin/main's actual content** rather than
+against memory or a local working tree — this repo has several agents pushing
+concurrently and `git reset --hard` loops running, so "I committed it" is not
+evidence that it is still there. All 18 were present. Five further defects
+surfaced.
+
+### 56.1 The regression I introduced with Dan's own fix
+
+Item 8 moved the dealer seat's bet chips out to 0.38 of the seat-to-centre run
+so they clear the button. The chip-collect vector was a flat `betOffset * 2` —
+and because the chip already *sits* one bet-offset from its seat and the
+keyframe translates it by a **further** `--collect-dx`, the ENDPOINT is
+`3 × bet factor`. That landed on 0.66 only while every seat shared one 0.22.
+
+At 0.38 the same multiply gives **1.14 — past the centre of the table and out
+the far side.** The dealer's chips would have flown through the pot.
+
+Fixed by *deriving* the collect offset (`CHIP_COLLECT_END_FACTOR - betFactor`)
+instead of multiplying it, so the endpoint is identical for every seat and the
+ordinary case reproduces the old 0.44 exactly. A control test asserts the old
+rule overshot.
+
+**The general lesson:** two constants in two files that were only ever correct
+*together*, with nothing linking them. Item 8 was itself caused by the same
+shape (button 0.28 vs chips 0.22, never compared). Fixing a coupling bug by
+changing one of the two numbers recreated the identical class of bug one layer
+down. Both pairs now live in `tableGeometry.ts`.
+
+### 56.2 A hang that predates all of this
+
+`HandController.runOutCommunityCards` and the new paced run-out both exited
+**only** when the board reached five cards. `deck.deal(n)` returns whatever it
+has left, so a deck that cannot supply the next street leaves the board short
+and the condition never becomes false.
+
+Reachable, not theoretical: an 8-max PLO6 hand needs 48 hole cards plus a
+5-card board out of 52, and the fleet runs seven- and eight-max PLO6 tables.
+
+- The **synchronous** loop has no `await` in it, so a non-growing board does not
+  hang one table — it freezes the whole engine process and every table on it.
+- The **paced** loop sleeps 1.4s per turn and re-broadcasts state and equity on
+  each, so it would spin *and* flood every client indefinitely.
+
+Both are now bounded by the most streets a board can still need, and both stop
+the moment a street adds no card. The hand resolves on every path.
+
+Worth stating plainly: the synchronous loop had carried this the entire time and
+the paced loop inherited it. Fixing only the one just written would have left
+the more dangerous of the two in place.
+
+### 56.3 Three smaller ones
+
+- **The flop's face-down cards ignored the player's card back.** The new flip
+  back fell through to `CardBack`'s own default (`classic_blue`) while the
+  not-yet-dealt turn/river slots hardcoded `classic_red` — a flop could show
+  three blue backs beside two red ones, and neither matched the chosen back.
+  The board takes `cardBack` now, which also fixes the hardcoded placeholder
+  that predates this work.
+- **A new hand could inherit a pot mid-push.** `potCollectTo` was cleared only
+  by a 700ms timer, and `.pot-display--collect` ends at `opacity: 0` with
+  `forwards`. A hand starting inside that window rendered its fresh pot
+  invisible — and background-tab timer throttling makes that window longer than
+  700ms in practice. `HAND_STARTED` clears it now.
+- **Bets flying TO the pot were mislabelled** the same way the pot-to-winner fan
+  had been: a 100 bet drawn as four chips printed "25" four times.
+
+### 56.4 What was checked and found NOT broken
+
+Recorded because "I assumed it was fine" is how the above got shipped:
+
+- **Top diagonal seats.** Narrowing `.seat-wrapper--top` to the top-CENTRE seat
+  removed the bust-art cap from 7/9-max diagonals. Measured rather than assumed:
+  art tops land at 4.07% and 5.07% of the table — comfortably inside the canvas
+  at full 1.45x.
+- **The hand safety timeout.** The paced run-out adds ~4.6s. The timeout is 10
+  minutes. No interaction.
+- **Item 16's client wiring.** `dealNextStreet` does *not* advance the hand's
+  stage, and the board renders only as many cards as the stage allows — so the
+  question was whether a paced run-out would show nothing until the end. It
+  does not: the engine emits `community_cards_dealt` carrying the stage, and the
+  client handler sets `communityCards` **and** `boardStage` from that event. The
+  chain is paced deal → `COMMUNITY_CARDS` → `community_cards_dealt` → board and
+  stage advance → equity refreshes between cards.
+- **No work was clobbered.** Every push in this series wrote whole file blobs on
+  top of `origin/main`, which silently reverts a concurrent edit to the same
+  file. A clean worktree checked out at `origin/main` typechecks clean on client
+  and server, passes 1,656 + 743 tests and 58 e2e geometry checks, and builds.
+
+### 56.5 Publication is a separate question from "committed"
+
+GitHub Actions failed account-wide for roughly 25 minutes (a billing block —
+every workflow, every branch, jobs failing in 1–4s with **zero steps
+executed**). During that window "pushed" and "live" diverged, and the honest
+answer to "is it fixed" was different for the two halves of the product.
+
+Verified by fetching production rather than by trusting the pipeline: the live
+`smarter.poker` bundle was confirmed to contain `heroCardDeal`, `ccFlopFanOpen`,
+`community-cards__flip`, `seat-wrapper--top`, `--sp-hero-card-w: 60px`,
+`fn_purchase_feature` and the 429 retry text, with `winner-banner` correctly
+absent. The engine, which deploys on a separate `server/**` trigger, was still
+one commit behind and needed a real server change to re-trigger.
+
+**Method note:** two of the first "failures" in this re-audit were bad greps of
+my own — a pattern matching an explanatory comment, and a minifier that keeps a
+space after the colon (`--seat-avatar-size: 56px`). Both looked like missing
+fixes for a moment. A verification script that can report a false negative is
+worth as little as a test that passes both ways.
