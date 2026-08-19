@@ -37,6 +37,12 @@ const REPO = 'Smarter-Poker-World-Hub';
 const REPO_OWNER = 'Smarter-Poker';
 const CANONICAL_PROJECT_ID = 'prj_op66GkZyZcygXQKm76iyycfVFAQx';
 const CANONICAL_PROJECT_NAME = 'hub-vanguard';
+// GitHub numeric id for Smarter-Poker/Smarter-Poker-World-Hub. Deployment
+// metadata carries this even when the Vercel project reports no `link`, which
+// is the only way to catch a duplicate that builds via GitHub App dispatch.
+const REPO_ID = 1132365826;
+// How many recent deployments to inspect per project in pass 2.
+const DEPLOY_SAMPLE = 10;
 
 if (!TOKEN) {
   console.error('[check-vercel-project-uniqueness] VERCEL_TOKEN env not set');
@@ -127,8 +133,56 @@ async function listAllProjects() {
     process.exit(1);
   }
 
+  // ── PASS 2: link-less projects that still BUILD this repo ─────────────────
+  //
+  // The `link` check above is necessary but NOT sufficient. On 2026-08-19 a
+  // second project (`smarter-poker-world-hub`, prj_cAdaLHhlih322O1SjK3pUrcHk2KN)
+  // was found building EVERY push to this repo — 20 production deployments in
+  // two hours, several CANCELED/BLOCKED — while reporting NO link at all. Pass 1
+  // returned a clean "exactly one project" and the duplicate ran unnoticed,
+  // burning build minutes and fighting the real project for queue concurrency.
+  //
+  // Vercel's GitHub App can keep dispatching deployment events to a project
+  // whose `link` has been cleared, so the only reliable signal is what actually
+  // got built: deployment.meta.githubRepoId.
+  const suspects = [];
+  for (const p of projects) {
+    if (p.id === CANONICAL_PROJECT_ID) continue;
+    let deployments = [];
+    try {
+      const data = await vercelGet(`/v6/deployments?projectId=${p.id}&limit=${DEPLOY_SAMPLE}`);
+      deployments = data.deployments || [];
+    } catch {
+      continue; // a project we cannot read cannot be assessed; pass 1 still applies
+    }
+    const fromOurRepo = deployments.filter((d) => {
+      const m = d.meta || {};
+      return String(m.githubRepoId) === String(REPO_ID) || m.githubRepo === REPO;
+    });
+    if (fromOurRepo.length > 0) {
+      suspects.push({ project: p, count: fromOurRepo.length, latest: fromOurRepo[0] });
+    }
+  }
+
+  if (suspects.length > 0) {
+    console.error(
+      `[check-vercel-project-uniqueness] FAIL: ${suspects.length} project(s) report NO link to`,
+      `${REPO_OWNER}/${REPO} but are still BUILDING it (Vercel GitHub App dispatch):`
+    );
+    for (const s of suspects) {
+      const when = s.latest?.created ? new Date(s.latest.created).toISOString() : 'unknown';
+      console.error(
+        `  → ${s.project.name} (${s.project.id}) — ${s.count} of the last ${DEPLOY_SAMPLE}`,
+        `deployments came from this repo, most recent ${when}. Delete the project`,
+        `(clearing its link is not enough — that is exactly how it evaded this check).`
+      );
+    }
+    process.exit(1);
+  }
+
   console.log(
-    `[check-vercel-project-uniqueness] OK: exactly one project (${CANONICAL_PROJECT_NAME}) links the repo.`
+    `[check-vercel-project-uniqueness] OK: exactly one project (${CANONICAL_PROJECT_NAME}) links the repo,`,
+    `and no other project is building it.`
   );
   process.exit(0);
 })();
