@@ -114,4 +114,39 @@ export async function countSentToday(supabase, userId) {
     }
 }
 
-export default { loadGateContext, gateDecision, needsDailyCount, countSentToday };
+/**
+ * Batched form of countSentToday for a set of users.
+ *
+ * The dispatch cron gates a whole batch per run. Calling countSentToday once per
+ * row turned the carefully batched gate back into an N+1 -- up to BATCH_LIMIT
+ * sequential `count: exact` queries, awaited inside the send loop, competing
+ * with the very TIME_BUDGET_MS that decides whether rows get requeued. One query
+ * plus an in-memory tally does the same job.
+ *
+ * Fails open (missing entry -> 0), matching countSentToday.
+ *
+ * @returns {Promise<Map<string, number>>}
+ */
+export async function countSentTodayBatch(supabase, userIds) {
+    const counts = new Map();
+    const ids = Array.from(new Set((userIds || []).filter(Boolean)));
+    if (!supabase || ids.length === 0) return counts;
+    try {
+        const since = new Date(Date.now() - 86400_000).toISOString();
+        const { data, error } = await supabase
+            .from('push_outbox')
+            .select('recipient_user_id')
+            .in('recipient_user_id', ids)
+            .eq('status', 'sent')
+            .gte('sent_at', since);
+        if (error) return counts;
+        for (const row of data || []) {
+            counts.set(row.recipient_user_id, (counts.get(row.recipient_user_id) || 0) + 1);
+        }
+        return counts;
+    } catch {
+        return counts; // fail open
+    }
+}
+
+export default { loadGateContext, gateDecision, needsDailyCount, countSentToday, countSentTodayBatch };
