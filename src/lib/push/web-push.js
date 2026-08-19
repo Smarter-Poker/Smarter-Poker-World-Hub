@@ -125,24 +125,32 @@ export async function sendWebPush(subscription, payload = {}, opts = {}) {
         const statusCode = err?.statusCode;
         // PERMANENT vs TRANSIENT. Getting this wrong in either direction is
         // expensive: too narrow and dead rows are retried forever, too broad and
-        // a blip deactivates a live device.
+        // a healthy device is retired on a blip.
         //
         //   404 / 410 -- endpoint gone. The canonical dead-subscription signal.
-        //   403       -- VAPID signature rejected. Happens when the subscription
-        //                was created under a different key. Permanent: it can
-        //                never succeed with the key we hold.
-        //   400       -- malformed request for this endpoint (bad keys).
-        //   undefined -- the throw came from web-push's own encryption/validation
-        //                BEFORE any HTTP call, i.e. the stored p256dh/auth cannot
-        //                encrypt. Also permanent. Previously this fell through as
-        //                "transient" and was retried on every dispatch run for
-        //                the life of the deployment.
-        const expired =
-            statusCode === 404 ||
-            statusCode === 410 ||
-            statusCode === 403 ||
-            statusCode === 400 ||
-            statusCode === undefined;
+        //                These are the ONLY statuses that mean "this endpoint
+        //                will never work again".
+        //
+        // Everything else is transient by policy, and `failure_count` +
+        // FAILURE_THRESHOLD retires an endpoint that genuinely never works:
+        //
+        //   403 -- VAPID signature rejected. Tempting to call permanent, but the
+        //          usual cause is a SERVER-side key skew (a rotation, or
+        //          VAPID_PUBLIC_KEY and NEXT_PUBLIC_VAPID_PUBLIC_KEY diverging),
+        //          which returns 403 for EVERY subscription at once. Treating it
+        //          as permanent would deactivate 100% of push_subscriptions in a
+        //          single 5-minute dispatch tick and force every user to
+        //          re-enrol. The fleet must survive our own misconfiguration.
+        //   400 -- usually malformed keys, but validatePushKeys now rejects those
+        //          at ingestion, so a 400 here is more likely a service-side
+        //          quirk than a dead row.
+        //   undefined -- NOT necessarily an encryption failure. web-push rejects
+        //          socket timeouts, ECONNRESET, ENOTFOUND, ECONNREFUSED and TLS
+        //          errors with a plain Error carrying NO statusCode. Classifying
+        //          those as permanent meant one slow FCM response retired a
+        //          perfectly good device, and a bad FCM afternoon retired the
+        //          whole fleet.
+        const expired = statusCode === 404 || statusCode === 410;
 
         // Server-side only. The detail is genuinely useful for diagnosis but
         // must never reach a column the user can read (see `error` below).

@@ -21,6 +21,7 @@
  *  Findings go to the affected user in-app, and a summary to every admin.
  * ===========================================================================
  */
+import { createHash } from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
@@ -207,6 +208,65 @@ async function handler(req, res) {
         if (clientKey && clientKey !== publicKey) {
             report.configOk = false;
             problems.push('VAPID_PUBLIC_KEY and NEXT_PUBLIC_VAPID_PUBLIC_KEY do not match -- every send will 403');
+        }
+
+        // ---- VAPID ROTATION DETECTOR --------------------------------------
+        // Rotating the keypair permanently kills every existing subscription:
+        // the browser subscribed against the OLD applicationServerKey, so every
+        // send returns 403 forever and each user must re-enrol. It is silent --
+        // nothing else in the stack notices, and the sends still "succeed" from
+        // the dispatcher's point of view until the 403s arrive.
+        //
+        // This happened on 2026-08-19 (keys were regenerated mid-session). It
+        // was harmless only because zero devices were enrolled at the time.
+        // Store a fingerprint of the active public key and shout if it changes
+        // while real subscriptions exist.
+        try {
+            const fingerprint = createHash('sha256').update(publicKey).digest('hex').slice(0, 16);
+            report.vapidFingerprint = fingerprint;
+
+            const { data: seen } = await supabase
+                .from('push_dispatch_runs')
+                .select('note')
+                .eq('job', 'vapid-fingerprint')
+                .order('started_at', { ascending: false })
+                .limit(1);
+
+            const previous = seen?.[0]?.note || null;
+
+            if (previous && previous !== fingerprint) {
+                const { count: activeSubs } = await supabase
+                    .from('push_subscriptions')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('is_active', true);
+
+                report.vapidRotated = true;
+                if (activeSubs && activeSubs > 0) {
+                    report.configOk = false;
+                    problems.push(
+                        `VAPID KEY ROTATED with ${activeSubs} active subscription(s) -- every one of them is now permanently dead and each user must re-enable notifications on their device`
+                    );
+                } else {
+                    problems.push('VAPID key rotated (no active subscriptions were affected)');
+                }
+            }
+
+            if (previous !== fingerprint) {
+                // Record the new fingerprint so the alert fires once, not daily.
+                // Exact timestamp, not a day bucket: push_dispatch_runs is
+                // UNIQUE(job, slot), and a second rotation on the same day would
+                // collide, leaving the stored fingerprint stale and re-alerting
+                // every run. This row is a log entry, not a dedupe slot.
+                await supabase.from('push_dispatch_runs').insert({
+                    job: 'vapid-fingerprint',
+                    slot: new Date(now).toISOString(),
+                    note: fingerprint,
+                    finished_at: new Date().toISOString(),
+                });
+            }
+        } catch (e) {
+            // Never let the detector break the watchdog.
+            console.warn('[push-health] vapid fingerprint check failed:', e?.message || e);
         }
     }
 

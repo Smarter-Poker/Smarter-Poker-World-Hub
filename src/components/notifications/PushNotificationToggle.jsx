@@ -94,6 +94,29 @@ export default function PushNotificationToggle({
         })();
     }, []);
 
+    /**
+     * Authenticated fetch helper.
+     *
+     * saveQuietHours and saveDailyCap called `authFetch(...)` which was never
+     * defined or imported anywhere in this file. Both threw ReferenceError,
+     * the surrounding try/catch swallowed it, and the UI rolled back with
+     * "Could not save quiet hours" / "Could not save the daily limit" -- so two
+     * fully-built server features (quiet_hours_*, daily_push_cap: columns,
+     * validation and gate logic all present) were unreachable from the UI.
+     * A build does not catch this because it is a runtime-only reference.
+     */
+    const authFetch = useCallback((url, options = {}) => {
+        const token = getAccessToken();
+        return fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                ...(options.headers || {}),
+            },
+        });
+    }, []);
+
     // ---- per-type preferences ---------------------------------------------
     const loadPrefs = useCallback(async () => {
         try {

@@ -16,9 +16,14 @@
  * the main API response. Push failures don't prevent in-app notifications.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : 'https://smarter.poker';
+// Operator precedence: the old form parsed as `(A || B) ? https://${VERCEL_URL} : ...`,
+// so NEXT_PUBLIC_SITE_URL was never actually used, and if it was set while
+// VERCEL_URL was not, BASE_URL became the literal string "https://undefined".
+// VERCEL_URL is also the per-deployment host (subject to deployment protection),
+// not the public alias, so the site URL must win when present.
+const BASE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://smarter.poker');
 
 /**
  * Send notification to a single user (in-app + push)
@@ -41,7 +46,12 @@ export async function notifyUser(supabaseAdmin, {
       type,
       title,
       message: message || title,
-      data: { ...data, source: 'club_arena' },
+      // _push marks this row as "push already decided here", so the DB trigger
+      // fn_mirror_notification_to_push_outbox does NOT also mirror it. Without
+      // the marker this function produced TWO pushes for one event: one from the
+      // trigger mirroring the unmarked row, and one from the explicit
+      // /api/notifications/send call below.
+      data: { ...data, source: 'club_arena', _push: skipPush ? 'none' : 'inline' },
       read: false,
     });
     if (err_notifications_vrqj9) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_vrqj9.message);

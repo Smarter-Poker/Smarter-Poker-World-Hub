@@ -21,6 +21,29 @@ function getSupabase() {
 
 const ZOMBIE_DAYS = 3;
 
+/**
+ * Is this suppression the user's choice, an expected state, or our fault?
+ * Everything on this page hangs off that distinction.
+ */
+function classifyReason(family) {
+    switch (family) {
+        case 'mute_all':
+        case 'push_disabled':
+        case 'type_disabled':
+        case 'legacy_disabled':
+        case 'quiet_hours':
+        case 'daily_cap_reached':
+            return 'user_choice';
+        case 'no_subscription':
+            return 'not_enrolled';
+        case 'too_stale_to_deliver':
+        case 'time_budget_exhausted':
+            return 'throttled';
+        default:
+            return 'fault';
+    }
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         res.setHeader('Allow', 'GET');
@@ -87,6 +110,34 @@ export default async function handler(req, res) {
             supabase.from('push_outbox').select('id', { count: 'exact', head: true })
                 .eq('status', 'sent').gte('sent_at', new Date(now - 86400_000).toISOString()),
         ]);
+
+        // WHY were pushes suppressed? A bare "skipped: 412" cannot tell an
+        // operator whether users opted out or the system is broken -- which is
+        // the only question this page exists to answer. Group the reasons.
+        //
+        // Reasons are normalised: `type_disabled:new_message` and
+        // `daily_cap_reached:20` collapse to their family so the list stays
+        // readable instead of fragmenting into one row per type.
+        let skipReasons = [];
+        try {
+            const since = new Date(now - 7 * 86400_000).toISOString();
+            const { data: skips } = await supabase
+                .from('push_outbox')
+                .select('failure_reason')
+                .in('status', ['skipped', 'failed'])
+                .gte('created_at', since)
+                .limit(5000);
+
+            const tally = new Map();
+            for (const r of skips || []) {
+                const raw = r.failure_reason || 'unknown';
+                const family = raw.split(':')[0];
+                tally.set(family, (tally.get(family) || 0) + 1);
+            }
+            skipReasons = Array.from(tally.entries())
+                .map(([reason, count]) => ({ reason, count, kind: classifyReason(reason) }))
+                .sort((a, b) => b.count - a.count);
+        } catch { /* diagnostics only */ }
 
         const lastRunAt = lastRun?.[0]?.started_at ? Date.parse(lastRun[0].started_at) : null;
 

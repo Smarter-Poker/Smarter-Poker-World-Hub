@@ -120,6 +120,20 @@ export default async function handler(req, res) {
         // subscription's auth secret may hand us an ACTIVE replacement.
         const verified = Boolean(oldAuth) && oldAuth === existing.auth;
 
+        // UNVERIFIED CALLERS MUST NOT TOUCH A LIVE ROW.
+        //
+        // Quarantining the NEW row stopped interception, but an unverified caller
+        // could still cause DENIAL: submit the victim's oldEndpoint plus any
+        // endpoint of their own and the deactivation below would silence the
+        // victim's real device. And when oldEndpoint === endpoint, the upsert
+        // itself would overwrite the victim's live keys with is_active=false.
+        // Both are unauthenticated and repeatable. So: if we cannot prove
+        // possession, and the target row is already live, do nothing at all.
+        if (!verified && oldEndpoint === endpoint) {
+            console.warn('[push/rotate] unverified self-rotation ignored (would overwrite a live row)');
+            return res.status(204).end();
+        }
+
         const nowIso = new Date().toISOString();
         const row = {
             user_id: existing.user_id,
@@ -143,7 +157,10 @@ export default async function handler(req, res) {
             return res.status(204).end();
         }
 
-        if (oldEndpoint !== endpoint) {
+        // Retire the superseded row ONLY on a proven rotation. Doing this for an
+        // unverified caller is a free, unauthenticated mute button for any
+        // endpoint an attacker has learned.
+        if (verified && oldEndpoint !== endpoint) {
             await supabase
                 .from('push_subscriptions')
                 .update({ is_active: false, last_failure_reason: 'rotated', updated_at: nowIso })

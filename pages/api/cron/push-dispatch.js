@@ -30,6 +30,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { sendWebPush, isPushConfigured } from '../../../src/lib/push/web-push';
+import { recordSendFailure } from '../../../src/lib/push/push-deliver';
 import { loadGateContext, gateDecision, needsDailyCount, countSentToday } from '../../../src/lib/push/push-gate';
 
 // Vercel's default Pages-Router function timeout is short, and this route
@@ -40,7 +41,17 @@ import { loadGateContext, gateDecision, needsDailyCount, countSentToday } from '
 export const config = { maxDuration: 300 };
 
 const TIME_BUDGET_MS = 240_000;
-const BATCH_LIMIT = 100;
+// Raised from 100. Per-recipient device sends are parallel and each send has a
+// 10s cap, so the real limiter is TIME_BUDGET_MS, not this number. At 100 a
+// burst of a few hundred notifications took nearly an hour to reach phones.
+const BATCH_LIMIT = 300;
+
+// A push about something that happened an hour ago is not news, it is noise.
+// Rows older than this are retired unsent. This bounds two real scenarios:
+// a backlog that built up during an outage being dumped on users all at once,
+// and a bulk backfill of `notifications` reaching phones long after the fact.
+// The in-app bell still has every one of them -- that is the durable record.
+const MAX_DELIVERY_AGE_MS = 60 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const STUCK_AFTER_MINUTES = 15;
 const SLOT_MINUTES = 5;
@@ -154,8 +165,19 @@ async function handler(req, res) {
             // still `processing`; requeue_stuck_push_outbox reclaims them.
             if (Date.now() - startedAt > TIME_BUDGET_MS) {
                 ranOutOfTime = true;
+                // Give the attempt back. claim_push_outbox_batch already did
+                // attempts = attempts + 1 for this row, but nothing was actually
+                // attempted. Without the decrement a row unlucky enough to sit at
+                // the tail of five consecutive over-budget runs reaches
+                // attempts = MAX_ATTEMPTS and is failed permanently having never
+                // been sent once.
                 await supabase.from('push_outbox')
-                    .update({ status: 'pending', failure_reason: 'time_budget_exhausted' })
+                    .update({
+                        status: 'pending',
+                        claimed_at: null,
+                        attempts: Math.max(0, (row.attempts || 1) - 1),
+                        failure_reason: 'time_budget_exhausted',
+                    })
                     .eq('id', row.id);
                 stats.skipped += 1;
                 continue;
@@ -164,6 +186,16 @@ async function handler(req, res) {
             if (!row.recipient_user_id) {
                 await supabase.from('push_outbox')
                     .update({ status: 'skipped', failure_reason: 'no_recipient' })
+                    .eq('id', row.id);
+                stats.skipped += 1;
+                continue;
+            }
+
+            // ---- staleness ------------------------------------------------
+            const ageMs = Date.now() - Date.parse(row.created_at || 0);
+            if (Number.isFinite(ageMs) && ageMs > MAX_DELIVERY_AGE_MS) {
+                await supabase.from('push_outbox')
+                    .update({ status: 'skipped', failure_reason: 'too_stale_to_deliver' })
                     .eq('id', row.id);
                 stats.skipped += 1;
                 continue;
@@ -237,15 +269,15 @@ async function handler(req, res) {
                         .eq('id', sub.id);
                     return;
                 }
-                const { data: cur } = await supabase
-                    .from('push_subscriptions').select('failure_count').eq('id', sub.id).maybeSingle();
-                await supabase.from('push_subscriptions')
-                    .update({
-                        failure_count: (cur?.failure_count || 0) + 1,
-                        last_failure_reason: String(result.error || 'unknown').slice(0, 300),
-                        updated_at: nowIso,
-                    })
-                    .eq('id', sub.id);
+                // Shared with deliverPushNow so the two delivery paths cannot
+                // drift. This copy previously incremented failure_count and
+                // never acted on it, so a permanently-failing endpoint was
+                // retried on every run forever -- and since the DB mirror
+                // trigger makes THIS the dominant path, the retirement logic
+                // was effectively dead.
+                if (await recordSendFailure(supabase, sub.id, result, nowIso)) {
+                    stats.deactivated += 1;
+                }
             }));
 
             if (accepted > 0) {

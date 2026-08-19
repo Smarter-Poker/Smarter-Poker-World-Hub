@@ -17,6 +17,33 @@ const STATUS_LABEL = {
     never_enabled: 'Never enabled',
 };
 
+const REASON_LABEL = {
+    mute_all: 'Muted everything',
+    push_disabled: 'Push switched off',
+    type_disabled: 'Category switched off',
+    legacy_disabled: 'Category off (settings page)',
+    quiet_hours: 'Quiet hours',
+    daily_cap_reached: 'Daily limit reached',
+    no_subscription: 'No device enrolled',
+    too_stale_to_deliver: 'Too old to be useful',
+    time_budget_exhausted: 'Deferred to next run',
+    unknown: 'Unknown',
+};
+
+// user_choice and not_enrolled are EXPECTED. Only `fault` means we are broken.
+const KIND_COLOR = {
+    user_choice: '#10B981',
+    not_enrolled: '#6B7280',
+    throttled: '#F59E0B',
+    fault: '#EF4444',
+};
+const KIND_LABEL = {
+    user_choice: 'user choice',
+    not_enrolled: 'not enrolled',
+    throttled: 'throttled',
+    fault: 'FAULT',
+};
+
 const STATUS_COLOR = {
     ok: '#10B981',
     zombie: '#F59E0B',
@@ -72,6 +99,36 @@ export default function PushHealthPage() {
                                     value={data.dispatch.minutesSince == null ? 'never' : `${data.dispatch.minutesSince}m ago`}
                                     bad={data.dispatch.minutesSince == null || data.dispatch.minutesSince > 30}
                                 />
+                            </div>
+
+                            <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Why Pushes Were Suppressed</h2>
+                            <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
+                                Last 7 days. Green and grey are working as intended -- a suppressed
+                                push is only a problem when it is red.
+                            </p>
+                            <div style={{ marginTop: 12, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                                {(!data.skipReasons || data.skipReasons.length === 0) && (
+                                    <p style={{ padding: 16, color: '#6B7280', margin: 0 }}>
+                                        Nothing suppressed in the last 7 days.
+                                    </p>
+                                )}
+                                {(data.skipReasons || []).map((r) => (
+                                    <div key={r.reason} style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        gap: 12, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                    }}>
+                                        <div style={{ minWidth: 0 }}>
+                                            <span style={{ fontSize: 14 }}>{REASON_LABEL[r.reason] || r.reason}</span>
+                                            <span style={{
+                                                marginLeft: 8, fontSize: 11, fontWeight: 700,
+                                                color: KIND_COLOR[r.kind] || '#9CA3AF',
+                                            }}>
+                                                {KIND_LABEL[r.kind] || r.kind}
+                                            </span>
+                                        </div>
+                                        <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>{r.count}</span>
+                                    </div>
+                                ))}
                             </div>
 
                             <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Staff Reachability</h2>

@@ -94,38 +94,52 @@ export async function deliverPushNow(supabase, userId, payload, opts = {}) {
 
             // Transient failure -- count it, and retire the endpoint once it has
             // failed enough times.
-            //
-            // failure_count used to be write-only: incremented here and in
-            // push-dispatch, reset on success, and READ BY NOTHING. An endpoint
-            // that failed on every single send therefore stayed is_active=true
-            // forever and was retried on every dispatch run for the life of the
-            // deployment. Deactivating at a threshold is what makes the counter
-            // mean something.
-            try {
-                const { data: row } = await supabase
-                    .from('push_subscriptions')
-                    .select('failure_count')
-                    .eq('id', sub.id)
-                    .maybeSingle();
-                const nextCount = (row?.failure_count || 0) + 1;
-                const retire = nextCount >= FAILURE_THRESHOLD;
-                if (retire) result.expired += 1;
-                await supabase
-                    .from('push_subscriptions')
-                    .update({
-                        failure_count: nextCount,
-                        is_active: !retire,
-                        last_failure_reason: retire
-                            ? `failure_threshold_${nextCount}`
-                            : String(res.error || 'unknown').slice(0, 300),
-                        updated_at: nowIso,
-                    })
-                    .eq('id', sub.id);
-            } catch { /* ignore */ }
+            const retired = await recordSendFailure(supabase, sub.id, res, nowIso);
+            if (retired) result.expired += 1;
         })
     );
 
     return result;
 }
 
-export default { deliverPushNow };
+/**
+ * Record one failed send against a subscription, retiring it once it has failed
+ * FAILURE_THRESHOLD times in a row.
+ *
+ * SHARED ON PURPOSE. This logic used to live only in deliverPushNow, while
+ * /api/cron/push-dispatch had its own copy that incremented failure_count and
+ * never acted on it. Since notifications now reach push_outbox mainly through
+ * the DB mirror trigger, the CRON is the dominant delivery path -- so the
+ * retirement lived on the path that almost never runs, and failure_count was
+ * write-only in practice: an endpoint that failed every single send stayed
+ * is_active = true forever and burned a request on every dispatch run.
+ *
+ * @returns {Promise<boolean>} true when the subscription was retired.
+ */
+export async function recordSendFailure(supabase, subscriptionId, res, nowIso = new Date().toISOString()) {
+    try {
+        const { data: row } = await supabase
+            .from('push_subscriptions')
+            .select('failure_count')
+            .eq('id', subscriptionId)
+            .maybeSingle();
+        const nextCount = (row?.failure_count || 0) + 1;
+        const retire = nextCount >= FAILURE_THRESHOLD;
+        await supabase
+            .from('push_subscriptions')
+            .update({
+                failure_count: nextCount,
+                is_active: !retire,
+                last_failure_reason: retire
+                    ? `failure_threshold_${nextCount}`
+                    : String(res?.error || 'unknown').slice(0, 300),
+                updated_at: nowIso,
+            })
+            .eq('id', subscriptionId);
+        return retire;
+    } catch {
+        return false;
+    }
+}
+
+export default { deliverPushNow, recordSendFailure };

@@ -84,9 +84,15 @@ export default async function handler(req, res) {
 
     let mergedPrefs = null;
     for (const [k, enabled] of typeUpdates) {
+        // p_user_id is REQUIRED here. This route uses the service-role client,
+        // so auth.uid() inside the function is NULL and it cannot infer the
+        // caller. Without this the RPC raised 'Authentication required' on every
+        // call and no user could turn a category off. `user.id` is the
+        // JWT-verified identity from getServerUserWithFallback -- never the body.
         const { data: merged, error: mergeErr } = await supabase.rpc('set_push_type_pref', {
             p_key: k,
             p_enabled: enabled,
+            p_user_id: user.id,
         });
         if (mergeErr) {
             console.warn('[push-types] merge failed:', mergeErr.message);
