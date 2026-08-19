@@ -4046,3 +4046,101 @@ And a method note that cost real credibility: in the §56 pass I measured the
 things I doubted and asserted the things I had read somewhere. The measured
 claims held. The read-somewhere claim was false, shipped, and had to be
 corrected by the person I was reporting to.
+
+---
+
+## §58 — The cash seat law, and a data mistake I made applying it (2026-08-19)
+
+Dan settled the rule over several messages, each one correcting the last thing
+I built:
+
+1. *"ITS ALWAYS 6 MAX FOR PLO 6 AND 7 MAX FOR PLO5"*
+2. *"...CHANGE THESE TO ALLOW FOR RUNNING IT MULTIPLE TIMES... OR 3 TIMES"*
+3. *"BUT THIS IS ONLY IF THE TABLE IS A RUN IT TWICE... IF ITS NOT THEN YOU CAN
+   GO TO MAX POSSIBLE PLAYERS"*
+4. *"PLO5 CARD IS 7 PLAYERS MAX, AND PLO6 CARD IS 6 PLAYERS MAX BY DEFAULT.
+   PLO4 IS 8 PLAYERS MAX BY DEFAULT. MAKE THIS LAW FOR ALL GAMES"*
+5. *"WHAT I GAVE YOU WAS FOR CASH GAMES ONLY, YOU CAN NOT RUN IT TWO OR THREE
+   TIMES IN A TOURNAMENT"*
+
+### 58.1 The final law
+
+**Cash games only.** `plo6` 6, `plo5` 7, `plo4` / `plo8` 8, everything else 9.
+One flat number per variant — `maxSeatsForVariant` takes no options, and a test
+asserts its arity so the conditional version cannot creep back.
+
+Three run-outs still fit at every cap, which is the constraint that set them:
+
+| variant | cap | dealt | left | needs 15 | spare |
+|---|---|---|---|---|---|
+| plo6 | 6 | 36 | 16 | ✓ | **1** |
+| plo5 | 7 | 35 | 17 | ✓ | **2** |
+| plo4 | 8 | 32 | 20 | ✓ | 5 |
+
+plo6 and plo5 are one and two cards from the edge, so `ritHeadroom()` is
+exported and pinned by test. Anything added later that draws from the remaining
+deck must be checked against those margins, not assumed to fit.
+
+**Tournaments are exempt, and the reason is the whole point:** the cash cap
+exists *because* of Run It Twice, and you cannot run it twice in a tournament.
+Tournament tables size themselves from their own structure — a Spin & Go is
+3-max because it is a Spin & Go, an SNG is its own `max_players`, an MTT is full
+ring.
+
+### 58.2 The data mistake
+
+Dan approved updating the existing rows. I ran two passes. The first was
+correct. **The second inflated tables instead of capping them.**
+
+The law is a *ceiling*. I wrote `max_players = target` where `target` was the
+cap, rather than `LEAST(max_players, cap)` — so every table *below* the cap was
+raised *to* it. That hit:
+
+- **200 Spin & Go tables: 3-max → 8-max**
+- **107 SNG tables: 6-max → 8-max**
+
+Those are single-table tournament formats. Their seat count is not a preference,
+it is the format. And they should never have been in scope at all, because the
+law is cash-only — a fact I did not have until Dan's fifth message, but the
+inflation was wrong under *any* reading, since a maximum does not raise
+anything.
+
+I had also shrunk MTT tables from 9 in the first pass, for the same
+scope reason.
+
+**Recovery, in full:** `tournaments.max_players` is authoritative for
+single-table formats, so the Spin & Gos and SNGs were restored from their own
+parent rows (200 → 3, 107 → 6), and the 19,255 MTT tables were restored to full
+ring. Final state verified by query:
+
+| kind | variant | seats | tables | verdict |
+|---|---|---|---|---|
+| CASH | plo4 / plo5 / plo6 / plo8 | 8 / 7 / 6 / 8 | 426 | within the law |
+| MTT | plo4 / plo5 / plo8 | 9 | 19,255 | law does not apply |
+| SNG | plo4 | 6 | 107 | restored |
+| SPIN | plo4 | 3 | 200 | restored |
+
+Nothing was lost — the tournament rows were reconstructable from the tournament
+that owns them. That was luck as much as design.
+
+### 58.3 What I should have done
+
+- **A ceiling never raises anything.** `LEAST(current, cap)` was the only
+  correct shape, and I wrote a form that could only ever move rows the wrong
+  way. The test suite now contains the case explicitly: *"leaves a SMALLER
+  table alone — the law is a ceiling, not a target."*
+- **Ask what a bulk update's scope is before running it, not after.** I had the
+  data in front of me — `tournament_id` was on the very rows I was rewriting —
+  and I grouped by variant and seat count without ever grouping by *cash vs
+  tournament*. One extra column in the survey would have caught it.
+- **I probed the first pass and not the second.** The first pass got a
+  rolled-back probe that reported exactly what it would change. The second, run
+  after a rule change, went straight to production. The rule changed; my care
+  level should not have.
+
+### 58.4 Method note
+
+Also corrected in this pass: I pushed one commit while five tests were red.
+They turned out to be phantom failures from my own working tree — clean
+`origin/main` was green — but I established that *after* pushing. Pushes are
+gated on the suite's exit code now, not run alongside it.
