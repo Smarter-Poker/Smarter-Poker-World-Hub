@@ -3202,8 +3202,20 @@ The very first hit rendered had a board of **6♦ 6♣ 6♠ 6♥ 4♦** — quad
 board. When the board makes quads, NO player can have both hole cards playing
 (at most one kicker plays), so `requireBothHoleCards` must reject it. A sweep
 found **3 of the 15 payouts with a stored board were board-made quads —
-$11,392.67 — the most recent at 15:14 that same day**, well after the
-both-cards rule shipped.
+$11,392.67**, at 00:56, 10:12 and 15:14 UTC that day.
+
+**CORRECTION (same session).** My first reading called the 15:14 one "after the
+fix shipped". It was not. The both-cards rule landed in 227e1a787 at 12:05:01
+-0500 = **17:05 UTC**, so all three hits PREDATE it by two hours or more —
+verified by comparing each payout timestamp against that deploy. They are
+historical damage from the original $99k-era detector, not an active leak. The
+overstatement is recorded here rather than quietly edited out, because "is this
+still bleeding?" is the first question anyone reading this will ask.
+
+**The latent hole was still real.** Even though those three predate the rule,
+the fallback below meant that ANY future hand whose board failed to reach the
+detector would have been paid without the check — so this closes a live trap
+rather than an active bleed.
 
 **Cause: the rule failed OPEN.** `bothPlayOk()` returned `true` when no board
 was supplied, commented "legacy behavior". That did not skip a cosmetic check —
@@ -3230,7 +3242,8 @@ NLH. It only ever passed because the missing board disabled the rule. Restated
 with cards that can actually be dealt.
 
 **Verified:** server 666/666, client 135 files green, tsc clean both sides,
-engine deployed and serving 83026728. Still outstanding (logged, not yet
-chased): WHY the board was empty at settlement for those hands — the fix means
-it now costs a missed jackpot rather than a wrong payout, which is the safe
-side to be wrong on.
+engine deployed and serving 83026728. With the timestamps established, there is
+no evidence the board is failing to reach the detector on the current build —
+the three known cases are all pre-fix. The fail-closed change means that if it
+ever does, the cost is a missed jackpot rather than a wrong payout, which is
+the safe side to be wrong on.
