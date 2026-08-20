@@ -217,16 +217,55 @@ function deviationFromRange(value, optimalRange) {
 async function getPlayerStats(supabase, userId) {
   let finalStats = null;
 
+  // 0. PREFERRED: the same RPC the Club Arena stats page reads.
+  //
+  // Two reasons this comes first. Correctness: the player_stats read below is
+  // `.eq('user_id', …).maybeSingle()`, and player_stats holds ONE ROW PER CLUB —
+  // so for any player in two or more clubs it errors and silently falls through,
+  // which is the same bug that made the stats page show "No Stats Yet".
+  // Consistency: the assistant told a player one story about their game while
+  // the stats page told another. Both now derive from hand_history.
+  //
+  // Only exactly-mappable fields are passed through. Anything this RPC does not
+  // measure (opportunity counts, street-by-street fold frequencies) is left
+  // absent so patternIsMeasured skips those patterns — the house rule that a
+  // number which was never measured is never presented as if it was.
+  try {
+    const { data: rpcStats, error: rpcErr } = await getSupabase().rpc('ca_player_stats_full', {
+      p_user: userId,
+    });
+    if (rpcErr) {
+      console.warn('[LeakDetect] ca_player_stats_full failed:', rpcErr.message);
+    } else if (rpcStats?.overall?.total_hands > 0) {
+      const o = rpcStats.overall;
+      finalStats = normalizeStats({
+        // normalizeStats scales anything in (0,1] from fraction to percent, and
+        // every value below is a fraction, so the units line up.
+        hands_played: o.total_hands,
+        vpip: o.vpip,
+        pfr: o.pfr,
+        three_bet_percentage: o.three_bet_percent,
+        cbet_percentage: o.cbet_flop,
+        aggression_factor: o.aggression_factor,
+      });
+      // The window this was computed over, so callers can say so honestly.
+      finalStats.analysisWindowHands = o.total_hands;
+      finalStats.lifetimeHands = rpcStats?.lifetime?.hands ?? o.total_hands;
+    }
+  } catch (e) {
+    console.warn('[LeakDetect] ca_player_stats_full threw:', e?.message || e);
+  }
+
   // 1. Try to get aggregated stats from live hand history
-  const { data: stats, error } = await getSupabase()
-    .from('player_stats')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
+  const { data: stats, error } = finalStats
+    ? { data: null, error: null }
+    : await getSupabase().from('player_stats').select('*').eq('user_id', userId).maybeSingle();
 
   if (error) console.warn('[LeakDetect] player_stats query failed:', error.message);
 
-  if (!error && stats) {
+  if (finalStats) {
+    // already resolved from the RPC
+  } else if (!error && stats) {
     finalStats = normalizeStats(stats);
   } else {
     // Try alternative stats table

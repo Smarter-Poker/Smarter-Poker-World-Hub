@@ -245,3 +245,112 @@ stated in the UI rather than presented as a lifetime total.
   (`prj_op66GkZyZcygXQKm76iyycfVFAQx`), which is the canonical project for this
   repo. Commits authored as `agent@smarter.poker` build normally (a personal
   mailbox is what trips CHECK 15).
+
+---
+
+# Addendum 2 — build-out (2026-08-20)
+
+## The two surfaces disagreed, and the rollup was not the one to trust
+
+`club_member_daily_stats` reported **12 hands / -1.00** for the account the page
+computes as **92 hands / -882.83**. Investigated rather than assumed:
+
+- All 92 hands have a `table_id`, and every one of those tables has a `club_id`
+  — so nothing was structurally excluded.
+- Only **2 of the 9 tables** appear in the rollup at all, and even those
+  under-attribute (`hands_attributed` 7 of 8, and 2 of 4).
+
+That matches the rebuild backlog its own cron is draining (7,281 tables). So the
+rollup is mid-backfill and **not authoritative today**; `hand_history` is. The
+uncapped totals below were therefore built on our own index, not on it. Worth
+re-checking once the drain completes — the two should converge, and if they do
+not, that is a real attribution bug in the rollup.
+
+## Lifetime volume vs sampled behaviour
+
+The hero read **750** for a player who had played **71,700** hands: the analysis
+cap presented as a total. These are two different questions and are now answered
+separately.
+
+- `lifetime{}` — exact hand count plus first/last hand, from an index-only scan
+  of `ca_hand_player_idx`. **23ms** for that 71,700-hand account… after
+  `VACUUM ANALYZE`. Before it the same query took **2,365ms**: the table had
+  been bulk-loaded 10M rows and never vacuumed, so it had no visibility map and
+  every "index-only" scan was doing 3,149 heap fetches. Worth remembering for
+  any freshly backfilled table.
+- The hero now shows true hands played with `N analysed` beneath it.
+- `indexed_complete` says whether the backfill has reached that player's oldest
+  hands, so a still-growing number is never labelled "lifetime".
+
+## Time ranges
+
+`ca_player_stats_full(p_user, p_days)` — 7 Days / 30 Days / All. The 1-arg
+signature was **dropped** and replaced with `(uuid, int DEFAULT NULL)` so a call
+passing only `p_user` still resolves and no ambiguous overload is left behind.
+Only the unbounded view is cached; otherwise a 7-day payload could be rehydrated
+on the next visit and read as all-time.
+
+## Hands behind the numbers
+
+`ca_player_hands(p_user, p_mode, p_limit)` — biggest wins / worst losses / most
+recent, with board, position, table size and the player's own profit. 155ms.
+Loads only when the Analysis tab is open, because the 'biggest' modes score the
+whole window.
+
+**Security note:** the function is SECURITY DEFINER, so it bypasses RLS.
+Aggregates are club-visible by design, but hole cards are not: they are returned
+**only when `p_user = auth.uid()`**. Passing another player's id returns the same
+shape with `hole_cards` null. That guard is the only thing between this function
+and a card-leak, so it must survive any future edit.
+
+## Honesty fixes
+
+- **Sessions and bankroll are cash-only by construction** and were labelled as
+  though they covered everything. A tournament result is a prize from a payout
+  structure, not chips won at a table; summing them would be wrong. Relabelled
+  Cash Sessions / Cash Bankroll, with a pointer to the Tournaments tab.
+- **Low-sample caveat** under 1,000 cash hands — bb/100 over a few hundred hands
+  is noise, and the page was presenting it with a straight face.
+- **"Send to Personal Assistant" claimed work it had not done.** The detector
+  requires 100 hands and answers `{ leaksDetected: 0, message: 'Need more
+  hands…' }` below that — the button reported "Stats exported" and navigated
+  anyway, landing the player on an assistant with nothing new. It now reads the
+  response.
+
+## The assistant had the same bug the stats page did
+
+`getPlayerStats` in `/api/assistant/leaks/detect` opened with
+`player_stats … .eq('user_id', …).maybeSingle()` — the exact multi-club failure
+that caused "No Stats Yet". It fell through to a `hand_history` containment scan,
+i.e. the 12s query the index exists to avoid. It now reads
+`ca_player_stats_full` first, so the assistant and the stats page tell the player
+the same story. Only exactly-mappable fields are passed through; anything the RPC
+does not measure is left absent so `patternIsMeasured` skips those patterns.
+
+## Index freshness no longer depends on page traffic
+
+`ca_refresh_hand_player_index` now runs from the existing
+`club-stats-maintenance` cron (every 15 min) as well as on page load. Hosting it
+in an existing route is deliberate: CLAUDE.md §11.3 forbids net-new
+`pages/api/cron/` files, and the advisory lock makes a concurrent page-triggered
+refresh a no-op rather than duplicate work. The previous arrangement was
+backwards — the player who has *not* opened the page is exactly the one whose
+live scan window has grown.
+
+## button_seat / started_at: already fixed upstream
+
+Position stats exclude hands with no `button_seat`, so this looked like an engine
+gap. It is not, any more: of the **20,000 most recent hands, 0 are missing
+`button_seat`, `started_at` or `ended_at`** — including tournament hands. For the
+test account the misses are entirely from 2026-08-15 (33 of 33); every hand from
+08-17 onward carries it. The engine writer stamps all three. This is historical
+data only, and it ages out of the analysis window on its own. No code change.
+
+## retryFetch
+
+Three fixes in the shared helper: deterministic PostgREST codes (PGRST202,
+42501, 42883, …) return immediately instead of burning 3s of backoff re-asking a
+question with a fixed answer — PGRST202 being precisely what a caller's legacy
+fallback exists to catch; a later attempt that throws no longer returns an
+earlier attempt's stale Postgres error; and the unmount sentinel is tagged so
+callers can tell navigation apart from failure.
