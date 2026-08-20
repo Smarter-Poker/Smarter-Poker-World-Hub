@@ -101,15 +101,21 @@ export const AVATAR_LIBRARY = [
         image: '/avatars/free/shark.png',
         tags: ['predator', 'aggressive', 'intimidating']
     },
+    // Dan 2026-08-20: this entry was 'Lucky Rabbit', pointing at a rabbit.png
+    // that has never existed in public/avatars/free/. It was the one broken
+    // tile in the gallery: a permanently failed image request sitting in the
+    // free grid. No user_avatars row ever selected it, so it is repointed at
+    // real artwork rather than left 404ing. viking.png was one of four free
+    // files the library never referenced.
     {
         id: 'free-animal-002',
-        name: 'Lucky Rabbit',
-        description: 'Hopping to Victory',
-        category: 'animals',
+        name: 'Norse Raider',
+        description: 'Raiding the Pot',
+        category: 'archetypes',
         tier: 'FREE',
-        personality: 'fish',
-        image: '/avatars/free/rabbit.png',
-        tags: ['cute', 'lucky', 'friendly']
+        personality: 'intimidating',
+        image: '/avatars/free/viking.png',
+        tags: ['warrior', 'bold', 'aggressive']
     },
     {
         id: 'free-animal-003',
@@ -193,15 +199,19 @@ export const AVATAR_LIBRARY = [
         image: '/avatars/free/business.png',
         tags: ['professional', 'calculating', 'ambitious']
     },
+    // Dan 2026-08-20: 'Street Musician' pointed at musician.png, the very same
+    // file as 'Pop Star' above — two tiles, two names, one picture, so the
+    // grid looked like it was repeating itself. Repointed at cyborg.png, which
+    // the library had never referenced.
     {
         id: 'free-arch-005',
-        name: 'Street Musician',
-        description: 'Playing for Keeps',
+        name: 'Street Cyborg',
+        description: 'Running the Numbers',
         category: 'archetypes',
         tier: 'FREE',
-        personality: 'friendly',
-        image: '/avatars/free/musician.png',
-        tags: ['creative', 'passionate', 'free-spirit']
+        personality: 'mystery',
+        image: '/avatars/free/cyborg.png',
+        tags: ['tech', 'calculating', 'futuristic']
     },
     {
         id: 'free-arch-006',
@@ -212,6 +222,29 @@ export const AVATAR_LIBRARY = [
         personality: 'friendly',
         image: '/avatars/free/teacher.png',
         tags: ['educational', 'patient', 'helpful']
+    },
+    // Dan 2026-08-20: aztec.png and geisha.png shipped in public/avatars/free/
+    // but no library entry ever named them, so they were unreachable art. The
+    // free tier is 24 files; it now lists all 24.
+    {
+        id: 'free-arch-007',
+        name: 'Aztec Warrior',
+        description: 'Ancient Instincts',
+        category: 'culture',
+        tier: 'FREE',
+        personality: 'intimidating',
+        image: '/avatars/free/aztec.png',
+        tags: ['ancient', 'fierce', 'proud']
+    },
+    {
+        id: 'free-arch-008',
+        name: 'Geisha',
+        description: 'Perfect Composure',
+        category: 'culture',
+        tier: 'FREE',
+        personality: 'nit',
+        image: '/avatars/free/geisha.png',
+        tags: ['elegant', 'composed', 'traditional']
     },
 
     // FREE - Fantasy & Culture Mix (5)
@@ -757,6 +790,268 @@ export const AVATAR_LIBRARY = [
         personality: 'intimidating',
         image: '/avatars/vip/spartan.png',
         tags: ['warrior', 'disciplined', 'legendary']
+    },
+
+    // NEW VIP AVATARS ADDED
+    {
+        id: 'vip-new-001',
+        name: 'Arctic Explorer',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/arctic_explorer.png',
+        tags: ['vip', 'premium', 'arctic']
+    },
+    {
+        id: 'vip-new-002',
+        name: 'Astronaut',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/astronaut.png',
+        tags: ['vip', 'premium', 'astronaut']
+    },
+    {
+        id: 'vip-new-003',
+        name: 'Bounty Hunter',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/bounty_hunter.png',
+        tags: ['vip', 'premium', 'bounty']
+    },
+    {
+        id: 'vip-new-004',
+        name: 'Casino Dealer',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/casino_dealer.png',
+        tags: ['vip', 'premium', 'casino']
+    },
+    {
+        id: 'vip-new-005',
+        name: 'Cyber Assassin',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/cyber_assassin.png',
+        tags: ['vip', 'premium', 'cyber']
+    },
+    {
+        id: 'vip-new-006',
+        name: 'Cyber Punk',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/cyber_punk.png',
+        tags: ['vip', 'premium', 'cyber']
+    },
+    {
+        id: 'vip-new-007',
+        name: 'Dj',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/dj.png',
+        tags: ['vip', 'premium', 'dj']
+    },
+    {
+        id: 'vip-new-008',
+        name: 'Galactic Emperor',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/galactic_emperor.png',
+        tags: ['vip', 'premium', 'galactic']
+    },
+    {
+        id: 'vip-new-009',
+        name: 'Gladiator',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/gladiator.png',
+        tags: ['vip', 'premium', 'gladiator']
+    },
+    {
+        id: 'vip-new-010',
+        name: 'Hacker',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/hacker.png',
+        tags: ['vip', 'premium', 'hacker']
+    },
+    {
+        id: 'vip-new-011',
+        name: 'Luchador',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/luchador.png',
+        tags: ['vip', 'premium', 'luchador']
+    },
+    {
+        id: 'vip-new-012',
+        name: 'Mad Scientist',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/mad_scientist.png',
+        tags: ['vip', 'premium', 'mad']
+    },
+    {
+        id: 'vip-new-013',
+        name: 'Mecha Pilot',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/mecha_pilot.png',
+        tags: ['vip', 'premium', 'mecha']
+    },
+    {
+        id: 'vip-new-014',
+        name: 'Mobster',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/mobster.png',
+        tags: ['vip', 'premium', 'mobster']
+    },
+    {
+        id: 'vip-new-015',
+        name: 'Neon Ninja',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/neon_ninja.png',
+        tags: ['vip', 'premium', 'neon']
+    },
+    {
+        id: 'vip-new-016',
+        name: 'Phantom',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/phantom.png',
+        tags: ['vip', 'premium', 'phantom']
+    },
+    {
+        id: 'vip-new-017',
+        name: 'Royal Guard',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/royal_guard.png',
+        tags: ['vip', 'premium', 'royal']
+    },
+    {
+        id: 'vip-new-018',
+        name: 'Samurai Cyborg',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/samurai_cyborg.png',
+        tags: ['vip', 'premium', 'samurai']
+    },
+    {
+        id: 'vip-new-019',
+        name: 'Sorceress',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/sorceress.png',
+        tags: ['vip', 'premium', 'sorceress']
+    },
+    {
+        id: 'vip-new-020',
+        name: 'Space Pirate',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/space_pirate.png',
+        tags: ['vip', 'premium', 'space']
+    },
+    {
+        id: 'vip-new-021',
+        name: 'Steampunk Inventor',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/steampunk_inventor.png',
+        tags: ['vip', 'premium', 'steampunk']
+    },
+    {
+        id: 'vip-new-022',
+        name: 'Street Racer',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/street_racer.png',
+        tags: ['vip', 'premium', 'street']
+    },
+    {
+        id: 'vip-new-023',
+        name: 'Tiger Boss',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/tiger_boss.png',
+        tags: ['vip', 'premium', 'tiger']
+    },
+    {
+        id: 'vip-new-024',
+        name: 'Vampire Hunter',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/vampire_hunter.png',
+        tags: ['vip', 'premium', 'vampire']
+    },
+    {
+        id: 'vip-new-025',
+        name: 'Voodoo Priest',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/voodoo_priest.png',
+        tags: ['vip', 'premium', 'voodoo']
+    },
+    {
+        id: 'vip-new-026',
+        name: 'Yakuza',
+        description: 'Premium VIP Avatar',
+        category: 'archetypes',
+        tier: 'VIP',
+        personality: 'mystery',
+        image: '/avatars/vip/yakuza.png',
+        tags: ['vip', 'premium', 'yakuza']
     },
 ];
 
