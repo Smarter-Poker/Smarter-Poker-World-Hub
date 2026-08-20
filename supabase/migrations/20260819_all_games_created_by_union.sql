@@ -1,0 +1,37 @@
+-- ============================================================================
+-- ALL GAME TYPES ARE CREATED BY MIDWAY UNION (2026-08-19)
+-- APPLIED via Supabase MCP as:
+--   all_union_games_owned_by_union
+--   governance_check_union_owns_all_games
+--
+-- Dan: "MAKE SURE THAT THE GAMES ARE CREATED BY MIDWAY UNION FOR ALL CASH
+-- GAMES, MTT, SIT N GO'S AND SPINS. AND THAT BOTH CLUB JAQK AND SHARK CLUB
+-- ARE APART OF THE MIDWAY UNION."
+--
+-- WHAT WAS ACTUALLY WRONG. Cash tables already spawned from the union
+-- (HorseFleetManager FIX 201). The recurring MTT / SNG / Spin schedulers did
+-- not: all three creation sites in TournamentRecurringService used
+-- `club_id: this.getNextClubId()`, round-robining ownership between SHARK CLUB
+-- and Club JAQK, and none of them set union_id at all.
+--
+-- The ownership trigger added earlier back-filled union_id afterwards, so those
+-- games LOOKED union-owned in most queries while their club_id still named a
+-- member club. That is why one MTT was still sitting under Club JAQK.
+--
+-- THREE LAYERS, so this cannot drift back:
+--   1. SOURCE  - the scheduler names the union explicitly at creation
+--                (engine commit; getNextClubId retired).
+--   2. SCHEMA  - the ownership triggers now normalise club_id to the union's
+--                own row on INSERT *and* UPDATE for every non-private game, so
+--                a writer that forgets is corrected rather than trusted.
+--                Private club games are untouched: they keep their club_id and
+--                carry no union_id, which is what makes them private.
+--   3. AUDIT   - the weekly governance check gained two rules:
+--                'union_game_not_owned_by_union' (cash/MTT/SNG/Spin) and
+--                'union_lost_a_member_club' (JAQK and SHARK must stay members).
+--
+-- Existing live games were repointed in the same migration.
+--
+-- VERIFIED LIVE after the change: CASH 36, MTT 3, SNG 2, SPIN 3 — every one
+-- created by Midway Union; and 11 tournaments created in the following 20
+-- minutes (MTT, SNG, SPIN) all came out union-owned.
