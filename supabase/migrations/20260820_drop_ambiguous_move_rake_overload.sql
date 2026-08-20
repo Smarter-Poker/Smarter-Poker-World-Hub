@@ -1,0 +1,13 @@
+-- P1-4 (2026-08-20): fn_union_move_rake_to_chips_atomic existed twice with the
+-- same five parameter NAMES in a different order. Both versions are retired
+-- tombstones returning 'retired_rake_is_held_in_trust', but any named-argument
+-- call (pages/api/club-arena/union-wallet.js does exactly that) matched both
+-- overloads and raised "function is not unique" instead of the graceful
+-- refusal. Keep the (p_union_id, p_amount, p_notes, p_created_by, p_op_id)
+-- variant; drop the other (which also carried a mojibake character in its
+-- message text).
+--
+-- Applied to production via Supabase MCP apply_migration as
+-- 'drop_ambiguous_move_rake_overload' on 2026-08-20. Verified: a
+-- named-argument call now returns the refusal jsonb instead of erroring.
+DROP FUNCTION IF EXISTS public.fn_union_move_rake_to_chips_atomic(uuid, numeric, uuid, text, uuid);
