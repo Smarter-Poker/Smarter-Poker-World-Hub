@@ -11,7 +11,7 @@ import { useRouter } from 'next/router';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import {
   Trophy, Calendar, Users, DollarSign, Clock, MapPin,
-  Play, CheckCircle
+  CheckCircle
 } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken, ensureAuthReady } from '../../../../src/lib/authUtils';
@@ -20,7 +20,7 @@ import CommanderPageShell from '../../../../src/components/commander/CommanderPa
 function TournamentCard({ tournament, onRegister, isRegistered }) {
   const router = useRouter();
   const startDate = new Date(tournament.scheduled_start);
-  const isLive = tournament.status === 'running';
+  const isLive = tournament.status === 'running' || tournament.status === 'final_table';
   const canRegister = tournament.status === 'registering' && !isRegistered;
 
   return (
@@ -55,7 +55,7 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
             tournament.status === 'completed' ? 'cmd-badge-chrome' :
             'cmd-badge-warning'
           }`}>
-            {tournament.status === 'registering' ? 'OPEN' : tournament.status.toUpperCase()}
+            {tournament.status === 'registering' ? 'OPEN' : tournament.status.replace(/_/g, ' ').toUpperCase()}
           </span>
         </div>
 
@@ -103,8 +103,8 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
           </button>
         ) : isLive ? (
           <button onClick={() => router.push('/hub/commander/tournament/' + tournament.id + '/clock')} className="cmd-btn cmd-btn-success w-full justify-center">
-            <Play size={16} />
-            VIEW LIVE CLOCK
+            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" aria-hidden="true" />
+            View Live
           </button>
         ) : tournament.status === 'completed' ? (
           <button onClick={() => router.push('/hub/commander/tournament/' + tournament.id + '/clock')} className="cmd-btn cmd-btn-secondary w-full justify-center">
