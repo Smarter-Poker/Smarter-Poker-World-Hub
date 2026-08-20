@@ -205,3 +205,114 @@ cache can never produce a wrong number.
 - [A Comprehensive PokerBros Agent Guide (WorldPokerDeals)](https://worldpokerdeals.com/blog/pokerbros-agent-all-you-need-to-know) — agent role, chip handling, no formal relationship with the app
 - [PokerBros Review (BeastsOfPoker)](https://beastsofpoker.com/pokerbros-review/) — 5% rake, 3BB cap, 2BB cap at NL200+, union takes up to 10%
 - [Rake Structure on Poker Apps (ThePokerAgent)](https://thepokeragent.com/rake-structure-on-poker-apps/) — rakeback ranges by union and deal
+
+---
+
+# COMPLETENESS PASS (2026-08-20, later session)
+
+Dan: keep the existing rake schedule (10% with a BB cap), no late fees, and
+work the remaining list systematically. Order chosen by money-criticality.
+
+## F1 — Bounty tournaments never charged the entry fee (REAL BUG, FIXED)
+
+Dan's rule: "$50 tournament is $50 buy-in + $5 rake = $55" — fee on top;
+rebuys are raked, add-ons are not.
+
+Measured over 3 days on union tables:
+
+| type | registrations charged | fee charged? |
+|---|---|---|
+| non-bounty MTT | 1,416 / 1,416 | correct |
+| SNG | 861 / 861 | correct |
+| SPIN | 1,479 / 1,479 | correct |
+| **bounty / PKO / mystery** | **2,327 / 2,327** | **NEVER charged** |
+
+Perfect correlation with `is_bounty`/`is_pko`/`is_mystery_bounty`.
+**3,922.70 chips of tournament rake never taken from entrants in 3 days.**
+
+Root cause was not in the registration functions — both callers delegate to
+`fn_tournament_entry_split`, whose bounty branch read
+`v_charge := round(p_buy_in,2)` with no `+ p_fee`, having assumed the buy-in
+was the all-in cost for bounty events, then carved the fee back OUT of the
+prize pool. Two effects, one symptom: the entrant was under-charged by
+exactly `buy_in_fee` AND the prize pool was under-funded by the same amount.
+`total_rake` still booked the fee as collected, so the internal identity
+`charge = prize + bounty + rake` held and no invariant fired.
+
+Fixed in the shared helper, which fixes both callers at once.
+Verified: 50/5 → 55.00; 100/10 → 110.00; 50/5/20 bounty → charge 55.00,
+rake 5.00, bounty 20.00, prize 30.00. **Confirmed live: 69/69 bounty
+registrations since the fix charged buy-in + fee, 0 missing.**
+
+## F2 — The 154,205-chip agent commission alarm was MY ERROR (RETRACTED)
+
+`agent_commissions.user_id` is the **agent who earned** the commission, not
+the player who generated the rake. I joined it as if it were the player, so
+every per-player lookup found nothing and the roster looked unpaid.
+
+Proof it is recorded correctly: 26 distinct users credited this week, **all
+26 are agents**; the super-agent I cited as having zero was credited
+**6,337.59**, matching its own aggregate statement. Total credited this week:
+83,533.70. **There is no missing money.**
+
+No replacement invariant: commission is a waterfall (direct agent earns
+`rake × own_rate`; parent earns `(rake − direct) × parent_rate`; booked to the
+player's *resolved* club). Neither "rake × rate" nor "row rate == agent rate"
+is a valid expectation — I tested the latter and it flagged 187,258 of
+187,258 rows, another false positive. A false alarm on money is worse than no
+alarm, so the check was removed rather than replaced with a third guess.
+
+## F3 — The weekly cycle now closes
+
+`fn_union_eco_record_current_week` (persists ECO so an invoice stays
+reproducible) and `fn_union_apply_presettlements` (consumes mid-week payments
+against the settlement that covers them). Both deliberately OUTSIDE the
+settlement transaction — recording reads the reconciliation report (~7s) and
+that must never run while treasury locks are held. Wired into the engine
+settler; no-ops entirely while ECO is disabled.
+
+## F4 — Remaining features
+
+- **Shared cost allocation** pro-rata by rake share, exactly as Primetime's
+  charter describes. A 10,000 cost splits 96.901% / 3.099% → 9,690.06 +
+  309.94 = 10,000.00 exactly.
+- **Crushing-club monitor** — weekly net, winning vs losing weeks, crushing
+  flag. **Rewritten before shipping:** v1 called the reconciliation report per
+  week (17.4s for 2 weeks, ~105s at the 12-week max, for a dashboard call). It
+  now reads what was actually SETTLED from `union_pnl_settlements.club_results`
+  and computes live for the open week only — 5.42s at 4 weeks, and it reports
+  the figures clubs were genuinely invoiced on.
+- **Stakes cap** monitoring invariant (`stakes_cap_bb` existed, nothing read
+  it). Reports rather than blocks, consistent with every other control.
+
+## SECURITY — the owed sweep, done
+
+I had flagged that default-PUBLIC-EXECUTE applies to every SECURITY DEFINER
+function nobody revoked. A broad check found **24 `fn_union_*` functions
+callable by `anon`** — no login — including two SECURITY DEFINER **writers**
+with no auth check (`fn_union_integrity_sweep`, `fn_union_law_selftest`) and
+financial readers exposing every club's P&L and per-player P&L.
+
+**Dependency-checked before revoking, because a careless revoke here is an
+outage:** `fn_union_oversees_club` is referenced by **sixteen RLS policies**
+including the `tables` SELECT policy — revoking it would have hidden every
+table from every player. Left untouched deliberately. SECURITY INVOKER
+helpers, the browser leaderboard, and functions with their own `auth.uid()`
+check keep `authenticated` and lose only `anon`.
+
+Verified after: the only `fn_union_*` still anon-callable is
+`oversees_club` by design; `pnl_all_clubs` closed to authenticated; the
+leaderboard still works for logged-in users; the reconciliation report still
+runs for service role; and **a normal logged-in player still sees 74 tables,
+so RLS evaluation is intact.**
+
+## Not done, and why
+
+- **Enforcement** of stop-loss suspension, ECO distribution, and stakes caps
+  is deliberately OFF. Everything reports; nothing auto-suspends or
+  auto-moves chips. That is Dan's call, not mine.
+- **`union_club_terms` is empty**, so both clubs show `no_terms`. Deposits and
+  stop-loss values are a business decision.
+- **Commission assurance** would need the waterfall modelled explicitly.
+- **Human click-test** of the union dashboard still needs Dan or a browser
+  session.
