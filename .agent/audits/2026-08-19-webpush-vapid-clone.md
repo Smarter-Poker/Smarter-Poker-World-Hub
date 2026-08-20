@@ -474,3 +474,61 @@ letting it do its job is the proof it works.
 ### Vercel account
 Confirmed again: team `smarter-poker`, project `hub-vanguard`, alias
 smarter.poker, and exactly ONE Vercel project linked to the repo.
+
+---
+
+## ROUND 6 -- digests, delivery funnel, rich media (2026-08-20)
+
+Built the three enhancements previously argued against, now that the foundation
+carries them.
+
+**DIGESTS.** When a run holds several notifications of the same type for the same
+person, one push says how many and the rest are folded in. The bell keeps every
+row: this collapses the interrupt, never the record.
+
+The implementation arrived in flight from another agent with a real ordering bug:
+the digest ran BEFORE the preference gate and marked absorbed rows
+`digested_into:<carrier>` immediately, so if the carrier was then suppressed
+(quiet hours, mute_all, no device) the user got nothing while four rows were
+permanently recorded as folded into a push that never went out. Restructured
+into an eligibility pre-pass (recipient, staleness, gate) followed by a digest
+over survivors only. The carrier's digest text is now persisted rather than held
+in memory -- a retry re-reads the row and would otherwise have sent the original
+single-item text as though the burst never happened.
+
+Proven live: four `friend_request` notifications for one user collapsed into one
+carrier titled "4 new friend requests" tagged
+`digest:friend_request:<uid>`, with three rows marked
+`digested_into:390bbb8c...`, and the carrier correctly terminating at
+`no_subscription`.
+
+**DELIVERY FUNNEL + VOLUME BY TYPE** on /admin/push-health. Two agents wrote a
+funnel concurrently; theirs was kept because it measures confirmations against
+the devices actually pushed in the window rather than the whole fleet, which is
+the honest denominator. Mine was removed and the page aligned to the surviving
+shape (a duplicate `let funnel` had already broken the build -- caught and fixed
+before pushing). Per-type volume kept so a feature that starts dominating the
+list is visible before a user complains.
+
+**RICH MEDIA.** `push_outbox.image_url` plus `image` threaded through
+notify -> enqueue -> web-push -> service worker (sp-push-v3). The valuable use is
+identity, not decoration: message pushes now carry the SENDER'S AVATAR as the
+icon. `image` is Chrome/Android only and ignored elsewhere; the worker already
+retries showNotification with a minimal option set if an OS rejects a field.
+
+### A REGRESSION CAUGHT BY VERIFYING THE LIVE FUNCTION
+The other agent's mirror-trigger rewrite silently dropped BOTH burst guards.
+Confirmed against production rather than assumed:
+`has_refined_tag = true, has_per_user_cap = false, has_staleness_guard = false`.
+The 1,682-rows-in-one-second mass-push risk was live again.
+
+Reconciled rather than reverted, because their change was also a genuine fix:
+- KEPT their refined tag. My original `type:user_id` for everything was wrong --
+  two different friend requests shared a tag and REPLACED each other on the lock
+  screen, so a user would only ever see the most recent one.
+- RESTORED my per-user pending cap (20) and 30-minute staleness guard.
+Migration asserts all four behaviours, so a future rewrite that drops either
+side fails loudly instead of silently.
+
+Also noted and fixed: the repo migrations had drifted from the live function
+(no migration captured the refined tag). The repo now matches production.
