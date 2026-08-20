@@ -1,0 +1,9 @@
+-- Applied to production 2026-08-20 via Supabase MCP apply_migration
+-- (name: drop_redundant_notification_read_trigger).
+--
+-- public.notifications carried TWO triggers maintaining read state:
+--   trg_sync_notification_read        BEFORE UPDATE, booleans only
+--   trg_sync_notification_read_state  BEFORE INSERT OR UPDATE, booleans + read_at
+-- The second is a strict superset. Dropped the first; dropping the OTHER one
+-- would break read_at, which the feed and the unread index depend on.
+-- Post-apply assertions verified all four propagation paths still hold.
