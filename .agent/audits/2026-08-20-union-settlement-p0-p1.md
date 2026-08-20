@@ -979,3 +979,55 @@ each have read as zero and finished a live tournament, stranding its prize
 money -- which is precisely how the 16:11 incident happened. The two
 tournaments that did complete during the window reconciled clean
 (6.00/6.00 and 80.00/80.00).
+
+---
+
+## Systemic finding: applying a migration loses rake
+
+Self-reported, and it explains both of my DDL-related incidents today rather
+than just the first one.
+
+Every DDL statement makes PostgREST reload its schema cache, and during that
+reload the API returns "Could not query the database for the schema cache" and
+requests time out. The engine's fee reconciler has NO durable fallback for
+that: when the rake-banking RPC times out it logs
+
+    [A5] Could not queue unbanked rake for hand N (rake X, bbj Y):
+    Error: supabase_timeout. These chips left the pot and are now
+    recoverable only by hand.
+
+and the chips are simply gone. There is no unbanked/pending-rake table
+anywhere in the schema, so "queue" has nothing to queue into.
+
+Measured today, across two bursts:
+
+| burst | cause | events | rake lost | bbj lost |
+|---|---|---|---|---|
+| 16:11 | my CONCURRENT index build | 2 | 1.44 | 0.18 |
+| 17:54 | my three rollup migrations | 8 | 32.81 | 2.55 |
+| | **total** | **10** | **34.25** | **2.73** |
+
+A third burst at 17:18 (268 errors) came from another agent applying six
+migrations in quick succession; it did not orphan rake only because of when it
+landed relative to hand completions.
+
+So the cost of a migration on this system is currently "a few chips of rake,
+silently". That is small per event and unbounded over time, and it will get
+worse as hand volume grows. It also means every agent doing schema work is
+quietly destroying money without knowing it.
+
+The fix is not to stop applying migrations. It is that a transient
+`supabase_timeout` must never be terminal for money in flight: the reconciler
+needs a durable landing place (an unbanked_rake table written in the same
+transaction as the pot settlement, drained by the settler) so a timeout
+becomes a retry instead of a loss. That is the same principle as the
+tournament work above -- an unreadable count is UNKNOWN, not zero; an
+unbankable rake is PENDING, not gone.
+
+Not implemented here: it is cash-game fee plumbing rather than tournament
+payouts, it needs a schema addition plus an engine change, and it should not
+be bolted on at the end of a long session. Flagged for Dan as the highest
+-value remaining money-integrity item.
+
+Interim mitigation: batch schema changes and apply them in one window rather
+than spread across a session, and prefer quiet periods.
