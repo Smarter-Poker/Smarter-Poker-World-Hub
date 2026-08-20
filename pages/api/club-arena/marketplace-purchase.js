@@ -101,7 +101,11 @@ export default async function handler(req, res) {
           // what price?" — active, promo window, stock, ownership, per-user cap
           // and sale price. Keeping these in the DB stops the storefront and
           // the purchase route from drifting apart on the rules.
-          const { data: avail, error: availErr } = await getSupabase().rpc('fn_shop_item_availability', {
+          // fn_claim_shop_purchase takes a per-(user,item) advisory lock, then
+          // re-checks availability AND decrements stock inside that lock. The
+          // previous read-then-act shape let N concurrent buys of a stackable
+          // per_user_limit=1 item all count 0 and all succeed.
+          const { data: avail, error: availErr } = await getSupabase().rpc('fn_claim_shop_purchase', {
               p_club_id: clubId,
               p_user_id: user.id,
               p_item_id: itemId,
@@ -145,24 +149,24 @@ export default async function handler(req, res) {
           // Limited-quantity items: take a unit BEFORE money moves, so two
           // concurrent buyers cannot both get the last one. Every failure path
           // below releases it again.
-          if (item.stock !== null && item.stock !== undefined) {
-              const { data: claim, error: claimErr } = await getSupabase().rpc('fn_claim_shop_stock', {
-                  p_club_id: clubId,
-                  p_item_id: itemId,
-              });
-              if (claimErr) throw claimErr;
-              if (!claim?.claimed) {
-                  return res.status(400).json({
-                      success: false,
-                      error: claim?.error === 'sold_out' ? 'This item is sold out' : 'Item unavailable',
-                      soldOut: claim?.error === 'sold_out',
-                  });
-              }
-              stockClaimed = claim.unlimited !== true;
-          }
+          // The unit (if any) was already taken inside fn_claim_shop_purchase.
+          stockClaimed = avail.stock_claimed === true;
 
-          // Deduct chips atomically
-          const { error: deductErr } = await getSupabase().rpc('fn_debit_chips', {
+          // Deduct chips atomically.
+          //
+          // CRITICAL (audit 2026-08-19): fn_debit_chips does NOT raise on
+          // failure — it RETURNS {success:false, error:'insufficient chips'}.
+          // Verified against production. This code checked only `deductErr`,
+          // which is the PostgREST transport error and is null in that case,
+          // so a rejected debit fell straight through to inserting the purchase
+          // and the delivery trigger handed over the item.
+          //
+          // Under concurrency that is a free-item exploit: N requests all read
+          // the same balance, one debit lands, the other N-1 return
+          // {success:false} silently, and N items are delivered for one payment.
+          // The partial unique index used to mask it by failing the losers'
+          // insert, but stackable items are deliberately exempt from that index.
+          const { data: debit, error: deductErr } = await getSupabase().rpc('fn_debit_chips', {
               p_club_id: clubId,
               p_user_id: user.id,
               p_amount: price,
@@ -170,10 +174,19 @@ export default async function handler(req, res) {
 
           if (deductErr) {
               await releaseStock();
-              if (deductErr.message?.includes('Insufficient')) {
-                  return res.status(400).json({ success: false, error: 'Insufficient chips', available: balance, price });
-              }
               throw deductErr;
+          }
+
+          if (!debit?.success) {
+              await releaseStock();
+              const msg = String(debit?.error || '');
+              const insufficient = /insufficient/i.test(msg);
+              return res.status(insufficient ? 400 : 500).json({
+                  success: false,
+                  error: insufficient ? 'Insufficient chips' : 'Payment failed',
+                  available: debit?.balance ?? balance,
+                  price,
+              });
           }
 
           // Record purchase
@@ -184,6 +197,7 @@ export default async function handler(req, res) {
                   buyer_id: user.id,
                   item_id: itemId,
                   price_paid: price,
+                  stock_claimed: stockClaimed,
               });
 
           if (purchaseErr) {
@@ -200,11 +214,15 @@ export default async function handler(req, res) {
               // ops needs to know immediately. Previously the call swallowed
               // the error silently, so any rollback failure left chips
               // permanently lost with no log to reconcile from.
-              const { error: refundErr } = await getSupabase().rpc('fn_credit_chips', {
+              const { data: refundRes, error: refundRpcErr } = await getSupabase().rpc('fn_credit_chips', {
                   p_club_id: clubId,
                   p_user_id: user.id,
                   p_amount: price,
               });
+              // fn_credit_chips also RETURNS {success:false} rather than
+              // raising, so a failed rollback used to look like a clean one.
+              const refundErr =
+                  refundRpcErr || (refundRes?.success ? null : new Error(refundRes?.error || 'credit returned success:false'));
               if (refundErr) {
                   // Loud audit log — this is real money the user lost.
                   console.warn('[marketplace-purchase] CRITICAL: refund of', price, 'chips for user', user.id, 'in club', clubId, 'FAILED after purchase insert error:', refundErr?.message || refundErr);
@@ -270,6 +288,10 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               newBalance: updatedMember?.chip_balance ?? (balance - price),
+              // The price the server actually charged. A sale can end between
+              // page load and confirm, and the modal would otherwise still be
+              // showing the promo price with no way to tell.
+              pricePaid: price,
               item: { name: item.name, type: item.item_type },
           });
       } catch (err) {

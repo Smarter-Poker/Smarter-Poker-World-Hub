@@ -55,13 +55,17 @@ async function beginIdempotent(supabase, req, res, route) {
         const originalJson = res.json.bind(res);
         res.json = (body) => {
             const status = res.statusCode || 200;
-            supabase
+            // MUST be awaited before the response flushes: the serverless
+            // instance is frozen the instant it does, so a fire-and-forget RPC
+            // is routinely killed in flight. The row then stays 'processing'
+            // until expiry and every retry gets a 409 for the full TTL.
+            const done = supabase
                 .rpc('fn_idempotency_finish', { p_key: key, p_status: status, p_body: body })
                 .then(({ error }) => {
                     if (error) console.warn('[idempotency] finish failed:', error.message);
                 })
                 .catch((e) => console.warn('[idempotency] finish threw:', e?.message || e));
-            return originalJson(body);
+            return done.then(() => originalJson(body));
         };
         return { proceed: true };
     }

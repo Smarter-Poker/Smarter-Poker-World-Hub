@@ -78,18 +78,20 @@ export default async function handler(req, res) {
             .select('item_id, buyer_id, price_paid, created_at, club_shop_items(name, category)')
             .eq('club_id', clubId)
             .gte('created_at', since.toISOString())
-            .order('created_at', { ascending: true })
+            .order('created_at', { ascending: false })
             .limit(MAX_ROWS);
 
         if (pErr) throw pErr;
 
         // Refunded copies, so gross / refunds / net reconcile.
+        // Keyed on refunded_at: a refund issued today against a 60-day-old
+        // purchase belongs in today's window, not in the purchase's.
         const { data: refunded } = await getSupabase()
-            .from('club_shop_inventory')
-            .select('item_id, price_paid, acquired_at')
+            .from('club_shop_purchases')
+            .select('item_id, price_paid, refunded_at')
             .eq('club_id', clubId)
-            .eq('status', 'refunded')
-            .gte('acquired_at', since.toISOString())
+            .not('refunded_at', 'is', null)
+            .gte('refunded_at', since.toISOString())
             .limit(MAX_ROWS);
 
         const rows = purchases || [];
@@ -98,7 +100,7 @@ export default async function handler(req, res) {
         // Pre-seed every day so the chart has no holes.
         const series = [];
         const byDay = new Map();
-        for (let i = 0; i < days; i++) {
+        for (let i = 0; i <= days; i++) {
             const d = new Date(since.getTime() + i * 86400000);
             const key = d.toISOString().slice(0, 10);
             const entry = { date: key, sales: 0, revenue: 0 };
@@ -113,6 +115,7 @@ export default async function handler(req, res) {
         for (const r of rows) {
             const amount = Number(r.price_paid) || 0;
             grossRevenue += amount;
+
 
             const key = String(r.created_at).slice(0, 10);
             const day = byDay.get(key);
