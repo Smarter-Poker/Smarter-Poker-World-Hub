@@ -107,7 +107,7 @@ export default function ProfileSettingsPage() {
     <>
       <SEOHead
                 title="Profile Settings"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>

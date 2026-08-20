@@ -3,7 +3,7 @@
  *
  * 2026-08-15 audit: the social-media club dashboard's "Edit Poker Near Me
  * Details" panel has always called this route for the group's contact_phone
- * and website_url — but the route never existed, so the panel loaded empty
+ * and website_url - but the route never existed, so the panel loaded empty
  * and every save failed. This implements the contract the panel expects:
  *   GET   -> { group: { contact_phone, website_url } }   (owner only)
  *   PATCH -> { success: true }                            (owner only)

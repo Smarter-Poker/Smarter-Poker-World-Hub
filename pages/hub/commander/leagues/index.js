@@ -118,11 +118,11 @@ export default function LeaguesPage() {
     ]);
     if (!allRes?.ok) throw new Error(`Request failed (${allRes?.status || 'network error'})`);
     const all = await allRes.json();
-    // Safely parse /my — it may 500 if the Commander backend has an issue
+    // Safely parse /my - it may 500 if the Commander backend has an issue
     let my = { success: false };
     try { if (myRes?.ok) my = await myRes.json(); } catch (_) { /* show leagues without personal data */ }
     // 2026-07-25 audit fix: /leagues/my returns raw commander_league_standings
-    // rows (points/rank + nested commander_leagues) — map them into the shape
+    // rows (points/rank + nested commander_leagues) - map them into the shape
     // MyLeagueCard renders (id/name/my_rank/my_points/events_played). Before,
     // league.name/my_rank/my_points were always undefined and the card click
     // navigated with the standings-row id instead of the league id.
@@ -142,7 +142,7 @@ export default function LeaguesPage() {
   const leagues = swrData?.leagues || [];
   const myLeagues = swrData?.myLeagues || [];
 
-  // Realtime listener — live updates when leagues are created/updated
+  // Realtime listener - live updates when leagues are created/updated
   useEffect(() => {
     const ch = supabase
       .channel(`leagues-list-${Date.now()}`)
@@ -171,7 +171,7 @@ export default function LeaguesPage() {
     <>
       <SEOHead
         title="Poker Leagues"
-        description="Smarter.Poker — The Future Of The Game."
+        description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
 

@@ -1,5 +1,5 @@
 /**
- * Player tournament API — catch-all passthrough proxy to the canonical
+ * Player tournament API - catch-all passthrough proxy to the canonical
  * commander app (2026-08-19).
  *
  * WHY THIS EXISTS
@@ -14,7 +14,7 @@
  * my-status pages. This file restores the routes as a thin proxy.
  *
  * The real handlers live on https://commander.smarter.poker, whose own
- * next.config rewrites /api/commander/:path* to /api/:path* — so the
+ * next.config rewrites /api/commander/:path* to /api/:path* - so the
  * canonical upstream base is https://commander.smarter.poker/api/tournaments.
  *
  * ROUTES COVERED (optional catch-all; undefined path = the list endpoint)
@@ -40,7 +40,7 @@
  *     WWW-Authenticate relayed so 429/401 signals survive the hop
  *   - 502 UPSTREAM_UNREACHABLE on network failure/timeout
  *
- * Pure fetch proxy — no Supabase client needed.
+ * Pure fetch proxy - no Supabase client needed.
  */
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
 
   try {
     const headers = { 'Content-Type': req.headers['content-type'] || 'application/json' };
-    // Authorization (player JWT) only — cookies and x-staff-session are
+    // Authorization (player JWT) only - cookies and x-staff-session are
     // deliberately NOT forwarded across origins from this player surface.
     if (req.headers.authorization) headers.Authorization = req.headers.authorization;
 

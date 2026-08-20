@@ -380,7 +380,7 @@ export default function PlayerFAQPage() {
     <>
       <SEOHead
                 title="Commander FAQ"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 

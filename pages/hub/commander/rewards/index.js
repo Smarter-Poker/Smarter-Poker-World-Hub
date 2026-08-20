@@ -87,7 +87,7 @@ export default function PlayerRewardsPage() {
   useTrainingBus('rewards');
 
   // useSWR declared BEFORE the useEffect that references refreshRewards.
-  // Turbopack enforces strict TDZ — const bindings cannot be referenced
+  // Turbopack enforces strict TDZ - const bindings cannot be referenced
   // before their declaration line, unlike webpack which masked this.
   const { data: swrData, isLoading: loading, mutate: refreshRewards } = useSWR(authChecking ? null : '/api/commander/comps/balances', async () => {
     const token = getAccessToken();
@@ -104,7 +104,7 @@ export default function PlayerRewardsPage() {
       balance: bal.success ? (bal.data?.balance || 0) : 0,
       lifetimeEarned: bal.success ? (bal.data?.lifetime_earned || 0) : 0,
       hoursPlayed: bal.success ? (bal.data?.total_hours || 0) : 0,
-      // 2026-07-25 audit fix: keep the per-venue balance rows — redemption is
+      // 2026-07-25 audit fix: keep the per-venue balance rows - redemption is
       // venue-scoped, so the redeem call needs a venue_id from this list.
       venueBalances: bal.success ? (bal.data?.balances || []) : [],
       transactions: tx.success ? (tx.data?.transactions || []) : [],
@@ -118,7 +118,7 @@ export default function PlayerRewardsPage() {
   const transactions = swrData?.transactions || [];
   const earnRate = swrData?.earnRate || 1;
 
-  // Realtime listener — refreshRewards is now initialized above, safe to use here
+  // Realtime listener - refreshRewards is now initialized above, safe to use here
   useEffect(() => {
     if (!user?.id) return;
     const ch = supabase
@@ -158,7 +158,7 @@ export default function PlayerRewardsPage() {
     }
 
     // 2026-07-25 audit fix: the redeem API requires {venue_id, player_id,
-    // amount, redemption_type} — the old {category, amount} body always 400'd.
+    // amount, redemption_type} - the old {category, amount} body always 400'd.
     // This page has no single venue context, so redeem against the venue
     // balance being spent: the first venue whose balance covers the amount
     // (falling back to the largest balance; the list is sorted descending).
@@ -214,7 +214,7 @@ export default function PlayerRewardsPage() {
     <>
       <SEOHead
         title="Rewards"
-        description="Smarter.Poker — The Future Of The Game."
+        description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
 

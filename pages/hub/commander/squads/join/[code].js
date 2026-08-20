@@ -26,7 +26,7 @@ export default function SquadJoinPage() {
     fetchSquad();
   }, [code, authChecking]);
 
-  // 2026-07-25 audit fix: this page was calling the HOME-GAMES join API — squad
+  // 2026-07-25 audit fix: this page was calling the HOME-GAMES join API - squad
   // invite codes never resolved. Lookup and join both live at
   // /api/commander/squads/join/[code] (GET returns {success,data:{squad}},
   // POST joins and returns {success,data:{squad_id}}).
@@ -89,7 +89,7 @@ export default function SquadJoinPage() {
     <>
       <SEOHead
                 title="Join Squad"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>

@@ -24,7 +24,7 @@ export default function AchievementsPage() {
     const token = getAccessToken();
     if (!token) return null;
     // 2026-07-25 audit fix: achievements live at data.profile.achievements
-    // (not data.achievements) and the API only returns earned ones — mark
+    // (not data.achievements) and the API only returns earned ones - mark
     // them unlocked so the unlocked/locked filters and progress bar work.
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
@@ -46,7 +46,7 @@ export default function AchievementsPage() {
     <>
       <SEOHead
                 title="Player Achievements"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>

@@ -122,7 +122,7 @@ export default function VenueDetailPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-  // Realtime listener — live updates for venues/[id].js
+  // Realtime listener - live updates for venues/[id].js
   useEffect(() => {
     if (!id) return;
     const ch = supabase
@@ -166,7 +166,7 @@ export default function VenueDetailPage() {
     <>
       <SEOHead
                 title="Venue Details"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 
@@ -207,7 +207,7 @@ export default function VenueDetailPage() {
             Check In
           </button>
 
-          {/* Today's Tournaments — taps into the public live clock */}
+          {/* Today's Tournaments - taps into the public live clock */}
           {venueTournaments.length > 0 && (
             <div className="cmd-panel overflow-hidden">
               <div className="p-4 border-b border-[#4A5E78] flex items-center gap-2">
@@ -243,7 +243,7 @@ export default function VenueDetailPage() {
             </div>
           )}
 
-          {/* Edit Social Page — shown when a linked social page exists */}
+          {/* Edit Social Page - shown when a linked social page exists */}
           {socialPageSlug && (
             <button
               id="btn-edit-social-page"

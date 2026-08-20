@@ -35,7 +35,7 @@ export async function checkFeatureAccess(userId, featureKey) {
         const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
         sessionUserId = session?.user?.id;
         if (!sessionUserId) {
-            console.warn('[FeatureGate] No active Supabase session — waiting for auth...');
+            console.warn('[FeatureGate] No active Supabase session - waiting for auth...');
             // Wait briefly for session to establish (common on page load)
             await new Promise(r => setTimeout(r, 500));
             const retrySession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
@@ -83,7 +83,7 @@ export async function checkFeatureAccess(userId, featureKey) {
         console.warn('[FeatureGate] CRITICAL: Could not fetch profile for userId:', userId, '| Error:', fetchError?.message);
         // ═══════════════════════════════════════════════════════════════════
         // HARDENED: Server-side fallback via /api/vip/check-status
-        // Uses Supabase service role key (bypasses RLS) — will succeed even
+        // Uses Supabase service role key (bypasses RLS) - will succeed even
         // when client-side auth/session is not ready
         // ═══════════════════════════════════════════════════════════════════
         try {
@@ -100,7 +100,7 @@ export async function checkFeatureAccess(userId, featureKey) {
             if (resp.ok) {
                 const vipData = await resp.json();
                 // The server answered. Its answer is authoritative in BOTH
-                // directions — a "no" here must clear the cache, otherwise a
+                // directions - a "no" here must clear the cache, otherwise a
                 // lapsed VIP keeps their offline fallback alive forever.
                 writeVipProof(userId, vipData.isVip === true);
                 if (vipData.isVip) {
@@ -114,24 +114,24 @@ export async function checkFeatureAccess(userId, featureKey) {
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        // DEGRADED FALLBACK — every server path has now failed.
+        // DEGRADED FALLBACK - every server path has now failed.
         // Only here may the local cache speak, and only for a non-expired
         // entry this same user id verified earlier. `degraded: true` marks the
         // result as unverified so callers can refuse to act on it for anything
         // that spends money or mints diamonds.
         // ═══════════════════════════════════════════════════════════════════
         if (readVipProof(userId)) {
-            console.warn('[FeatureGate] Server unreachable — honouring cached VIP (degraded, unverified) for userId:', userId);
+            console.warn('[FeatureGate] Server unreachable - honouring cached VIP (degraded, unverified) for userId:', userId);
             return { hasAccess: true, isVip: true, expiresAt: null, diamonds: 0, degraded: true };
         }
         return { hasAccess: false, isVip: false, expiresAt: null, diamonds: 0, error: 'Profile fetch failed' };
     }
 
-    console.debug('[FeatureGate] Profile loaded — diamonds:', profile.diamonds, '| is_vip:', profile.is_vip);
+    console.debug('[FeatureGate] Profile loaded - diamonds:', profile.diamonds, '| is_vip:', profile.is_vip);
 
     // VIP users get unlimited access
     if (profile.is_vip) {
-        // Server-verified answer — safe to record as an offline fallback.
+        // Server-verified answer - safe to record as an offline fallback.
         writeVipProof(userId, true);
         return { hasAccess: true, isVip: true, expiresAt: null, diamonds: profile.diamonds || 0 };
     }
@@ -264,7 +264,7 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
             return { success: false, error: rpcError.message || 'Failed to deduct diamonds' };
         }
     } else if (rpcResult) {
-        // RPC succeeded — use authoritative balance from DB
+        // RPC succeeded - use authoritative balance from DB
         if (rpcResult.success === false) {
             return { success: false, error: rpcResult.error || 'Insufficient diamonds', balance: rpcResult.balance };
         }
@@ -294,7 +294,7 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
         });
 
     if (accessError) {
-        // Refund on failure — award back the diamonds
+        // Refund on failure - award back the diamonds
         await supabase.rpc('award_diamonds', {
             p_user_id: userId,
             p_amount: cost,
@@ -382,7 +382,7 @@ export async function purchaseVipWithDiamonds(userId) {
                 p_user_id: userId,
                 p_amount: -VIP_DIAMOND_COST,
                 p_type: 'vip_membership',
-                p_description: 'VIP Membership — 30 Day Diamond Purchase (fallback)',
+                p_description: 'VIP Membership - 30 Day Diamond Purchase (fallback)',
                 p_reference_id: null
             });
             if (directError) return { success: false, error: 'Failed to deduct diamonds' };
@@ -402,7 +402,7 @@ export async function purchaseVipWithDiamonds(userId) {
             user_id: userId,
             amount: -VIP_DIAMOND_COST,
             transaction_type: 'vip_membership',
-            description: 'VIP Membership — 30 Day Diamond Purchase',
+            description: 'VIP Membership - 30 Day Diamond Purchase',
             metadata: { type: 'diamond_vip', duration_days: 30 },
             balance_after: newBalance
         });
@@ -466,7 +466,7 @@ export async function purchaseVipWithDiamonds(userId) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DAILY UNLOCK ALL — 150 💎 for 24-hour access to ALL pay-as-you-go features
+// DAILY UNLOCK ALL - 150 💎 for 24-hour access to ALL pay-as-you-go features
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const DAILY_UNLOCK_ALL_COST = 150;
@@ -512,6 +512,6 @@ export async function purchaseDailyUnlockAll(userId) {
         'daily_unlock_all',
         DAILY_UNLOCK_ALL_COST,
         24,
-        'Daily All-Access Pass — 24 Hour Unlock'
+        'Daily All-Access Pass - 24 Hour Unlock'
     );
 }

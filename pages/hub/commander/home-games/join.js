@@ -1,5 +1,5 @@
 /**
- * /hub/commander/home-games/join — redeem a home-game invite code.
+ * /hub/commander/home-games/join - redeem a home-game invite code.
  *
  * WHY THIS FILE EXISTS (audit 2026-08-12, finding C-9)
  * Four separate places already linked here and the page did not exist:
@@ -58,7 +58,7 @@ export default function JoinHomeGame() {
         const g = j?.data?.group || j?.group || null;
         // club_code only. invite_code was removed from the public payload
         // (it is the membership credential; club_code is the share code) and
-        // join_home_group redeems either one — verified in the live function:
+        // join_home_group redeems either one - verified in the live function:
         //   p_invite_code = v_group.invite_code OR p_invite_code = v_group.club_code
         codeToUse = g?.club_code || '';
         if (g?.slug || rawSlug) setSlug(g?.slug || rawSlug);

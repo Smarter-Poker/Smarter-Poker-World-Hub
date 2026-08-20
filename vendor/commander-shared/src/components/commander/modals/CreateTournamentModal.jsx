@@ -1,5 +1,5 @@
 /**
- * CreateTournamentModal — Enhanced with template picker + full configuration
+ * CreateTournamentModal - Enhanced with template picker + full configuration
  * Step 1: Choose Template or Start from Scratch
  * Step 2: Customize tournament details
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font

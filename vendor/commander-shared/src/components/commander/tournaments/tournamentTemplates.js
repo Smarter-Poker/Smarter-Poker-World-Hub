@@ -1,5 +1,5 @@
 /**
- * Tournament Templates — 7 Industry-Standard Tournament Structures
+ * Tournament Templates - 7 Industry-Standard Tournament Structures
  * Expert blind structures with proper antes, breaks, and escalation
  * Used by Tournament Settings page and CreateTournamentModal
  */
@@ -304,7 +304,7 @@ export const TOURNAMENT_TEMPLATES = [
     {
         id: 'progressive-knockout',
         name: 'Progressive Knockout',
-        description: 'Half the Buy-in Starts as Your Bounty. Eliminate a Player and Win Half Their Bounty — the Other Half Adds to Yours. Bounties Grow as the Tournament Progresses.',
+        description: 'Half the Buy-in Starts as Your Bounty. Eliminate a Player and Win Half Their Bounty - the Other Half Adds to Yours. Bounties Grow as the Tournament Progresses.',
         tournament_type: 'pko',
         buyin_amount: 200,
         buyin_fee: 30,
@@ -326,7 +326,7 @@ export const TOURNAMENT_TYPES = [
     { value: 'freezeout', label: 'Freezeout', description: 'One Buy-in, no Rebuys' },
     { value: 'rebuy', label: 'Rebuy', description: 'Rebuys Allowed During Rebuy Period' },
     { value: 'bounty', label: 'Bounty', description: 'Fixed Cash Bounty for Each Elimination' },
-    { value: 'pko', label: 'Progressive KO', description: 'Bounty Grows — Half on Knock Out, Half Added to Yours' },
+    { value: 'pko', label: 'Progressive KO', description: 'Bounty Grows - Half on Knock Out, Half Added to Yours' },
     { value: 'satellite', label: 'Satellite', description: 'Win a Seat to a Larger Event' },
     { value: 'shootout', label: 'Shootout', description: 'Win Your Table to Advance' },
     { value: 'turbo', label: 'Turbo', description: 'Shorter Blind Levels (8-12 Min)' },
