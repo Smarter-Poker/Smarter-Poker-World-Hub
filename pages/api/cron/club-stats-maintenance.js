@@ -138,6 +138,43 @@ async function handler(req, res) {
       result.rollup.push({ club_id: row.club_id, date: yesterday, hands: data });
     }
 
+    // ── Leaderboard snapshot self-heal (added 2026-08-19) ──────────────────
+    // Every period leaderboard is a delta against player_stats_snapshots. The
+    // 00:05 pg_cron capture has 21 runs and 1 failure (2026-08-09), and that is
+    // exactly the day missing from the table - on a miss the RPCs fall back to
+    // an older snapshot and "This Week" silently becomes a longer window.
+    //
+    // This runs every 15 minutes and is a no-op whenever today is already
+    // captured, so the only case it acts on is a genuinely missing day. It
+    // rides an EXISTING handler and schedule deliberately: CLAUDE.md 11.5 fails
+    // CI on net-new pages/api/cron files, and 11 routes new scheduled work to
+    // Open Claw rather than pg_cron.
+    const { data: healData, error: healErr } = await admin.rpc(
+      'fn_snapshot_player_stats_if_missing'
+    );
+    if (healErr) {
+      result.errors.push(`snapshot heal: ${healErr.message}`);
+    } else if (healData?.healed) {
+      // Captured late, so the baseline for that day is hours off - worth seeing.
+      console.warn('[club-stats-maintenance] snapshot self-heal fired:', JSON.stringify(healData));
+      result.snapshot_heal = healData;
+    }
+
+    // Surface any remaining gap so a missed day is visible rather than silent.
+    const { data: healthData, error: healthErr } = await admin.rpc('fn_snapshot_health', {
+      p_days: 35,
+    });
+    if (healthErr) {
+      result.errors.push(`snapshot health: ${healthErr.message}`);
+    } else if (healthData) {
+      result.snapshot_health = healthData;
+      if ((healthData.missing_count || 0) > 0) {
+        result.errors.push(
+          `snapshot gaps present: ${JSON.stringify(healthData.missing_days)} - period leaderboard windows are wider than their labels for affected ranges`
+        );
+      }
+    }
+
     const { error: heartbeatErr } = await admin.from('probe_heartbeats').insert({
       probe_name: 'club-stats-maintenance',
       status: result.errors.length ? 'degraded' : 'ok',

@@ -158,6 +158,24 @@ NODE_ENV=production \
   npx vite build --outDir "$DIST_TMP" --emptyOutDir 2>&1 | tail -8
 
 [ -f "$DIST_TMP/index.html" ] || die "Build produced no index.html"
+
+# BUILD PROVENANCE. Stamp the CA commit this bundle was actually built from into
+# the bundle itself. Without it there is no way to tell a good publish from one
+# built off a stale tree except by grepping minified chunks for a string you
+# happen to know — which is how three bad syncs on 2026-08-19 were caught, after
+# the fact. With it:
+#     curl -s https://smarter.poker/hub/club-arena/build-info.json
+# answers "which commit is actually live" directly, and CI can assert it.
+BUILD_SHA="$(git -C "$CA_SRC" rev-parse HEAD 2>/dev/null || echo unknown)"
+cat > "$DIST_TMP/build-info.json" <<JSON
+{
+  "ca_sha": "$BUILD_SHA",
+  "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "built_by": "sync-club-arena.sh",
+  "source": "$CA_SRC"
+}
+JSON
+ok "stamped build-info.json (ca_sha ${BUILD_SHA:0:9})"
 ASSET_COUNT=$(ls "$DIST_TMP/assets/" 2>/dev/null | wc -l | tr -d ' ')
 [ "$ASSET_COUNT" -gt 0 ] || die "Build produced 0 assets"
 ok "Build complete: $ASSET_COUNT asset files"

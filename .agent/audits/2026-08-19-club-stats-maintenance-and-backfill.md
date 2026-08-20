@@ -66,23 +66,46 @@ Attribution coverage, before -> after:
 
 779 tables complete, 0 failed, 6,811 still pending and draining automatically.
 
-## Still open — NOT this page
+## RETRACTED — `club_daily_stats` is not broken
 
-`club_daily_stats` is short platform-wide, not merely late: measured 59-75%
-below the real hand counts on every club, every day (SHARK CLUB 2026-08-19:
-120,240 real vs 43,490 recorded). The Club Dashboard was routed onto
-`club_hand_daily` and is now exact, but any other surface still reading
-`club_daily_stats` understates activity by roughly two thirds.
+An earlier revision of this document claimed `club_daily_stats` was "short
+platform-wide", 59-75% below real hand counts, and implied a broken writer in
+someone else's pipeline. **That was wrong, and this retracts it.**
 
-This was deliberately NOT "fixed" by overwriting `club_daily_stats` from the new
-rollup: that would mask a broken writer in someone else's pipeline rather than
-repair it, and would drift again on the next run. It needs whoever owns that
-pipeline to find why the writer under-counts. Evidence table above is
-reproducible with:
+`club_daily_stats` is not a table with a writer. It is a VIEW, defined in
+`club-arena/supabase/migrations/20260723_sweep3_feature_backends.sql`, that
+aggregates `rake_records` (plus pre-overlap `rake_history`):
 
-    SELECT c.name, d.stat_date, d.hands AS real_hands, ds.hands_played AS recorded
-    FROM club_hand_daily d
-    JOIN clubs c ON c.id = d.club_id
-    LEFT JOIN club_daily_stats ds
-           ON ds.club_id = d.club_id AND ds.stat_date = d.stat_date
-    ORDER BY d.stat_date DESC, d.hands DESC;
+    SELECT club_id, created_at::date, count(*) AS hands_played, sum(rake_amount)
+      FROM public.rake_records GROUP BY 1, 2
+
+So `hands_played` there means **hands that paid rake**, not hands dealt. One
+`rake_records` row exists per raked hand; a folded-preflop or no-flop-no-drop
+hand never creates one. The "shortfall" I measured was simply the proportion of
+hands that pay no rake.
+
+Measured, Midway Union: 24.9%-37.2% of hands dealt produced a rake_records row
+across five days, and on one table today 38 of 87 hands (43.7%) carried
+rake_amount > 0 — consistent with the view's ratio, not with data loss.
+
+**What this does and does not change.** The dashboard fix stands: the metric
+card is labelled "Hands Today" and must mean hands dealt, which this view
+cannot supply, so reading `club_hand_daily` was still the right call. What was
+wrong was the diagnosis attached to it. No other surface is understating
+anything by reading `club_daily_stats`; those surfaces are showing raked hands,
+which for a rake/revenue context is very likely what they intend.
+
+Nothing was changed in `club_daily_stats` or its consumers as a result of the
+original, mistaken finding.
+
+## Also retracted — the cron's `hand_index: null`
+
+The same revision flagged `ca_refresh_hand_player_index` returning `null` in the
+maintenance heartbeat as possibly broken. It is not. That heartbeat was written
+by the version of the handler that predates the player-stats step 0, so the
+`hand_index` key simply did not exist in its `details` JSON; querying
+`details->'hand_index'` on it returns NULL, which I read as a failure. Verified:
+`jsonb_object_keys(details)` on that row returns only `errors, rollup, drained`,
+and calling the function directly indexes normally (4,287 hands / 9,922 rows).
+Its lock-contention path returns a real row `(0,0,NULL,NULL,false)`, not an
+empty set, so it could not have produced a null even if contended.
