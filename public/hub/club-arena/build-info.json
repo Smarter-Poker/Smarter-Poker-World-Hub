@@ -1,6 +1,1 @@
-{
-  "ca_sha": "a42ecc5b517a92a4f9573d9bc9361db47a06576b",
-  "built_at": "2026-08-20T02:27:44Z",
-  "built_by": "build-for-world-hub.yml",
-  "run_id": "32324607589"
-}
+{"ca_sha":"1d281f25a7ee5b5f76862822a13c1c5b2d9094e3","built_at":"2026-08-20T02:34:49Z","built_by":"manual-clean-worktree-build","run_id":null}
