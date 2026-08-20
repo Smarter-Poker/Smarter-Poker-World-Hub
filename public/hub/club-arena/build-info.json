@@ -1,6 +1,6 @@
 {
-  "ca_sha": "7d80f900b68a0b9cba407805916943e39b98cf3a",
-  "built_at": "2026-08-20T18:21:19Z",
-  "built_by": "build-for-world-hub.yml",
-  "run_id": "32402484446"
+  "ca_sha": "293d4d148f62ca478ab9d12e539962c690a94a4d",
+  "built_at": "2026-08-20T18:24:12Z",
+  "built_by": "sync-club-arena.sh",
+  "source": "/tmp/cas"
 }
