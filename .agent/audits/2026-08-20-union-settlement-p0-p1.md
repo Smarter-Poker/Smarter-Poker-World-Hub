@@ -1446,3 +1446,37 @@ fade0000-...-0001 with orphans_created = 0; and the invariant went 1 -> 0.
 
 The lesson is the one this whole session keeps repeating: deleting the bad row
 is not the fix. The fix is the thing that writes it.
+
+### The guard caught a real revert 20 minutes after it shipped
+
+Commit `043f6aae0` ("fix(spins): the gate had a hole") rewrote
+TournamentManagerBase and TournamentRecurringService from a copy predating
+today's fixes, reverting two things at once:
+
+* `tryTournamentAddOns`, for the **third** time — add-ons back to never
+  executing;
+* the `.js` extension on the spinSpec imports in **both** files — the exact
+  defect that made main unbootable earlier and blocked every engine deploy.
+
+Nothing had to be found by hand this time. The deploy failed and named all
+four broken guards:
+
+```
+× add-ons are offered when the window opens
+× the add-on call sits inside triggerAddOnPeriod, not orphaned
+× add-ons are only offered to players holding a live seat
+× ESM: every relative import carries its .js extension  (2 offenders)
+```
+
+That is the whole point. Before the guards this would have been a feature
+quietly dying plus a boot failure nobody could explain, discovered hours later
+by grepping a running container. It cost one failed deploy instead.
+
+Both fixes were re-applied on top of their work, which is intact
+(`fn_spin_draw_multiplier` and `fn_spin_settle_game` still present), and
+`tryTournamentAddOns` now carries a note in the code saying it has been dropped
+three times and is pinned by the deploy gate — so the next person rewriting the
+file learns it from the source rather than from production.
+
+The guards have now caught, in their first hour: 9 mutation tests, 2 real
+reverts, and 2 reintroductions of a boot-breaking import.
