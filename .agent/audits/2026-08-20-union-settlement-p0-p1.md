@@ -347,3 +347,80 @@ Consequences while it is down (nothing is broken, two changes are pending):
   earlier at d18479ff8), as is every DB migration.
 
 Re-run both deploys once Actions is restored; no code changes needed.
+
+---
+
+# DEPLOY CLOSE-OUT (2026-08-20 ~12:55–13:25 UTC)
+
+Dan raised the GitHub Actions budget; Actions recovered at ~12:55 UTC (first
+green run 12:55:05Z). Both pending deploys are now LIVE and verified.
+
+## Engine — DEPLOYED (`514f14e7d`)
+
+Re-triggered with a `server/**` touch (the token cannot re-run or dispatch
+workflows). Run for 514f14e7d: **success**. Verified inside the running
+container: `runUnionRakeRollupCatchup` ×2, `runUnionGovernanceSentinel` ×2,
+`"Union admin role required"` ×1. Proof it actually executes, from the
+Supabase PostgREST logs: `POST /rpc/fn_union_rake_rollup_catchup_all → 200`,
+twice in the first cycles. It logs nothing when there is nothing to roll,
+which is the healthy state.
+
+## Workers — DEPLOYED (`db9bc64`), and two VM defects found doing it
+
+`v1.0.4` tagged and the release workflow succeeded, but the container did not
+change, which exposed two pre-existing problems:
+
+1. **The workers VM cannot pull from GHCR.** `docker compose pull` returns
+   `error from registry: denied`. Credentials exist in
+   `/root/.docker/config.json` for `ghcr.io` but are rejected — expired, or
+   missing `read:packages`. This is why the release workflow has been
+   building images that never reached production: the running container was
+   `bea75913b23`, built locally on the VM on 2026-08-19, not pulled.
+   **Dan: this needs a GHCR PAT with `read:packages` on the workers VM** —
+   until then every workers release must be built on the box by hand.
+2. **The container had `RestartPolicy=no`** while `/opt/workers/docker-compose.yml`
+   — its own documented source of truth — specifies `unless-stopped`. It also
+   carried no compose labels, i.e. it was created by a manual `docker run`,
+   which is why `docker compose up -d` hit a name conflict. A reboot or crash
+   would have left every cron handler down silently.
+
+Deployed the way this VM actually works, preserving the running shape:
+rsync the tag's source to `/opt/workers-build`, `docker build` with
+`org.opencontainers.image.revision=db9bc64`, verify the image BEFORE swapping
+(tombstone present, old drain code absent, PHASE 7 settlement intact), carry
+the 21 runtime env vars across from the live container into a 0600 env file,
+rename the old container to `smarter-poker-workers-rollback-bea7591` (kept as
+a rollback target), then start the new one with `--restart unless-stopped`.
+
+**Verified live from the allowlisted Open Claw IP:**
+`POST /cron/union-rakeback → HTTP 410` with
+`{"success":false,"retired":true,"error":"union_rakeback_route_retired"}`.
+The double-payer is now closed at both layers — no schedule, and the route
+itself refuses.
+
+## Bonus fix found while verifying: the treasury sentinel was dead
+
+The engine logs showed `fn_union_treasury_selftest failed: canceling
+statement due to statement timeout` — every cycle, HTTP 500 in the PostgREST
+logs. **The union treasury conservation sentinel, the check that exists to
+catch chips being destroyed, has not run at all and could raise no
+`financial_alerts`.**
+
+Cause: its BBJ duplicate-contribution check grouped the ENTIRE
+`bbj_contributions` table (212 MB, +30,700 rows/day) with no time bound —
+the same unbounded-scan failure mode as the 2026-08-19 outage. Bounded to 7
+days (the sentinel runs every 30 minutes, so nothing is missed). Now returns
+`healthy: true` in ~5.3s instead of never completing.
+Migration `20260820j_fix_treasury_selftest_unbounded_bbj_dup_scan.sql`,
+verified md5-identical to production.
+
+Related: the settler backlog that sentinel had flagged (9.2h lag, 26,008 rows)
+has fully drained — `healthy: true`, no breaches.
+
+## Still open for Dan
+
+- **GHCR pull credentials on the workers VM** (above) — a credential I have no
+  path to obtain.
+- The March `disputed` settlement period (SHARK, 2026-03-04..03-11, one
+  invoice) still needs a decision.
+- Human click-test of the union dashboard.
