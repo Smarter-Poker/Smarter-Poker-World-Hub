@@ -522,3 +522,121 @@ applies to **every** SECURITY DEFINER function in `public` that nobody
 explicitly revoked. This audit only swept the union/settlement/treasury
 family. A project-wide sweep of `has_function_privilege('anon'|'authenticated', …)`
 against SECURITY DEFINER functions is worth doing as its own piece of work.
+
+---
+
+## Round 4 (2026-08-20, late): the sentinel was dead
+
+Found while verifying that the previously-deployed engine code was running
+clean in production. Engine logs showed, every settler cycle:
+
+```
+[RakebackSettler.treasury_selftest_rpc] Error: fn_union_treasury_selftest
+failed: canceling statement due to statement timeout
+```
+
+`fn_union_treasury_selftest` had been bounded EARLIER THE SAME DAY (the BBJ
+duplicate-contribution scan) and was healthy at 5.3s afterwards. It had
+since regressed past the timeout for a different reason. This matters more
+than a normal perf bug: while it times out, the union treasury sentinel
+detects **nothing** — not wallet non-negativity, not rake-wallet ledger
+reconciliation, not lapsed unclosed weeks, not BBJ duplicates, not retired
+pools holding money, not negative pool balances, not BBJ conservation
+drift, not rakeback settler lag. A silent sentinel reads as health.
+
+### Cause
+
+The rake-wallet ledger reconciliation leg:
+
+```sql
+SELECT SUM(amount) FILTER (WHERE direction='credit'), ...
+  FROM union_wallet_transactions
+ WHERE union_id = ? AND wallet = 'rake_wallet';
+```
+
+609,174 rows / 186 MB, growing ~69,000 rows/day, no usable index — a
+sequential scan on every 30-minute cycle. It was under the timeout when the
+BBJ fix was made and crossed it later the same day.
+
+A date bound was not available: the check compares the live wallet balance
+against the sum of ALL ledger entries, so truncating the window changes
+what the invariant means.
+
+### Fix (20260821h, 20260821i)
+
+Same incremental design as the union rake daily rollup:
+
+* `idx_uwt_rake_wallet_recon` — partial covering index on the rake_wallet
+  rows. Full sum 599 ms, down from a seq scan that never finished.
+* `union_rake_ledger_checkpoint` — cumulative (credits, debits, rows_seen)
+  folded in up to an exclusive `as_of`, plus a bounded live tail. Per-cycle
+  cost becomes O(rows in the last hour). The index alone would have been a
+  band-aid: ~600 ms today, ~6 s in a year, back over the timeout after that.
+* One-hour lag on `as_of` as a commit-skew guard, so a row that commits
+  slightly after its own `created_at` can never fall between the checkpoint
+  and the tail.
+* `fn_union_rake_ledger_checkpoint_verify` — full recompute once per 24h,
+  overwrites the checkpoint with truth, raises a critical financial_alert
+  on any disagreement.
+
+Verified: checkpoint path returned credits, debits AND row count identical
+to a live full recompute; warm path 6.6 ms. Adversarially: the checkpoint
+was deliberately poisoned by +9,999.99, which moved the reported total by
+exactly that amount (proving it is load-bearing, not decorative), was then
+detected as `drift: 9999.99`, repaired, and alerted on. Test alert deleted.
+
+### Second finding: the same shape again, in fn_bbj_conservation_check
+
+With the reconciliation at 6.6 ms the sentinel was still ~4 s, so the
+remaining legs were measured rather than assumed. `fn_bbj_conservation_check`
+(2,701 ms) held three parallel seq scans:
+
+| leg | cost | note |
+|---|---|---|
+| `bbj_contributions` full sum | 22,350 | genuinely O(history) |
+| `union_wallet_transactions` `tx_type='bbj_fund'` | 21,839 | 610k rows scanned for ~12 matches |
+| `wallet_transactions` `category='promotion' AND description='BBJ promo pool payout'` | 73,467 | most expensive leg, for ~1 row |
+
+Fix (20260821j, 20260821k):
+
+* Two partial covering indexes (88 kB and 8 kB) for the two selective
+  filters — a complete fix there, since those row counts stay tiny.
+  2,701 ms -> 513 ms.
+* `money_flow_checkpoint` (generic, keyed by metric name) for the
+  `bbj_contributions` inflow, same pattern as above.
+
+**Contract trap avoided:** `fn_bbj_conservation_check` is STABLE. The naive
+version of this change would have had it maintain its own checkpoint, which
+requires writes and would have silently forced it to VOLATILE. Instead the
+read (`fn_bbj_contributions_total`) stayed STABLE and side-effect free, and
+the already-VOLATILE `fn_union_treasury_selftest` does the advancing before
+it calls the check. The read is exact whether or not the checkpoint is
+current — a stale checkpoint only means a longer tail, never a wrong answer.
+
+Exactness is load-bearing here: the conservation gap is compared to a stored
+baseline with tolerance 1.00, so a one-cent drift would raise a false
+critical alert. Verified `exact_match = true` against a full recompute, and
+the output contract unchanged (`gap 59510.86`, `drift_from_baseline 0`,
+`healthy true`).
+
+### Result
+
+| | before | after |
+|---|---|---|
+| `fn_union_treasury_selftest` | statement timeout, every cycle | **287 ms**, `healthy:true`, `breaches:[]` |
+| rake ledger reconciliation | unbounded seq scan | 5.5 ms |
+| bbj conservation check | 2,701 ms | 6.5 ms |
+| bbj duplicate scan (7d) | 265 ms | 265 ms (already bounded, flat) |
+| settler lag | 3.1 ms | 3.1 ms |
+
+Nothing in the sentinel path is O(all history) any more.
+
+### Process note
+
+The md5 parity check between migration files and production `prosrc` caught
+real drift on `fn_union_rake_ledger_totals` (file 2,799 chars vs production
+2,409): explanatory comments present in the committed file had been stripped
+from the text hand-copied into `apply_migration`. Functionally identical,
+but the file would no longer have reproduced production. Resolved by
+re-applying the documented version (`union_rake_ledger_totals_comment_parity`)
+rather than deleting the comments. All 7 function bodies now md5-match.
