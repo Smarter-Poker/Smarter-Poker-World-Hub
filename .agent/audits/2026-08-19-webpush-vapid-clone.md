@@ -532,3 +532,89 @@ side fails loudly instead of silently.
 
 Also noted and fixed: the repo migrations had drifted from the live function
 (no migration captured the refined tag). The repo now matches production.
+
+---
+
+## ROUND 7 -- audit of 5,192 lines (2026-08-20)
+
+### CRITICAL: main was broken and nothing could deploy
+`pages/api/club-arena/store-catalog.js` carried an orphaned `});` left behind
+when commit `5443251216` emptied `CHIP_PACKAGES`:
+
+    const CHIP_PACKAGES = [];
+    });          <-- closing an object/call that no longer exists
+
+A hard parse error, so EVERY build from that commit forward failed with
+"Turbopack build failed: Expression expected". Found while trying to verify
+unrelated push work -- the failure was in a file this work had never touched.
+Fixed, and the same RETIRED comment (which the botched edit had duplicated three
+times) collapsed to one. `CHIP_PACKAGES` stays an exported empty array so an
+older cached bundle degrades to `[]` rather than `undefined`. No behaviour
+change. Production went from a stale `79af739a` to current within minutes of the
+fix landing, confirming the pipeline had been stuck, not idle.
+
+### SSRF hardening -- reviewed, then extended
+Another agent added `src/lib/push/push-endpoint.js` covering a genuine finding
+this work had missed: `web-push` will issue an `https.request()` carrying a valid
+VAPID JWT to whatever host it is handed, and `last_failure_reason` (readable by
+the row's owner through RLS) carried up to 300 bytes of the response body. That
+is an SSRF primitive with an exfiltration channel attached. They validate at
+ingestion in both `subscribe.js` and `rotate.js`, and reduced the stored error to
+`http_<status>`.
+
+Verified their validator against 32 bypass attempts -- internal IPs, localhost,
+`http`, explicit ports, embedded credentials (`fcm.googleapis.com@evil.com`),
+suffix and prefix lookalikes, trailing dot, sub-domains of allowed hosts, a
+unicode homograph, `file://`, `data:` -- all correctly rejected, all six real
+push services accepted.
+
+Two gaps remained and are now closed:
+- **No validation at SEND time.** Ingestion checks do not cover rows written
+  before the validator existed, rows written by a future path that forgets, or a
+  row mutated directly in the database. The dangerous act is the outbound
+  request, so `sendWebPush` now validates immediately before dialling and
+  returns `expired:true` so an unusable row is retired rather than retried.
+- **Transport errors still returned their raw message**, which carries a
+  hostname (`getaddrinfo ENOTFOUND <host>`) into the same user-readable column
+  the HTTP body had just been removed from. Now mapped to a fixed vocabulary
+  (`network_timeout` / `network_reset` / `network_dns` / `network_refused` /
+  `network_tls` / `send_failed`), detail logged server-side only.
+
+### A bug introduced by my own round-6 restructure
+The eligibility pre-pass wrote one UPDATE per suppressed row. At
+`BATCH_LIMIT=300` that is up to 300 sequential round trips BEFORE a single push
+goes out -- and `TIME_BUDGET_MS` is only checked in the send loop, so a batch
+that was entirely suppressed could burn the whole function on bookkeeping and be
+killed having delivered nothing. Suppressions are now collected in memory and
+written as one statement per distinct reason (a small fixed vocabulary): the
+loop does zero awaits regardless of batch size. A failed bookkeeping write
+leaves rows claimed for `requeue_stuck_push_outbox` rather than losing them.
+
+### Known, accepted, documented
+- **Inline sends bypass the digest.** The digest lives in the dispatcher, so
+  paths that deliver inline via `notify()` -- direct messages being the burstiest
+  -- are not coalesced. Impact is bounded because those pushes share a
+  conversation `tag`, so the OS replaces rather than stacks them: N sends, one
+  visible banner, always showing the newest message. Left as is; coalescing
+  inline would need debounce state for a case the tag already handles visually.
+- **A message burst can consume a user's daily cap.** The cap counts sends, and
+  `new_message` is not an urgent type. A user who sets a cap of 20 and receives
+  20 messages will stop receiving everything for the rest of the window. The cap
+  is opt-in and defaults to 0 (unlimited), so this only affects someone who
+  explicitly asked for it -- but it is surprising and worth revisiting if anyone
+  turns it on.
+
+### Environment note
+The Vercel API token in `.env.local` / `.env.vercel` was rotated externally
+mid-session and now returns `403 invalidToken`. Deployment verification for the
+rest of this round was done through the public `/api/health` endpoint instead,
+which is sufficient to confirm the serving SHA. Anything needing the Vercel API
+will need a fresh token.
+
+### Verification
+- 23 files parse clean, 54 relative imports resolve, no cross-module export
+  drift, 8 Immutable Rules pass.
+- `npx next build` clean, 927 route lines.
+- Live: build `3bd8f2df`, VAPID key correct, worker `sp-push-v3` with push,
+  notificationclick, pushsubscriptionchange, setAppBadge, SP_PUSH_RECEIVED and
+  image all present, 10 dispatch runs in 10 minutes, 0 rows in flight.
