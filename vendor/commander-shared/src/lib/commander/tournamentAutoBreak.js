@@ -12,7 +12,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-// Lazy getter — prevents SSG/SSR crashes when env vars aren't available at module load time.
+// Lazy getter - prevents SSG/SSR crashes when env vars aren't available at module load time.
 let _supabase;
 function getSupabase() {
     if (!_supabase) {
@@ -47,7 +47,7 @@ function isReEntryPeriodOver(tournament, currentLevel) {
         tournament.rebuy_levels || 0,
         tournament.late_registration_levels || 0
     );
-    // If no re-entry is configured at all (0), the period never existed — still treat as "over"
+    // If no re-entry is configured at all (0), the period never existed - still treat as "over"
     // so auto-break can work from the start.
     return currentLevel > reentryEnd;
 }
