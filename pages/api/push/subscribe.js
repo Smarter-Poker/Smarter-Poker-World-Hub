@@ -16,6 +16,20 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 import { validatePushEndpoint, validatePushKeys } from '../../../src/lib/push/push-endpoint';
+import { notify } from '../../../src/lib/notify';
+import { timingSafeEqual } from 'crypto';
+
+/**
+ * Constant-time compare. Guards length separately because timingSafeEqual
+ * throws on a length mismatch, and the length is not the secret.
+ */
+function timingSafeEquals(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    const bufA = Buffer.from(a, 'utf8');
+    const bufB = Buffer.from(b, 'utf8');
+    if (bufA.length !== bufB.length || bufA.length === 0) return false;
+    return timingSafeEqual(bufA, bufB);
+}
 
 let _supabase = null;
 function getSupabase() {
@@ -100,12 +114,54 @@ export default async function handler(req, res) {
     const nowIso = new Date().toISOString();
 
     try {
-        // One account per device.
-        await supabase
+        // ONE ACCOUNT PER DEVICE -- with proof of possession.
+        //
+        // This deactivates rows other users hold for the same endpoint, which is
+        // what stops a shared phone leaking one person's notifications to the
+        // next person who logs in. But taken on the caller's word alone it is
+        // also a mute button: any authenticated user who learns someone's
+        // endpoint could silence that device, and the victim would just see
+        // themselves flagged as "subscription dead" on push-health as though it
+        // were their own fault.
+        //
+        // The browser only hands `auth` to the origin that owns the
+        // subscription, so requiring it to MATCH the stored secret proves the
+        // caller is really sitting at that device. A mismatch means the endpoint
+        // was learned some other way -- refuse, and leave the incumbent alone.
+        const { data: incumbents } = await supabase
             .from('push_subscriptions')
-            .update({ is_active: false, last_failure_reason: 'reassigned_to_other_user', updated_at: nowIso })
+            .select('id, user_id, auth')
             .eq('endpoint', endpoint)
+            .eq('is_active', true)
             .neq('user_id', user.id);
+
+        for (const row of incumbents || []) {
+            if (!timingSafeEquals(auth, row.auth)) {
+                console.warn('[push/subscribe] refused takeover of an endpoint without matching keys');
+                return res.status(409).json({
+                    error: 'This endpoint is registered to another account and the keys do not match.',
+                });
+            }
+            await supabase
+                .from('push_subscriptions')
+                .update({ is_active: false, last_failure_reason: 'reassigned_to_other_user', updated_at: nowIso })
+                .eq('id', row.id);
+
+            // Tell the displaced account what happened. Being silently unsubscribed
+            // is indistinguishable from push being broken, and that is precisely
+            // the confusion this stack exists to eliminate. Bell only -- their
+            // push on this device is exactly what just stopped working.
+            try {
+                await notify(supabase, {
+                    userId: row.user_id,
+                    type: 'system',
+                    withPush: false,
+                    title: 'Notifications moved to another account',
+                    body: 'Another account signed in on a device you had notifications enabled on, so they were turned off here. Re-enable them on your own device any time.',
+                    url: '/hub/settings/notifications',
+                });
+            } catch { /* never block enrollment on a courtesy notice */ }
+        }
 
         const { error: upsertErr } = await supabase
             .from('push_subscriptions')
