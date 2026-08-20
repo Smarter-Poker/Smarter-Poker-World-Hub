@@ -1332,3 +1332,86 @@ working tree or never build a commit by copying whole files from it. The
 detection that works is cheap — grep the RUNNING build for each fix you
 believe you shipped, rather than trusting that a green deploy means your code
 is in it.
+
+---
+
+## Round 6 (2026-08-20): silent reverts made impossible, and the add-on charge bug
+
+### A silent revert now fails the deploy
+
+Dan, on the two fixes that vanished: "THAT'S A HUGE PROBLEM YOU NEED TO FIX AND
+NEVER ALLOW TO HAPPEN AGAIN."
+
+Both disappearances had the same cause -- a commit built by copying a whole
+file from a working copy behind origin/main. No conflict, green build,
+successful deploy, fix gone. Both were found by grepping the RUNNING build by
+hand, which is not a control.
+
+`server/src/tournament/TournamentFixes.guard.test.ts` now pins every critical
+fix. `npm test` runs inside auto-deploy-hetzner.yml BEFORE it builds or ships,
+so a revert fails the deploy instead of vanishing.
+
+18 guards cover: the unknown-count guard, distinct finishing places (no
+Math.max(2,) clamp), the single shared rounding rule and its import-free
+module, payout reconciliation at COMPLETED, break flags cleared on finish,
+rebuys and add-ons both DEFINED and CALLED, all four settler sentinels both
+DEFINED and CALLED, seat-atomicity for purchases, and every relative import
+carrying its .js extension.
+
+VERIFIED BY MUTATION, not by passing. Nine deliberate reverts were applied one
+at a time and every one failed the suite -- including both real-world clobbers.
+The .js guard initially MISSED the exact defect that broke main today: it
+anchored to the line start and could not span newlines, so multi-line imports
+slipped through. Rewritten to match the specifier itself and re-verified
+against that same import. A guard that does not fail on the defect is worse
+than no guard, because it grants false confidence.
+
+### Add-ons charged players and delivered nothing
+
+Wiring add-ons up for the first time immediately exposed a defect that had
+been sitting in process_tournament_rebuy the whole time, unexercised because
+add-ons had NEVER once executed in the life of the platform.
+
+The RPC updates the player's seat behind `IF FOUND`, with no ELSE. A player
+with no live seat at that instant -- which happens constantly during table
+consolidation, when the old seat is closed before the new one exists -- was
+charged, had `tournament_players.chips` incremented, and then had that grant
+silently ERASED, because the elimination sweep syncs chips FROM `table_seats`
+and overwrites whatever the RPC wrote.
+
+Measured on the first add-on window ever to run (Prime Time Main Event,
+2026-08-20 19:14, 103 add-ons in 15 seconds):
+
+| | |
+|---|---|
+| charged | 103 add-ons, 2,575.00 chips, 103 distinct players |
+| chips owed | 103 x 10,000 = 1,030,000 |
+| chips delivered | ~121,000 (about 12 add-ons' worth) |
+| **never delivered** | **908,552 -- roughly 91 players paid and got nothing** |
+
+Fixed by checking for a live seat BEFORE any money moves and raising if there
+is none, so the transaction rolls back and no charge is made, plus a second
+guard for the seat vanishing mid-transaction. Re-entry is exempt: it
+deliberately re-seats an eliminated player.
+
+Verified both ways against production, each rolled back:
+
+* seatless -> refused, and that player's wallet_transactions count UNCHANGED
+* seated   -> success, fee 0.00 (add-ons are not raked), charged 25.00 at face
+              value, seat 180,865 -> 190,865 = exactly +10,000, chips synced
+
+**Open for Dan:** the ~91 players charged 25.00 each (about 2,275 chips) who
+received nothing are owed a refund. Not issued -- moving player money is a
+decision, not a side effect of a bug fix.
+
+### How the chip-conservation check earned itself
+
+The drift reported in round 4 (+261 on Prime Time) was NOT a hand-engine leak.
+Play conserves exactly: chips held steady at 2,371,448 across 21 further hands
+and 3 eliminations, and tournament tables have never raked a single hand (0
+rake rows on tournament tables, all time). The +261 was mid-hand snapshot
+noise, and Evening Mystery Bounty's +100 resolved to exactly 0 on its own.
+
+What the check DID catch was the add-on defect above -- a 908,552-chip
+shortfall that no one would have noticed, on a feature that had run for the
+first time fifteen minutes earlier.
