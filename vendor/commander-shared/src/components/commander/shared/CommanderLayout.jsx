@@ -1,15 +1,15 @@
 /**
- * Commander Layout — Global Header Component
+ * Commander Layout - Global Header Component
  * Provides the consistent Club Commander top bar across ALL pages:
  *   [☰ Hamburger] [← Back] .............. [CLUB COMMANDER / Venue Name]
  * 
  * Tier-gated sidebar: items show 🔒 when locked for current tier.
  * 
  * Props:
- *   title       — page title for <Head> tag
- *   backHref    — where Back button navigates (default: /commander/dashboard)
- *   hideBack    — set true on dashboard to hide the back button
- *   children    — page content
+ *   title       - page title for <Head> tag
+ *   backHref    - where Back button navigates (default: /commander/dashboard)
+ *   hideBack    - set true on dashboard to hide the back button
+ *   children    - page content
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -218,7 +218,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
         const res = await fetch(`/api/social/pages?linked_venue_id=${staff.venue_id}`);
         const json = await res.json();
         if (json.success && json.data && json.data.length > 0) {
-          // Already has a page, no need to remind — store the page ID for hamburger link
+          // Already has a page, no need to remind - store the page ID for hamburger link
           setClubPageId(json.data[0].id);
           return;
         }
@@ -264,7 +264,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
   // ── PIN GATE VERIFICATION ──
   const handlePinSubmit = async () => {
     if (pinLockout) {
-      setPinError('Too many attempts — wait 30 seconds');
+      setPinError('Too many attempts - wait 30 seconds');
       return;
     }
     if (!pinInput || pinInput.length < 4) {
@@ -280,7 +280,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
       } catch (e) { console.warn('[App] Handled exception:', e); }
     }
     if (!venueId) {
-      setPinError('No venue session — please log in first');
+      setPinError('No venue session - please log in first');
       return;
     }
     setPinLoading(true);
@@ -298,7 +298,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
         setPinAttempts(nextAttempts);
         if (nextAttempts >= 5) {
           setPinLockout(true);
-          setPinError('Too many failed attempts — locked for 30 seconds');
+          setPinError('Too many failed attempts - locked for 30 seconds');
           setTimeout(() => { setPinLockout(false); setPinAttempts(0); setPinError(''); }, 30000);
         } else {
           setPinError(data.error || `Invalid PIN (${5 - nextAttempts} attempts remaining)`);
@@ -317,10 +317,10 @@ export default function CommanderLayout({ children, title, backHref = '/commande
         setGateGranted(true);
         setPinInput('');
       } else {
-        setPinError(`Access denied — ${verifiedRole} role does not have permission for this page`);
+        setPinError(`Access denied - ${verifiedRole} role does not have permission for this page`);
       }
     } catch (e) {
-      setPinError('Verification failed — try again');
+      setPinError('Verification failed - try again');
     } finally {
       setPinLoading(false);
     }
@@ -747,7 +747,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
           <div className="cmd-global-center">
             {title && !hideBack && (
               <div className="cmd-global-page-title">
-                {title.replace(/\s*\|.*$/, '').replace(/^Commander\s*—\s*/, '')}
+                {title.replace(/\s*\|.*$/, '').replace(/^Commander\s*-\s*/, '')}
               </div>
             )}
           </div>
@@ -769,7 +769,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
           }}>
             <AlertCircle size={16} color="#EF4444" />
             <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 600 }}>
-              You are offline — changes will not save until reconnected
+              You are offline - changes will not save until reconnected
             </span>
           </div>
         )}
@@ -785,7 +785,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <AlertCircle size={16} color="#F59E0B" />
               <span style={{ fontSize: 12, color: '#F59E0B', fontWeight: 600 }}>
-                Session expires in ~{sessionExpiring.minutesLeft} min — save your work
+                Session expires in ~{sessionExpiring.minutesLeft} min - save your work
               </span>
             </div>
             <button onClick={() => setSessionExpiring(null)} style={{

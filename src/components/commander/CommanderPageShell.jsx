@@ -22,7 +22,7 @@ export default function CommanderPageShell({ children }) {
 
     return (
         <>
-            {/* Fixed hamburger icon — always visible on Commander subpages */}
+            {/* Fixed hamburger icon - always visible on Commander subpages */}
             <button
                 onClick={() => setMenuOpen(true)}
                 aria-label="Open Menu"
@@ -56,7 +56,7 @@ export default function CommanderPageShell({ children }) {
                 <Menu size={20} color="#22D3EE" />
             </button>
 
-            {/* Universal HamburgerMenu — contains ReportBugWidget + Geeves AI */}
+            {/* Universal HamburgerMenu - contains ReportBugWidget + Geeves AI */}
             <HamburgerMenu
                 isOpen={menuOpen}
                 onClose={() => setMenuOpen(false)}

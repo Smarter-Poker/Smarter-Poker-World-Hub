@@ -28,12 +28,12 @@ function ordinal(n) {
 
 export default function MyTournaments() {
     const router = useRouter();
-    // Resilient auth gate — waits for Supabase session to stabilize
+    // Resilient auth gate - waits for Supabase session to stabilize
     const { user: authUser, checking: authChecking } = useRequireAuth('/hub/my-tournaments');
     useTrainingBus('my-tournaments');
     const sessionToken = authChecking ? null : getAccessToken();
 
-    // SWR-backed tournament fetch — only fires once token is available
+    // SWR-backed tournament fetch - only fires once token is available
     const { data: swrData, isLoading: swrLoading, mutate } = useSWR(
         sessionToken ? ['/api/commander/tournaments/my?limit=50', sessionToken] : null,
         ([url, token]) => fetch(url, { headers: { Authorization: `Bearer ${token}` } })
@@ -61,7 +61,7 @@ export default function MyTournaments() {
 
         // Also listen for tournament status changes (cancellations, completions).
         // 2026-07-20 club-arena retirement: repointed from the legacy
-        // club_tournaments table (dead since 2026-03) to canonical tournaments —
+        // club_tournaments table (dead since 2026-03) to canonical tournaments -
         // status changes now happen there, so this channel fires again.
         const tournChannel = supabase
             .channel(`my-tournaments-status:${authUser.id}`)
