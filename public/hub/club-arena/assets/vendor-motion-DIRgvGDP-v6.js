@@ -1,0 +1,2 @@
+import"./vendor-react-DfAl21hg-v6.js";(function(){try{var e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{};e.SENTRY_RELEASE={id:"club-arena@1.0.1"};var d=new e.Error().stack;d&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[d]="96564705-b91c-483a-88c9-8dd209c025ca",e._sentryDebugIdIdentifier="sentry-dbid-96564705-b91c-483a-88c9-8dd209c025ca")}catch{}})();
+//# sourceMappingURL=vendor-motion-DIRgvGDP-v6.js.map
