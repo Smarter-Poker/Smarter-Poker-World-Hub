@@ -176,3 +176,49 @@ restarted). No postgres FATALs in the platform logs for the window; no
 heavy query from this session was in flight. Self-recovered. Same class as
 the 03:02 blip. If this recurs, look at the pooler/compute tier, not the
 application queries.
+
+## Round 2 (after Dan's go-ahead): P2 + P3 items
+
+- **P2-4 + P3-1 (engine, CA commit 2b144b85):** authorizeTableAdmin now
+  authorizes the union owner, union admins, and admin-tier members of any
+  member club on union-owned tables (they carried the union container as
+  club_id, so every admin action 403'd). RakebackSettlerService runs
+  fn_union_governance_check + fn_settlement_conservation_check every
+  30-minute cycle (reportError only). Deployed via the server/** auto-deploy;
+  verified in the running container bundle and by the adjacent treasury
+  sentinel executing in the same cycle chain. tsc clean.
+- **Rakeback recompute fix (unplanned, found in engine logs):**
+  fn_rakeback_recompute_periods aborted EVERY cycle on the
+  (user_id, period_start) unique constraint after the 08-19 catch-up close
+  left paid rows with a different period_end. ON CONFLICT now targets that
+  constraint; paid rows skip silently. Migration
+  20260820f_rakeback_recompute_conflict_target.sql (CA repo, c52ce737);
+  verified: the failing call returns written:129 and subsequent settler
+  cycles log failures: 0.
+- **P2-1 + P2-2 (CA frontend, c9c0268b):** new src/utils/unionScope.ts
+  (clubGamesOrFilter). Union-aware table queries in AdminTableHeatmap,
+  StatsExport, ClubFinancialDashboard, AdminDashboardPage (3 sites),
+  ClubDashboard. XMTTPage was triple-broken (integer club code vs uuid
+  column, union scope, type filter on a SELECT alias with lowercase values
+  — tournament_type holds 'MTT'); status tabs also compared lowercase to
+  uppercase. Deployed: production build-info.json serves ca_sha c9c0268b;
+  WH prod /api/health served 69b9940ab8 (contains e4a641222f) at 06:22 UTC.
+- **P2-3 BBJ fragmentation: already resolved.** Retired JAQK pool's last
+  contribution predates the 08-19 merge; all live contributions flow to the
+  active union pool (11,259.44/24h). No action.
+- **P3-2 (WH 5e0ace61):** union-settlement-math tests now assert defect A
+  (baseline anchored at p_end lets an inside-window bootstrap win) and
+  defect B (rake/P&L population mismatch resurfaces rake as phantom loss).
+  11/11 pass.
+- **Operational:** engine settler is draining a ~26k-row backlog (9.2h lag)
+  accumulated during tonight's repeated Supabase connection incidents; its
+  own treasury sentinel is alerting and catch-up mode is active. Platform
+  DB had at least three multi-minute unreachability episodes (~03:02,
+  ~05:35, ~06:38) with no postgres FATALs logged — if this recurs, look at
+  the pooler/compute tier, not application queries.
+
+Still open from the handoff: P2 `.eq('club_id')` sweep only covered the
+tables/tournaments read sites listed above (other candidates should be
+reviewed per-site); P2-5 human click-test of the union dashboard (needs
+Dan); P3 index review, read-replica proposal (RULE 12 — Dan), and the
+reconciliation dashboard.
