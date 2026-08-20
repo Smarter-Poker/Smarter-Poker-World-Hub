@@ -51,9 +51,10 @@ you do NOT ask the human to do it manually. You write a self-contained
 **Antigravity handoff prompt** to `.agent/handoffs/YYYY-MM-DD-<slug>.md`
 that another agent (running with the right credentials/scope) can execute
 end-to-end. The full rule + handoff template is in
-`.memory/decisions/2026-04-29-no-manual-human-work.md` (which is local-only
-because `.memory/` is now tracked but still copy the salient parts into the handoff
-itself so the receiving agent doesn't depend on `.memory/`).
+`.memory/decisions/2026-04-29-no-manual-human-work.md`. `.memory/` is PUBLIC
+and tracked on main, so treat it as published: never put a credential in it.
+Still copy the salient parts into the handoff itself so the receiving agent
+does not depend on `.memory/`.
 
 Exceptions — things only a human can legitimately do:
 - Approve `request_access` on a new application (consent)
