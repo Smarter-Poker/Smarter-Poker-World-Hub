@@ -1,0 +1,39 @@
+-- ============================================================================
+-- "ZERO GAMES RUNNING FROM THE MIDWAY UNION" (2026-08-19)
+-- APPLIED via Supabase MCP as:
+--   club_table_count_reflects_reality
+--   union_clubs_readable_by_member
+--
+-- Reported: Club JAQK, SHARK CLUB and Midway Union listed as three flat, equal
+-- clubs, with the union appearing to run nothing.
+--
+-- The games were never missing. 36 live cash tables and 10 live tournaments all
+-- carried union_id = Midway, with 208 players seated. Two separate defects made
+-- the union look empty and demoted.
+--
+-- 1. clubs.table_count TOLD THE OPPOSITE OF THE TRUTH
+--        SHARK CLUB    showed 254   actually running 0
+--        Club JAQK     showed 217   actually running 0
+--        Midway Union  showed   0   actually running 36
+--    It was a lifetime counter: create-table incremented it and nothing ever
+--    decremented it, so it accumulated forever for the two clubs that no longer
+--    create their own games, and stayed at zero for the union, whose tables are
+--    created by the engine fleet — which never touched the counter.
+--    Now a live count of joinable cash tables, maintained by trigger. For a
+--    union member club it counts the union's tables plus its own private games,
+--    i.e. "games you can sit down at from here", which is how a player reads it.
+--
+-- 2. A PLAYER COULD NOT SEE THEIR OWN UNION
+--    The union_clubs read policy admitted only union admins and club OWNERS.
+--    An ordinary member of a member club matched neither, so the app's
+--    "club membership -> union_clubs -> union" discovery path returned nothing,
+--    no union was loaded, and the page could not collapse member clubs under
+--    it — so all three rendered as peers with no union header.
+--    A club member may now read the row saying which union their club is in.
+--    That is the same fact the union lobby, the shared bad-beat jackpot and
+--    cross-club play already expose to them, and it stays scoped to clubs the
+--    caller actually belongs to. Verified on a real plain member: 0 -> 2 rows.
+--
+-- No games were killed. Doing so would have disrupted ~500 players and, as
+-- proved earlier in this session, HorseFleetManager recreates the cash fleet
+-- identically within ~30 seconds — the data would have come back the same.
