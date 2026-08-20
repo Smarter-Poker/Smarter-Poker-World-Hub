@@ -1,6 +1,6 @@
 {
-  "ca_sha": "4ff10c31479e9991d1c0c9f55abe9712876464c1",
-  "built_at": "2026-08-20T00:41:27Z",
-  "built_by": "build-for-world-hub.yml",
-  "run_id": "32318144949"
+  "ca_sha": "30e29de47f5fde8903b9cfb526f159f7db6ac37d",
+  "built_at": "2026-08-20T01:13:10Z",
+  "built_by": "manual-clean-worktree-build (CI sync run was CANCELED)",
+  "run_id": null
 }

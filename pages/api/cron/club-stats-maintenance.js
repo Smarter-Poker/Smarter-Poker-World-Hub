@@ -1,7 +1,17 @@
 /**
  * /api/cron/club-stats-maintenance — Club Dashboard stats upkeep
  * ═══════════════════════════════════════════════════════════════════════════
- * Three jobs, all idempotent and safe to run repeatedly:
+ * SHARED MAINTENANCE ROUTE. This started as the club-stats upkeep job and has
+ * become the place scheduled Club Arena maintenance lands, because CLAUDE.md
+ * 11.3/11.5 fail CI on net-new pages/api/cron files and 11 routes new
+ * scheduled work to Open Claw rather than pg_cron. Adding a step here is
+ * therefore the sanctioned move, not a shortcut.
+ *
+ * Every step must be idempotent, independently failure-isolated (push to
+ * result.errors and continue — never throw past a sibling), and cheap when
+ * there is nothing to do, since this fires every 15 minutes. Steps are
+ * deliberately NOT counted in this header: that count went stale twice in one
+ * evening as steps were added. Read the numbered sections below instead.
  *
  *  0. ADVANCE THE PLAYER -> HAND INDEX (added by the player-stats work, which
  *     deliberately shares this route rather than adding a cron file — see the
@@ -79,10 +89,9 @@ async function handler(req, res) {
     // scheduler. The advisory lock inside the function makes a concurrent
     // page-triggered refresh a no-op rather than duplicate work.
     try {
-      const { data: idxRows, error: idxErr } = await admin.rpc(
-        'ca_refresh_hand_player_index',
-        { p_max_hands: 60000 }
-      );
+      const { data: idxRows, error: idxErr } = await admin.rpc('ca_refresh_hand_player_index', {
+        p_max_hands: 60000,
+      });
       if (idxErr) {
         result.errors.push(`hand index: ${idxErr.message}`);
       } else {
