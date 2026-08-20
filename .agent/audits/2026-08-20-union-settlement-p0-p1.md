@@ -1162,3 +1162,88 @@ citing this same property test, so another agent is actively working in it,
 and a wrong change to pot math corrupts every hand at every table. The full
 replay above is the handover. Note also that this test randomly fails the
 deploy gate, which is why one tournament deploy needed a retry today.
+
+---
+
+## Tournament round 4 (2026-08-20): spins, subsystems, chip conservation
+
+### Stubs
+
+Swept the whole tournament surface for TODO / FIXME / stub / "not implemented"
+/ "for now" / placeholder: **none**. No unimplemented paths.
+
+### Spin margin: money that existed in no ledger (FIXED)
+
+Starting a Spin OVERWRITES the prize pool that registration accumulated:
+
+```ts
+const prizePool = Math.round(buyIn * spinMultiplier * 100) / 100;
+```
+
+Registration charges buy_in + fee, books the fee, and ADDS the buy_in to
+prize_pool, so a 3-handed Spin arrives holding 3 x buy_in. The multiplier
+averages 2.55 against the 3.0 that break-even requires, so the house keeps the
+difference on ~93% of Spins and funds an overlay on the rest -- and no row was
+ever written either way. Measured over 2,106 completed Spins, every one
+3-handed:
+
+| mult | spins | contributed | paid out | house |
+|---|---|---|---|---|
+| 2x | 1,628 | 10,476 | 6,984 | +3,492 |
+| 3x | 280 | 1,734 | 1,734 | break-even |
+| 5x | 136 | 876 | 1,460 | -584 |
+| 10x | 60 | 348 | 1,160 | -812 |
+| 25x | 2 | 12 | 100 | -88 |
+
+Net 2,008 retained beyond booked entry fees, in no ledger at all. Now written
+to rake_records as kind 'spin_margin', signed so the overlay case nets out.
+
+`player_contributions` is deliberately left NULL: the union rake rollup selects
+`player_contributions IS NOT NULL AND rake_amount > 0`, so the row is visible
+and auditable WITHOUT silently redirecting revenue to clubs and unions.
+**Whether clubs/unions should share in the Spin margin is Dan's decision** --
+making it visible should not quietly make it someone's income.
+
+(First identified in .agent/audits/2026-08-20-spins-economics-research.md by
+another agent; that work diagnosed it, this books it.)
+
+An earlier pass of mine put this number at 148,408. That was wrong and worth
+recording: the query included tournaments with `spin_multiplier = 0`, which
+are ordinary MTTs carrying guarantees, not Spins. Filtering to real Spins and
+counting players rather than wallet rows gives the table above.
+
+### Subsystems
+
+* **Satellites: 0 scheduled, ever** (0 of 10,841). Seat-award code is untested
+  but unreachable, so it is unused rather than broken.
+* **Multi-day / flights: 0 scheduled, ever.** Same.
+* **xMTT: 182**, mystery bounty 150, PKO 117 -- all live and verified.
+* **Table balancing IS exercised**: 166 multi-table events, up to 42 tables.
+  The move path is sound: it writes the destination seat first and restores
+  the source seat on ANY failure, so a player is never left seatless. The
+  "Destination seat write failed ... source seat restored" errors during the
+  17:18 DDL storm were that rollback working. Verified directly: **0 seatless
+  players and 0 duplicate seats** across all RUNNING tournaments.
+
+### Tournament chip conservation (NEW CHECK, drift reported)
+
+Chips in play must equal players x starting_chips + rebuys x rebuy_chips +
+add-ons x addon_chips. Nothing verified this before.
+
+5 of 7 RUNNING tournaments are exact to the chip. The two MULTI-TABLE ones
+drift: Prime Time Main Event +261 on 2.19m (0.012%), Evening Mystery Bounty
++100 on 300k (0.033%).
+
+Those same two are the ONLY tournaments holding **fractional seat stacks** (6
+and 3 seats; every single-table event has none). A tournament should never
+have a fractional chip -- the hand engine splits pots to two decimals like
+cash money, so a tournament accrues fractions at every odd-chip split. That is
+a defect in its own right and the clearest lead on the drift.
+
+Reported, not corrected. The drift is CONSTANT rather than per-hand (~258-261
+while rebuys went 65 -> 67 and hands reached 1,194), and the 200,000-hand fuzz
+found only a misallocation, never net creation -- so the cause is not
+established, and adjusting pot-splitting maths on a guess would corrupt every
+hand at every table. fn_tournament_chip_conservation_check now runs every
+settler cycle, with a per-player tolerance so integer-flooring noise does not
+alarm.
