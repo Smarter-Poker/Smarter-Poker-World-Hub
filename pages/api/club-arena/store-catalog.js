@@ -30,23 +30,13 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // RETIRED 2026-08-19 — chips can NEVER be bought with diamonds (product rule,
-// Dan). The catalog must not advertise a conversion that no longer exists, or
-// the store renders packages whose purchase endpoint returns 410. Served as an
-// empty list so existing clients degrade to "no packages" instead of erroring
-// on a missing field.
-// Chips are NOT purchasable: diamonds are the global purchasable currency and
-// chips are a per-club gambling balance, which never convert. Kept as an empty
-// export rather than a deleted field so an older cached bundle asking for it
-// gets [] instead of undefined — and the client no longer carries a fallback
-// table that would repopulate from an empty response.
-// RETIRED 2026-08-19 — chips can NEVER be bought with diamonds (product rule,
 // Dan). Diamonds are the global purchasable currency; chips are a per-club
-// gambling balance. The catalog must not advertise a conversion that no longer
-// exists — /api/club-arena/purchase-chips returns 410. Served as an empty list
-// so existing clients degrade to "no packages" rather than erroring on a
-// missing field.
+// gambling balance, and the two never convert. The catalog must not advertise a
+// conversion that no longer exists — /api/club-arena/purchase-chips returns 410.
+//
+// Kept as an empty export rather than a deleted field so an older cached bundle
+// asking for it degrades to [] instead of undefined.
 const CHIP_PACKAGES = [];
-});
 
 // Mirrors VALID_DIAMOND_PACKAGES in pages/api/store/create-checkout-session.js
 const DIAMOND_PACKAGES = [
