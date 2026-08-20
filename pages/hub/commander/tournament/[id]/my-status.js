@@ -32,6 +32,10 @@ export default function MyTournamentStatus() {
     useTrainingBus('tournament-my-status');
     const [tournament, setTournament] = useState(null);
     const [myEntry, setMyEntry] = useState(null);
+    // Alternates queue placement. RLS hides other players' entries, so the
+    // 1-based queue position can only come from the server
+    // (GET /api/commander/tournaments/[id]/my-chips).
+    const [queueInfo, setQueueInfo] = useState({ position: null, ahead: null });
     const [clock, setClock] = useState(null);
     const [loading, setLoading] = useState(true);
     const [chipValue, setChipValue] = useState('');
@@ -56,11 +60,17 @@ export default function MyTournamentStatus() {
                     .select('*')
                     .eq('id', id)
                     .maybeSingle(),
+                // A cancelled entry can coexist with a live re-registration, so
+                // exclude cancelled rows and take one - otherwise .maybeSingle()
+                // errors on multiple rows and the page shows "not registered".
                 supabase
                     .from('commander_tournament_entries')
                     .select('*')
                     .eq('tournament_id', id)
                     .eq('player_id', authUser.id)
+                    .neq('status', 'cancelled')
+                    .order('registered_at', { ascending: false, nullsFirst: false })
+                    .limit(1)
                     .maybeSingle()
             ]);
 
@@ -108,10 +118,41 @@ export default function MyTournamentStatus() {
                 }
             }
 
-            // Parse my entry
-            if (entryResult.data) {
-                setMyEntry(entryResult.data);
-                setChipValue(String(entryResult.data.current_chips || ''));
+            // Server-side view of my own entry. This is the only source for the
+            // alternates queue position (RLS hides other players' rows), and it
+            // is authoritative for status/seat, so it wins on conflict.
+            let serverEntry = null;
+            let position = null;
+            let ahead = null;
+            try {
+                const token = getAccessToken();
+                if (token) {
+                    const res = await fetch(`/api/commander/tournaments/${id}/my-chips`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json?.success) {
+                            serverEntry = json.data?.entry || null;
+                            position = json.data?.queue_position ?? null;
+                            ahead = json.data?.alternates_ahead ?? null;
+                        }
+                    }
+                }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+
+            setQueueInfo({ position, ahead });
+
+            // Parse my entry (local row supplies fields the server subset omits,
+            // e.g. entry_number; the server subset overrides where they overlap)
+            const mergedEntry = (entryResult.data || serverEntry)
+                ? { ...(entryResult.data || {}), ...(serverEntry || {}) }
+                : null;
+            if (mergedEntry) {
+                setMyEntry(mergedEntry);
+                // Seed the input once. The 30s poll must not overwrite a count
+                // the player is part way through typing.
+                setChipValue(prev => (prev !== '' ? prev : String(mergedEntry.current_chips || '')));
             }
         } catch (err) { console.warn(err); setError('Failed To Load Tournament Data'); }
         finally { setLoading(false); }
@@ -292,6 +333,9 @@ export default function MyTournamentStatus() {
     const t = tournament;
     const isLive = ['running', 'break', 'final_table'].includes(t.status);
     const isEliminated = myEntry?.status === 'eliminated';
+    // Field was full at registration time: the player holds a place in the
+    // alternates queue and has no stack until a seat opens.
+    const isAlternate = myEntry?.status === 'alternate';
 
     return (
         <CommanderPageShell>
@@ -385,7 +429,44 @@ export default function MyTournamentStatus() {
                     </div>
                 ) : (
                     <>
-                        {/* Player Info Card */}
+                        {/* Alternates List State */}
+                        {isAlternate && (
+                            <div className="mx-4 mt-4 bg-[#242526] border border-[#F59E0B]/40 rounded-2xl p-5 text-center">
+                                <div className="w-12 h-12 rounded-full bg-[#F59E0B]/10 flex items-center justify-center mx-auto mb-3">
+                                    <Users className="w-6 h-6 text-[#F59E0B]" />
+                                </div>
+                                <p className="text-base font-bold text-white">You Are On The Alternates List</p>
+                                {queueInfo.position ? (
+                                    <>
+                                        <p className="text-4xl font-bold text-[#F59E0B] mt-3 leading-none">
+                                            #{queueInfo.position.toLocaleString()}
+                                        </p>
+                                        <p className="text-[10px] text-[#B0B3B8] uppercase tracking-wide mt-1">Your Place In Line</p>
+                                        <p className="text-sm text-[#B0B3B8] mt-3">
+                                            {queueInfo.ahead === 0
+                                                ? 'You Are Next Up'
+                                                : `${(queueInfo.ahead ?? 0).toLocaleString()} ${queueInfo.ahead === 1 ? 'Player Is' : 'Players Are'} Ahead Of You`}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-[#B0B3B8] mt-3">Your Place In Line Is Being Confirmed</p>
+                                )}
+                                <p className="text-xs text-[#6A6B6D] mt-4 leading-relaxed">
+                                    The Field Is Currently Full. You Will Be Seated Automatically As Seats Open, In The Order You Joined The List. You Do Not Need To Do Anything.
+                                </p>
+                                <p className="text-xs text-[#6A6B6D] mt-2 leading-relaxed">
+                                    We Will Send You A Notification With Your Table And Seat The Moment You Are Seated.
+                                </p>
+                                {!pushEnabled && (
+                                    <p className="text-[10px] text-[#F59E0B] mt-3">
+                                        Enable Notifications Above So You Do Not Miss Your Seat
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Player Info Card (alternates have no stack or seat yet) */}
+                        {!isAlternate && (
                         <div className="mx-4 mt-4 bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
                             <div className="grid grid-cols-3 gap-3 text-center">
                                 <div>
@@ -410,6 +491,7 @@ export default function MyTournamentStatus() {
                                 </div>
                             </div>
                         </div>
+                        )}
 
                         {/* Eliminated Banner */}
                         {isEliminated && (
@@ -421,8 +503,9 @@ export default function MyTournamentStatus() {
                             </div>
                         )}
 
-                        {/* Chip Count Entry (if still active and tournament is live) */}
-                        {isLive && !isEliminated && (
+                        {/* Chip Count Entry (active players only - an alternate
+                            has no stack to report until they are seated) */}
+                        {isLive && !isEliminated && !isAlternate && (
                             <div className="mx-4 mt-4 bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
                                 <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
                                     <Coins className="w-4 h-4 text-[#F59E0B]" />
@@ -459,7 +542,8 @@ export default function MyTournamentStatus() {
                             </button>
                         </div>
 
-                        {/* Share to Story */}
+                        {/* Share to Story (nothing to share until seated) */}
+                        {!isAlternate && (
                         <div className="mx-4 mt-3">
                             {storyShared ? (
                                 <div className="w-full py-3 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl text-sm text-[#31A24C] font-medium flex items-center justify-center gap-2">
@@ -507,6 +591,7 @@ export default function MyTournamentStatus() {
                                 </button>
                             )}
                         </div>
+                        )}
                     </>
                 )}
 

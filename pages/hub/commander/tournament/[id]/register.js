@@ -28,6 +28,9 @@ export default function TournamentRegisterPage() {
   const [registered, setRegistered] = useState(false);
   const [error, setError] = useState(null);
   const [myEntry, setMyEntry] = useState(null);
+  // The entries API explains the outcome itself (seated at table/seat, or placed
+  // on the alternates list). Show its message rather than a generic "Registered!".
+  const [successMessage, setSuccessMessage] = useState(null);
 
   // Fetch tournament
   useEffect(() => {
@@ -116,8 +119,20 @@ export default function TournamentRegisterPage() {
       const data = await res.json();
 
       if (data.success) {
+        const entry = data.data?.entry || null;
+        const seat = data.data?.seat_assignment || null;
         setRegistered(true);
-        setMyEntry(data.data?.entry || null);
+        setMyEntry(entry);
+        setSuccessMessage(
+          data.data?.message
+          || (data.data?.is_alternate
+            ? 'Field Is Full. You Are On The Alternates List And Will Be Seated As Seats Open.'
+            : seat
+              ? `Registered And Seated At Table ${seat.table_number}, Seat ${seat.seat_number}.`
+              : null)
+        );
+        // Reflect the new headcount (and any newly-full field) immediately.
+        fetchTournament();
       } else {
         setError(data.error?.message || 'Failed To Register');
       }
@@ -158,6 +173,7 @@ export default function TournamentRegisterPage() {
       if (data.success) {
         setRegistered(false);
         setMyEntry(null);
+        setSuccessMessage(null);
       } else {
         setError(data.error?.message || 'Failed To Unregister');
       }
@@ -198,7 +214,10 @@ export default function TournamentRegisterPage() {
   }
 
   const canRegister = tournament.status === 'registering' || tournament.status === 'scheduled';
-  const isFull = tournament.max_entries && tournament.current_entries >= tournament.max_entries;
+  const isFull = Boolean(tournament.max_entries && tournament.current_entries >= tournament.max_entries);
+  // A full field no longer hard-rejects: the entries API places the player on
+  // the alternates list (entry.status === 'alternate').
+  const isAlternate = myEntry?.status === 'alternate';
 
   return (
     // 2026-07-25 audit fix: CommanderPageShell moved here from DetailRow, which
@@ -246,10 +265,17 @@ export default function TournamentRegisterPage() {
                    'Scheduled'}
                 </span>
                 {registered && (
-                  <span className="flex items-center gap-1 text-[#10B981] text-sm font-medium">
-                    <CheckCircle className="w-4 h-4" />
-                    Registered
-                  </span>
+                  isAlternate ? (
+                    <span className="flex items-center gap-1 text-[#F59E0B] text-sm font-medium">
+                      <Users className="w-4 h-4" />
+                      On Alternates List
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[#10B981] text-sm font-medium">
+                      <CheckCircle className="w-4 h-4" />
+                      Registered
+                    </span>
+                  )
                 )}
               </div>
             </div>
@@ -294,45 +320,75 @@ export default function TournamentRegisterPage() {
             <div className="p-4 border-t border-[#4A5E78]">
               {registered ? (
                 <div className="space-y-3">
-                  <div className="p-4 bg-[#10B981]/10 rounded-lg text-center">
-                    <CheckCircle className="w-8 h-8 text-[#10B981] mx-auto mb-2" />
-                    <p className="font-semibold text-[#10B981]">You're Registered!</p>
-                    <p className="text-sm text-[#10B981]/80 mt-1">
-                      Entry #{myEntry?.entry_number || '?'}
-                    </p>
-                  </div>
+                  {isAlternate ? (
+                    <div className="p-4 bg-[#F59E0B]/10 rounded-lg text-center">
+                      <Users className="w-8 h-8 text-[#F59E0B] mx-auto mb-2" />
+                      <p className="font-semibold text-[#F59E0B]">You Are On The Alternates List</p>
+                      <p className="text-sm text-[#F59E0B]/80 mt-1">
+                        {successMessage
+                          || 'Field Is Full. You Will Be Seated Automatically As Seats Open.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-[#10B981]/10 rounded-lg text-center">
+                      <CheckCircle className="w-8 h-8 text-[#10B981] mx-auto mb-2" />
+                      <p className="font-semibold text-[#10B981]">You're Registered!</p>
+                      {successMessage && (
+                        <p className="text-sm text-[#10B981]/80 mt-1">{successMessage}</p>
+                      )}
+                      {myEntry?.table_number != null && (
+                        <p className="text-sm text-[#10B981]/80 mt-1">
+                          Table {myEntry.table_number}
+                          {myEntry.seat_number != null ? `, Seat ${myEntry.seat_number}` : ''}
+                        </p>
+                      )}
+                      <p className="text-sm text-[#10B981]/80 mt-1">
+                        Entry #{myEntry?.entry_number || '?'}
+                      </p>
+                    </div>
+                  )}
                   {canRegister && (
                     <button
                       onClick={handleUnregister}
                       disabled={registering}
                       className="cmd-btn cmd-btn-danger w-full h-12 disabled:opacity-50"
                     >
-                      {registering ? 'Processing...' : 'Cancel Registration'}
+                      {registering ? 'Processing...' : isAlternate ? 'Leave Alternates List' : 'Cancel Registration'}
                     </button>
                   )}
                 </div>
-              ) : canRegister && !isFull ? (
-                <button
-                  onClick={handleRegister}
-                  disabled={registering}
-                  className="cmd-btn cmd-btn-primary w-full h-12 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {registering ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Registering...
-                    </>
-                  ) : (
-                    <>
-                      <Trophy className="w-5 h-5" />
-                      Register Now
-                    </>
+              ) : canRegister ? (
+                <div className="space-y-3">
+                  {isFull && (
+                    <div className="p-3 bg-[#F59E0B]/10 rounded-lg text-center">
+                      <p className="font-medium text-[#F59E0B]">Tournament Full</p>
+                      <p className="text-sm text-[#F59E0B]/80 mt-1">
+                        Join The Alternates List And You Will Be Seated Automatically As Seats Open.
+                      </p>
+                    </div>
                   )}
-                </button>
-              ) : isFull ? (
-                <div className="p-4 bg-[#F59E0B]/10 rounded-lg text-center">
-                  <p className="font-medium text-[#F59E0B]">Tournament Full</p>
-                  <p className="text-sm text-[#F59E0B]/80 mt-1">Registration Is Closed</p>
+                  <button
+                    onClick={handleRegister}
+                    disabled={registering}
+                    className={`cmd-btn ${isFull ? 'cmd-btn-secondary' : 'cmd-btn-primary'} w-full h-12 disabled:opacity-50 flex items-center justify-center gap-2`}
+                  >
+                    {registering ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        {isFull ? 'Joining...' : 'Registering...'}
+                      </>
+                    ) : isFull ? (
+                      <>
+                        <Users className="w-5 h-5" />
+                        Join Alternates List
+                      </>
+                    ) : (
+                      <>
+                        <Trophy className="w-5 h-5" />
+                        Register Now
+                      </>
+                    )}
+                  </button>
                 </div>
               ) : (
                 <div className="p-4 bg-[#0D192E] rounded-lg text-center">
