@@ -36,7 +36,7 @@ export default function TournamentRegisterPage() {
 
     if (id) fetchTournament();
   }, [id]);
-  // Realtime listener — live updates for tournament/[id]/register.js
+  // Realtime listener - live updates for tournament/[id]/register.js
   useEffect(() => {
     if (!id) return;
     const ch = supabase

@@ -298,7 +298,7 @@ export default function ServicesPage() {
   useTrainingBus('services');
 
   // useSWR declared BEFORE the useEffect that references refreshServices.
-  // Turbopack enforces strict TDZ — const bindings cannot be referenced
+  // Turbopack enforces strict TDZ - const bindings cannot be referenced
   // before their declaration line, unlike webpack which masked this.
   const { data: swrData, isLoading: loading, mutate: refreshServices } = useSWR(authChecking ? null : '/api/commander/sessions/current', async () => {
     const token = getAccessToken();
@@ -318,7 +318,7 @@ export default function ServicesPage() {
   const session = swrData?.session || null;
   const requests = swrData?.requests || [];
 
-  // Realtime listener — live updates for services/index.js
+  // Realtime listener - live updates for services/index.js
   useEffect(() => {
     if (!user?.id) return;
     const ch = supabase
@@ -345,7 +345,7 @@ export default function ServicesPage() {
         })
       });
 
-      // 2026-07-25 audit fix: failures were logged and swallowed — the user
+      // 2026-07-25 audit fix: failures were logged and swallowed - the user
       // never learned the request didn't go through. Surface the server error.
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
@@ -392,7 +392,7 @@ export default function ServicesPage() {
       <>
         <SEOHead
           title="Commander Services"
-          description="Smarter.Poker — The Future Of The Game."
+          description="Smarter.Poker - The Future Of The Game."
           noindex={true}
         />
         <div className="cmd-page flex items-center justify-center px-4">

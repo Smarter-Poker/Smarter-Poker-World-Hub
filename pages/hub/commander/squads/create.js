@@ -113,7 +113,7 @@ export default function CreateSquadPage() {
     setLoading(true);
     try {
       const token = getAccessToken();
-      // 2026-07-25 audit fix: the API derives the leader from the Bearer user —
+      // 2026-07-25 audit fix: the API derives the leader from the Bearer user -
       // send only the fields it accepts (name + game details + member_ids)
       // instead of spreading formData (which leaked the raw members objects),
       // and surface the server's error message from the response body.
@@ -169,7 +169,7 @@ export default function CreateSquadPage() {
     <>
       <SEOHead
                 title="Create Squad"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 

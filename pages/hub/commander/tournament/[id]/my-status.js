@@ -118,7 +118,7 @@ export default function MyTournamentStatus() {
     }, [id, authUser]);
 
     useEffect(() => { if (authChecking) return; let active = true; fetchData(); return () => { active = false; }; }, [fetchData, authChecking]);
-  // Realtime listener — live updates for tournament/[id]/my-status.js
+  // Realtime listener - live updates for tournament/[id]/my-status.js
   useEffect(() => {
 
     if (!router.isReady) return null;
@@ -132,7 +132,7 @@ export default function MyTournamentStatus() {
     return () => { supabase.removeChannel(ch); };
   }, [id]);
 
-    // Supabase Realtime — instant sync when tournament/player data changes
+    // Supabase Realtime - instant sync when tournament/player data changes
     useTournamentRealtime(id, fetchData);
 
     // Fallback polling

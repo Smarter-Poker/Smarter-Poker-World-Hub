@@ -75,10 +75,10 @@ export default function TournamentClockDisplay() {
   useEffect(() => {
     const _c = new AbortController();
     fetchTournament(_c.signal);
-    const interval = setInterval(() => fetchTournament(_c.signal), 30000); // fallback — real-time sync handles instant updates
+    const interval = setInterval(() => fetchTournament(_c.signal), 30000); // fallback - real-time sync handles instant updates
     return () => { _c.abort(); clearInterval(interval); };
   }, [fetchTournament]);
-  // Realtime listener — live updates for tournament/[id]/clock.js
+  // Realtime listener - live updates for tournament/[id]/clock.js
   useEffect(() => {
     if (!id) return;
     const ch = supabase
@@ -88,7 +88,7 @@ export default function TournamentClockDisplay() {
     return () => { supabase.removeChannel(ch); };
   }, [id]);
 
-  // Commander Data Bus — instant sync when tournament state changes (clock, entries, etc.)
+  // Commander Data Bus - instant sync when tournament state changes (clock, entries, etc.)
   const [venueId] = useState(() => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
