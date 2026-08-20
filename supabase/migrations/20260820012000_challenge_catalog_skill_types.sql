@@ -1,0 +1,8 @@
+-- Applied to production 2026-08-20 via Supabase MCP apply_migration
+-- (name: challenge_catalog_skill_types).
+--
+-- Adds big_pots and strong_hands challenge rows (daily/weekly/monthly). Both are
+-- driven by potSize and handRank, which onHandComplete already receives, so no
+-- engine instrumentation was required. See
+-- Smarter-Poker-Club-Arena/src/services/DailyChallengeService.ts (BIG_POT_MIN,
+-- isStrongHand) and scripts/verify-challenge-hand-qualifiers.mjs.
