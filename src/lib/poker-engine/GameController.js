@@ -2026,11 +2026,17 @@ class GameController {
           } else {
             // Fallback: if unlock fails (e.g., no lock record found), try direct credit
             console.warn(`[cancelTournament] Unlock failed for ${playerId}, falling back to credit:`, unlockErr.message);
-            const { error: creditErr } = await resilientMutation(this.supabase, () => this.supabase.rpc('fn_credit_chips', {
+            const { data: creditRes, error: creditRpcErr } = await resilientMutation(this.supabase, () => this.supabase.rpc('fn_credit_chips', {
               p_club_id: entryClubId,
               p_user_id: playerId,
               p_amount: refundAmount,
             }), { critical: true });
+            // fn_credit_chips RETURNS {success:false} instead of raising, so a
+            // refused refund arrived with creditErr === null and was counted as
+            // refunded — complete with a chip_transactions row saying so.
+            const creditErr =
+              creditRpcErr ||
+              (creditRes?.success ? null : new Error(creditRes?.error || 'credit refused'));
             if (!creditErr) {
               await resilientMutation(this.supabase, () => this.supabase.from('chip_transactions').insert({
                 club_id: entryClubId,

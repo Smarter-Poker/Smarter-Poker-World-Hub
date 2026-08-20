@@ -146,6 +146,17 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: 'Mint failed', details: rpcErr.message });
           }
 
+          // mint_club_promo is a deliberate tombstone: promo chips can only be
+          // derived from the BBJ sweep, so it ALWAYS returns {success:false}.
+          // The old code returned HTTP 200 with amount echoed back, so the UI
+          // reported a mint that never happened.
+          if (!result?.success) {
+            return res.status(400).json({
+              success: false,
+              error: result?.error || 'Mint refused',
+            });
+          }
+
           return res.status(200).json({
             success: true,
             amount,

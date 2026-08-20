@@ -160,12 +160,23 @@ export default async function handler(req, res) {
     let heldChipsReturned = 0;
     for (const co of (pendingCashouts || [])) {
       // Return held chips to player balance
-      const { error: creditHeldErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+      const { data: creditHeldRes, error: creditHeldRpcErr } = await supabaseAdmin.rpc('fn_credit_chips', {
         p_club_id: clubId,
         p_user_id: user.id,
         p_amount: co.amount,
       });
-      if (creditHeldErr) console.warn('[leave-club] fn_credit_chips for held cashout failed:', creditHeldErr.message);
+      // fn_credit_chips RETURNS {success:false} instead of raising, so the
+      // transport error alone cannot tell a refused credit from a real one.
+      const creditHeldOk = !creditHeldRpcErr && creditHeldRes?.success === true;
+      if (!creditHeldOk) {
+        console.warn(
+          '[leave-club] fn_credit_chips for held cashout failed:',
+          creditHeldRpcErr?.message || creditHeldRes?.error || 'credit refused'
+        );
+        // Leave the request pending: the chips are still held, so cancelling it
+        // here would strand them. A retry of leave-club can pick it up.
+        continue;
+      }
       heldChipsReturned += co.amount;
 
       // Cancel the request
@@ -196,20 +207,30 @@ export default async function handler(req, res) {
 
     if (totalChips > 0) {
       // Debit player → credit treasury (atomic RPCs)
-      const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+      const { data: debitRes, error: debitRpcErr } = await supabaseAdmin.rpc('fn_debit_chips', {
         p_club_id: clubId,
         p_user_id: user.id,
         p_amount: totalChips,
       });
 
+      // fn_debit_chips RETURNS {success:false} on insufficient balance or a
+      // lost race — it does not raise. Treating that as success fell through to
+      // the treasury credit below and MINTED chips the player still holds.
+      const debitErr =
+        debitRpcErr ||
+        (debitRes?.success ? null : new Error(debitRes?.error || 'chip debit refused'));
+
       if (debitErr) {
         console.warn('[leave-club] Player debit failed (possible race):', debitErr.message);
         // Don't credit treasury — chips weren't actually debited
       } else {
-        const { error: creditTreasuryErr } = await supabaseAdmin.rpc('fn_credit_treasury', {
+        const { data: creditTreasuryRes, error: creditTreasuryRpcErr } = await supabaseAdmin.rpc('fn_credit_treasury', {
           p_club_id: clubId,
           p_amount: totalChips,
         });
+        const creditTreasuryErr =
+          creditTreasuryRpcErr ||
+          (creditTreasuryRes?.success ? null : new Error(creditTreasuryRes?.error || 'treasury credit refused'));
         if (creditTreasuryErr) {
           console.warn('[leave-club] fn_credit_treasury failed after successful debit — chips may be lost:', creditTreasuryErr.message);
         } else {

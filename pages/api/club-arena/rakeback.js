@@ -307,10 +307,18 @@ export default async function handler(req, res) {
           // BUG #152 FIX: Debit treasury FIRST, then credit player.
           // Rakeback chips come FROM the club treasury (which holds all rake).
           // Without this debit, fn_credit_chips creates chips from nothing.
-          const { error: debitErr } = await getSupabase().rpc('fn_debit_treasury', {
+          const { data: debitRes, error: debitRpcErr } = await getSupabase().rpc('fn_debit_treasury', {
             p_club_id: clubId,
             p_amount: totalClaim,
           });
+
+          // fn_debit_treasury RETURNS {success:false} rather than raising, so
+          // checking only the transport error let an UNFUNDED claim continue to
+          // the credit below — creating chips from nothing, the exact failure
+          // BUG #152 was fixed to prevent.
+          const debitErr =
+            debitRpcErr ||
+            (debitRes?.success ? null : new Error(debitRes?.error || 'treasury debit refused'));
 
           if (debitErr) {
             // Rollback period status
@@ -324,18 +332,26 @@ export default async function handler(req, res) {
           }
 
           // Atomic credit via RPC (no read-modify-write race)
-          const { error: creditErr } = await getSupabase().rpc('fn_credit_chips', {
+          const { data: creditRes, error: creditRpcErr } = await getSupabase().rpc('fn_credit_chips', {
             p_club_id: clubId,
             p_user_id: user.id,
             p_amount: totalClaim,
           });
+
+          const creditErr =
+            creditRpcErr ||
+            (creditRes?.success ? null : new Error(creditRes?.error || 'chip credit refused'));
 
           if (creditErr) {
             // Rollback treasury debit — re-credit the chips we took
             await getSupabase().rpc('fn_credit_treasury', {
               p_club_id: clubId,
               p_amount: totalClaim,
-            }).then(({ error }) => { if (error) throw error; }).catch(rbErr => console.warn('[rakeback] Treasury rollback failed:', rbErr.message));
+            }).then(({ data, error }) => {
+              // A refused rollback leaves the treasury short with no signal.
+              if (error) throw error;
+              if (!data?.success) throw new Error(data?.error || 'treasury re-credit refused');
+            }).catch(rbErr => console.warn('[rakeback] CRITICAL: treasury rollback failed, treasury is short by', totalClaim, ':', rbErr.message));
 
             // Rollback period status
             const ids = pending.map(p => p.id);

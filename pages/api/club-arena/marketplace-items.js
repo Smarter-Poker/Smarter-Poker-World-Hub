@@ -72,7 +72,26 @@ export default async function handler(req, res) {
                   .limit(10000); // bound the scan — this was unbounded
               const counts = {};
               (countRows || []).forEach(r => { counts[r.item_id] = (counts[r.item_id] || 0) + 1; });
-              itemsWithCount = itemsWithCount.map(i => ({ ...i, purchase_count: counts[i.id] || 0 }));
+
+              // The caller's OWN non-refunded purchases, so the client can show
+              // remaining allowance against per_user_limit. purchase_count is
+              // club-wide and cannot answer that.
+              const { data: mineRows } = await getSupabase()
+                  .from('club_shop_purchases')
+                  .select('item_id')
+                  .eq('club_id', clubId)
+                  .eq('buyer_id', user.id)
+                  .is('refunded_at', null)
+                  .in('item_id', itemIds)
+                  .limit(10000);
+              const mine = {};
+              (mineRows || []).forEach(r => { mine[r.item_id] = (mine[r.item_id] || 0) + 1; });
+
+              itemsWithCount = itemsWithCount.map(i => ({
+                  ...i,
+                  purchase_count: counts[i.id] || 0,
+                  my_purchase_count: mine[i.id] || 0,
+              }));
           }
 
           if (itemsErr) throw itemsErr;
