@@ -41,7 +41,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 // Lower this when you fix call sites. Never raise it.
-const BASELINE = 42;
+const BASELINE = 30;
 
 const MONEY_FNS = new Set([
     'add_diamonds_to_balance', 'award_diamonds', 'award_diamonds_v2', 'bbj_promo_payout',
@@ -108,6 +108,17 @@ const byFile = violations.reduce((acc, v) => {
 
 console.log('[unchecked-money-rpc] money RPCs whose {success:false} is never read');
 console.log(`[unchecked-money-rpc] found ${count}, baseline ${BASELINE}`);
+
+// `--list` prints the outstanding debt so the next agent paying it down can see
+// what is left without re-deriving it. Silent by default so CI output stays terse.
+if (process.argv.includes('--list')) {
+    console.log('');
+    for (const [file, vs] of Object.entries(byFile).sort()) {
+        console.log(`  ${file}`);
+        for (const v of vs) console.log(`    :${v.line}  ${v.fn}`);
+    }
+    console.log('');
+}
 
 if (count > BASELINE) {
     console.error('');

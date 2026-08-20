@@ -44,6 +44,7 @@ import assert from 'node:assert/strict';
 // See .agent/handoffs/2026-08-19-ci-check16-shop-rules.md
 import '../tests/shop-item-rules.test.mjs';
 import '../tests/unchecked-money-rpc.test.mjs';
+import '../tests/club-ledger-rpc-envelope.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -79,6 +80,11 @@ const REQUIRED_TEST_FILES = [
     // successful one because only the (null) transport error was checked.
     'tests/unchecked-money-rpc.test.mjs',
     'scripts/check-unchecked-money-rpc.mjs',
+    // ClubLedger envelope contract. debit() had an insufficient-balance branch
+    // that could never fire, because fn_debit_chips RETURNS {success:false}
+    // rather than raising — so an over-draw reached the audit writer as a
+    // completed debit. Five of these seven cases fail against the old code.
+    'tests/club-ledger-rpc-envelope.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {

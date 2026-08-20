@@ -86,8 +86,18 @@ class ClubLedger {
         return { success: false, error: error.message };
       }
 
+      // fn_credit_chips RETURNS {success, new_balance} and does not raise on a
+      // business refusal. `data` is that envelope — reporting it as newBalance
+      // both leaked an object where a number was documented and turned every
+      // refused credit into a success.
+      if (!data?.success) {
+        const reason = data?.error || 'credit refused';
+        console.warn('[ClubLedger] fn_credit_chips refused:', reason);
+        return { success: false, error: reason };
+      }
+
       await this._recordTransaction(clubId, userId, amount, type, meta);
-      return { success: true, newBalance: data };
+      return { success: true, newBalance: Number(data.new_balance ?? data.balance ?? 0) };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -120,8 +130,21 @@ class ClubLedger {
         return { success: false, error: error.message };
       }
 
+      // The insufficient-balance path above never fired: fn_debit_chips RETURNS
+      // {success:false,error:'Insufficient balance'} rather than raising, so an
+      // over-draw arrived here with error === null and was booked as a real
+      // debit — chips spent that the member never had.
+      if (!data?.success) {
+        const reason = data?.error || 'debit refused';
+        if (String(reason).includes('Insufficient')) {
+          return { success: false, error: 'Insufficient balance' };
+        }
+        console.warn('[ClubLedger] fn_debit_chips refused:', reason);
+        return { success: false, error: reason };
+      }
+
       await this._recordTransaction(clubId, userId, -amount, type, meta);
-      return { success: true, newBalance: data };
+      return { success: true, newBalance: Number(data.new_balance ?? data.balance ?? 0) };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -245,7 +268,7 @@ class ClubLedger {
 
     try {
       // Credit rake to club treasury via RPC
-      const { error } = await this.supabase.rpc('fn_credit_treasury', {
+      const { data: rakeRes, error } = await this.supabase.rpc('fn_credit_treasury', {
         p_club_id: clubId,
         p_amount: amount,
       });
@@ -253,6 +276,12 @@ class ClubLedger {
       if (error) {
         console.warn('[ClubLedger] processRake RPC failed:', error.message);
         // Still record the transaction for audit trail even if treasury credit fails
+      } else if (!rakeRes?.success) {
+        // fn_credit_treasury refuses without raising. The audit row below is
+        // still written on purpose (the rake WAS collected from the pot), but
+        // it must be flagged so the shortfall is visible rather than silent.
+        console.warn('[ClubLedger] processRake refused by fn_credit_treasury:', rakeRes?.error || 'unknown');
+        meta = { ...meta, treasury_credit_failed: true, treasury_error: rakeRes?.error || 'refused' };
       }
 
       await this._recordTransaction(clubId, null, amount, TRANSACTION_TYPE.RAKE, meta);
@@ -275,10 +304,17 @@ class ClubLedger {
 
     try {
       // Use atomic treasury debit RPC
-      const { error } = await this.supabase.rpc('fn_debit_treasury', {
+      const { data: overlayRes, error: overlayRpcErr } = await this.supabase.rpc('fn_debit_treasury', {
         p_club_id: clubId,
         p_amount: amount,
       });
+
+      // Insufficient treasury is exactly the case this function exists to
+      // handle, and it arrives as {success:false} with no transport error —
+      // so without this the overlay was booked as funded when it was not.
+      const error =
+        overlayRpcErr ||
+        (overlayRes?.success ? null : new Error(overlayRes?.error || 'treasury debit refused'));
 
       if (error) {
         console.warn(`[ClubLedger] Overlay debit failed for club ${clubId}: ${error.message}`);
