@@ -1,0 +1,62 @@
+-- ============================================================================
+-- THE MONDAY SETTLEMENT, IN DAN'S TERMS (2026-08-19)
+-- APPLIED via Supabase MCP as: rakeback_basis_by_player_contribution,
+-- rakeback_close_redistributes_union_attributed_rake, union_weekly_statement,
+-- union_pnl_include_all_club_players, union_pnl_cash_seats_only,
+-- union_pnl_cash_table_scoped_chip_flows, pnl_bootstrap_uses_same_definition,
+-- pnl_guard_requires_reconciliation
+--
+-- Dan: "all clubs inside the union get their rake back every monday morning.
+-- 90% rake back." / "rake is held by the union, but players inside the clubs
+-- generate the rake... each club then squares up what their club won or lost
+-- with the union each monday. so total lost minus rake back = pay or collect."
+--
+-- 1. RAKEBACK WOULD HAVE PAID NOTHING THIS MONDAY.
+--    fn_union_weekly_rakeback_close grouped its payout basis on
+--    union_wallet_transactions.club_id and paid every club EXCEPT the union's
+--    own row. Correct while games belonged to member clubs — but all games are
+--    now created BY the union, so every rake credit carries club_id = <union>,
+--    the basis collapsed to one excluded row, and JAQK and SHARK would have
+--    received 0% while the union retained 100%.
+--    Union-held rake is now split by WHOSE PLAYERS PAID IT
+--    (fn_union_rake_basis_by_club, weighted by rake_records.player_contributions
+--    — the same weighting the per-player rakeback settler already uses), then
+--    each club's commission rate is applied. Rake still credited directly to a
+--    member club keeps its old treatment, so history is unchanged. If a window
+--    has no contribution data the remainder is RETAINED, never guessed.
+--    Verified: SHARK 530,179 / JAQK 16,690 of basis found.
+--
+-- 2. fn_union_weekly_statement — one row per club, the number Dan asked for:
+--       rake_generated, rakeback_owed (90%), player_net,
+--       pay_or_collect  (+ = club pays union, - = union pays club)
+--    Because a player's loss already includes the rake they paid, returning
+--    90% leaves the union its 10% — a club that only paid rake settles at one
+--    tenth of it, which is the intended margin rather than a coincidence.
+--
+-- 3. THREE UNIT ERRORS found while making the two halves reconcile:
+--    (a) seated_stack summed TOURNAMENT seats — scrip granted from
+--        starting_chips, never bought with money (~31M of it against ~86k of
+--        real cash stacks). Cash seats only now.
+--    (b) house horses were excluded from the P&L but included in the rake
+--        basis, so SHARK showed 530,662 of rake against a P&L of exactly 0.00.
+--        The exclusion rested on a belief that horses bypass
+--        wallet_transactions; they do not — seatHorse goes through
+--        atomic_table_buyin (measured: 15,773 horse buy-ins / 4,098,346 in two
+--        days, all in the ledger). A club's horses are its own players.
+--    (c) the chip-ledger cash-out leg had a legacy "club-scoped, no table_id"
+--        fallback that began sweeping in TOURNAMENT payouts once games moved to
+--        the union — crediting winnings whose stake was never debited. Cash-outs
+--        must now name a union CASH table.
+--    Also: fn_union_pnl_bootstrap carried a COPY of the seated-stack logic, so
+--    baselines were measured by a different rule than the periods that read
+--    them. It now delegates to fn_union_pnl_all_clubs — a stored baseline must
+--    come from the same function that later reads it.
+--
+-- 4. THE P&L STILL DOES NOT FULLY RECONCILE, AND WILL NOT PAY.
+--    Over a clean 60-second window with matched baselines, players netted
+--    +1,755.89 against 28.40 of rake — ~1,784 unaccounted, source not yet
+--    identified. The guard refuses to move chips when the union-wide sum is
+--    materially non-zero, records 'needs_review', and says so. Better to owe a
+--    club a correct number late than to pay a wrong one on time.
+--    RAKEBACK IS UNAFFECTED and pays normally: it is computed from rake
+--    contributions and does not depend on this identity.
