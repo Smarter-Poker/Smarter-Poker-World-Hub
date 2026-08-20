@@ -222,3 +222,128 @@ tables/tournaments read sites listed above (other candidates should be
 reviewed per-site); P2-5 human click-test of the union dashboard (needs
 Dan); P3 index review, read-replica proposal (RULE 12 — Dan), and the
 reconciliation dashboard.
+
+---
+
+# REVIEW ROUND (2026-08-20 ~11:00–12:45 UTC) — line-by-line re-audit
+
+Dan asked for a full verification that everything was pushed and published,
+then a line-by-line hunt for bugs/stubs/gaps/regressions, then upgrades.
+Dan's correction recorded: **the union fee is 10% of all cash game rake AND
+10% of all tournament fees, period.** The earlier "~8%" note is withdrawn;
+nothing needs adjusting while everything is test data.
+
+## Publish audit — all 12 earlier commits verified live
+
+WH 9 + CA 3 commits all ancestors of origin/main; 7 migrations registered in
+production; dispatcher SHA == repo SHA; engine container contains the admin
++ sentinel code; prod CA bundle (ca_sha 96ff3e8d) contains c9c0268b, and the
+deployed chunks were fetched and inspected: `unionScope-wzmhUs1v-v6.js` is
+served, XMTT ships `.or(await le(r))` and `in("tournament_type",["MTT","XMTT"])`
+with lowercase-safe status tabs.
+
+## THE BIG ONE — my own rake rollup was silently WRONG
+
+Diffing the rollup against the legacy computation on a fixed historical
+window exposed it: SHARK CLUB **489,066.11 (rolled) vs 489,205.40 (live)**.
+Two independent causes:
+
+1. **Finalized days go stale.** The rollup caches a query whose inputs change
+   retroactively — the union migration keeps setting `tables.union_id` on
+   EXISTING tables, so historical `rake_records` enter the union's scope
+   after a day was finalized. Measured: 2026-08-16 held 100,548 records when
+   rolled and 102,171 an hour later (+1,623); 08-17/18/19 likewise. That rake
+   was missing from the settlement basis, **under-crediting the club that
+   earned it**.
+2. **Attribution was baked in** at refresh time, so a player joining or
+   leaving a club silently invalidated the cached answer.
+
+**Fix (migration 20260820h):** rake is now stored **per user per day**;
+club attribution and the horse filter are applied at READ time using exactly
+the legacy expressions; every day carries `records_seen` and a day whose live
+record count no longer matches is treated as MISSING and recomputed live for
+that day only. The cache can now only ever be a SPEED optimisation.
+Verified: readonly == live **to the cent in both horse modes**, and with the
+cache deliberately poisoned (`records_seen` wrong AND `rake_amount` × 99) the
+reader still returned the exact correct figure.
+
+## Two more real defects in my own P0-1 work (migration 20260820g)
+
+- **The fallback WAS the outage.** If a day failed to finalize, the function
+  fell back to a live scan of the ENTIRE window — the ~50s query P0-1 existed
+  to eliminate. The safety net was the hazard. Now every path is bounded to
+  one day plus the ragged edges.
+- **Monday would finalize days inside the money transaction.** The rollup is
+  filled lazily by its first caller; on Monday that is
+  `fn_union_settle_player_pnl` holding FOR UPDATE locks on `union_wallets`
+  and `clubs.chip_treasury`. Measured: 4 unrolled days = ~12s of extra scan
+  inside that lock window while live horse funding contends on the same rows.
+  `fn_union_rake_rollup_catchup_all()` now warms it outside any money
+  transaction.
+
+## The weekly STATEMENT was still unbounded
+
+`fn_union_weekly_statement` → `fn_union_rake_basis_by_club` still had the
+original double-jsonb-expansion shape. P0-1 fixed the settle path only, so
+the report **a human would actually run** was still outage-class. Rebuilt on
+the rollup (cash leg) + live tournament fees (0.34s over 7 days). Both legs
+kept, per Dan's 10% + 10% spec.
+
+## Upgrades shipped
+
+- `fn_union_rake_paid_readonly` — STABLE, never writes, always bounded.
+- `fn_union_rake_day_is_fresh` — cheap per-day staleness probe.
+- `fn_union_rake_rollup_catchup` / `_all` — re-validate and re-roll outside
+  money transactions.
+- `union_rake_rollup_unmaintained` governance invariant (warning: settlement
+  would do the work inline; correctness is unaffected).
+- **`fn_union_reconciliation_report(union, start, end)`** — the read-only
+  pre-Monday preview (handoff P3-5): per-club settle_net, direction, rake,
+  stack delta, plus residual/tolerance/within_tolerance. Granted to
+  `authenticated` so the union dashboard can render it. Current window shows
+  residual −5,608.61 against tolerance 11,204.93 → within tolerance.
+- **Workers `/cron/union-rakeback` is now a 410 tombstone with no database
+  access at all**, asserted by a test that strips comments and greps the code
+  for `getSupabase` / `from(` / `rake_wallet`. Defence in depth behind the
+  dispatcher retirement. 43/43 workers tests pass.
+
+## Checked and found FINE (no change needed)
+
+- `fn_settlement_conservation_check` 1.2s, `fn_union_governance_check` 0.86s
+  warm (the 4.5s first call was cold cache) — safe at a 30-minute cadence.
+- `authorizeTableAdmin` returns the union container as `clubId`, used only
+  for the `anti_cheat_events` audit row — correct, that IS the table's owner.
+- P1-1 mirroring cannot double-count: `chip_flows` already dropped NULL
+  `table_id` rows, so nothing moved from "counted once" to "counted twice".
+- `fn_rakeback_recompute_periods` ON CONFLICT rewrite cannot silently move a
+  user between clubs — the `eligible` CTE already excludes users holding a
+  row at another club for that period.
+- Index review (handoff P3-3): the four indexes it asks for already exist.
+  7-day `fn_union_pnl_all_clubs` is 6.7s, bounded and index-backed.
+
+## BLOCKED — needs Dan (RULE 0 human-only exception)
+
+**GitHub Actions stopped running at ~12:22 UTC.** Every workflow in
+Smarter-Poker-Club-Arena and Smarter-Poker-World-Hub now fails in 3–6s with
+**zero steps executed** (CI, Silent Revert Guard, Build for World Hub Sync,
+Auto-Deploy Hetzner). The last green run was workers CI at 12:20:59Z. That
+signature — instant failure, no steps, every workflow, multiple repos — is
+what an **Actions spending-limit / billing block** looks like. The deploy
+token cannot read the billing API (403) to confirm it.
+
+**Dan: check GitHub → Settings → Billing → Actions spending limit.**
+
+Consequences while it is down (nothing is broken, two changes are pending):
+- `43a7ce579` + `f0a61596f` (engine: rollup catch-up wiring) are on main but
+  NOT deployed. **Correctness is unaffected** — a stale/missing day is
+  recomputed live at read time. The only cost is that Monday's settlement
+  would roll up to ~4 days inline. Mitigated for now: the rollup was warmed
+  by hand this session (`stale_remaining: 0` for every union).
+- `db9bc64` (workers: retired-route tombstone) is on main but not deployed;
+  the workers image only rebuilds on a `v*.*.*` tag or dispatch. The live
+  route is still the old code — harmless, because its Open Claw schedule was
+  removed, so only a manual call could reach it.
+- The engine's P2-4 admin fix and P3-1 sentinel ARE already live (deployed
+  earlier at d18479ff8), as is every DB migration.
+
+Re-run both deploys once Actions is restored; no code changes needed.
