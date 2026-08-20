@@ -43,6 +43,7 @@ import assert from 'node:assert/strict';
 // (the cases would simply run twice) and can be dropped.
 // See .agent/handoffs/2026-08-19-ci-check16-shop-rules.md
 import '../tests/shop-item-rules.test.mjs';
+import '../tests/unchecked-money-rpc.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -72,6 +73,12 @@ const REQUIRED_TEST_FILES = [
     // created from the World Hub granted nothing on redeem, accepted any image
     // URL, and could be hard-deleted along with their purchase history.
     'tests/shop-item-rules.test.mjs',
+    // Ratchet: money RPCs that RETURN {success:false} instead of raising, whose
+    // return value is never read. This exact shape shipped a free-item exploit
+    // in marketplace-purchase — a REJECTED debit looked identical to a
+    // successful one because only the (null) transport error was checked.
+    'tests/unchecked-money-rpc.test.mjs',
+    'scripts/check-unchecked-money-rpc.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {
