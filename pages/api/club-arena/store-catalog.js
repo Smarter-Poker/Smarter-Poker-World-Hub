@@ -2,7 +2,7 @@
  * GET /api/club-arena/store-catalog
  * ═══════════════════════════════════════════════════════════════════════════
  * SINGLE SOURCE OF TRUTH for every purchasable package shown in the Club Arena
- * marketplace: chip packages, diamond packages and VIP plans.
+ * marketplace: diamond packages and VIP plans. (Chip packages retired.)
  *
  * WHY THIS EXISTS (audit 2026-08-19):
  * The marketplace hard-coded all three tables in
@@ -13,7 +13,7 @@
  * would keep rendering "$50.00" while charging $55.
  *
  * The values below mirror the routes that actually charge:
- *   chips    -> pages/api/club-arena/purchase-chips.js  (CHIP_PACKAGES)
+ *   chips    -> RETIRED 2026-08-19, chips are never sold for diamonds
  *   diamonds -> pages/api/store/create-checkout-session.js (VALID_DIAMOND_PACKAGES)
  *   vip      -> src/data/diamondStoreData.js (VIP_MEMBERSHIP) + the daily-pass
  *               cost enforced by pages/api/store/purchase-daily-vip.js
@@ -39,10 +39,13 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // export rather than a deleted field so an older cached bundle asking for it
 // gets [] instead of undefined — and the client no longer carries a fallback
 // table that would repopulate from an empty response.
-const CHIP_PACKAGES = [].map((p) => {
-    const base = 1000 / 10;
-    const rate = p.chips / p.diamonds;
-    return Object.assign({}, p, { valuePct: Math.round(((rate - base) / base) * 100) });
+// RETIRED 2026-08-19 — chips can NEVER be bought with diamonds (product rule,
+// Dan). Diamonds are the global purchasable currency; chips are a per-club
+// gambling balance. The catalog must not advertise a conversion that no longer
+// exists — /api/club-arena/purchase-chips returns 410. Served as an empty list
+// so existing clients degrade to "no packages" rather than erroring on a
+// missing field.
+const CHIP_PACKAGES = [];
 });
 
 // Mirrors VALID_DIAMOND_PACKAGES in pages/api/store/create-checkout-session.js
