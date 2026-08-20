@@ -424,3 +424,101 @@ has fully drained — `healthy: true`, no breaches.
 - The March `disputed` settlement period (SHARK, 2026-03-04..03-11, one
   invoice) still needs a decision.
 - Human click-test of the union dashboard.
+
+---
+
+# RE-EVALUATION / SECURITY AUDIT (2026-08-20 ~13:30–14:00 UTC)
+
+Dan asked for a full re-evaluation before proceeding. Rather than re-confirm
+earlier claims, this pass attacked the work from the outside — permissions,
+reachability, and the actual Monday code path. **It found the most serious
+problems of the entire session, including one I introduced.**
+
+## SEC-1 (CRITICAL) — money-moving RPCs were callable by any logged-in user
+
+Postgres grants EXECUTE to PUBLIC by default and Supabase exposes every
+`public` function over PostgREST, so a plain user JWT could
+`POST /rest/v1/rpc/fn_union_settle_player_pnl` with **any union_id, any
+window, and p_dry_run=false**. The function is SECURITY DEFINER, so it would
+execute with owner rights and move chips between club treasuries and the
+union wallet. Same for `_guarded` and `_weekly`. None of the three has an
+internal auth check — they were written for service-role callers only.
+
+Also exposed: `fn_union_weekly_statement` (reachable by **anon** — fully
+unauthenticated financial data), `fn_union_rake_basis_by_club`, and
+`fn_union_rake_paid_by_club` (which also WRITES, so it was a cheap DoS lever
+as well as a data leak).
+
+Verified the only real callers are service-role (workers auto-settlement and
+`pages/api/club-arena/settle-period.js` via `supabaseAdmin`), and that none
+of them appear in the production browser bundle, then revoked all six from
+PUBLIC/anon/authenticated. Confirmed after: `anon=false, authenticated=false,
+service_role=true` for all six.
+Migration `20260820k_lock_down_union_settlement_rpcs.sql`.
+
+## SEC-2 (HIGH, MY BUG) — the reconciliation report I added was world-readable
+
+`fn_union_reconciliation_report`, added earlier today, was executable by
+PUBLIC — i.e. by `anon`, i.e. by anyone holding the publishable key with no
+login. SECURITY DEFINER + arbitrary `p_union_id` meant it exposed every
+union's full financial position. Granting it to `authenticated` had not
+removed the default PUBLIC grant, and I did not check.
+
+Fixed properly rather than just revoking: authorization now happens INSIDE
+the function (service role, union owner, union admin, or an
+owner/admin/super_agent of a member club), so it stays usable by the union
+dashboard, and PUBLIC/anon are revoked.
+Migration `20260820l_authorize_union_reconciliation_report.sql`.
+
+## SEC-3 (HIGH, pre-existing) — `fn_member_leave_to_treasury` had no auth check
+
+SECURITY DEFINER, granted to `authenticated`, arbitrary `(club_id, user_id)`:
+**any logged-in user could evict any member of any club and sweep that
+member's club chip_balance into the treasury**, with the victim's own id
+recorded as the source. Guarded: service role, the member themselves (the
+real client flow), or a club treasury manager.
+Migration `20260820m_authorize_member_leave_to_treasury.sql`.
+
+Checked the siblings while here — `fn_horse_seat_from_treasury` and
+`fn_horse_fund_from_treasury` are **correctly guarded** via
+`fn_actor_can_manage_club_treasury()`, and that helper is sound (service
+role, club owner, admin-tier member, or agent). My initial `auth.uid()` grep
+had wrongly flagged them; reading the bodies corrected it. The five
+settlement-period functions with `auth.uid()` checks were also confirmed
+guarded and left alone.
+
+## Latent landmine in my own rollup finalizer
+
+`fn_union_rake_rollup_refresh_day` divided by the per-record contribution
+total with no `> 0` guard, while the live computation filters it. One
+rake_records row summing to zero would raise division_by_zero → that day
+would never finalize → it would fall back to the live path **forever, with no
+error surfaced anywhere**. Zero such rows exist today, so this is
+pre-emptive: `NULLIF(..., 0)` yields NULL and the existing
+`WHERE share IS NOT NULL` drops it, exactly matching the live function.
+Re-verified cent-equal to `fn_union_rake_paid_live` in both horse modes after
+the change. Migration `20260820n_rollup_refresh_day_guard_zero_contrib.sql`.
+
+## Monday's settlement re-verified end to end after all of the above
+
+- Dry run vs `fn_union_reconciliation_report` **agree**: JAQK settle_net
+  −14,486.27 identical in both; SHARK 8,572.93 vs 8,571.83 and residual
+  −5,913.34 vs −5,914.44 — a 1.10 drift explained entirely by live play
+  between the two calls (`now()` is a moving bound), not by logic.
+- Read `fn_union_settle_player_pnl_guarded` in full: it dry-runs, rejects
+  "net with no activity", then compares |residual| against
+  `GREATEST(100, 1% of turnover)`. Current numbers: residual 5,913 vs
+  tolerance 12,200.87 on 1,220,087 turnover → **the guard passes and Monday
+  would pay**.
+- Chain anchor still `2026-08-20 03:42:22`; Monday 10:00 UTC is ~102h out
+  against `p_min_hours = 12`.
+- Rollup: 0 stale days; engine catch-up confirmed executing in production
+  (`POST /rpc/fn_union_rake_rollup_catchup_all → 200`).
+
+## Note for whoever audits next
+
+The default-PUBLIC-EXECUTE trap is not specific to these functions — it
+applies to **every** SECURITY DEFINER function in `public` that nobody
+explicitly revoked. This audit only swept the union/settlement/treasury
+family. A project-wide sweep of `has_function_privilege('anon'|'authenticated', …)`
+against SECURITY DEFINER functions is worth doing as its own piece of work.
