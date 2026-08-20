@@ -121,7 +121,7 @@ export default function PlayerNotificationsPage() {
     }
   );
 
-  // Realtime listener — live updates for notifications/index.js
+  // Realtime listener - live updates for notifications/index.js
   useEffect(() => {
     if (!user?.id) return;
     const ch = supabase
@@ -143,7 +143,7 @@ export default function PlayerNotificationsPage() {
       const _authToken = getAccessToken();
       const token = _authToken;
 
-      // 2026-07-25 audit fix: check res.ok — a 4xx/5xx previously left the
+      // 2026-07-25 audit fix: check res.ok - a 4xx/5xx previously left the
       // optimistic "read" state in place even though the server rejected it.
       const res = await fetch(`/api/commander/notifications/${notification.id}`, {
         method: 'PATCH',
@@ -174,7 +174,7 @@ export default function PlayerNotificationsPage() {
       const _authToken = getAccessToken();
       const token = _authToken;
 
-      // 2026-07-25 audit fix: check res.ok — a failed DELETE previously left
+      // 2026-07-25 audit fix: check res.ok - a failed DELETE previously left
       // the notification hidden locally while it still existed server-side.
       const res = await fetch(`/api/commander/notifications/${notification.id}`, {
         method: 'DELETE',
@@ -228,7 +228,7 @@ export default function PlayerNotificationsPage() {
     <>
       <SEOHead
                 title="Commander Notifications"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 

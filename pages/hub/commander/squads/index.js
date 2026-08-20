@@ -97,7 +97,7 @@ export default function SquadsPage() {
   useTrainingBus('squads');
 
   // useSWR declared BEFORE the useEffect that references refreshSquads.
-  // Turbopack enforces strict TDZ — const bindings cannot be referenced
+  // Turbopack enforces strict TDZ - const bindings cannot be referenced
   // before their declaration line, unlike webpack which masked this.
   const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR(
     authChecking ? null : '/api/commander/squads/my',
@@ -115,7 +115,7 @@ export default function SquadsPage() {
   useEffect(() => {
     if (!user?.id) return;
     // 2026-07-25 audit fix: was subscribed to commander_tournament_entries
-    // (copy-paste bug) — squads live in commander_waitlist_groups /
+    // (copy-paste bug) - squads live in commander_waitlist_groups /
     // commander_waitlist_group_members.
     const ch = supabase
       .channel(`squads-list:${user?.id}`)
@@ -159,7 +159,7 @@ export default function SquadsPage() {
     <>
       <SEOHead
                 title="Squads"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 

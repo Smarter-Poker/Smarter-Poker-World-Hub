@@ -1,5 +1,5 @@
 /**
- * BlindStructureEditor — Visual editor for tournament blind structures
+ * BlindStructureEditor - Visual editor for tournament blind structures
  * Displays level table with SB/BB/Ante/Duration, break rows, add/remove
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */

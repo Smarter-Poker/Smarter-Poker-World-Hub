@@ -1,5 +1,5 @@
 /**
- * Rate Table — Player Hub
+ * Rate Table - Player Hub
  * /hub/commander/rate-table
  * Players rate table atmosphere after a session
  */
@@ -30,7 +30,7 @@ export default function RateTable() {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-  // 2026-07-25 audit fix: submit errors were swallowed — surface them.
+  // 2026-07-25 audit fix: submit errors were swallowed - surface them.
   const [error, setError] = useState(null);
 
   const getToken = () => typeof window !== 'undefined' ? getAccessToken() : null;
@@ -112,7 +112,7 @@ export default function RateTable() {
       <>
         <SEOHead
           title="Rate Table"
-          description="Smarter.Poker — The Future Of The Game."
+          description="Smarter.Poker - The Future Of The Game."
           noindex={true}
         />
         <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

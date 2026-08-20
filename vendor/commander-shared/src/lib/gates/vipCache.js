@@ -1,12 +1,12 @@
 /**
- * VIP CACHE — offline-degraded fallback ONLY
+ * VIP CACHE - offline-degraded fallback ONLY
  * ═══════════════════════════════════════════════════════════════════════════
  * SECURITY MODEL (read this before using any export here)
  *
  * localStorage is fully writable from devtools. Nothing in this file is, or
  * can be, an authorization decision. Before 2026-08-05 checkFeatureAccess()
  * read localStorage['sp-vip-status'] BEFORE any network call and returned
- * hasAccess:true on a bare string match — so `localStorage.setItem(
+ * hasAccess:true on a bare string match - so `localStorage.setItem(
  * 'sp-vip-status','true')` granted every premium feature on the platform,
  * permanently, with no server round-trip at all.
  *
@@ -41,7 +41,7 @@ function hasStorage() {
 /**
  * Record a SERVER-VERIFIED VIP answer.
  * Call this only with a value that came back from the database or from
- * /api/vip/check-status — never from another cache read.
+ * /api/vip/check-status - never from another cache read.
  *
  * @param {string} userId
  * @param {boolean} isVip

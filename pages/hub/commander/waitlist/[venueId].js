@@ -41,7 +41,7 @@ export default function PlayerWaitlistPage() {
   const debounceRef = useRef(null);
 
   
-  // fetchData declared first — must precede useEffect/useCommanderSync that reference it
+  // fetchData declared first - must precede useEffect/useCommanderSync that reference it
   const fetchData = useCallback(async (signal) => {
     try {
       const fetchOpts = signal ? { signal } : {};
@@ -127,11 +127,11 @@ export default function PlayerWaitlistPage() {
     if (venueId) {
       const controller = new AbortController();
       fetchData(controller.signal);
-      const interval = setInterval(() => fetchData(controller.signal), 30000); // fallback — real-time sync handles instant updates
+      const interval = setInterval(() => fetchData(controller.signal), 30000); // fallback - real-time sync handles instant updates
       return () => { controller.abort(); clearInterval(interval); };
     }
   }, [venueId]);
-  // Realtime listener — live updates for waitlist/[venueId].js
+  // Realtime listener - live updates for waitlist/[venueId].js
   useEffect(() => {
     if (!venueId) return;
     const ch = supabase
@@ -148,7 +148,7 @@ export default function PlayerWaitlistPage() {
     };
   }, [venueId, fetchData]);
 
-  // Commander Data Bus — instant sync when waitlist/games change
+  // Commander Data Bus - instant sync when waitlist/games change
   useCommanderSync(venueId || '', fetchData, { entities: ['waitlist', 'games', 'tables'] });
 
   async function getAuthToken() {
@@ -298,7 +298,7 @@ export default function PlayerWaitlistPage() {
     setJoiningAll(false);
   }
 
-  // Signal arrival to venue — persists to Supabase
+  // Signal arrival to venue - persists to Supabase
   async function handleArrived() {
     const token = await getAuthToken();
     if (!token) {
@@ -371,12 +371,12 @@ export default function PlayerWaitlistPage() {
     <>
       <SEOHead
         title={`${venue.name} Waitlist`}
-        description={`Join the waitlist at ${venue.name} — powered by Club Commander`}
+        description={`Join the waitlist at ${venue.name} - powered by Club Commander`}
         noindex={true}
       />
 
       <div style={S.page}>
-        {/* ═══ HEADER — matches desk ═══ */}
+        {/* ═══ HEADER - matches desk ═══ */}
         <header style={S.header}>
           <div style={S.headerTop}>
             <div style={S.headerLeft}>
@@ -494,7 +494,7 @@ export default function PlayerWaitlistPage() {
           </div>
         )}
 
-        {/* ═══ GAME COLUMNS — mirrors desk view ═══ */}
+        {/* ═══ GAME COLUMNS - mirrors desk view ═══ */}
         {waitlistColumns.length === 0 ? (
           <div style={S.emptyState}>
             <Users style={{ width: 40, height: 40, color: '#333', opacity: 0.5 }} />
@@ -513,7 +513,7 @@ export default function PlayerWaitlistPage() {
                     {/* Gold gradient header */}
                     <div style={S.columnHeader}>{col.label}</div>
 
-                    {/* Player names — fills remaining height */}
+                    {/* Player names - fills remaining height */}
                     <div style={S.columnBody}>
                       {col.players.length === 0 ? (
                         <div style={S.noPlayers}>No players waiting</div>
@@ -613,10 +613,10 @@ export default function PlayerWaitlistPage() {
           )}
         </div>
 
-        {/* ═══ TICKER — matches desk ═══ */}
+        {/* ═══ TICKER - matches desk ═══ */}
         <div style={S.ticker}>
           <span style={S.tickerText}>
-            — {totalWaiting} player{totalWaiting !== 1 ? 's' : ''} currently waiting
+            - {totalWaiting} player{totalWaiting !== 1 ? 's' : ''} currently waiting
           </span>
           <span style={S.tickerText}>
             Download the Smarter Poker App
@@ -634,7 +634,7 @@ export default function PlayerWaitlistPage() {
 }
 
 // ═══════════════════════════════════════════════
-// STYLES — Commander Desk Mirror
+// STYLES - Commander Desk Mirror
 // ═══════════════════════════════════════════════
 const S = {
   page: {
@@ -861,7 +861,7 @@ const S = {
   },
 
 
-  // ── Column footer — Join button ──
+  // ── Column footer - Join button ──
   columnFooter: {
     padding: '8px',
     borderTop: '1px solid #333',
@@ -969,7 +969,7 @@ const S = {
     margin: 0,
   },
 
-  // ── Bottom ticker — matches desk ──
+  // ── Bottom ticker - matches desk ──
   ticker: {
     display: 'flex',
     alignItems: 'center',

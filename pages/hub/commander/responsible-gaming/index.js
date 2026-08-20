@@ -203,7 +203,7 @@ export default function ResponsibleGamingPage() {
     <>
       <SEOHead
                 title="Responsible Gaming"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 

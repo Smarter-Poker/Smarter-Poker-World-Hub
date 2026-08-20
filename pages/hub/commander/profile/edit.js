@@ -80,7 +80,7 @@ export default function ProfileEditPage() {
     <>
       <SEOHead
                 title="Edit Profile"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>

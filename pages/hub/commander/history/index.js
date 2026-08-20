@@ -87,11 +87,11 @@ export default function PlayerHistoryPage() {
 
   const [filter, setFilter] = usePersistedState('sp-filters-commander-history', 'all'); // 'all', 'week', 'month', 'year'
 
-  // Auth guard — resilient session check
+  // Auth guard - resilient session check
   const { checking: authChecking } = useRequireAuth('/hub/commander/history');
   useTrainingBus('history');
 
-  // SWR-backed session history — re-fetches when filter changes
+  // SWR-backed session history - re-fetches when filter changes
   const { data: swrData, isLoading: loading } = useSWR(
     `/api/commander/sessions?period=${filter}`,
     async (url) => {
@@ -127,7 +127,7 @@ export default function PlayerHistoryPage() {
     <>
       <SEOHead
         title="Commander History"
-        description="Smarter.Poker — The Future Of The Game."
+        description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
 

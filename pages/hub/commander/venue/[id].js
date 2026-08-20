@@ -73,7 +73,7 @@ export default function VenueDetail() {
     }
   }, [id]);
 
-  // Commander Data Bus — instant sync when games/waitlist change
+  // Commander Data Bus - instant sync when games/waitlist change
   useCommanderSync(id || '', fetchData, { entities: ['games', 'tables', 'waitlist'] });
 
   useEffect(() => {
@@ -83,7 +83,7 @@ export default function VenueDetail() {
     const interval = setInterval(() => fetchData(_c.signal), 60000);
     return () => { _c.abort(); clearInterval(interval); };
   }, [id]);
-  // Realtime listener — live updates for venue/[id].js
+  // Realtime listener - live updates for venue/[id].js
   useEffect(() => {
     if (!id) return;
     const ch = supabase
@@ -96,7 +96,7 @@ export default function VenueDetail() {
 
   // Handle join waitlist
   async function handleJoinWaitlist(gameType, stakes) {
-    // 2026-07-25 audit fix: /api/commander/waitlist POST is staff-only — players
+    // 2026-07-25 audit fix: /api/commander/waitlist POST is staff-only - players
     // must use /api/commander/waitlist/public-join with a Bearer token (same
     // endpoint + body shape as waitlist/[venueId].js).
     const token = await getFreshAccessToken();
@@ -126,7 +126,7 @@ export default function VenueDetail() {
 
       if (data.success) {
         // 2026-07-25 audit fix: public-join may not return position/estimated_wait
-        // — read them defensively instead of crashing the success path.
+        // - read them defensively instead of crashing the success path.
         setMessage({
           type: 'success',
           text: data.data?.position != null
@@ -181,7 +181,7 @@ export default function VenueDetail() {
     <>
       <SEOHead
         title="Venue Details"
-        description="Smarter.Poker — The Future Of The Game."
+        description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
 

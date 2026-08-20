@@ -65,7 +65,7 @@ export default function LeaderboardPage() {
   const setPeriod = (v) => setFilter('period', v);
   const [selectedLeaderboard, setSelectedLeaderboard] = useState(null);
 
-  // SWR — parallel fetch, re-fires when metric/period/venueId changes
+  // SWR - parallel fetch, re-fires when metric/period/venueId changes
   // 2026-07-25 audit fix: /api/commander/leaderboards/{id} takes a LEADERBOARD
   // id, not a venue id, and returns {leaderboard, entries, total_entries} with
   // no success flag. List the venue's boards first, pick the first active one,
@@ -104,7 +104,7 @@ export default function LeaderboardPage() {
   const venue = swrData?.venue || null;
   const leaderboardsList = swrData?.leaderboardsList || [];
 
-  // Realtime listener — live updates for venue leaderboard
+  // Realtime listener - live updates for venue leaderboard
   useEffect(() => {
     if (!venueId) return;
     const ch = supabase
@@ -130,7 +130,7 @@ export default function LeaderboardPage() {
     <>
       <SEOHead
         title="Venue Leaderboard"
-        description="Smarter.Poker — The Future Of The Game."
+        description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
 
@@ -246,7 +246,7 @@ export default function LeaderboardPage() {
               }}
               entries={leaderboard.map((player, idx) => ({
                 // 2026-07-25 audit fix: real entries rows already carry rank,
-                // score and a nested profiles object — prefer those, keep the
+                // score and a nested profiles object - prefer those, keep the
                 // old flat fields as fallbacks, default missing numbers to 0.
                 id: player.id,
                 rank: player.rank ?? idx + 1,

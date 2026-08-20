@@ -13,7 +13,7 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
-// NOTE: PushNotificationProvider removed — _app.js OneSignalProvider covers all pages globally
+// NOTE: PushNotificationProvider removed - _app.js OneSignalProvider covers all pages globally
 
 export default function CommanderHub() {
   const { user } = useAvatar();
@@ -110,7 +110,7 @@ export default function CommanderHub() {
           if (!res.ok) throw new Error(`Request failed (${res.status})`);
           const json = await res.json();
           // 2026-07-25 audit fix: /api/social/pages may return {data:{pages:[...]}}
-          // or {data:[...]} — normalize both shapes (venues/[id].js handles both too).
+          // or {data:[...]} - normalize both shapes (venues/[id].js handles both too).
           const pages = Array.isArray(json.data) ? json.data : (json.data?.pages || []);
           if (json.success && pages.length > 0) {
             setHasClubPage(pages[0].id);
@@ -123,8 +123,8 @@ export default function CommanderHub() {
     })();
     return () => _ctrl.abort();
   }, [userLocation]);
-  // Realtime listener — live updates for index.js
-  // NOTE: user object not available here — use a stable channel name
+  // Realtime listener - live updates for index.js
+  // NOTE: user object not available here - use a stable channel name
   useEffect(() => {
     const user = getAuthUser();
     if (!user?.id) return;
@@ -172,7 +172,7 @@ export default function CommanderHub() {
     <>
       <SEOHead
         title="Club Commander"
-        description="Smarter.Poker — The Future Of The Game."
+        description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
 

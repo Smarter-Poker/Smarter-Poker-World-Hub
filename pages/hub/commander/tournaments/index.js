@@ -136,7 +136,7 @@ export default function PlayerTournamentsHub() {
     if (!tourRes.ok) throw new Error(`Request failed (${tourRes.status})`);
     const [tourData, myData] = await Promise.all([tourRes.json(), myRes.json()]);
     // 2026-07-25 audit fix: API returns {success, data:{tournaments}} and
-    // {success, data:{registrations}} — old code read top-level keys and always got [].
+    // {success, data:{registrations}} - old code read top-level keys and always got [].
     const registrations = myData?.data?.registrations || myData?.registrations || [];
     setMyRegistrations(registrations.map(r => r.tournament_id));
     return tourData?.data?.tournaments || tourData?.tournaments || [];
@@ -189,7 +189,7 @@ export default function PlayerTournamentsHub() {
     return true;
   });
 
-  // Realtime listener — live updates for tournaments/index.js
+  // Realtime listener - live updates for tournaments/index.js
   useEffect(() => {
     const ch = supabase
       .channel(`my-tournaments-list`)

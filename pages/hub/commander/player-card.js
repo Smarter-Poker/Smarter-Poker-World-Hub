@@ -23,7 +23,7 @@ const TIER_COLORS = {
 export default function PlayerCard() {
   const router = useRouter();
   const [qrData, setQrData] = useState(null);
-  // 2026-07-25 audit fix: real scannable QR image (data URL) — the old SVG
+  // 2026-07-25 audit fix: real scannable QR image (data URL) - the old SVG
   // dot pattern was decorative and could not be read by any scanner.
   const [qrImageUrl, setQrImageUrl] = useState(null);
   const [qrRefresh, setQrRefresh] = useState(0);
@@ -101,7 +101,7 @@ export default function PlayerCard() {
     <>
       <SEOHead
         title="Player Card"
-        description="Smarter.Poker — The Future Of The Game."
+        description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
       <div style={{ minHeight: '100vh', background: '#111827', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -141,7 +141,7 @@ export default function PlayerCard() {
                 <div>
                   <div style={{ opacity: 0.7, fontSize: 10 }}>MEMBER SINCE</div>
                   <div style={{ fontWeight: 600 }}>
-                    {player?.created_at ? new Date(player.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
+                    {player?.created_at ? new Date(player.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '-'}
                   </div>
                 </div>
                 <div>
@@ -157,7 +157,7 @@ export default function PlayerCard() {
                 {qrData && qrImageUrl ? (
                   <div style={{ position: 'relative' }}>
                     {/* 2026-07-25 audit fix: real scannable QR (qrcode package)
-                        encoding the same qrData payload — replaces the
+                        encoding the same qrData payload - replaces the
                         decorative SVG dot pattern scanners couldn't read. */}
                     <img
                       src={qrImageUrl}
@@ -212,10 +212,10 @@ export default function PlayerCard() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
                 {[
-                  { label: 'Total Sessions', val: player.total_sessions || player.session_count || '—' },
-                  { label: 'Hours Played', val: player.total_hours || player.play_hours || '—' },
-                  { label: 'Comp Balance', val: player.comp_balance ? `$${player.comp_balance}` : '—' },
-                  { label: 'Achievements', val: player.achievements_count || player.badges?.length || '—' },
+                  { label: 'Total Sessions', val: player.total_sessions || player.session_count || '-' },
+                  { label: 'Hours Played', val: player.total_hours || player.play_hours || '-' },
+                  { label: 'Comp Balance', val: player.comp_balance ? `$${player.comp_balance}` : '-' },
+                  { label: 'Achievements', val: player.achievements_count || player.badges?.length || '-' },
                 ].map(s => (
                   <div key={s.label} style={{ padding: 10, background: '#111827', borderRadius: 10, textAlign: 'center' }}>
                     <div style={{ fontSize: 20, fontWeight: 800, color: 'white' }}>{s.val}</div>

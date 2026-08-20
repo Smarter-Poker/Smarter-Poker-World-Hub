@@ -67,7 +67,7 @@ export default function PlayerHomeGamesHub() {
     }
   }, []);
 
-  // Realtime listener — live updates for home-games/index.js
+  // Realtime listener - live updates for home-games/index.js
   // v2 suffix forces WebSocket reconnect for stale pre-migration sessions.
   useEffect(() => {
     if (!user?.id) return;
@@ -118,7 +118,7 @@ export default function PlayerHomeGamesHub() {
     }
 
     // Days ahead filter
-    // 2026-07-25 audit fix: group rows have no scheduled_date — new Date(undefined)
+    // 2026-07-25 audit fix: group rows have no scheduled_date - new Date(undefined)
     // is Invalid Date and the comparison filtered everything out. Only apply the
     // cutoff to items that actually carry a scheduled_date.
     if (filters.daysAhead) {
@@ -250,7 +250,7 @@ export default function PlayerHomeGamesHub() {
     <>
       <SEOHead
                 title="Home Games"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 

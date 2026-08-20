@@ -158,7 +158,7 @@ export default function VenueDiscoveryPage() {
     <>
       <SEOHead
                 title="Venues"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 

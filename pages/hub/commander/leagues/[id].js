@@ -93,7 +93,7 @@ export default function LeagueDetailPage() {
     if (authUser?.id) setCurrentUserId(authUser.id);
   }, [router.isReady]);
 
-  // SWR — parallel fetch of league details + standings
+  // SWR - parallel fetch of league details + standings
   const swrKey = id ? `/api/commander/leagues/${id}` : null;
   const { data: swrData, isLoading: loading, mutate: refreshLeague } = useSWR(swrKey, async () => {
     const token = getAccessToken();
@@ -115,7 +115,7 @@ export default function LeagueDetailPage() {
   const standings = swrData?.standings || [];
   const events = swrData?.events || [];
 
-  // Realtime listener — live updates for league detail
+  // Realtime listener - live updates for league detail
   useEffect(() => {
     if (!id) return;
     const ch = supabase
@@ -169,7 +169,7 @@ export default function LeagueDetailPage() {
     <>
       <SEOHead
         title="League Details"
-        description="Smarter.Poker — The Future Of The Game."
+        description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
 

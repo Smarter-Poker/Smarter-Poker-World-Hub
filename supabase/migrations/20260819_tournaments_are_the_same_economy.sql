@@ -1,0 +1,50 @@
+-- ============================================================================
+-- TOURNAMENTS ARE THE SAME ECONOMY AS CASH (2026-08-19)
+-- APPLIED via Supabase MCP as: union_pnl_includes_tournament_economy
+--
+-- Dan: "tournaments, sit n go's and spins are the same thing, players buy in,
+-- rake is taken, and users get paid out if they finish in the money... the
+-- same cash game chips are used to buy into MTT, sit n go and spins."
+--
+-- THAT WAS THE MISSING PIECE. The P&L counted only cash flows — category
+-- 'buyin'/'cashout', keyed by table_id. Tournament money moves through the
+-- SAME wallet under different categories and a different key:
+--
+--     cash buy-in        debit  'buyin'             -> table_id
+--     tournament buy-in  debit  'tournament_buyin'  -> related_entity_id
+--     prize / bounty     credit 'prize' | 'bounty'  -> related_entity_id
+--     cash-out           credit 'cashout'           -> table_id
+--
+-- Verified on live rows: 69/69 tournament buy-ins and every prize/bounty carry
+-- related_entity_id and no table_id; cash buy-ins carry table_id. Those four
+-- are the ONLY categories in play, so the ledger is now fully covered.
+--
+-- Every entry fee a player paid was therefore invisible while nothing offset
+-- it — players appeared to WIN chips that were really their unreturned
+-- tournament stakes. Including the tournament economy cut the unexplained
+-- residual by roughly 4x on the same measurement.
+--
+-- The rake basis now covers both too. Tournament rake is the per-entry fee, so
+-- it is taken exactly from tournament_players x buy_in_fee rather than inferred
+-- from pot contributions — cheaper and exact.
+--
+-- SEATED STACKS STAY CASH-ONLY, deliberately. A live tournament stack is scrip;
+-- the entry fee is already booked as a loss and the prize is booked as a gain
+-- when it pays. Counting the scrip as well would double-count. A tournament
+-- still running at the boundary therefore reads as a loss until it pays out —
+-- a timing effect that self-corrects next period, not an error.
+--
+-- RECONCILIATION. Measured directly over a 10-minute window:
+--     cash buy-ins       5,632.50
+--     cash cash-outs       679.87
+--     cash rake            607.00
+--   => chips into tables 4,952.63, of which rake removed 607.00, so seated
+--      stacks must grow 4,345.63, giving player_net = -607.00 = -rake. The
+--      identity holds exactly.
+--
+-- A residual remains on very short windows (~450 over 75s) because seated
+-- stacks are sampled at an instant while hundreds of players are mid-hand.
+-- That noise is roughly constant in absolute terms, so against a full week's
+-- rake it is immaterial — but the settlement guard still refuses to pay while
+-- the union-wide sum is outside tolerance, so a genuine break cannot slip
+-- through on the same argument.

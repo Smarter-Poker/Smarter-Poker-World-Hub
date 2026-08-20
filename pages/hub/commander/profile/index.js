@@ -64,7 +64,7 @@ function FavoriteVenue({ venue, rank }) {
       <div className="flex-1">
         <p className="font-medium text-white">{venue.name}</p>
         {/* 2026-07-25 audit fix: favorite_venues rows carry id/name/city/state
-            only — show location instead of undefined session counts. */}
+            only - show location instead of undefined session counts. */}
         <p className="text-sm text-[#64748B]">
           {venue.sessions != null
             ? `${venue.sessions} sessions`
@@ -104,7 +104,7 @@ export default function PlayerProfilePage() {
     }
     // 2026-07-25 audit fix: achievements live at data.profile.achievements (not
     // data.achievements), stats come back snake_case (total_sessions,
-    // total_hours, ...), and favorite venues ride on the profile — the old
+    // total_hours, ...), and favorite venues ride on the profile - the old
     // reads all resolved to undefined/[]. Guard missing fields to 0/empty.
     const rawStats = statsData.success ? (statsData.data?.stats || null) : null;
     const mappedStats = rawStats ? {
@@ -121,7 +121,7 @@ export default function PlayerProfilePage() {
       : [];
     return {
       profile: profileData.success ? profileData.data?.profile : null,
-      // API only returns earned achievements — mark them unlocked for the UI.
+      // API only returns earned achievements - mark them unlocked for the UI.
       achievements: rawAchievements.map(a => ({ ...a, unlocked: a.unlocked ?? true })),
       stats: mappedStats,
       favoriteVenues: profileData.success ? (profileData.data?.profile?.favorite_venues || []) : []
@@ -149,13 +149,13 @@ export default function PlayerProfilePage() {
     })();
     return () => _c.abort();
   }, []);
-  // Realtime subscription — live updates
+  // Realtime subscription - live updates
   useEffect(() => {
     if (!profile?.id) return;
     const _ch = supabase
       .channel(`cmd-profile:${profile.id}`)
       // commander_members has no user_id column (venue-scoped membership cards
-      // joined by email/phone, not by auth.uid). Subscription removed —
+      // joined by email/phone, not by auth.uid). Subscription removed -
       // refreshProfile is also triggered by other events.
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_player_stats', filter: `player_id=eq.${profile.id}` }, () => { refreshProfile(); })
       .subscribe();
@@ -180,7 +180,7 @@ export default function PlayerProfilePage() {
     <>
       <SEOHead
         title="Player Profile"
-        description="Smarter.Poker — The Future Of The Game."
+        description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
 

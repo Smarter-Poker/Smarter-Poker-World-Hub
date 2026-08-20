@@ -41,7 +41,7 @@ const CreateGameForm = dynamic(
   { ssr: false }
 );
 // Dan-fix/maps-leaflet: swapped from GoogleMapPicker (which needs Google Maps
-// Platform billing) to LeafletLocationPicker. Same stack Poker Near Me uses —
+// Platform billing) to LeafletLocationPicker. Same stack Poker Near Me uses -
 // Leaflet + CartoDB tiles + Nominatim geocoding. Zero cost, no API key, no
 // Google Cloud project dependency. The component exposes the same prop
 // interface as GoogleMapPicker so this is a drop-in replacement.
@@ -87,17 +87,17 @@ export default function CreateHomeGamePage() {
   // Dan-fix/first-game-collapse (2026-05-12): the "Schedule First Game" panel
   // now collapses behind a toggle and prefills every overlapping field from
   // the group the user just created. Most of the form previously duplicated
-  // info they had already entered — confusing UX. Default closed so the
+  // info they had already entered - confusing UX. Default closed so the
   // success screen is clean; user opts in to scheduling a game right away.
   const [showFirstGameForm, setShowFirstGameForm] = useState(false);
   // Audit-fix/event-error-ui (2026-05-12): the Schedule First Game submission
-  // path previously swallowed every error in a console.warn — user saw no
+  // path previously swallowed every error in a console.warn - user saw no
   // feedback when the API rejected the request (which it always does because
   // of field-name mismatches between CreateGameForm and /api/home-games/events).
   // Surface failures inline so the host knows what to fix.
   const [firstGameError, setFirstGameError] = useState(null);
   // Phase 41/audit-fix-B9 + Audit-fix/event-idempotency: shared token factory.
-  // Moved here (before first use) to avoid TDZ — `const` arrow functions are
+  // Moved here (before first use) to avoid TDZ - `const` arrow functions are
   // not hoisted; calling makeToken() before this line was a runtime
   // `ReferenceError: Cannot access 'makeToken' before initialization`.
   // Used for both the group submission token (submissionTokenRef) and the
@@ -116,7 +116,7 @@ export default function CreateHomeGamePage() {
   // already owns at least one home group. `null` = still checking, `0` = new
   // host (show welcome banner), `>0` = existing host (suppress banner +
   // switch wizard copy from "first" to "additional"). Loaded once on mount
-  // from the user's own auth session — no PII leakage since the query is
+  // from the user's own auth session - no PII leakage since the query is
   // restricted to caller via RLS.
   const [existingGroupCount, setExistingGroupCount] = useState(null);
   useEffect(() => {
@@ -126,7 +126,7 @@ export default function CreateHomeGamePage() {
         const { ensureAuthReady } = await import('../../../../src/lib/authUtils');
         const { supabase: sb } = await import('../../../../src/lib/supabase');
         const authUser = await ensureAuthReady(sb);
-        if (!authUser || !authUser.id) return; // unauthenticated — submit path handles redirect
+        if (!authUser || !authUser.id) return; // unauthenticated - submit path handles redirect
         const { count, error: cntErr } = await sb
           .from('commander_home_groups')
           .select('id', { count: 'exact', head: true })
@@ -166,7 +166,7 @@ export default function CreateHomeGamePage() {
     }
   }, [error]);
 
-  // ── PHASE 17 — hard logo requirement ──────────────────────────────
+  // ── PHASE 17 - hard logo requirement ──────────────────────────────
   // profile_photo_url is filled in by the Supabase Storage upload
   // before the user is allowed to click "Create Group". See the Logo
   // panel on step 3 below.
@@ -335,7 +335,7 @@ export default function CreateHomeGamePage() {
       updateField('profile_photo_url', json.url);
     } catch (err) {
       console.warn('Logo upload failed:', err);
-      setLogoError(err?.message || 'Upload failed — please try again');
+      setLogoError(err?.message || 'Upload failed - please try again');
     } finally {
       setUploadingLogo(false);
       e.target.value = ''; // Reset so the same file can be re-picked if needed
@@ -348,7 +348,7 @@ export default function CreateHomeGamePage() {
       return;
     }
 
-    // Phase 17: hard gate — logo upload required before we even call the API.
+    // Phase 17: hard gate - logo upload required before we even call the API.
     // Server will reject anyway, but failing fast here gives a clearer UX.
     if (!formData.profile_photo_url) {
       setError('Please upload a logo before creating your group');
@@ -371,7 +371,7 @@ export default function CreateHomeGamePage() {
         authUser ? `user ${authUser.id || authUser.user_id}` : 'NULL'
       );
       if (!authUser) {
-        // Fall back to sync localStorage read — if user is genuinely logged in,
+        // Fall back to sync localStorage read - if user is genuinely logged in,
         // smarter-poker-auth localStorage entry has their session even if the
         // Supabase client failed to validate it.
         let lsUser = null;
@@ -399,7 +399,7 @@ export default function CreateHomeGamePage() {
       }
       // Dan-fix/diag-no-redirect (2026-05-12): the PR #491 hard-redirect on
       // null token was the silent submit reset. PageErrorBoundary keys on
-      // router.asPath — any router.push remounts the page and wipes form state.
+      // router.asPath - any router.push remounts the page and wipes form state.
       // Strategy: gather the token best-effort, never redirect from submit,
       // and surface every failure inline + console for diagnosis.
       let token = null;
@@ -438,7 +438,7 @@ export default function CreateHomeGamePage() {
 
       // Map form fields to API/DB column names.
       // Phase 41/audit-fix-B4: when multi-table, the "default" surfaced on
-      // group cards is whatever Table 1 carries — keep it in sync so the rest
+      // group cards is whatever Table 1 carries - keep it in sync so the rest
       // of the app doesn't show a stale single-table value.
       const isMultiTable =
         formData.tables_count > 1 && Array.isArray(formData.tables) && formData.tables.length > 0;
@@ -508,7 +508,7 @@ export default function CreateHomeGamePage() {
                         : Number(t.entries_cap) || null,
                     // 2026-07-25 audit fix: the Recurring Tournament toggle's
                     // recurring/recurring_days were collected but silently
-                    // dropped here — persist the host's intent so it isn't
+                    // dropped here - persist the host's intent so it isn't
                     // lost. NOTE: server-side generation of recurring
                     // instances from these fields is future work; today only
                     // rows with a scheduled_date become real events.
@@ -582,7 +582,7 @@ export default function CreateHomeGamePage() {
         // row via trg_autocreate_home_group_social_page and attaches it
         // to the response as `group.social_page`. Historical code here
         // did a second POST to /api/social/pages which produced an
-        // orphan (non-linked) duplicate page — that's been removed.
+        // orphan (non-linked) duplicate page - that's been removed.
         if (data.group && data.group.social_page) {
           setCreatedSocialPage(data.group.social_page);
         }
@@ -673,7 +673,7 @@ export default function CreateHomeGamePage() {
     <>
       <SEOHead
         title="Create Home Game"
-        description="Smarter.Poker — The Future Of The Game."
+        description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
 
@@ -724,7 +724,7 @@ export default function CreateHomeGamePage() {
         {/* Dan-fix/header-overlap (2026-05-12): spacer matches header+progress bar */}
         <div style={{ height: 80 }} aria-hidden="true" />
 
-        {/* ── Club Commander Home Games — Unified Signup Banner ──
+        {/* ── Club Commander Home Games - Unified Signup Banner ──
             Shown identically whether the user arrived from Poker Near Me,
             Social Pages, or Club Commander. The `from` query param (set by
             the redirect links in each entry port) is surfaced as a small
@@ -768,7 +768,7 @@ export default function CreateHomeGamePage() {
                     })()}
                   </div>
                   <p className="text-sm text-[#94A3B8] mt-1">
-                    Signup complete. Let's create your first home game — this 3-step form sets up
+                    Signup complete. Let's create your first home game - this 3-step form sets up
                     your group details, location, and schedule. The same flow no matter where you
                     started.
                   </p>
@@ -780,7 +780,7 @@ export default function CreateHomeGamePage() {
 
         {/* Dan-fix/banner-existing-host (2026-05-11): existing-host banner.
             Shown to users who already have 1+ home groups. Honest about what
-            this flow does — creates an additional home game, no "signup
+            this flow does - creates an additional home game, no "signup
             complete" misnomer. Links back to their existing groups list so
             they can manage what they already have instead of starting over. */}
         {step === 1 && existingGroupCount !== null && existingGroupCount > 0 && (
@@ -994,8 +994,8 @@ export default function CreateHomeGamePage() {
                   </div>
                   <p className="text-xs text-[#64748B] mt-2">
                     {formData.tables_count === 1
-                      ? 'Single table — pick the game type and stakes below.'
-                      : `Running ${formData.tables_count} tables — set the game type and stakes for each table below.`}
+                      ? 'Single table - pick the game type and stakes below.'
+                      : `Running ${formData.tables_count} tables - set the game type and stakes for each table below.`}
                   </p>
                   {formData.tables_count > 1 && (
                     <p className="text-[10px] text-[#64748B]/70 mt-1 italic">
@@ -1618,11 +1618,11 @@ export default function CreateHomeGamePage() {
                               })}
                             </div>
                             {/* 2026-07-25 audit fix: recurring rows without a
-                                first date never become real events — tell the
+                                first date never become real events - tell the
                                 host the date above is required to schedule. */}
                             {!t.scheduled_date && (
                               <p className="text-xs text-[#F59E0B] mt-2">
-                                Set the Date above for the first occurrence — recurring days are saved with your group, but the tournament is only scheduled once a first date is chosen.
+                                Set the Date above for the first occurrence - recurring days are saved with your group, but the tournament is only scheduled once a first date is chosen.
                               </p>
                             )}
                           </div>
@@ -1774,7 +1774,7 @@ export default function CreateHomeGamePage() {
               </div>
             </div>
           )}
-          {/* Step 4 fallback — Dan-fix/post-submit (2026-05-11)
+          {/* Step 4 fallback - Dan-fix/post-submit (2026-05-11)
               If we reached step 4 but `createdGroup` happens to be null
               (API returned success without the group payload, or a race
               cleared it), still show a minimal success screen so the user
@@ -1971,7 +1971,7 @@ export default function CreateHomeGamePage() {
                     start_time: formData.start_time || '',
                     end_time: formData.end_time || '',
                     // City/state/zip: prefill from group address. Street address must come
-                    // from the user — group only stores approximate location, no exact street.
+                    // from the user - group only stores approximate location, no exact street.
                     city: formData.city || '',
                     state: formData.state || '',
                     zip: formData.zip_code || '',
@@ -1990,7 +1990,7 @@ export default function CreateHomeGamePage() {
                     try {
                       const token = getAccessToken();
                       if (!token) {
-                        setFirstGameError('Please sign in again — your session expired.');
+                        setFirstGameError('Please sign in again - your session expired.');
                         return;
                       }
                       const fullAddress = [
@@ -2032,7 +2032,7 @@ export default function CreateHomeGamePage() {
                         body: JSON.stringify(apiPayload),
                       });
                       // Rotate idempotency on 2xx or parseable 4xx (server saw
-                      // and rejected our input — safe to retry with new key).
+                      // and rejected our input - safe to retry with new key).
                       if (res.ok || (res.status >= 400 && res.status < 500)) {
                         eventSubmissionTokenRef.current = makeToken();
                       }
