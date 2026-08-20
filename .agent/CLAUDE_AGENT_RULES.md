@@ -1,6 +1,6 @@
 # Smarter-Poker — Standing Rules for Claude / AG Agents
 
-**Last updated:** 2026-05-04 (Dan, via Cowork session — added RULE 10: Cloud infrastructure lifecycle)
+**Last updated:** 2026-08-19 (Antigravity agent — added RULE 6 addendum: `node --check` anti-pattern; see `audits/2026-08-19-store-catalog-orphaned-brace-postmortem.md`)
 
 This file is the authoritative source for behavior rules that apply to ANY
 Claude-family agent working on the Smarter-Poker codebase — Cowork, Claude
@@ -99,6 +99,27 @@ Before every push to main, verify:
 - [ ] If the change touches a JSX component's `return ()`, wrap multiple
   top-level siblings in a Fragment (`<>...</>`) — the GoLiveModal incident
   on 2026-04-28 was caused by skipping this
+
+**RULE 6 addendum (2026-08-19) — `node --check` anti-pattern:**
+The `node --check` invocation MUST be written so that a syntax error causes a
+non-zero exit in the outer shell context. The form
+`node --check file && echo "OK"` is **FORBIDDEN** — the `&&` short-circuits on
+failure so the `echo` never runs, the overall command still exits 0, and you
+get false confidence. Use one of these instead:
+
+```bash
+# Inspect: safe in any context
+node --check file.js; echo "exit: $?"
+
+# Abort: safe in scripts and agent loops
+node --check file.js || { echo "SYNTAX ERROR — aborting"; exit 1; }
+```
+
+Any commit message claiming "node --check clean" must be backed by a command
+that **could have printed a different result** on broken input.  
+Full postmortem: `.agent/audits/2026-08-19-store-catalog-orphaned-brace-postmortem.md`
+(commit `5443251216` broke prod; the `&& echo` check was the root cause of the
+false attestation)
 
 ## RULE 7 — Phase 4.4 catch-all consolidation cadence
 
