@@ -1247,3 +1247,35 @@ established, and adjusting pot-splitting maths on a guess would corrupt every
 hand at every table. fn_tournament_chip_conservation_check now runs every
 settler cycle, with a per-player tolerance so integer-flooring noise does not
 alarm.
+
+### Correction: the Spin margin work above was superseded within the hour
+
+Two things happened to the Spin fix immediately after it shipped, and both are
+worth recording rather than quietly leaving the section above to read as if it
+still stands.
+
+**1. It was wrong.** The very first row it produced said "house_retained 3.00"
+on a *3 Chip Spin (3x)* — and a 3x Spin is exactly break-even, so the true
+margin is 0. The cause: it took the contribution from `prize_pool` as it stood
+before the overwrite, but that pool is seeded non-zero at creation
+(`guaranteed_prize` 9.00 on that event), so three 3-chip entries read as 12
+contributed rather than 9. Contribution has to come from entries x buy_in, not
+from a pool someone else has already seeded. Caught by reading the first row
+the new instrument produced instead of assuming a new measurement is right
+because it is new.
+
+**2. It was replaced by something better.** Club Arena 11633f4ce ("engine
+cutover — gated draw, no fee, and every game booked") removed this code and
+replaced the whole approach with `fn_spin_draw_multiplier`,
+`fn_spin_settle_game`, `fn_spin_reserve_seed` and `fn_spin_reserve_state`:
+a fixed house rake on collected, and the prize pool drawn FROM a real reserve
+rather than conjured. That is the right shape and supersedes the margin-row
+patch entirely.
+
+The single incorrect row was deleted (migration
+`remove_superseded_spin_margin_row`). It never touched settlement —
+`player_contributions` is NULL so the union rollup ignores it, and it did not
+increment `tournaments.total_rake` — but a known-wrong money row is exactly
+what misleads the next investigation.
+
+The finding stands and drove the fix; the implementation credit is theirs.

@@ -1,0 +1,27 @@
+-- 2026-08-20: remove the one spin_margin row I wrote. It is wrong, and it is
+-- orphaned.
+--
+-- Club Arena de7a9efb4 started booking the Spin margin (the difference between
+-- what players contribute and the pool the multiplier produces), because that
+-- money existed in no ledger at all. It wrote exactly one row before being
+-- superseded by 11633f4ce, which replaced the whole approach with
+-- fn_spin_draw_multiplier / fn_spin_settle_game and books every game properly.
+--
+-- That single row is also incorrect: it took the contribution from prize_pool
+-- as it stood before the overwrite, and that pool is seeded non-zero at
+-- creation (guaranteed_prize 9.00 on the event in question), so a 3 Chip Spin
+-- (3x) read as 12 contributed against a 9 pool and the row claims
+-- "house_retained 3.00". A 3x Spin is exactly break-even: the true margin is 0.
+--
+-- It never affected settlement -- player_contributions is NULL, so the union
+-- rake rollup (which requires player_contributions IS NOT NULL AND
+-- rake_amount > 0) ignores it, and it did not touch tournaments.total_rake.
+-- But a known-wrong money row left sitting in rake_records is exactly the kind
+-- of thing that misleads the next person, so it goes.
+--
+-- Scoped to the single source so nothing else can be caught by it.
+--
+-- Applied to production via Supabase MCP apply_migration as
+-- 'remove_superseded_spin_margin_row' on 2026-08-20.
+DELETE FROM rake_records
+ WHERE source = 'TournamentManagerBase.spin_margin';
