@@ -1415,3 +1415,34 @@ noise, and Evening Mystery Bounty's +100 resolved to exactly 0 on its own.
 What the check DID catch was the add-on defect above -- a 908,552-chip
 shortfall that no one would have noticed, on a feature that had run for the
 first time fifteen minutes earlier.
+
+### The orphan-period invariant caught its own recurrence
+
+`settlement_period_orphan` went critical again, hours after the row it was
+written for was deleted this morning. The invariant did exactly its job, and
+what it found was that the deletion had been treating a symptom.
+
+`get_current_settlement_period()` inserts a period with **neither club_id nor
+union_id**. Its first branch returns the most recent OPEN period regardless of
+owner, so deleting the orphan removed the only open period and the very next
+call manufactured a fresh one. Self-perpetuating, and `authenticated` may call
+it, so any logged-in user triggers it.
+
+An unowned period can never be settled and poisons every "current period"
+lookup. The caller cannot simply be handed nothing either: Club Arena's
+SettlementService treats an empty result as a backend failure and throws, and
+its own comment says it refuses to "fabricate an orphaned period" -- the
+function was doing precisely what the caller had been written to refuse.
+
+Fixed by creating an OWNED period rather than by not creating: ownership goes
+to the union when exactly one exists, and with zero or several it creates
+nothing and lets the caller fail loudly, because guessing an owner is how the
+orphan arrived. The existing orphan was adopted rather than deleted, since it
+is the live open week.
+
+Verified, each rolled back: the SPA contract still returns the same period;
+retiring every open period and re-calling produces one owned by
+fade0000-...-0001 with orphans_created = 0; and the invariant went 1 -> 0.
+
+The lesson is the one this whole session keeps repeating: deleting the bad row
+is not the fix. The fix is the thing that writes it.
