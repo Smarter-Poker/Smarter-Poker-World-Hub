@@ -1031,3 +1031,134 @@ be bolted on at the end of a long session. Flagged for Dan as the highest
 
 Interim mitigation: batch schema changes and apply them in one window rather
 than spread across a session, and prefer quiet periods.
+
+---
+
+## Tournament lifecycle round 3 (2026-08-20): cancellations, rebuys, add-ons
+
+Dan's requirement: tournaments never cancel, always finish, always break, and
+late reg / rebuys / add-ons / bounty payouts all work. Audited each against
+production rather than against the code's intentions.
+
+### Cancellations: 72% of all tournaments, and the cause was one line
+
+7,752 CANCELLED against 3,055 COMPLETED across all history. The trend:
+
+| day | cancelled | completed | % cancelled |
+|---|---|---|---|
+| 08-10..14 | ~1,000 | ~110 | ~90% |
+| 08-15..18 | ~1,120 | ~460 | ~70% |
+| 08-19 | 42 | 718 | 5.5% |
+| 08-20 | **0** | **485** | **0%** |
+
+The signature is unmistakable: of 2,174 recent cancellations, **2,148 were
+short by EXACTLY ONE PLAYER** (1,487 of 1,492 at min 3; 496 of 506 at min 6;
+165 of 169 at min 9). Cause:
+
+```ts
+function horsesForSeatHeldGame(maxPlayers) {
+  if (!HOLD_SEAT_FOR_HUMAN) return { horses: maxPlayers };
+  return { horses: Math.max(1, maxPlayers - 1) };   // one seat held for a human
+}
+```
+
+A seat was reserved for a human who never came, so SNGs and Spins sat at
+maxPlayers-1 until a timer killed them. Already fixed before this session by
+another agent (HOLD_SEAT_FOR_HUMAN = false, plus GameServer topping the field
+up with horses instead of cancelling), which is why today is 0%.
+
+VERIFIED the documented claim that flipping HOLD_SEAT_FOR_HUMAN back to true
+when real players arrive is safe: the fill-on-start path tops any short field
+up to max_players past start time and the cancel branch is gone entirely, so
+the reserved seat can return without the 90% cancellation rate returning
+with it.
+
+Remaining auto-cancel path found: TournamentService.startTournament still
+auto-cancels below 3 players. It is UNREACHABLE - it filters
+`.eq('status','registered')` and no row ever carries that status (production
+has only eliminated/winner/playing), so it throws "No players registered"
+first. That also means the SPA's manual Start button cannot start anything;
+every tournament is started by the server discovery loop. Recorded rather
+than changed, since the client start path is dead either way.
+
+### Always finish / always break
+
+* 0 RUNNING tournaments stuck on a break, 0 overdue breaks.
+* No stuck lifecycle states: longest RUNNING is 41 minutes with 12 players
+  left; nothing stranded in COMPLETING, REGISTERING or LATE_REG.
+* 70 tournaments took breaks in 3 days, 1,313 closed late reg properly
+  (prize_pool_finalized), 42 add-on periods opened.
+* FIXED: 3 COMPLETED tournaments were still flagged on_break=true (one
+  reading 1,231 minutes "on break") because endBreak() never runs if the
+  event finishes DURING a break. Never affected play, but a finished
+  tournament that reads as stuck costs someone an investigation. The
+  COMPLETING -> COMPLETED transition now clears both flags, and the existing
+  rows were cleaned (migration clear_stale_on_break_on_completed).
+
+### Rebuys and add-ons had NEVER executed. Now they do.
+
+Not rarely - never. Zero 'addon' wallet_transactions in all of history, and
+the last 'rebuy' row dated 2026-04-19, while events are scheduled every hour
+carrying rebuy_cost, rebuy_chips, rebuy_levels 6, max_rebuys 2, addon_cost
+and addon_levels 1, fully configured and ready.
+
+Nothing ever called it. The engine has auto-rebuy for CASH tables only
+(AutoRebuyService, the horse_rebuys settlement step); process_tournament_rebuy
+appears in the engine solely inside comments. Its only real caller is the SPA,
+which needs a human at a keyboard, and there are no humans yet. The money path
+was correct the whole time and simply unreachable - which is exactly why the
+add-on rake bug and the double-booked fee both sat undetected inside it.
+
+* Rebuys: the elimination sweep now offers the rebuy BEFORE assigning
+  finishing places, and whoever takes one is removed from the sweep and keeps
+  playing. A busted player entitled to a rebuy is not out yet.
+* Add-ons: the field is offered the add-on the moment the window opens.
+* Horses only. A real player's rebuy or add-on stays their own decision.
+* Every eligibility rule is enforced inside process_tournament_rebuy along
+  with the debit, the prize-pool increment and the single rake booking, in one
+  transaction - so the engine asks and lets the database say no. Declines are
+  normal and counted, not reported as errors. Bounded by max_rebuys and the
+  level window, so it cannot loop.
+
+VERIFIED LIVE, the first tournament rebuy in production history:
+
+```
+wallet_transactions  debit 27.50  "Tournament rebuy: Prime Time Main Event
+                                   (NLH) (25.00 + 2.50 fee) [club wallet]"
+rake_records         2.50, kind tournament_rebuy_fee, exactly ONE row
+tournaments          prize_pool 3775.00 (base added), total_rake 377.50
+```
+
+and 20 minutes later: 9 rebuy debits against 9 rake rows - exactly 1:1, no
+double-booking in the live path - totalling 22.50 of rake at 2.50 each.
+
+### Found, NOT fixed: a real chip-conservation bug in the hand engine
+
+The add-on deploy failed its test gate on ChipConservation.property.test.ts.
+It is not my change and not flakiness in the usual sense: BASE_SEED is fixed
+at 1, but the test's own comment notes the seed "replays only the actions, not
+the cards", so every run deals a different deck and randomly discovers real
+violations. Caught it locally at 200,000 hands (clean at 37,000, so roughly 1
+in 10^5):
+
+```
+INV-7: seat 8 (u8) was paid 0.15 but is eligible for only 0.14 across 6 pots
+  variant plo8, 9 seats, seat 8 all-in for 0.02
+  pots: [0.14 x7 players] [0.9000000000000001 x6] [0.15 x5]
+        [0.3599999999999999 x4] [1.08 x3] [0.56 x2]
+```
+
+A short stack all-in for 0.02 is eligible for the 0.14 main pot only, yet was
+paid 0.15 - which is exactly the amount of pot 3, a pot it is not in. Totals
+still balance (3.16 paid + 0.03 rake = 3.19), so it is a MISALLOCATION between
+players rather than net chip creation: someone else was underpaid by 0.01.
+It is a hi/lo split game, and the pot amounts carry float artefacts.
+
+This matters for tournaments, not just cash: PLO8 tournaments exist (Brunch
+Special PKO (PLO8)) and deal through the same engine.
+
+Deliberately NOT fixed here. calculatePots carries two fixes dated TODAY
+citing this same property test, so another agent is actively working in it,
+and a wrong change to pot math corrupts every hand at every table. The full
+replay above is the handover. Note also that this test randomly fails the
+deploy gate, which is why one tournament deploy needed a retry today.
