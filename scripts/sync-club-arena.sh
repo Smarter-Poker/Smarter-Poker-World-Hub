@@ -301,17 +301,6 @@ DEL=$(git diff --cached --diff-filter=D --name-only "$DEST/" | wc -l | tr -d ' '
 MOD=$(git diff --cached --diff-filter=M --name-only "$DEST/" | wc -l | tr -d ' ')
 ok "Staged $STAGED changes  (+$ADD ~$MOD -$DEL)"
 
-# ─── STEP 4: Commit + push ─────────────────────────────────────────────────
-log "Committing..."
-export ARENA_BUILD=1
-git commit -m "$COMMIT_MSG" 2>&1 | tail -3
-ok "Committed"
-
-log "Pushing..."
-# HEAD:main, not `main`: in a WH_OVERRIDE worktree HEAD is detached, so
-# `git push origin main` pushes the SHARED checkout's main ref — which is a
-# different (and usually diverged) commit than the sync we just built.
-git push origin HEAD:main 2>&1 | tail -3
 ok "Pushed"
 
 # ─── Cleanup ────────────────────────────────────────────────────────────────
@@ -319,16 +308,10 @@ rm -rf "$DIST_TMP"
 
 echo ""
 echo "═══════════════════════════════════════════════════════"
-echo -e "  ${G}CLUB ARENA DEPLOYED${N}"
+echo -e "  ${G}CLUB ARENA SYNCED LOCALLY${N}"
 echo "═══════════════════════════════════════════════════════"
-echo "  assets: $ASSET_COUNT  |  msg: $COMMIT_MSG"
+echo "  assets: $ASSET_COUNT  |  ready for local preview"
 echo ""
 
-REMAIN=$(git status --short "$DEST/" | wc -l | tr -d ' ')
-if [ "$REMAIN" -gt 0 ]; then
-  warn "WARNING: $REMAIN arena files still show as changed after push!"
-  git status --short "$DEST/" | head -5
-else
-  ok "Working tree clean"
-fi
+ok "Changes staged. Push Club Arena to GitHub to deploy to production."
 echo ""
