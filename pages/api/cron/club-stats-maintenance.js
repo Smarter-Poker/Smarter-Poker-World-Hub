@@ -89,10 +89,9 @@ async function handler(req, res) {
     // scheduler. The advisory lock inside the function makes a concurrent
     // page-triggered refresh a no-op rather than duplicate work.
     try {
-      const { data: idxRows, error: idxErr } = await admin.rpc(
-        'ca_refresh_hand_player_index',
-        { p_max_hands: 60000 }
-      );
+      const { data: idxRows, error: idxErr } = await admin.rpc('ca_refresh_hand_player_index', {
+        p_max_hands: 60000,
+      });
       if (idxErr) {
         result.errors.push(`hand index: ${idxErr.message}`);
       } else {
