@@ -114,9 +114,19 @@ async function handler(req, res) {
         result.errors.push(`snapshot health: ${healthErr.message}`);
       } else if (healthData) {
         result.snapshot_health = healthData;
-        if ((healthData.missing_count || 0) > 0) {
+        // Only gaps inside the actionable window raise an error. An older gap
+        // cannot be healed - a snapshot captures counters at a moment that has
+        // passed - so alerting on it forever would pin this probe to non-ok and
+        // train everyone to ignore it. All gaps remain visible in
+        // snapshot_health for anyone who looks.
+        const RECENT_GAP_DAYS = 7;
+        const cutoff = new Date(Date.now() - RECENT_GAP_DAYS * 86400000)
+          .toISOString()
+          .slice(0, 10);
+        const recentGaps = (healthData.missing_days || []).filter((d) => d >= cutoff);
+        if (recentGaps.length > 0) {
           result.errors.push(
-            `snapshot gaps present: ${JSON.stringify(healthData.missing_days)} - period leaderboard windows are wider than their labels for affected ranges`
+            `snapshot gaps in the last ${RECENT_GAP_DAYS}d: ${JSON.stringify(recentGaps)} - period leaderboard windows are wider than their labels for affected ranges`
           );
         }
       }
@@ -198,7 +208,12 @@ async function handler(req, res) {
 
     const { error: heartbeatErr } = await admin.from('probe_heartbeats').insert({
       probe_name: 'club-stats-maintenance',
-      status: result.errors.length ? 'degraded' : 'ok',
+      // 'partial', not 'degraded': probe_heartbeats_status_check allows only
+      // ok | failed | partial. Writing 'degraded' violated the constraint, so
+      // every run WITH errors silently failed to record - the exact runs you
+      // most want recorded. The insert error is only console.warn'd, so this
+      // was invisible until the Vercel runtime log was read directly.
+      status: result.errors.length ? 'partial' : 'ok',
       duration_ms: Date.now() - started,
       details: result,
     });
@@ -207,7 +222,7 @@ async function handler(req, res) {
     }
 
     return res.status(200).json({
-      status: result.errors.length ? 'degraded' : 'ok',
+      status: result.errors.length ? 'partial' : 'ok',
       ...result,
       duration_ms: Date.now() - started,
     });
