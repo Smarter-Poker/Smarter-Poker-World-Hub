@@ -91,16 +91,36 @@ export default async function handler(req, res) {
         const buyerIds = [...new Set(purchases.map((p) => p.buyer_id))];
         const purchaseIds = purchases.map((p) => p.id);
 
-        // Buyer display names (club-scoped, so no profile/email leakage).
+        // Buyer display names. club_members.nickname/display_name are the
+        // club-scoped override and take precedence, but they are NULL for every
+        // one of the 327 members of the seed club — reading only those rendered
+        // the entire ledger as "Member", which defeats its purpose: an admin
+        // cannot refund the right person's purchase if every row is anonymous.
+        // profiles is the platform-wide fallback. Names only; never email.
         const nameById = new Map();
         if (buyerIds.length > 0) {
-            const { data: members } = await getSupabase()
-                .from('club_members')
-                .select('user_id, display_name, nickname')
-                .eq('club_id', clubId)
-                .in('user_id', buyerIds);
-            for (const m of members || []) {
-                nameById.set(m.user_id, m.nickname || m.display_name || 'Member');
+            const [{ data: members }, { data: profs }] = await Promise.all([
+                getSupabase()
+                    .from('club_members')
+                    .select('user_id, display_name, nickname')
+                    .eq('club_id', clubId)
+                    .in('user_id', buyerIds),
+                getSupabase()
+                    .from('profiles')
+                    .select('id, display_name, username')
+                    .in('id', buyerIds),
+            ]);
+
+            const profById = new Map();
+            for (const pr of profs || []) profById.set(pr.id, pr);
+
+            for (const id of buyerIds) {
+                const m = (members || []).find((x) => x.user_id === id);
+                const pr = profById.get(id);
+                nameById.set(
+                    id,
+                    m?.nickname || m?.display_name || pr?.display_name || pr?.username || 'Member'
+                );
             }
         }
 
