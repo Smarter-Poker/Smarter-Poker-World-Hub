@@ -155,7 +155,19 @@ ALL_CRONS = [
     ('/api/cron/auto-settlement',           dict(day_of_week='mon', hour=10, minute=0)),
     ('/api/cron/auto-settlement-distribute',dict(day_of_week='mon', hour=10, minute=10)),
     ('/api/cron/license-reminders',         dict(hour=9,  minute=0)),
-    ('/api/cron/union-rakeback',            dict(day_of_week='mon', hour=10, minute=20)),
+    # ('/api/cron/union-rakeback', ...) — RETIRED 2026-08-20. Double-payer.
+    # The union 90/10 weekly rakeback is paid by the ENGINE:
+    # RakebackSettlerService.runUnionWeeklyRakeback() calls
+    # fn_union_weekly_rakeback_close_all every settler cycle (90% of each
+    # club's own contribution basis, union keeps 10%, idempotent per
+    # (union, ISO week), self-healing for missed Mondays). The workers route
+    # /cron/union-rakeback instead drained 100%% of union_wallets.rake_wallet
+    # and split it by commission-rate WEIGHT (50/50 for two clubs at 0.90) —
+    # wrong amount, wrong allocation, and a second payer on the same wallet.
+    # It only ever no-op'd because it read the dead unions.rake_wallet column;
+    # the 2026-08-19 wallet-read fix armed it, so 2026-08-24 10:20 would have
+    # been its first real (double) payment. Do not re-add a schedule for it —
+    # same two-schedulers lesson as news-digest (CLAUDE.md section 11.4).
     ('/api/cron/scraper-watchdog',          dict(hour='*/2', minute=0)),
     ('/api/cron/venue-game-alerts',         dict(minute=0)),          # every hour
     ('/api/cron/scraper-data-cleanup',      dict(hour=3, minute=0)),
@@ -494,7 +506,9 @@ WORKERS_PREFERRED = {
     # this commit will be the production validation.
     '/api/cron/auto-settlement':            '/cron/auto-settlement',
     '/api/cron/auto-settlement-distribute': '/cron/auto-settlement-distribute',
-    '/api/cron/union-rakeback':             '/cron/union-rakeback',
+    # '/api/cron/union-rakeback' mapping removed with its schedule (retired
+    # 2026-08-20, see ALL_CRONS note) so a re-added schedule cannot silently
+    # fire the wrong payer.
 
     # ─── 2B.2(g) Batch G — 18 routes from parallel session's 38/44 wave ─────
     # Workers repo HEAD 6db801e (handlers 23-38 + bonus_xp_multiplier fix).
@@ -999,7 +1013,7 @@ STAGGERED_JOBS = {
     # Monday-morning money movement (see .memory/context/phase-2a2-idempotence-audit.md)
     '/api/cron/auto-settlement',
     '/api/cron/auto-settlement-distribute',
-    '/api/cron/union-rakeback',
+    # union-rakeback retired 2026-08-20 (engine pays it; see ALL_CRONS note)
     # Notification jobs where a read/compute/write race could duplicate
     # user-facing sends (SMS + push). Covered in
     # .memory/context/phase-2a2-full-cron-audit.md.
