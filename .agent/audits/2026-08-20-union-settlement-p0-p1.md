@@ -750,3 +750,132 @@ The fee fix is behaving correctly. The trigger was the index build.
   a money movement and a judgement call, so it was not executed.
 * Whether to harden the `All busted simultaneously` path against transient
   DB errors (recommended).
+
+---
+
+## Tournament payout integrity (2026-08-20, follow-on from the incident)
+
+The incident above stranded prize money in two tournaments. Checking whether
+that was a one-off showed it was not: it is a long-standing structural defect
+that has been quietly losing and duplicating prize money for months.
+
+### The measurement
+
+Every completed tournament, grouped by how many places its structure pays:
+
+| places paid | tournaments | short-paid | only 1st place paid |
+|---|---|---|---|
+| 1 | 2,058 | 0 | 0 |
+| 2 | 252 | 2 | 2 |
+| 3 | 85 | 1 | 1 |
+| 5 | 487 | 75 | 50 |
+| 9 | 127 | 35 | 29 |
+
+Single-place structures (Spins) are **2,058 for 2,058 perfect**. Every
+multi-place format degrades, and the more places it pays the worse it gets:
+113 of 951 multi-place tournaments under-paid, 79 of them paying only first
+place. Separately, 11 tournaments paid a place to more than one player.
+
+The defects cluster on particular days rather than spreading evenly, which
+is the signature of disruption, not of bad arithmetic. The payout
+percentages themselves are correct: THREE, FIVE and NINE each sum to exactly
+100%.
+
+### Root causes (three, all confirmed against production)
+
+**1. A failed query read as "nobody left".** In
+`TournamentManagerEliminations`:
+
+```ts
+const { count: remainingCount } = await supabase...   // error discarded
+if ((remainingCount || 0) <= 1) {                     // null -> 0 -> "finish it"
+```
+
+On a Supabase timeout `count` returns null, `|| 0` turns that into 0, and the
+engine concludes the tournament is over. It then finishes while players are
+still live. The fingerprint is unmistakable in the data -- Afternoon Bounty
+ended with 63 eliminated (positions 7..69), 1 winner, and **5 players still
+`status='playing'` with `position=NULL`**. Those 5 were places 2..6: exactly
+the paid places, which is exactly the money that went missing. Early Bird
+Freeroll 3b02e894 shows the same shape with 8 unresolved players.
+
+**2. A clamp that mints money.**
+
+```ts
+const position = Math.max(2, basePosition - i);
+```
+
+When `basePosition` is smaller than the number of players being eliminated,
+every position computing below 2 collapses onto 2, so several players are
+stamped place 2 and EACH is paid a full 2nd-place prize. The wallet
+idempotency key is `tourney:{id}:prize:{user}:{place}` -- it dedupes a
+repeated user, not a repeated PLACE -- so nothing downstream caught it.
+Worked example, Early Bird Freeroll ad750179:
+
+```
+place 2 -> 8d100b96  18.75  at 04:30:48
+place 2 -> face0000  18.75  at 04:44:51
+total paid 93.75 against a 75.00 pool = 125%
+```
+
+**3. No final reconciliation.** Places 2..N are emitted per-elimination and
+place 1 at finish; nothing ever checks the pool was fully disbursed. That is
+why any disruption is permanent and silent.
+
+### Fixes
+
+Engine (`TournamentManagerEliminations.ts`):
+
+* an unreadable player count is now treated as UNKNOWN, not zero -- the
+  finish check is skipped for that cycle and the tournament stays live;
+* the same for the count that positions are derived from: eliminations are
+  deferred rather than assigned from a number we could not read;
+* the clamp is gone. `basePosition` is floored at `bustedOrdered.length + 1`,
+  which makes the run strictly decreasing and always >= 2, so places are
+  distinct by construction and place 1 stays reserved for the winner;
+* `finishTournament` refuses to leave anyone unresolved: any survivor other
+  than the winner is assigned a distinct place (bigger stack finishes higher)
+  and paid, so the pool is disbursed in full.
+
+Database (`20260821m`): `fn_tournament_payout_reconcile` -- the backstop.
+Format-agnostic, because it reconciles the POOL against the PAYMENTS instead
+of trusting the sequence of elimination events. It recomputes every place
+from `prize_pool` and `payout_structure`, compares against what each finisher
+was actually paid, and tops up shortfalls. It is wired into the engine at the
+COMPLETED transition, so every tournament now self-settles.
+
+Deliberate constraints:
+
+* reconciles against `wallet_transactions`, not `wallet_credit_idempotency`
+  -- that table only starts 2026-07-24, and a key-based reconciler would
+  conclude every older tournament was unpaid and pay it all again;
+* the last paid place absorbs the rounding residual, so places sum to the
+  pool exactly (the 9-place structure on a 483.00 pool otherwise rounds to
+  483.01 -- a one-cent overpay on every such event);
+* overpayment is reported, never clawed back automatically;
+* auto-pay only where a place has EXACTLY ONE recorded finisher; otherwise it
+  refuses to guess and raises a critical alert.
+
+### Verification (every test rolled back; production untouched)
+
+* double-pay case -> reports `duplicate_finishers`, pays nothing;
+* only-1st-paid case -> reports places 2..5 `no_finisher_recorded`, refuses
+  to invent a payee;
+* clean control -> `clean:true`, 75.00 expected = 75.00 paid;
+* apply path -> deleted the place-3 payment (13.50), reconciler credited
+  exactly 13.50 to the correct CLUB wallet and re-emitted the ledger row.
+  (`credit_player_wallet` routes Club Arena money to
+  `club_members.chip_balance`, not `wallets.balance` -- the first test
+  measured the wrong wallet and read as a failure until that was traced.)
+* idempotency -> first apply +13.50, two further applies +0.00.
+* `service_role` can execute; `anon` and `authenticated` cannot.
+* `npx tsc --noEmit` clean.
+
+### Honest limitation
+
+The reconciler cannot repair the historical damage. A 7-day dry run found 6
+tournaments with findings and **0.00 auto-payable**, because in every case
+the finishers were never recorded -- the money is owed to nobody
+identifiable. Detection is possible; attribution is not. The engine fixes
+stop new occurrences; the historical 30k of gaps is a data loss that only
+Dan can decide how to treat.
