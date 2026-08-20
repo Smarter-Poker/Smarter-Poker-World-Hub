@@ -122,3 +122,62 @@ test('rounding never manufactures or destroys a chip', () => {
   assert.equal(net, 0);
   assert.ok(Number.isFinite(net));
 });
+
+/**
+ * P3 regressions added 2026-08-20, mirroring the two worst defects of the
+ * 2026-08-19/20 reconciliation round (handoff items A and B).
+ */
+
+/**
+ * fn_union_pnl_baseline(union, T) = the seated_end recorded by the last
+ * settlement whose period ended at or before T. The settlement must anchor
+ * at p_START. Anchoring at p_end lets any baseline written INSIDE the
+ * window win, which collapses the stack delta and re-anchors the chain.
+ */
+function baselineAt(settlements, t) {
+  const eligible = settlements.filter((s) => s.periodEnd <= t);
+  return eligible.length ? eligible[eligible.length - 1].seatedEnd : null;
+}
+
+test('defect A: the baseline must be anchored at p_start, never p_end', () => {
+  const pStart = 0;
+  const pEnd = 10;
+  const history = [
+    { periodEnd: 0, seatedEnd: 1000 }, // the real opening baseline
+    { periodEnd: 5, seatedEnd: 1400 }, // a bootstrap written INSIDE the window
+  ];
+  const correct = baselineAt(history, pStart);
+  const buggy = baselineAt(history, pEnd);
+  assert.equal(correct, 1000, 'the opening of the window is the anchor');
+  assert.equal(buggy, 1400, 'p_end lets the inside baseline win');
+  assert.notEqual(correct, buggy, 'this difference is 2026-08-19 defect (A)');
+  // The production tell: two windows five hours apart returned byte-identical
+  // seated_start, because both resolved to the same inside-window baseline.
+  const buggyLater = baselineAt(history, pEnd + 5);
+  assert.equal(buggy, buggyLater, 'the buggy anchor is insensitive to the window');
+});
+
+test('defect B: rake and P&L must measure the same population (horses included)', () => {
+  // Nearly all play is horses. A club whose horses lost exactly the rake
+  // they paid owes nothing extra -- but only if rakePaid was measured over
+  // the SAME population as realizedNet.
+  const horseRealized = -95;
+  const humanRealized = -5;
+  const horseRake = 95;
+  const humanRake = 5;
+  const sameCohort = settleNet({
+    realizedNet: horseRealized + humanRealized,
+    seatedStart: 0,
+    seatedEnd: 0,
+    rakePaid: horseRake + humanRake,
+  });
+  assert.equal(sameCohort, 0, 'rake-only losses cancel when populations match');
+  const mismatched = settleNet({
+    realizedNet: horseRealized + humanRealized, // P&L includes horses...
+    seatedStart: 0,
+    seatedEnd: 0,
+    rakePaid: humanRake, // ...but rake excluded them: 2026-08-19 defect (B)
+  });
+  assert.equal(mismatched, -95, 'the horse rake resurfaces as phantom player loss');
+  assert.notEqual(mismatched, sameCohort);
+});
