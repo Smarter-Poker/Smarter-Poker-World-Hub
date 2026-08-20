@@ -1,0 +1,33 @@
+-- ============================================================================
+-- UNIFIED CHIP LEDGER + REMAINING DEPRECATIONS (2026-08-19)
+-- APPLIED via Supabase MCP as: deprecated_table_registry,
+-- deprecate_hands_and_hand_actions, unified_chip_ledger_view
+--
+-- 1. v_chip_ledger -- ONE read surface over BOTH chip ledgers.
+--    Chip movement is recorded in two tables that overlap in purpose and
+--    disagree in shape: wallet_transactions (player-centric, signed by `type`)
+--    and chip_transactions (club-centric, direction implied by which user
+--    column is set). A table cash-out lands in BOTH via different paths and
+--    the sets do NOT overlap -- the union P&L had to FULL OUTER JOIN them to
+--    get one honest number.
+--
+--    Measured through the view over 24h: cash-outs appear as 1,163 rows /
+--    1,598,662 in chip_transactions AND 627 rows / 314,146 in
+--    wallet_transactions. Reading either alone understates cash-outs ~5x.
+--
+--    A view, not a physical migration, deliberately: consolidating means
+--    rewriting every writer across three repos plus the engine, with a
+--    backfill over millions of rows and no staging environment to rehearse in.
+--    That is a project; doing it badly on a live money system is worse than
+--    not doing it. The view gives one honest surface now and is the seam to
+--    migrate behind later.
+--
+-- 2. deprecated_tables registry + fn_deprecated_table_usage.
+--    Five tables receive no writes: rake_history (last write 2026-05-01),
+--    hand_players, hand_actions, hands (all zero rows ever), rake_attributions.
+--    Reading one fails SILENTLY -- the query succeeds, returns [], and the UI
+--    renders a confident zero. Eight features were found doing exactly that
+--    this session. Now recorded on the tables (COMMENT), in a queryable
+--    registry, and enforced by a Club Arena CI gate that fails on a READ.
+--    Writes stay allowed; legacy writers retire on their own MIGRATION-LAW
+--    schedule.
