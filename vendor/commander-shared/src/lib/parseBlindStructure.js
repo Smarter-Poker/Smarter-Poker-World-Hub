@@ -14,7 +14,7 @@ function parseBlindStructure(raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     } catch {
-      /* not JSON — fall through */
+      /* not JSON - fall through */
     }
   }
 
@@ -36,7 +36,7 @@ function parsePayoutStructure(raw) {
   return [];
 }
 
-// ESM exports — this file previously used `module.exports`, but the package is
+// ESM exports - this file previously used `module.exports`, but the package is
 // declared "type": "module", so bundlers parsed it as ESM and produced ZERO
 // exports (named imports silently resolved to undefined at runtime).
 export { parseBlindStructure, parsePayoutStructure };

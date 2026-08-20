@@ -9,7 +9,7 @@
  * decision-bridge.js (which imports ../supabase) can load and run
  * without a real Supabase connection.
  *
- * NOT used in production — Next.js always resolves to supabase.ts.
+ * NOT used in production - Next.js always resolves to supabase.ts.
  */
 
 const mockClient = {
@@ -46,7 +46,7 @@ const mockClient = {
   rpc: () => Promise.resolve({ data: null, error: null }),
   channel: () => {
     const ch = {
-      on: () => ch,           // chainable — returns self like real supabase
+      on: () => ch,           // chainable - returns self like real supabase
       subscribe: () => ch,
       unsubscribe: () => {},
     };

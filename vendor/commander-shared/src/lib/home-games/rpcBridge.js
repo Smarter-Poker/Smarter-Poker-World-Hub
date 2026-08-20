@@ -15,7 +15,7 @@
  *
  *  KEY DESIGN CHOICE:
  *    The RPCs (rpc_hg_*) call auth.uid() internally for authz. For that to
- *    resolve, we MUST pass the user's JWT through to the supabase client —
+ *    resolve, we MUST pass the user's JWT through to the supabase client -
  *    not the service-role key. So we create a per-request supabase client
  *    with `Authorization: Bearer <token>` in the headers, and invoke the
  *    RPC via that client. Inside the RPC, auth.uid() then equals the
@@ -23,7 +23,7 @@
  *    work as designed.
  */
 
-// ESM imports — this file previously used `require()` / `module.exports`, but the
+// ESM imports - this file previously used `require()` / `module.exports`, but the
 // package is declared "type": "module", so bundlers parsed it as ESM and it
 // produced ZERO exports: any named import resolved to undefined at runtime.
 import { createClient } from '@supabase/supabase-js';
@@ -113,7 +113,7 @@ function mapRpcError(err) {
       return { status: 400, error: errName, message: raw };
 
     default:
-      // Unknown error — log and 500. Don't leak internals.
+      // Unknown error - log and 500. Don't leak internals.
       if (typeof console !== 'undefined') {
         console.warn('[home-games rpcBridge] unmapped error', code, raw);
       }
