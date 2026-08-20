@@ -1,6 +1,6 @@
 {
-  "ca_sha": "675a092e62c6619478d2e394a5aa4ea3a4024ab8",
-  "built_at": "2026-08-20T12:17:12Z",
+  "ca_sha": "1d4df679bd6bba33c9fc19c0cabab218eac9234b",
+  "built_at": "2026-08-20T12:21:20Z",
   "built_by": "sync-club-arena.sh",
-  "source": "/Users/smarter.poker/Documents/Smarter-Poker-Club-Arena"
+  "source": "/tmp/ca-hotfix"
 }
