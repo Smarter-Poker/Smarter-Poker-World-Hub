@@ -57,7 +57,13 @@ if [ -z "$CA_SRC" ]; then
     CA_SRC="$HOME/Documents/club-arena"
   fi
 fi
-WH="$HOME/Documents/Smarter-Poker-World-Hub"
+# WH checkout to publish into. Overridable because this repo is shared by
+# several agents at once: the default checkout is regularly mid-rebase or
+# holding another agent's staged work, and the preflight (correctly) refuses to
+# publish from it. Point WH_OVERRIDE at a throwaway worktree
+# (git worktree add --detach /tmp/wh-pub origin/main) to publish without
+# touching anyone else's tree.
+WH="${WH_OVERRIDE:-$HOME/Documents/Smarter-Poker-World-Hub}"
 DEST="$WH/public/hub/club-arena"
 DIST_TMP="/tmp/club-arena-sync-$$"
 COMMIT_MSG="${1:-chore(club-arena): rebuild and sync dist}"
@@ -79,7 +85,10 @@ echo ""
 log "Preflight..."
 [ -d "$CA_SRC" ] || die "CA source not found at $CA_SRC"
 [ -f "$CA_SRC/package.json" ] || die "No package.json in $CA_SRC"
-[ -d "$WH/.git" ] || die "WH is not a git repo"
+# In a git WORKTREE, .git is a FILE pointing at the real gitdir, not a
+# directory — the old -d test rejected every worktree, which is exactly what
+# WH_OVERRIDE is for. Ask git instead of guessing at the layout.
+git -C "$WH" rev-parse --git-dir >/dev/null 2>&1 || die "WH is not a git repo or worktree: $WH"
 log "  building from: $CA_SRC"
 case "$CA_SRC" in
   */club-arena) warn "using the PRE-RENAME clone — verify it tracks the same remote" ;;
@@ -299,7 +308,10 @@ git commit -m "$COMMIT_MSG" 2>&1 | tail -3
 ok "Committed"
 
 log "Pushing..."
-git push origin main 2>&1 | tail -3
+# HEAD:main, not `main`: in a WH_OVERRIDE worktree HEAD is detached, so
+# `git push origin main` pushes the SHARED checkout's main ref — which is a
+# different (and usually diverged) commit than the sync we just built.
+git push origin HEAD:main 2>&1 | tail -3
 ok "Pushed"
 
 # ─── Cleanup ────────────────────────────────────────────────────────────────
