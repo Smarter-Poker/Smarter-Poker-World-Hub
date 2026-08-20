@@ -103,7 +103,7 @@ export default async function handler(req, res) {
           try {
               const { data: purchases, error: purErr } = await getSupabase()
                   .from('club_shop_purchases')
-                  .select('id, item_id, price_paid, created_at, club_shop_items(name, category)')
+                  .select('id, item_id, price_paid, created_at, refunded_at, club_shop_items(name, category)')
                   .eq('club_id', clubId)
                   .eq('buyer_id', user.id)
                   .order('created_at', { ascending: false });
@@ -116,6 +116,13 @@ export default async function handler(req, res) {
                   item_id: p.item_id,
                   price_paid: p.price_paid,
                   created_at: p.created_at,
+                  // Without this the My Items history showed a refunded
+                  // purchase identically to a live one — the member saw chips
+                  // they had already been given back, and an admin got an
+                  // enabled Refund button that could only answer "already
+                  // refunded". The column is already used for my_purchase_count
+                  // above; it just was not surfaced.
+                  refunded_at: p.refunded_at || null,
                   item_name: p.club_shop_items?.name || null,
                   item_category: p.club_shop_items?.category || null,
               }));
@@ -124,13 +131,14 @@ export default async function handler(req, res) {
               // Fallback: basic query without FK join
               const { data: purchases, error: purErr } = await getSupabase()
                   .from('club_shop_purchases')
-                  .select('id, item_id, price_paid, created_at')
+                  .select('id, item_id, price_paid, created_at, refunded_at')
                   .eq('club_id', clubId)
                   .eq('buyer_id', user.id)
                   .order('created_at', { ascending: false });
               if (purErr) throw purErr;
               flatPurchases = (purchases || []).map(p => ({
                   ...p,
+                  refunded_at: p.refunded_at || null,
                   item_name: null,
                   item_category: null,
               }));
