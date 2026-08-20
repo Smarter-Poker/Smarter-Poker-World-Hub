@@ -256,17 +256,18 @@ async function getHorsesByClub() {
 /** Create cash tables, alternating between clubs */
 async function createCashTables(log) {
   let created = 0;
-  const tableIds = { shark: [], jaqk: [] };
-  let clubToggle = 0;
+  const tableIds = { union: [] };
 
   for (const cfg of CASH_TABLES) {
-    const clubId = clubToggle % 2 === 0 ? SHARK_CLUB_ID : JAQK_CLUB_ID;
-    clubToggle++;
+    // UNION LAW: all union-visible games are hosted by the Midway Union house
+    // club. Member clubs (Shark, JAQK) never host union games directly.
+    const clubId = UNION_ID;
 
     const { data, error } = await getSupabase()
       .from('tables')
       .insert({
         club_id: clubId,
+        union_id: UNION_ID,
         name: cfg.name,
         game_type: 'cash',
         game_variant: cfg.variant,
@@ -292,8 +293,7 @@ async function createCashTables(log) {
 
     if (!error && data) {
       created++;
-      if (clubId === SHARK_CLUB_ID) tableIds.shark.push(data.id);
-      else tableIds.jaqk.push(data.id);
+      tableIds.union.push(data.id);
     } else {
       log.push(`⚠️ Table "${cfg.name}" failed: ${error?.message}`);
     }
@@ -314,6 +314,7 @@ async function createTournament(cfg, clubId) {
     .from('tournaments')
     .insert({
       club_id: clubId,
+      union_id: UNION_ID,
       name: cfg.name,
       game_type: cfg.game,
       variant: cfg.variant,
@@ -436,30 +437,27 @@ export default async function handler(req, res) {
       // 1. Create cash tables (alternating clubs)
       // Create 3 batches of cash tables so there are ~738 seats available for 355 horses (everyone gets 2)
       let cashCreated = 0;
-      const tableIds = { shark: [], jaqk: [] };
+      const tableIds = { union: [] };
       for (let i = 0; i < 3; i++) {
         const res = await createCashTables(log);
         cashCreated += res.created;
-        tableIds.shark.push(...res.tableIds.shark);
-        tableIds.jaqk.push(...res.tableIds.jaqk);
+        tableIds.union.push(...res.tableIds.union);
       }
-      log.push(`✅ Cash tables created: ${cashCreated} (Shark: ${tableIds.shark.length}, JAQK: ${tableIds.jaqk.length})`);
+      log.push(`✅ Cash tables created: ${cashCreated} (all hosted by Midway Union)`);
 
       // 2. Create today's tournaments (alternating clubs)
       const todaysTournaments = getTodaysTournaments();
       let tournamentsCreated = 0;
       let tournamentsRegistered = 0;
-      const tournamentIds = { shark: [], jaqk: [] };
-      let tClubToggle = 0;
+      const tournamentIds = { union: [] };
 
       for (const cfg of todaysTournaments) {
-        const clubId = tClubToggle % 2 === 0 ? SHARK_CLUB_ID : JAQK_CLUB_ID;
-        tClubToggle++;
+        // UNION LAW: tournaments are hosted by the Midway Union house club.
+        const clubId = UNION_ID;
         const result = await createTournament(cfg, clubId);
         if (result.id) {
           tournamentsCreated++;
-          if (clubId === SHARK_CLUB_ID) tournamentIds.shark.push(result.id);
-          else tournamentIds.jaqk.push(result.id);
+          tournamentIds.union.push(result.id);
           
           // Register target number of horses - picking from those with < 2 tournaments
           let availableHorses = horses.all.filter(h => (horseStats.get(h.id)?.tournaments || 0) < 2);
@@ -480,14 +478,14 @@ export default async function handler(req, res) {
 
       // 3. Create SNGs (alternating clubs)
       let sngsCreated = 0, sngRegistered = 0;
-      let sClubToggle = 0;
       for (const cfg of SNG_CONFIGS) {
-        const clubId = sClubToggle % 2 === 0 ? SHARK_CLUB_ID : JAQK_CLUB_ID;
-        sClubToggle++;
+        // UNION LAW: SNGs are hosted by the Midway Union house club.
+        const clubId = UNION_ID;
         const { data, error } = await getSupabase()
           .from('tournaments')
           .insert({
             club_id: clubId,
+            union_id: UNION_ID,
             name: cfg.name,
             game_type: cfg.game,
             variant: 'SNG',
@@ -521,16 +519,16 @@ export default async function handler(req, res) {
 
       // 4. Create Spins (alternating clubs, with multiplier)
       let spinsCreated = 0, spinRegistered = 0;
-      let spClubToggle = 0;
       for (const cfg of SPIN_CONFIGS) {
-        const clubId = spClubToggle % 2 === 0 ? SHARK_CLUB_ID : JAQK_CLUB_ID;
-        spClubToggle++;
+        // UNION LAW: spins are hosted by the Midway Union house club.
+        const clubId = UNION_ID;
         const mult = rollMultiplier();
         const prize = cfg.buyIn * cfg.max * mult;
         const { data, error } = await getSupabase()
           .from('tournaments')
           .insert({
             club_id: clubId,
+            union_id: UNION_ID,
             name: `${cfg.name} (${mult}x)`,
             game_type: cfg.game,
             variant: 'SPIN',
@@ -584,10 +582,11 @@ export default async function handler(req, res) {
 
       // Seat Shark horses at Shark tables, JAQK horses at JAQK tables.
       // Phase 61: Fisher-Yates instead of biased sort(() => Math.random() - 0.5).
-      const sharkHorses = _shuffleInPlace([...horses.shark]);
-      const jaqkHorses = _shuffleInPlace([...horses.jaqk]);
+      // UNION LAW: every horse plays in the shared Midway Union game pool,
+      // mixing with players from all member clubs.
+      const allHorses = _shuffleInPlace([...horses.all]);
 
-      for (const [clubHorses, clubId] of [[sharkHorses, SHARK_CLUB_ID], [jaqkHorses, JAQK_CLUB_ID]]) {
+      for (const [clubHorses, clubId] of [[allHorses, UNION_ID]]) {
         const clubTables = activeTables.filter(t => t.club_id === clubId);
         for (const horse of clubHorses) {
           const stat = horseStats.get(horse.id);
