@@ -1,6 +1,6 @@
 {
-  "ca_sha": "293d4d148f62ca478ab9d12e539962c690a94a4d",
-  "built_at": "2026-08-20T18:24:12Z",
+  "ca_sha": "bf2f60e216f087baf03bc958881b0dead7b084db",
+  "built_at": "2026-08-20T18:41:27Z",
   "built_by": "sync-club-arena.sh",
-  "source": "/tmp/cas"
+  "source": "/tmp/ca-notip"
 }
