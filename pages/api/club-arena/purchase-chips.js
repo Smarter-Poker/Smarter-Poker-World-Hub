@@ -62,6 +62,31 @@ const CHIP_PACKAGES = {
 };
 
 export default async function handler(req, res) {
+    // ══════════════════════════════════════════════════════════════════════
+    // ROUTE RETIRED 2026-08-19 — chips can NEVER be bought with diamonds.
+    //
+    // Product rule from Dan, stated unambiguously. Diamonds are the global
+    // purchasable currency; chips are per-club gambling balance. Converting
+    // one into the other is forbidden outright, so this endpoint no longer
+    // performs a purchase under any circumstances.
+    //
+    // The database is the real guarantee: fn_purchase_chips and
+    // fn_purchase_club_chips have had EXECUTE revoked from every application
+    // role including service_role (migration
+    // 20260819_forbid_diamond_to_chip_conversion), so even this route could
+    // not convert if the guard below were removed. The client entry points
+    // (the Cashier "Get Chips" button and the marketplace Chips tab) are
+    // removed separately — this returns 410 so any browser still running a
+    // cached bundle gets a clear answer rather than a confusing failure.
+    //
+    // Do NOT reinstate without an explicit product decision from Dan.
+    // ══════════════════════════════════════════════════════════════════════
+    return res.status(410).json({
+        success: false,
+        error: 'Chips cannot be purchased with diamonds.',
+    });
+
+    // eslint-disable-next-line no-unreachable
     try {
         if (req.method !== 'POST') {
             return res.status(405).json({ success: false, error: 'POST only' });
