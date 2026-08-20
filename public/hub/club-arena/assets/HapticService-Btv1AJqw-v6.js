@@ -1,2 +1,0 @@
-import{ac as r}from"./index-XmPUo5mL-v6.js";import"./vendor-react-CTyEF9o_-v6.js";import"./vendor-supabase-BLlQ2fJ4-v6.js";const t={light:10,medium:25,heavy:50,success:[10,50,30],warning:[30,30,30],error:[50,100,50,100],selection:5};function e(i="light"){return r(t[i])}const o={light:()=>e("light"),medium:()=>e("medium"),heavy:()=>e("heavy"),success:()=>e("success"),warning:()=>e("warning"),error:()=>e("error"),selection:()=>e("selection")};export{o as default,o as haptic,e as triggerHaptic};
-//# sourceMappingURL=HapticService-Btv1AJqw-v6.js.map
