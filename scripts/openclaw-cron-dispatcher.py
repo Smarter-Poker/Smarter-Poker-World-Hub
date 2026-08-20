@@ -185,6 +185,19 @@ ALL_CRONS = [
     # time-boxed and resumable (cursor in club_stats_rebuild_log), so a run
     # that stops mid-table simply continues next time.
     ('/api/cron/club-stats-maintenance',    dict(minute='*/15')),
+    # ── Spin reserve backstop (2026-08-20) ────────────────────────────────
+    # fn_spin_sweep_unbooked settles any Spin that ran without booking its
+    # rake + reserve movements. That failure mode throws nothing and logs
+    # nothing: the game runs, the players are paid, and the ledger row simply
+    # is not there. An absence raises no alert, so three live spins ran
+    # unbooked after the 2026-08-20 cutover and were found only by querying
+    # for the gap. The sweep is idempotent, so a schedule costs nothing; it
+    # existed but only ever ran when a human typed it.
+    # The handler also reports a thin or short reserve pool, which is the
+    # other silent failure here — a draining pool does not error, its ladder
+    # just collapses toward 2x/3x and players notice before anyone else does.
+    # 30-minute lookback deliberately overlaps two runs.
+    ('/api/cron/spin-sweep',                dict(minute='*/15')),
     # ── Phase 49 (2026-05-05) — two-track trivia refill ───────────────────
     # Track A (deterministic engine, $0 cost): generates strategy-category
     # questions from solved_spots_gold + memory_charts_gold via the same
