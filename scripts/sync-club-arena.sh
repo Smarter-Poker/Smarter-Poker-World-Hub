@@ -151,6 +151,23 @@ if [ ! -d "node_modules" ]; then
   npm ci --silent
 fi
 
+# ─── Build-time public config ───────────────────────────────────────────────
+# 2026-08-20 OUTAGE: this script built with bare `npx vite build`, so it
+# depended on whichever .env happened to exist in CA_SRC. The canonical
+# checkout has no .env at all, so the build emitted a bundle with
+# VITE_SUPABASE_URL undefined; the only publish check was "index.html exists",
+# it passed, and smarter.poker served a BLANK PAGE to every visitor ("Uncaught
+# supabaseUrl is required"). CI never had this bug because
+# .github/workflows/build-for-world-hub.yml passes these explicitly. Same
+# values, same place in the pipeline — the local path is no longer the weak one.
+# These are the PUBLIC anon/publishable values that ship inside the bundle; the
+# service-role key is never referenced here.
+export VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-https://kuklfnapbkmacvwxktbh.supabase.co}"
+export VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-sb_publishable__41LpJpzrfrb3hSUpEaYCA_tF53bBJx}"
+export VITE_ENGINE_URL="${VITE_ENGINE_URL:-https://engine.smarter.poker}"
+export VITE_ANTIGRAVITY_ENABLED="${VITE_ANTIGRAVITY_ENABLED:-true}"
+export VITE_APP_ENV="${VITE_APP_ENV:-production}"
+
 NODE_ENV=production \
   SENTRY_AUTH_TOKEN="${SENTRY_AUTH_TOKEN:-}" \
   SENTRY_ORG="${SENTRY_ORG:-smarter-software-inc}" \
@@ -158,6 +175,21 @@ NODE_ENV=production \
   npx vite build --outDir "$DIST_TMP" --emptyOutDir 2>&1 | tail -8
 
 [ -f "$DIST_TMP/index.html" ] || die "Build produced no index.html"
+
+# ─── Publish gate: does the artefact actually WORK? ─────────────────────────
+# "index.html exists" is not evidence of a usable app. Assert the config the
+# app cannot boot without is really inside the bundle we are about to ship.
+# This check, and not the one above, is what would have caught the outage.
+ENTRY_JS="$(grep -o 'assets/index-[^"]*\.js' "$DIST_TMP/index.html" | head -1)"
+[ -n "$ENTRY_JS" ] || die "Build produced no entry chunk reference in index.html"
+[ -f "$DIST_TMP/$ENTRY_JS" ] || die "index.html references $ENTRY_JS but it is not in the build"
+if ! grep -qF "$VITE_SUPABASE_URL" "$DIST_TMP/$ENTRY_JS"; then
+  die "Entry chunk has no Supabase URL baked in — this bundle would render a BLANK PAGE. Refusing to publish. (Build ran without VITE_SUPABASE_URL; check CA_SRC=$CA_SRC.)"
+fi
+if ! grep -qF "$VITE_SUPABASE_ANON_KEY" "$DIST_TMP/$ENTRY_JS"; then
+  die "Entry chunk has no Supabase anon key baked in — refusing to publish."
+fi
+ok "Publish gate: Supabase config present in $ENTRY_JS"
 
 # BUILD PROVENANCE. Stamp the CA commit this bundle was actually built from into
 # the bundle itself. Without it there is no way to tell a good publish from one
