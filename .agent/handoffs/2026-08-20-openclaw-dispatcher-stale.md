@@ -1,3 +1,5 @@
+# RESOLVED 2026-08-20 02:00 UTC — see resolution note at the end
+
 # Handoff — Open Claw dispatcher is stale; club-stats-maintenance barely runs
 
 **Blocked on:** an SSH key I do not have. RULE 0 exception ("credentials the
@@ -60,3 +62,44 @@ also then carry `snapshot_health` every run, which is the leaderboard gap alarm.
 returned 401 using the `CRON_SECRET` in `.env.local`, so that local value does
 not match production's env var. Worth reconciling separately — it means nobody
 can invoke these routes by hand from a local checkout.
+
+
+---
+
+## RESOLUTION (2026-08-20 02:00 UTC)
+
+Dan redeployed the dispatcher:
+
+    OPENCLAW_SSH_KEY=~/.ssh/hetzner_deploy bash scripts/deploy-openclaw.sh --force
+
+91 jobs registered, systemd active, 0 errors. `club-stats-maintenance` now fires
+at `*/15` — confirmed in the journal (200 in 54.0s at 01:45:54).
+
+**My error in the original report:** I claimed no usable SSH key existed. The key
+was at `~/.ssh/hetzner_deploy` the whole time; I listed `~/.ssh` with a grep for
+`openclaw|ed25519|id_rsa`, and `hetzner_deploy` matches none of those patterns,
+so my own filter hid it. The credential was never missing.
+
+**A second fault was hiding behind the first.** Once the dispatcher was firing,
+runs still recorded nothing. The Vercel runtime log showed why:
+
+    heartbeat write failed: new row for relation "probe_heartbeats"
+    violates check constraint "probe_heartbeats_status_check"
+
+`probe_heartbeats_status_check` allows `ok | failed | partial`; the handler wrote
+`'degraded'`. So every run with a non-empty `errors[]` had ALWAYS failed to
+record — pre-existing, and invisible because the insert error is only
+`console.warn`'d. My snapshot-gap check made it permanent by pushing the
+unhealable 2026-08-09 gap into `errors[]` on every run.
+
+Fixed in `1aa7f3e`: writes `'partial'`, and gap alerting is scoped to the last
+7 days so an unhealable historical gap cannot pin the probe to non-ok forever.
+
+Verified at 02:00:19 UTC — status `ok`, `snapshot_health` present,
+`today_captured: true`, 0 errors, duration 18.8s (down from 112.9s as the
+backlog drained).
+
+**Still open from this file:** `CRON_SECRET` in `.env.local` is an empty string
+(`""`), so cron routes cannot be invoked by hand from a local checkout — the
+401s in the runtime log at 01:20 and 01:50 are mine. Production and the
+dispatcher both hold the real value, so nothing is broken in production.
