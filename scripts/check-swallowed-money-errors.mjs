@@ -52,7 +52,7 @@ const MONEY_PATHS = [
  * The count frozen on 2026-08-19 (measured, not estimated). LOWER THIS when you remove instances.
  * Never raise it.
  */
-const BASELINE = 191;
+const BASELINE = 171;
 
 const PATTERNS = [
   // The explicit marker this codebase generates for an ignored mutation error.
