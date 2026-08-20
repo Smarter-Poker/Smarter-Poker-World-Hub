@@ -1,6 +1,1 @@
-{
-  "ca_sha": "097e9fbdac1067a380805f379e6a56908b7d1fce",
-  "built_at": "2026-08-20T02:09:43Z",
-  "built_by": "sync-club-arena.sh",
-  "source": "/tmp/ca-u"
-}
+{"ca_sha":"d2e020c65b5fe1b12aa1b3f0f59de3703ce2e8cb","built_at":"2026-08-20T02:11:14Z","built_by":"manual-clean-worktree-build","run_id":null}
