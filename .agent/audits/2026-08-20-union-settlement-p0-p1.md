@@ -1279,3 +1279,56 @@ increment `tournaments.total_rake` — but a known-wrong money row is exactly
 what misleads the next investigation.
 
 The finding stands and drove the fix; the implementation credit is theirs.
+
+---
+
+## Round 5 (2026-08-20): main could not boot, and a fix was reverted twice
+
+Two findings from verifying the deploy chain rather than trusting it.
+
+### main could not boot — every engine deploy was blocked
+
+The Spin cutover (Club Arena 11633f4ce) failed its deploy, and so would every
+deploy after it:
+
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/app/dist/config/spinSpec'
+imported from /app/dist/services/TournamentRecurringService.js
+```
+
+The file was committed and compiled fine. The defect was the import specifier:
+two files imported `'../config/spinSpec'` with NO extension, while every other
+relative import in the codebase carries `.js`. This is ESM — Node resolves the
+specifier literally at runtime, looks for a file called `spinSpec`, and does
+not find `spinSpec.js`. `tsc` is happy either way, which is exactly why it
+cleared the build gate and only died on boot.
+
+Production was never at risk: the deploy workflow verifies that the running
+build is the one it shipped and refused to promote, so the engine stayed on
+d614aa1b1. But main was unbootable, which blocked every subsequent deploy
+INCLUDING the Spin cutover itself. Fixed in both importers (Club Arena
+71aafa2a2); verified `dist/config/spinSpec.js` is emitted, no extensionless
+relative imports remain anywhere in `server/src`, and the engine boots with
+zero ERR_MODULE_NOT_FOUND.
+
+### The same fix was silently reverted, twice, by whole-file rewrites
+
+Add-on support (dc5a33f7d) was dropped when 11633f4ce rewrote
+TournamentManagerBase from a copy that predated it. `triggerAddOnPeriod` still
+opened the window and still broadcast ADDON_PERIOD_START — nothing was buying,
+so add-ons returned to the state they had occupied for the entire life of the
+platform: never executed, zero `addon` rows ever. Restored in e04838462,
+purely additive (72 insertions, 0 deletions), with the cutover's own work
+verified intact in the same file.
+
+This is the SECOND time today a whole-file rewrite silently reverted a live
+fix — the first was my own, when I clobbered `runUnionEcoRecord` by copying a
+stale working-tree file over origin/main. Both had the same cause: building a
+commit from a working copy that is behind origin/main.
+
+The mechanical lesson, which CLAUDE.md already states and which cost time
+anyway: after a worktree push, either mirror the pushed content back into the
+working tree or never build a commit by copying whole files from it. The
+detection that works is cheap — grep the RUNNING build for each fix you
+believe you shipped, rather than trusting that a green deploy means your code
+is in it.
