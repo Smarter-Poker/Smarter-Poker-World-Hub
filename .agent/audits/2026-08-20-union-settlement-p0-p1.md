@@ -640,3 +640,113 @@ from the text hand-copied into `apply_migration`. Functionally identical,
 but the file would no longer have reproduced production. Resolved by
 re-applying the documented version (`union_rake_ledger_totals_comment_parity`)
 rather than deleting the comments. All 7 function bodies now md5-match.
+
+---
+
+## INCIDENT (2026-08-20 16:10-16:11): I caused a DB stall that broke two live tournaments
+
+Self-reported. Cause was my own action, not a pre-existing bug.
+
+### What I did
+
+To fix the treasury-sentinel timeout I built a covering index on the
+rake-wallet rows:
+
+```sql
+CREATE INDEX CONCURRENTLY idx_uwt_rake_wallet_recon
+  ON union_wallet_transactions (union_id, created_at)
+  INCLUDE (amount, direction) WHERE wallet = 'rake_wallet';
+```
+
+`union_wallet_transactions` is 186 MB and one of the hottest write targets
+in the system (~69,000 rake rows/day, ~0.8 writes/second sustained). I chose
+CONCURRENTLY specifically to avoid the SHARE lock a plain CREATE INDEX
+takes — which was the right call for locking, but I did not account for the
+I/O cost of the build itself against live play. I also ran several
+whole-table EXPLAIN ANALYZE probes in the same window.
+
+### What happened
+
+Engine writes began timing out. Distribution of `supabase_timeout` in the
+engine log over 90 minutes:
+
+```
+  12   16:10
+  67   16:11
+   0   every other minute
+```
+
+79 timeouts, all inside the two minutes of the index build. Zero before,
+zero since.
+
+Consequences, in order:
+
+1. `[completeHandSnapshot] Error: supabase_timeout` — hand snapshots failed.
+2. `[FeeReconciler.queue_failed] Error: [A5] Could not queue unbanked rake
+   for hand ... These chips left the pot and are now recoverable only by
+   hand.` — 2 hands, rake 0.26 + 1.18, BBJ 0.12 + 0.06.
+3. Two in-flight MTTs took the `All busted simultaneously — last eliminated
+   wins` branch at 16:11:28 and force-completed:
+   - `Afternoon Bounty (NLH)` (1f3650c7)
+   - `Union PKO Afternoon (PLO4)` (58de422f)
+
+### Money impact
+
+| tournament | prize_pool | prize paid | undisbursed |
+|---|---|---|---|
+| Afternoon Bounty (NLH) | 483.00 | 193.20 | **289.80** |
+| Union PKO Afternoon (PLO4) | 770.00 | 423.50 | **346.50** |
+| | | | **636.30 total** |
+
+Bounty pools were fully swept (`Champion collected remaining bounty pool`),
+and rake settled normally (69 and 154). The shortfall is entirely in
+finishing-place prizes: the players still active when the stall hit were
+never assigned finishing positions, so positions 2-6 (Afternoon Bounty) and
+2-5 (Union PKO) have no result rows and were never paid.
+
+The 636.30 was collected at buy-in and never disbursed — it has not left the
+system, so this is correctable rather than lost.
+
+**Every affected finisher is a horse.** No human player was affected.
+
+### What this is NOT
+
+Initially this looked like fallout from the same-day bounty fee fix
+(`fix_bounty_tournament_fee_not_charged`, applied 14:56:02), because both
+broken tournaments were bounty events completing after it. That hypothesis
+was tested and rejected:
+
+* every non-bounty tournament completing after 14:56 shows `prize_gap 0.00`,
+  including 9-place payouts like Lunch Rush (1104.00 paid in full);
+* the entry accounting for both broken events is exactly correct under the
+  new split — 69 buy-ins x 11.00 = 759.00 collected, splitting to prize 483
+  + bounty 207 + rake 69 with no residue;
+* both tournaments failed at the same instant (16:11:30.055 and
+  16:11:30.087), which is a system event, not an arithmetic one.
+
+The fee fix is behaving correctly. The trigger was the index build.
+
+### Lessons
+
+1. **CONCURRENTLY solves locking, not load.** On a hot, large table during
+   live play the build's own I/O is enough to push engine writes past their
+   timeout. The two later indexes in this round (88 kB and 8 kB, on highly
+   selective predicates) caused nothing — size and write-rate of the target
+   are what matter, and should be checked before building.
+2. **A transient DB timeout should never be readable as "all players
+   busted".** The `All busted simultaneously — last eliminated wins` branch
+   turned an infrastructure blip into permanent, money-stranding tournament
+   completions with no retry and no alert of its own. This is an engine
+   robustness bug independent of my mistake, and it is the more dangerous of
+   the two: any future Supabase hiccup reproduces it. Flagged for Dan; not
+   changed here, because rewriting tournament completion logic unreviewed at
+   the end of a session is exactly the kind of risk that caused this entry.
+3. The TournamentSentinel caught both problems (`payout_conservation`,
+   `stranded_players`) correctly and immediately. That sentinel works.
+
+### Open items for Dan
+
+* Whether to pay the 636.30 to the owed horse finishers, or void it. This is
+  a money movement and a judgement call, so it was not executed.
+* Whether to harden the `All busted simultaneously` path against transient
+  DB errors (recommended).
