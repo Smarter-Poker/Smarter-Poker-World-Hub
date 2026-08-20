@@ -145,3 +145,34 @@ Migration `20260820_settlement_period_hygiene_invariants.sql`.
   alerting; CI regression for baseline-at-p_end and rake/P&L population
   parity; index review; read-replica proposal (RULE 12 — Dan);
   reconciliation dashboard. Plus the fee-basis decision from P0-3 above.
+
+## P1-1 — cash-out ledgers unified (DONE, added after Dan's go-ahead)
+
+Dan's correction recorded: union fee = 10% of all cash rake AND 10% of all
+tournament fees, period. The "~8%" note above is withdrawn — no adjustment
+needed while everything is test data.
+
+`atomic_credit_wallet_and_log` now mirrors cash-outs into
+wallet_transactions (canonical player-money ledger, same row shape as
+atomic_table_cashout incl. balance_after) and marks its chip_transactions
+row `metadata.mirrored_to_wallet=true`. `fn_union_pnl_all_clubs.chip_flows`
+excludes mirrored rows — the chip leg is historical-only by data, no magic
+cutover constant. Only 'cashout' is mirrored (prize/bounty/tournament
+categories never pass through this function — no double-count risk). No
+engine deploy needed; both write paths converge via their existing RPCs.
+Migration `20260820_unify_cashout_ledger.sql`.
+
+Verified: rollback probe wrote both ledgers + moved balance; live 5/5
+engine cash-outs mirrored in first 3 min, 0 unmirrored since; settle
+dry-run residual flat (-1,993.69 → -2,001.18, in-flight pot noise) while
+5,489.44 of mirrored cash-outs accrued — double counting would have moved
+it +5,489.
+
+## Second DB incident (~05:35–05:45 UTC)
+
+Supabase went fully unreachable for ~8 min (MCP connection timeouts, WH
+/api/health timeout from the Mac, engine logged supabase_timeout and
+restarted). No postgres FATALs in the platform logs for the window; no
+heavy query from this session was in flight. Self-recovered. Same class as
+the 03:02 blip. If this recurs, look at the pooler/compute tier, not the
+application queries.
