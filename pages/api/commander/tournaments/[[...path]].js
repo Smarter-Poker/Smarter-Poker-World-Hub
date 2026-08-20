@@ -26,6 +26,7 @@
  *   POST   /api/commander/tournaments/:id/entries
  *   DELETE /api/commander/tournaments/:id/entries   ({ entry_id } in body)
  *   POST   /api/commander/tournaments/:id/story
+ *   GET    /api/commander/tournaments/:id/my-chips   (own entry + alternates queue position)
  *   POST   /api/commander/tournaments/:id/my-chips
  *
  * Follows the hardened proxy pattern from
@@ -94,10 +95,21 @@ export default async function handler(req, res) {
     // deliberately NOT forwarded across origins from this player surface.
     if (req.headers.authorization) headers.Authorization = req.headers.authorization;
 
+    // Next parses JSON bodies into objects, but leaves text/* and unparsed
+    // bodies as strings or Buffers. Re-stringifying those would double-encode
+    // the payload, so pass them through untouched.
+    let body;
+    if (BODY_METHODS.includes(req.method)) {
+      const raw = req.body;
+      body = (typeof raw === 'string' || Buffer.isBuffer(raw))
+        ? raw
+        : JSON.stringify(raw || {});
+    }
+
     const upstream = await fetch(target, {
       method: req.method,
       headers,
-      body: BODY_METHODS.includes(req.method) ? JSON.stringify(req.body || {}) : undefined,
+      body,
       signal: controller.signal,
     });
 
