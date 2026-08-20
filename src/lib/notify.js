@@ -133,6 +133,10 @@ export async function notify(supabase, args = {}) {
                 url: url || '/hub',
                 event: args.event || args.type,
                 tag: args.tag,
+                // Identity beats decoration: an avatar as the icon makes a push
+                // recognisable on a lock screen in a way the app name never is.
+                icon: args.icon,
+                image: args.image,
                 requireInteraction: args.requireInteraction,
                 actions: args.actions,
                 relatedEntityId: args.relatedEntityId,
@@ -154,7 +158,7 @@ export async function notify(supabase, args = {}) {
 // PepNationLab order/commission helpers.
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function notifyNewMessage(supabase, recipientId, senderName, preview, conversationId) {
+export function notifyNewMessage(supabase, recipientId, senderName, preview, conversationId, senderAvatarUrl) {
     return notify(supabase, {
         userId: recipientId,
         type: 'new_message',
@@ -162,6 +166,11 @@ export function notifyNewMessage(supabase, recipientId, senderName, preview, con
         body: preview,
         url: conversationId ? `/hub/messenger?c=${conversationId}` : '/hub/messenger',
         tag: conversationId ? `msg-${conversationId}` : 'msg',
+        // The sender's avatar, not the app logo. On a lock screen the face is
+        // what tells you whether this is worth opening; "Smarter Poker" on every
+        // notification tells you nothing. Falls back to the default icon when
+        // the profile has no avatar.
+        icon: senderAvatarUrl || undefined,
         data: { conversationId },
     });
 }

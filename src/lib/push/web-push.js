@@ -96,6 +96,9 @@ export async function sendWebPush(subscription, payload = {}, opts = {}) {
         tag: payload.tag || undefined,
         icon: payload.icon || DEFAULT_ICON,
         badge: payload.badge || DEFAULT_BADGE,
+        // Large hero image. Chrome/Android render it; Safari, iOS PWAs and
+        // Firefox ignore the field entirely, so this is safe to always send.
+        image: payload.image || undefined,
         requireInteraction: payload.requireInteraction === true,
         vibrate: payload.vibrate || [120, 60, 120],
         actions: Array.isArray(payload.actions) ? payload.actions.slice(0, 2) : undefined,

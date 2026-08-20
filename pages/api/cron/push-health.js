@@ -106,8 +106,13 @@ async function handler(req, res) {
         // and it was reintroduced here by discarding `error`.
         if (subsErr) throw new Error(subsErr.message);
 
+        // Date.parse on BOTH sides. PostgREST returns '...123456+00:00' while
+        // toISOString() gives '...123Z'; lexicographic ordering happens to work
+        // for values seconds apart but is wrong at sub-second boundaries and
+        // breaks outright if PostgREST ever returns a non-UTC offset.
+        const zombieCutoffMs = Date.parse(zombieCutoff);
         const zombies = (subs || []).filter(
-            (s) => !s.last_receipt_at || s.last_receipt_at < zombieCutoff
+            (s) => !s.last_receipt_at || Date.parse(s.last_receipt_at) < zombieCutoffMs
         );
         report.zombies = zombies.length;
 

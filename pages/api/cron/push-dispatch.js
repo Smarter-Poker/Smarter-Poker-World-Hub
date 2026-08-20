@@ -61,6 +61,30 @@ const STUCK_AFTER_MINUTES = 15;
 // away 4 of every 5 runs and quietly restored the old 5-minute latency.
 const SLOT_MINUTES = 1;
 
+// How many same-type notifications for one person before they collapse into a
+// single "N new messages" push. Two is a stack worth reading; three starts to
+// be a pile the user swipes away without looking.
+const DIGEST_THRESHOLD = 3;
+
+// Plural nouns for the digest line. Anything not listed falls back to
+// "notifications", which is accurate if bland.
+const DIGEST_LABEL = {
+    new_message: 'messages',
+    friend_request: 'friend requests',
+    friend_accept: 'accepted friend requests',
+    new_follow: 'followers',
+    like: 'likes',
+    comment: 'comments',
+    mention: 'mentions',
+    home_game_new: 'home games',
+    home_game_invite: 'game invites',
+    home_group_announcement: 'group announcements',
+    club_announcement: 'club announcements',
+    table_invite: 'table invites',
+    tournament_starting: 'tournaments starting',
+    diamond_received: 'diamond gifts',
+};
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) _supabase = createClient();
@@ -104,7 +128,7 @@ async function handler(req, res) {
     }
     const runId = runRow?.id || null;
 
-    const stats = { requeued: 0, claimed: 0, sent: 0, failed: 0, skipped: 0, deactivated: 0 };
+    const stats = { requeued: 0, claimed: 0, sent: 0, failed: 0, skipped: 0, deactivated: 0, digested: 0 };
 
     const finish = async (note) => {
         if (!runId) return;
@@ -113,7 +137,12 @@ async function handler(req, res) {
                 finished_at: new Date().toISOString(),
                 claimed: stats.claimed, sent: stats.sent,
                 failed: stats.failed, skipped: stats.skipped,
-                note: note || null,
+                // push_dispatch_runs has no `digested` column and adding one for
+                // a diagnostic counter is not worth a migration, so it rides in
+                // the note where the dashboard already surfaces run detail.
+                note: stats.digested > 0
+                    ? `${note ? note + ' ' : ''}digested:${stats.digested}`
+                    : (note || null),
             }).eq('id', runId);
         } catch { /* ignore */ }
     };
@@ -168,12 +197,136 @@ async function handler(req, res) {
             .map((r) => r.recipient_user_id);
         const capCounts = await countSentTodayBatch(supabase, capUserIds);
 
+        // ---- 3b. ELIGIBILITY PRE-PASS --------------------------------------
+        // Staleness, recipient and the preference gate are evaluated for every
+        // row BEFORE anything is digested.
+        //
+        // Ordering matters and was wrong: the digest used to run first and mark
+        // the absorbed rows `digested_into:<carrier>` immediately. If the
+        // carrier was then suppressed -- quiet hours, mute_all, no device --
+        // the user received nothing at all, and four rows were permanently
+        // recorded as folded into a push that never went out. Gating first
+        // means a digest is only ever built from rows that are genuinely about
+        // to be delivered.
+        const deliverable = [];
+        for (const row of rows) {
+            if (!row.recipient_user_id) {
+                await supabase.from('push_outbox')
+                    .update({ status: 'skipped', failure_reason: 'no_recipient' })
+                    .eq('id', row.id);
+                stats.skipped += 1;
+                continue;
+            }
+
+            const ageMs = Date.now() - Date.parse(row.created_at || 0);
+            if (Number.isFinite(ageMs) && ageMs > MAX_DELIVERY_AGE_MS) {
+                await supabase.from('push_outbox')
+                    .update({ status: 'skipped', failure_reason: 'too_stale_to_deliver' })
+                    .eq('id', row.id);
+                stats.skipped += 1;
+                continue;
+            }
+
+            const entry = gateCtx.get(row.recipient_user_id) || { prefs: null, legacy: null };
+            const gateOpts = {};
+            if (needsDailyCount(entry, row.event)) {
+                // Precomputed in ONE query before the loop. This used to be a
+                // per-row `count: exact` awaited inside the send loop -- up to
+                // BATCH_LIMIT sequential round trips competing with the same
+                // TIME_BUDGET_MS that decides whether rows get requeued, which
+                // undid the batching loadGateContext exists to provide.
+                gateOpts.sentToday = capCounts.get(row.recipient_user_id) || 0;
+            }
+            const gate = gateDecision(entry, row.event, gateOpts);
+            if (!gate.allowed) {
+                await supabase.from('push_outbox')
+                    .update({ status: 'skipped', failure_reason: gate.reason })
+                    .eq('id', row.id);
+                stats.skipped += 1;
+                continue;
+            }
+
+            deliverable.push(row);
+        }
+
+        // ---- 3c. DIGEST -----------------------------------------------------
+        // Five separate banners for five new messages is not five times as
+        // useful as one -- it is worse, because the user swipes the stack away
+        // and learns to ignore the next one. When a single run holds several
+        // notifications of the SAME type for the SAME person, send one push that
+        // says how many and suppress the rest.
+        //
+        // The in-app bell still has every individual row: this only collapses
+        // the interrupt, never the record. Rows absorbed into a digest are
+        // marked `skipped` with a reason pointing at the carrier, so the
+        // suppression breakdown on /admin/push-health stays honest.
+        //
+        // Done here rather than at enqueue time because this is the only place
+        // that can see a whole burst at once -- and only over `deliverable`, so
+        // a digest is never built around a carrier that is about to be gated.
+        const digestGroups = new Map();
+        for (const row of deliverable) {
+            if (!row.event) continue;
+            const key = `${row.recipient_user_id}|${row.event}`;
+            if (!digestGroups.has(key)) digestGroups.set(key, []);
+            digestGroups.get(key).push(row);
+        }
+
+        const absorbed = new Set();
+        for (const [, group] of digestGroups) {
+            if (group.length < DIGEST_THRESHOLD) continue;
+            // Newest row carries the digest so the deep link goes somewhere
+            // current; the rest are folded into it.
+            group.sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
+            const carrier = group[0];
+            const rest = group.slice(1);
+
+            const label = DIGEST_LABEL[carrier.event] || 'notifications';
+            const digestTitle = `${group.length} new ${label}`;
+            const digestBody = carrier.body
+                ? `Latest: ${String(carrier.body).slice(0, 140)}`
+                : `You have ${group.length} unread ${label}.`;
+            const digestTag = `digest:${carrier.event}:${carrier.recipient_user_id}`;
+
+            try {
+                await supabase.from('push_outbox')
+                    .update({
+                        // `skipped`, not `sent`: nothing was delivered for this
+                        // row specifically, and marking it sent would inflate
+                        // the delivery funnel with pushes that never existed.
+                        status: 'skipped',
+                        failure_reason: `digested_into:${carrier.id}`,
+                    })
+                    .in('id', rest.map((r) => r.id));
+
+                // Persist the digest onto the carrier too. The in-memory copy
+                // alone was not enough: if the carrier fails and is retried by a
+                // later run, that run re-reads the row from the database and
+                // would have sent the original single-item text as though the
+                // burst never happened.
+                await supabase.from('push_outbox')
+                    .update({ title: digestTitle, body: digestBody, tag: digestTag })
+                    .eq('id', carrier.id);
+
+                carrier.title = digestTitle;
+                carrier.body = digestBody;
+                carrier.tag = digestTag;
+                for (const r of rest) absorbed.add(r.id);
+                stats.digested += rest.length;
+            } catch (e) {
+                // If the bookkeeping write fails, fall back to sending them
+                // individually rather than dropping them.
+                for (const r of rest) absorbed.delete(r.id);
+                console.warn('[push-dispatch] digest bookkeeping failed:', e?.message || e);
+            }
+        }
+
         // ---- 4. Send -------------------------------------------------------
         const nowIso = new Date().toISOString();
 
         let ranOutOfTime = false;
 
-        for (const row of rows) {
+        for (const row of deliverable) {
             // Stop cleanly before the platform kills us. Remaining rows are
             // still `processing`; requeue_stuck_push_outbox reclaims them.
             if (Date.now() - startedAt > TIME_BUDGET_MS) {
@@ -196,43 +349,8 @@ async function handler(req, res) {
                 continue;
             }
 
-            if (!row.recipient_user_id) {
-                await supabase.from('push_outbox')
-                    .update({ status: 'skipped', failure_reason: 'no_recipient' })
-                    .eq('id', row.id);
-                stats.skipped += 1;
-                continue;
-            }
-
-            // ---- staleness ------------------------------------------------
-            const ageMs = Date.now() - Date.parse(row.created_at || 0);
-            if (Number.isFinite(ageMs) && ageMs > MAX_DELIVERY_AGE_MS) {
-                await supabase.from('push_outbox')
-                    .update({ status: 'skipped', failure_reason: 'too_stale_to_deliver' })
-                    .eq('id', row.id);
-                stats.skipped += 1;
-                continue;
-            }
-
-            // ---- preference gate ------------------------------------------
-            const entry = gateCtx.get(row.recipient_user_id) || { prefs: null, legacy: null };
-            const gateOpts = {};
-            if (needsDailyCount(entry, row.event)) {
-                // Precomputed in ONE query before the loop. This used to be a
-                // per-row `count: exact` awaited inside the send loop -- up to
-                // BATCH_LIMIT sequential round trips competing with the same
-                // TIME_BUDGET_MS that decides whether rows get requeued, which
-                // undid the batching loadGateContext exists to provide.
-                gateOpts.sentToday = capCounts.get(row.recipient_user_id) || 0;
-            }
-            const gate = gateDecision(entry, row.event, gateOpts);
-            if (!gate.allowed) {
-                await supabase.from('push_outbox')
-                    .update({ status: 'skipped', failure_reason: gate.reason })
-                    .eq('id', row.id);
-                stats.skipped += 1;
-                continue;
-            }
+            // Folded into a digest carrier above; already accounted for.
+            if (absorbed.has(row.id)) continue;
 
             const { data: subs } = await supabase
                 .from('push_subscriptions')
@@ -255,6 +373,7 @@ async function handler(req, res) {
                 tag: row.tag || undefined,
                 icon: row.icon_url || undefined,
                 badge: row.badge_url || undefined,
+                image: row.image_url || undefined,
                 data: { event: row.event, outboxId: row.id },
             };
 

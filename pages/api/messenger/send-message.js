@@ -236,7 +236,7 @@ export default async function handler(req, res) {
               if (otherIds.length > 0) {
                   const { data: senderProfile } = await getSupabase()
                       .from('profiles')
-                      .select('username, full_name')
+                      .select('username, full_name, avatar_url')
                       .eq('id', userId)
                       .maybeSingle();
                   const senderName =
@@ -250,7 +250,10 @@ export default async function handler(req, res) {
 
                   await Promise.all(
                       otherIds.map((recipientId) =>
-                          notifyNewMessage(getSupabase(), recipientId, senderName, preview, conversationId)
+                          notifyNewMessage(
+                              getSupabase(), recipientId, senderName, preview, conversationId,
+                              senderProfile?.avatar_url || null
+                          )
                       )
                   );
               }

@@ -99,6 +99,7 @@ export async function enqueuePush(supabase, args = {}) {
                 tag: args.tag || null,
                 icon_url: args.icon || null,
                 badge_url: args.badge || null,
+                image_url: args.image || null,
                 related_entity_id: args.relatedEntityId || null,
                 // 'processing', NOT 'pending'. The cron claims on
                 // status='pending', so inserting as pending opened a window
@@ -147,6 +148,7 @@ export async function enqueuePush(supabase, args = {}) {
         tag: args.tag,
         icon: args.icon,
         badge: args.badge,
+        image: args.image,
         requireInteraction: args.requireInteraction,
         actions: args.actions,
         data: { event, outboxId },

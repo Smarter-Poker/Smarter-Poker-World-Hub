@@ -43,6 +43,7 @@
  * Still: no row is ever created for an unknown endpoint, no user is inferred
  * from the request, and no data is returned.
  */
+import { timingSafeEqual } from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 import {
@@ -118,7 +119,11 @@ export default async function handler(req, res) {
 
         // PROOF OF POSSESSION. Only a caller that already holds the old
         // subscription's auth secret may hand us an ACTIVE replacement.
-        const verified = Boolean(oldAuth) && oldAuth === existing.auth;
+        // Constant-time. This compares a 16-byte shared secret that decides
+        // whether an unauthenticated caller may move a live subscription, so it
+        // should not leak position-of-first-difference through timing. Cheap
+        // insurance even though a remote timing attack over HTTPS is unlikely.
+        const verified = timingSafeEquals(oldAuth, existing.auth);
 
         // UNVERIFIED CALLERS MUST NOT TOUCH A LIVE ROW.
         //
@@ -176,4 +181,17 @@ export default async function handler(req, res) {
 
 function safeParse(s) {
     try { return JSON.parse(s); } catch { return {}; }
+}
+
+/**
+ * Constant-time string comparison. Returns false for missing/mismatched-length
+ * input WITHOUT calling timingSafeEqual, which throws on length mismatch --
+ * length is not the secret here, the bytes are.
+ */
+function timingSafeEquals(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    const bufA = Buffer.from(a, 'utf8');
+    const bufB = Buffer.from(b, 'utf8');
+    if (bufA.length !== bufB.length || bufA.length === 0) return false;
+    return timingSafeEqual(bufA, bufB);
 }

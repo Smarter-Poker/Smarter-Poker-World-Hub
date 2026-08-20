@@ -17,7 +17,7 @@
  *
  * BUMP THIS when changing push behaviour so devices pick up the new worker.
  */
-const SP_SW_VERSION = 'sp-push-v2';
+const SP_SW_VERSION = 'sp-push-v3';
 
 // ---------------------------------------------------------------------------
 // Activation. Claim clients so a fresh worker takes over without a reload.
@@ -62,6 +62,10 @@ self.addEventListener('push', (event) => {
         body: data.body || '',
         icon: data.icon || '/notification-icon.png',
         badge: data.badge || '/notification-icon.png',
+        // Large hero image. Chrome/Android only; every other platform ignores
+        // the field, and the showNotification fallback below already covers an
+        // OS that rejects an option it does not understand.
+        image: data.image || undefined,
         // WHERE CLICK NAVIGATION COMES FROM. notificationclick reads this back.
         data: { url, event: data.event || null, outboxId: data.outboxId || null },
         vibrate: data.vibrate || [120, 60, 120],
@@ -163,7 +167,13 @@ self.addEventListener('notificationclick', (event) => {
                 for (const client of clientList) {
                     if ('focus' in client) {
                         client.focus();
-                        if ('navigate' in client && url && !client.url.includes(url)) {
+                        // Compare PATHNAMES, not substrings. `includes()` was
+                        // wrong in both directions: a notification for '/hub'
+                        // matched any '/hub/*' tab and refused to navigate, and
+                        // a tab already at '/hub/friends?tab=x' did not match a
+                        // notification for '/hub/friends' and navigated
+                        // needlessly, throwing away the query string.
+                        if ('navigate' in client && url && !samePath(client.url, url)) {
                             try { client.navigate(url); } catch (e) { /* cross-origin guard */ }
                         }
                         return null;
@@ -237,6 +247,21 @@ self.addEventListener('pushsubscriptionchange', (event) => {
         })()
     );
 });
+
+/**
+ * True when an open client is already on the notification's path.
+ * Falls back to false (i.e. navigate) if either URL cannot be parsed -- taking
+ * the user somewhere is better than a tap that appears to do nothing.
+ */
+function samePath(clientUrl, targetUrl) {
+    try {
+        const a = new URL(clientUrl, self.location.origin);
+        const b = new URL(targetUrl, self.location.origin);
+        return a.pathname.replace(/\/+$/, '') === b.pathname.replace(/\/+$/, '');
+    } catch (e) {
+        return false;
+    }
+}
 
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);

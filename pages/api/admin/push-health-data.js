@@ -39,6 +39,10 @@ function classifyReason(family) {
             return 'not_enrolled';
         case 'too_stale_to_deliver':
         case 'time_budget_exhausted':
+        // Rolled into a single "N new messages" push rather than sent as its
+        // own banner. Working as intended, not a failure -- the in-app bell
+        // still holds every individual row.
+        case 'digested_into':
             return 'throttled';
         default:
             return 'fault';
@@ -67,6 +71,9 @@ export default async function handler(req, res) {
 
     const now = Date.now();
     const zombieCutoff = new Date(now - ZOMBIE_DAYS * 86400_000).toISOString();
+    // Numeric comparison -- see the note in push-health.js. PostgREST's
+    // microsecond+offset format does not sort correctly against toISOString().
+    const zombieCutoffMs = Date.parse(zombieCutoff);
 
     try {
         const [{ data: staff }, { data: subs }, { data: lastRun }] = await Promise.all([
@@ -90,7 +97,7 @@ export default async function handler(req, res) {
             let status = 'ok';
             if (rows.length === 0) status = 'never_enabled';
             else if (active.length === 0) status = 'subscription_dead';
-            else if (active.every((r) => !r.last_receipt_at || r.last_receipt_at < zombieCutoff)) status = 'zombie';
+            else if (active.every((r) => !r.last_receipt_at || Date.parse(r.last_receipt_at) < zombieCutoffMs)) status = 'zombie';
             return {
                 id: p.id,
                 username: p.username,
@@ -106,7 +113,7 @@ export default async function handler(req, res) {
 
         const activeSubs = (subs || []).filter((s) => s.is_active);
         const zombies = activeSubs.filter(
-            (s) => s.last_used_at && (!s.last_receipt_at || s.last_receipt_at < zombieCutoff)
+            (s) => s.last_used_at && (!s.last_receipt_at || Date.parse(s.last_receipt_at) < zombieCutoffMs)
         );
 
         const [{ count: pending }, { count: failed }, { count: skipped }, { count: sent24 }] = await Promise.all([
@@ -143,6 +150,28 @@ export default async function handler(req, res) {
             skipReasons = Array.from(tally.entries())
                 .map(([reason, count]) => ({ reason, count, kind: classifyReason(reason) }))
                 .sort((a, b) => b.count - a.count);
+        } catch { /* diagnostics only */ }
+
+        // ---- PER-TYPE VOLUME ---------------------------------------------
+        // Which events actually generate push, so a runaway feature is visible
+        // before a user complains about being spammed.
+        let byType = [];
+        try {
+            const since7 = new Date(now - 7 * 86400_000).toISOString();
+            const { data: evs } = await supabase
+                .from('push_outbox')
+                .select('event, status')
+                .gte('created_at', since7)
+                .limit(5000);
+            const tally = new Map();
+            for (const r of evs || []) {
+                const k = r.event || 'unknown';
+                const t = tally.get(k) || { event: k, total: 0, sent: 0 };
+                t.total += 1;
+                if (r.status === 'sent') t.sent += 1;
+                tally.set(k, t);
+            }
+            byType = Array.from(tally.values()).sort((a, b) => b.total - a.total).slice(0, 12);
         } catch { /* diagnostics only */ }
 
         const lastRunAt = lastRun?.[0]?.started_at ? Date.parse(lastRun[0].started_at) : null;
@@ -214,6 +243,7 @@ export default async function handler(req, res) {
             // "did they opt out or are we broken" breakdown never reached the
             // page it was written for.
             skipReasons,
+            byType,
             staff: staffStatus,
         });
     } catch (e) {
