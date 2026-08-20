@@ -879,3 +879,103 @@ the finishers were never recorded -- the money is owed to nobody
 identifiable. Detection is possible; attribution is not. The engine fixes
 stop new occurrences; the historical 30k of gaps is a data loss that only
 Dan can decide how to treat.
+
+---
+
+## Tournament round 2 (2026-08-20): rounding, add-ons, double-booked fees
+
+Continuation of the payout work. Four more defects, found by walking every
+remaining tournament money path rather than waiting for symptoms.
+
+### 1. Three different rounding rules (fixed)
+
+Each place was rounded independently, so the rounded places need not add up to
+the pool. The 9-place structure on a 483.00 pool rounds to 483.01; 218.40 and
+197.40 round the other way and UNDERpay. 8 of the 67 distinct (pool,
+structure) pairs actually used in production are off by a cent -- the -0.01
+prize gaps already visible in Midnight Bounty (101.50 paid 101.51) are exactly
+this.
+
+Worse, there were THREE implementations: eliminatePlayer, finishTournament,
+and a separate formula inside recoverStuckCompletingTournaments. A tournament
+rescued by the watchdog could be paid differently from one that finished
+normally, and differently again from what fn_tournament_payout_reconcile
+expects -- which would have raised a false "overpaid" critical alert on every
+such event, because the reconciler had been written with the residual rule
+while the engine had not.
+
+All three now share `computePlacePrize`: normalise the structure to 100%,
+round each place, last paid place absorbs the residual. Verified over 112
+pool/structure combinations -- every one sums to the pool exactly, where the
+old rule was wrong in 13. Malformed structures degrade proportionally (a 150%
+and a 60% structure both resolve to [66.67, 33.33] on a 100 pool) instead of
+over-paying the top places and starving the last.
+
+The helper lives in its own import-free module: hosting it in
+TournamentManagerEliminations made the import graph circular, because
+TournamentManagerBase already imports tournamentRecovery
+(recovery -> eliminations -> base -> recovery). ESM hoisting would have made
+it work; a cycle around money code is not worth relying on.
+
+### 2. Add-ons were raked, against an explicit rule (fixed)
+
+Dan's rule is binding: "ADD ON'S AREN'T RAKED. ONLY REBUYS."
+process_tournament_rebuy computed the same fee ratio for every purchase type,
+so an add-on was charged base + ~10% and booked a 'tournament_addon_fee' rake
+record -- behaviour deliberately introduced on 2026-07-24 and now reversed.
+
+### 3. The fee was booked TWICE (fixed)
+
+process_tournament_rebuy inserts a rake_records row and increments
+tournaments.total_rake inside the same transaction as the chip deduction. The
+client then called recordTournamentFee(), which inserted a SECOND rake_records
+row and called increment_tournament_rake again. Every rebuy and re-entry fee
+would have been counted twice in union rake revenue, in total_rake, and
+therefore in rakeback. All three client call sites removed; the database
+transaction is authoritative.
+
+### 4. The prize pool would have shaved every add-on (fixed)
+
+recalculatePrizePool divided EVERY rebuy/add-on debit by (1 + feeRatio) to
+strip the fee back out. Correct for a rebuy, whose debit is base + fee -- but
+once add-ons became fee-free their debit IS the base, so each add-on would
+have had ~9% quietly removed from the prize pool. This defect was created by
+fix 2 and caught before it shipped. Also swapped Math.trunc for Math.round on
+the pool total: every term is 2dp, so the only difference is IEEE 754 error,
+and 482.99999999999 truncates to 482.99, losing a cent players paid in.
+
+### Why these were latent
+
+process_tournament_rebuy has produced zero rake_records and the last 'rebuy'
+wallet_transaction was 2026-04-19, so defects 2-4 were not corrupting anything
+yet. They were not theoretical either: 28 live/recent tournaments have
+add_on_available set, so all three fire the moment a player takes an add-on.
+
+### Verification
+
+* Server behaviour, in a rolled-back transaction against production: add-on
+  fee 0.00, cost 100.00 at face value, rake rows unchanged 6 -> 6, prize pool
+  +100.00; a rebuy in the same test still charged 10.00 and wrote its rake row
+  6 -> 7.
+* Function volatility, SECURITY DEFINER, search_path ('public','pg_temp'), the
+  p_current_level DEFAULT and the authenticated/anon grants all unchanged.
+  (The first apply failed with "cannot remove parameter defaults" -- caught
+  before it could drop the default.)
+* All payout structures in production sum to exactly 100 (10,797 checked), so
+  normalisation is currently a no-op in both implementations.
+* Reconciler still clean on the control (75.00 expected = 75.00 paid) and
+  still detects the duplicate-finisher case after the change.
+* fn_anon_exposure_check 0, treasury selftest healthy, tsc --noEmit clean.
+* Migration files md5-match production for all three functions.
+
+### Live proof the earlier fix works
+
+At 17:18 another agent applied six migrations in quick succession, each
+forcing a PostgREST schema-cache reload; the engine logged 268 errors in that
+minute. The new guard fired 24 times ("remaining-player count unavailable --
+skipping finish check this cycle") and NO tournament took the "All busted
+simultaneously" branch. Under the old code those 24 unreadable counts would
+each have read as zero and finished a live tournament, stranding its prize
+money -- which is precisely how the 16:11 incident happened. The two
+tournaments that did complete during the window reconciled clean
+(6.00/6.00 and 80.00/80.00).

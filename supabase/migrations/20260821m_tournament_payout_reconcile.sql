@@ -102,7 +102,9 @@
 -- 'tournament_payout_reconcile_uuid_fix' (Postgres has no min(uuid); the
 -- holder lookup uses (array_agg(...))[1]), then
 -- 'tournament_payout_reconcile_comment_parity' (a comment line lost while
--- hand-copying, caught by the md5 check between this file and pg_proc.prosrc).
+-- hand-copying, caught by the md5 check between this file and pg_proc.prosrc),
+-- then 'payout_reconcile_normalise_structure' (normalise the structure to 100%
+-- so this stays byte-identical in behaviour to the engine's computePlacePrize).
 -- Replaying this file alone reproduces production exactly; all function
 -- bodies md5-match.
 
@@ -117,6 +119,8 @@ DECLARE
   v_struct         jsonb;
   v_pool           numeric;
   v_last_place     int;
+  v_pct_sum        numeric;
+  v_norm           numeric;
   v_running        numeric := 0;
   v_expected       numeric;
   v_paid           numeric;
@@ -171,6 +175,19 @@ BEGIN
   SELECT max((e->>'place')::int) INTO v_last_place
     FROM jsonb_array_elements(v_struct) e;
 
+  -- Normalise the structure to 100%, exactly as computePlacePrize does in the
+  -- engine. Every structure in production sums to 100 (10,797 tournaments
+  -- checked) so this is a no-op today; it exists so the two implementations
+  -- cannot diverge on a malformed structure and start reporting phantom
+  -- overpayments against each other.
+  SELECT COALESCE(SUM((e->>'percentage')::numeric), 0) INTO v_pct_sum
+    FROM jsonb_array_elements(v_struct) e;
+  IF v_pct_sum <= 0 THEN
+    RETURN jsonb_build_object('ok', true, 'tournament_id', p_tournament_id,
+                              'skipped', 'structure_has_no_percentages');
+  END IF;
+  v_norm := 100.0 / v_pct_sum;
+
   FOR r IN
     SELECT (e->>'place')::int         AS place,
            (e->>'percentage')::numeric AS pct
@@ -181,7 +198,7 @@ BEGIN
     IF r.place = v_last_place THEN
       v_expected := round(v_pool - v_running, 2);
     ELSE
-      v_expected := round(v_pool * r.pct / 100.0, 2);
+      v_expected := round(v_pool * r.pct * v_norm / 100.0, 2);
     END IF;
     v_running := v_running + v_expected;
     v_total_expected := v_total_expected + v_expected;
