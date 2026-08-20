@@ -134,6 +134,33 @@ async function handler(req, res) {
       result.errors.push(`snapshot heal: ${e?.message || e}`);
     }
 
+    // ── 0b. RECONCILE YESTERDAY'S PLAYER PROFIT ───────────────────────────
+    // club_member_daily_stats.profit is a stack delta counted only when an
+    // "attributable" heuristic passes; failures are DROPPED, and because a rebuy
+    // looks like a gain the failures skew toward dropped LOSSES. Measured on
+    // 2026-08-18 the aggregate was +83,345 adrift of this club's own rake
+    // rollup, where player profit + house cut must equal zero; the leaderboard
+    // ledger was 13.34 out.
+    //
+    // This re-derives COMPLETED days from that ledger. It is idempotent and
+    // recomputes from source, so if the owning feature rebuilds a day this
+    // simply re-corrects it on the next pass rather than fighting it. Today is
+    // never touched - the live trigger owns today.
+    try {
+      const yday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const { data: recon, error: reconErr } = await admin.rpc(
+        'fn_reconcile_club_member_daily_profit',
+        { p_date: yday }
+      );
+      if (reconErr) {
+        result.errors.push(`profit reconcile: ${reconErr.message}`);
+      } else {
+        result.profit_reconcile = recon;
+      }
+    } catch (e) {
+      result.errors.push(`profit reconcile: ${e?.message || e}`);
+    }
+
     // ── 0. ADVANCE THE PLAYER -> HAND INDEX ──────────────────────────────
     // ca_hand_player_idx is what makes the Club Arena stats page fast: without
     // it, "this player's most recent N hands" is a JSONB containment scan that
