@@ -61,7 +61,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
         },
         // 2026-07-25 audit fix: the events API requires scheduled_date and
         // start_time as SEPARATE fields (packing the time into scheduled_date
-        // broke creation) and expects special_rules, not notes — same mapping
+        // broke creation) and expects special_rules, not notes - same mapping
         // create.js uses.
         body: JSON.stringify({
           group_id: group.id,
@@ -90,7 +90,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
         // B13: surface PAST_SCHEDULED_DATE from the DB trigger
         const errMsg = data.error?.message || data.error || '';
         if (errMsg.includes('PAST_SCHEDULED_DATE') || errMsg.includes('past')) {
-          toast.error('Cannot schedule a game in the past — please choose a future date');
+          toast.error('Cannot schedule a game in the past - please choose a future date');
         } else {
           toast.error(errMsg || 'Failed to schedule game');
         }
@@ -220,7 +220,7 @@ function MemberRow({ member, isHost, onApprove, onRemove, onMessage }) {
 
       <div className="flex-1">
         {/* 2026-07-25 audit fix: members API returns nested profiles:user_id
-            (display_name, avatar_url) and joined_at — flat fields were undefined. */}
+            (display_name, avatar_url) and joined_at - flat fields were undefined. */}
         <p className="font-medium text-white">{member.profiles?.display_name || 'Member'}</p>
         <p className="text-sm text-[#64748B]">
           {isPending ? 'Pending approval' : `Joined ${new Date(member.joined_at || member.created_at).toLocaleDateString()}`}
@@ -309,7 +309,7 @@ export default function ManageHomeGamePage() {
   // bug-hunt-zero/B-MGR-7: re-entry guard for the irreversible delete-group action.
   const deletingGroupRef = useRef(false);
 
-  // Phase 41 — seat reservation + host modals
+  // Phase 41 - seat reservation + host modals
   const [currentUserId, setCurrentUserId]   = useState(null);
   const [rosterPickerState, setRosterPickerState] = useState(null);
   // shape: { gameId, tableId, seatNumber, maxSeats, occupiedSeats }
@@ -317,14 +317,14 @@ export default function ManageHomeGamePage() {
   // shape: { gameId, defaults }
   const [seatRefreshKey, setSeatRefreshKey] = useState(0);
 
-  // Resolve the signed-in user once — used to highlight own-seats in the grid.
+  // Resolve the signed-in user once - used to highlight own-seats in the grid.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const u = await getSafeUser(supabase);
         if (!cancelled) setCurrentUserId(u?.id || null);
-      } catch { /* ignore — seat grid still renders, own-seat actions just won't light up */ }
+      } catch { /* ignore - seat grid still renders, own-seat actions just won't light up */ }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -407,7 +407,7 @@ export default function ManageHomeGamePage() {
       }
 
       // Dan-fix/tournament-buildout: parallel SECURITY DEFINER RPC fetch.
-      // Independent of the commander events API. Non-fatal if it fails — host
+      // Independent of the commander events API. Non-fatal if it fails - host
       // sees an empty tournament list and can add one to start over.
       try {
         const { data: trnData, error: trnErr } = await supabase
@@ -466,7 +466,7 @@ export default function ManageHomeGamePage() {
       setActiveTab(wanted);
     }
   }, [router.isReady, router.query?.tab]);
-  // Realtime listener — live updates for home-games/[id]/manage.js
+  // Realtime listener - live updates for home-games/[id]/manage.js
   // v2 suffix forces reconnect for browser sessions opened before the
   // 2026-04-26 publication migration.
   useEffect(() => {
@@ -483,7 +483,7 @@ export default function ManageHomeGamePage() {
     try {
         const token = getAccessToken();
       // 2026-07-25 audit fix: members API only allows PUT (was PATCH → 405)
-      // and updateMembership expects {member_id, action} — not {status}.
+      // and updateMembership expects {member_id, action} - not {status}.
       // Also check res.ok so a rejected approval is surfaced instead of silent.
       const res = await fetch(`/api/commander/home-games/groups/${id}/members`, {
         method: 'PUT',
@@ -511,14 +511,14 @@ export default function ManageHomeGamePage() {
     if (!confirm(`Remove ${member.profiles?.display_name || 'this member'}?`)) return;
 
     // bug-hunt-zero/B-MGR-6: same silent-failure pattern. DELETE goes
-    // through, server says no (403 — not the host, 404 — already gone,
-    // 409 — protected member), but fetchData() reloads the list with
+    // through, server says no (403 - not the host, 404 - already gone,
+    // 409 - protected member), but fetchData() reloads the list with
     // the member still in it and no error toast. Host re-clicks Remove
     // forever and wonders why it doesn't work.
     try {
         const token = getAccessToken();
       // 2026-07-25 audit fix: leaveOrRemove reads member_id from the request
-      // BODY, not the query string — the query-param form removed the caller
+      // BODY, not the query string - the query-param form removed the caller
       // (self-leave path) instead of the targeted member.
       const res = await fetch(`/api/commander/home-games/groups/${id}/members`, {
         method: 'DELETE',
@@ -564,7 +564,7 @@ export default function ManageHomeGamePage() {
   }
 
   async function handleRsvpAction(rsvpId, action) {
-    // bug-hunt-zero/B-MGR-3: was a silent-failure factory — host clicks
+    // bug-hunt-zero/B-MGR-3: was a silent-failure factory - host clicks
     // approve/decline, server 4xx's, list silently reloads showing no
     // change. Now we check res.ok and surface the error.
     try {
@@ -697,7 +697,7 @@ export default function ManageHomeGamePage() {
 
     // bug-hunt-zero/B-MGR-7: in-flight guard. The confirm dialog → fetch
     // window is long enough that a frustrated user might double-tap OK.
-    // Without this, two parallel DELETE requests fire — the second 404s
+    // Without this, two parallel DELETE requests fire - the second 404s
     // and the user sees an "already deleted" error that came from their
     // own first request.
     if (deletingGroupRef.current) return;
@@ -746,7 +746,7 @@ export default function ManageHomeGamePage() {
       // bug-hunt-zero/B-MGR-8: was silently failing. Now we (a) surface
       // server errors to the user via toast, and (b) prefer the
       // server-canonical group from data.group rather than blindly
-      // merging the client's newSettings — server may clamp/normalize
+      // merging the client's newSettings - server may clamp/normalize
       // values (e.g. trim a name, coerce booleans). If only data.success
       // came back, fall back to the optimistic merge since we have no
       // other source of truth.
@@ -790,14 +790,14 @@ export default function ManageHomeGamePage() {
   // Until now the ONLY check on this 1,600-line host console was
   // `useRequireAuth`, which proves the caller is signed in and nothing more.
   // Any authenticated user who knew (or guessed) a group UUID reached the
-  // full management surface, and `isHost` was hardcoded `true` below — so
+  // full management surface, and `isHost` was hardcoded `true` below - so
   // the UI rendered escrow release/refund, member removal, broadcast and
   // Delete Group for them.
   //
   // The upstream commander API is expected to enforce this server-side, but
   // it lives in a different repo and cannot be verified from here, so this
   // is defence in depth, not the only line of defence. Never re-hardcode
-  // isHost — derive it from `isGroupStaff`.
+  // isHost - derive it from `isGroupStaff`.
   //
   // Staff = group owner, or an approved member holding owner/admin/co_host,
   // mirroring the fn_home_is_group_staff RLS helper in the database.
@@ -843,7 +843,7 @@ export default function ManageHomeGamePage() {
     <>
       <SEOHead
                 title="Manage Home Game"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 
@@ -918,7 +918,7 @@ export default function ManageHomeGamePage() {
 
         {/* Content */}
         <main className="max-w-4xl mx-auto px-4 py-6">
-          {/* Events Tab — Dan-fix/tournament-dedup: filter tournaments OUT
+          {/* Events Tab - Dan-fix/tournament-dedup: filter tournaments OUT
               of the cash-games list (they live on the Tournaments tab now).
               Belt-and-braces: filter by format='tournament' AND by id-set so
               even if the events API doesn't return format, tournament rows
@@ -1000,7 +1000,7 @@ export default function ManageHomeGamePage() {
                             currentUserId={currentUserId}
                             isHost={isGroupStaff}
                             onOpenRosterPicker={({ tableId, seatNumber, maxSeats, occupiedSeats }) => {
-                              // All four values are authoritative — resolved by
+                              // All four values are authoritative - resolved by
                               // HomeGamesSeatReservation from the live tables state.
                               // Previously this hardcoded maxSeats=9 + empty
                               // occupiedSeats, which broke 6-max tables and
@@ -1048,7 +1048,7 @@ export default function ManageHomeGamePage() {
             );
           })()}
 
-          {/* Tournaments Tab — Dan-fix/tournament-buildout
+          {/* Tournaments Tab - Dan-fix/tournament-buildout
               Add / Edit / Cancel for tournament events. Tournaments persist
               as commander_home_games rows with format='tournament'; the
               backing RPCs are rpc_hg_create_tournament + rpc_hg_update_tournament
@@ -1152,7 +1152,7 @@ export default function ManageHomeGamePage() {
                     key={member.id}
                     member={member}
                     // 2026-07-25 audit fix: commander_home_groups rows have
-                    // owner_id, not host_id — host badge never rendered.
+                    // owner_id, not host_id - host badge never rendered.
                     isHost={member.user_id === group?.owner_id}
                     onRemove={handleRemoveMember}
                     onMessage={member.user_id !== group?.owner_id ? handleStartDm : undefined}
@@ -1452,7 +1452,7 @@ export default function ManageHomeGamePage() {
                 </div>
               </div>
 
-              {/* Contact Info — optional public contact details */}
+              {/* Contact Info - optional public contact details */}
               <div className="cmd-panel p-6">
                 <h3 className="font-semibold text-white mb-1">Contact Info</h3>
                 <p className="text-sm text-[#64748B] mb-4">
@@ -1557,14 +1557,14 @@ export default function ManageHomeGamePage() {
                 <p className="text-sm text-[#64748B] mt-2">Share This Code With Players You Want To Invite</p>
               </div>
 
-              {/* Public Page — shown only for public groups that have a social page */}
+              {/* Public Page - shown only for public groups that have a social page */}
               {pageSlug && (
                 <div className="cmd-panel p-6">
                   <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
                     <div>
                       <h3 className="font-semibold text-white mb-1">Your Public Page</h3>
                       <p className="text-sm text-[#64748B]">
-                        Share this URL anywhere — players can view your game, RSVP, and follow for updates without an account.
+                        Share this URL anywhere - players can view your game, RSVP, and follow for updates without an account.
                       </p>
                     </div>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 whitespace-nowrap">
@@ -1629,7 +1629,7 @@ export default function ManageHomeGamePage() {
                         </button>
                       </div>
                       <p className="text-xs text-[#64748B] leading-relaxed">
-                        This page is indexed by search engines and carries Open Graph metadata — it'll render a rich preview card when shared on social media, iMessage, WhatsApp, and Slack.
+                        This page is indexed by search engines and carries Open Graph metadata - it'll render a rich preview card when shared on social media, iMessage, WhatsApp, and Slack.
                       </p>
                     </div>
                     <div className="flex flex-col items-center gap-2 bg-white p-3 rounded-lg self-start">
@@ -1678,7 +1678,7 @@ export default function ManageHomeGamePage() {
         group={group}
       />
 
-      {/* Phase 41 — host-side seat-reservation modals */}
+      {/* Phase 41 - host-side seat-reservation modals */}
       {rosterPickerState && (
         <HostRosterPickerModal
           groupId={id}
@@ -1699,7 +1699,7 @@ export default function ManageHomeGamePage() {
         />
       )}
       {/* Dan-fix/tournament-buildout: single modal handles both add and edit.
-          On successful save it refetches via fetchData() — Realtime fires too,
+          On successful save it refetches via fetchData() - Realtime fires too,
           but the explicit refetch keeps the modal-close → list-update sequence
           tight in slow-network conditions. */}
       <TournamentEditModal

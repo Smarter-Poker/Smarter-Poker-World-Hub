@@ -77,7 +77,7 @@ export default function HomeGameRosterPage() {
       
       setGroup(g);
 
-      // Note: host_id check below is best-effort client-side — the roster API
+      // Note: host_id check below is best-effort client-side - the roster API
       // enforces admin/host ownership server-side and returns 403 if not authorized.
 
       const res = await fetch(`/api/commander/home-games/groups/${id}/roster`, { headers });
@@ -109,7 +109,7 @@ export default function HomeGameRosterPage() {
 
   useEffect(() => {
     if (router.isReady && !checking) {
-      // BUG FIX #21: Removed window.supabaseUser bail — this caused the page
+      // BUG FIX #21: Removed window.supabaseUser bail - this caused the page
       // to silently get stuck in a loading state if supabaseUser wasn't hydrated
       // before router.isReady fired. All actual auth is enforced server-side
       // (the roster API returns 403 if caller isn't admin/host). Safe to proceed.

@@ -115,7 +115,7 @@ function MemberCard({ member, isHost, onMessage }) {
     <div className="flex items-center gap-3 p-3">
       <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center overflow-hidden">
         {/* 2026-07-25 audit fix: members API returns nested profiles:user_id
-            (display_name, avatar_url) — flat fields were always undefined. */}
+            (display_name, avatar_url) - flat fields were always undefined. */}
         {member.profiles?.avatar_url ? (
           <img src={member.profiles.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
         ) : (
@@ -151,7 +151,7 @@ export default function HomeGameDetailPage() {
   const [group, setGroup] = useState(null);
   const [events, setEvents] = useState([]);
   // Dan-fix/tournament-buildout: tournaments fetched separately via
-  // rpc_hg_list_tournaments — independent of the commander events API
+  // rpc_hg_list_tournaments - independent of the commander events API
   // so we don't depend on it returning the new format/structure cols.
   const [tournaments, setTournaments] = useState([]);
   const [members, setMembers] = useState([]);
@@ -225,7 +225,7 @@ export default function HomeGameDetailPage() {
       }
 
       // Dan-fix/tournament-buildout: parallel fetch of structured tournament
-      // data via SECURITY DEFINER RPC. Non-fatal if it fails — the page still
+      // data via SECURITY DEFINER RPC. Non-fatal if it fails - the page still
       // renders with an empty tournaments list.
       try {
         const { data: trnData, error: trnErr } = await supabase
@@ -233,12 +233,12 @@ export default function HomeGameDetailPage() {
         if (!trnErr && Array.isArray(trnData)) {
           setTournaments(trnData);
         } else if (trnErr) {
-          // audit 2026-08-14: rpc_hg_list_tournaments is STAFF-ONLY — it
+          // audit 2026-08-14: rpc_hg_list_tournaments is STAFF-ONLY - it
           // raises NOT_GROUP_STAFF for every plain member, and this branch
           // used to "just leave it empty", so ordinary members always saw an
           // empty tournaments tab on their own group. The member-safe read,
           // rpc_hg_list_public_tournaments(p_group_id), existed in the
-          // database with ZERO callers — built for exactly this case and
+          // database with ZERO callers - built for exactly this case and
           // never wired. Fall back to it instead of shrugging.
           const staffDenied = /NOT_GROUP_STAFF/.test(trnErr.message || '');
           if (staffDenied) {
@@ -288,7 +288,7 @@ export default function HomeGameDetailPage() {
   useEffect(() => {
     fetchGroup();
   }, [fetchGroup]);
-  // Realtime listener — live updates for home-games/[id].js
+  // Realtime listener - live updates for home-games/[id].js
   // v2 suffix forces WebSocket reconnect for sessions that opened before the
   // 2026-04-26 publication migration (realtime didn't include these tables).
   useEffect(() => {
@@ -302,7 +302,7 @@ export default function HomeGameDetailPage() {
     return () => { supabase.removeChannel(ch); };
   }, [id]);
 
-  // Realtime listener — rsvps (v2 suffix forces reconnect for stale sessions)
+  // Realtime listener - rsvps (v2 suffix forces reconnect for stale sessions)
   useEffect(() => {
     if (events.length === 0) return;
     const gameIds = events.map(e => e.id);
@@ -372,19 +372,19 @@ export default function HomeGameDetailPage() {
 
       // bug-hunt-zero/B-ID-1: surface server-side errors to the user.
       // The previous catch swallowed everything into console.warn, so
-      // a failed join produced zero UI feedback — clicking the button
+      // a failed join produced zero UI feedback - clicking the button
       // looked indistinguishable from a successful join.
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const serverMsg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || data?.message || '';
-        throw new Error(serverMsg || `Couldn't join — please try again (${res.status})`);
+        throw new Error(serverMsg || `Couldn't join - please try again (${res.status})`);
       }
       if (data.success || data.membership) {
         // audit 2026-08-14: read both response shapes, same as [slug].js and
-        // join.js — the proxy relays the upstream body untouched and the
+        // join.js - the proxy relays the upstream body untouched and the
         // three consumers had three different readers.
         if ((data.status || data.membership?.status) === 'pending') {
-          toast.success('Request sent — waiting for the host to approve you');
+          toast.success('Request sent - waiting for the host to approve you');
         } else {
           toast.success('You joined the group');
         }
@@ -430,7 +430,7 @@ export default function HomeGameDetailPage() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
 
-      // Use the ACTUAL response returned by the server — the DB trigger
+      // Use the ACTUAL response returned by the server - the DB trigger
       // fn_hg_enforce_rsvp_capacity may silently downgrade 'yes' → 'waitlist'.
       // Never display the optimistic status; always reconcile with server value.
       const actualResponse = data.rsvp?.response || null;
@@ -438,11 +438,11 @@ export default function HomeGameDetailPage() {
       if (actualResponse) {
         setRsvps(prev => ({ ...prev, [event.id]: actualResponse }));
         if (actualResponse === 'waitlist' && status === 'yes') {
-          // B14: game is full — player was auto-waitlisted
+          // B14: game is full - player was auto-waitlisted
           const waitlistPos = data.rsvp?.waitlist_position || '';
           toast(waitlistPos
-            ? `You're #${waitlistPos} on the waitlist — the game is full`
-            : "You're on the waitlist — the game is full",
+            ? `You're #${waitlistPos} on the waitlist - the game is full`
+            : "You're on the waitlist - the game is full",
             { icon: '⏳' }
           );
         }
@@ -450,7 +450,7 @@ export default function HomeGameDetailPage() {
       } else if (data.error) {
         const errCode = data.error?.code || data.error;
         if (errCode === 'GAME_STARTED') {
-          toast.error('This game started already — messaging the host');
+          toast.error('This game started already - messaging the host');
           setTimeout(() => {
             if (data.dm_url) router.push(data.dm_url);
           }, 1500);
@@ -542,9 +542,9 @@ export default function HomeGameDetailPage() {
   }
 
   // 2026-07-25 audit fix: commander_home_groups rows have owner_id, not
-  // host_id — the old comparison made isHost always false for the owner.
+  // host_id - the old comparison made isHost always false for the owner.
   const isHost = group.owner_id === currentUserId;
-  // audit 2026-08-14: was `!!userMembership` — ANY row counted, so pending,
+  // audit 2026-08-14: was `!!userMembership` - ANY row counted, so pending,
   // declined and BANNED users unlocked every member-only block on this page.
   // manage.js, vouch.js and the DB helper all require status === 'approved'.
   const isMember = userMembership?.status === 'approved';
@@ -556,7 +556,7 @@ export default function HomeGameDetailPage() {
     <>
       <SEOHead
                 title="Home Game Details"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 
@@ -673,7 +673,7 @@ export default function HomeGameDetailPage() {
           <TournamentList
             tournaments={tournaments}
             // 2026-07-25 audit fix: host mode (Edit/Cancel controls) only for
-            // the group owner — plain members get the read-only player view.
+            // the group owner - plain members get the read-only player view.
             mode={isHost ? 'host' : 'player'}
             title="Upcoming Tournaments"
             onEdit={() => router.push(`/hub/commander/home-games/${id}/manage?tab=tournaments`)}
@@ -778,7 +778,7 @@ export default function HomeGameDetailPage() {
                     onClick={async () => {
                       // bug-hunt-zero/B-ID-2: post creation was silently failing.
                       // Previous code never checked res.ok, so a 4xx/5xx cleared
-                      // the input box and called fetchGroup() — to the user it
+                      // the input box and called fetchGroup() - to the user it
                       // looked like a successful post that mysteriously vanished.
                       if (!newPost.trim()) return;
                       if (postingRef.current) return; // block double-tap
@@ -999,7 +999,7 @@ export default function HomeGameDetailPage() {
               Share this code with players you want to invite
             </p>
 
-            {/* 2026-07-25 audit fix: no more hardcoded 'ABC123' fallback — when the
+            {/* 2026-07-25 audit fix: no more hardcoded 'ABC123' fallback - when the
                 group has no invite code, explain instead of showing a fake code. */}
             {group.invite_code ? (
               <div className="flex items-center gap-2 p-4 bg-[#0D192E] rounded-lg mb-4">

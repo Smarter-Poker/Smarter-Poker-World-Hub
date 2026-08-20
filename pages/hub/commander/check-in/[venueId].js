@@ -39,7 +39,7 @@ export default function PlayerCheckInPage() {
       fetchVenueData();
     }
   }, [venueId]);
-  // Realtime listener — live updates for check-in/[venueId].js
+  // Realtime listener - live updates for check-in/[venueId].js
   useEffect(() => {
     if (!venueId) return;
     const ch = supabase
@@ -152,8 +152,8 @@ export default function PlayerCheckInPage() {
     return (
       <>
         <SEOHead
-          title="Check In — Poker Venue"
-          description="Smarter.Poker — The Future Of The Game."
+          title="Check In - Poker Venue"
+          description="Smarter.Poker - The Future Of The Game."
           noindex={true}
         />
 

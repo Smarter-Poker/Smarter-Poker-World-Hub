@@ -1,5 +1,5 @@
 /**
- * Join-by-code — passthrough proxy to the canonical commander handler.
+ * Join-by-code - passthrough proxy to the canonical commander handler.
  *
  * HISTORY
  * -------
@@ -9,7 +9,7 @@
  * commander.smarter.poker handler: GET lookups 405'd, POST returned a
  * different shape than the client expects, and the join bypassed the
  * join_home_group RPC's validation and rate limiting. It was reduced to a
- * forwarding proxy. (The file must remain until repo tooling can delete it —
+ * forwarding proxy. (The file must remain until repo tooling can delete it -
  * deleting it would let the vercel.json rewrite do this forwarding natively.)
  *
  * 2026-08-12 audit: the forwarding proxy itself was the least-defended
@@ -27,7 +27,7 @@
  *
  *   3. DROPPED IDEMPOTENCY KEY (§7.3). The client generates an
  *      `X-Idempotency-Key` for joins, but the header allowlist silently
- *      discarded it — making the documented idempotency guarantee fiction
+ *      discarded it - making the documented idempotency guarantee fiction
  *      and allowing a double-tap to produce two join attempts.
  *
  *   4. NO RATE LIMIT (§7.4). This was the ONLY endpoint in the repo with no
@@ -53,7 +53,7 @@ const ALLOWED_METHODS = ['GET', 'POST'];
 const CODE_PATTERN = /^[A-Za-z0-9_-]{4,32}$/;
 
 export default async function handler(req, res) {
-  // (4) Invite-code oracle — rate limit before doing any work.
+  // (4) Invite-code oracle - rate limit before doing any work.
   if (!applyRateLimit(req, res, LIMITS.auth)) return;
 
   // (1) Explicit method allowlist.
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
 
   try {
     const headers = { 'Content-Type': 'application/json' };
-    // (2) Authorization only — the cookie jar is deliberately NOT forwarded.
+    // (2) Authorization only - the cookie jar is deliberately NOT forwarded.
     if (req.headers.authorization) headers.Authorization = req.headers.authorization;
     if (req.headers['x-staff-session']) headers['x-staff-session'] = req.headers['x-staff-session'];
     // (3) Preserve the client's idempotency key.
