@@ -62,9 +62,37 @@ async function handler(req, res) {
   }
 
   const started = Date.now();
-  const result = { drained: [], rollup: [], errors: [] };
+  const result = { drained: [], rollup: [], hand_index: null, errors: [] };
 
   try {
+    // ── 0. ADVANCE THE PLAYER -> HAND INDEX ──────────────────────────────
+    // ca_hand_player_idx is what makes the Club Arena stats page fast: without
+    // it, "this player's most recent N hands" is a JSONB containment scan that
+    // materialises every hand they ever played (measured 71,238 rows / ~12s for
+    // one account) and gets cancelled by the 8s statement_timeout.
+    //
+    // It advances on stats-page loads, but that makes freshness depend on
+    // traffic — and a player who has not opened the page is exactly the one
+    // whose window has grown. Doing it here instead is deliberate: this route
+    // already exists and is already scheduled, so it needs no net-new cron file
+    // (CLAUDE.md section 11.3 forbids growing pages/api/cron/) and no second
+    // scheduler. The advisory lock inside the function makes a concurrent
+    // page-triggered refresh a no-op rather than duplicate work.
+    try {
+      const { data: idxRows, error: idxErr } = await admin.rpc(
+        'ca_refresh_hand_player_index',
+        { p_max_hands: 60000 }
+      );
+      if (idxErr) {
+        result.errors.push(`hand index: ${idxErr.message}`);
+      } else {
+        const row = Array.isArray(idxRows) ? idxRows[0] : idxRows;
+        result.hand_index = row || null;
+      }
+    } catch (e) {
+      result.errors.push(`hand index: ${e?.message || e}`);
+    }
+
     // ── 1. Which clubs still have un-rebuilt tables with recent hands? ──
     const { data: pending, error: pendingErr } = await admin.rpc('ca_clubs_with_rebuild_backlog');
     if (pendingErr) {
