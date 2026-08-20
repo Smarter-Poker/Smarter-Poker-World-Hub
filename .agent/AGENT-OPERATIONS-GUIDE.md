@@ -132,3 +132,25 @@ writing code: unknown stays unknown, caps fail closed, never render a guess.
   `server/src/*.test.ts`. Never loosen an assertion to make it pass.
 - Protected zone: `public/hub/club-arena/` in WH is build output -- never
   hand-edit; commit messages touching it must contain "club-arena".
+
+## 8. REAL-BROWSER E2E — run before claiming UI work done
+
+File-level checks, harnesses and even deployed-chunk greps prove the CODE
+shipped; only a real browser proves the FLOW works. Run the relevant
+production walkthrough and read its PASS/FAIL lines + screenshots BEFORE
+reporting any user-facing work as complete.
+
+- Scripts live in club-arena `e2e-live/` (plain playwright, standalone; see
+  its README for the selector map and hard-won rules). Run from the HOST:
+  `SP_EMAIL=... SP_PASS=... bash scripts/e2e-host.sh multitable-walk`
+  (or `trainer-walkthrough`, which covers the World Hub trainer surface).
+- Supabase refresh tokens are SINGLE-USE: saved auth state goes stale after
+  one reuse. The scripts re-save it every run and fall back to credential
+  login — keep that behavior in anything new.
+- Screenshots land in /tmp/e2e-shots. To LOOK at them (mandatory for visual
+  claims): cp into a device-mounted folder, stage via device_stage_files,
+  then Read the staged path.
+- A run that fails can be a PRODUCT bug, a TEST bug, or a PLATFORM incident —
+  check https://status.supabase.com before debugging your own code (the
+  2026-08-20 API Gateway degradation produced infinite club-home skeletons
+  that looked exactly like an app bug).
