@@ -34,6 +34,11 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // the store renders packages whose purchase endpoint returns 410. Served as an
 // empty list so existing clients degrade to "no packages" instead of erroring
 // on a missing field.
+// Chips are NOT purchasable: diamonds are the global purchasable currency and
+// chips are a per-club gambling balance, which never convert. Kept as an empty
+// export rather than a deleted field so an older cached bundle asking for it
+// gets [] instead of undefined — and the client no longer carries a fallback
+// table that would repopulate from an empty response.
 const CHIP_PACKAGES = [].map((p) => {
     const base = 1000 / 10;
     const rate = p.chips / p.diamonds;
