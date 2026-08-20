@@ -209,21 +209,25 @@ async function handler(req, res) {
         // means a digest is only ever built from rows that are genuinely about
         // to be delivered.
         const deliverable = [];
+        // Suppressions are collected and written in ONE update per distinct
+        // reason instead of one per row. At BATCH_LIMIT=300 the per-row form was
+        // up to 300 sequential round trips BEFORE a single push went out -- and
+        // the time budget is only checked in the send loop, so a batch that was
+        // entirely suppressed could burn the whole function on bookkeeping and
+        // be killed with nothing delivered.
+        const suppressed = new Map(); // reason -> [rowId]
+        const suppress = (row, reason) => {
+            if (!suppressed.has(reason)) suppressed.set(reason, []);
+            suppressed.get(reason).push(row.id);
+            stats.skipped += 1;
+        };
+
         for (const row of rows) {
-            if (!row.recipient_user_id) {
-                await supabase.from('push_outbox')
-                    .update({ status: 'skipped', failure_reason: 'no_recipient' })
-                    .eq('id', row.id);
-                stats.skipped += 1;
-                continue;
-            }
+            if (!row.recipient_user_id) { suppress(row, 'no_recipient'); continue; }
 
             const ageMs = Date.now() - Date.parse(row.created_at || 0);
             if (Number.isFinite(ageMs) && ageMs > MAX_DELIVERY_AGE_MS) {
-                await supabase.from('push_outbox')
-                    .update({ status: 'skipped', failure_reason: 'too_stale_to_deliver' })
-                    .eq('id', row.id);
-                stats.skipped += 1;
+                suppress(row, 'too_stale_to_deliver');
                 continue;
             }
 
@@ -238,15 +242,24 @@ async function handler(req, res) {
                 gateOpts.sentToday = capCounts.get(row.recipient_user_id) || 0;
             }
             const gate = gateDecision(entry, row.event, gateOpts);
-            if (!gate.allowed) {
-                await supabase.from('push_outbox')
-                    .update({ status: 'skipped', failure_reason: gate.reason })
-                    .eq('id', row.id);
-                stats.skipped += 1;
-                continue;
-            }
+            if (!gate.allowed) { suppress(row, gate.reason); continue; }
 
             deliverable.push(row);
+        }
+
+        // One statement per distinct reason. Reasons come from a small fixed
+        // vocabulary, so this is a handful of writes regardless of batch size.
+        for (const [reason, ids] of suppressed) {
+            try {
+                await supabase.from('push_outbox')
+                    .update({ status: 'skipped', failure_reason: reason })
+                    .in('id', ids);
+            } catch (e) {
+                // Leave them claimed; requeue_stuck_push_outbox reclaims them
+                // rather than losing the rows to a bookkeeping failure.
+                console.warn('[push-dispatch] suppression write failed:', e?.message || e);
+                stats.skipped -= ids.length;
+            }
         }
 
         // ---- 3c. DIGEST -----------------------------------------------------

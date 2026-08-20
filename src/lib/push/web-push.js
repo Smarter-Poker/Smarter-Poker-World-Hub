@@ -1,3 +1,4 @@
+import { validatePushEndpoint } from './push-endpoint';
 /**
  * web-push.js -- SERVER ONLY. Lowest-level VAPID sender.
  *
@@ -106,6 +107,22 @@ export async function sendWebPush(subscription, payload = {}, opts = {}) {
         sentAt: Date.now(),
     };
 
+    // DEFENCE IN DEPTH -- validate immediately before dialling.
+    //
+    // subscribe.js and rotate.js both validate at ingestion, which is where a
+    // bad row is cheapest to reject. But the dangerous act is the outbound
+    // request, and ingestion checks do not cover rows written before the
+    // validator existed, rows written by a future path that forgets, or a row
+    // mutated directly in the database. web-push will happily issue an
+    // https.request() carrying a valid VAPID JWT to whatever host it is handed.
+    //
+    // `expired: true` so an unusable row is retired rather than retried forever.
+    const endpointCheck = validatePushEndpoint(endpoint);
+    if (!endpointCheck.ok) {
+        console.warn('[web-push] refused to send to a non-push-service endpoint:', endpointCheck.reason);
+        return { ok: false, expired: true, error: `invalid_endpoint:${endpointCheck.reason}` };
+    }
+
     try {
         const res = await loadWebPush().sendNotification(
             { endpoint, keys: { p256dh, auth } },
@@ -169,9 +186,28 @@ export async function sendWebPush(subscription, payload = {}, opts = {}) {
             // row's owner can read back through RLS. Returning it turned a
             // failed send into an exfiltration channel. Log it server-side and
             // hand back only a status code.
-            error: statusCode ? `http_${statusCode}` : (err?.message || 'push failed').slice(0, 120),
+            // Never hand back a raw message either: a network error carries the
+            // hostname (`getaddrinfo ENOTFOUND <host>`), which is a small but
+            // real probe oracle in a column the row's owner can read. Classify.
+            error: statusCode ? `http_${statusCode}` : classifyNetworkError(err),
         };
     }
+}
+
+/**
+ * Coarse, non-identifying classification of a transport failure. Deliberately
+ * returns a fixed vocabulary: anything derived from the error text could carry
+ * a hostname or path into a user-readable column.
+ */
+function classifyNetworkError(err) {
+    const code = err?.code || '';
+    const msg = String(err?.message || '');
+    if (code === 'ETIMEDOUT' || /timed?\s?out/i.test(msg)) return 'network_timeout';
+    if (code === 'ECONNRESET') return 'network_reset';
+    if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'network_dns';
+    if (code === 'ECONNREFUSED') return 'network_refused';
+    if (/certificate|tls|ssl/i.test(msg)) return 'network_tls';
+    return 'send_failed';
 }
 
 export default { sendWebPush, isPushConfigured, vapidConfig };
