@@ -362,7 +362,7 @@ async function registerHorses(tournamentId, horses) {
 }
 
 /** Seat a horse at a cash table */
-async function seatHorseAtTable(tableId, horseId, maxPlayers, bigBlind) {
+async function seatHorseAtTable(tableId, horseId, maxPlayers, bigBlind, clubId) {
   // Find next open seat
   const { data: existingSeats } = await getSupabase()
     .from('table_seats')
@@ -382,7 +382,12 @@ async function seatHorseAtTable(tableId, horseId, maxPlayers, bigBlind) {
     p_table_id: tableId,
     p_seat_number: seat,
     p_amount: buyIn,
-    p_auto_rebuy: false
+    p_auto_rebuy: false,
+    // UNION LAW (Dan 2026-08-20): the horse plays under its HOME club, so the
+    // buy-in draws that club's chips and the rake it generates is earned for
+    // that club only. Without this every horse falls back to whichever club it
+    // joined first and one club's wallet funds the entire simulated economy.
+    p_club_id: clubId || null
   });
   
   if (error) {
@@ -582,18 +587,22 @@ export default async function handler(req, res) {
 
       // Seat Shark horses at Shark tables, JAQK horses at JAQK tables.
       // Phase 61: Fisher-Yates instead of biased sort(() => Math.random() - 0.5).
-      // UNION LAW: every horse plays in the shared Midway Union game pool,
-      // mixing with players from all member clubs.
-      const allHorses = _shuffleInPlace([...horses.all]);
+      // UNION LAW: every horse plays in the shared Midway Union game pool, so
+      // both clubs' players mix at the same tables — but each horse sits down
+      // on ITS OWN club's chips, so the two club wallets stay 100% separate and
+      // each club earns the rake its own players generate.
+      const sharkHorses = _shuffleInPlace([...horses.shark]);
+      const jaqkHorses = _shuffleInPlace([...horses.jaqk]);
+      const unionTables = activeTables.filter(t => t.club_id === UNION_ID);
 
-      for (const [clubHorses, clubId] of [[allHorses, UNION_ID]]) {
-        const clubTables = activeTables.filter(t => t.club_id === clubId);
+      for (const [clubHorses, clubId] of [[sharkHorses, SHARK_CLUB_ID], [jaqkHorses, JAQK_CLUB_ID]]) {
+        const clubTables = unionTables;
         for (const horse of clubHorses) {
           const stat = horseStats.get(horse.id);
           for (const table of clubTables) {
             if (stat.cash >= 2) break; // 2 cash tables per horse
             if ((table.current_players || 0) >= table.max_players) continue;
-            const didSeat = await seatHorseAtTable(table.id, horse.id, table.max_players, table.big_blind);
+            const didSeat = await seatHorseAtTable(table.id, horse.id, table.max_players, table.big_blind, clubId);
             if (didSeat) {
               stat.cash++;
               cashSeats++;
