@@ -540,9 +540,9 @@ const nextConfig = {
       "base-uri 'self'",
       // Form submissions: self only
       "form-action 'self'",
-      // [Phase 6.1.14] Auto-upgrade any lingering http:// sub-resource requests
-      // (e.g. inline <img src="http://..."> in user-generated content) to https.
-      'upgrade-insecure-requests',
+      // NOTE: upgrade-insecure-requests deliberately does NOT live here. See
+      // the enforced header below — inside a Report-Only policy the browser
+      // ignores it and says so, on every single page load.
     ].join('; ');
 
     return [
@@ -621,6 +621,32 @@ const nextConfig = {
             // Content-Security-Policy once the violation list is clean.
             key: 'Content-Security-Policy-Report-Only',
             value: csp,
+          },
+          {
+            /**
+             * Dan 2026-08-20: upgrade-insecure-requests used to sit inside the
+             * Report-Only policy above, where it did NOTHING. The spec says the
+             * directive is ignored in report-only mode, and Chrome announces
+             * that on every page load:
+             *
+             *   "The Content Security Policy directive
+             *    'upgrade-insecure-requests' is ignored when delivered in a
+             *    report-only policy."
+             *
+             * So the one directive in that policy meant to CHANGE behaviour was
+             * the one directive guaranteed not to, while adding a console error
+             * to every route (it was also tripping the E2E console-error specs).
+             *
+             * Delivered on its own enforced header it actually applies, and the
+             * rest of the policy stays report-only as the staged rollout above
+             * intends. Enforcing this alone is safe here: it only rewrites
+             * http:// SUB-RESOURCE requests to https://, the site is already
+             * HSTS-preloaded with includeSubDomains, and Vercel redirects
+             * http->https at the edge — so in practice it catches stray http
+             * URLs in user-generated content and nothing else.
+             */
+            key: 'Content-Security-Policy',
+            value: 'upgrade-insecure-requests',
           },
         ],
       },

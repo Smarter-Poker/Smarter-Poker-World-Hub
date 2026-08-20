@@ -17,11 +17,17 @@ import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken, ensureAuthReady } from '../../../../src/lib/authUtils';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
-function TournamentCard({ tournament, onRegister, isRegistered }) {
+function TournamentCard({ tournament, onRegister, isRegistered, isAlternate }) {
   const router = useRouter();
   const startDate = new Date(tournament.scheduled_start);
   const isLive = tournament.status === 'running' || tournament.status === 'final_table';
   const canRegister = tournament.status === 'registering' && !isRegistered;
+  // The list endpoint returns current_entries; total_entries only exists on the
+  // venue-scoped ("*") variant, so read both.
+  const entryCount = tournament.current_entries ?? tournament.total_entries ?? 0;
+  // A full field does not block registration any more: the entries API puts the
+  // player on the alternates list instead.
+  const isFull = Boolean(tournament.max_entries && entryCount >= tournament.max_entries);
 
   return (
     <div className="cmd-panel cmd-corner-lights overflow-hidden">
@@ -74,7 +80,7 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
           </div>
           <div className="flex items-center gap-2 text-[#CBD5E1]">
             <Users size={16} className="text-[#64748B]" />
-            <span>{tournament.total_entries || 0} / {tournament.max_entries || 'Unlimited'}</span>
+            <span>{entryCount.toLocaleString()} / {tournament.max_entries ? tournament.max_entries.toLocaleString() : 'Unlimited'}</span>
           </div>
         </div>
 
@@ -90,16 +96,23 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
 
         {/* Actions */}
         {isRegistered ? (
-          <div className="cmd-badge cmd-badge-live w-full justify-center py-3">
-            <CheckCircle size={18} />
-            <span className="font-bold">REGISTERED</span>
-          </div>
+          isAlternate ? (
+            <div className="cmd-badge cmd-badge-warning w-full justify-center py-3">
+              <Users size={18} />
+              <span className="font-bold">ON ALTERNATES LIST</span>
+            </div>
+          ) : (
+            <div className="cmd-badge cmd-badge-live w-full justify-center py-3">
+              <CheckCircle size={18} />
+              <span className="font-bold">REGISTERED</span>
+            </div>
+          )
         ) : canRegister ? (
           <button
             onClick={() => onRegister?.(tournament)}
-            className="cmd-btn cmd-btn-primary w-full justify-center"
+            className={`cmd-btn ${isFull ? 'cmd-btn-secondary' : 'cmd-btn-primary'} w-full justify-center`}
           >
-            REGISTER NOW
+            {isFull ? 'JOIN ALTERNATES LIST' : 'REGISTER NOW'}
           </button>
         ) : isLive ? (
           <button onClick={() => router.push('/hub/commander/tournament/' + tournament.id + '/clock')} className="cmd-btn cmd-btn-success w-full justify-center">
@@ -123,22 +136,35 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
 export default function PlayerTournamentsHub() {
   const router = useRouter();
   const [myRegistrations, setMyRegistrations] = useState([]);
+  // Tournament ids where my entry status is 'alternate' (field was full).
+  const [myAlternates, setMyAlternates] = useState([]);
   const [filter, setFilter] = usePersistedState('sp-filters-commander-tournaments', 'all');
   const [message, setMessage] = useState(null); // { type: 'success'|'error', text: '' }
 
   const { data: swrData, isLoading, mutate: refreshTournaments } = useSWR('/api/commander/tournaments?status=active', async (url) => {
     const token = getAccessToken();
+    // Every branch must expose .json(): the old catch fallback returned
+    // { ok: false } with no json, so ONE failed /my request threw a TypeError
+    // and blanked the entire tournament list.
+    const emptyRes = { ok: false, json: async () => ({}) };
     const [tourRes, myRes] = await Promise.all([
-      fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).catch(() => ({ ok: false })),
-      token ? fetch('/api/commander/tournaments/my', { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ ok: false }))
-             : Promise.resolve({ json: () => ({ registrations: [] }) })
+      fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).catch(() => emptyRes),
+      token ? fetch('/api/commander/tournaments/my', { headers: { Authorization: `Bearer ${token}` } }).catch(() => emptyRes)
+             : Promise.resolve(emptyRes)
     ]);
-    if (!tourRes.ok) throw new Error(`Request failed (${tourRes.status})`);
-    const [tourData, myData] = await Promise.all([tourRes.json(), myRes.json()]);
+    if (!tourRes.ok) throw new Error(`Request failed (${tourRes.status ?? 'network error'})`);
+    const [tourData, myData] = await Promise.all([
+      tourRes.json().catch(() => ({})),
+      myRes.json().catch(() => ({}))
+    ]);
     // 2026-07-25 audit fix: API returns {success, data:{tournaments}} and
     // {success, data:{registrations}} - old code read top-level keys and always got [].
     const registrations = myData?.data?.registrations || myData?.registrations || [];
-    setMyRegistrations(registrations.map(r => r.tournament_id));
+    // /my returns every entry including cancelled ones; a cancelled entry must
+    // not keep a tournament flagged as registered.
+    const liveRegistrations = registrations.filter(r => r.status !== 'cancelled');
+    setMyRegistrations(liveRegistrations.map(r => r.tournament_id));
+    setMyAlternates(liveRegistrations.filter(r => r.status === 'alternate').map(r => r.tournament_id));
     return tourData?.data?.tournaments || tourData?.tournaments || [];
   });
   const tournaments = swrData || [];
@@ -164,12 +190,31 @@ export default function PlayerTournamentsHub() {
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
-      // The entries API returns {success, data:{entry}}; keep the legacy
-      // top-level {entry} shape as a fallback.
-      if (data.success !== false && (data.data?.entry || data.entry)) {
-        setMyRegistrations([...myRegistrations, tournament.id]);
-        setMessage({ type: 'success', text: `Successfully Registered For ${tournament.name}` });
-        setTimeout(() => setMessage(null), 4000);
+      // The entries API returns {success, data:{entry, is_alternate?,
+      // seat_assignment?, message}}; keep the legacy top-level {entry} fallback.
+      const entry = data.data?.entry || data.entry || null;
+      if (data.success !== false && entry) {
+        const isAlternate = Boolean(data.data?.is_alternate || entry.status === 'alternate');
+        const seat = data.data?.seat_assignment || null;
+        setMyRegistrations(prev => (prev.includes(tournament.id) ? prev : [...prev, tournament.id]));
+        setMyAlternates(prev => {
+          if (isAlternate) return prev.includes(tournament.id) ? prev : [...prev, tournament.id];
+          return prev.filter(tid => tid !== tournament.id);
+        });
+        // Surface the API's own explanation (alternates list, or the table and
+        // seat it drew) rather than a generic success line.
+        const apiMessage = data.data?.message;
+        const fallback = isAlternate
+          ? `${tournament.name}: Field Is Full. You Are On The Alternates List And Will Be Seated As Seats Open.`
+          : seat
+            ? `Registered For ${tournament.name}. Table ${seat.table_number}, Seat ${seat.seat_number}.`
+            : `Successfully Registered For ${tournament.name}`;
+        setMessage({
+          type: isAlternate ? 'info' : 'success',
+          text: apiMessage ? `${tournament.name}: ${apiMessage}` : fallback
+        });
+        setTimeout(() => setMessage(null), 6000);
+        refreshTournaments();
       } else {
         const errText = typeof data.error === 'string' ? data.error : data.error?.message;
         setMessage({ type: 'error', text: errText || 'Registration Failed' });
@@ -211,10 +256,12 @@ export default function PlayerTournamentsHub() {
       <div className="cmd-page">
         {/* Notification Banner */}
         {message && (
-          <div className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-bold uppercase tracking-wide ${
+          <div className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center font-bold tracking-wide ${
             message.type === 'success'
               ? 'bg-[#10B981]/20 border-b-2 border-[#10B981] text-[#10B981]'
-              : 'bg-[#EF4444]/20 border-b-2 border-[#EF4444] text-[#EF4444]'
+              : message.type === 'info'
+                ? 'bg-[#F59E0B]/20 border-b-2 border-[#F59E0B] text-[#F59E0B]'
+                : 'bg-[#EF4444]/20 border-b-2 border-[#EF4444] text-[#EF4444]'
           }`}>
             {message.text}
           </div>
@@ -299,6 +346,7 @@ export default function PlayerTournamentsHub() {
                   tournament={tournament}
                   onRegister={handleRegister}
                   isRegistered={myRegistrations.includes(tournament.id)}
+                  isAlternate={myAlternates.includes(tournament.id)}
                 />
               ))}
             </div>

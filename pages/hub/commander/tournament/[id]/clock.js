@@ -69,31 +69,44 @@ export default function TournamentLivePage() {
   // the live clock (computed time remaining + current/next blinds + structure +
   // chip counts + payouts) comes from the dedicated public /clock endpoint.
   // Both are public reads.
-  const fetchTournament = useCallback(async (signal) => {
+  const fetchTournament = useCallback(async (maybeSignal) => {
     if (!id) return;
+    // Callers vary: the poller passes an AbortSignal, but useCommanderSync
+    // passes an entity name and onClick-style callers pass an event. Anything
+    // that is not a real AbortSignal must be ignored - fetch() throws a
+    // synchronous TypeError on a bad `signal`, which used to kill the refetch.
+    const signal = (typeof AbortSignal !== 'undefined' && maybeSignal instanceof AbortSignal)
+      ? maybeSignal
+      : null;
     try {
       const opts = signal ? { signal } : {};
+      const dead = { ok: false };
       const [tRes, cRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${id}`, opts).catch(() => ({ ok: false })),
-        fetch(`/api/commander/tournaments/${id}/clock?include=chips,payouts`, opts).catch(() => ({ ok: false }))
+        fetch(`/api/commander/tournaments/${id}`, opts).catch(() => dead),
+        fetch(`/api/commander/tournaments/${id}/clock?include=chips,payouts`, opts).catch(() => dead)
       ]);
 
+      if (signal?.aborted || !mountedRef.current) return;
+
       if (tRes.ok) {
-        const tData = await tRes.json();
-        if (tData.success && tData.data?.tournament) {
+        const tData = await tRes.json().catch(() => null);
+        if (tData?.success && tData.data?.tournament && mountedRef.current) {
           setTournament(prev => ({ ...(prev || {}), ...tData.data.tournament }));
         }
       }
 
       if (cRes.ok) {
-        const cData = await cRes.json();
-        if (cData.success && cData.data) {
+        const cData = await cRes.json().catch(() => null);
+        if (cData?.success && cData.data && mountedRef.current) {
           const c = cData.data;
           setClock(c);
+          const remaining = Math.max(0, Math.floor(Number(c.clock?.timeRemaining) || 0));
+          const running = !!c.clock?.isRunning;
           setClockState({
             currentLevel: c.currentBlind?.level || ((c.tournament?.current_level || 0) + 1),
-            secondsRemaining: c.clock?.timeRemaining || 0,
-            isRunning: !!c.clock?.isRunning,
+            secondsRemaining: remaining,
+            deadlineAt: running ? Date.now() + remaining * 1000 : null,
+            isRunning: running,
             isOnBreak: !!c.currentBlind?.isBreak
           });
           // Merge the live subset (players remaining, entries, avg stack) onto the
@@ -104,7 +117,7 @@ export default function TournamentLivePage() {
     } catch (err) {
       if (err?.name !== 'AbortError') console.warn('Failed to fetch tournament:', err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [id]);
 
@@ -116,7 +129,6 @@ export default function TournamentLivePage() {
 
     const startPolling = () => {
       if (interval) return;
-      fetchTournament(controller.signal);
       interval = setInterval(() => fetchTournament(controller.signal), 15000);
     };
     const stopPolling = () => {
@@ -126,12 +138,17 @@ export default function TournamentLivePage() {
       if (document.hidden) {
         stopPolling();
       } else {
+        // Catch up immediately, then resume the 15s cadence.
         stopPolling();
+        fetchTournament(controller.signal);
         startPolling();
       }
     };
 
-    startPolling();
+    // Always do one load so the page renders even if it mounts hidden, but
+    // only run the interval while the tab is actually visible.
+    fetchTournament(controller.signal);
+    if (!document.hidden) startPolling();
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       controller.abort();
@@ -154,19 +171,27 @@ export default function TournamentLivePage() {
   const [venueId] = useState(() => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
-  useCommanderSync(venueId || '', fetchTournament, { entities: ['tournaments'] });
+  // useCommanderSync invokes its callback with an entity name, which is not a
+  // valid fetch signal - wrap it so fetchTournament always gets no argument.
+  const syncRefetch = useCallback(() => { fetchTournament(); }, [fetchTournament]);
+  useCommanderSync(venueId || '', syncRefetch, { entities: ['tournaments'] });
 
-  // Client-side countdown tick between polls
+  // Client-side countdown tick between polls. Derived from the level deadline
+  // rather than decremented, so setInterval drift and background-tab throttling
+  // cannot desync the display, and it can never go negative.
   useEffect(() => {
-    if (!clockState.isRunning) return;
-    const timer = setInterval(() => {
-      setClockState(prev => ({
-        ...prev,
-        secondsRemaining: Math.max(0, prev.secondsRemaining - 1)
-      }));
-    }, 1000);
+    if (!clockState.isRunning || !clockState.deadlineAt) return;
+    const deadline = clockState.deadlineAt;
+    const tick = () => {
+      const secs = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+      setClockState(prev => (
+        prev.secondsRemaining === secs ? prev : { ...prev, secondsRemaining: secs }
+      ));
+    };
+    tick();
+    const timer = setInterval(tick, 500);
     return () => clearInterval(timer);
-  }, [clockState.isRunning]);
+  }, [clockState.isRunning, clockState.deadlineAt]);
 
   if (loading) {
     return (
@@ -186,7 +211,7 @@ export default function TournamentLivePage() {
 
   const currentBlind = clock?.currentBlind || null;
   const nextBlind = clock?.nextBlind || null;
-  const blindStructure = clock?.blindStructure || [];
+  const blindStructure = Array.isArray(clock?.blindStructure) ? clock.blindStructure : [];
   const chips = clock?.chips || null;
   const payouts = clock?.payouts || null;
   const currentMessage = clock?.currentMessage || null;
@@ -372,7 +397,7 @@ function ClockTab({ clockState, currentBlind, nextBlind, playersRemaining, curre
 }
 
 function StructureTab({ blindStructure }) {
-  if (!blindStructure || blindStructure.length === 0) {
+  if (!Array.isArray(blindStructure) || blindStructure.length === 0) {
     return (
       <div className="text-center py-12 text-[#64748B]">
         Blind Structure Is Not Available Yet
@@ -437,7 +462,7 @@ function StructureTab({ blindStructure }) {
 }
 
 function ChipsTab({ chips }) {
-  const players = chips?.players || [];
+  const players = Array.isArray(chips?.players) ? chips.players : [];
   const updated = relativeTime(chips?.updated_at);
 
   if (players.length === 0) {
@@ -487,10 +512,13 @@ function ChipsTab({ chips }) {
 }
 
 function PayoutsTab({ payouts, fallbackPrizePool }) {
-  const places = payouts?.places || [];
-  const prizePool = payouts?.prize_pool || fallbackPrizePool || 0;
-  const guaranteed = payouts?.guaranteed_pool || 0;
-  const overlay = payouts?.overlay_amount || 0;
+  const places = Array.isArray(payouts?.places) ? payouts.places : [];
+  // Numeric JSONB columns can arrive as strings, and toLocaleString on a string
+  // silently drops the thousands separators.
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const prizePool = num(payouts?.prize_pool) || num(fallbackPrizePool);
+  const guaranteed = num(payouts?.guaranteed_pool);
+  const overlay = num(payouts?.overlay_amount);
   const hasPercentages = places.some(p => p.percentage != null);
 
   return (
@@ -546,7 +574,7 @@ function PayoutsTab({ payouts, fallbackPrizePool }) {
                     </td>
                   )}
                   <td className="px-3 py-3 text-right font-bold text-[#10B981]">
-                    ${(p.amount ?? 0).toLocaleString()}
+                    ${num(p.amount).toLocaleString()}
                   </td>
                 </tr>
               ))}
