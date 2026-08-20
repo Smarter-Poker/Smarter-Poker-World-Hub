@@ -1,0 +1,37 @@
+-- ============================================================================
+-- CHIP SUPPLY MONITOR — STOP COUNTING TOURNAMENT SCRIP AS MONEY (2026-08-19)
+-- APPLIED via Supabase MCP as: chip_supply_snapshot_exclude_tournament_chips
+--
+-- THE BUG. fn_snapshot_chip_supply summed EVERY seat stack —
+--     SELECT sum(stack) FROM table_seats WHERE left_at IS NULL
+-- — and differenced the result against wallet_transactions cash flows.
+--
+-- A tournament seat's `stack` is TOURNAMENT CHIPS: granted from
+-- tournaments.starting_chips, never bought with wallet money. A 10-chip buy-in
+-- grants 10,000 tournament chips. It is a different unit.
+--
+-- MEASURED at the time of the fix: of 31,166,604 chips sitting on seats,
+-- 31,080,208 — 99.7%, across 1,027 seats — were tournament scrip, against
+-- 86,396 in real cash chips across 191 seats. Every tournament that started
+-- injected millions of "unexplained delta" into a money-supply monitor. The
+-- previous eight hourly snapshots read 0.6M, 1.0M, 1.3M, 1.7M, 2.1M, 4.4M,
+-- 1.2M, 3.6M unexplained — every hour, forever.
+--
+-- That is worse than no monitor. A number that always screams is a number
+-- nobody reads, and it would have masked a genuine conservation break — which
+-- is precisely the failure this project already hit once, when the weekly
+-- union hold destroyed chips for months without anyone noticing.
+--
+-- THE FIX. Cash and tournament stacks are recorded separately, and the
+-- conservation delta is computed against CASH stacks only — the pool that is
+-- actually conserved against wallet flows. Tournament chips are still
+-- recorded for visibility but never differenced against money.
+--
+-- Pre-fix rows mixed the two, so they are not comparable; a row is treated as
+-- a fresh baseline until one exists under the new definition.
+--
+-- RESULT, measured on two consecutive live snapshots:
+--     unexplained_delta   3,557,768  ->  -60.88
+-- The remaining -60.88 over ~40 seconds is rake legitimately leaving cash
+-- tables for the union rake wallet, which is not one of the tracked pools.
+-- Small, explainable, and what a working monitor should look like.
