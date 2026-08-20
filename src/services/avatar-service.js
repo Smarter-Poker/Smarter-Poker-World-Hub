@@ -1,3 +1,20 @@
+
+function normalizeAvatarUrl(url) {
+  if (!url) return url;
+  
+  const hubMatch = url.match(/^\/avatars\/(vip|free)\/([^/.]+)\.png$/i);
+  if (hubMatch) {
+    return `/avatars/table/${hubMatch[1]}_${hubMatch[2]}@2x.webp`;
+  }
+  
+  const bucketMatch = url.match(/\/social-media\/avatars\/(vip|free)_([^/.]+)\.(png|jpg|jpeg|webp)$/i);
+  if (bucketMatch) {
+    return `/avatars/table/${bucketMatch[1]}_${bucketMatch[2]}@2x.webp`;
+  }
+
+  return url;
+}
+
 /**
  * 🎨 AVATAR SERVICE
  * Centralized service for managing user avatars across the ecosystem
@@ -103,7 +120,7 @@ export async function setPresetAvatar(userId, avatarId, opts = {}) {
         }
 
         const entry = resolvePresetAvatar(avatarId);
-        const imageUrl = entry?.image || null;
+        const imageUrl = normalizeAvatarUrl(entry?.image || null);
 
         // Use the database function to set active avatar.
         // p_image_url lets the RPC sync profiles.avatar_url so Club Arena,
