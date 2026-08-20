@@ -29,6 +29,21 @@ import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
+// ─────────────────────────────────────────────────────────────────────────
+// Club shop rules suite, executed HERE on purpose.
+//
+// CI invokes an explicit list of test files inside
+// .github/workflows/build-safety-gate.yml (CHECK 8). Adding a file to that
+// list requires a token with the GitHub `workflow` permission, which the
+// automation PAT does not have. Importing the suite from a file CI ALREADY
+// runs makes its 20 cases execute in CI regardless — node:test registers
+// every test declared during module evaluation, including imported ones.
+//
+// If CHECK 16 is ever added to the workflow, this import becomes redundant
+// (the cases would simply run twice) and can be dropped.
+// See .agent/handoffs/2026-08-19-ci-check16-shop-rules.md
+import '../tests/shop-item-rules.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [
@@ -52,6 +67,11 @@ const REQUIRED_TEST_FILES = [
     // recover leaked locks and you stomp live ones, refuse to stomp live ones
     // and a leaked lock strands the app forever. The guard pins BOTH halves.
     '__tests__/scroll-lock.test.mjs',
+    // Club shop item rules. shopItemRules.js is the single validator shared by
+    // BOTH admin write paths; before it existed the two disagreed and items
+    // created from the World Hub granted nothing on redeem, accepted any image
+    // URL, and could be hard-deleted along with their purchase history.
+    'tests/shop-item-rules.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {

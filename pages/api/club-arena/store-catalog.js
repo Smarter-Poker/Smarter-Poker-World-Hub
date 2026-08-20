@@ -29,15 +29,12 @@
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// Mirrors CHIP_PACKAGES in pages/api/club-arena/purchase-chips.js.
-// valuePct is the honest premium over the base rate (small = 100 chips/diamond).
-const CHIP_PACKAGES = [
-    { id: 'small', chips: 1000, diamonds: 10 },
-    { id: 'medium', chips: 5000, diamonds: 45 },
-    { id: 'large', chips: 10000, diamonds: 80, popular: true },
-    { id: 'mega', chips: 50000, diamonds: 350 },
-    { id: 'ultra', chips: 100000, diamonds: 600 },
-].map((p) => {
+// RETIRED 2026-08-19 — chips can NEVER be bought with diamonds (product rule,
+// Dan). The catalog must not advertise a conversion that no longer exists, or
+// the store renders packages whose purchase endpoint returns 410. Served as an
+// empty list so existing clients degrade to "no packages" instead of erroring
+// on a missing field.
+const CHIP_PACKAGES = [].map((p) => {
     const base = 1000 / 10;
     const rate = p.chips / p.diamonds;
     return Object.assign({}, p, { valuePct: Math.round(((rate - base) / base) * 100) });

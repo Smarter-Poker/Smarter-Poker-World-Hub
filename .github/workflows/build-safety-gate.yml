@@ -684,7 +684,8 @@ jobs:
             __tests__/sentry-coverage.test.mjs \
             __tests__/phase-3-deliverables.test.mjs \
             __tests__/phase-4-deliverables.test.mjs \
-            __tests__/scroll-lock.test.mjs
+            __tests__/scroll-lock.test.mjs \
+            __tests__/union-settlement-math.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
@@ -695,6 +696,25 @@ jobs:
       #   - GitHub Actions schedule: triggers only on the allowlist below
       # Shrinking these is fine (job retirement). Growing them is blocked.
       # ═══════════════════════════════════════════════════════════════
+      # CHECK 16: Swallowed-error ratchet (money paths)
+      # A logged-and-ignored Supabase error in a chip path is how settle-period
+      # returned success:true while losing a full week of agent commissions and
+      # the union rake hold (audit 2026-08-19). Hundreds predate this rule, so
+      # this is a RATCHET, not a ban: it fails only when the count GOES UP.
+      # Paying debt down means lowering BASELINE in the same commit.
+      - name: "CHECK 16: No new swallowed errors in money paths"
+        run: |
+          set -o pipefail
+          echo "## Swallowed-Error Ratchet" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if node scripts/check-swallowed-money-errors.mjs 2>&1 | tee /tmp/swallow.log; then
+            tail -2 /tmp/swallow.log >> $GITHUB_STEP_SUMMARY
+          else
+            echo "New swallowed error(s) added in a chip path — handle the error" >> $GITHUB_STEP_SUMMARY
+            echo "(return 4xx/5xx or roll back) instead of logging past it." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
       - name: "CHECK 6: Cron governance (Open Claw migration)"
         run: |
           echo "Enforcing cron governance rules from CLAUDE.md section 11..."

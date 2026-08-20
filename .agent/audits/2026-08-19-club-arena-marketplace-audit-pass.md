@@ -436,3 +436,79 @@ Vercel state verified this pass: team `smarter-poker`, project `hub-vanguard`
 The `smarter-poker-world-hub` project still exists but is **git-disconnected**
 (harmless); note its id is now `prj_cAdaLHhlih322O1SjK3pUrcHk2KN`, not the id
 recorded in CLAUDE.md's dead-duplicates table.
+
+---
+
+# Audit pass 6 — the stackable change unmasked a free-item exploit
+
+## CRITICAL: `fn_debit_chips` returns `{success:false}`; it does not raise
+
+`marketplace-purchase.js` checked only `deductErr`, the PostgREST **transport**
+error, which is `null` when the RPC runs fine and simply reports failure in its
+payload. Verified in production:
+
+    select fn_debit_chips(<club>,<user>,999999999)
+    -> {"success": false, "error": "insufficient chips", "balance": 2610}
+
+So a rejected debit fell straight through to inserting the purchase, and the
+delivery trigger handed over the item. Under concurrency that is a free-item
+exploit: N requests read the same balance, one debit lands, the other N-1 come
+back `success:false` silently, and N items are delivered for one payment.
+
+This was previously **masked** for every item, because the losers' inserts hit
+`uq_shop_inventory_owned_per_item` and were refunded. Making consumables
+stackable deliberately exempted 19 live items from that index — which turned a
+dormant bug into a live exploit. The fix checks the payload, not just the
+transport error, on both `fn_debit_chips` and the compensating
+`fn_credit_chips` (whose failures were equally invisible, so a failed rollback
+was being reported as a clean one).
+
+## CRITICAL: refunds could mint chips without limit
+
+`fn_refund_shop_purchase` kept its whole idempotency guard inside `IF FOUND` on
+the inventory lookup. With no delivered copy — trigger failed, row deleted,
+purchase predating the trigger — control fell through to `fn_credit_chips`, and
+**nothing was marked refunded**: `club_shop_purchases` had no such column. Every
+repeat call credited `price_paid` again, returned success, and wrote a clean
+audit row. Now `club_shop_purchases.refunded_at` is the marker, set under the
+same `FOR UPDATE`, and a purchase with no delivered copy returns `not_delivered`.
+
+## HIGH: the per-user cap was unenforceable
+
+`fn_shop_item_availability` counted purchases and the route acted on the count.
+`club_shop_purchases` has no unique constraint and the ownership index exempts
+stackable items, so N concurrent buys of a stackable `per_user_limit = 1` item
+all counted 0 and all succeeded — and with `sale_price = 0` (permitted) that is
+unlimited free copies. `fn_claim_shop_purchase` now takes a per-(user,item)
+advisory lock and re-checks the cap **and** decrements stock inside it, so the
+whole decision is one atomic step. Refunded purchases no longer count toward a
+cap.
+
+## HIGH: purchase history and the catalogue were world-readable
+
+Both tables had `FOR SELECT TO public USING (true)`. Anyone holding the
+publishable key that ships in the client bundle could read every purchase in
+every club — `buyer_id`, `price_paid`, `created_at` — and every club's
+unreleased items, sale prices and stock levels. Scoped to the buyer, club
+members and club staff. No app impact: both server routes read via service role.
+
+## HIGH: durable idempotency froze on 'processing'
+
+The `res.json` patch started `fn_idempotency_finish` and flushed the response
+without awaiting. The serverless instance freezes the instant it does, so the
+RPC was routinely killed in flight and the row stayed `processing` until expiry
+— 409ing every retry for the full 5 minutes. Now awaited before the flush.
+
+## Also
+
+- Refund restored a stock unit unconditionally, inventing supply when the item
+  had been unlimited at purchase time. Gated on a new
+  `club_shop_purchases.stock_claimed`, recorded at purchase.
+- Refund set `redeemed_at`, so "items redeemed in this period" counted refunds.
+  It now leaves that column alone.
+- The purchase response reports `pricePaid`, so a sale ending between page load
+  and confirm is visible rather than silently charging the higher price.
+- Analytics: today was missing from the chart (`days` buckets from midnight of
+  `today - days` ends at yesterday) while the totals counted it; truncation
+  dropped the NEWEST rows; and refunds were bucketed by purchase date rather
+  than refund date.

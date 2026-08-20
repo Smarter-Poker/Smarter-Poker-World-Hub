@@ -341,7 +341,19 @@ export default async function handler(req, res) {
             auto_settlement_enabled: true,
           })
           .eq('id', club.id);
-        if (err_clubs_anag7) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_anag7.message);
+        if (err_clubs_anag7) {
+          // FAIL-LOUD 2026-08-19: union_clubs and clubs.union_id are a PAIR.
+          // The membership row already landed; if the mirror does not, the club
+          // is half-joined and its rake routes to its own treasury instead of
+          // the union's — which is exactly what happened to Club JAQK for
+          // months before it was found.
+          return res.status(500).json({
+            success: false,
+            error: `${club.name} was added to union_clubs but its club record could not be `
+              + `updated: ${err_clubs_anag7.message}. The club is half-joined — re-run add_club.`,
+            halfJoined: true,
+          });
+        }
 
         return res.status(200).json({ success: true, clubName: club.name, club_commission_rate: clubCommissionRate });
       }
@@ -361,7 +373,13 @@ export default async function handler(req, res) {
           .eq('union_id', unionId)
           .eq('club_id', clubId);
 
-        if (err_union_clubs_zmfv7) console.warn('[Supabase] Silent mutation failed in union_clubs:', err_union_clubs_zmfv7.message);
+        if (err_union_clubs_zmfv7) {
+          return res.status(500).json({
+            success: false,
+            error: `Could not remove the club from the union: ${err_union_clubs_zmfv7.message}. `
+              + `Nothing was changed.`,
+          });
+        }
 
         // BUG-IDOR FIX: Only update clubs that actually belong to this union
         // Prevents a union_lead from clearing another union's club.union_id
@@ -370,7 +388,17 @@ export default async function handler(req, res) {
           .update({ union_id: null, auto_settlement_enabled: false, club_commission_rate: 0 })
           .eq('id', clubId)
           .eq('union_id', unionId);
-        if (err_clubs_esutn) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_esutn.message);
+        if (err_clubs_esutn) {
+          // Membership is gone but the mirror still points at the union: the
+          // club would keep being treated as a member by anything reading
+          // clubs.union_id. Loud, so it is repaired rather than left drifting.
+          return res.status(500).json({
+            success: false,
+            error: `The club was removed from union_clubs but its club record still points at `
+              + `the union: ${err_clubs_esutn.message}. Re-run remove_club.`,
+            halfRemoved: true,
+          });
+        }
 
         return res.status(200).json({ success: true });
       }
@@ -599,14 +627,40 @@ export default async function handler(req, res) {
           .update({ status: newStatus, reviewed_by: user.id, reviewed_at: new Date().toISOString() })
           .eq('id', leaveRequestId);
 
-        if (err_union_leave_requests_dc2c4) console.warn('[Supabase] Silent mutation failed in union_leave_requests:', err_union_leave_requests_dc2c4.message);
+        if (err_union_leave_requests_dc2c4) {
+          // Nothing has been removed yet, so this is a clean failure.
+          return res.status(500).json({
+            success: false,
+            error: `Could not record the leave decision: ${err_union_leave_requests_dc2c4.message}. `
+              + `Nothing was changed.`,
+          });
+        }
 
         if (action === 'approve_leave') {
-          // Remove club from union
+          // FAIL-LOUD 2026-08-19: union_clubs and clubs.union_id are a PAIR.
+          // Half-removing a club leaves it a member to anything reading the
+          // mirror and a non-member to anything reading union_clubs — the same
+          // divergence that misrouted Club JAQK's rake for months. The leave
+          // request has already been marked approved above, so say that too.
           const { error: err_union_clubs_3g8br } = await getSupabase().from('union_clubs').delete().eq('union_id', unionId).eq('club_id', leaveReq.club_id);
-          if (err_union_clubs_3g8br) console.warn('[Supabase] Silent mutation failed in union_clubs:', err_union_clubs_3g8br.message);
+          if (err_union_clubs_3g8br) {
+            return res.status(500).json({
+              success: false,
+              error: `The leave request was approved but the club could not be removed from `
+                + `union_clubs: ${err_union_clubs_3g8br.message}. The club is still a union `
+                + `member — re-run approve_leave.`,
+              leaveApproved: true,
+            });
+          }
           const { error: err_clubs_kcht8 } = await getSupabase().from('clubs').update({ union_id: null }).eq('id', leaveReq.club_id).eq('union_id', unionId);
-          if (err_clubs_kcht8) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_kcht8.message);
+          if (err_clubs_kcht8) {
+            return res.status(500).json({
+              success: false,
+              error: `The club was removed from union_clubs but its club record still points at `
+                + `the union: ${err_clubs_kcht8.message}. Half-removed — re-run approve_leave.`,
+              halfRemoved: true,
+            });
+          }
         }
 
         return res.status(200).json({ success: true, status: newStatus });

@@ -304,7 +304,21 @@ export default async function handler(req, res) {
           { union_id: app.union_id, club_id: app.club_id, club_commission_rate: rate },
           { onConflict: 'union_id,club_id' }
         );
-      if (err_union_clubs_dam40) console.warn('[Supabase] Silent mutation failed in union_clubs:', err_union_clubs_dam40.message);
+      if (err_union_clubs_dam40) {
+        // FAIL-LOUD 2026-08-19: union_clubs and clubs.union_id are a PAIR. If
+        // one lands and the other does not, the club is half-joined — and that
+        // exact divergence is what sent Club JAQK's rake to its own treasury
+        // for months instead of the union's, because rake routing reads the
+        // clubs mirror while settlement reads union_clubs. The club's tables
+        // have already been closed and refunded by this point, so say so.
+        return res.status(500).json({
+          success: false,
+          error: `Could not add ${app.club_name} to the union: ${err_union_clubs_dam40.message}. `
+            + `Its tables were already closed and players refunded — re-run the approval `
+            + `once the cause is fixed.`,
+          tablesAlreadyClosed: closedTables,
+        });
+      }
 
       const { error: err_clubs_akfss } = await supabaseAdmin
 
@@ -317,14 +331,37 @@ export default async function handler(req, res) {
         })
         .eq('id', app.club_id);
 
-      if (err_clubs_akfss) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_akfss.message);
+      if (err_clubs_akfss) {
+        // The membership row landed but the mirror did not. Leaving this to a
+        // console.warn is how the mirror drifts. trg_union_clubs_sync_mirror
+        // repairs the INSERT path, but an upsert that hits onConflict takes the
+        // UPDATE path where the trigger does not fire — so this must be loud.
+        return res.status(500).json({
+          success: false,
+          error: `${app.club_name} was added to union_clubs but its club record could not `
+            + `be updated: ${err_clubs_akfss.message}. The club is half-joined — rake would `
+            + `route to the wrong treasury. Re-run the approval.`,
+          halfJoined: true,
+        });
+      }
 
       // Mark application approved
       const { error: err_union_applications_0zcko } = await supabaseAdmin
         .from('union_applications')
         .update({ status: 'approved', reviewed_by: user.id, reviewed_at: new Date().toISOString(), review_note: reason || null })
         .eq('id', applicationId);
-      if (err_union_applications_0zcko) console.warn('[Supabase] Silent mutation failed in union_applications:', err_union_applications_0zcko.message);
+      if (err_union_applications_0zcko) {
+        // The club IS in the union at this point; only the paperwork failed.
+        // Report it rather than claiming success, or the application stays
+        // 'pending' and the whole approval replays — closing tables again.
+        return res.status(500).json({
+          success: false,
+          error: `${app.club_name} was integrated into the union, but marking the `
+            + `application approved failed: ${err_union_applications_0zcko.message}. `
+            + `Set it to 'approved' by hand — do NOT re-run the approval.`,
+          integrationComplete: true,
+        });
+      }
 
       return res.status(200).json({
         success: true,
@@ -364,7 +401,12 @@ export default async function handler(req, res) {
         .update({ status: 'rejected', reviewed_by: user.id, reviewed_at: new Date().toISOString(), review_note: reason || null })
         .eq('id', applicationId);
 
-      if (err_union_applications_wozws) console.warn('[Supabase] Silent mutation failed in union_applications:', err_union_applications_wozws.message);
+      if (err_union_applications_wozws) {
+        return res.status(500).json({
+          success: false,
+          error: `Could not reject the application: ${err_union_applications_wozws.message}`,
+        });
+      }
 
       return res.status(200).json({ success: true, message: `${app.club_name} application rejected` });
     }
