@@ -19,8 +19,7 @@ This is the single source of truth for **this repo**. Updated 2026-04-29.
    verify-against-reality rules, the house bug shape, concurrency rules.
    `.agent/SELF-PUBLISH-PROTOCOL.md` holds the push mechanics.
 
-Audit records go under `.agent/audits/`. (`.memory/` is gitignored by
-design — local-only.)
+Audit records go under `.agent/audits/`. (`.memory/` is public and tracked on main — NEVER put secrets in it.)
 
 `.agent/handoffs/` is **CLOSED for deploy, push, and build work.** A
 handoff is permitted ONLY for the genuine human-only exceptions listed in
@@ -53,7 +52,7 @@ you do NOT ask the human to do it manually. You write a self-contained
 that another agent (running with the right credentials/scope) can execute
 end-to-end. The full rule + handoff template is in
 `.memory/decisions/2026-04-29-no-manual-human-work.md` (which is local-only
-because `.memory/` is gitignored — copy the salient parts into the handoff
+because `.memory/` is now tracked but still copy the salient parts into the handoff
 itself so the receiving agent doesn't depend on `.memory/`).
 
 Exceptions — things only a human can legitimately do:
