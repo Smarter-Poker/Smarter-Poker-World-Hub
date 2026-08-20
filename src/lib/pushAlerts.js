@@ -153,4 +153,13 @@ function _loadPrefs() {
 export function getPrefs() {
   return _loadPrefs();
 }
-export const sendPushNotification = async () => {};
+// REMOVED: `export const sendPushNotification = async () => {}`.
+//
+// It was a no-op that silently swallowed every call. pages/api/venues imported
+// it for the geofence check-in prompt, so those notifications were discarded
+// with no outbox row, no log and no error -- a stub that looks like a feature is
+// worse than a missing one, because nothing ever reports it as broken.
+//
+// Server-side sending lives in src/lib/notify.js (notify / notifyVenueAlert),
+// which fires the in-app bell and the web push together. This module is
+// CLIENT-side venue alert helpers only.
