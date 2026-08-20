@@ -1,7 +1,12 @@
 /**
  * /api/cron/club-stats-maintenance — Club Dashboard stats upkeep
  * ═══════════════════════════════════════════════════════════════════════════
- * Two jobs, both idempotent and safe to run repeatedly:
+ * Three jobs, all idempotent and safe to run repeatedly:
+ *
+ *  0. ADVANCE THE PLAYER -> HAND INDEX (added by the player-stats work, which
+ *     deliberately shares this route rather than adding a cron file — see the
+ *     inline note at the call site). Its advisory lock makes a concurrent
+ *     page-triggered refresh a no-op, so it cannot collide with the steps below.
  *
  *  1. DRAIN THE REBUILD BACKLOG. club_member_daily_stats is maintained live by
  *     the hand_history trigger, so NEW hands are always exact. History is not:
