@@ -21,7 +21,8 @@
  *
  * Security:
  *   - Token is 32 bytes (256-bit) of crypto-random data
- *   - TTL is 60 seconds — single-use window
+ *   - TTL is 5 minutes — single-use window (raised from 60s on 2026-08-20;
+ *     commander's exchange endpoint cold starts were outliving the token)
  *   - Token is hashed in the DB; raw value only exists in-transit and in the URL
  *   - Only users with a valid Supabase JWT can create tokens
  *   - Commander /auth/sso deletes the token row on use (consumed-once)
@@ -65,7 +66,12 @@ export default async function handler(req, res) {
     const rawToken = crypto.randomBytes(32).toString('hex');
     // Hash it before storing so the DB never holds the raw value
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 60 * 1000).toISOString(); // 60s TTL
+    // 2026-08-20: 60s TTL was too tight in practice - the commander-side
+    // /api/auth/sso-exchange cold start + DB roundtrip was measured at
+    // 10-25s in production, so real users' tokens could expire mid-flight
+    // ("Invalid or expired SSO token"). Tokens remain single-use and hashed;
+    // 5 minutes only widens the redirect window, not the attack surface.
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 min TTL
 
     // Store the hashed token in Supabase
     // Table: sso_bridge_tokens — created by supabase/migrations/20260819_sso_bridge_tokens.sql
