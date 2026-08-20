@@ -1,0 +1,19 @@
+-- Applied to production 2026-08-20 via Supabase MCP apply_migration
+-- (name: challenge_diamond_rewards_v2).
+--
+-- Daily challenges now pay DIAMONDS as well as chips.
+--   * daily_challenge_catalog.diamond_reward (INT, >= 0) added and populated for
+--     all 34 challenges: easy daily 1-2, harder daily 3-5, skill 3-7,
+--     weekly 10-18, monthly 45-60.
+--   * claim_daily_challenge returns jsonb (was boolean) so the client can
+--     celebrate with the amounts the server ACTUALLY paid rather than its own
+--     copy of the reward.
+--   * The diamond credit is written INLINE (profiles.diamonds +
+--     diamond_balance, plus a diamond_transactions ledger row) rather than via
+--     fn_add_diamonds, so it shares a transaction with the `claimed` flag under
+--     FOR UPDATE. None of the existing diamond helpers are idempotent; this
+--     path must be, because it fires on a user tap that can be retried.
+--
+-- Post-apply assertions proved: the credit lands, the returned balance matches
+-- the stored value, and a second claim pays nothing.
+SELECT 'see supabase migration history: challenge_diamond_rewards_v2' AS note;
