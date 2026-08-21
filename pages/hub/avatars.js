@@ -46,9 +46,9 @@ export default function AvatarsPage() {
                     <style>{`
                     .avatars-page {
                         min-height: 100vh;
+                        padding: 0;
                         padding-bottom: 70px;
                         background: url('/hub/club-arena/images/bg_digital_matrix.jpg') center/cover fixed;
-                        padding: 0;
                         width: 100%;
                         max-width: 100vw;
                         overflow-x: hidden;
