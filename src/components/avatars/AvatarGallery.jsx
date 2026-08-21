@@ -193,7 +193,7 @@ export default function AvatarGallery({ onSelect }) {
         .avatar-card {
           position: relative;
           aspect-ratio: 1;
-          background: linear-gradient(145deg, rgba(10, 14, 39, 0.7), rgba(26, 31, 58, 0.8));
+          background: #000000;
           border: 2px solid rgba(0, 245, 255, 0.2);
           border-radius: 16px;
           overflow: hidden;

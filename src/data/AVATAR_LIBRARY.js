@@ -288,16 +288,7 @@ export const AVATAR_LIBRARY = [
         image: '/avatars/free/shiba.png',
         tags: ['meme', 'fun', 'playful']
     },
-    {
-        id: 'free-mix-005',
-        name: 'Android Bot',
-        description: 'Pure Logic, no Emotion',
-        category: 'fantasy',
-        tier: 'FREE',
-        personality: 'nit',
-        image: '/avatars/free/android.png',
-        tags: ['ai', 'calculated', 'methodical']
-    },
+
 
     // ═══════════════════════════════════════════════════════════════════════
     // VIP AVATARS (50) - Premium Original Characters

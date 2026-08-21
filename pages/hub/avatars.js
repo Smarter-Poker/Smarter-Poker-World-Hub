@@ -48,7 +48,7 @@ export default function AvatarsPage() {
                         min-height: 100vh;
                         padding: 0;
                         padding-bottom: 70px;
-                        background: url('/hub/club-arena/images/bg_digital_matrix.jpg') center/cover fixed;
+                        background: url('/images/bg_honeycomb.png') center/cover fixed;
                         width: 100%;
                         max-width: 100vw;
                         overflow-x: hidden;
@@ -97,6 +97,7 @@ export default function AvatarsPage() {
                         border: 3px solid #ffd700;
                         box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
                         object-fit: cover;
+                        background: #000000;
                     }
 
                     .current-avatar-info {
