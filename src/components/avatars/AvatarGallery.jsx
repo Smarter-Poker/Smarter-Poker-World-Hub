@@ -159,12 +159,14 @@ const InspectModal = ({ avatar, isCustom, onClose, onEquip, isVip }) => {
           fontSize: '24px', cursor: 'pointer'
         }}>✕</button>
 
-        <div style={{ width: '200px', height: '200px', borderRadius: '20px', overflow: 'hidden', border: '3px solid #00f5ff', boxShadow: '0 0 30px rgba(0,245,255,0.3)', position: 'relative' }}>
-            {isVideo ? (
-                <video src={imageUrl} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-                <SPImage src={imageUrl} alt={name} fill style={{ objectFit: 'cover' }} />
-            )}
+        <div style={{ width: '200px', height: '200px', borderRadius: '20px', border: '3px solid #00f5ff', boxShadow: '0 0 30px rgba(0,245,255,0.3), inset 0 0 20px rgba(0,0,0,0.8)', position: 'relative', background: 'linear-gradient(145deg, #161b22, #0d1116)' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, animation: 'ambientBreathe 4s ease-in-out infinite', filter: 'url(#defringe) drop-shadow(0 10px 20px rgba(0,0,0,0.9))', WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 85%, rgba(0,0,0,0) 100%)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 85%, rgba(0,0,0,0) 100%)', transformOrigin: 'bottom center' }}>
+                {isVideo ? (
+                    <video src={imageUrl} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                    <SPImage src={imageUrl} alt={name} fill style={{ objectFit: 'cover' }} />
+                )}
+            </div>
         </div>
 
         <div style={{ textAlign: 'center' }}>
@@ -577,6 +579,24 @@ export default function AvatarGallery({ onSelect }) {
           100% { transform: rotate(360deg); }
         }
 
+        
+        /* Life-like Ambient Breathing Animation */
+        @keyframes ambientBreathe {
+          0% { transform: translateY(0px) scale(1) rotate(0deg); }
+          33% { transform: translateY(-3px) scale(1.02) rotate(1deg); }
+          66% { transform: translateY(-1px) scale(1.01) rotate(-1deg); }
+          100% { transform: translateY(0px) scale(1) rotate(0deg); }
+        }
+
+        .avatar-image-wrapper {
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          filter: url(#defringe) drop-shadow(0 10px 15px rgba(0,0,0,0.9));
+          -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 80%, rgba(0,0,0,0) 100%);
+          mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 80%, rgba(0,0,0,0) 100%);
+          transform-origin: bottom center;
+        }
+
         /* CURRENT AVATAR STYLES */
         .current-avatar {
             display: flex;
@@ -609,6 +629,15 @@ export default function AvatarGallery({ onSelect }) {
 
       `}</style>
 
+      
+      {/* SVG Filters for Image Cleanup */}
+      <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
+        <filter id="defringe">
+          <feMorphology operator="erode" radius="1" in="SourceAlpha" result="ERODED" />
+          <feComposite in="SourceGraphic" in2="ERODED" operator="in" />
+        </filter>
+      </svg>
+
       {/* TOP SECTION */}
       <div className="top-layout">
         
@@ -628,6 +657,13 @@ export default function AvatarGallery({ onSelect }) {
                     onClick={() => { playSound('click'); setInspectingAvatar({ ...customAvatar, isCustomObj: true, isSelected: currentAvatar?.type === 'custom' && currentAvatar?.imageUrl === customAvatar.image_url }); }}
                   >
                     <div className="screws"></div>
+                    <div 
+                        className="avatar-image-wrapper" 
+                        style={{ 
+                            animation: `ambientBreathe ${3 + (index % 3)}s ease-in-out infinite`,
+                            animationDelay: `${-(index % 5)}s` 
+                        }}
+                    >
                     {customAvatar.image_url.match(/\.(webm|mp4)$/i) ? (
                         <video src={customAvatar.image_url} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
@@ -638,6 +674,7 @@ export default function AvatarGallery({ onSelect }) {
                         style={{ objectFit: 'cover' }}
                         />
                     )}
+                    </div>
 
                     {/* DELETE BUTTON */}
                     <button
@@ -695,12 +732,15 @@ export default function AvatarGallery({ onSelect }) {
         <div className="current-avatar-side">
             {currentAvatar ? (
                 <div className="current-avatar">
-                    <img
-                        src={currentAvatar.imageUrl || '/avatars/free/shark.png'}
-                        alt="Current Avatar"
-                        className="current-avatar-img"
-                        loading="lazy" 
-                    />
+                    <div style={{ position: 'relative', width: 60, height: 60, flexShrink: 0, animation: 'ambientBreathe 4s ease-in-out infinite', filter: 'drop-shadow(0 5px 10px rgba(0,0,0,0.8))' }}>
+                        <img
+                            src={currentAvatar.imageUrl || '/avatars/free/shark.png'}
+                            alt="Current Avatar"
+                            className="current-avatar-img"
+                            loading="lazy" 
+                            style={{ width: '100%', height: '100%', boxShadow: 'none' }}
+                        />
+                    </div>
                     <div className="current-avatar-info">
                         <div className="current-avatar-label">Current Avatar</div>
                         <div className="current-avatar-name">{currentAvatar.name || 'Custom Avatar'}</div>
@@ -764,7 +804,7 @@ export default function AvatarGallery({ onSelect }) {
             <div className="avatar-grid">
               {avatars
                 .filter(av => activeCategory === 'All' || av.category === activeCategory)
-                .map(av => {
+                .map((av, index) => {
                   const isSelected = currentAvatar?.id === av.id;
                   return (
                     <TiltCard
@@ -777,6 +817,13 @@ export default function AvatarGallery({ onSelect }) {
                     >
                       <div className="screws"></div>
                       
+                      <div 
+                        className="avatar-image-wrapper" 
+                        style={{ 
+                            animation: `ambientBreathe ${3 + (index % 3)}s ease-in-out infinite`,
+                            animationDelay: `${-(index % 5)}s` 
+                        }}
+                    >
                       {av.image?.match(/\.(webm|mp4)$/i) ? (
                         <video src={av.image} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
@@ -787,6 +834,7 @@ export default function AvatarGallery({ onSelect }) {
                           style={{ objectFit: 'cover' }}
                         />
                       )}
+                    </div>
 
                       <div className="avatar-info">
                         <p className="avatar-name">{av.name}</p>
