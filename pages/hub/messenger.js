@@ -503,6 +503,11 @@ function MessengerPage() {
 
     // Keep ref in sync so global RT channel can read it without re-subscribing
     useEffect(() => { activeConversationRef.current = activeConversation; }, [activeConversation]);
+    // The 30s inbox poll is deliberately NOT re-created when the sidebar
+    // changes (that would tear down and rebuild the interval on every
+    // incoming message), so it reads the current list through a ref.
+    const conversationsRef = useRef([]);
+    useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
     // DEEP-SWEEP FIX: callTypeRef prevents stale closure in broadcast handlers
     const callTypeRef = useRef(callType);
     useEffect(() => { callTypeRef.current = callType; }, [callType]);
@@ -992,6 +997,35 @@ function MessengerPage() {
                         conversation_id: r.conversation_id,
                         unread_count: Number(r.unread_count) || 0,
                     }));
+
+                    // A conversation that did not exist when the sidebar was
+                    // built could only ever be UPDATED below, never ADDED - the
+                    // map() walks `prev`, so an id that is not already in the
+                    // list stayed invisible until a full page reload. That is
+                    // exactly the shape of the weekly statement thread: the
+                    // union creates it, and a club owner sitting in the
+                    // messenger would never see it arrive.
+                    //
+                    // Rebuilding through loadConversations rather than
+                    // synthesising a row here keeps one definition of what a
+                    // sidebar row is, and costs a request only on the tick
+                    // where a genuinely new thread appeared. The global
+                    // postgres_changes subscription is deliberately NOT coming
+                    // back: it streamed every social_messages row to every
+                    // logged-in user, which is why it was removed.
+                    const knownIds = new Set(
+                        (conversationsRef.current || []).map(c => c && c.id).filter(Boolean)
+                    );
+                    const hasNewThread = knownIds.size > 0
+                        && data.some(d => d.conversation_id && !knownIds.has(d.conversation_id));
+
+                    if (hasNewThread) {
+                        try {
+                            await loadConversationsRef.current?.(user.id);
+                        } catch (e) {
+                            console.warn('[Messenger] New-thread refresh failed:', e?.message || e);
+                        }
+                    } else {
                     setConversations(prev => {
                         let anyChanged = false;
                         const updated = prev.map(c => {
@@ -1019,6 +1053,7 @@ function MessengerPage() {
                             return timeB - timeA;
                         });
                     });
+                    }
                 } catch (e) {
                     setConnectionStatus('disconnected');
                 }
