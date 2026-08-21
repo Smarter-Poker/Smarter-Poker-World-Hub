@@ -6,6 +6,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef } from 'react';
@@ -32,6 +33,8 @@ import PlayingCard from '../../../src/components/poker/PlayingCard';
 
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 import ProfileSkeleton from '../../../src/components/skeletons/ProfileSkeleton';
+import ContentSkeleton from '../../../src/components/skeletons/ContentSkeleton';
+import PokerSkeleton from '../../../src/components/skeletons/PokerSkeleton';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
 import EditPostModal from '../../../src/components/social/EditPostModal';
@@ -112,18 +115,15 @@ function FriendAvatar({ friend }) {
       style={{ textDecoration: 'none', textAlign: 'center' }}
     >
       <div style={{ position: 'relative', marginBottom: 8 }}>
-        <img
+        <Image
           src={friend.avatar_url || '/default-avatar.png'}
-          alt={friend.username}
+          alt={friend.username || 'Friend'}
+          fill
+          sizes="(max-width: 768px) 100px, 120px"
           style={{
-            width: '100%',
-            aspectRatio: '1',
-            borderRadius: '50%',
             objectFit: 'cover',
-            background: '#21262d',
-            border: '3px solid #00f2fe',
+            borderRadius: '50%',
           }}
-          loading="lazy"
         />
       </div>
       <div
@@ -1892,6 +1892,36 @@ export default function UserProfilePage() {
   const [friends, setFriends] = useState([]);
   const [currentUserFriends, setCurrentUserFriends] = useState([]);
   const [posts, setPosts] = useState([]);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  
+  const loadMorePosts = async () => {
+    if (loadingMorePosts || !hasMorePosts || posts.length === 0) return;
+    setLoadingMorePosts(true);
+    try {
+      const lastPost = posts[posts.length - 1];
+      const { data: morePosts, error } = await supabase
+        .from('social_posts')
+        .select(`*, user_profiles(*)`)
+        .eq('user_id', profile.id)
+        .lt('created_at', lastPost.created_at)
+        .order('created_at', { ascending: false })
+        .limit(20);
+        
+      if (error) throw error;
+      
+      if (morePosts && morePosts.length > 0) {
+        setPosts(prev => [...prev, ...morePosts]);
+        if (morePosts.length < 20) setHasMorePosts(false);
+      } else {
+        setHasMorePosts(false);
+      }
+    } catch (err) {
+      console.warn('Error loading more posts', err);
+    } finally {
+      setLoadingMorePosts(false);
+    }
+  };
   const [photos, setPhotos] = useState([]);
   const [videos, setVideos] = useState([]);
   const [reels, setReels] = useState([]);
@@ -2378,10 +2408,17 @@ export default function UserProfilePage() {
           if (parsed.videos) setVideos(parsed.videos);
           if (parsed.reels) setReels(parsed.reels);
           if (parsed.lives) setPastLives(parsed.lives);
+          
+          if (parsed.pokerCheckins) setPokerCheckins(parsed.pokerCheckins);
+          if (parsed.pokerFollowing) setPokerFollowing(parsed.pokerFollowing);
+          if (parsed.checkinStreak) setCheckinStreak(parsed.checkinStreak);
+          if (parsed.shareStreak) setShareStreak(parsed.shareStreak);
+          if (parsed.checkinBadges) setCheckinBadges(parsed.checkinBadges);
+          if (parsed.checkinStats) setCheckinStats(parsed.checkinStats);
+          if (parsed.checkinHeatmap) setCheckinHeatmap(parsed.checkinHeatmap);
+          
           setLoading(false); // Zero-delay render achieved!
           setContentLoading(false);
-          // Poker data isn't cached, but we can clear its loading state immediately if we want
-          // Actually, it's better to let it load.
         } else {
           // Expired cache — remove it
           localStorage.removeItem(CACHE_KEY);
@@ -2768,111 +2805,72 @@ export default function UserProfilePage() {
         if (pokerUid) {
           const token = getAccessToken();
           const headers = token ? { Authorization: `Bearer ${token}` } : {};
-          fetch('/api/poker/checkins?user_id=' + encodeURIComponent(pokerUid), { headers })
-            .then(function (r) {
-              return r.json();
-            })
-            .then(function (j) {
-              if (j.success) setPokerCheckins(j.checkins || j.data || []);
-            })
-            .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
-          fetch('/api/poker/follow?user_id=' + encodeURIComponent(pokerUid), { headers })
-            .then(function (r) {
-              return r.json();
-            })
-            .then(function (j) {
-              if (j.success) setPokerFollowing(j.data || []);
-            })
-            .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
-          // Fetch check-in streak data
-          fetch('/api/poker/checkins/streak?user_id=' + encodeURIComponent(pokerUid), { headers })
-            .then(function (r) {
-              return r.json();
-            })
-            .then(function (j) {
-              if (j.success)
-                setCheckinStreak({
-                  currentStreak: j.currentStreak || 0,
-                  longestStreak: j.longestStreak || 0,
-                  totalCheckins: j.totalCheckins || 0,
-                });
-            })
-            .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
-          // Fetch share streak data from share_streaks view
-          supabase
-            .from('share_streaks')
-            .select('streak_days, is_active, streak_end')
-            .eq('user_id', pokerUid)
-            .eq('is_active', true)
-            .order('streak_days', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-            .then(({ data: ss }) => {
-              if (ss) {
-                setShareStreak({ streak_days: ss.streak_days || 0, is_active: ss.is_active });
-              } else if (user?.id && user.id === data.id) {
-                // Streak is NOT active — check if user had a multiplier that just reset
-                // Only show the notification once per session to avoid spam
-                const notifKey = `sp-streak-break-notif-${pokerUid}`;
-                const alreadyShown = sessionStorage.getItem(notifKey);
-                if (!alreadyShown) {
-                  supabase
-                    .from('profiles')
-                    .select('diamond_multiplier')
-                    .eq('id', pokerUid)
-                    .maybeSingle()
-                    .then(({ data: prof }) => {
-                      // If multiplier > 1.0 it hasn't been reset yet by the nightly job
-                      // Show the warning so the user knows to share today to re-activate
-                      if (prof?.diamond_multiplier && prof.diamond_multiplier > 1.0) {
-                        // The reset function will clean this up on next share
-                        setStreakBreakAlert(true);
-                        try {
-                          sessionStorage.setItem(notifKey, '1');
-                        } catch (_) {}
-                      }
-                    })
-                    .catch(() => {});
+          const socialId = data.id; // Usually same as pokerUid
+          fetch(`/api/poker/profile-aggregate?user_id=${encodeURIComponent(pokerUid)}&social_id=${encodeURIComponent(socialId)}`, { headers })
+            .then(r => r.json())
+            .then(j => {
+              if (j.success) {
+                setPokerCheckins(j.checkins || []);
+                setPokerFollowing(j.following || []);
+                if (j.streak) {
+                  setCheckinStreak({
+                    currentStreak: j.streak.currentStreak || 0,
+                    longestStreak: j.streak.longestStreak || 0,
+                    totalCheckins: j.streak.totalCheckins || 0,
+                  });
+                }
+                
+                if (j.shareStreak) {
+                  setShareStreak(j.shareStreak);
+                } else if (user?.id && user.id === data.id) {
+                  const notifKey = `sp-streak-break-notif-${pokerUid}`;
+                  const alreadyShown = sessionStorage.getItem(notifKey);
+                  if (!alreadyShown) {
+                    supabase
+                      .from('profiles')
+                      .select('diamond_multiplier')
+                      .eq('id', pokerUid)
+                      .maybeSingle()
+                      .then(({ data: prof }) => {
+                        if (prof?.diamond_multiplier && prof.diamond_multiplier > 1.0) {
+                          setStreakBreakAlert(true);
+                          try { sessionStorage.setItem(notifKey, '1'); } catch (_) {}
+                        }
+                      })
+                      .catch(() => {});
+                  }
+                }
+                
+                if (j.badges) {
+                  const b = [...j.badges];
+                  if (j.badges._nextBadge) b._nextBadge = j.badges._nextBadge;
+                  setCheckinBadges(b);
+                }
+                if (j.stats) setCheckinStats(j.stats);
+                if (j.heatmap) setCheckinHeatmap(j.heatmap);
+                
+                // --- POKER SWR CACHE UPDATE ---
+                try {
+                  const existingCacheStr = localStorage.getItem(CACHE_KEY);
+                  let currentCache = existingCacheStr ? JSON.parse(existingCacheStr) : { _cachedAt: Date.now() };
+                  currentCache = {
+                    ...currentCache,
+                    pokerCheckins: j.checkins || [],
+                    pokerFollowing: j.following || [],
+                    checkinStreak: j.streak || null,
+                    shareStreak: j.shareStreak || null,
+                    checkinBadges: j.badges || null,
+                    checkinStats: j.stats || null,
+                    checkinHeatmap: j.heatmap || null
+                  };
+                  localStorage.setItem(CACHE_KEY, JSON.stringify(currentCache));
+                } catch (cacheErr) {
+                  console.warn('Failed to save SWR cache for poker', cacheErr);
                 }
               }
             })
-            .catch(() => {});
-          // Fetch check-in badges
-          fetch('/api/poker/checkins/badges?user_id=' + encodeURIComponent(pokerUid), { headers })
-            .then(function (r) {
-              return r.json();
-            })
-            .then(function (j) {
-              if (j.success && j.badges) {
-                var b = j.badges;
-                b._nextBadge = j.nextBadge || null;
-                setCheckinBadges(b);
-              }
-            })
-            .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
-          // Fetch check-in aggregate stats
-          fetch('/api/poker/checkins/stats?user_id=' + encodeURIComponent(pokerUid), { headers })
-            .then(function (r) {
-              return r.json();
-            })
-            .then(function (j) {
-              if (j.success) setCheckinStats(j);
-            })
-            .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
-          // Fetch check-in heatmap data
-          fetch('/api/poker/checkins/heatmap?user_id=' + encodeURIComponent(pokerUid), { headers })
-            .then(function (r) {
-              return r.json();
-            })
-            .then(function (j) {
-              if (j.success) setCheckinHeatmap(j);
-            })
-            .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
-            
-          // We can just use a timeout or assume it finishes quickly, but let's be precise:
-          // Since they are all floating, let's just use a timeout to remove the loading state
-          // to prevent the flash. (A proper Promise.all would require refactoring the block).
-          setTimeout(() => setPokerLoading(false), 800);
+            .catch(e => console.warn('[App] Aggregate API Error:', e))
+            .finally(() => setPokerLoading(false));
         } else {
           setPokerLoading(false);
         }
@@ -5680,7 +5678,7 @@ export default function UserProfilePage() {
 
                 {/* Posts Feed */}
                 {contentLoading ? (
-                  <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+                  <ContentSkeleton type="posts" />
                 ) : posts.length > 0 ? (
                   posts.map((post) => (
                     <PostCard
@@ -5729,7 +5727,7 @@ export default function UserProfilePage() {
           {activeTab === 'poker' && (
             <div>
               {pokerLoading ? (
-                <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+                <PokerSkeleton />
               ) : (
                 <>
               {/* Followed Pages */}
@@ -6362,7 +6360,7 @@ export default function UserProfilePage() {
                 Photos
               </h3>
               {contentLoading ? (
-                <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+                <ContentSkeleton type="grid" />
               ) : photos.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                   {photos.map((photo) =>
@@ -6460,7 +6458,7 @@ export default function UserProfilePage() {
                 Videos
               </h3>
               {contentLoading ? (
-                <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+                <ContentSkeleton type="grid" />
               ) : videos.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                   {videos.map((video) => {
@@ -6590,7 +6588,7 @@ export default function UserProfilePage() {
                 Reels
               </h3>
               {contentLoading ? (
-                <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+                <ContentSkeleton type="grid" />
               ) : reels.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                   {reels.map((reel) => (
@@ -6749,7 +6747,7 @@ export default function UserProfilePage() {
                 Past Lives
               </h3>
               {contentLoading ? (
-                <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+                <ContentSkeleton type="grid" />
               ) : pastLives.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                   {pastLives.map((live) => (

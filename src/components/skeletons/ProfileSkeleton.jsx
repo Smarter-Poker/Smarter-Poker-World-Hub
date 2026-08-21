@@ -23,7 +23,7 @@ const shimmerStyle = {
     borderRadius: 8,
 };
 
-function ShimmerBlock({ width = '100%', height = 16, radius = 8, style = {} }) {
+export function ShimmerBlock({ width = '100%', height = 16, radius = 8, style = {} }) {
     return (
         <div style={{
             ...shimmerStyle,
