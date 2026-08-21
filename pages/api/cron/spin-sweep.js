@@ -126,6 +126,55 @@ async function handler(req, res) {
             alerts.push(`shortfall_recorded:${short.map((p) => p.club_name).join(',')}`);
         }
 
+        // ── 3. Split-brain tripwires (2026-08-21) ─────────────────────────
+        // On 2026-08-20 23:48Z two engine instances dealt one table at once
+        // and a HUMAN found it before any system did. Lease enforcement is
+        // now on by default in the engine; these two checks make sure that
+        // stays true and CATCH it if it ever fails anyway:
+        //
+        //  a) The engine's own lease diagnostics — the authoritative signal.
+        //     enforced must be true, conflicts must be zero. Fetched with a
+        //     cache-buster + no-store because engine /health has been served
+        //     stale by CDN caching before (CA CLAUDE.md, hard-won traps).
+        //  b) fn_detect_double_dealing — the forensic fingerprint in
+        //     hand_history (two persisted hands on one table with genuinely
+        //     overlapping play windows). The lease log is primary; this is
+        //     the backstop that works even if the engine's own telemetry is
+        //     the thing that broke.
+        try {
+            const hres = await fetch(
+                `https://engine.smarter.poker/health?cb=${Date.now()}`,
+                { cache: 'no-store', signal: AbortSignal.timeout(8000) }
+            );
+            const engineHealth = hres.ok ? await hres.json() : null;
+            const lease = engineHealth?.lease;
+            if (!lease) {
+                alerts.push('lease_diagnostics_missing');
+            } else {
+                if (lease.enforced !== true) alerts.push('lease_enforcement_off');
+                if (Number(lease.conflictCount) > 0) {
+                    alerts.push(`lease_conflicts:${lease.conflictCount}`);
+                }
+            }
+        } catch (err) {
+            // Unreachable engine is its own page-worthy fact.
+            alerts.push('engine_health_unreachable');
+        }
+
+        try {
+            const { data: doubles, error: ddErr } = await admin.rpc('fn_detect_double_dealing', {
+                p_lookback_mins: LOOKBACK_MINS,
+            });
+            if (ddErr) {
+                alerts.push('double_deal_check_failed');
+            } else if (Array.isArray(doubles) && doubles.length > 0) {
+                const tables = [...new Set(doubles.map((d) => d.table_id))];
+                alerts.push(`DOUBLE_DEALING:${tables.join(',')}`);
+            }
+        } catch {
+            alerts.push('double_deal_check_failed');
+        }
+
         const payload = {
             status: alerts.length === 0 ? 'ok' : 'attention',
             settled,
