@@ -10,7 +10,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken, ensureAuthReady, authedFetch } from '../../src/lib/authUtils';
@@ -31,11 +31,10 @@ const LiveKitCall = dynamic(
     { ssr: false }
 );
 
-// Dynamic import for Jarvis AI Widget (client-side only)
-const JarvisMessengerWidget = dynamic(
-    () => import('../../src/world/components/Jarvis/JarvisMessengerWidget'),
-    { ssr: false }
-);
+// JarvisMessengerWidget's dynamic import was removed 2026-08-21: it was
+// declared here and never rendered anywhere in this page, so it only served to
+// keep a chunk in the graph. The Jarvis conversation itself is handled inline
+// (see handleSelectConversation's isJarvis branch).
 
 // God-Mode Stack
 import { useMessengerStore } from '../../src/stores/messengerStore';
@@ -378,6 +377,13 @@ function MessengerPage() {
             return JSON.parse(localStorage.getItem('sp-pinned-conversations') || '[]');
         } catch { return []; }
     });
+    // Stable identity for "which conversations exist", independent of order or
+    // of the array being rebuilt. See the request-count effect below.
+    const conversationIdKey = useMemo(
+        () => (conversations || []).map(c => c.id).sort().join(','),
+        [conversations]
+    );
+
     // Users this account has blocked. send-message and start-conversation have
     // enforced messenger_blocked for a while, but nothing in this messenger
     // ever wrote it - the only writer was the in-game table messenger - so the
@@ -796,7 +802,13 @@ function MessengerPage() {
             }
         };
         fetchRequestCount();
-    }, [user?.id, conversations]);
+        // `conversations` gets a NEW array identity on every incoming message,
+        // every preview update, every 30s poll tick and every re-sort, and this
+        // effect runs TWO Supabase queries. Keying on the sorted id set instead
+        // means it re-runs when the set of conversations actually changes, not
+        // when the array is merely rebuilt or reordered.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, conversationIdKey]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // PROFILE SYNC: Update local user state when profile is edited
