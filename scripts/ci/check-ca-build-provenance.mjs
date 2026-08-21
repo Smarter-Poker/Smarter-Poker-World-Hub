@@ -16,30 +16,42 @@
  *
  * Feature-marker gates (check-ca-protected-features.mjs) protect the features
  * someone remembered to register. THIS protects everything at once: if the
- * incoming build's source commit is older than the deployed one, whatever
+ * incoming build's source commit is older than the one it replaces, whatever
  * landed in between is about to be erased — no matter which feature it was.
  *
- * HOW IT WORKS
- * Club Arena's build writes dist/build-info.json (scripts/stamp-build-
- * provenance.mjs) recording the source commit and its committer timestamp.
- * That file rides into public/hub/club-arena/. This compares the WORKING-TREE
- * copy (what is about to be committed/deployed) against the copy in git HEAD
- * (what is already deployed):
+ * ── WHAT IS COMPARED (rewritten 2026-08-21 after an audit found the v1
+ *    comparison could never fire) ────────────────────────────────────────────
+ * v1 compared the WORKING TREE against `git show HEAD`. That is wrong in both
+ * places this actually runs:
  *
- *   incoming.commitTime  <  deployed.commitTime   -> BLOCK (time travel)
- *   incoming.commit      == deployed.commit       -> allow (rebuild, no-op)
- *   incoming.commitTime  >= deployed.commitTime   -> allow (forward)
+ *   pre-push  the hook runs AFTER the commit, so the new bundle is already at
+ *             HEAD and the working tree matches it — v1 saw "same commit" and
+ *             waved every push through.
+ *   CI        Actions checks out the pushed commit, so HEAD is again the new
+ *             bundle. Same blind spot.
+ *
+ * The meaningful question is "does this change to the bundle move it
+ * backwards?", so the baseline must be the PREVIOUS REVISION OF THE FILE, not
+ * the current one:
+ *
+ *   incoming  the working-tree copy when it differs from HEAD (a build that is
+ *             staged but not yet committed), otherwise the copy at HEAD.
+ *   baseline  the copy at the last commit that changed the file before that.
+ *
+ * Then:
+ *   incoming.commitTime  <  baseline.commitTime  -> BLOCK (time travel)
+ *   incoming.commit      == baseline.commit      -> allow (rebuild, no move)
+ *   incoming.commitTime  >= baseline.commitTime  -> allow (forward)
  *
  * It compares SOURCE commit time, not build time: a stale checkout produces a
  * brand-new build time from ancient source, which is precisely the failure.
  *
  * DEGRADED CASES
- * - No build-info in HEAD (first rollout): allow, and say so.
- * - No build-info in the working tree: allow with a warning — an older Club
- *   Arena that predates stamping. Becomes blocking once stamping has shipped
- *   everywhere (flip REQUIRE_STAMP).
- * - Unparseable/unknown provenance: BLOCK. "Cannot prove it is newer" is not
- *   the same as "is newer".
+ * - No provenance anywhere yet (first rollout): allow, and say so.
+ * - No provenance in the incoming bundle: allow with a warning — a Club Arena
+ *   that predates stamping. Flip REQUIRE_STAMP once every builder stamps.
+ * - Unparseable or timeless provenance: BLOCK. "Cannot prove it is newer" is
+ *   not the same as "is newer".
  *
  * OVERRIDE (deliberate rollback): ALLOW_CA_ROLLBACK=1. Intentionally rolling
  * production back to older Club Arena source is legitimate; doing it BY
@@ -60,13 +72,21 @@ const ABS = path.join(process.cwd(), REL);
 const LEGACY_REL = 'public/hub/club-arena/build-info.json';
 const REQUIRE_STAMP = false; // flip to true once every builder stamps
 
+const git = (cmd) => {
+  try {
+    return execSync(`git ${cmd}`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+  } catch {
+    return null;
+  }
+};
+
 function parse(raw, where) {
   try {
     const j = JSON.parse(raw);
     if (!j || typeof j !== 'object') throw new Error('not an object');
     return j;
   } catch (err) {
-    console.error(`✗ Club Arena provenance: ${where} build-info.json is unreadable (${err.message}).`);
+    console.error(`✗ Club Arena provenance: the ${where} ca-provenance.json is unreadable (${err.message}).`);
     process.exit(1);
   }
 }
@@ -75,7 +95,7 @@ function timeOf(info, where) {
   const t = Date.parse(info?.commitTime ?? '');
   if (!Number.isFinite(t)) {
     console.error(
-      `✗ Club Arena provenance: ${where} build-info.json has no usable commitTime ` +
+      `✗ Club Arena provenance: the ${where} ca-provenance.json has no usable commitTime ` +
         `(got ${JSON.stringify(info?.commitTime)}).\n` +
         `  Unknown provenance cannot be proven newer, so it is refused.`
     );
@@ -84,18 +104,35 @@ function timeOf(info, where) {
   return t;
 }
 
-// ── incoming: the working-tree copy about to be committed/deployed ──────────
-if (!existsSync(ABS)) {
+const short = (c) => String(c ?? 'unknown').slice(0, 8);
+
+// ── INCOMING ────────────────────────────────────────────────────────────────
+// Prefer the working tree (a build staged but not yet committed); fall back to
+// HEAD (the normal case in CI and in pre-push, which runs after the commit).
+const headRaw = git(`show HEAD:${REL}`);
+let incomingRaw = null;
+let incomingWhere = '';
+
+if (existsSync(ABS)) {
+  incomingRaw = readFileSync(ABS, 'utf8');
+  incomingWhere = 'working tree';
+} else if (headRaw) {
+  incomingRaw = headRaw;
+  incomingWhere = 'HEAD';
+}
+
+if (!incomingRaw) {
   const legacy = path.join(process.cwd(), LEGACY_REL);
-  const hint = existsSync(legacy)
-    ? `\n  (Found the older ${LEGACY_REL}, which records BUILD time, not source time.\n` +
-      `   Build time cannot order deploys: a stale checkout builds "now" from old\n` +
-      `   source. Ordering resumes on the next sync from a Club Arena that stamps.)`
-    : '';
+  const hint =
+    existsSync(legacy) || git(`show HEAD:${LEGACY_REL}`)
+      ? `\n  (Found the older ${LEGACY_REL}, which records BUILD time, not source time.\n` +
+        `   Build time cannot order deploys: a stale checkout builds "now" from old\n` +
+        `   source. Ordering resumes on the next sync from a Club Arena that stamps.)`
+      : '';
   const msg =
-    `Club Arena provenance: no ${REL} in the working tree.\n` +
-    `  This build predates provenance stamping (scripts/stamp-build-provenance.mjs\n` +
-    `  in the Club Arena repo). Rebuild with a current Club Arena checkout.` + hint;
+    `Club Arena provenance: no ${REL} found.\n` +
+    `  This bundle predates provenance stamping (scripts/stamp-build-provenance.mjs\n` +
+    `  in the Club Arena repo). Rebuild from a current Club Arena checkout.` + hint;
   if (REQUIRE_STAMP) {
     console.error('✗ ' + msg);
     process.exit(1);
@@ -103,35 +140,51 @@ if (!existsSync(ABS)) {
   console.warn('! ' + msg);
   process.exit(0);
 }
-const incoming = parse(readFileSync(ABS, 'utf8'), 'incoming');
 
-// ── deployed: the copy already committed at HEAD ────────────────────────────
-let deployedRaw = null;
-try {
-  deployedRaw = execSync(`git show HEAD:${REL}`, {
-    stdio: ['ignore', 'pipe', 'ignore'],
-  }).toString();
-} catch {
-  deployedRaw = null;
+const incoming = parse(incomingRaw, incomingWhere);
+
+// ── BASELINE ────────────────────────────────────────────────────────────────
+// The revision this bundle is REPLACING.
+//   - working tree differs from HEAD -> baseline is HEAD
+//   - otherwise                      -> baseline is the previous commit that
+//                                       touched the file
+let baselineRaw = null;
+let baselineWhere = '';
+
+if (incomingWhere === 'working tree' && headRaw && headRaw !== incomingRaw) {
+  baselineRaw = headRaw;
+  baselineWhere = 'HEAD';
+} else {
+  const log = git(`log --format=%H -- ${REL}`);
+  const commits = (log || '')
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  // commits[0] is the commit that introduced the CURRENT content; the one
+  // before it is what production was serving until this change.
+  for (let i = 1; i < commits.length; i++) {
+    const prev = git(`show ${commits[i]}:${REL}`);
+    if (prev && prev !== incomingRaw) {
+      baselineRaw = prev;
+      baselineWhere = `commit ${short(commits[i])}`;
+      break;
+    }
+  }
 }
 
-if (!deployedRaw) {
-  // Nothing stamped at HEAD yet: this is the first stamped bundle. Allow, and
-  // from here on every subsequent deploy is ordered against it.
+if (!baselineRaw) {
   console.log(
     `✓ Club Arena provenance: first stamped bundle ` +
-      `(${String(incoming.commit).slice(0, 8)} @ ${incoming.commitTime}). Nothing to compare against yet.`
+      `(${short(incoming.commit)} @ ${incoming.commitTime}). Nothing to compare against yet.`
   );
   process.exit(0);
 }
 
-const deployed = parse(deployedRaw, 'deployed');
-const tIn = timeOf(incoming, 'incoming');
-const tOut = timeOf(deployed, 'deployed');
+const baseline = parse(baselineRaw, baselineWhere);
+const tIn = timeOf(incoming, incomingWhere);
+const tOut = timeOf(baseline, baselineWhere);
 
-const short = (c) => String(c ?? 'unknown').slice(0, 8);
-
-if (incoming.commit && deployed.commit && incoming.commit === deployed.commit) {
+if (incoming.commit && baseline.commit && incoming.commit === baseline.commit) {
   console.log(
     `✓ Club Arena provenance: same source commit ${short(incoming.commit)} — rebuild, no move.`
   );
@@ -139,14 +192,17 @@ if (incoming.commit && deployed.commit && incoming.commit === deployed.commit) {
 }
 
 if (tIn < tOut) {
-  const days = ((tOut - tIn) / 86400000).toFixed(2);
+  const hours = ((tOut - tIn) / 3600000).toFixed(1);
   const behind =
-    typeof incoming.behindMain === 'number' ? `\n  Its checkout was ${incoming.behindMain} commit(s) behind origin/main.` : '';
+    typeof incoming.behindMain === 'number' && incoming.behindMain > 0
+      ? `\n  Its checkout was ${incoming.behindMain} commit(s) behind origin/main.`
+      : '';
+  const dirty = incoming.dirty ? '\n  It also had uncommitted changes.' : '';
   console.error(
     `\n✗ Club Arena provenance: DEPLOY WOULD MOVE PRODUCTION BACKWARDS\n\n` +
-      `  deployed now : ${short(deployed.commit)}  ${deployed.commitTime}\n` +
-      `  incoming     : ${short(incoming.commit)}  ${incoming.commitTime}\n` +
-      `  regression   : ${days} day(s) of source history would be erased.${behind}\n\n` +
+      `  replacing : ${short(baseline.commit)}  ${baseline.commitTime}  (${baselineWhere})\n` +
+      `  incoming  : ${short(incoming.commit)}  ${incoming.commitTime}  (${incomingWhere})\n` +
+      `  regression: ${hours} hour(s) of source history would be erased.${behind}${dirty}\n\n` +
       `  This is the 2026-08-21 signature: a bundle built from a checkout that\n` +
       `  never pulled. Everything merged in between — every feature, not just\n` +
       `  the one you noticed — disappears from production.\n\n` +
@@ -164,6 +220,6 @@ if (tIn < tOut) {
 
 console.log(
   `✓ Club Arena provenance: moves forward ` +
-    `(${short(deployed.commit)} ${deployed.commitTime} -> ${short(incoming.commit)} ${incoming.commitTime})`
+    `(${short(baseline.commit)} ${baseline.commitTime} -> ${short(incoming.commit)} ${incoming.commitTime})`
 );
 process.exit(0);

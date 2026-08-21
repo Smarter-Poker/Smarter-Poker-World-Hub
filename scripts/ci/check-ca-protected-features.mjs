@@ -32,6 +32,7 @@
  */
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import path from 'node:path';
 
 const ROOT = path.join(process.cwd(), 'public', 'hub', 'club-arena');
@@ -63,6 +64,43 @@ try {
 
 const features = Array.isArray(registry?.features) ? registry.features : [];
 const guarded = features.filter((f) => Array.isArray(f.bundleMarkers) && f.bundleMarkers.length);
+
+// ── SELF-REFERENCE GUARD (audit fix, 2026-08-21) ────────────────────────────
+// The registry is read FROM THE BUNDLE, which means a stale build overwrites
+// the registry along with everything else — shipping an OLD registry that no
+// longer lists the features it dropped, and passing its own check. Compare the
+// incoming registry against the one already committed: features may be added,
+// and may be removed DELIBERATELY (which is a source change in the Club Arena
+// repo), but a bundle that silently forgets features it used to protect is the
+// signature of an older tree.
+const committed = (() => {
+  try {
+    const raw = execSync('git show HEAD:public/hub/club-arena/protected-features.json', {
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).toString();
+    const j = JSON.parse(raw);
+    return Array.isArray(j?.features) ? j.features : null;
+  } catch {
+    return null; // first rollout, or not a git checkout
+  }
+})();
+
+if (committed) {
+  const incomingIds = new Set(features.map((f) => f.id));
+  const vanished = committed.map((f) => f.id).filter((id) => !incomingIds.has(id));
+  if (vanished.length) {
+    console.error(
+      `\n✗ Club Arena registry SHRANK — the incoming bundle no longer protects:\n` +
+        vanished.map((id) => `    ${id}`).join('\n') +
+        `\n\n  A registry that forgets its own entries is what a stale build looks\n` +
+        `  like: the old tree never had them. If these features were removed on\n` +
+        `  purpose, that removal belongs in the Club Arena repo (delete the entry\n` +
+        `  in the same commit as the code) and this bundle should be rebuilt from\n` +
+        `  that source.\n`
+    );
+    process.exit(1);
+  }
+}
 
 if (!existsSync(ASSETS)) {
   console.error('✗ Club Arena features: no assets/ directory in the bundle.');
