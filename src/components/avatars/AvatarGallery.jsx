@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
-import { getAvailableAvatars, getCustomAvatarGallery } from '../../services/avatar-service';
+import { getAvailableAvatars, getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 import CustomAvatarBuilder from './CustomAvatarBuilder';
 import toast from '../../stores/toastStore';
 import SPImage from '../common/SPImage';
@@ -122,7 +122,6 @@ export default function AvatarGallery({ onSelect }) {
     // Delete directly - no double confirmation needed
 
     try {
-      const { deleteCustomAvatar } = await import('../../services/avatar-service');
       const result = await deleteCustomAvatar(user.id, avatarId);
 
       if (result.success) {
@@ -159,9 +158,6 @@ export default function AvatarGallery({ onSelect }) {
       <style>{`
         .avatar-gallery {
           width: 100%;
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 20px;
         }
 
         .gallery-section {
@@ -197,26 +193,31 @@ export default function AvatarGallery({ onSelect }) {
         .avatar-card {
           position: relative;
           aspect-ratio: 1;
-          background: rgba(10, 14, 39, 0.6);
+          background: linear-gradient(145deg, rgba(10, 14, 39, 0.7), rgba(26, 31, 58, 0.8));
           border: 2px solid rgba(0, 245, 255, 0.2);
           border-radius: 16px;
           overflow: hidden;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), inset 0 2px 10px rgba(255, 255, 255, 0.05);
           display: flex;
           align-items: center;
           justify-content: center;
+          transform: translateZ(0);
         }
 
         .avatar-card:hover {
-          transform: translateY(-5px);
+          transform: translateY(-8px) scale(1.03);
           border-color: #00f5ff;
-          box-shadow: 0 10px 30px rgba(0, 245, 255, 0.3);
+          box-shadow: 0 15px 35px rgba(0, 245, 255, 0.4), inset 0 2px 15px rgba(255, 255, 255, 0.15);
+          z-index: 2;
         }
 
         .avatar-card.selected {
           border-color: #00ff00;
-          box-shadow: 0 10px 30px rgba(0, 255, 0, 0.5);
+          box-shadow: 0 15px 35px rgba(0, 255, 0, 0.5), inset 0 0 20px rgba(0, 255, 0, 0.2);
+          transform: translateY(-5px) scale(1.05);
+          z-index: 2;
         }
 
         .avatar-card.placeholder {

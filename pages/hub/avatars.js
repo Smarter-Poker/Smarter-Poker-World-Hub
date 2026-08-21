@@ -45,42 +45,29 @@ export default function AvatarsPage() {
                 <div className="avatars-page">
                     <style>{`
                     .avatars-page {
-                        min-height: 100vh; padding-bottom: 70px;
-                        background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d0d2e 100%);
+                        min-height: 100vh;
+                        padding-bottom: 70px;
+                        background: url('/hub/club-arena/images/bg_digital_matrix.jpg') center/cover fixed;
+                        padding: 0;
+                        width: 100%;
+                        max-width: 100vw;
+                        overflow-x: hidden;
+                        box-sizing: border-box;
+                    }
+
+                    .avatars-content {
+                        max-width: 1400px;
+                        margin: 0 auto;
                         padding: 20px;
                     }
 
                     .header {
-                        max-width: 1400px;
-                        margin: 0 auto 30px;
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
                         flex-wrap: wrap;
                         gap: 15px;
-                    }
-
-                    .back-btn {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 10px 20px;
-                        background: rgba(0, 245, 255, 0.1);
-                        border: 1px solid rgba(0, 245, 255, 0.3);
-                        border-radius: 12px;
-                        color: #00f5ff;
-                        font-family: 'Rajdhani', sans-serif;
-                        font-size: 16px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                        text-decoration: none;
-                    }
-
-                    .back-btn:hover {
-                        background: rgba(0, 245, 255, 0.2);
-                        border-color: #00f5ff;
-                        transform: translateX(-3px);
+                        margin-bottom: 30px;
                     }
 
                     .current-avatar {
@@ -88,16 +75,27 @@ export default function AvatarsPage() {
                         align-items: center;
                         gap: 15px;
                         padding: 12px 20px;
-                        background: rgba(0, 0, 0, 0.4);
-                        border: 1px solid rgba(0, 245, 255, 0.2);
-                        border-radius: 12px;
+                        background: linear-gradient(145deg, rgba(10, 14, 39, 0.8), rgba(26, 31, 58, 0.9));
+                        border: 2px solid #00f5ff;
+                        border-radius: 16px;
+                        box-shadow: 0 8px 32px rgba(0, 245, 255, 0.2), inset 0 2px 10px rgba(255, 255, 255, 0.1);
+                        backdrop-filter: blur(10px);
+                        transform: translateZ(0);
+                        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                    }
+                    
+                    .current-avatar:hover {
+                        transform: translateY(-5px) scale(1.02);
+                        box-shadow: 0 15px 40px rgba(0, 245, 255, 0.4), inset 0 2px 15px rgba(255, 255, 255, 0.2);
+                        border-color: #ffd700;
                     }
 
                     .current-avatar-img {
-                        width: 50px;
-                        height: 50px;
+                        width: 60px;
+                        height: 60px;
                         border-radius: 50%;
-                        border: 2px solid #00f5ff;
+                        border: 3px solid #ffd700;
+                        box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
                         object-fit: cover;
                     }
 
@@ -106,21 +104,24 @@ export default function AvatarsPage() {
                     }
 
                     .current-avatar-label {
-                        font-size: 11px;
-                        color: #888;
+                        font-size: 12px;
+                        color: #00f5ff;
                         text-transform: uppercase;
-                        margin-bottom: 2px;
+                        letter-spacing: 1px;
+                        margin-bottom: 4px;
+                        text-shadow: 0 0 5px rgba(0, 245, 255, 0.5);
                     }
 
                     .current-avatar-name {
-                        font-size: 16px;
+                        font-size: 18px;
                         color: #fff;
-                        font-weight: 600;
+                        font-weight: 700;
+                        text-shadow: 0 2px 4px rgba(0,0,0,0.8);
                     }
                 `}</style>
 
                     {/* Header */}
-                    <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+                    <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
                     <HamburgerMenu
                         isOpen={menuOpen}
                         onClose={() => setMenuOpen(false)}
@@ -130,28 +131,34 @@ export default function AvatarsPage() {
                         menuItems={menuConfig.menuItems}
                         bottomLinks={menuConfig.bottomLinks}
                     />
-                    <div className="header">
-                        <a href="/hub" className="back-btn">← Back to Hub</a>
-
-                        {avatar && (
-                            <div className="current-avatar">
-                                <img
-                                    src={avatar.imageUrl || '/avatars/free/shark.png'}
-                                    alt="Current Avatar"
-                                    className="current-avatar-img"
-                                 loading="lazy" />
-                                <div className="current-avatar-info">
-                                    <div className="current-avatar-label">Current Avatar</div>
-                                    <div className="current-avatar-name">{avatar.name || 'Custom Avatar'}</div>
+                    <div className="avatars-content">
+                        <div className="header">
+                            {avatar ? (
+                                <div className="current-avatar">
+                                    <img
+                                        src={avatar.imageUrl || '/avatars/free/shark.png'}
+                                        alt="Current Avatar"
+                                        className="current-avatar-img"
+                                     loading="lazy" />
+                                    <div className="current-avatar-info">
+                                        <div className="current-avatar-label">Current Avatar</div>
+                                        <div className="current-avatar-name">{avatar.name || 'Custom Avatar'}</div>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            ) : (
+                                <div className="current-avatar" style={{ opacity: 0.7 }}>
+                                    <div className="current-avatar-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.1)', fontSize: 24, color: '#888' }}>?</div>
+                                    <div className="current-avatar-info">
+                                        <div className="current-avatar-label">Current Avatar</div>
+                                        <div className="current-avatar-name">None Selected</div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
-
+                        {/* Avatar Gallery - Custom avatars at top for VIP, then preset avatars */}
+                        <AvatarGallery />
                     </div>
-
-                    {/* Avatar Gallery - Custom avatars at top for VIP, then preset avatars */}
-                    <AvatarGallery />
                 </div>
             </div>
               <BottomNavBar />
