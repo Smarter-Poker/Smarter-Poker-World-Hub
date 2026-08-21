@@ -2375,6 +2375,7 @@ export default function UserProfilePage() {
           if (parsed.photos) setPhotos(parsed.photos);
           if (parsed.videos) setVideos(parsed.videos);
           if (parsed.reels) setReels(parsed.reels);
+          if (parsed.lives) setPastLives(parsed.lives);
           setLoading(false); // Zero-delay render achieved!
         } else {
           // Expired cache — remove it
@@ -2873,6 +2874,7 @@ export default function UserProfilePage() {
             photos: finalPhotos,
             videos: userVideos,
             reels: userReels,
+            lives: userLives,
           };
           localStorage.setItem(CACHE_KEY, JSON.stringify(cachePayload));
         } catch (cacheErr) {
