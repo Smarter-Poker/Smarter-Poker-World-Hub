@@ -11,6 +11,42 @@ import CustomAvatarBuilder from './CustomAvatarBuilder';
 import toast from '../../stores/toastStore';
 import SPImage from '../common/SPImage';
 
+// --- NEW COMPONENT FOR PHASE 1: PERFORMANCE SKELETON LOADING ---
+const AvatarMedia = ({ src, alt, index }) => {
+    const [loaded, setLoaded] = React.useState(false);
+    const isVideo = src?.match(/\.(webm|mp4)$/i);
+
+    return (
+        <div 
+            className="avatar-image-wrapper" 
+            style={{ 
+                animation: `ambientBreathe ${3 + (index % 3)}s ease-in-out infinite`,
+                animationDelay: `${-(index % 5)}s` 
+            }}
+        >
+            {!loaded && <div className="skeleton-loader" />}
+            {isVideo ? (
+                <video 
+                    src={src} 
+                    autoPlay loop muted playsInline 
+                    onLoadedData={() => setLoaded(true)}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: loaded ? 1 : 0, transition: 'opacity 0.5s ease-in-out' }} 
+                />
+            ) : (
+                <SPImage
+                    src={src}
+                    alt={alt}
+                    fill
+                    onLoad={() => setLoaded(true)}
+                    onLoadingComplete={() => setLoaded(true)}
+                    style={{ objectFit: 'cover', opacity: loaded ? 1 : 0, transition: 'opacity 0.5s ease-in-out' }}
+                />
+            )}
+        </div>
+    );
+};
+
+
 // --- AAA FEATURE: SFX ---
 const playSound = (type) => {
     try {
@@ -597,6 +633,17 @@ export default function AvatarGallery({ onSelect }) {
           transform-origin: bottom center;
         }
 
+                @keyframes skeletonPulse {
+          0% { background: rgba(0, 245, 255, 0.05); }
+          50% { background: rgba(0, 245, 255, 0.15); }
+          100% { background: rgba(0, 245, 255, 0.05); }
+        }
+        .skeleton-loader {
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          animation: skeletonPulse 1.5s infinite ease-in-out;
+          border-radius: 20px;
+        }
         /* CURRENT AVATAR STYLES */
         .current-avatar {
             display: flex;
@@ -657,24 +704,8 @@ export default function AvatarGallery({ onSelect }) {
                     onClick={() => { playSound('click'); setInspectingAvatar({ ...customAvatar, isCustomObj: true, isSelected: currentAvatar?.type === 'custom' && currentAvatar?.imageUrl === customAvatar.image_url }); }}
                   >
                     <div className="screws"></div>
-                    <div 
-                        className="avatar-image-wrapper" 
-                        style={{ 
-                            animation: `ambientBreathe ${3 + (index % 3)}s ease-in-out infinite`,
-                            animationDelay: `${-(index % 5)}s` 
-                        }}
-                    >
-                    {customAvatar.image_url.match(/\.(webm|mp4)$/i) ? (
-                        <video src={customAvatar.image_url} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                        <SPImage
-                        src={customAvatar.image_url}
-                        alt={`Custom Avatar ${index + 1}`}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                        />
-                    )}
-                    </div>
+                    {/* Phase 1 Skeleton Loader */}
+                    <AvatarMedia src={customAvatar.image_url} alt={`Custom Avatar ${index + 1}`} index={index} />
 
                     {/* DELETE BUTTON */}
                     <button
@@ -817,24 +848,8 @@ export default function AvatarGallery({ onSelect }) {
                     >
                       <div className="screws"></div>
                       
-                      <div 
-                        className="avatar-image-wrapper" 
-                        style={{ 
-                            animation: `ambientBreathe ${3 + (index % 3)}s ease-in-out infinite`,
-                            animationDelay: `${-(index % 5)}s` 
-                        }}
-                    >
-                      {av.image?.match(/\.(webm|mp4)$/i) ? (
-                        <video src={av.image} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <SPImage
-                          src={av.image}
-                          alt={av.name}
-                          fill
-                          style={{ objectFit: 'cover' }}
-                        />
-                      )}
-                    </div>
+                      {/* Phase 1 Skeleton Loader */}
+                    <AvatarMedia src={av.image} alt={av.name} index={index} />
 
                       <div className="avatar-info">
                         <p className="avatar-name">{av.name}</p>
