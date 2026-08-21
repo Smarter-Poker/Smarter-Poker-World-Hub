@@ -57,14 +57,14 @@ const LiveActivityFeed = dynamic(() => import('../../../src/components/social/Li
 });
 
 const C = {
-  bg: '#F0F2F5',
-  card: '#FFFFFF',
-  text: '#050505',
-  textSec: '#65676B',
-  border: '#DADDE1',
-  blue: '#1877F2',
+  bg: '#0d1117',
+  card: '#161b22',
+  text: '#c9d1d9',
+  textSec: '#8b949e',
+  border: '#30363d',
+  blue: '#00f2fe', // Smarter.Poker Cyan
   gold: '#FFD700',
-  green: '#42B72A',
+  green: '#31a24c',
 };
 
 // Helper: Time ago
@@ -120,8 +120,8 @@ function FriendAvatar({ friend }) {
             aspectRatio: '1',
             borderRadius: '50%',
             objectFit: 'cover',
-            background: '#e4e6eb',
-            border: '3px solid #1877F2',
+            background: '#21262d',
+            border: '3px solid #00f2fe',
           }}
           loading="lazy"
         />
@@ -463,7 +463,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                       width: 56,
                       height: 56,
                       borderRadius: '50%',
-                      background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                      background: 'linear-gradient(90deg, #21262d 25%, #30363d 50%, #21262d 75%)',
                       backgroundSize: '200% 100%',
                       animation: 'shimmer 1.5s infinite',
                       flexShrink: 0,
@@ -475,7 +475,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                         width: '60%',
                         height: 14,
                         borderRadius: 7,
-                        background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                        background: 'linear-gradient(90deg, #21262d 25%, #30363d 50%, #21262d 75%)',
                         backgroundSize: '200% 100%',
                         animation: 'shimmer 1.5s infinite',
                         marginBottom: 6,
@@ -486,7 +486,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                         width: '35%',
                         height: 10,
                         borderRadius: 5,
-                        background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                        background: 'linear-gradient(90deg, #21262d 25%, #30363d 50%, #21262d 75%)',
                         backgroundSize: '200% 100%',
                         animation: 'shimmer 1.5s infinite',
                       }}
@@ -538,7 +538,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                     height: 56,
                     borderRadius: '50%',
                     objectFit: 'cover',
-                    background: '#e4e6eb',
+                    background: '#21262d',
                     flexShrink: 0,
                   }}
                   loading="lazy"
@@ -605,8 +605,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                         padding: '8px 16px',
                         borderRadius: 8,
                         border: 'none',
-                        background: C.blue,
-                        color: 'white',
+                        background: C.blue, color: '#000',
                         fontWeight: 600,
                         fontSize: 13,
                         cursor: 'pointer',
@@ -1744,8 +1743,7 @@ function PostCard({
                               padding: '4px 12px',
                               borderRadius: 20,
                               border: 'none',
-                              background: C.blue,
-                              color: 'white',
+                              background: C.blue, color: '#000',
                               cursor: 'pointer',
                               fontSize: 12,
                               fontWeight: 600,
@@ -1804,8 +1802,7 @@ function PostCard({
                 disabled={!commentText.trim() || submittingComment}
                 style={{
                   padding: '8px 16px',
-                  background: C.blue,
-                  color: 'white',
+                  background: C.blue, color: '#000',
                   border: 'none',
                   borderRadius: 20,
                   fontWeight: 600,
@@ -3817,11 +3814,11 @@ export default function UserProfilePage() {
               style={{
                 width: '100%',
                 maxWidth: 480,
-                background: '#0d1f3c',
+                background: '#161b22',
                 borderRadius: '16px 16px 0 0',
                 padding: 20,
                 paddingBottom: 40,
-                border: '1px solid rgba(59,130,246,0.3)',
+                border: '1px solid #30363d',
                 boxShadow: '0 -4px 30px rgba(0,0,0,0.5)',
               }}
             >
@@ -3876,11 +3873,11 @@ export default function UserProfilePage() {
               style={{
                 width: '100%',
                 maxWidth: 480,
-                background: '#0d1f3c',
+                background: '#161b22',
                 borderRadius: '16px 16px 0 0',
                 padding: 20,
                 paddingBottom: 40,
-                border: '1px solid rgba(59,130,246,0.3)',
+                border: '1px solid #30363d',
                 boxShadow: '0 -4px 30px rgba(0,0,0,0.5)',
               }}
             >
@@ -3934,11 +3931,11 @@ export default function UserProfilePage() {
               style={{
                 width: '100%',
                 maxWidth: 480,
-                background: '#0d1f3c',
+                background: '#161b22',
                 borderRadius: '16px 16px 0 0',
                 padding: 20,
                 paddingBottom: 40,
-                border: '1px solid rgba(59,130,246,0.3)',
+                border: '1px solid #30363d',
                 boxShadow: '0 -4px 30px rgba(0,0,0,0.5)',
               }}
             >
@@ -4005,7 +4002,7 @@ export default function UserProfilePage() {
           style={{
             height: 200,
             background:
-              'linear-gradient(135deg, #0a0e1a 0%, #0d1f3c 25%, #1a3a5c 50%, #0f2847 75%, #0a1628 100%)',
+              'linear-gradient(135deg, #0a0e1a 0%, #161b22 25%, #1a3a5c 50%, #0f2847 75%, #0a1628 100%)',
             position: 'relative',
             borderRadius: '0 0 12px 12px',
             overflow: 'hidden',
@@ -4105,18 +4102,18 @@ export default function UserProfilePage() {
                     right: 4,
                     width: 34,
                     height: 34,
-                    background: '#E4E6EB',
+                    background: '#21262d',
                     border: `2px solid ${C.bg}`,
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#050505',
+                    color: C.text,
                     zIndex: 10,
                     transition: 'background 0.2s',
                     textDecoration: 'none',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#D8DADF')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#30363d')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = '#E4E6EB')}
                 >
                   <svg viewBox="0 0 24 24" width={18} height={18} fill="currentColor">
@@ -4392,7 +4389,7 @@ export default function UserProfilePage() {
                             display: flex;
                             gap: 8px;
                             font-size: 14px;
-                            color: #65676B;
+                            color: #8b949e;
                             margin-top: 6px;
                             flex-wrap: nowrap;
                             align-items: center;
@@ -4503,7 +4500,7 @@ export default function UserProfilePage() {
                   style={{
                     flex: 1,
                     padding: '10px 16px',
-                    background: '#e4e6eb',
+                    background: '#21262d',
                     color: C.text,
                     borderRadius: 8,
                     textDecoration: 'none',
@@ -4519,8 +4516,7 @@ export default function UserProfilePage() {
                   style={{
                     flex: 1,
                     padding: '10px 16px',
-                    background: C.blue,
-                    color: 'white',
+                    background: C.blue, color: '#000',
                     borderRadius: 8,
                     textDecoration: 'none',
                     fontWeight: 600,
@@ -4571,7 +4567,7 @@ export default function UserProfilePage() {
                   }}
                   style={{
                     padding: '10px 14px',
-                    background: shareCopied ? '#42B72A' : '#e4e6eb',
+                    background: shareCopied ? '#31a24c' : '#21262d',
                     color: shareCopied ? 'white' : C.text,
                     borderRadius: 20,
                     border: 'none',
@@ -4616,7 +4612,7 @@ export default function UserProfilePage() {
                     title="Unfriend"
                     style={{
                       padding: '10px 20px',
-                      background: '#e4e6eb',
+                      background: '#21262d',
                       color: C.text,
                       borderRadius: 8,
                       border: 'none',
@@ -4634,7 +4630,7 @@ export default function UserProfilePage() {
                     title="Click to cancel friend request"
                     style={{
                       padding: '10px 20px',
-                      background: '#e4e6eb',
+                      background: '#21262d',
                       color: C.textSec,
                       borderRadius: 8,
                       border: 'none',
@@ -4651,8 +4647,7 @@ export default function UserProfilePage() {
                     onClick={handleAddFriend}
                     style={{
                       padding: '10px 20px',
-                      background: C.blue,
-                      color: 'white',
+                      background: C.blue, color: '#000',
                       borderRadius: 8,
                       border: 'none',
                       fontWeight: 600,
@@ -4669,7 +4664,7 @@ export default function UserProfilePage() {
                     disabled={followLoading}
                     style={{
                       padding: '10px 16px',
-                      background: isFollowing ? '#e4e6eb' : 'transparent',
+                      background: isFollowing ? '#21262d' : 'transparent',
                       color: isFollowing ? C.text : C.blue,
                       borderRadius: 8,
                       border: isFollowing ? 'none' : `1px solid ${C.blue}`,
@@ -4688,8 +4683,7 @@ export default function UserProfilePage() {
                   style={{
                     flex: 1,
                     padding: '10px 16px',
-                    background: C.blue,
-                    color: 'white',
+                    background: C.blue, color: '#000',
                     borderRadius: 8,
                     border: 'none',
                     fontWeight: 600,
@@ -4705,7 +4699,7 @@ export default function UserProfilePage() {
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                     style={{
                       padding: '10px 14px',
-                      background: '#e4e6eb',
+                      background: '#21262d',
                       color: C.text,
                       borderRadius: 8,
                       border: 'none',
@@ -4931,7 +4925,7 @@ export default function UserProfilePage() {
                   style={{
                     width: '100%',
                     height: 6,
-                    background: '#e4e6eb',
+                    background: '#21262d',
                     borderRadius: 3,
                     overflow: 'hidden',
                   }}
@@ -4943,8 +4937,8 @@ export default function UserProfilePage() {
                       borderRadius: 3,
                       background:
                         pct >= 80
-                          ? 'linear-gradient(90deg, #42B72A, #2d8c1f)'
-                          : 'linear-gradient(90deg, #1877F2, #42B72A)',
+                          ? 'linear-gradient(90deg, #31a24c, #2d8c1f)'
+                          : 'linear-gradient(90deg, #00f2fe, #31a24c)',
                       transition: 'width 0.6s ease',
                     }}
                   />
@@ -5446,7 +5440,7 @@ export default function UserProfilePage() {
                                 paddingBottom: '100%',
                                 borderRadius: '50%',
                                 background:
-                                  'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                                  'linear-gradient(90deg, #21262d 25%, #30363d 50%, #21262d 75%)',
                                 backgroundSize: '200% 100%',
                                 animation: 'shimmer 1.5s infinite',
                               }}
@@ -5459,7 +5453,7 @@ export default function UserProfilePage() {
                                 width: '70%',
                                 margin: '8px auto 0',
                                 background:
-                                  'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                                  'linear-gradient(90deg, #21262d 25%, #30363d 50%, #21262d 75%)',
                                 backgroundSize: '200% 100%',
                                 animation: 'shimmer 1.5s infinite',
                               }}
@@ -5603,8 +5597,7 @@ export default function UserProfilePage() {
                               padding: '8px 20px',
                               borderRadius: 6,
                               border: 'none',
-                              background: C.blue,
-                              color: 'white',
+                              background: C.blue, color: '#000',
                               fontWeight: 600,
                               cursor: postContent.trim() && !isPosting ? 'pointer' : 'not-allowed',
                               opacity: postContent.trim() && !isPosting ? 1 : 0.5,
@@ -5744,7 +5737,7 @@ export default function UserProfilePage() {
                               : 'Page';
                       var typeColor =
                         f.page_type === 'venue'
-                          ? '#1877F2'
+                          ? '#00f2fe'
                           : f.page_type === 'tour'
                             ? '#E74C3C'
                             : '#F39C12';
@@ -6195,7 +6188,7 @@ export default function UserProfilePage() {
                                 height: 40,
                                 borderRadius: 8,
                                 background: 'rgba(66,183,42,0.1)',
-                                color: '#42B72A',
+                                color: '#31a24c',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -6366,7 +6359,7 @@ export default function UserProfilePage() {
                           loading="lazy"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
-                            e.currentTarget.parentNode.style.background = '#e4e6eb';
+                            e.currentTarget.parentNode.style.background = '#21262d';
                             e.currentTarget.parentNode.innerHTML =
                               '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#999;font-size:12px">Photo unavailable</div>';
                           }}
@@ -6414,8 +6407,7 @@ export default function UserProfilePage() {
                       style={{
                         display: 'inline-block',
                         padding: '8px 20px',
-                        background: C.blue,
-                        color: 'white',
+                        background: C.blue, color: '#000',
                         borderRadius: 8,
                         fontWeight: 600,
                         fontSize: 13,
@@ -6543,8 +6535,7 @@ export default function UserProfilePage() {
                       style={{
                         display: 'inline-block',
                         padding: '8px 20px',
-                        background: C.blue,
-                        color: 'white',
+                        background: C.blue, color: '#000',
                         borderRadius: 8,
                         fontWeight: 600,
                         fontSize: 13,
@@ -6702,8 +6693,7 @@ export default function UserProfilePage() {
                       style={{
                         display: 'inline-block',
                         padding: '8px 20px',
-                        background: C.blue,
-                        color: 'white',
+                        background: C.blue, color: '#000',
                         borderRadius: 8,
                         fontWeight: 600,
                         fontSize: 13,
@@ -6960,7 +6950,7 @@ export default function UserProfilePage() {
                 style={{
                   flex: 1,
                   padding: '10px 16px',
-                  background: '#e4e6eb',
+                  background: '#21262d',
                   color: C.text,
                   border: 'none',
                   borderRadius: 8,
@@ -7028,7 +7018,7 @@ export default function UserProfilePage() {
                 style={{
                   flex: 1,
                   padding: '10px 16px',
-                  background: '#e4e6eb',
+                  background: '#21262d',
                   color: C.text,
                   border: 'none',
                   borderRadius: 8,
@@ -7155,7 +7145,7 @@ export default function UserProfilePage() {
                 style={{
                   flex: 1,
                   padding: '10px 16px',
-                  background: '#e4e6eb',
+                  background: '#21262d',
                   color: C.text,
                   border: 'none',
                   borderRadius: 8,
