@@ -87,7 +87,7 @@ function dirBytes(dir) {
   return total;
 }
 
-function main() {
+async function main() {
   if (!fs.existsSync(CA_DIR)) fail(`Club Arena build not found at ${CA_DIR}`);
   if (!fs.existsSync(ASSETS)) fail(`assets/ not found at ${ASSETS} — was the build synced?`);
   if (!fs.existsSync(INDEX)) fail(`index.html not found at ${INDEX}`);
@@ -146,6 +146,23 @@ function main() {
     );
     process.exit(1);
   }
+
+  // ─── STALE-BUNDLE GATE (2026-08-21) ──────────────────────────────────────
+  // Size budgets cannot see AGE. On 2026-08-21 a months-old Club Arena build
+  // was committed over the current one: valid, inside every budget above,
+  // lint-clean — and it silently reverted the 49-item dynamic throwables in
+  // production. check-ca-throwables-freshness.mjs looks for markers only the
+  // current system emits.
+  //
+  // Chained here rather than added as a second workflow step because this
+  // script is already the thing Club Arena Budget runs on every change to
+  // public/hub/club-arena/**, so the gate inherits that trigger exactly.
+  // (It is also wired independently into .husky/pre-push as CHECK 6.)
+  const freshness = await import('./check-ca-throwables-freshness.mjs').catch((err) => {
+    console.error(`❌ Could not load the throwables freshness gate: ${err.message}`);
+    process.exit(1);
+  });
+  void freshness;
   process.exit(0);
 }
 
