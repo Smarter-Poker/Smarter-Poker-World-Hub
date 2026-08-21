@@ -1,5 +1,5 @@
 /**
- * 🎨 AVATAR GALLERY
+ * AVATAR GALLERY
  * Interactive grid for selecting preset and custom avatars
  * VIP users see: 5 custom slots (at top) + VIP preset avatars
  * FREE users see: FREE preset avatars only
@@ -193,38 +193,90 @@ export default function AvatarGallery({ onSelect }) {
         .avatar-card {
           position: relative;
           aspect-ratio: 1;
-          background: #000000;
-          border: 2px solid rgba(0, 245, 255, 0.2);
-          border-radius: 16px;
+          background: linear-gradient(135deg, #1c2229 0%, #101419 100%);
+          border: 3px solid #8a929a;
+          border-radius: 12px;
           overflow: hidden;
           cursor: pointer;
           transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), inset 0 2px 10px rgba(255, 255, 255, 0.05);
+          box-shadow: 
+            inset 0 2px 4px rgba(255, 255, 255, 0.2), 
+            inset 0 -2px 4px rgba(0, 0, 0, 0.5),
+            0 8px 20px rgba(0, 0, 0, 0.7);
           display: flex;
           align-items: center;
           justify-content: center;
           transform: translateZ(0);
         }
+        
+        .avatar-card::before, .avatar-card::after {
+          content: '';
+          position: absolute;
+          width: 6px;
+          height: 6px;
+          background: #4a525a;
+          border-radius: 50%;
+          box-shadow: inset 0 1px 1px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.4);
+          z-index: 10;
+        }
+        
+        .avatar-card::before {
+          top: 6px; left: 6px;
+          box-shadow: inset 0 1px 1px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.4), 0 0 0 0 transparent;
+        }
+        .avatar-card::after {
+          bottom: 6px; right: 6px;
+          box-shadow: inset 0 1px 1px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.4), 0 0 0 0 transparent;
+        }
+
+        /* Using a child element for the other two screws since pseudo-elements are limited to 2 */
+        .screws {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          z-index: 10;
+        }
+        .screws::before, .screws::after {
+          content: '';
+          position: absolute;
+          width: 6px;
+          height: 6px;
+          background: #4a525a;
+          border-radius: 50%;
+          box-shadow: inset 0 1px 1px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.4);
+        }
+        .screws::before { top: 6px; right: 6px; }
+        .screws::after { bottom: 6px; left: 6px; }
 
         .avatar-card:hover {
           transform: translateY(-8px) scale(1.03);
           border-color: #00f5ff;
-          box-shadow: 0 15px 35px rgba(0, 245, 255, 0.4), inset 0 2px 15px rgba(255, 255, 255, 0.15);
+          box-shadow: 
+            inset 0 2px 4px rgba(255, 255, 255, 0.2), 
+            inset 0 -2px 4px rgba(0, 0, 0, 0.5),
+            0 15px 35px rgba(0, 245, 255, 0.4);
           z-index: 2;
         }
 
         .avatar-card.selected {
           border-color: #00ff00;
-          box-shadow: 0 15px 35px rgba(0, 255, 0, 0.5), inset 0 0 20px rgba(0, 255, 0, 0.2);
+          box-shadow: 
+            inset 0 2px 4px rgba(255, 255, 255, 0.2), 
+            inset 0 -2px 4px rgba(0, 0, 0, 0.5),
+            0 15px 35px rgba(0, 255, 0, 0.5), 
+            inset 0 0 20px rgba(0, 255, 0, 0.2);
           transform: translateY(-5px) scale(1.05);
           z-index: 2;
         }
 
         .avatar-card.placeholder {
-          border-style: dashed;
-          border-color: rgba(0, 245, 255, 0.3);
-          background: rgba(10, 14, 39, 0.4);
+          border: 3px solid #8a929a;
+          background: linear-gradient(135deg, #1c2229 0%, #101419 100%);
           cursor: pointer;
+          opacity: 0.8;
+        }
+        .avatar-card.placeholder:hover {
+          opacity: 1;
         }
 
         .placeholder-content {
@@ -349,7 +401,7 @@ export default function AvatarGallery({ onSelect }) {
       {showCustomBuilder && (
         <div className="builder-modal">
           <button className="builder-close" onClick={handleCloseBuilder}>
-            ✕ Close
+            CLOSE
           </button>
           <CustomAvatarBuilder isVip={isVip} onClose={handleCloseBuilder} />
         </div>
@@ -357,7 +409,7 @@ export default function AvatarGallery({ onSelect }) {
 
       {/* CUSTOM AVATARS SECTION (VIP=5, FREE=1) */}
       <div className="gallery-section">
-        <h2 className="section-title">🎨 MY CUSTOM {isVip ? 'AVATARS' : 'AVATAR'}</h2>
+        <h2 className="section-title">MY CUSTOM {isVip ? 'AVATARS' : 'AVATAR'}</h2>
         <p className="section-subtitle">
           {customAvatars.length}/{maxCustomSlots} slots used • Create up to {maxCustomSlots} unique AI-generated avatar{maxCustomSlots > 1 ? 's' : ''}
         </p>
@@ -370,6 +422,7 @@ export default function AvatarGallery({ onSelect }) {
                 className={`avatar-card ${currentAvatar?.type === 'custom' && currentAvatar?.imageUrl === customAvatar.image_url ? 'selected' : ''}`}
                 onClick={() => handleSelectCustomAvatar(customAvatar)}
               >
+                <div className="screws"></div>
                 <SPImage
                   src={customAvatar.image_url}
                   alt={`Custom Avatar ${index + 1}`}
@@ -405,7 +458,7 @@ export default function AvatarGallery({ onSelect }) {
                   onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 68, 68, 0.9)'}
                   title={isVip ? "Delete This Avatar" : "Delete Avatar (Warning: Cannot create another one without VIP)"}
                 >
-                  ✕
+                  X
                 </button>
 
                 <div className="avatar-info">
@@ -419,6 +472,7 @@ export default function AvatarGallery({ onSelect }) {
                 className="avatar-card placeholder"
                 onClick={handleCreateNewCustom}
               >
+                <div className="screws"></div>
                 <div className="placeholder-content">
                   <div className="placeholder-icon">+</div>
                   <div className="placeholder-text">Create Custom</div>
@@ -445,7 +499,8 @@ export default function AvatarGallery({ onSelect }) {
                 boxShadow: '0 0 12px rgba(0, 245, 255, 0.4)',
                 flexShrink: 0
             }}>
-              <SPImage
+              <div className="screws"></div>
+                <SPImage
                 src={customAvatars[0].image_url}
                 alt="Active Custom Avatar"
                 fill
@@ -457,16 +512,16 @@ export default function AvatarGallery({ onSelect }) {
             onClick={handleCreateNewCustom}
             style={{
               padding: '15px 40px',
-              background: 'linear-gradient(135deg, #ff00f5, #00f5ff)',
-              border: 'none',
+              background: 'linear-gradient(145deg, #2c3545 0%, #161b22 100%)',
+              border: '2px solid #00f5ff',
               borderRadius: '12px',
-              color: '#fff',
+              color: '#00f5ff',
               fontFamily: "'Rajdhani', sans-serif",
               fontSize: '16px',
               fontWeight: '700',
               cursor: 'pointer',
               textTransform: 'uppercase',
-              boxShadow: '0 4px 20px rgba(255, 0, 245, 0.5)',
+              boxShadow: 'inset 0 2px 4px rgba(255, 255, 255, 0.1), 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 10px rgba(0, 245, 255, 0.4)',
               transition: 'all 0.3s ease'
             }}
           >
@@ -479,7 +534,7 @@ export default function AvatarGallery({ onSelect }) {
       {/* PRESET AVATARS SECTION */}
       <div className="gallery-section">
         <h2 className="section-title">
-          {isVip ? '💎 VIP AVATAR LIBRARY' : '⚡ AVATAR LIBRARY'}
+          {isVip ? 'VIP AVATAR LIBRARY' : 'AVATAR LIBRARY'}
         </h2>
         <p className="section-subtitle">
           {isVip
@@ -489,7 +544,7 @@ export default function AvatarGallery({ onSelect }) {
 
         {loading ? (
           <div className="loading-state">
-            <div>⏳ Loading Avatars...</div>
+            <div>Loading Avatars...</div>
           </div>
         ) : (
           <>
@@ -553,7 +608,8 @@ export default function AvatarGallery({ onSelect }) {
                       onClick={() => handleSelectPresetAvatar(av)}
                       style={{ cursor: av.isLocked ? 'not-allowed' : 'pointer' }}
                     >
-                      <SPImage
+                      <div className="screws"></div>
+                <SPImage
                         src={av.image}
                         alt={av.name}
                         fill
@@ -590,7 +646,7 @@ export default function AvatarGallery({ onSelect }) {
                             boxShadow: `0 0 15px ${isSelected ? 'rgba(0,255,0,0.4)' : 'rgba(0,245,255,0.4)'}`,
                             transform: 'translateY(-10px)'
                           }}>
-                            {isSelected ? '✓ Current' : 'Equip'}
+                            {isSelected ? 'EQUIPPED' : 'Equip'}
                           </div>
                         </div>
                       )}
@@ -617,7 +673,7 @@ export default function AvatarGallery({ onSelect }) {
                             alignItems: 'center',
                             gap: '5px'
                           }}>
-                            <span style={{ fontSize: '24px' }}>🔒</span>
+                            <span style={{ fontSize: '24px' }}>LOCKED</span>
                             <span style={{
                               color: '#FFD700',
                               fontFamily: "'Rajdhani', sans-serif",

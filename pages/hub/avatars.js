@@ -1,5 +1,5 @@
 /**
- * 🎨 AVATAR SELECTION PAGE
+ * AVATAR SELECTION PAGE
  * Dedicated page for browsing and selecting avatars
  * Custom avatars integrated at top for VIP users
  */
@@ -48,7 +48,9 @@ export default function AvatarsPage() {
                         min-height: 100vh;
                         padding: 0;
                         padding-bottom: 70px;
-                        background: url('/images/bg_honeycomb.png') center/cover fixed;
+                        background: url('/images/bg_honeycomb.png') repeat fixed;
+                        background-size: 80px 80px;
+                        background-color: #0a0a15;
                         width: 100%;
                         max-width: 100vw;
                         overflow-x: hidden;
@@ -87,15 +89,15 @@ export default function AvatarsPage() {
                     .current-avatar:hover {
                         transform: translateY(-5px) scale(1.02);
                         box-shadow: 0 15px 40px rgba(0, 245, 255, 0.4), inset 0 2px 15px rgba(255, 255, 255, 0.2);
-                        border-color: #ffd700;
+                        border-color: #00f5ff;
                     }
 
                     .current-avatar-img {
                         width: 60px;
                         height: 60px;
                         border-radius: 50%;
-                        border: 3px solid #ffd700;
-                        box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+                        border: 3px solid #00f5ff;
+                        box-shadow: 0 0 15px rgba(0, 245, 255, 0.5);
                         object-fit: cover;
                         background: #000000;
                     }
