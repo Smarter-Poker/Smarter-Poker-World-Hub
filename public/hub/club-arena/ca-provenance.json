@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "commit": "unknown",
-  "commitTime": "unknown",
-  "buildTime": "2026-08-21T20:10:42.979Z",
-  "branch": "unknown",
+  "commit": "6480334358e8ae6228e43cff0dacb255b1c8a627",
+  "commitTime": "2026-08-21T15:12:34-05:00",
+  "buildTime": "2026-08-21T20:18:58.911Z",
+  "branch": "main",
   "dirty": false,
-  "behindMain": null,
-  "aheadMain": null,
-  "ciRun": null,
-  "builtBy": "local"
+  "behindMain": 0,
+  "aheadMain": 0,
+  "ciRun": "https://github.com/Smarter-Poker/Smarter-Poker-Club-Arena/actions/runs/32522396843",
+  "builtBy": "github-actions"
 }
