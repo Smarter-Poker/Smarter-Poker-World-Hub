@@ -1,6 +1,6 @@
 {
-  "ca_sha": "44a61f7a3907460a1e1975b0a5e01f8042b77f27",
-  "built_at": "2026-08-21T20:32:34Z",
-  "built_by": "sync-club-arena.sh",
-  "source": "/Users/smarter.poker/Documents/club-arena"
+  "ca_sha": "aed8b3ecbb56fc9e7aab381b14e526f124254417",
+  "built_at": "2026-08-21T20:37:32Z",
+  "built_by": "build-for-world-hub.yml",
+  "run_id": "32523572558"
 }
