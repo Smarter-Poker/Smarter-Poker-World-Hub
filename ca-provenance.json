@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "commit": "unknown",
+  "commitTime": "unknown",
+  "buildTime": "2026-08-21T20:32:55.006Z",
+  "branch": "unknown",
+  "dirty": false,
+  "behindMain": null,
+  "aheadMain": null,
+  "ciRun": null,
+  "builtBy": "local"
+}
