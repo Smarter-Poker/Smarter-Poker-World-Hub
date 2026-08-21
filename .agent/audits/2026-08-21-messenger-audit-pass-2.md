@@ -121,23 +121,58 @@ World Hub only, verified zero importers first:
 neutered to 410 by someone else — pass 1 listed them as shipped debug routes,
 which was wrong.
 
-## 7. Still not done, and why
+## 7. Club Arena's dead tree is gone too
 
-1. **Club Arena's unrouted messaging tree** (~20 components) is still there.
-   That repo currently has 97 modified files from another session; deleting
-   6,000 lines underneath an agent mid-edit would collide. It needs its own
-   change on a clean tree, and `MessagingService.ts` needs its live helpers
-   extracted first (see section 5).
-2. **`pages/api/messenger/broadcast-message.js`** still has no caller. Left in
+Done in a separate Club Arena commit (`b526323ac`) rather than here, because
+it is a different repo. 39 files removed:
+
+- all of `src/components/messaging/` — 16 components plus their stylesheets,
+  none imported by any route
+- `components/navigation/ClubArenaBottomNav.tsx` — linked to `/club/:id/...`
+  routes that do not exist; every real route is `/clubs/`
+- `components/social/ConversationList.tsx` — called `fn_get_conversations`,
+  an RPC that reads `direct_messages` while every write goes to `messages`
+- `components/social/PrivateChat.tsx` and its barrel exports
+- `hooks/useMessageDraft.ts` — only consumer was `MessageThread`
+- `pages/NewConversationPage.tsx` — a redirect stub shipped as its own lazy
+  chunk; `/messages/new` now points straight at `MessagesPage`
+
+This mattered beyond tidiness. That tree is where the schema bugs lived: it
+read `messages.is_seen`, `messages.image_url`, `conversations.last_message`,
+`conversations.participant1_id` and `social_conversation_participants.role`,
+none of which exist, and mixed three different conversation schemas inside
+single code paths. Left in place it was an invitation to "fix" it and wire a
+broken implementation back up.
+
+`MessagingService.ts` and `ClubMessagingPermissions.ts` deliberately stay, for
+the reason in section 5.
+
+Verified before pushing: `tsc --noEmit` clean, `vite build` clean, ClubDataPage
+chunk still emitted, and zero overlap with the 100 files another session had
+open in that repo.
+
+## 8. Still not done, and why
+
+1. **`pages/api/messenger/broadcast-message.js`** still has no caller. Left in
    place — it is a working fan-out tool, not a defect.
-3. **The in-game table messenger** (`messenger_*`, `ClubArenaMessenger`) is
-   mounted on the poker table but holds 0 messages. It works now that
-   scheduling delivers, but nothing has ever been sent through it.
+2. **The in-game table messenger** (`messenger_*`, `ClubArenaMessenger`) is
+   mounted on the poker table but holds 0 messages. Scheduling now delivers
+   into it, but nothing has ever been sent through it.
+3. **`MessagingService.ts` still carries ~1,200 lines of dead DB methods**
+   behind its three live helpers. Extracting the helpers into a small module
+   would let the rest go; that is a focused follow-up, not a side effect of
+   this pass.
 
-## 8. Verification
+## 9. Verification
 
 - Every changed Hub file parses under esbuild.
+- Club Arena: `tsc --noEmit` exit 0 with zero errors, `vite build` exit 0.
 - Migration assertions passed on apply: the badge/inbox equality check, and the
   dispatcher running clean on an empty queue.
 - `message_reactions` FK, statement threads and ECO settings re-checked and
   still correct after this pass.
+- Open Claw redeployed: 93 jobs, 0 errors, and the new
+  `/api/messenger/dispatch-scheduled [*/5]` job confirmed registered on the
+  box.
+- Production served `8234037b` (this pass's Hub commit) before the Club Arena
+  deletion was pushed.
