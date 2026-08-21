@@ -2651,6 +2651,9 @@ export default function UserProfilePage() {
           }
         }
 
+        // CRITICAL DATA LOADED - UNMOUNT SKELETON
+        setLoading(false);
+
         // ═══════════════════════════════════════════════════════════
         // PARALLEL BATCH 2: Content (posts, photos, videos, reels, poker activity) — all independent
         // ═══════════════════════════════════════════════════════════
@@ -2705,8 +2708,7 @@ export default function UserProfilePage() {
             .limit(20),
         ];
 
-        const [postsData, photosData, videosData, reelsData, livesData] =
-          await Promise.all(contentPromises);
+        Promise.all(contentPromises).then(([postsData, photosData, videosData, reelsData, livesData]) => {
 
         const userPosts = postsData.data || [];
         setPosts(userPosts);
@@ -2876,10 +2878,13 @@ export default function UserProfilePage() {
         } catch (cacheErr) {
           console.warn('Failed to save SWR cache payload', cacheErr);
         }
+        
+        }).catch((e) => {
+          console.warn('[App] Handled promise rejection in contentPromises:', e?.message || e);
+        });
       } catch (e) {
         console.warn('Error fetching profile:', e);
       }
-      setLoading(false);
     };
 
     fetchProfile();
@@ -4140,7 +4145,7 @@ export default function UserProfilePage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 18 }}>⚡</span>
+                  
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>
                       Your Share Streak Boost Lapsed
@@ -5122,7 +5127,7 @@ export default function UserProfilePage() {
                         color: C.text,
                       }}
                     >
-                      <span style={{ fontSize: 18 }}></span>
+                      
                       <span>
                         Lives In{' '}
                         <strong>
@@ -5142,7 +5147,7 @@ export default function UserProfilePage() {
                         color: C.text,
                       }}
                     >
-                      <span style={{ fontSize: 18 }}>🏠</span>
+                      
                       <span>
                         From <strong>{profile.hometown}</strong>
                       </span>
@@ -5158,7 +5163,7 @@ export default function UserProfilePage() {
                         color: C.text,
                       }}
                     >
-                      <span style={{ fontSize: 18 }}>🎂</span>
+                      
                       <span>
                         Born In <strong>{profile.birth_year}</strong>
                       </span>
@@ -5174,7 +5179,7 @@ export default function UserProfilePage() {
                         color: C.text,
                       }}
                     >
-                      <span style={{ fontSize: 18 }}></span>
+                      
                       <span>
                         Favorite Game: <strong>{profile.favorite_game}</strong>
                       </span>
@@ -5190,7 +5195,7 @@ export default function UserProfilePage() {
                         color: C.text,
                       }}
                     >
-                      <span style={{ fontSize: 18 }}>🏨</span>
+                      
                       <span>
                         Home Casino: <strong>{profile.home_casino}</strong>
                       </span>
@@ -5206,7 +5211,7 @@ export default function UserProfilePage() {
                         color: C.text,
                       }}
                     >
-                      <span style={{ fontSize: 18 }}>💼</span>
+                      
                       <span>
                         Works As <strong>{profile.occupation}</strong>
                       </span>
@@ -5263,7 +5268,7 @@ export default function UserProfilePage() {
                                 {sorted.map((code, idx) => {
                                   // Map legacy codes like "s_10" to "Ts"
                                   const [suit, r] = code.split('_');
-                                  const suitMap = { s: 's', c: 'c', h: 'h', d: 'd' };
+                                  const suitMap = { s: 's', c: 'c', h: 'h', d: 'd', spades: 's', clubs: 'c', hearts: 'h', diamonds: 'd' };
                                   const rankMap = { '10': 'T', 'a': 'A', 'k': 'K', 'q': 'Q', 'j': 'J' };
                                   const rank = rankMap[r] || (r ? r.toUpperCase() : '');
                                   const cardStr = `${rank}${suitMap[suit] || ''}`;
@@ -5336,7 +5341,7 @@ export default function UserProfilePage() {
                             textDecoration: 'none',
                           }}
                         >
-                          <span style={{ fontSize: 18 }}>📸</span>
+                          
                           <span>@{profile.instagram.replace('@', '')}</span>
                         </a>
                       )}
@@ -5354,7 +5359,7 @@ export default function UserProfilePage() {
                             textDecoration: 'none',
                           }}
                         >
-                          <span style={{ fontSize: 18 }}>𝕏</span>
+                          
                           <span>@{profile.twitter.replace('@', '')}</span>
                         </a>
                       )}
@@ -5376,7 +5381,7 @@ export default function UserProfilePage() {
                             textDecoration: 'none',
                           }}
                         >
-                          <span style={{ fontSize: 18 }}>🌐</span>
+                          
                           <span>{profile.website.replace(/^https?:\/\//, '')}</span>
                         </a>
                       )}
