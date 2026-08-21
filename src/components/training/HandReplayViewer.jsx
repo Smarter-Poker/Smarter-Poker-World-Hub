@@ -21,7 +21,7 @@ function MiniCard({ card, size = 'sm' }) {
     if (!card || card.length < 2) return null;
     const rank = card[0].toUpperCase();
     const suit = card[1].toLowerCase();
-    const suitMap = { h: '♥', d: '♦', c: '♣', s: '♠' };
+    const suitMap = { h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' };
     const colorMap = { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#e2e8f0' };
     const dims = size === 'lg' ? { w: 38, h: 52, fs: 14 } : { w: 28, h: 38, fs: 11 };
 
@@ -30,20 +30,21 @@ function MiniCard({ card, size = 'sm' }) {
             width: dims.w,
             height: dims.h,
             borderRadius: 4,
-            background: 'linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
             border: '1px solid rgba(0,0,0,0.15)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: dims.fs,
-            fontWeight: 'bold',
+            fontWeight: 800,
+            fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
             color: colorMap[suit] || '#1e293b',
             lineHeight: 1.1,
             boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
         }}>
             <span>{rank}</span>
-            <span style={{ fontSize: dims.fs - 2 }}>{suitMap[suit] || suit}</span>
+            <span style={{ fontSize: dims.fs - 4 }}>{suitMap[suit] || suit}</span>
         </div>
     );
 }

@@ -4453,7 +4453,7 @@ export default function UserProfilePage() {
                 color: C.textSec,
               }}
             >
-              {profile.occupation && <span>💼 {profile.occupation}</span>}
+              {profile.occupation && <span>{profile.occupation}</span>}
               {profile.occupation && profile.instagram && <span>·</span>}
               {profile.instagram && (
                 <a
@@ -4462,7 +4462,7 @@ export default function UserProfilePage() {
                   rel="noopener noreferrer"
                   style={{ color: C.textSec, textDecoration: 'none' }}
                 >
-                  📸 @{profile.instagram.replace('@', '')}
+                  @{profile.instagram.replace('@', '')}
                 </a>
               )}
             </div>
@@ -5282,12 +5282,8 @@ export default function UserProfilePage() {
                                 }}
                               >
                                 {sorted.map((code, idx) => {
-                                  // Map legacy codes like "s_10" to "Ts"
+                                  // PlayingCard handles legacy codes (e.g. s_10) and modern codes (spades_10) automatically
                                   const [suit, r] = code.split('_');
-                                  const suitMap = { s: 's', c: 'c', h: 'h', d: 'd', spades: 's', clubs: 'c', hearts: 'h', diamonds: 'd' };
-                                  const rankMap = { '10': 'T', 'a': 'A', 'k': 'K', 'q': 'Q', 'j': 'J' };
-                                  const rank = rankMap[r] || (r ? r.toUpperCase() : '');
-                                  const cardStr = `${rank}${suitMap[suit] || ''}`;
 
                                   return (
                                     <div
@@ -5309,7 +5305,7 @@ export default function UserProfilePage() {
                                         e.currentTarget.style.zIndex = idx;
                                       }}
                                     >
-                                      <PlayingCard card={cardStr} size="md" />
+                                      <PlayingCard suit={suit} rank={r} size="md" />
                                     </div>
                                   );
                                 })}
@@ -6350,6 +6346,8 @@ export default function UserProfilePage() {
                   ))}
                 </div>
               </div>
+                </>
+              )}
             </div>
           )}
 
