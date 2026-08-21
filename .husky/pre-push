@@ -140,12 +140,17 @@ fi
 # output is part of the push.
 echo "CHECK 6: Club Arena throwables freshness..."
 if echo "$CHANGED_FILES" | grep -q '^public/hub/club-arena/'; then
-  if node scripts/ci/check-ca-throwables-freshness.mjs; then
-    echo "  ✓ Club Arena bundle is current"
+  CA_GATE_FAIL=0
+  # Provenance first: "older than what is deployed" explains the rest.
+  node scripts/ci/check-ca-build-provenance.mjs || CA_GATE_FAIL=1
+  node scripts/ci/check-ca-protected-features.mjs || CA_GATE_FAIL=1
+  node scripts/ci/check-ca-throwables-freshness.mjs || CA_GATE_FAIL=1
+  if [ "$CA_GATE_FAIL" -eq 0 ]; then
+    echo "  ✓ Club Arena bundle is current and complete"
   else
-    echo "  ❌ BLOCKED: the Club Arena bundle being pushed is STALE"
-    echo "     Run 'git pull' in ~/Documents/club-arena and rebuild,"
-    echo "     or let build-for-world-hub sync from canonical main."
+    echo "  ❌ BLOCKED: the Club Arena bundle being pushed is STALE or INCOMPLETE"
+    echo "     In ~/Documents/club-arena run: git pull --rebase origin main"
+    echo "     then rebuild — or let build-for-world-hub sync from canonical main."
     ERRORS=$((ERRORS + 1))
   fi
 else

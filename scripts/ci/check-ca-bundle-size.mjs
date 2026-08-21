@@ -158,11 +158,29 @@ async function main() {
   // script is already the thing Club Arena Budget runs on every change to
   // public/hub/club-arena/**, so the gate inherits that trigger exactly.
   // (It is also wired independently into .husky/pre-push as CHECK 6.)
-  const freshness = await import('./check-ca-throwables-freshness.mjs').catch((err) => {
-    console.error(`❌ Could not load the throwables freshness gate: ${err.message}`);
-    process.exit(1);
-  });
-  void freshness;
+  // Chained gates. This script is what Club Arena Budget already runs on every
+  // change to public/hub/club-arena/**, so anything chained here inherits that
+  // trigger exactly — no new workflow, no workflow-scope token needed.
+  //
+  // Order matters: provenance first, because "this bundle is older than what is
+  // deployed" explains every downstream failure at once.
+  //
+  //   1 provenance         no bundle may replace one built from NEWER source.
+  //                        Covers EVERY feature, including unregistered ones.
+  //   2 protected features the Club Arena registry's bundleMarkers must be
+  //                        present — names WHICH feature went missing.
+  //   3 throwables         the original feature-specific gate, kept as
+  //                        belt-and-braces on the incident that started this.
+  for (const gate of [
+    './check-ca-build-provenance.mjs',
+    './check-ca-protected-features.mjs',
+    './check-ca-throwables-freshness.mjs',
+  ]) {
+    await import(gate).catch((err) => {
+      console.error(`❌ Could not load ${gate}: ${err.message}`);
+      process.exit(1);
+    });
+  }
   process.exit(0);
 }
 
