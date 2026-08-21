@@ -469,10 +469,17 @@ export function AvatarProvider({ children }) {
         return result;
     }
 
-    async function createCustomAvatar(prompt, isVip = false, photoFile = null) {
+    /**
+     * The 3rd parameter was `photoFile`, forwarded straight to
+     * generateCustomAvatar's photo-likeness branch. Removed 2026-08-21 — no UI
+     * ever passed a non-null value, but the parameter chain was intact all the
+     * way to GPT-4 Vision, so the door was open even though nobody walked
+     * through it. Text prompts only.
+     */
+    async function createCustomAvatar(prompt, isVip = false) {
         if (!user) return { success: false, error: 'Not authenticated' };
 
-        const result = await generateCustomAvatar(user.id, prompt, isVip, photoFile);
+        const result = await generateCustomAvatar(user.id, prompt, isVip);
 
         if (result.success) {
             await loadAvatar(); // Refresh avatar

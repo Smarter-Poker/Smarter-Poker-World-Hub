@@ -174,17 +174,23 @@ export async function setPresetAvatar(userId, avatarId, opts = {}) {
  * Generate and set a custom AI avatar using OpenAI DALL-E
  * The API handles image download and Supabase upload server-side
  */
-export async function generateCustomAvatar(userId, prompt, isVip = false, photoFile = null) {
+export async function generateCustomAvatar(userId, prompt, isVip = false) {
     try {
-        console.debug('🎨 generateCustomAvatar called with:', {
-            userId,
-            prompt,
-            isVip,
-            hasPhotoFile: !!photoFile,
-            photoFileName: photoFile?.name,
-            photoFileSize: photoFile?.size,
-            photoFileType: photoFile?.type
-        });
+        /**
+         * The 4th parameter was `photoFile`. Removed 2026-08-21 (Dan: "they can
+         * now only use avatars"), along with generateAvatarFromPhoto and the
+         * /api/avatar/generate-from-photo route.
+         *
+         * It took a user photograph, sent it to GPT-4 Vision for a description,
+         * then had DALL-E draw a likeness of them — a profile picture by a
+         * longer route. No UI ever reached it (CustomAvatarBuilder always passed
+         * null), but the plumbing was intact and callable, which is exactly the
+         * kind of door that gets re-opened by accident later.
+         *
+         * TEXT-PROMPT generation is untouched. That is generated art, not a
+         * photograph of anybody.
+         */
+        console.debug('generateCustomAvatar called with:', { userId, prompt, isVip });
 
         // Check limits based on user tier
         if (isVip) {
@@ -215,15 +221,8 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
         // Generate avatar using AI API (API handles storage upload)
         let generatedImageUrl;
 
-        if (photoFile) {
-            console.debug('📸 Using PHOTO-based generation (likeness mode)');
-            // Photo-based generation (likeness)
-            generatedImageUrl = await generateAvatarFromPhoto(photoFile, prompt, userId);
-        } else {
-            console.debug('📝 Using TEXT-based generation (no photo)');
-            // Text-based generation
-            generatedImageUrl = await generateAvatarFromText(prompt, userId);
-        }
+        // Text only. The photo-likeness branch that used to sit here is gone.
+        generatedImageUrl = await generateAvatarFromText(prompt, userId);
 
         // The API already uploaded to Supabase and returned the public URL
         // DON'T auto-save to gallery - only save when user clicks "Accept Avatar"
@@ -268,73 +267,6 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
     } catch (error) {
         console.warn('Error generating custom avatar:', error);
         return { success: false, error: error.message };
-    }
-}
-
-/**
- * Generate avatar from photo using GPT-4 Vision + DALL-E 3
- */
-async function generateAvatarFromPhoto(photoFile, additionalPrompt = '', userId = null) {
-    try {
-        // Get auth token for JWT-authenticated endpoint (BUG #266 FIX requires it)
-        let token = null;
-        try {
-            token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
-        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-
-        if (!token) {
-            throw new Error('Authentication required. Please sign in and try again.');
-        }
-
-        // Convert photo to base64 with proper error handling
-        const reader = new FileReader();
-        const photoBase64 = await new Promise((resolve, reject) => {
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(new Error('Failed to read photo file'));
-            reader.onabort = () => reject(new Error('Photo read was aborted'));
-            reader.readAsDataURL(photoFile);
-        });
-
-        console.debug('📏 Photo base64 length:', photoBase64?.length || 0);
-
-        // Call API for image-to-image generation with a 90 second timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
-
-        try {
-            const response = await fetch('/api/avatar/generate-from-photo', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    photoBase64,
-                    prompt: additionalPrompt,
-                    userId
-                }),
-                signal: controller.signal
-            });
-
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `AI generation failed (HTTP ${response.status})`);
-            }
-
-            const data = await response.json();
-            return data.imageUrl;
-        } catch (fetchError) {
-            clearTimeout(timeoutId);
-            if (fetchError.name === 'AbortError') {
-                throw new Error('Avatar generation timed out. Please try again with a smaller image.');
-            }
-            throw fetchError;
-        }
-    } catch (error) {
-        console.warn('Photo generation error:', error);
-        throw error;
     }
 }
 

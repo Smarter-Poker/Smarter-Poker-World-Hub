@@ -116,7 +116,6 @@ export default function ProfilePage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
-    const [avatarUploadPhase, setAvatarUploadPhase] = useState(null); // 'Compressing' | 'Uploading' | 'Saving' | null
     const [coverUploadPhase, setCoverUploadPhase] = useState(null); // 'Compressing' | 'Uploading' | 'Saving' | null
     const [usernameStatus, setUsernameStatus] = useState('idle'); // 'idle' | 'checking' | 'available' | 'taken'
     const usernameCheckRef = useRef(null);
@@ -264,9 +263,9 @@ export default function ProfilePage() {
         return fields.some(f => String(profile[f] || '') !== String(originalProfile[f] || ''));
     })();
 
-    const { fetchUser, handleAvatarUpload, handleCoverPhotoUpload, handleCoverPhotoRemove, handleSave } = useProfileHandlers({
+    const { fetchUser, handleCoverPhotoUpload, handleCoverPhotoRemove, handleSave } = useProfileHandlers({
         user, setUser, profile, setProfile, originalProfile, setOriginalProfile,
-        setMessage, setAvatarUploadPhase, setCoverUploadPhase,
+        setMessage, setCoverUploadPhase,
         setSaving, setSavePhase, undoTimerRef, undoSnapshot, setUndoSnapshot,
         setUserPhotos, setUserReels, setUserLives, setLoading, supabase,
         setSocialStats, setFriends, usernameStatus,
@@ -495,7 +494,7 @@ export default function ProfilePage() {
 
                 {/* Profile Avatar - overlapping cover photo bottom */}
                 <div style={{ position: 'relative', zIndex: 2, marginTop: -60, display: 'flex', justifyContent: 'center' }}>
-                    <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} uploadPhase={avatarUploadPhase} />
+                    <Avatar src={profile.avatar_url} size={120} />
                 </div>
 
                 {/* Cover Photo Reposition Editor Modal */}

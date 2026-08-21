@@ -1,61 +1,75 @@
-import { useRef } from 'react';
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *  PROFILE AVATAR — display only
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Dan 2026-08-21: "they can now only use avatars."
+ *
+ * This used to be the Hub's profile-picture uploader: the whole circle was a
+ * click target, it held a hidden `<input type="file" accept="image/*">`, and a
+ * 📷 badge advertised it. Picking a file ran `handleAvatarUpload` in
+ * profileHandlers.js, which pushed the photo to `social-media/avatars/<uid>/`,
+ * PATCHed `profiles.avatar_url`, and — notably — set `user_avatars.is_active`
+ * to false so the photo would beat any avatar the player had chosen.
+ *
+ * All of that is gone. The avatar is now a picture, not a button.
+ *
+ * The player changes it at /hub/avatars, which is the library + AI generator.
+ * `onChangeHref` is what points there, so this component does not need to know
+ * the route.
+ *
+ * The rule is NOT enforced here. Club Arena's AvatarService.isLibraryAvatarUrl
+ * refuses a non-library URL at the write point, because an affordance that has
+ * simply been removed from a component is not a rule — a cached bundle still
+ * has the old one.
+ */
 import { C } from './constants';
 
-function Avatar({ src, size = 120, onUpload, uploadPhase }) {
-    const fileRef = useRef(null);
-
-    const handleFileChange = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (onUpload) onUpload(file);
-        // Reset input so same file can be re-selected
-        e.target.value = '';
-    };
-
-    const isUploading = !!uploadPhase;
-
-    return (
-        <div style={{ position: 'relative', cursor: isUploading ? 'wait' : 'pointer' }} onClick={(e) => { if (isUploading) return; e.stopPropagation(); fileRef.current?.click(); }}>
-            <img
-                src={src || '/default-avatar.png'}
-                alt="Profile"
-                style={{
-                    width: size, height: size, borderRadius: '50%', objectFit: 'cover',
-                    border: '4px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                    filter: isUploading ? 'brightness(0.5)' : 'none',
-                    transition: 'filter 0.3s ease',
-                }}
-            />
-            {/* Upload progress overlay */}
-            {isUploading && (
-                <div style={{
-                    position: 'absolute', top: 0, left: 0, width: size, height: size,
-                    borderRadius: '50%', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: 4,
-                }}>
-                    <div style={{
-                        width: 28, height: 28, borderRadius: '50%',
-                        border: '3px solid rgba(255,255,255,0.2)',
-                        borderTopColor: '#00f5ff',
-                        animation: 'avatarSpin 0.8s linear infinite',
-                    }} />
-                    <div style={{ fontSize: 10, color: '#00f5ff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        {uploadPhase}
-                    </div>
-                </div>
-            )}
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFileChange} />
-            {!isUploading && (
-                <div style={{
-                    position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, borderRadius: '50%',
-                    background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)', border: `1px solid ${C.border}`
-                }}>
-                    📷
-                </div>
-            )}
-        </div>
-    );
+function Avatar({ src, size = 120, onChangeHref = '/hub/avatars' }) {
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      <img
+        src={src || '/default-avatar.png'}
+        alt="Profile"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          objectFit: 'cover',
+          border: '4px solid white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        }}
+      />
+      {/* Replaces the camera badge. It is a link rather than a file picker:
+          the only way to change an avatar now is to choose one. */}
+      <a
+        href={onChangeHref}
+        title="Choose a new avatar"
+        aria-label="Choose a new avatar"
+        style={{
+          position: 'absolute',
+          bottom: 4,
+          right: 4,
+          minWidth: 32,
+          height: 32,
+          padding: '0 10px',
+          borderRadius: 16,
+          background: C.card,
+          color: C.text,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 11,
+          fontWeight: 700,
+          textDecoration: 'none',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          border: `1px solid ${C.border}`,
+        }}
+      >
+        Change
+      </a>
+    </div>
+  );
 }
 
 export default Avatar;
