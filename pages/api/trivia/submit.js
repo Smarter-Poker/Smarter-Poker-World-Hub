@@ -244,7 +244,9 @@ export default async function handler(req, res) {
               correct_count: finalCorrect,
               total_questions: finalTotal,
               diamonds_earned: 0,
-              xp_earned: Number.isFinite(xpEarned) ? Math.floor(xpEarned) : 0,
+              // NO xp_earned: that column does not exist on trivia_scores, so
+              // including it made every insert and update fail with 42703 and
+              // no trivia score was saved at all. XP was retired months ago.
               time_spent: Number.isInteger(timeSpent) ? timeSpent : 0,
               play_date: today,
           };
@@ -327,9 +329,10 @@ export default async function handler(req, res) {
               verified,
               correctCount: finalCorrect,
               totalQuestions: finalTotal,
-              // xpEarned is persisted to trivia_scores.xp_earned; it is echoed
-              // back so clients can display what was actually recorded.
-              xpEarned: row.xp_earned,
+              // xpEarned is accepted and validated for backwards compatibility
+              // with older clients, but nothing stores it. Diamonds are the
+              // reward currency.
+              xpEarned: 0,
               leaderboard
           });
 

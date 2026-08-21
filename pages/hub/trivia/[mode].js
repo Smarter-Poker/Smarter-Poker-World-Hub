@@ -1135,6 +1135,8 @@ export default function TriviaModePage() {
                             p_user_id: userId,
                             p_score: correctCount * 100 + (timeRemaining || 0) * 2,
                             p_correct_count: correctCount,
+                            // XP was retired; the RPC keeps the parameter for
+                            // signature compatibility and ignores it.
                             p_xp_earned: 0
                         });
                         if (streakErr) {

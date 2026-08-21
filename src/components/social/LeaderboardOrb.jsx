@@ -79,7 +79,7 @@ const LeaderboardEntry = ({ entry, index, isCurrentUser, onClick }) => {
             {/* Stats */}
             <div className="entry-stats">
                 <div className="stat diamonds-earned">
-                    <span className="stat-value">{(entry.xp_earned || entry.diamonds_earned || 0).toLocaleString()}</span>
+                    <span className="stat-value">{(entry.diamonds_earned || 0).toLocaleString()}</span>
                     <span className="stat-label">Diamonds</span>
                 </div>
                 {entry.diamonds_earned > 0 && (
@@ -373,7 +373,7 @@ export const LeaderboardOrb = ({
             {currentUserEntry && (
                 <footer className="current-user-footer">
                     <span>Your Rank: #{currentUserEntry.rank}</span>
-                    <span>{(currentUserEntry.xp_earned || currentUserEntry.diamonds_earned || 0).toLocaleString()} Diamonds earned</span>
+                    <span>{(currentUserEntry.diamonds_earned || 0).toLocaleString()} Diamonds earned</span>
                 </footer>
             )}
 

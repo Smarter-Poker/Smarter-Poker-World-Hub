@@ -31,9 +31,9 @@ async function verify() {
     const { error: e2 } = await supabase.from('user_leaks').select('id').limit(1);
     console.log(e2 ? `❌ user_leaks: ${e2.message}` : '✅ user_leaks: EXISTS');
 
-    // Check xp_logs  
-    const { error: e3 } = await supabase.from('xp_logs').select('id').limit(1);
-    console.log(e3 ? `❌ xp_logs: ${e3.message}` : '✅ xp_logs: EXISTS');
+    // xp_logs is deliberately absent. XP was retired months ago and the
+    // zero-XP policy is enforced by the xp_ban_guard event trigger, so a
+    // "missing" report here was the system working, printed as a failure.
 
     // Count total clinics
     const { count } = await supabase

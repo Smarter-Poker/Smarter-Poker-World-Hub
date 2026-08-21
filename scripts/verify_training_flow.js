@@ -1,13 +1,3 @@
-#!/usr/bin/env node
-/**
- * 🧪 TRAINING ENGINE SMOKE TEST
- * ═══════════════════════════════════════════════════════════════════════════
- * Verifies the complete leak detection flow:
- * 1. User makes mistakes → Leak detected
- * 2. Leak saved to user_leaks table
- * 3. XP awarded and saved to xp_logs table
- * ═══════════════════════════════════════════════════════════════════════════
- */
 
 const { createClient } = require('@supabase/supabase-js');
 
@@ -78,16 +68,8 @@ async function runSmokeTest() {
 
     console.log(`✅ user_leaks table exists`);
 
-    const { error: xpError } = await supabase
-        .from('xp_logs')
-        .select('*', { count: 'exact', head: true });
 
-    if (xpError) {
-        console.error('❌ xp_logs table not found');
-        process.exit(1);
-    }
 
-    console.log(`✅ xp_logs table exists\n`);
 
     // Step 3: Simulate leak detection
     console.log('Step 3: Simulating leak detection...');
@@ -125,28 +107,6 @@ async function runSmokeTest() {
     console.log(`   Remediation Multiplier: ${TEST_CONFIG.remediationMultiplier}x`);
     console.log(`   Total XP: ${TEST_CONFIG.xpAwarded}`);
 
-    const { data: xpLog, error: xpInsertError } = await supabase
-        .from('xp_logs')
-        .insert({
-            user_id: TEST_CONFIG.userId,
-            game_id: TEST_CONFIG.gameId,
-            session_type: 'remediation',
-            xp_awarded: TEST_CONFIG.xpAwarded,
-            base_xp: TEST_CONFIG.baseXp,
-            streak_multiplier: TEST_CONFIG.streakMultiplier,
-            speed_multiplier: TEST_CONFIG.speedMultiplier,
-            remediation_multiplier: TEST_CONFIG.remediationMultiplier,
-            streak_count: 3,
-            is_correct: true,
-            question_number: 1,
-            time_taken_ms: 5000,
-            metadata: {
-                test: true,
-                clinic_id: 'clinic-01'
-            }
-        })
-        .select()
-        .maybeSingle();
 
     if (xpInsertError) {
         console.error('❌ Failed to insert XP log:', xpInsertError.message);
@@ -170,14 +130,9 @@ async function runSmokeTest() {
         }
     }
 
-    const { data: totalXp, error: totalXpError } = await supabase
-        .rpc('get_user_total_xp', { p_user_id: TEST_CONFIG.userId });
-
-    if (totalXpError) {
-        console.warn('⚠️  get_user_total_xp function not available');
-    } else {
-        console.log(`✅ Total user XP: ${totalXp || 0}\n`);
-    }
+    // The XP step was removed on 2026-08-21. XP was dropped as a product
+    // decision months ago and the RPC this called had already been gutted to
+    // return 0, so the check reported a success it had not measured.
 
     // Step 6: Cleanup test data
     console.log('Step 6: Cleaning up test data...');
@@ -187,10 +142,6 @@ async function runSmokeTest() {
         .delete()
         .eq('id', leak.id);
 
-    await supabase
-        .from('xp_logs')
-        .delete()
-        .eq('id', xpLog.id);
 
     console.log(`✅ Test data cleaned up\n`);
 

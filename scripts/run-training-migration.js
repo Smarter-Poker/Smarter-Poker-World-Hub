@@ -81,13 +81,7 @@ async function runMigration() {
         .from('user_leaks')
         .select('*', { count: 'exact', head: true });
 
-    const { count: xpCount } = await supabase
-        .from('xp_logs')
-        .select('*', { count: 'exact', head: true });
 
-    console.log(`📋 training_clinics: ${clinicsCount || 0} rows`);
-    console.log(`📋 user_leaks: ${leaksCount || 0} rows`);
-    console.log(`📋 xp_logs: ${xpCount || 0} rows\n`);
 
     if (clinicsCount === 28) {
         console.log('✅ All 28 clinics seeded successfully!\n');

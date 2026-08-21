@@ -262,27 +262,11 @@ export function useTrainingAccountant(userId: string | null) {
         return { count: 1, multiplier: 1.0 };
     };
 
-    /**
-     * Get user's total XP from database
-     */
-    const getUserTotalXP = useCallback(async (): Promise<number> => {
-        if (!userId) return 0;
-
-        try {
-            const { data, error } = await supabase
-                .rpc('get_user_total_xp', { p_user_id: userId });
-
-            if (error) {
-                console.warn('[ACCOUNTANT] Error getting total XP:', error);
-                return 0;
-            }
-
-            return data || 0;
-        } catch (err) {
-            console.warn('[ACCOUNTANT] Error getting total XP:', err);
-            return 0;
-        }
-    }, [userId, supabase]);
+    // getUserTotalXP was removed on 2026-08-21. XP was dropped as a product
+    // decision months ago; the RPC it called had already been gutted to
+    // `BEGIN RETURN 0; END` and has now been dropped outright, so the call
+    // would error rather than return the zero it always returned. Nothing
+    // outside this hook ever called it.
 
     /**
      * Get user's active leaks
@@ -350,7 +334,6 @@ export function useTrainingAccountant(userId: string | null) {
     return {
         logCorrectAnswer,
         logMistake,
-        getUserTotalXP,
         getActiveLeaks,
         storeLeakForIntercept,
         isLogging,

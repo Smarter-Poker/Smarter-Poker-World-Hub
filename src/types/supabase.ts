@@ -523,7 +523,6 @@ export type Database = {
           metadata: Json | null
           orb_id: number | null
           user_id: string | null
-          xp_earned: number | null
         }
         Insert: {
           created_at?: string | null
@@ -532,7 +531,6 @@ export type Database = {
           metadata?: Json | null
           orb_id?: number | null
           user_id?: string | null
-          xp_earned?: number | null
         }
         Update: {
           created_at?: string | null
@@ -541,7 +539,6 @@ export type Database = {
           metadata?: Json | null
           orb_id?: number | null
           user_id?: string | null
-          xp_earned?: number | null
         }
         Relationships: [
           {
@@ -667,21 +664,18 @@ export type Database = {
           diamonds: number | null
           updated_at: string | null
           user_id: string
-          xp: number | null
         }
         Insert: {
           chips?: number | null
           diamonds?: number | null
           updated_at?: string | null
           user_id: string
-          xp?: number | null
         }
         Update: {
           chips?: number | null
           diamonds?: number | null
           updated_at?: string | null
           user_id?: string
-          xp?: number | null
         }
         Relationships: [
           {
@@ -1045,9 +1039,7 @@ export type Database = {
           streak_days: number | null
           hub_preferences: Json | null
           level: number | null
-          total_xp: number | null
           username: string | null
-          xp_total: number | null
         }
         Insert: {
           access_tier?: string | null
@@ -1072,9 +1064,7 @@ export type Database = {
           streak_days?: number | null
           hub_preferences?: Json | null
           level?: number | null
-          total_xp?: number | null
           username?: string | null
-          xp_total?: number | null
         }
         Update: {
           access_tier?: string | null
@@ -1099,9 +1089,7 @@ export type Database = {
           streak_days?: number | null
           hub_preferences?: Json | null
           level?: number | null
-          total_xp?: number | null
           username?: string | null
-          xp_total?: number | null
         }
         Relationships: []
       }
@@ -1658,42 +1646,6 @@ export type Database = {
         }
         Relationships: []
       }
-      social_xp_log: {
-        Row: {
-          action_type: string
-          base_xp: number
-          created_at: string | null
-          final_xp: number
-          id: string
-          multiplier: number | null
-          source_id: string | null
-          streak_days: number | null
-          user_id: string
-        }
-        Insert: {
-          action_type: string
-          base_xp: number
-          created_at?: string | null
-          final_xp: number
-          id?: string
-          multiplier?: number | null
-          source_id?: string | null
-          streak_days?: number | null
-          user_id: string
-        }
-        Update: {
-          action_type?: string
-          base_xp?: number
-          created_at?: string | null
-          final_xp?: number
-          id?: string
-          multiplier?: number | null
-          source_id?: string | null
-          streak_days?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       spatial_ref_sys: {
         Row: {
           auth_name: string | null
@@ -1887,7 +1839,6 @@ export type Database = {
           storage_used_bytes: number | null
           streak_count: number | null
           tier_id: string | null
-          total_xp: number | null
           updated_at: string | null
           username: string | null
         }
@@ -1901,7 +1852,6 @@ export type Database = {
           storage_used_bytes?: number | null
           streak_count?: number | null
           tier_id?: string | null
-          total_xp?: number | null
           updated_at?: string | null
           username?: string | null
         }
@@ -1915,7 +1865,6 @@ export type Database = {
           storage_used_bytes?: number | null
           streak_count?: number | null
           tier_id?: string | null
-          total_xp?: number | null
           updated_at?: string | null
           username?: string | null
         }
@@ -1961,7 +1910,6 @@ export type Database = {
           streak_multiplier: number
           updated_at: string | null
           user_id: string
-          xp: number
         }
         Insert: {
           created_at?: string | null
@@ -1973,7 +1921,6 @@ export type Database = {
           streak_multiplier?: number
           updated_at?: string | null
           user_id: string
-          xp?: number
         }
         Update: {
           created_at?: string | null
@@ -1985,7 +1932,6 @@ export type Database = {
           streak_multiplier?: number
           updated_at?: string | null
           user_id?: string
-          xp?: number
         }
         Relationships: []
       }
@@ -2078,119 +2024,6 @@ export type Database = {
           id?: string
           updated_at?: string | null
           username?: string
-        }
-        Relationships: []
-      }
-      xp_ledger: {
-        Row: {
-          amount: number
-          base_amount: number
-          created_at: string
-          id: string
-          metadata: Json | null
-          multiplier: number
-          source: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          base_amount: number
-          created_at?: string
-          id?: string
-          metadata?: Json | null
-          multiplier?: number
-          source: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          base_amount?: number
-          created_at?: string
-          id?: string
-          metadata?: Json | null
-          multiplier?: number
-          source?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "xp_ledger_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      xp_security_alerts: {
-        Row: {
-          alert_type: string
-          attempted_value: number | null
-          blocked: boolean | null
-          created_at: string
-          id: string
-          metadata: Json | null
-          old_value: number | null
-          severity: string | null
-          source_silo: string | null
-          user_id: string
-        }
-        Insert: {
-          alert_type: string
-          attempted_value?: number | null
-          blocked?: boolean | null
-          created_at?: string
-          id?: string
-          metadata?: Json | null
-          old_value?: number | null
-          severity?: string | null
-          source_silo?: string | null
-          user_id: string
-        }
-        Update: {
-          alert_type?: string
-          attempted_value?: number | null
-          blocked?: boolean | null
-          created_at?: string
-          id?: string
-          metadata?: Json | null
-          old_value?: number | null
-          severity?: string | null
-          source_silo?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      xp_transactions: {
-        Row: {
-          amount: number
-          context: Json | null
-          created_at: string | null
-          final_amount: number
-          id: string
-          multiplier_applied: number | null
-          source: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          context?: Json | null
-          created_at?: string | null
-          final_amount: number
-          id?: string
-          multiplier_applied?: number | null
-          source: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          context?: Json | null
-          created_at?: string | null
-          final_amount?: number
-          id?: string
-          multiplier_applied?: number | null
-          source?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -3122,60 +2955,6 @@ export type Database = {
         }
         Relationships: []
       }
-      xp_logs: {
-        Row: {
-          id: string
-          user_id: string
-          game_id: string
-          session_type: string
-          xp_awarded: number
-          base_xp: number
-          streak_multiplier: number
-          speed_multiplier: number
-          remediation_multiplier: number
-          streak_count: number
-          is_correct: boolean
-          question_number: number
-          time_taken_ms: number | null
-          metadata: Json | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          game_id: string
-          session_type: string
-          xp_awarded: number
-          base_xp: number
-          streak_multiplier: number
-          speed_multiplier: number
-          remediation_multiplier: number
-          streak_count: number
-          is_correct: boolean
-          question_number: number
-          time_taken_ms?: number | null
-          metadata?: Json | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          game_id?: string
-          session_type?: string
-          xp_awarded?: number
-          base_xp?: number
-          streak_multiplier?: number
-          speed_multiplier?: number
-          remediation_multiplier?: number
-          streak_count?: number
-          is_correct?: boolean
-          question_number?: number
-          time_taken_ms?: number | null
-          metadata?: Json | null
-          created_at?: string
-        }
-        Relationships: []
-      }
       tilt_journal: {
         Row: {
           id: string
@@ -3271,47 +3050,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      xp_vault: {
-        Row: {
-          created_at: string
-          deposit_count: number
-          last_deposit_amount: number
-          last_deposit_at: string
-          last_deposit_source: string | null
-          user_id: string
-          xp_lifetime: number
-          xp_total: number
-        }
-        Insert: {
-          created_at?: string
-          deposit_count?: number
-          last_deposit_amount?: number
-          last_deposit_at?: string
-          last_deposit_source?: string | null
-          user_id: string
-          xp_lifetime?: number
-          xp_total?: number
-        }
-        Update: {
-          created_at?: string
-          deposit_count?: number
-          last_deposit_amount?: number
-          last_deposit_at?: string
-          last_deposit_source?: string | null
-          user_id?: string
-          xp_lifetime?: number
-          xp_total?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "xp_vault_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
@@ -3539,27 +3277,6 @@ export type Database = {
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
-      fn_award_social_xp: {
-        Args: { p_action_type: string; p_source_id?: string; p_user_id: string }
-        Returns: {
-          diamonds_awarded: number
-          multiplier_applied: number
-          streak_days: number
-          total_xp: number
-          xp_awarded: number
-        }[]
-      }
-      fn_award_xp: {
-        Args: {
-          p_amount: number
-          p_context?: Json
-          p_multiplier?: number
-          p_source: string
-          p_user_id: string
-        }
-        Returns: string
-      }
-      fn_calculate_level: { Args: { p_xp: number }; Returns: number }
       fn_complete_media_upload: {
         Args: {
           p_blurhash?: string
@@ -3646,7 +3363,6 @@ export type Database = {
           tier: string
           user_id: string
           username: string
-          xp_earned: number
         }[]
       }
       fn_get_streak_multiplier: {
@@ -3666,7 +3382,6 @@ export type Database = {
           unread_count: number
         }[]
       }
-      fn_get_user_xp: { Args: { p_user_id: string }; Returns: number }
       fn_leave_table:
         | { Args: { p_table_id: string }; Returns: Json }
         | { Args: { p_table_id: string; p_user_id: string }; Returns: Json }
@@ -4459,10 +4174,6 @@ export type Database = {
           table_name: string
         }
         Returns: string
-      }
-      get_user_total_xp: {
-        Args: { p_user_id: string }
-        Returns: number
       }
       get_active_leaks: {
         Args: { p_user_id: string }
