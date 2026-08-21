@@ -28,6 +28,8 @@ import toast from '../../../src/stores/toastStore';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ArticleCard from '../../../src/components/social/ArticleCard';
+import PlayingCard from '../../../src/components/poker/PlayingCard';
+
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 import ProfileSkeleton from '../../../src/components/skeletons/ProfileSkeleton';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
@@ -730,17 +732,13 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
   return (
     <div
       style={{
-        background: hasHendon
-          ? 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2e 100%)'
-          : 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)',
+        background: '#0d1117',
         borderRadius: 12,
         padding: 20,
-        color: 'white',
+        color: '#c9d1d9',
         marginBottom: 16,
-        border: hasHendon
-          ? '1px solid rgba(255, 215, 0, 0.3)'
-          : '1px solid rgba(255, 255, 255, 0.1)',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+        border: '1px solid #30363d',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)',
       }}
     >
       <div
@@ -808,7 +806,8 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
           <div
             style={{
-              background: 'rgba(255,255,255,0.05)',
+              background: '#161b22',
+              border: '1px solid #30363d',
               borderRadius: 10,
               padding: 12,
               textAlign: 'center',
@@ -821,7 +820,8 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
           </div>
           <div
             style={{
-              background: 'rgba(255,255,255,0.05)',
+              background: '#161b22',
+              border: '1px solid #30363d',
               borderRadius: 10,
               padding: 12,
               textAlign: 'center',
@@ -834,13 +834,14 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
           </div>
           <div
             style={{
-              background: 'rgba(255,255,255,0.05)',
+              background: '#161b22',
+              border: '1px solid #30363d',
               borderRadius: 10,
               padding: 12,
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#00f2fe' }}>
               $
               {hendonData.hendon_biggest_cash?.toLocaleString() ||
                 hendonData.hendon_best_finish ||
@@ -5265,37 +5266,38 @@ export default function UserProfilePage() {
                                   paddingRight: 4,
                                 }}
                               >
-                                {sorted.map((code, idx) => (
-                                  <img
-                                    key={idx}
-                                    src={`/cards/${code}.png`}
-                                    alt={code}
-                                    style={{
-                                      width: 40,
-                                      height: 56,
-                                      borderRadius: 5,
-                                      border: '2px solid #1877F2',
-                                      boxShadow:
-                                        '0 0 10px rgba(24,119,242,0.35), 0 2px 6px rgba(0,0,0,0.2)',
-                                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                                      transform: `rotate(${tiltAngles[idx] || 0}deg)`,
-                                      marginLeft: idx > 0 ? -6 : 0,
-                                      zIndex: idx,
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.transform = `rotate(${tiltAngles[idx] || 0}deg) scale(1.12)`;
-                                      e.currentTarget.style.boxShadow =
-                                        '0 0 16px rgba(24,119,242,0.5)';
-                                      e.currentTarget.style.zIndex = 10;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.transform = `rotate(${tiltAngles[idx] || 0}deg) scale(1)`;
-                                      e.currentTarget.style.boxShadow =
-                                        '0 0 10px rgba(24,119,242,0.35), 0 2px 6px rgba(0,0,0,0.2)';
-                                      e.currentTarget.style.zIndex = idx;
-                                    }}
-                                  />
-                                ))}
+                                {sorted.map((code, idx) => {
+                                  // Map legacy codes like "s_10" to "Ts"
+                                  const [suit, r] = code.split('_');
+                                  const suitMap = { s: 's', c: 'c', h: 'h', d: 'd' };
+                                  const rankMap = { '10': 'T', 'a': 'A', 'k': 'K', 'q': 'Q', 'j': 'J' };
+                                  const rank = rankMap[r] || (r ? r.toUpperCase() : '');
+                                  const cardStr = `${rank}${suitMap[suit] || ''}`;
+
+                                  return (
+                                    <div
+                                      key={idx}
+                                      style={{
+                                        transition: 'transform 0.2s ease, z-index 0.2s ease',
+                                        transform: `rotate(${tiltAngles[idx] || 0}deg)`,
+                                        marginLeft: idx > 0 ? -12 : 0,
+                                        zIndex: idx,
+                                        position: 'relative',
+                                        width: 44, // Slightly wider for sharpness
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = `rotate(${tiltAngles[idx] || 0}deg) scale(1.15)`;
+                                        e.currentTarget.style.zIndex = 10;
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = `rotate(${tiltAngles[idx] || 0}deg) scale(1)`;
+                                        e.currentTarget.style.zIndex = idx;
+                                      }}
+                                    >
+                                      <PlayingCard card={cardStr} size="md" />
+                                    </div>
+                                  );
+                                })}
                               </div>
                             ) : (
                               <strong>{handStr}</strong>
