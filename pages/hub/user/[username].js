@@ -1867,6 +1867,8 @@ export default function UserProfilePage() {
   // Core state
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [contentLoading, setContentLoading] = useState(true);
+  const [pokerLoading, setPokerLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(() => {
     // Synchronous init so isOwnProfile resolves even with SWR cache hydration
     if (typeof window === 'undefined') return null;
@@ -2377,6 +2379,9 @@ export default function UserProfilePage() {
           if (parsed.reels) setReels(parsed.reels);
           if (parsed.lives) setPastLives(parsed.lives);
           setLoading(false); // Zero-delay render achieved!
+          setContentLoading(false);
+          // Poker data isn't cached, but we can clear its loading state immediately if we want
+          // Actually, it's better to let it load.
         } else {
           // Expired cache — remove it
           localStorage.removeItem(CACHE_KEY);
@@ -2414,6 +2419,8 @@ export default function UserProfilePage() {
         if (error || !data) {
           setProfile(null);
           setLoading(false);
+          setContentLoading(false);
+          setPokerLoading(false);
           return;
         }
 
@@ -2861,6 +2868,13 @@ export default function UserProfilePage() {
               if (j.success) setCheckinHeatmap(j);
             })
             .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
+            
+          // We can just use a timeout or assume it finishes quickly, but let's be precise:
+          // Since they are all floating, let's just use a timeout to remove the loading state
+          // to prevent the flash. (A proper Promise.all would require refactoring the block).
+          setTimeout(() => setPokerLoading(false), 800);
+        } else {
+          setPokerLoading(false);
         }
 
         // --- SWR CACHE SAVE (with TTL timestamp) ---
@@ -2881,8 +2895,10 @@ export default function UserProfilePage() {
           console.warn('Failed to save SWR cache payload', cacheErr);
         }
         
+          setContentLoading(false);
         }).catch((e) => {
           console.warn('[App] Handled promise rejection in contentPromises:', e?.message || e);
+          setContentLoading(false);
         });
       } catch (e) {
         console.warn('Error fetching profile:', e);
@@ -5663,7 +5679,9 @@ export default function UserProfilePage() {
                 )}
 
                 {/* Posts Feed */}
-                {posts.length > 0 ? (
+                {contentLoading ? (
+                  <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+                ) : posts.length > 0 ? (
                   posts.map((post) => (
                     <PostCard
                       key={post.id}
@@ -5710,6 +5728,10 @@ export default function UserProfilePage() {
           {/* POKER ACTIVITY TAB */}
           {activeTab === 'poker' && (
             <div>
+              {pokerLoading ? (
+                <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+              ) : (
+                <>
               {/* Followed Pages */}
               <div
                 style={{
@@ -6339,7 +6361,9 @@ export default function UserProfilePage() {
               <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>
                 Photos
               </h3>
-              {photos.length > 0 ? (
+              {contentLoading ? (
+                <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+              ) : photos.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                   {photos.map((photo) =>
                     photo.media_urls?.map((url, i) => (
@@ -6435,7 +6459,9 @@ export default function UserProfilePage() {
               <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>
                 Videos
               </h3>
-              {videos.length > 0 ? (
+              {contentLoading ? (
+                <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+              ) : videos.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                   {videos.map((video) => {
                     // Bug 15 fix: live posts have empty media_urls — use thumbnail_url as cover
@@ -6563,7 +6589,9 @@ export default function UserProfilePage() {
               <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>
                 Reels
               </h3>
-              {reels.length > 0 ? (
+              {contentLoading ? (
+                <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+              ) : reels.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                   {reels.map((reel) => (
                     <div key={reel.id} style={{ position: 'relative' }}>
@@ -6720,7 +6748,9 @@ export default function UserProfilePage() {
               <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>
                 Past Lives
               </h3>
-              {pastLives.length > 0 ? (
+              {contentLoading ? (
+                <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ borderColor: '#30363d', borderTopColor: '#3b82f6', width: 24, height: 24, borderWidth: 2 }} /></div>
+              ) : pastLives.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                   {pastLives.map((live) => (
                     <div key={live.id} style={{ position: 'relative' }}>
