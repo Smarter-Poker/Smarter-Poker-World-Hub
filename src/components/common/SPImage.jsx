@@ -10,7 +10,7 @@ import { useMemo } from 'react';
  * 
  * Usage is identical to <img>, except you MUST provide layout="fill" OR width/height.
  */
-export function SPImage({ src, alt = "", width, height, layout = "fill", objectFit = "cover", className = "", style = {}, ...props }) {
+export function SPImage({ src, alt = "", width, height, layout = "fill", objectFit = "cover", className = "", style = {}, unoptimized, ...props }) {
     
     const finalSrc = src || '/default-avatar.png';
     
@@ -46,7 +46,7 @@ export function SPImage({ src, alt = "", width, height, layout = "fill", objectF
                 height={height}
                 className={className}
                 style={{ objectFit, ...style }}
-                unoptimized={!isAllowedDomain}
+                unoptimized={unoptimized || !isAllowedDomain}
             />
         );
     }
@@ -60,7 +60,7 @@ export function SPImage({ src, alt = "", width, height, layout = "fill", objectF
             fill
             className={className}
             style={{ objectFit, ...style }}
-            unoptimized={!isAllowedDomain}
+            unoptimized={unoptimized || !isAllowedDomain}
         />
     );
 }

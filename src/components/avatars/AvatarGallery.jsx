@@ -16,6 +16,8 @@ import SPImage from '../common/SPImage';
 const AvatarMedia = ({ src, alt, index, frame = '', aura = '' }) => {
     const [loaded, setLoaded] = React.useState(false);
     const isVideo = src?.match(/\.(webm|mp4)$/i);
+    const isAnimatedWebp = src?.match(/\.(webp|gif)$/i);
+    const showsAnimationBadge = isVideo || isAnimatedWebp;
 
     return (
         <div 
@@ -25,6 +27,26 @@ const AvatarMedia = ({ src, alt, index, frame = '', aura = '' }) => {
                 animationDelay: `${-(index % 5)}s` 
             }}
         >
+            {showsAnimationBadge && (
+                <div style={{
+                    position: 'absolute',
+                    top: '8px', right: '8px',
+                    background: 'rgba(0, 245, 255, 0.15)',
+                    border: '1px solid rgba(0, 245, 255, 0.4)',
+                    boxShadow: '0 0 8px rgba(0,245,255,0.4)',
+                    color: '#00f5ff',
+                    fontSize: '9px',
+                    fontWeight: 'bold',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    zIndex: 20,
+                    letterSpacing: '1px',
+                    backdropFilter: 'blur(4px)',
+                    animation: 'skeletonPulse 2s infinite'
+                }}>
+                    ANIMATED
+                </div>
+            )}
             {frame && <div className={`cosmetic-frame ${frame}`} />}
             {aura && <div className={`cosmetic-aura ${aura}`} />}
             {!loaded && <div className="skeleton-loader" />}
@@ -40,6 +62,7 @@ const AvatarMedia = ({ src, alt, index, frame = '', aura = '' }) => {
                     src={src}
                     alt={alt}
                     fill
+                    unoptimized={!!isAnimatedWebp}
                     onLoad={() => setLoaded(true)}
                     onLoadingComplete={() => setLoaded(true)}
                     style={{ objectFit: 'cover', opacity: loaded ? 1 : 0, transition: 'opacity 0.5s ease-in-out' }}
