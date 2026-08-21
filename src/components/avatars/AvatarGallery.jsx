@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import supabase from "../../lib/supabase";
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getAvailableAvatars, getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 import CustomAvatarBuilder from './CustomAvatarBuilder';
@@ -161,14 +162,6 @@ const InspectModal = ({ avatar, isCustom, onClose, onEquip, isVip }) => {
   const isSelected = avatar.isSelected;
   
   // Fake lore generator
-  const getLore = () => {
-    if (isCustom) return "Forged by the neural net, a unique digital persona bound to the blockchain.";
-    if (avatar.category === 'Fantasy') return "Ancient powers resonate within this artifact.";
-    if (avatar.category === 'Sports') return "Born on the felt, refined in the crucible of the game.";
-    if (avatar.category === 'Animals') return "Primal instincts guide every calculated move.";
-    return "An elite identity reserved for the true grinders.";
-  };
-
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
