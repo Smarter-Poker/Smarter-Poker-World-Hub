@@ -72,7 +72,13 @@ async function handler(req, res) {
   }
 
   const started = Date.now();
-  const result = { drained: [], rollup: [], hand_index: null, errors: [] };
+  const result = {
+    drained: [],
+    rollup: [],
+    hand_index: null,
+    stat_distribution: null,
+    errors: [],
+  };
 
   try {
     // ── 0a. LEADERBOARD SNAPSHOT SELF-HEAL ────────────────────────────────
@@ -186,6 +192,32 @@ async function handler(req, res) {
       }
     } catch (e) {
       result.errors.push(`hand index: ${e?.message || e}`);
+    }
+
+    // ── 0b. REFRESH THE PERCENTILE DISTRIBUTION ────────────────────────────
+    // ca_stat_distribution holds the p10/p25/p50/p75/p90 breakpoints that the
+    // Club Arena stats page compares a player against ("how you compare").
+    // Without a refresh the breakpoints freeze at whatever the field looked
+    // like the day they were first computed, and every percentile shown slowly
+    // becomes a lie about a club that has moved on.
+    //
+    // It lands here for the same reason the hand index does: this route is
+    // already scheduled, and CLAUDE.md 11.3/11.5 fail CI on net-new
+    // pages/api/cron files. It is a single aggregate over player_stats and
+    // player_position_stats, so it is cheap; running it every 15 minutes is
+    // wasteful but harmless, and simpler than carrying its own schedule.
+    try {
+      const { data: distData, error: distErr } = await admin.rpc(
+        'ca_refresh_stat_distribution',
+        { p_min_hands: 1000 }
+      );
+      if (distErr) {
+        result.errors.push(`stat distribution: ${distErr.message}`);
+      } else {
+        result.stat_distribution = distData || null;
+      }
+    } catch (e) {
+      result.errors.push(`stat distribution: ${e?.message || e}`);
     }
 
     // ── 1. Which clubs still have un-rebuilt tables with recent hands? ──
