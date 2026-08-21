@@ -7,7 +7,7 @@ import { claimReward } from '../../../src/lib/claimReward';
 
 export function useProfileHandlers({
     user, setUser, profile, setProfile, originalProfile, setOriginalProfile,
-    setMessage, setCoverUploadPhase,
+    setMessage, setAvatarUploadPhase, setCoverUploadPhase,
     setSaving, setSavePhase, undoTimerRef, undoSnapshot, setUndoSnapshot,
     setUserPhotos, setUserReels, setUserLives, setLoading, supabase,
     setSocialStats, setFriends, usernameStatus,
@@ -131,21 +131,125 @@ const fetchUser = async () => {
             setLoading(false);
         };
 
-/**
- * handleAvatarUpload was removed 2026-08-21 (Dan: "they can now only use
- * avatars").
- *
- * It compressed a photo, requested a signed URL for `social-media/avatars/`,
- * PATCHed profiles.avatar_url, POSTed a metadata sync so the OAuth copy matched,
- * and claimed a "Profile Picture Uploaded" diamonds reward. It also set
- * user_avatars.is_active = false, deliberately demoting whatever avatar the
- * player had chosen so the photo would win — which is the line that makes this
- * a genuine product removal and not just a dead endpoint.
- *
- * Players change their avatar at /hub/avatars now. The rule is enforced in
- * Club Arena AvatarService.isLibraryAvatarUrl at the write point, because a
- * removed component still exists in every cached bundle.
- */
+const handleAvatarUpload = async (file) => {
+        if (!user) return;
+        if (file.size > MAX_UPLOAD_SIZE) {
+            setMessage('Error: Image too large (max 5MB). Please choose a smaller image.');
+            return;
+        }
+
+        // Phase 1: Compress
+        setAvatarUploadPhase('Compressing');
+        const compressed = await compressImage(file, 800, 0.85);
+
+        // Phase 2: Upload via signed-URL proxy (avoids SDK auth lock + uses service role)
+        setAvatarUploadPhase('Uploading');
+        const avatarToken = getAccessToken();
+        const avatarMetaRes = await fetch('/api/social/upload-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${avatarToken}` },
+            body: JSON.stringify({
+                fileName: `avatar_${Date.now()}.${compressed.name.split('.').pop() || 'jpg'}`,
+                fileSize: compressed.size,
+                mimeType: compressed.type || 'image/jpeg',
+                folder: 'avatars',
+                prefix: user.id,
+            }),
+        });
+        if (!avatarMetaRes.ok) {
+            setAvatarUploadPhase(null);
+            setMessage('Error getting upload URL: ' + avatarMetaRes.status);
+            return;
+        }
+        const avatarMeta = await avatarMetaRes.json();
+        if (!avatarMeta.success || !avatarMeta.signedUrl) {
+            setAvatarUploadPhase(null);
+            setMessage('Error uploading avatar: ' + (avatarMeta.error || 'No signed URL'));
+            return;
+        }
+
+        const avatarPutRes = await fetch(avatarMeta.signedUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': compressed.type || 'image/jpeg' },
+            body: compressed,
+        });
+        if (!avatarPutRes.ok) {
+            setAvatarUploadPhase(null);
+            setMessage('Error uploading avatar: HTTP ' + avatarPutRes.status);
+            return;
+        }
+
+        const publicUrl = avatarMeta.publicUrl;
+
+        // Phase 3: Save to database
+        setAvatarUploadPhase('Saving');
+        const _supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const _supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const _avatarToken = getProfileJwt();
+
+        try {
+            const avatarRes = await fetch(`${_supabaseUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+                method: 'PATCH',
+                headers: { 'apikey': _supabaseKey, 'Authorization': `Bearer ${_avatarToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                body: JSON.stringify({ avatar_url: publicUrl, updated_at: new Date().toISOString() }),
+            });
+            if (!avatarRes.ok) {
+                const errText = await avatarRes.text();
+                setAvatarUploadPhase(null);
+                setMessage('Error saving avatar: ' + errText);
+                console.warn('Save error:', errText);
+                return;
+            }
+
+            // ── DEACTIVATE AI/PRESET AVATARS ──
+            // If the user manually uploaded a photo, it should override any AI or preset avatars.
+            await fetch(`${_supabaseUrl}/rest/v1/user_avatars?user_id=eq.${user.id}`, {
+                method: 'PATCH',
+                headers: { 'apikey': _supabaseKey, 'Authorization': `Bearer ${_avatarToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                body: JSON.stringify({ is_active: false, updated_at: new Date().toISOString() }),
+            });
+        } catch (fetchErr) {
+            setAvatarUploadPhase(null);
+            setMessage('Error saving avatar: ' + fetchErr.message);
+            return;
+        }
+
+        // ── UPDATE AUTH METADATA ──
+        try {
+            const mdRes = await fetch('/api/auth/update-metadata', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${_avatarToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ metadata: { avatar_url: publicUrl } })
+            });
+            if (!mdRes.ok) console.warn('[Avatar Upload] Non-fatal error syncing auth metadata:', await mdRes.text());
+        } catch (mdErr) {
+            console.warn('[Avatar Upload] Failed to update auth metadata:', mdErr);
+        }
+
+        setAvatarUploadPhase(null);
+        setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+
+        // ── CRITICAL: Dispatch bus event so header updates in real-time ──
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('profile-updated', {
+                detail: { avatar_url: publicUrl }
+            }));
+        }
+
+        // ── CACHE: Invalidate profile cache + notify other tabs ──
+        try {
+            const cacheKey = `sp-profile-cache-${profile.username}`;
+            localStorage.removeItem(cacheKey);
+            broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+            broadcastSync('smarter_poker_avatar_sync', 'refresh');
+        } catch { /* noop */ }
+        busEmit.dataMutated('profile');
+
+        // Award profile pic diamonds (fire-and-forget, 10 one-time)
+        claimReward('/api/rewards/profile-pic', { userId: user.id }, 'Profile Picture Uploaded');
+        setMessage('Avatar saved!');
+        setOriginalProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+    };
 
 const handleCoverPhotoUpload = async (e) => {
         const file = e.target.files?.[0];
@@ -499,5 +603,5 @@ const handleSave = async () => {
         }
     };
 
-    return { fetchUser, handleCoverPhotoUpload, handleCoverPhotoRemove, handleSave };
+    return { fetchUser, handleAvatarUpload, handleCoverPhotoUpload, handleCoverPhotoRemove, handleSave };
 }
