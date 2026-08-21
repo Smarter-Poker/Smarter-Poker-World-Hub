@@ -155,16 +155,19 @@ ALL_CRONS = [
     ('/api/cron/auto-settlement',           dict(day_of_week='mon', hour=10, minute=0)),
     ('/api/cron/auto-settlement-distribute',dict(day_of_week='mon', hour=10, minute=10)),
     ('/api/cron/license-reminders',         dict(hour=9,  minute=0)),
-    # Union -> club weekly square-up statement, EMAIL leg (2026-08-20).
-    # The invoice itself is already issued and delivered in-app + push from
-    # inside Postgres: fn_union_settlement_cascade round 4, run by the pg_cron
-    # job union-weekly-rakeback-close at Mon 00:10 UTC. This fire only mails
-    # it, so a missed run costs a club its email, never its statement.
-    # Re-issuing is idempotent (one invoice per club per period) and the route
-    # skips any invoice already marked message_sent, so a manual re-run never
-    # double-mails. Route lives outside pages/api/cron/ on purpose — CLAUDE.md
-    # section 11.3 blocks net-new files there; this uses the /api/news/digest
-    # pattern of a CRON_SECRET bearer on a normal route.
+    # Union -> club weekly square-up statement (2026-08-20).
+    # Delivery is the CLUB MESSENGER, not email: the statement is written into
+    # conversations + messages as message_type 'invoice' with the breakdown in
+    # metadata, plus a notification that the existing trigger mirrors to push.
+    # Nothing here sends mail.
+    # fn_union_settlement_cascade round 4 already issues and delivers from
+    # inside Postgres at Mon 00:10 UTC (pg_cron job union-weekly-rakeback-close);
+    # this later fire is the safety net if that did not run. Both paths are
+    # idempotent - one invoice per club per period, and message_sent stops a
+    # statement going out twice - so the double-up costs nothing.
+    # Route lives outside pages/api/cron/ on purpose: CLAUDE.md section 11.3
+    # blocks net-new files there, so this uses the /api/news/digest pattern of
+    # a CRON_SECRET bearer on a normal route.
     ('/api/club-arena/union-invoice?action=send', dict(day_of_week='mon', hour=13, minute=0)),
     # ('/api/cron/union-rakeback', ...) — RETIRED 2026-08-20. Double-payer.
     # The union 90/10 weekly rakeback is paid by the ENGINE:
