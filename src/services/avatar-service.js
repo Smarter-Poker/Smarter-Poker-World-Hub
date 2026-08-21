@@ -86,14 +86,18 @@ export async function getUserAvatar(userId) {
                 // selected-state checks in the gallery match up
                 id: avatarData?.id || data.preset_avatar_id,
                 imageUrl: avatarData?.image || '/avatars/free/shark.png',
-                name: avatarData?.name || 'Avatar'
+                name: avatarData?.name || 'Avatar',
+                equipped_frame: data.equipped_frame || null,
+                equipped_aura: data.equipped_aura || null
             };
         } else {
             return {
                 type: 'custom',
                 imageUrl: data.custom_image_url,
                 prompt: data.custom_prompt,
-                name: 'Custom Avatar'
+                name: 'Custom Avatar',
+                equipped_frame: data.equipped_frame || null,
+                equipped_aura: data.equipped_aura || null
             };
         }
     } catch (error) {

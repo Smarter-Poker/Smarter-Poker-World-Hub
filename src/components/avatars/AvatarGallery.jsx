@@ -762,7 +762,7 @@ export default function AvatarGallery({ onSelect }) {
                   >
                     <div className="screws"></div>
                     {/* Phase 1 Skeleton Loader */}
-                    <AvatarMedia src={customAvatar.image_url} alt={`Custom Avatar ${index + 1}`} index={index} />
+                    <AvatarMedia src={customAvatar.image_url} alt={`Custom Avatar ${index + 1}`} index={index} frame={customAvatar.equipped_frame} aura={customAvatar.equipped_aura} />
 
                     {/* DELETE BUTTON */}
                     <button
@@ -821,12 +821,12 @@ export default function AvatarGallery({ onSelect }) {
             {currentAvatar ? (
                 <div className="current-avatar">
                     <div style={{ position: 'relative', width: 60, height: 60, flexShrink: 0, animation: 'ambientBreathe 4s ease-in-out infinite', filter: 'drop-shadow(0 5px 10px rgba(0,0,0,0.8))' }}>
-                        <img
-                            src={currentAvatar.imageUrl || '/avatars/free/shark.png'}
-                            alt="Current Avatar"
-                            className="current-avatar-img"
-                            loading="lazy" 
-                            style={{ width: '100%', height: '100%', boxShadow: 'none' }}
+                        <AvatarMedia 
+                            src={currentAvatar.imageUrl || '/avatars/free/shark.png'} 
+                            alt="Current Avatar" 
+                            index={0} 
+                            frame={currentAvatar.equipped_frame} 
+                            aura={currentAvatar.equipped_aura} 
                         />
                     </div>
                     <div className="current-avatar-info">
@@ -906,7 +906,7 @@ export default function AvatarGallery({ onSelect }) {
                       <div className="screws"></div>
                       
                       {/* Phase 1 Skeleton Loader */}
-                    <AvatarMedia src={av.image} alt={av.name} index={index} />
+                    <AvatarMedia src={av.image} alt={av.name} index={index} frame={av.equipped_frame} aura={av.equipped_aura} />
 
                       <div className="avatar-info">
                         <p className="avatar-name">{av.name}</p>

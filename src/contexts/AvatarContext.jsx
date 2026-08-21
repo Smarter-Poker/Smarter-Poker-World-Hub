@@ -531,6 +531,32 @@ export function AvatarProvider({ children }) {
         }
     }
 
+    async function setAvatarCosmetics(frame, aura) {
+        if (!user) return { success: false, error: 'Not authenticated' };
+        try {
+            // Update user_avatars
+            const { error: avatarError } = await supabase
+                .from('user_avatars')
+                .update({ equipped_frame: frame, equipped_aura: aura })
+                .eq('user_id', user.id);
+            if (avatarError) throw avatarError;
+
+            // Sync down to profiles for the game engine
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({ equipped_frame: frame, equipped_aura: aura })
+                .eq('id', user.id);
+            if (profileError) console.warn('Profile cosmetic sync failed:', profileError.message);
+
+            await loadAvatar();
+            broadcastSync('smarter_poker_avatar_sync', 'refresh');
+            return { success: true };
+        } catch (error) {
+            console.warn('Error setting cosmetics:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
     const dismissWelcomeModal = () => {
         setShowWelcomeModal(false);
         // Persist so it never shows again for this user
@@ -555,6 +581,7 @@ export function AvatarProvider({ children }) {
         selectPresetAvatar,
         createCustomAvatar,
         setActiveAvatar,
+        setAvatarCosmetics,
         refreshAvatar: loadAvatar,
         refreshUser
     };
