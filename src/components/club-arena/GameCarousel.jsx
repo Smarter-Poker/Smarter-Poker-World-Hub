@@ -34,6 +34,31 @@ export default function GameCarousel({ games, onGameSelect }) {
         }
     }, [TOTAL_GAMES]);
 
+    // Haptic feedback & active index tracking
+    const activeIndex = Math.round(scrollPosition);
+    const prevActiveIndex = useRef(activeIndex);
+    useEffect(() => {
+        if (activeIndex !== prevActiveIndex.current) {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                navigator.vibrate(30); // Subtle haptic tick on card snap
+            }
+            prevActiveIndex.current = activeIndex;
+        }
+    }, [activeIndex]);
+
+    // Keyboard accessibility
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'ArrowLeft') {
+                setTargetPosition(prev => Math.round(prev) - 1);
+            } else if (e.key === 'ArrowRight') {
+                setTargetPosition(prev => Math.round(prev) + 1);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
     // Handle momentum & snapping in requestAnimationFrame
     useEffect(() => {
         const update = () => {
@@ -179,23 +204,43 @@ export default function GameCarousel({ games, onGameSelect }) {
     return (
         <div 
             ref={containerRef}
+            className="carousel-container"
             style={{
                 position: 'relative',
                 width: '100%',
-                height: '420px',
+                height: '460px',
                 overflow: 'hidden',
                 cursor: 'grab',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                touchAction: 'pan-y'
+                touchAction: 'pan-y',
+                WebkitUserSelect: 'none',
+                userSelect: 'none'
             }}
         >
+            {/* Desktop Navigation Arrows */}
+            <button 
+                onClick={(e) => { e.stopPropagation(); setTargetPosition(prev => Math.round(prev) - 1); }}
+                style={{
+                    position: 'absolute', left: 20, zIndex: 999, 
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: 'white', width: 44, height: 44, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', backdropFilter: 'blur(10px)', transition: 'background 0.2s',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                }}
+                onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+
             {visibleCards.map(({ game, offset, index }) => {
                 const absOffset = Math.abs(offset);
+                const isActive = absOffset < 0.3;
                 
                 // Exactly matching WorldHub CarouselEngine Math:
-                // Scale drops from 1 (center) to ~0.7 (edges)
                 const maxScale = 1.0;
                 const minScale = 0.65;
                 const scaleRange = maxScale - minScale;
@@ -203,7 +248,6 @@ export default function GameCarousel({ games, onGameSelect }) {
                 scale = Math.max(minScale, scale);
                 
                 // X Position: linear spacing
-                // E.g. offset 1 = 65% of container width to the right
                 const spacingPercent = 65; 
                 const xPos = offset * spacingPercent;
 
@@ -212,6 +256,9 @@ export default function GameCarousel({ games, onGameSelect }) {
                 
                 // Opacity fades out slightly on edges
                 const opacity = 1 - (absOffset * 0.15);
+                
+                // Dim non-active cards
+                const filter = isActive ? 'brightness(1) drop-shadow(0 0 20px rgba(0,255,136,0.15))' : 'brightness(0.5)';
 
                 return (
                     <div
@@ -226,9 +273,10 @@ export default function GameCarousel({ games, onGameSelect }) {
                             transform: `translateX(${xPos}%) scale(${scale})`,
                             zIndex,
                             opacity,
-                            transition: 'none', // Handled by requestAnimationFrame
+                            filter,
+                            transition: 'filter 0.3s ease', // Only filter transitions, transform handled by RAF
                             pointerEvents: 'auto',
-                            willChange: 'transform'
+                            willChange: 'transform, filter'
                         }}
                     >
                         {/* Wrapper blocks pointer events during drag */}
@@ -238,6 +286,22 @@ export default function GameCarousel({ games, onGameSelect }) {
                     </div>
                 );
             })}
+
+            <button 
+                onClick={(e) => { e.stopPropagation(); setTargetPosition(prev => Math.round(prev) + 1); }}
+                style={{
+                    position: 'absolute', right: 20, zIndex: 999, 
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: 'white', width: 44, height: 44, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', backdropFilter: 'blur(10px)', transition: 'background 0.2s',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                }}
+                onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
         </div>
     );
 }
