@@ -288,7 +288,7 @@ function MessengerPage() {
     }, []);
 
     // Identity switching
-    const { isClubMode, clubPage, hasClubPage, ownedPages, switchToPersonal, switchToClub } = useActiveIdentity();
+    const { isClubMode, clubPage, hasClubPage, ownedPages, switchToPersonal, switchToClub, identityLoaded } = useActiveIdentity();
 
     const getClubMetadata = () => {
         if (isClubMode && clubPage) {
@@ -944,51 +944,36 @@ function MessengerPage() {
         // 📡 GLOBAL Background Poll: Refresh sidebar unread counts every 30s
         // Replaces the unfiltered global-messenger postgres_changes channel that streamed ALL
         // social_messages rows to every logged-in user - eliminating that Supabase Realtime MAU cost.
-        // Polls messenger_participants (filtered by user_id) so only the current user's data is read.
+        //
+        // 2026-08-20: THIS POLL WAS READING THE WRONG MESSENGER.
+        // It queried messenger_participants + messenger_messages, which belong
+        // to the in-game table messenger (LivePokerTable / useMessengerService).
+        // Every other path on this page reads the social_* family, so the
+        // conversation ids could never match the sidebar's and the .find() at
+        // the bottom always returned undefined. The poll was a no-op that cost
+        // two queries per user every 30 seconds, forever. The 2026-08-15 note
+        // below patched a 42703 on this same block without anyone noticing the
+        // table family itself was wrong.
+        //
+        // It now calls fn_get_user_conversations - the exact RPC behind
+        // /api/messenger/get-conversations - so the poll is one query instead
+        // of two AND can never disagree with the list it is updating. The
+        // context argument keeps it scoped to the identity currently selected
+        // in the Club Arena widget.
         useEffect(() => {
             if (!user?.id) return;
             const pollInbox = async () => {
                 try {
-                    // 2026-08-15 CHECK 13: messenger_participants has no
-                    // unread_count column (this poll 42703'd every 30s).
-                    // Unread is derived from last_read_at, mirroring
-                    // /api/messenger/get-conversations.
-                    const { data: parts, error } = await supabase
-                        .from('messenger_participants')
-                        .select('conversation_id, last_read_at')
-                        .eq('user_id', user.id);
+                    const { data: rows, error } = await supabase.rpc('fn_get_user_conversations', {
+                        p_user_id: user.id,
+                        p_context_entity_id: isClubMode && clubPage ? clubPage.id : null,
+                    });
                     if (error) throw error;
                     setConnectionStatus('connected');
-                    if (!parts?.length) return;
-                    const lastReadByConv = {};
-                    let oldestRead = null;
-                    let hasNeverRead = false;
-                    parts.forEach(p => {
-                        lastReadByConv[p.conversation_id] = p.last_read_at || null;
-                        if (p.last_read_at) {
-                            if (!oldestRead || p.last_read_at < oldestRead) oldestRead = p.last_read_at;
-                        } else hasNeverRead = true;
-                    });
-                    let msgQ = supabase
-                        .from('messenger_messages')
-                        .select('conversation_id, created_at')
-                        .in('conversation_id', parts.map(p => p.conversation_id))
-                        .neq('sender_id', user.id)
-                        .order('created_at', { ascending: false })
-                        .limit(2000);
-                    if (oldestRead && !hasNeverRead) msgQ = msgQ.gt('created_at', oldestRead);
-                    const { data: candidateMsgs, error: msgErr } = await msgQ;
-                    if (msgErr) throw msgErr;
-                    const unreadByConv = {};
-                    (candidateMsgs || []).forEach(m => {
-                        const lr = lastReadByConv[m.conversation_id];
-                        if (!lr || m.created_at > lr) {
-                            unreadByConv[m.conversation_id] = (unreadByConv[m.conversation_id] || 0) + 1;
-                        }
-                    });
-                    const data = parts.map(p => ({
-                        conversation_id: p.conversation_id,
-                        unread_count: unreadByConv[p.conversation_id] || 0,
+                    if (!rows?.length) return;
+                    const data = rows.map(r => ({
+                        conversation_id: r.conversation_id,
+                        unread_count: Number(r.unread_count) || 0,
                     }));
                     setConversations(prev => {
                         let anyChanged = false;
@@ -1024,7 +1009,9 @@ function MessengerPage() {
             pollInbox();
             const intervalId = setInterval(pollInbox, 30000);
             return () => clearInterval(intervalId);
-        }, [user?.id]);
+            // identity is a dependency: switching to a club in the Club Arena
+            // widget changes which inbox this poll is counting.
+        }, [user?.id, isClubMode, clubPage?.id]);
 
     // Subscribe to real-time messages for ACTIVE conversation
     useEffect(() => {
@@ -4064,9 +4051,22 @@ function MessengerPage() {
                                 </span>
                             </button>
 
-                            {clubDrawerOpen && !hasClubPage && (
+                            {/* "Loading" only while identity detection is still
+                                running. It used to render on !hasClubPage with
+                                no settled flag, so a user who owns no club page
+                                - or whose lookup failed, since both paths in
+                                ActiveIdentityContext swallow into console.warn
+                                - sat on "Loading your clubs..." permanently. */}
+                            {clubDrawerOpen && !hasClubPage && !identityLoaded && (
                                 <div style={{ padding: '4px 0 10px 0', fontSize: 12, color: C.textSec }}>
                                     Loading your clubs...
+                                </div>
+                            )}
+
+                            {clubDrawerOpen && !hasClubPage && identityLoaded && (
+                                <div style={{ padding: '4px 0 10px 0', fontSize: 12, color: C.textSec, lineHeight: 1.5 }}>
+                                    No club inboxes yet. Clubs you own or help run show up here,
+                                    each with its own inbox.
                                 </div>
                             )}
 

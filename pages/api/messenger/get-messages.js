@@ -98,6 +98,31 @@ export default async function handler(req, res) {
           // Reverse descending order to chronological ascending for display
           const sorted = [...(messages || [])].reverse();
 
+          // Reactions, in ONE query for the whole page.
+          //
+          // This route never returned reactions, and the get_message_reactions
+          // RPC that existed for it had no callers anywhere - so even once the
+          // writes were fixed (message_reactions' FK pointed at the wrong
+          // messages table and every insert had been failing silently),
+          // reactions still vanished on reload. The client was maintaining them
+          // optimistically and nothing else.
+          const reactionsByMessage = {};
+          if (sorted.length) {
+              const { data: reactionRows, error: reactionErr } = await getSupabase()
+                  .rpc('fn_get_reactions_for_messages', { p_message_ids: sorted.map(m => m.id) });
+              if (reactionErr) {
+                  console.warn('[messenger/get-messages] reactions unavailable:', reactionErr.message);
+              } else {
+                  for (const r of reactionRows || []) {
+                      (reactionsByMessage[r.message_id] ||= []).push({
+                          reaction: r.reaction,
+                          user_id: r.user_id,
+                          username: r.username || null,
+                      });
+                  }
+              }
+          }
+
           const normalized = sorted.map(m => {
               let prof = m.profiles;
               if (m.media_metadata && m.media_metadata.is_club_identity && m.media_metadata.club_id) {
@@ -114,6 +139,7 @@ export default async function handler(req, res) {
                   ...m,
                   profiles: prof,
                   text: m.content ?? null, // alias content → text for frontend compatibility
+                  reactions: reactionsByMessage[m.id] || [],
               };
           });
 

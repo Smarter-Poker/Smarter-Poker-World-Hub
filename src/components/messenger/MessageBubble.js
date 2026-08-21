@@ -329,6 +329,114 @@ export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = de
 AudioMessage.displayName = 'AudioMessage';
 
 // ═══════════════════════════════════════════════════════════════════════════
+// CLUB STATEMENT CARD
+// ═══════════════════════════════════════════════════════════════════════════
+// The union's weekly square-up, delivered into this club's inbox by
+// fn_union_send_club_message as message_type 'invoice'. The readable body is
+// in content; every figure is also in media_metadata.lines, so this renders
+// the numbers rather than re-parsing prose. Anything that does not recognise
+// the type still shows the text, which is why both are sent.
+const statementMoney = (n) => {
+    const v = Number(n || 0);
+    return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+export function ClubStatementCard({ meta, isOwn, theme: C = defaultTheme }) {
+    const [open, setOpen] = useState(false);
+    const lines = meta?.lines || {};
+    const outstanding = Number(meta?.outstanding || 0);
+    const owes = outstanding < 0;
+    const accent = outstanding === 0 ? C.textSec : owes ? '#E41E3F' : '#31A24C';
+    const label = outstanding === 0 ? 'Square for the week' : owes ? 'Amount due' : 'Owed to you';
+
+    const period = [meta?.period_start, meta?.period_end]
+        .map((d) => (d ? String(d).slice(0, 10) : null))
+        .filter(Boolean)
+        .join(' to ');
+
+    const row = (text, value, note) => (
+        <div key={text} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', fontSize: 12 }}>
+            <span style={{ color: isOwn ? 'rgba(255,255,255,0.75)' : C.textSec }}>
+                {text}
+                {note ? <span style={{ opacity: 0.7 }}> {note}</span> : null}
+            </span>
+            <span style={{ fontVariantNumeric: 'tabular-nums', color: isOwn ? '#fff' : C.text }}>
+                {statementMoney(value)}
+            </span>
+        </div>
+    );
+
+    return (
+        <div
+            style={{
+                minWidth: 240,
+                maxWidth: 320,
+                borderRadius: 10,
+                overflow: 'hidden',
+                border: `1px solid ${isOwn ? 'rgba(255,255,255,0.22)' : C.border || 'rgba(0,0,0,0.12)'}`,
+                background: isOwn ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
+            }}
+        >
+            <div style={{ padding: '10px 12px', borderBottom: `1px solid ${isOwn ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)'}` }}>
+                <div style={{ fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: isOwn ? 'rgba(255,255,255,0.7)' : C.textSec }}>
+                    Weekly statement
+                </div>
+                {period ? (
+                    <div style={{ fontSize: 11, marginTop: 2, color: isOwn ? 'rgba(255,255,255,0.7)' : C.textSec }}>{period}</div>
+                ) : null}
+                <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+                    <span style={{ fontSize: 11, color: isOwn ? 'rgba(255,255,255,0.75)' : C.textSec }}>{label}</span>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: accent, fontVariantNumeric: 'tabular-nums' }}>
+                        {statementMoney(Math.abs(outstanding))}
+                    </span>
+                </div>
+                {meta?.due_at && outstanding !== 0 ? (
+                    <div style={{ fontSize: 11, marginTop: 2, color: isOwn ? 'rgba(255,255,255,0.6)' : C.textSec }}>
+                        Due {String(meta.due_at).slice(0, 10)}
+                    </div>
+                ) : null}
+            </div>
+
+            {open ? (
+                <div style={{ padding: '8px 12px 10px' }}>
+                    {row('Rake generated', lines.rake_generated)}
+                    {row('Your rakeback', lines.rakeback_due, '(90%)')}
+                    {row('Union fee kept', lines.union_fee_kept, '(10%)')}
+                    {row('Player win/loss', lines.players_won)}
+                    {row('Settled in chips', lines.settled_in_chips)}
+                    {lines.eco_enabled ? row('ECO adjustment', lines.eco_amount) : null}
+                    {Number(lines.presettled || 0) !== 0 ? row('Payments received', lines.presettled) : null}
+                    <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.45, color: isOwn ? 'rgba(255,255,255,0.65)' : C.textSec }}>
+                        Player win/loss and rakeback already moved in chips during the week.
+                        The amount above is what is left to square up.
+                    </div>
+                </div>
+            ) : null}
+
+            <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+                style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderTop: `1px solid ${isOwn ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)'}`,
+                    color: isOwn ? '#fff' : C.blue,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                }}
+            >
+                {open ? 'Hide breakdown' : 'View breakdown'}
+            </button>
+        </div>
+    );
+}
+ClubStatementCard.displayName = 'ClubStatementCard';
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 💬 MESSAGE BUBBLE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export function MessageBubble({ 
@@ -354,6 +462,17 @@ export function MessageBubble({
     const [showReactions, setShowReactions] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [reactions, setReactions] = useState(message.reactions || []);
+
+    // Reactions used to exist only as optimistic local state, because
+    // /api/messenger/get-messages never returned them. It does now, so the
+    // bubble has to adopt what the server says - otherwise a reload would
+    // still show nothing. Keyed on the serialised value so a fresh array
+    // identity from the API mapping does not loop.
+    const reactionsKey = JSON.stringify(message.reactions || []);
+    useEffect(() => {
+        setReactions(message.reactions || []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [reactionsKey]);
     const status = message.status || 'sent';
     const longPressTimer = useRef(null);
     const touchMoved = useRef(false);
@@ -717,6 +836,12 @@ export function MessageBubble({
                     {(() => {
                         let content = message.content || message.text || '';
                         content = content.replace(/^\[REPLY:[^\]]+\]\s*/, '');
+
+                        // Union weekly square-up, delivered into the club inbox.
+                        const meta = message.media_metadata || message.metadata;
+                        if (message.message_type === 'invoice' && meta?.kind === 'union_invoice') {
+                            return <ClubStatementCard meta={meta} isOwn={isOwn} theme={C} />;
+                        }
 
                         // 2026-08-15 audit: render live co-host invites as a
                         // tappable Join card instead of raw "[LIVE_INVITE]room=…"

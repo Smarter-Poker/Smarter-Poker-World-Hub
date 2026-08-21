@@ -90,19 +90,31 @@ export default async function handler(req, res) {
                 .eq('reaction', reaction)
                 .maybeSingle();
 
+            // 2026-08-20: this fallback used to console.warn its failure and
+            // then fall through to `return { success: true }`. Combined with
+            // message_reactions' foreign key pointing at the wrong messages
+            // table, that meant EVERY reaction failed and every client was
+            // told it had been saved. The FK is fixed; the lie is not
+            // acceptable either way, so a failed write now reports a failure
+            // and the client can roll its optimistic state back.
+            let fallbackError = null;
             if (existing) {
                 // Delete — idempotent (delete by specific id)
-                const { error: err_message_reactions_ud6tf } = await supabase.from('message_reactions').delete().eq('id', existing.id);
-                if (err_message_reactions_ud6tf) console.warn('[Supabase] Silent mutation failed in message_reactions:', err_message_reactions_ud6tf.message);
+                const { error } = await supabase.from('message_reactions').delete().eq('id', existing.id);
+                fallbackError = error;
             } else {
                 // Insert — use upsert with ignoreDuplicates to be idempotent on race
-                const { error: err_message_reactions_wpt5u } = await supabase.from('message_reactions').upsert({
+                const { error } = await supabase.from('message_reactions').upsert({
                     message_id: messageId,
                     user_id: user.id,
                     reaction,
                     created_at: new Date().toISOString(),
                 }, { onConflict: 'message_id,user_id,reaction', ignoreDuplicates: true });
-                if (err_message_reactions_wpt5u) console.warn('[Supabase] Silent mutation failed in message_reactions:', err_message_reactions_wpt5u.message);
+                fallbackError = error;
+            }
+            if (fallbackError) {
+                console.warn('[react-message] reaction not saved:', fallbackError.message);
+                return res.status(500).json({ success: false, error: 'Reaction could not be saved' });
             }
         }
 

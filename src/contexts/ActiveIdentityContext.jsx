@@ -47,6 +47,12 @@ export function ActiveIdentityProvider({ children }) {
         return { mode: 'personal', clubPage: null };
     });
     const [ownedPages, setOwnedPages] = useState([]);
+    // Settled once club-page detection has finished, whether it found anything
+    // or not. Without this, consumers cannot tell "still fetching" from "this
+    // user genuinely owns no clubs" - and the messenger's Club Arena drawer sat
+    // on "Loading your clubs..." forever whenever the lookup came back empty or
+    // threw (both paths below swallow into console.warn).
+    const [identityLoaded, setIdentityLoaded] = useState(false);
 
     // Auto-detect club page for Commander users
     // HARDENED: Always checks by owner_id as fallback, even without commander_staff in localStorage.
@@ -144,6 +150,8 @@ export function ActiveIdentityProvider({ children }) {
                 }
             } catch (e) {
                 console.warn('[ActiveIdentity] Club page detection failed:', e);
+            } finally {
+                if (mounted) setIdentityLoaded(true);
             }
         };
 
@@ -375,6 +383,7 @@ export function ActiveIdentityProvider({ children }) {
         clubPage: activeIdentity.clubPage || (ownedPages.length > 0 ? ownedPages[0] : null),
         hasClubPage: ownedPages.length > 0,
         ownedPages,
+        identityLoaded,
     };
 
     return (
