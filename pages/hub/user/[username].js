@@ -4140,7 +4140,6 @@ export default function UserProfilePage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 18 }}>⚡</span>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>
                       Your Share Streak Boost Lapsed
@@ -5142,7 +5141,6 @@ export default function UserProfilePage() {
                         color: C.text,
                       }}
                     >
-                      <span style={{ fontSize: 18 }}>🏠</span>
                       <span>
                         From <strong>{profile.hometown}</strong>
                       </span>
@@ -5158,7 +5156,6 @@ export default function UserProfilePage() {
                         color: C.text,
                       }}
                     >
-                      <span style={{ fontSize: 18 }}>🎂</span>
                       <span>
                         Born In <strong>{profile.birth_year}</strong>
                       </span>
@@ -5190,7 +5187,6 @@ export default function UserProfilePage() {
                         color: C.text,
                       }}
                     >
-                      <span style={{ fontSize: 18 }}>🏨</span>
                       <span>
                         Home Casino: <strong>{profile.home_casino}</strong>
                       </span>
@@ -5206,7 +5202,6 @@ export default function UserProfilePage() {
                         color: C.text,
                       }}
                     >
-                      <span style={{ fontSize: 18 }}>💼</span>
                       <span>
                         Works As <strong>{profile.occupation}</strong>
                       </span>
@@ -5261,12 +5256,26 @@ export default function UserProfilePage() {
                                 }}
                               >
                                 {sorted.map((code, idx) => {
-                                  // Map legacy codes like "s_10" to "Ts"
-                                  const [suit, r] = code.split('_');
-                                  const suitMap = { s: 's', c: 'c', h: 'h', d: 'd' };
-                                  const rankMap = { '10': 'T', 'a': 'A', 'k': 'K', 'q': 'Q', 'j': 'J' };
-                                  const rank = rankMap[r] || (r ? r.toUpperCase() : '');
-                                  const cardStr = `${rank}${suitMap[suit] || ''}`;
+                                  // FAVOURITE HANDS FIX 2026-08-21: these rendered
+                                  // as card BACKS for every user.
+                                  //
+                                  // The stored form spells the suit out in lower
+                                  // case - "clubs_a", "spades_10" - but the map here
+                                  // only knew single letters, so suitMap["clubs"] was
+                                  // undefined and `|| ''` silently dropped the suit.
+                                  // PlayingCard then received a rank with no suit,
+                                  // could not resolve it, and fell back to
+                                  // /cards/back.png. A card back is exactly what a
+                                  // dropped suit looks like.
+                                  //
+                                  // PlayingCard already understands BOTH spellings
+                                  // (SUIT_FULL maps 'c' and 'clubs' alike) and both
+                                  // rank cases (RANK_FILE maps 'a', 'A', '10' and
+                                  // 'T'), so the translation layer was never needed -
+                                  // it only ever had the chance to be wrong. Hand it
+                                  // the parts and let it resolve them. This also
+                                  // fixes the legacy "s_10" form for free.
+                                  const [suit, rank] = code.split('_');
 
                                   return (
                                     <div
@@ -5288,7 +5297,7 @@ export default function UserProfilePage() {
                                         e.currentTarget.style.zIndex = idx;
                                       }}
                                     >
-                                      <PlayingCard card={cardStr} size="md" />
+                                      <PlayingCard rank={rank} suit={suit} size="md" />
                                     </div>
                                   );
                                 })}
@@ -5336,7 +5345,6 @@ export default function UserProfilePage() {
                             textDecoration: 'none',
                           }}
                         >
-                          <span style={{ fontSize: 18 }}>📸</span>
                           <span>@{profile.instagram.replace('@', '')}</span>
                         </a>
                       )}
@@ -5376,7 +5384,6 @@ export default function UserProfilePage() {
                             textDecoration: 'none',
                           }}
                         >
-                          <span style={{ fontSize: 18 }}>🌐</span>
                           <span>{profile.website.replace(/^https?:\/\//, '')}</span>
                         </a>
                       )}
