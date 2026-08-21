@@ -288,7 +288,7 @@ function MessengerPage() {
     }, []);
 
     // Identity switching
-    const { isClubMode, clubPage, hasClubPage, ownedPages, switchToPersonal, switchToClub, identityLoaded } = useActiveIdentity();
+    const { isClubMode, clubPage, hasClubPage, ownedPages, switchToPersonal, switchToClub, identityLoaded, refreshUnreadCounts } = useActiveIdentity();
 
     const getClubMetadata = () => {
         if (isClubMode && clubPage) {
@@ -378,6 +378,11 @@ function MessengerPage() {
             return JSON.parse(localStorage.getItem('sp-pinned-conversations') || '[]');
         } catch { return []; }
     });
+    // Users this account has blocked. send-message and start-conversation have
+    // enforced messenger_blocked for a while, but nothing in this messenger
+    // ever wrote it - the only writer was the in-game table messenger - so the
+    // table was empty platform-wide and blocking did nothing here.
+    const [blockedUserIds, setBlockedUserIds] = useState([]);
     // Hidden messages (delete-for-me persistence)
     const [hiddenMessageIds] = useState(() => {
         try {
@@ -1005,13 +1010,108 @@ function MessengerPage() {
                 } catch (e) {
                     setConnectionStatus('disconnected');
                 }
+                // Same tick refreshes the per-identity counts behind the Club
+                // Arena drawer badge, so it can no longer sit minutes behind
+                // the club rows it is summarising.
+                try { await refreshUnreadCounts?.(); } catch (_e) { /* non-fatal */ }
             };
             pollInbox();
             const intervalId = setInterval(pollInbox, 30000);
             return () => clearInterval(intervalId);
             // identity is a dependency: switching to a club in the Club Arena
             // widget changes which inbox this poll is counting.
-        }, [user?.id, isClubMode, clubPage?.id]);
+        }, [user?.id, isClubMode, clubPage?.id, refreshUnreadCounts]);
+
+    // Load this account's block list once, so the conversation menu can offer
+    // Block or Unblock correctly rather than guessing.
+    useEffect(() => {
+        if (!user?.id) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const token = getAccessToken();
+                const resp = await authedFetch('/api/messenger/block-user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({ action: 'list' }),
+                });
+                const json = await resp.json();
+                if (!cancelled && json?.success) setBlockedUserIds(json.blocked || []);
+            } catch (e) {
+                console.warn('[Messenger] Block list load failed:', e?.message || e);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [user?.id]);
+
+    // ── Search across every conversation, not just by contact name ──
+    //
+    // The sidebar filter only ever matched the other person's name, so there
+    // was no way to find a message by what it said. /api/messenger/global-search
+    // does exactly that - auth'd, LIKE-escaped, rate limited, capped at 30 -
+    // and had zero callers since the day it was written. This is its caller.
+    const [messageHits, setMessageHits] = useState([]);
+    const [messageHitsLoading, setMessageHitsLoading] = useState(false);
+
+    useEffect(() => {
+        const q = (searchQuery || '').trim();
+        if (q.length < 2) { setMessageHits([]); setMessageHitsLoading(false); return; }
+        let cancelled = false;
+        setMessageHitsLoading(true);
+        const t = setTimeout(async () => {
+            try {
+                const token = getAccessToken();
+                const resp = await authedFetch('/api/messenger/global-search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({ query: q }),
+                });
+                const json = await resp.json();
+                if (!cancelled) setMessageHits(json?.success ? (json.results || []) : []);
+            } catch (e) {
+                console.warn('[Messenger] Message search failed:', e?.message || e);
+                if (!cancelled) setMessageHits([]);
+            } finally {
+                if (!cancelled) setMessageHitsLoading(false);
+            }
+        }, 300);
+        return () => { cancelled = true; clearTimeout(t); };
+    }, [searchQuery]);
+
+    const handleToggleBlock = useCallback(async (targetUserId, shouldBlock) => {
+        if (!targetUserId || !user?.id) return;
+        // optimistic, reverted on failure
+        setBlockedUserIds(prev => (shouldBlock
+            ? Array.from(new Set([...prev, targetUserId]))
+            : prev.filter(id => id !== targetUserId)));
+        try {
+            const token = getAccessToken();
+            const resp = await authedFetch('/api/messenger/block-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    action: shouldBlock ? 'block' : 'unblock',
+                    targetUserId,
+                }),
+            });
+            const json = await resp.json();
+            if (!json?.success) throw new Error(json?.error || 'Block failed');
+        } catch (e) {
+            console.warn('[Messenger] Block toggle failed:', e?.message || e);
+            setBlockedUserIds(prev => (shouldBlock
+                ? prev.filter(id => id !== targetUserId)
+                : Array.from(new Set([...prev, targetUserId]))));
+        }
+    }, [user?.id]);
 
     // Subscribe to real-time messages for ACTIVE conversation
     useEffect(() => {
@@ -4307,6 +4407,11 @@ function MessengerPage() {
                                         currentUserId={user.id}
                                         onlineUsers={onlineUsers}
                                         isPinned={pinnedConvoIds.includes(conv.id)}
+                                        isBlocked={blockedUserIds.includes(
+                                            conv.otherUser?.id
+                                            || conv.participants?.find(p => p.id !== user.id)?.id
+                                        )}
+                                        onBlock={handleToggleBlock}
                                         theme={C}
                                         onPin={(id) => {
                                             setPinnedConvoIds(prev => {
@@ -4342,6 +4447,91 @@ function MessengerPage() {
                                         }}
                                     />
                                 ))}
+
+                                {/* Messages matching the search, from every
+                                    conversation. The list above only ever
+                                    filtered on the other person's name. */}
+                                {searchQuery.trim().length >= 2 && (
+                                    <div style={{ padding: '4px 0 12px' }}>
+                                        <div style={{
+                                            padding: '10px 16px 6px',
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            letterSpacing: '0.06em',
+                                            textTransform: 'uppercase',
+                                            color: C.textSec,
+                                        }}>
+                                            Messages
+                                            {messageHitsLoading ? '' : ` (${messageHits.length})`}
+                                        </div>
+
+                                        {messageHitsLoading && (
+                                            <div style={{ padding: '6px 16px', fontSize: 13, color: C.textSec }}>
+                                                Searching...
+                                            </div>
+                                        )}
+
+                                        {!messageHitsLoading && messageHits.length === 0 && (
+                                            <div style={{ padding: '6px 16px', fontSize: 13, color: C.textSec }}>
+                                                No messages match that.
+                                            </div>
+                                        )}
+
+                                        {!messageHitsLoading && messageHits.map(hit => {
+                                            const conv = conversations.find(c => c.id === hit.conversation_id);
+                                            const who = hit.isOwn
+                                                ? 'You'
+                                                : (hit.sender?.display_name || hit.sender?.username || 'Unknown');
+                                            return (
+                                                <button
+                                                    key={hit.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (conv) {
+                                                            setSearchQuery('');
+                                                            handleSelectConversation(conv);
+                                                        }
+                                                    }}
+                                                    disabled={!conv}
+                                                    title={conv ? 'Open this conversation' : 'Conversation not in this inbox'}
+                                                    style={{
+                                                        display: 'block',
+                                                        width: '100%',
+                                                        textAlign: 'left',
+                                                        padding: '8px 16px',
+                                                        border: 'none',
+                                                        background: 'transparent',
+                                                        cursor: conv ? 'pointer' : 'default',
+                                                        opacity: conv ? 1 : 0.55,
+                                                    }}
+                                                    onMouseEnter={e => { if (conv) e.currentTarget.style.background = C.hoverBg; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                                >
+                                                    <div style={{
+                                                        fontSize: 12,
+                                                        color: C.textSec,
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        gap: 8,
+                                                    }}>
+                                                        <span style={{ fontWeight: 600 }}>{who}</span>
+                                                        <span>{hit.created_at ? new Date(hit.created_at).toLocaleDateString() : ''}</span>
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: 13,
+                                                        color: C.text,
+                                                        marginTop: 2,
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        whiteSpace: 'nowrap',
+                                                    }}>
+                                                        {hit.content}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>

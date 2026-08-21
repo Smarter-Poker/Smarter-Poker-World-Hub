@@ -20,10 +20,12 @@ export function ConversationItem({
     onClick, 
     currentUserId, 
     onlineUsers, 
-    isPinned, 
-    onPin, 
+    isPinned,
+    onPin,
     onDelete,
-    theme: C = defaultTheme 
+    onBlock,
+    isBlocked,
+    theme: C = defaultTheme
 }) {
     const otherUser = conversation.otherUser || conversation.participants?.find(p => p.id !== currentUserId);
     const lastMsg = conversation.last_message_preview || conversation.lastMessage;
@@ -96,6 +98,19 @@ export function ConversationItem({
                         onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >{isPinned ? 'Unpin' : 'Pin To Top'}</button>
+                    {/* Blocking had no control anywhere in this messenger, so
+                        messenger_blocked was empty and the server-side
+                        enforcement in send-message / start-conversation had
+                        nothing to enforce. Group threads have no single other
+                        party, so the action is offered only on direct ones. */}
+                    {otherUser?.id && !conversation.is_group && (
+                        <button
+                            onClick={() => { onBlock?.(otherUser.id, !isBlocked); setShowConvoMenu(false); }}
+                            style={{ display: 'block', width: '100%', padding: '10px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: isBlocked ? C.text : C.red, fontSize: 14 }}
+                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >{isBlocked ? 'Unblock' : 'Block'}</button>
+                    )}
                     <button
                         onClick={() => { onDelete?.(conversation.id); setShowConvoMenu(false); }}
                         style={{ display: 'block', width: '100%', padding: '10px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: C.red, fontSize: 14 }}
