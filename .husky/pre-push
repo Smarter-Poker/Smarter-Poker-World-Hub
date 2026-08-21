@@ -132,6 +132,26 @@ else
   echo "  ✓ No orphaned Club Arena assets"
 fi
 
+# ─── CHECK 6: Club Arena throwables freshness (stale-bundle gate) ───────────
+# 2026-08-21: a rebuild from a stale local checkout replaced the current
+# Club Arena bundle with a months-old one, silently reverting the throwables
+# system in production. Every other gate passed — the bundle was valid, in
+# budget, lint-clean. Only its CONTENT was old. This runs whenever the built
+# output is part of the push.
+echo "CHECK 6: Club Arena throwables freshness..."
+if echo "$CHANGED_FILES" | grep -q '^public/hub/club-arena/'; then
+  if node scripts/ci/check-ca-throwables-freshness.mjs; then
+    echo "  ✓ Club Arena bundle is current"
+  else
+    echo "  ❌ BLOCKED: the Club Arena bundle being pushed is STALE"
+    echo "     Run 'git pull' in ~/Documents/club-arena and rebuild,"
+    echo "     or let build-for-world-hub sync from canonical main."
+    ERRORS=$((ERRORS + 1))
+  fi
+else
+  echo "  ✓ No Club Arena build output in this push"
+fi
+
 # ─── RESTORE ────────────────────────────────────────────────────────────────
 if [ "$HAS_CHANGES" = true ]; then
   git stash pop --quiet 2>/dev/null
