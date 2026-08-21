@@ -5,10 +5,10 @@
    listeners, haptics, and precise card/board logic.
    ═══════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import PlayingCard from '../poker/PlayingCard';
 import { triggerHaptic } from '../../state/userPreferences';
-import { getSupabase } from '../../config/supabaseClient';
+import { supabase } from '../../lib/supabase';
 
 const METAL = {
   bg: '#0d1117',
@@ -305,7 +305,7 @@ export const BBJModal = ({ clubId, onClose }) => {
 
   useEffect(() => {
     if (!clubId) return;
-    const channel = getSupabase().channel('bbj_winners_live')
+    const channel = supabase.channel('bbj_winners_live')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bbj_winners', filter: `club_id=eq.${clubId}` }, (payload) => {
         triggerHaptic('heavy');
         setTimeout(() => triggerHaptic('heavy'), 200);
@@ -339,7 +339,7 @@ export const BBJModal = ({ clubId, onClose }) => {
       .subscribe();
 
     return () => {
-      getSupabase().removeChannel(channel);
+      supabase.removeChannel(channel);
     };
   }, [clubId]);
 
@@ -406,11 +406,11 @@ export const useBBJ = (clubId) => {
   const [amount, setAmount] = useState(0);
   useEffect(() => {
     if (!clubId) return;
-    const ch = getSupabase().channel('bbj_pools_live')
+    const ch = supabase.channel('bbj_pools_live')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bbj_pools', filter: `club_id=eq.${clubId}` }, (payload) => {
         setAmount(payload.new.pool_amount);
       }).subscribe();
-    return () => getSupabase().removeChannel(ch);
+    return () => supabase.removeChannel(ch);
   }, [clubId]);
   return { amount };
 };
