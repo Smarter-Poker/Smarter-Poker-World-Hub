@@ -178,8 +178,72 @@ export default async function handler(req, res) {
     const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
     if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
+    // ── Dan 2026-08-21, BINDING: "CONVERT DIAMONDS INTO CHIPS, 100 DIAMONDS
+    //    EQUALS 10,000 CHIPS." ──
+    //
+    // AUDIT 2026-08-21: this route called mint_club_chips, which credits the
+    // club pool and burns NOTHING. Every chip in the economy is supposed to be
+    // backed by diamonds, so an authenticated owner could mint up to the daily
+    // ceiling for free from here while the Chip Mint UI charged them properly.
+    // Two doors, two prices, one of them free — closed by routing this door at
+    // the same diamond-backed RPC the UI uses.
+    //
+    // The RPC derives the actor from auth.uid(), so it must run as the CALLER,
+    // not as service_role. It also owns the union law (member clubs revoked;
+    // union owners/admins mint into the union bank).
+    const DIAMONDS_PER_CHIP = 1 / 100; // 1 diamond = 100 chips
+    const diamondsNeeded = Math.ceil(amount * DIAMONDS_PER_CHIP);
+
     try {
-      // Call atomic RPC — handles FOR UPDATE locking, auth check, and transaction logging
+      const callerClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      );
+
+      const { data: mintRes, error: mintErr } = await callerClient.rpc(
+        'fn_mint_chips_from_diamonds',
+        { p_club_id: clubId, p_diamonds: diamondsNeeded }
+      );
+
+      if (mintErr) {
+        console.warn('[mint-chips] diamond-mint RPC error:', mintErr);
+        return res.status(500).json(safeErrorResponse(mintErr, 'Mint failed'));
+      }
+      if (!mintRes?.success) {
+        return res.status(400).json({ success: false, error: mintRes?.error || 'Mint failed' });
+      }
+
+      notifyClubAdmins(supabaseAdmin, {
+        clubId, type: 'chips_minted',
+        title: `${amount.toLocaleString()} Chips Minted`,
+        message: `${amount.toLocaleString()} chips minted from ${diamondsNeeded.toLocaleString()} diamonds${notes ? ` — ${notes}` : ''}.`,
+        data: { amount, diamonds: diamondsNeeded },
+        excludeUserId: user.id,
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+
+      logAudit(supabaseAdmin, {
+        actionType: 'chips_minted', userId: user.id, clubId, amount, ip: extractIP(req),
+        details: { diamondsSpent: diamondsNeeded, scope: mintRes.scope, notes },
+      });
+
+      return res.status(200).json({
+        success: true,
+        clubId,
+        amount: mintRes.chips ?? amount,
+        diamondsSpent: mintRes.diamonds_spent ?? diamondsNeeded,
+        scope: mintRes.scope,
+        treasuryAfter: mintRes.club_pool_after ?? mintRes.union_bank_after ?? null,
+      });
+    } catch (err) {
+      console.warn('[mint-chips]', err);
+      return res.status(500).json(safeErrorResponse(err, 'Mint failed'));
+    }
+
+    /* eslint-disable no-unreachable */
+    try {
+      // LEGACY (unreachable, kept for one release as a rollback reference):
+      // free mint straight into the pool.
       const { data: result, error: rpcErr } = await getSupabase().rpc('mint_club_chips', {
         p_club_id: clubId,
         p_amount: amount,
