@@ -37,10 +37,17 @@ function generateSlug(name) {
 
 export default async function handler(req, res) {
   try {
-      // CDN cache: fresh for 60s, serve stale up to 300s
-      if (req.method === 'GET') {
-          res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-      }
+      // NO CDN CACHE HEADER HERE, deliberately.
+      //
+      // This used to set 'public, s-maxage=60, stale-while-revalidate=300'.
+      // It never took effect - vercel.json applies
+      // 'no-store, no-cache, must-revalidate' to /api/(.*) and that wins - but
+      // it read as though this endpoint were shared-cacheable, and it is not:
+      // with owner_id + include_memberships it returns per-user unread counts
+      // from fn_get_all_identity_unread_counts. If anyone ever adds a more
+      // specific vercel.json rule for this path, that stale line would have
+      // quietly made one account's unread counts CDN-cacheable. Removed rather
+      // than left as a trap.
 
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
           if (!applyRateLimit(req, res, LIMITS.write)) return;

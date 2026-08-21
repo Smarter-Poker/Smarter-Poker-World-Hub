@@ -53,11 +53,10 @@ export {
     default as SmarterPokerStyleDefault
 } from './SmarterPokerStyleCard';
 
-export {
-    ChatWindow,
-    ConversationList,
-    default as SmarterPokerMessengerDefault
-} from './SmarterPokerMessenger';
+// SmarterPokerMessenger.jsx removed 2026-08-21: a 204 KB dead fork of
+// ClubArenaMessenger.jsx whose only reference was this re-export, which
+// nothing imported. messengerPrefsSync.js documents an earlier drift incident
+// between the two copies.
 
 export {
     NotificationItem,

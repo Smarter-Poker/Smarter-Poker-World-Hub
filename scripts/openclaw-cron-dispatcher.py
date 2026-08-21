@@ -169,6 +169,13 @@ ALL_CRONS = [
     # blocks net-new files there, so this uses the /api/news/digest pattern of
     # a CRON_SECRET bearer on a normal route.
     ('/api/club-arena/union-invoice?action=send', dict(day_of_week='mon', hour=13, minute=0)),
+    # Scheduled messages (2026-08-21). messenger_scheduled had been write-only
+    # since it shipped: the UI queues a message and lists it, and nothing
+    # anywhere ever selected a due row and sent it. fn_messenger_dispatch_
+    # scheduled claims rows FOR UPDATE SKIP LOCKED so overlapping runs cannot
+    # double-send, which makes the cadence safe to run often. Route lives
+    # outside pages/api/cron/ for the same reason as the invoice job above.
+    ('/api/messenger/dispatch-scheduled',         dict(minute='*/5')),
     # ('/api/cron/union-rakeback', ...) — RETIRED 2026-08-20. Double-payer.
     # The union 90/10 weekly rakeback is paid by the ENGINE:
     # RakebackSettlerService.runUnionWeeklyRakeback() calls

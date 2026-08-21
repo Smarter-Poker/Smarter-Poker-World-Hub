@@ -10,7 +10,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken, ensureAuthReady, authedFetch } from '../../src/lib/authUtils';
@@ -31,11 +31,10 @@ const LiveKitCall = dynamic(
     { ssr: false }
 );
 
-// Dynamic import for Jarvis AI Widget (client-side only)
-const JarvisMessengerWidget = dynamic(
-    () => import('../../src/world/components/Jarvis/JarvisMessengerWidget'),
-    { ssr: false }
-);
+// JarvisMessengerWidget's dynamic import was removed 2026-08-21: it was
+// declared here and never rendered anywhere in this page, so it only served to
+// keep a chunk in the graph. The Jarvis conversation itself is handled inline
+// (see handleSelectConversation's isJarvis branch).
 
 // God-Mode Stack
 import { useMessengerStore } from '../../src/stores/messengerStore';
@@ -288,7 +287,7 @@ function MessengerPage() {
     }, []);
 
     // Identity switching
-    const { isClubMode, clubPage, hasClubPage, ownedPages, switchToPersonal, switchToClub, identityLoaded } = useActiveIdentity();
+    const { isClubMode, clubPage, hasClubPage, ownedPages, switchToPersonal, switchToClub, identityLoaded, refreshUnreadCounts } = useActiveIdentity();
 
     const getClubMetadata = () => {
         if (isClubMode && clubPage) {
@@ -378,6 +377,18 @@ function MessengerPage() {
             return JSON.parse(localStorage.getItem('sp-pinned-conversations') || '[]');
         } catch { return []; }
     });
+    // Stable identity for "which conversations exist", independent of order or
+    // of the array being rebuilt. See the request-count effect below.
+    const conversationIdKey = useMemo(
+        () => (conversations || []).map(c => c.id).sort().join(','),
+        [conversations]
+    );
+
+    // Users this account has blocked. send-message and start-conversation have
+    // enforced messenger_blocked for a while, but nothing in this messenger
+    // ever wrote it - the only writer was the in-game table messenger - so the
+    // table was empty platform-wide and blocking did nothing here.
+    const [blockedUserIds, setBlockedUserIds] = useState([]);
     // Hidden messages (delete-for-me persistence)
     const [hiddenMessageIds] = useState(() => {
         try {
@@ -492,6 +503,11 @@ function MessengerPage() {
 
     // Keep ref in sync so global RT channel can read it without re-subscribing
     useEffect(() => { activeConversationRef.current = activeConversation; }, [activeConversation]);
+    // The 30s inbox poll is deliberately NOT re-created when the sidebar
+    // changes (that would tear down and rebuild the interval on every
+    // incoming message), so it reads the current list through a ref.
+    const conversationsRef = useRef([]);
+    useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
     // DEEP-SWEEP FIX: callTypeRef prevents stale closure in broadcast handlers
     const callTypeRef = useRef(callType);
     useEffect(() => { callTypeRef.current = callType; }, [callType]);
@@ -791,7 +807,13 @@ function MessengerPage() {
             }
         };
         fetchRequestCount();
-    }, [user?.id, conversations]);
+        // `conversations` gets a NEW array identity on every incoming message,
+        // every preview update, every 30s poll tick and every re-sort, and this
+        // effect runs TWO Supabase queries. Keying on the sorted id set instead
+        // means it re-runs when the set of conversations actually changes, not
+        // when the array is merely rebuilt or reordered.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, conversationIdKey]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // PROFILE SYNC: Update local user state when profile is edited
@@ -975,6 +997,35 @@ function MessengerPage() {
                         conversation_id: r.conversation_id,
                         unread_count: Number(r.unread_count) || 0,
                     }));
+
+                    // A conversation that did not exist when the sidebar was
+                    // built could only ever be UPDATED below, never ADDED - the
+                    // map() walks `prev`, so an id that is not already in the
+                    // list stayed invisible until a full page reload. That is
+                    // exactly the shape of the weekly statement thread: the
+                    // union creates it, and a club owner sitting in the
+                    // messenger would never see it arrive.
+                    //
+                    // Rebuilding through loadConversations rather than
+                    // synthesising a row here keeps one definition of what a
+                    // sidebar row is, and costs a request only on the tick
+                    // where a genuinely new thread appeared. The global
+                    // postgres_changes subscription is deliberately NOT coming
+                    // back: it streamed every social_messages row to every
+                    // logged-in user, which is why it was removed.
+                    const knownIds = new Set(
+                        (conversationsRef.current || []).map(c => c && c.id).filter(Boolean)
+                    );
+                    const hasNewThread = knownIds.size > 0
+                        && data.some(d => d.conversation_id && !knownIds.has(d.conversation_id));
+
+                    if (hasNewThread) {
+                        try {
+                            await loadConversationsRef.current?.(user.id);
+                        } catch (e) {
+                            console.warn('[Messenger] New-thread refresh failed:', e?.message || e);
+                        }
+                    } else {
                     setConversations(prev => {
                         let anyChanged = false;
                         const updated = prev.map(c => {
@@ -1002,16 +1053,112 @@ function MessengerPage() {
                             return timeB - timeA;
                         });
                     });
+                    }
                 } catch (e) {
                     setConnectionStatus('disconnected');
                 }
+                // Same tick refreshes the per-identity counts behind the Club
+                // Arena drawer badge, so it can no longer sit minutes behind
+                // the club rows it is summarising.
+                try { await refreshUnreadCounts?.(); } catch (_e) { /* non-fatal */ }
             };
             pollInbox();
             const intervalId = setInterval(pollInbox, 30000);
             return () => clearInterval(intervalId);
             // identity is a dependency: switching to a club in the Club Arena
             // widget changes which inbox this poll is counting.
-        }, [user?.id, isClubMode, clubPage?.id]);
+        }, [user?.id, isClubMode, clubPage?.id, refreshUnreadCounts]);
+
+    // Load this account's block list once, so the conversation menu can offer
+    // Block or Unblock correctly rather than guessing.
+    useEffect(() => {
+        if (!user?.id) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const token = getAccessToken();
+                const resp = await authedFetch('/api/messenger/block-user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({ action: 'list' }),
+                });
+                const json = await resp.json();
+                if (!cancelled && json?.success) setBlockedUserIds(json.blocked || []);
+            } catch (e) {
+                console.warn('[Messenger] Block list load failed:', e?.message || e);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [user?.id]);
+
+    // ── Search across every conversation, not just by contact name ──
+    //
+    // The sidebar filter only ever matched the other person's name, so there
+    // was no way to find a message by what it said. /api/messenger/global-search
+    // does exactly that - auth'd, LIKE-escaped, rate limited, capped at 30 -
+    // and had zero callers since the day it was written. This is its caller.
+    const [messageHits, setMessageHits] = useState([]);
+    const [messageHitsLoading, setMessageHitsLoading] = useState(false);
+
+    useEffect(() => {
+        const q = (searchQuery || '').trim();
+        if (q.length < 2) { setMessageHits([]); setMessageHitsLoading(false); return; }
+        let cancelled = false;
+        setMessageHitsLoading(true);
+        const t = setTimeout(async () => {
+            try {
+                const token = getAccessToken();
+                const resp = await authedFetch('/api/messenger/global-search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({ query: q }),
+                });
+                const json = await resp.json();
+                if (!cancelled) setMessageHits(json?.success ? (json.results || []) : []);
+            } catch (e) {
+                console.warn('[Messenger] Message search failed:', e?.message || e);
+                if (!cancelled) setMessageHits([]);
+            } finally {
+                if (!cancelled) setMessageHitsLoading(false);
+            }
+        }, 300);
+        return () => { cancelled = true; clearTimeout(t); };
+    }, [searchQuery]);
+
+    const handleToggleBlock = useCallback(async (targetUserId, shouldBlock) => {
+        if (!targetUserId || !user?.id) return;
+        // optimistic, reverted on failure
+        setBlockedUserIds(prev => (shouldBlock
+            ? Array.from(new Set([...prev, targetUserId]))
+            : prev.filter(id => id !== targetUserId)));
+        try {
+            const token = getAccessToken();
+            const resp = await authedFetch('/api/messenger/block-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    action: shouldBlock ? 'block' : 'unblock',
+                    targetUserId,
+                }),
+            });
+            const json = await resp.json();
+            if (!json?.success) throw new Error(json?.error || 'Block failed');
+        } catch (e) {
+            console.warn('[Messenger] Block toggle failed:', e?.message || e);
+            setBlockedUserIds(prev => (shouldBlock
+                ? prev.filter(id => id !== targetUserId)
+                : Array.from(new Set([...prev, targetUserId]))));
+        }
+    }, [user?.id]);
 
     // Subscribe to real-time messages for ACTIVE conversation
     useEffect(() => {
@@ -1514,7 +1661,16 @@ function MessengerPage() {
         try {
             const { data, error } = await withRetry(
                 async () => {
-                    const { data: participations, error: partError } = await supabase
+                    // The identity filter has to be applied here too. Without
+                    // it this fallback returned EVERY conversation the user
+                    // participates in - private personal DMs included -
+                    // rendered underneath the "MESSAGING AS: <CLUB>" header.
+                    // The API route's own fallback carries a long comment
+                    // about fixing exactly this; the client copy never got it.
+                    // IS NOT DISTINCT FROM semantics: null means the personal
+                    // inbox, and .eq() would never match a NULL column.
+                    const activeContextId = isClubMode && clubPage ? clubPage.id : null;
+                    let q = supabase
                         .from('social_conversation_participants')
                         .select(`
                             conversation_id,
@@ -1524,11 +1680,16 @@ function MessengerPage() {
                                 last_message_at,
                                 last_message_preview,
                                 is_group,
+                                group_name,
                                 is_request,
                                 request_sender_id
                             )
                         `)
-                        .eq('user_id', userId)
+                        .eq('user_id', userId);
+                    q = activeContextId
+                        ? q.eq('context_entity_id', activeContextId)
+                        : q.is('context_entity_id', null);
+                    const { data: participations, error: partError } = await q
                         .order('social_conversations(last_message_at)', { ascending: false });
 
                     if (partError) throw partError;
@@ -1613,10 +1774,18 @@ function MessengerPage() {
                 };
             });
 
-            // Sort and set - filter out conversations without other users
-            // Also filter out message requests where user is the RECIPIENT (not the sender)
+            // Sort and set.
+            //
+            // This used to be `.filter(c => c.otherUser)`, which silently threw
+            // away every GROUP conversation - a group has no single other
+            // party, so otherUser is null by definition. The union's weekly
+            // statement thread is exactly that shape, so on any request that
+            // fell through to this path the statements were fetched and then
+            // discarded before render. A group is kept if it says so or if it
+            // has a title to show.
+            // Requests where the user is the RECIPIENT stay filtered out.
             const sorted = enriched
-                .filter(c => c.otherUser)
+                .filter(c => c.otherUser || c.is_group || c.title || c.group_name)
                 .filter(c => !(c.is_request && c.request_sender_id && c.request_sender_id !== userId))
                 .sort((a, b) => {
                     const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
@@ -3445,6 +3614,17 @@ function MessengerPage() {
 
     const otherUser = activeConversation?.otherUser;
 
+    // A group thread has no other user, so every header that read otherUser
+    // rendered blank for one - including the union's weekly statement thread.
+    // The API path names it `title`, the direct-Supabase fallback `group_name`.
+    const activeTitle =
+        otherUser?.full_name
+        || otherUser?.display_name
+        || otherUser?.username
+        || activeConversation?.title
+        || activeConversation?.group_name
+        || (activeConversation?.is_group ? 'Group' : '');
+
     return (
         <>
             <Head>
@@ -4290,7 +4470,11 @@ function MessengerPage() {
                                     const otherName = conv.otherUser?.full_name?.toLowerCase() || '';
                                     const otherDisplayName = conv.otherUser?.display_name?.toLowerCase() || '';
                                     const otherUsername = conv.otherUser?.username?.toLowerCase() || '';
-                                    return otherName.includes(q) || otherDisplayName.includes(q) || otherUsername.includes(q);
+                                    // Group threads have no other user, so matching on
+                                    // names alone hid them the moment anything was typed.
+                                    const groupTitle = (conv.title || conv.group_name || '').toLowerCase();
+                                    return otherName.includes(q) || otherDisplayName.includes(q)
+                                        || otherUsername.includes(q) || groupTitle.includes(q);
                                 }).sort((a, b) => {
                                     // Pinned conversations always sort to top (using localStorage-backed state)
                                     const aPinned = pinnedConvoIds.includes(a.id);
@@ -4307,6 +4491,11 @@ function MessengerPage() {
                                         currentUserId={user.id}
                                         onlineUsers={onlineUsers}
                                         isPinned={pinnedConvoIds.includes(conv.id)}
+                                        isBlocked={blockedUserIds.includes(
+                                            conv.otherUser?.id
+                                            || conv.participants?.find(p => p.id !== user.id)?.id
+                                        )}
+                                        onBlock={handleToggleBlock}
                                         theme={C}
                                         onPin={(id) => {
                                             setPinnedConvoIds(prev => {
@@ -4342,6 +4531,91 @@ function MessengerPage() {
                                         }}
                                     />
                                 ))}
+
+                                {/* Messages matching the search, from every
+                                    conversation. The list above only ever
+                                    filtered on the other person's name. */}
+                                {searchQuery.trim().length >= 2 && (
+                                    <div style={{ padding: '4px 0 12px' }}>
+                                        <div style={{
+                                            padding: '10px 16px 6px',
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            letterSpacing: '0.06em',
+                                            textTransform: 'uppercase',
+                                            color: C.textSec,
+                                        }}>
+                                            Messages
+                                            {messageHitsLoading ? '' : ` (${messageHits.length})`}
+                                        </div>
+
+                                        {messageHitsLoading && (
+                                            <div style={{ padding: '6px 16px', fontSize: 13, color: C.textSec }}>
+                                                Searching...
+                                            </div>
+                                        )}
+
+                                        {!messageHitsLoading && messageHits.length === 0 && (
+                                            <div style={{ padding: '6px 16px', fontSize: 13, color: C.textSec }}>
+                                                No messages match that.
+                                            </div>
+                                        )}
+
+                                        {!messageHitsLoading && messageHits.map(hit => {
+                                            const conv = conversations.find(c => c.id === hit.conversation_id);
+                                            const who = hit.isOwn
+                                                ? 'You'
+                                                : (hit.sender?.display_name || hit.sender?.username || 'Unknown');
+                                            return (
+                                                <button
+                                                    key={hit.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (conv) {
+                                                            setSearchQuery('');
+                                                            handleSelectConversation(conv);
+                                                        }
+                                                    }}
+                                                    disabled={!conv}
+                                                    title={conv ? 'Open this conversation' : 'Conversation not in this inbox'}
+                                                    style={{
+                                                        display: 'block',
+                                                        width: '100%',
+                                                        textAlign: 'left',
+                                                        padding: '8px 16px',
+                                                        border: 'none',
+                                                        background: 'transparent',
+                                                        cursor: conv ? 'pointer' : 'default',
+                                                        opacity: conv ? 1 : 0.55,
+                                                    }}
+                                                    onMouseEnter={e => { if (conv) e.currentTarget.style.background = C.hoverBg; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                                >
+                                                    <div style={{
+                                                        fontSize: 12,
+                                                        color: C.textSec,
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        gap: 8,
+                                                    }}>
+                                                        <span style={{ fontWeight: 600 }}>{who}</span>
+                                                        <span>{hit.created_at ? new Date(hit.created_at).toLocaleDateString() : ''}</span>
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: 13,
+                                                        color: C.text,
+                                                        marginTop: 2,
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        whiteSpace: 'nowrap',
+                                                    }}>
+                                                        {hit.content}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
@@ -4503,11 +4777,11 @@ function MessengerPage() {
                                     )}
 
                                     <Link href={`/hub/user/${otherUser?.username}`}>
-                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.full_name || otherUser?.display_name || otherUser?.username} size={40} online={otherUserStatus === 'online'} />
+                                        <Avatar src={otherUser?.avatar_url} name={activeTitle} size={40} online={!!otherUser && otherUserStatus === 'online'} />
                                     </Link>
 
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 15 }}>{otherUser?.full_name || otherUser?.display_name || otherUser?.username}</div>
+                                        <div style={{ fontWeight: 600, fontSize: 15 }}>{activeTitle}</div>
                                         <div style={{ fontSize: 12, color: otherUserStatus === 'online' ? C.green : C.textSec }}>
                                             {otherUserStatus === 'online' ? 'Active Now' : otherUserLastSeen ? `Active ${(() => {
                                                 const diff = Date.now() - new Date(otherUserLastSeen).getTime();
@@ -4710,8 +4984,8 @@ function MessengerPage() {
                                     )}
                                     {/* User info header */}
                                     <div style={{ textAlign: 'center', marginBottom: 24, padding: '0 20px' }}>
-                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.full_name || otherUser?.display_name || otherUser?.username} size={80} showOnline={false} />
-                                        <div style={{ marginTop: 12, fontWeight: 600, fontSize: 17 }}>{otherUser?.full_name || otherUser?.display_name || otherUser?.username}</div>
+                                        <Avatar src={otherUser?.avatar_url} name={activeTitle} size={80} showOnline={false} />
+                                        <div style={{ marginTop: 12, fontWeight: 600, fontSize: 17 }}>{activeTitle}</div>
                                         <div style={{ color: C.textSec, fontSize: 13 }}>Smarter.Poker Member</div>
                                         <Link href={`/hub/user/${otherUser?.username}`} style={{
                                             display: 'inline-block',

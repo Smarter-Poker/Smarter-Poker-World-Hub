@@ -20,12 +20,31 @@ export function ConversationItem({
     onClick, 
     currentUserId, 
     onlineUsers, 
-    isPinned, 
-    onPin, 
+    isPinned,
+    onPin,
     onDelete,
-    theme: C = defaultTheme 
+    onBlock,
+    isBlocked,
+    theme: C = defaultTheme
 }) {
     const otherUser = conversation.otherUser || conversation.participants?.find(p => p.id !== currentUserId);
+
+    // A group thread has no "other user" - the union's weekly statement thread
+    // is exactly this shape. Without a title fallback every group rendered as
+    // "Unknown" with a blank avatar, which is how the statements looked when
+    // they first landed in the inbox: present, but nameless and unopenable-
+    // looking. fn_get_user_conversations returns group_name as `title`.
+    // The API path exposes the name as `title`; the direct-Supabase fallback
+    // path spreads the row and exposes it as `group_name`. Accept both.
+    const groupTitle = conversation.title || conversation.group_name || null;
+    const isGroupThread = conversation.is_group || (!otherUser && !!groupTitle);
+    const displayName =
+        otherUser?.full_name
+        || otherUser?.display_name
+        || otherUser?.username
+        || otherUser?.name
+        || groupTitle
+        || (isGroupThread ? 'Group' : 'Unknown');
     const lastMsg = conversation.last_message_preview || conversation.lastMessage;
     const isUnread = conversation.unreadCount > 0;
     
@@ -96,6 +115,19 @@ export function ConversationItem({
                         onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >{isPinned ? 'Unpin' : 'Pin To Top'}</button>
+                    {/* Blocking had no control anywhere in this messenger, so
+                        messenger_blocked was empty and the server-side
+                        enforcement in send-message / start-conversation had
+                        nothing to enforce. Group threads have no single other
+                        party, so the action is offered only on direct ones. */}
+                    {otherUser?.id && !isGroupThread && (
+                        <button
+                            onClick={() => { onBlock?.(otherUser.id, !isBlocked); setShowConvoMenu(false); }}
+                            style={{ display: 'block', width: '100%', padding: '10px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: isBlocked ? C.text : C.red, fontSize: 14 }}
+                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >{isBlocked ? 'Unblock' : 'Block'}</button>
+                    )}
                     <button
                         onClick={() => { onDelete?.(conversation.id); setShowConvoMenu(false); }}
                         style={{ display: 'block', width: '100%', padding: '10px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: C.red, fontSize: 14 }}
@@ -107,9 +139,9 @@ export function ConversationItem({
 
             <Avatar
                 src={otherUser?.avatar_url}
-                name={otherUser?.full_name || otherUser?.display_name || otherUser?.username || otherUser?.name}
+                name={displayName}
                 size={56}
-                online={isOtherOnline}
+                online={isGroupThread ? false : isOtherOnline}
                 theme={C}
             />
 
@@ -128,7 +160,7 @@ export function ConversationItem({
                             <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
                         </svg>
                     )}
-                    {otherUser?.full_name || otherUser?.display_name || otherUser?.username || otherUser?.name || 'Unknown'}
+                    {displayName}
                 </div>
                 <div style={{
                     fontSize: 13,

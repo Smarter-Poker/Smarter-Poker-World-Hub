@@ -159,6 +159,45 @@ export function ActiveIdentityProvider({ children }) {
         return () => { mounted = false; }; // Cleanup: mark as unmounted
     }, []);
 
+    // ── Refresh just the per-identity unread counts ──
+    //
+    // The Club Arena drawer badge sums ownedPages[].unread_count, which is
+    // populated once by the page fetch above and then only by the 5-minute
+    // identity sync. The inbox beside it refreshes every 30 seconds. So the
+    // badge and the club rows under it routinely showed different numbers -
+    // not because they disagreed on the maths (they no longer do, see
+    // 'identity_unread_counts_match_the_inbox') but because one was minutes
+    // stale. The messenger calls this on the same tick as its inbox poll.
+    const refreshUnreadCounts = useCallback(async () => {
+        try {
+            const authUser = getAuthUser();
+            const userId = authUser?.id;
+            if (!userId) return;
+            const res = await fetch(
+                `/api/social/pages?owner_id=${userId}&include_memberships=true`
+            );
+            if (!res.ok) return;
+            const json = await res.json();
+            if (!json?.success || !Array.isArray(json.data)) return;
+            const counts = new Map(
+                json.data.map((p) => [p.id, p.unread_count || 0])
+            );
+            setOwnedPages((prev) => {
+                let changed = false;
+                const next = prev.map((p) => {
+                    if (!counts.has(p.id)) return p;
+                    const fresh = counts.get(p.id);
+                    if (fresh === p.unread_count) return p;
+                    changed = true;
+                    return { ...p, unread_count: fresh };
+                });
+                return changed ? next : prev;
+            });
+        } catch (e) {
+            console.warn('[ActiveIdentity] Unread refresh failed:', e?.message || e);
+        }
+    }, []);
+
     // Persist to localStorage on change
     useEffect(() => {
         try {
@@ -384,6 +423,7 @@ export function ActiveIdentityProvider({ children }) {
         hasClubPage: ownedPages.length > 0,
         ownedPages,
         identityLoaded,
+        refreshUnreadCounts,
     };
 
     return (
