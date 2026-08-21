@@ -150,7 +150,7 @@ export default function AvatarsPage() {
                                 </div>
                             ) : (
                                 <div className="current-avatar" style={{ opacity: 0.7 }}>
-                                    <div className="current-avatar-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.1)', fontSize: 24, color: '#888' }}>?</div>
+                                    <div className="current-avatar-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,245,255,0.05)', fontSize: 24, color: '#00f5ff', textShadow: '0 0 8px rgba(0,245,255,0.6)', border: '3px solid rgba(0,245,255,0.3)' }}>?</div>
                                     <div className="current-avatar-info">
                                         <div className="current-avatar-label">Current Avatar</div>
                                         <div className="current-avatar-name">None Selected</div>

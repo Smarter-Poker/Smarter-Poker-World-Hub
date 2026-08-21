@@ -156,6 +156,45 @@ export default function AvatarGallery({ onSelect }) {
   return (
     <div className="avatar-gallery">
       <style>{`
+        .create-custom-btn {
+          padding: 15px 40px;
+          background: linear-gradient(145deg, #2c3545 0%, #161b22 100%);
+          border: 2px solid #00f5ff;
+          border-radius: 12px;
+          color: #00f5ff;
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          text-transform: uppercase;
+          box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.1), 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 10px rgba(0, 245, 255, 0.4);
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .create-custom-btn:hover {
+          background: linear-gradient(145deg, #364152 0%, #1e242d 100%);
+          box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2), 0 6px 20px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 245, 255, 0.6);
+          transform: translateY(-2px);
+          color: #fff;
+        }
+
+        .glow-spinner {
+          width: 50px;
+          height: 50px;
+          border: 3px solid rgba(0, 245, 255, 0.1);
+          border-top: 3px solid #00f5ff;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
         .avatar-gallery {
           width: 100%;
         }
@@ -395,6 +434,65 @@ export default function AvatarGallery({ onSelect }) {
         .builder-close:hover {
           background: rgba(255, 68, 68, 0.4);
         }
+              .category-btn {
+          padding: 8px 20px;
+          border-radius: 20px;
+          background: linear-gradient(145deg, #1c2229 0%, #101419 100%);
+          border: 1px solid #4a525a;
+          color: #888;
+          cursor: pointer;
+          font-family: 'Rajdhani', sans-serif;
+          font-weight: 600;
+          font-size: 14px;
+          white-space: nowrap;
+          transition: all 0.3s ease;
+          text-transform: uppercase;
+          box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+        .category-btn:hover {
+          color: #fff;
+          border-color: #8a929a;
+          transform: translateY(-1px);
+        }
+        .category-btn.active {
+          background: linear-gradient(145deg, #161b22 0%, #0d1116 100%);
+          border-color: #00f5ff;
+          color: #00f5ff;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(0, 245, 255, 0.3);
+        }
+
+              .delete-avatar-btn {
+          position: absolute;
+          top: 10px; left: 10px;
+          width: 32px; height: 32px;
+          border-radius: 50%;
+          background: linear-gradient(145deg, #2c1111 0%, #160808 100%);
+          border: 2px solid #ff4444;
+          color: #ff4444;
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: inset 0 2px 4px rgba(255, 68, 68, 0.2), 0 2px 8px rgba(0,0,0,0.8);
+          z-index: 10;
+          transition: all 0.3s ease;
+        }
+        .delete-avatar-btn:hover {
+          background: #ff4444;
+          color: #fff;
+          box-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+          transform: scale(1.1);
+        }
+        .delete-avatar-btn.free-tier {
+          opacity: 0.5;
+        }
+        .delete-avatar-btn.free-tier:hover {
+          opacity: 1;
+        }
+
       `}</style>
 
       {/* Custom Avatar Builder Modal */}
@@ -433,29 +531,7 @@ export default function AvatarGallery({ onSelect }) {
                 {/* DELETE BUTTON */}
                 <button
                   onClick={(e) => handleDeleteCustomAvatar(e, customAvatar.id)}
-                  style={{
-                    position: 'absolute',
-                    top: '8px',
-                    left: '8px',
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    background: 'rgba(255, 68, 68, 0.9)',
-                    border: '2px solid #fff',
-                    color: '#fff',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                    zIndex: 10,
-                    transition: 'all 0.2s ease',
-                    opacity: isVip ? 1 : 0.5
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = '#ff0000'}
-                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 68, 68, 0.9)'}
+                  className={`delete-avatar-btn ${!isVip ? 'free-tier' : ''}`}
                   title={isVip ? "Delete This Avatar" : "Delete Avatar (Warning: Cannot create another one without VIP)"}
                 >
                   X
@@ -510,20 +586,7 @@ export default function AvatarGallery({ onSelect }) {
           )}
           <button
             onClick={handleCreateNewCustom}
-            style={{
-              padding: '15px 40px',
-              background: 'linear-gradient(145deg, #2c3545 0%, #161b22 100%)',
-              border: '2px solid #00f5ff',
-              borderRadius: '12px',
-              color: '#00f5ff',
-              fontFamily: "'Rajdhani', sans-serif",
-              fontSize: '16px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              textTransform: 'uppercase',
-              boxShadow: 'inset 0 2px 4px rgba(255, 255, 255, 0.1), 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 10px rgba(0, 245, 255, 0.4)',
-              transition: 'all 0.3s ease'
-            }}
+            className="create-custom-btn"
           >
             <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%', marginRight: 8, verticalAlign: 'middle' }} />
             {isVip ? 'Create Custom Avatar' : 'Create Free AI Avatar'}
@@ -543,8 +606,11 @@ export default function AvatarGallery({ onSelect }) {
         </p>
 
         {loading ? (
-          <div className="loading-state">
-            <div>Loading Avatars...</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: '24px' }}>
+            <div className="glow-spinner" />
+            <div style={{ color: '#00f5ff', fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: '18px', letterSpacing: '2px', textTransform: 'uppercase', textShadow: '0 0 10px rgba(0, 245, 255, 0.5)' }}>
+              INITIALIZING AVATAR LIBRARY...
+            </div>
           </div>
         ) : (
           <>
@@ -564,32 +630,7 @@ export default function AvatarGallery({ onSelect }) {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '20px',
-                    background: activeCategory === cat ? 'rgba(0, 245, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                    border: `1px solid ${activeCategory === cat ? '#00f5ff' : 'rgba(255, 255, 255, 0.1)'}`,
-                    color: activeCategory === cat ? '#00f5ff' : '#888',
-                    cursor: 'pointer',
-                    fontFamily: "'Rajdhani', sans-serif",
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.2s',
-                    textTransform: 'uppercase'
-                  }}
-                  onMouseOver={(e) => {
-                    if (activeCategory !== cat) {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                      e.currentTarget.style.color = '#fff';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (activeCategory !== cat) {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                      e.currentTarget.style.color = '#888';
-                    }
-                  }}
+                  className={`category-btn ${activeCategory === cat ? 'active' : ''}`}
                 >
                   {cat}
                 </button>
@@ -673,7 +714,7 @@ export default function AvatarGallery({ onSelect }) {
                             alignItems: 'center',
                             gap: '5px'
                           }}>
-                            <span style={{ fontSize: '24px' }}>LOCKED</span>
+                            <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#FFD700', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '1px' }}>LOCKED</span>
                             <span style={{
                               color: '#FFD700',
                               fontFamily: "'Rajdhani', sans-serif",
