@@ -1,110 +1,276 @@
 /**
  * AVATAR GALLERY
  * Interactive grid for selecting preset and custom avatars
- * VIP users see: 5 custom slots (at top) + VIP preset avatars
- * FREE users see: FREE preset avatars only
+ * AAA Features: Holographic Tilt, SFX, Inspect Modal, Particle Burst
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getAvailableAvatars, getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 import CustomAvatarBuilder from './CustomAvatarBuilder';
 import toast from '../../stores/toastStore';
 import SPImage from '../common/SPImage';
 
+// --- AAA FEATURE: SFX ---
+const playSound = (type) => {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        if (type === 'click') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.05, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        } else if (type === 'equip') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        } else if (type === 'error') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(100, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+    } catch(e) {}
+};
+
+// --- AAA FEATURE: 3D Holographic Tilt Card ---
+const TiltCard = ({ children, className, onClick, style }) => {
+  const cardRef = useRef(null);
+  const [transform, setTransform] = useState('');
+  const [glare, setGlare] = useState({ x: 50, y: 50, opacity: 0 });
+
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = ((y - centerY) / centerY) * -15;
+    const rotateY = ((x - centerX) / centerX) * 15;
+    
+    setTransform(`perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`);
+    setGlare({ x: (x / rect.width) * 100, y: (y / rect.height) * 100, opacity: 1 });
+  };
+
+  const handleMouseLeave = () => {
+    setTransform('perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)');
+    setGlare({ x: 50, y: 50, opacity: 0 });
+  };
+
+  return (
+    <div 
+      ref={cardRef}
+      className={className}
+      onClick={onClick}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ 
+        ...style, 
+        transform, 
+        transition: transform === '' ? 'transform 0.5s ease' : 'none',
+        position: 'relative',
+        transformStyle: 'preserve-3d',
+        zIndex: transform !== '' ? 10 : 1
+      }}
+    >
+      {children}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 60%)`,
+        opacity: glare.opacity,
+        pointerEvents: 'none',
+        transition: 'opacity 0.3s ease',
+        borderRadius: 'inherit',
+        zIndex: 20,
+        mixBlendMode: 'overlay'
+      }} />
+    </div>
+  );
+};
+
+// --- AAA FEATURE: Inspect Modal ---
+const InspectModal = ({ avatar, isCustom, onClose, onEquip, isVip }) => {
+  if (!avatar) return null;
+
+  const handleEquip = () => {
+    if (avatar.isLocked) {
+      playSound('error');
+      toast.warning('Upgrade to VIP to unlock this premium avatar!');
+      return;
+    }
+    playSound('equip');
+    onEquip(avatar);
+  };
+
+  const name = isCustom ? (avatar.prompt?.substring(0,30) || 'Custom Avatar') : avatar.name;
+  const imageUrl = isCustom ? avatar.image_url : avatar.image;
+  const isVideo = imageUrl?.match(/\.(webm|mp4)$/i);
+  const isSelected = avatar.isSelected;
+  
+  // Fake lore generator
+  const getLore = () => {
+    if (isCustom) return "Forged by the neural net, a unique digital persona bound to the blockchain.";
+    if (avatar.category === 'Fantasy') return "Ancient powers resonate within this artifact.";
+    if (avatar.category === 'Sports') return "Born on the felt, refined in the crucible of the game.";
+    if (avatar.category === 'Animals') return "Primal instincts guide every calculated move.";
+    return "An elite identity reserved for the true grinders.";
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.85)',
+      backdropFilter: 'blur(10px)',
+      zIndex: 99999,
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }} onClick={onClose}>
+      <div style={{
+        background: 'linear-gradient(145deg, #161b22, #0d1116)',
+        border: '2px solid #4a525a',
+        borderRadius: '24px',
+        padding: '30px',
+        maxWidth: '500px',
+        width: '90%',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.8), inset 0 2px 10px rgba(255,255,255,0.1)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px',
+        position: 'relative'
+      }} onClick={e => e.stopPropagation()}>
+        
+        <button onClick={onClose} style={{
+          position: 'absolute', top: '15px', right: '15px',
+          background: 'transparent', border: 'none', color: '#888',
+          fontSize: '24px', cursor: 'pointer'
+        }}>✕</button>
+
+        <div style={{ width: '200px', height: '200px', borderRadius: '20px', overflow: 'hidden', border: '3px solid #00f5ff', boxShadow: '0 0 30px rgba(0,245,255,0.3)', position: 'relative' }}>
+            {isVideo ? (
+                <video src={imageUrl} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+                <SPImage src={imageUrl} alt={name} fill style={{ objectFit: 'cover' }} />
+            )}
+        </div>
+
+        <div style={{ textAlign: 'center' }}>
+          <h2 style={{ color: '#fff', margin: '0 0 10px 0', fontFamily: "'Rajdhani', sans-serif", fontSize: '28px', textTransform: 'uppercase', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+            {name}
+          </h2>
+          <p style={{ color: '#aaa', fontStyle: 'italic', margin: 0, fontSize: '16px' }}>
+            {getLore()}
+          </p>
+        </div>
+
+        <button
+          onClick={isSelected ? undefined : handleEquip}
+          style={{
+            padding: '15px 50px',
+            background: avatar.isLocked ? 'linear-gradient(145deg, #3a3a3a, #1a1a1a)' : isSelected ? 'linear-gradient(145deg, #00ff00, #008800)' : 'linear-gradient(145deg, #00f5ff, #0088ff)',
+            border: avatar.isLocked ? '2px solid #555' : 'none',
+            borderRadius: '30px',
+            color: avatar.isLocked ? '#888' : '#000',
+            fontFamily: "'Rajdhani', sans-serif",
+            fontSize: '20px',
+            fontWeight: 900,
+            cursor: avatar.isLocked ? 'not-allowed' : isSelected ? 'default' : 'pointer',
+            textTransform: 'uppercase',
+            boxShadow: avatar.isLocked ? 'none' : isSelected ? '0 10px 20px rgba(0, 255, 0, 0.4)' : '0 10px 20px rgba(0, 245, 255, 0.4)',
+            transition: 'all 0.3s'
+          }}
+        >
+          {avatar.isLocked ? 'VIP LOCKED' : isSelected ? 'CURRENTLY EQUIPPED' : 'EQUIP NOW'}
+        </button>
+
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN GALLERY ---
 export default function AvatarGallery({ onSelect }) {
   const { user, avatar: currentAvatar, selectPresetAvatar, setActiveAvatar, isVip, createCustomAvatar } = useAvatar();
 
-  // Custom avatars state
   const [customAvatars, setCustomAvatars] = useState([]);
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
-
-  // Preset avatars state
   const [avatars, setAvatars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
+  
+  const [inspectingAvatar, setInspectingAvatar] = useState(null);
+  const [equippedBurst, setEquippedBurst] = useState(null); // stores id of avatar that just equipped
 
   useEffect(() => {
     async function loadAllAvatars() {
       try {
         setLoading(true);
-
-        // Load custom avatars (VIP gets 5, FREE gets 1)
         if (user?.id) {
           try {
             const customs = await getCustomAvatarGallery(user.id);
             setCustomAvatars(customs || []);
           } catch (err) {
-            console.warn('Error loading custom avatars:', err);
             setCustomAvatars([]);
           }
         }
-
-        // Then load preset avatars
         await loadAvatars();
       } catch (error) {
-        console.warn('Error in loadAllAvatars:', error);
       } finally {
-        // BUGFIX: this used to run only when a user was logged in, so the
-        // logged-out state showed "Loading Avatars..." forever.
         setLoading(false);
       }
     }
-
     loadAllAvatars();
   }, [user?.id, isVip]);
 
-
-
   async function loadAvatars() {
     try {
-      // Load ALL avatars regardless of tier (to show VIP upsells).
-      // The service computes isLocked correctly: FREE tier always unlocked,
-      // VIP tier unlocked for VIP members or via an avatar_unlocks row.
-      // BUGFIX: the old override here compared `a.tier !== 'free'` against the
-      // library's uppercase 'FREE'/'VIP' tiers, which marked EVERY avatar
-      // locked for non-VIP users — including all 25 free ones.
       const data = await getAvailableAvatars(user?.id || null, 'all', isVip);
       setAvatars(data);
     } catch (error) {
-      console.warn('Error loading avatars:', error);
       setAvatars([]);
     }
   }
 
-  async function handleSelectPresetAvatar(avatar) {
-    if (avatar.isLocked) {
-      toast.warning('Upgrade to VIP to unlock this premium avatar!');
-      return;
+  async function handleConfirmEquip(avatarObj) {
+    let result;
+    if (avatarObj.isCustomObj) {
+        result = await setActiveAvatar(avatarObj.image_url, 'custom', null, avatarObj.prompt);
+    } else {
+        result = await selectPresetAvatar(avatarObj.id);
     }
 
-    const result = await selectPresetAvatar(avatar.id);
     if (result.success) {
-      if (onSelect) onSelect(avatar.id);
-      await loadAvatars(); // Refresh to show selection
+      setEquippedBurst(avatarObj.id || avatarObj.image_url);
+      setInspectingAvatar(null);
+      if (onSelect) onSelect(avatarObj.id || null);
+      if (avatarObj.isCustomObj && user?.id) {
+        const customs = await getCustomAvatarGallery(user.id);
+        setCustomAvatars(customs || []);
+      } else {
+        await loadAvatars();
+      }
+      setTimeout(() => setEquippedBurst(null), 1000);
     } else {
       toast.error(result.error);
     }
   }
 
-  async function handleSelectCustomAvatar(customAvatar) {
-    // Set the custom avatar as active
-    const result = await setActiveAvatar(customAvatar.image_url, 'custom', null, customAvatar.prompt);
-    if (result.success) {
-      if (onSelect) onSelect(null);
-      // Refresh custom avatars (free users have a custom slot too)
-      if (user?.id) {
-        const customs = await getCustomAvatarGallery(user.id);
-        setCustomAvatars(customs || []);
-      }
-    } else {
-      toast.error(result.error || 'Failed to set custom avatar');
-    }
-  }
-
   function handleCreateNewCustom() {
+    playSound('click');
     const maxCustomSlots = isVip ? 5 : 1;
-    // Check if at limit
     if (customAvatars.length >= maxCustomSlots) {
       if (isVip) {
         toast.warning('You have 5/5 custom avatars! Please delete one to create a new avatar.');
@@ -117,51 +283,215 @@ export default function AvatarGallery({ onSelect }) {
   }
 
   async function handleDeleteCustomAvatar(e, avatarId) {
-    e.stopPropagation(); // Prevent selecting the avatar when clicking delete
-
-    // Delete directly - no double confirmation needed
-
-    try {
-      const result = await deleteCustomAvatar(user.id, avatarId);
-
-      if (result.success) {
-        // Refresh the gallery
-        const customs = await getCustomAvatarGallery(user.id);
-        setCustomAvatars(customs || []);
+    e.stopPropagation();
+    if (!isVip) {
+      playSound('error');
+      toast.warning('Warning: You cannot create another custom avatar without upgrading to VIP.');
+    }
+    if (confirm("Are you sure you want to delete this custom avatar?")) {
+      const success = await deleteCustomAvatar(user.id, avatarId);
+      if (success) {
+        setCustomAvatars(prev => prev.filter(a => a.id !== avatarId));
+        
       } else {
-        toast.error(result.error || 'Failed to delete avatar');
+        toast.error("Failed to delete avatar.");
       }
-    } catch (err) {
-      console.warn('Delete error:', err);
-      toast.error('Failed to delete avatar');
     }
   }
 
-  async function handleCloseBuilder() {
-    setShowCustomBuilder(false);
-    // Refresh custom avatars after creating (free users have a slot too)
-    if (user?.id) {
-      const customs = await getCustomAvatarGallery(user.id);
-      setCustomAvatars(customs || []);
-    }
-  }
-
-  // Create placeholder boxes for custom avatars (VIP = 5, FREE = 1)
   const maxCustomSlots = isVip ? 5 : 1;
-  const customSlots = [];
-  for (let i = 0; i < maxCustomSlots; i++) {
-    customSlots.push(customAvatars[i] || null); // null = empty slot
-  }
+  const customSlots = Array(maxCustomSlots).fill(null);
+  customAvatars.forEach((av, i) => {
+    if (i < maxCustomSlots) customSlots[i] = av;
+  });
 
   return (
-    <div className="avatar-gallery">
+    <div className="avatar-gallery-container">
+      {inspectingAvatar && (
+        <InspectModal 
+            avatar={inspectingAvatar} 
+            isCustom={inspectingAvatar.isCustomObj}
+            onClose={() => { playSound('click'); setInspectingAvatar(null); }}
+            onEquip={handleConfirmEquip}
+            isVip={isVip}
+        />
+      )}
+
+      {showCustomBuilder && (
+        <CustomAvatarBuilder
+          onClose={() => setShowCustomBuilder(false)}
+          onAvatarCreated={async (newAvatar) => {
+            const customs = await getCustomAvatarGallery(user.id);
+            setCustomAvatars(customs || []);
+            setShowCustomBuilder(false);
+            const result = await setActiveAvatar(newAvatar.image_url, 'custom', null, newAvatar.prompt);
+          }}
+        />
+      )}
+
       <style>{`
+        .avatar-gallery-container {
+          display: flex;
+          flex-direction: column;
+          gap: 40px;
+        }
+
+        .top-layout {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          flex-wrap: wrap;
+          gap: 20px;
+        }
+        
+        .custom-avatars-side {
+          flex: 1;
+          min-width: 320px;
+        }
+
+        .current-avatar-side {
+          width: 350px;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+        }
+        
+        @media (max-width: 768px) {
+            .current-avatar-side {
+                width: 100%;
+                align-items: flex-start;
+            }
+        }
+
+        .section-title {
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 24px;
+          color: #fff;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .section-subtitle {
+          font-size: 14px;
+          color: #fff; /* Updated to white */
+          margin-bottom: 20px;
+        }
+
+        .avatar-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 15px;
+        }
+
+        /* CARD STYLES */
+        .avatar-card {
+          width: 130px;
+          height: 130px;
+          border-radius: 16px;
+          position: relative;
+          overflow: hidden;
+          cursor: pointer;
+          background: linear-gradient(145deg, #161b22, #0d1116);
+          border: 2px solid #8a929a;
+          box-shadow: inset 0 2px 8px rgba(255,255,255,0.1), 0 5px 15px rgba(0,0,0,0.5);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .avatar-card.placeholder {
+          background: rgba(255,255,255,0.03);
+          border: 2px solid #8a929a;
+        }
+        
+        .avatar-card.selected {
+          border-color: #00f5ff;
+          box-shadow: 0 0 20px rgba(0, 245, 255, 0.4), inset 0 0 10px rgba(0, 245, 255, 0.2);
+        }
+
+        /* Particle Burst Animation */
+        .burst-anim {
+          animation: equipBurst 1s ease-out forwards;
+        }
+        @keyframes equipBurst {
+          0% { box-shadow: 0 0 0 0 rgba(0,245,255,0.8); border-color: #fff; }
+          50% { box-shadow: 0 0 40px 20px rgba(0,245,255,0); border-color: #00f5ff; }
+          100% { box-shadow: 0 0 20px rgba(0, 245, 255, 0.4); border-color: #00f5ff; }
+        }
+
+        .screws {
+          position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+          pointer-events: none; z-index: 10;
+        }
+        .screws::before, .screws::after {
+          content: ''; position: absolute;
+          width: 6px; height: 6px; background: #000; border-radius: 50%;
+          border: 1px solid #444; box-shadow: inset 0 1px 2px rgba(255,255,255,0.3);
+        }
+        .screws::before { top: 6px; left: 6px; }
+        .screws::after { top: 6px; right: 6px; }
+        .avatar-card::before, .avatar-card::after {
+          content: ''; position: absolute;
+          width: 6px; height: 6px; background: #000; border-radius: 50%;
+          border: 1px solid #444; box-shadow: inset 0 1px 2px rgba(255,255,255,0.3);
+          z-index: 10; pointer-events: none;
+        }
+        .avatar-card::before { bottom: 6px; left: 6px; }
+        .avatar-card::after { bottom: 6px; right: 6px; }
+
+        .placeholder-content {
+          text-align: center;
+          color: #fff; /* Updated to white */
+        }
+
+        .placeholder-icon {
+          font-size: 32px;
+          margin-bottom: 4px;
+          color: #fff; /* Updated to white */
+          text-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+
+        .placeholder-text {
+          font-size: 12px;
+          font-family: 'Rajdhani', sans-serif;
+          text-transform: uppercase;
+          font-weight: 600;
+        }
+
+        .avatar-info {
+          position: absolute;
+          bottom: 0; left: 0; right: 0;
+          background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+          padding: 20px 8px 8px 8px;
+          text-align: center;
+          z-index: 5;
+        }
+        
+        .avatar-name {
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 14px;
+          color: #fff;
+          font-weight: 600;
+          margin: 0;
+          text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+
+        .avatar-tier {
+          font-size: 10px;
+          color: #00f5ff;
+          margin: 2px 0 0 0;
+          text-transform: uppercase;
+        }
+
         .create-custom-btn {
           padding: 15px 40px;
           background: linear-gradient(145deg, #2c3545 0%, #161b22 100%);
           border: 2px solid #00f5ff;
           border-radius: 12px;
-          color: #00f5ff;
+          color: #fff; /* Updated to white */
           font-family: 'Rajdhani', sans-serif;
           font-size: 16px;
           font-weight: 700;
@@ -181,287 +511,7 @@ export default function AvatarGallery({ onSelect }) {
           color: #fff;
         }
 
-        .glow-spinner {
-          width: 50px;
-          height: 50px;
-          border: 3px solid rgba(0, 245, 255, 0.1);
-          border-top: 3px solid #00f5ff;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        .avatar-gallery {
-          width: 100%;
-        }
-
-        .gallery-section {
-          margin-bottom: 50px;
-        }
-
-        .section-title {
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 24px;
-          font-weight: 700;
-          background: linear-gradient(135deg, #00f5ff, #0099ff);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          margin-bottom: 20px;
-          text-align: center;
-        }
-
-        .section-subtitle {
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 14px;
-          color: #888;
-          text-align: center;
-          margin-bottom: 30px;
-        }
-
-        .avatar-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-          gap: 20px;
-          margin-top: 30px;
-        }
-
-        .avatar-card {
-          position: relative;
-          aspect-ratio: 1;
-          background: linear-gradient(135deg, #1c2229 0%, #101419 100%);
-          border: 3px solid #8a929a;
-          border-radius: 12px;
-          overflow: hidden;
-          cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-          box-shadow: 
-            inset 0 2px 4px rgba(255, 255, 255, 0.2), 
-            inset 0 -2px 4px rgba(0, 0, 0, 0.5),
-            0 8px 20px rgba(0, 0, 0, 0.7);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transform: translateZ(0);
-        }
-        
-        .avatar-card::before, .avatar-card::after {
-          content: '';
-          position: absolute;
-          width: 6px;
-          height: 6px;
-          background: #4a525a;
-          border-radius: 50%;
-          box-shadow: inset 0 1px 1px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.4);
-          z-index: 10;
-        }
-        
-        .avatar-card::before {
-          top: 6px; left: 6px;
-          box-shadow: inset 0 1px 1px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.4), 0 0 0 0 transparent;
-        }
-        .avatar-card::after {
-          bottom: 6px; right: 6px;
-          box-shadow: inset 0 1px 1px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.4), 0 0 0 0 transparent;
-        }
-
-        /* Using a child element for the other two screws since pseudo-elements are limited to 2 */
-        .screws {
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          z-index: 10;
-        }
-        .screws::before, .screws::after {
-          content: '';
-          position: absolute;
-          width: 6px;
-          height: 6px;
-          background: #4a525a;
-          border-radius: 50%;
-          box-shadow: inset 0 1px 1px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.4);
-        }
-        .screws::before { top: 6px; right: 6px; }
-        .screws::after { bottom: 6px; left: 6px; }
-
-        .avatar-card:hover {
-          transform: translateY(-8px) scale(1.03);
-          border-color: #00f5ff;
-          box-shadow: 
-            inset 0 2px 4px rgba(255, 255, 255, 0.2), 
-            inset 0 -2px 4px rgba(0, 0, 0, 0.5),
-            0 15px 35px rgba(0, 245, 255, 0.4);
-          z-index: 2;
-        }
-
-        .avatar-card.selected {
-          border-color: #00ff00;
-          box-shadow: 
-            inset 0 2px 4px rgba(255, 255, 255, 0.2), 
-            inset 0 -2px 4px rgba(0, 0, 0, 0.5),
-            0 15px 35px rgba(0, 255, 0, 0.5), 
-            inset 0 0 20px rgba(0, 255, 0, 0.2);
-          transform: translateY(-5px) scale(1.05);
-          z-index: 2;
-        }
-
-        .avatar-card.placeholder {
-          border: 3px solid #8a929a;
-          background: linear-gradient(135deg, #1c2229 0%, #101419 100%);
-          cursor: pointer;
-          opacity: 0.8;
-        }
-        .avatar-card.placeholder:hover {
-          opacity: 1;
-        }
-
-        .placeholder-content {
-          text-align: center;
-          color: #00f5ff;
-          font-family: 'Rajdhani', sans-serif;
-        }
-
-        .placeholder-icon {
-          font-size: 48px;
-          margin-bottom: 10px;
-        }
-
-        .placeholder-text {
-          font-size: 14px;
-          font-weight: 600;
-        }
-
-        .avatar-image {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .avatar-info {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
-          padding: 10px;
-          transform: translateY(100%);
-          transition: transform 0.3s ease;
-        }
-
-        .avatar-card:hover .avatar-info {
-          transform: translateY(0);
-        }
-
-        .avatar-card:hover .equip-overlay {
-          opacity: 1 !important;
-        }
-
-        .avatar-name {
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 14px;
-          font-weight: 600;
-          color: #fff;
-          margin: 0;
-        }
-
-        .avatar-tier {
-          font-size: 11px;
-          color: #00f5ff;
-          text-transform: uppercase;
-        }
-
-        .tier-badge {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          padding: 4px 8px;
-          background: rgba(255, 215, 0, 0.9);
-          color: #000;
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 11px;
-          font-weight: 700;
-          border-radius: 4px;
-          text-transform: uppercase;
-        }
-
-        .tier-badge.free {
-          background: rgba(0, 245, 255, 0.9);
-        }
-
-        .tier-badge.custom {
-          background: linear-gradient(135deg, #ff00f5, #00f5ff);
-        }
-
-        .loading-state {
-          text-align: center;
-          padding: 60px 20px;
-          color: #00f5ff;
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 18px;
-        }
-
-        .builder-modal {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.95);
-          z-index: 10000;
-          overflow-y: auto;
-          padding: 20px;
-        }
-
-        .builder-close {
-          position: absolute;
-          top: 20px;
-          right: 20px;
-          padding: 10px 20px;
-          background: rgba(255, 68, 68, 0.2);
-          border: 2px solid #ff4444;
-          border-radius: 8px;
-          color: #ff4444;
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-          z-index: 10001;
-        }
-
-        .builder-close:hover {
-          background: rgba(255, 68, 68, 0.4);
-        }
-              .category-btn {
-          padding: 8px 20px;
-          border-radius: 20px;
-          background: linear-gradient(145deg, #1c2229 0%, #101419 100%);
-          border: 1px solid #4a525a;
-          color: #888;
-          cursor: pointer;
-          font-family: 'Rajdhani', sans-serif;
-          font-weight: 600;
-          font-size: 14px;
-          white-space: nowrap;
-          transition: all 0.3s ease;
-          text-transform: uppercase;
-          box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.5);
-        }
-        .category-btn:hover {
-          color: #fff;
-          border-color: #8a929a;
-          transform: translateY(-1px);
-        }
-        .category-btn.active {
-          background: linear-gradient(145deg, #161b22 0%, #0d1116 100%);
-          border-color: #00f5ff;
-          color: #00f5ff;
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(0, 245, 255, 0.3);
-        }
-
-              .delete-avatar-btn {
+        .delete-avatar-btn {
           position: absolute;
           top: 10px; left: 10px;
           width: 32px; height: 32px;
@@ -477,7 +527,7 @@ export default function AvatarGallery({ onSelect }) {
           align-items: center;
           justify-content: center;
           box-shadow: inset 0 2px 4px rgba(255, 68, 68, 0.2), 0 2px 8px rgba(0,0,0,0.8);
-          z-index: 10;
+          z-index: 30;
           transition: all 0.3s ease;
         }
         .delete-avatar-btn:hover {
@@ -486,112 +536,187 @@ export default function AvatarGallery({ onSelect }) {
           box-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
           transform: scale(1.1);
         }
-        .delete-avatar-btn.free-tier {
-          opacity: 0.5;
+        .delete-avatar-btn.free-tier { opacity: 0.5; }
+        .delete-avatar-btn.free-tier:hover { opacity: 1; }
+
+        .category-btn {
+          padding: 8px 20px;
+          border-radius: 20px;
+          background: linear-gradient(145deg, #1c2229 0%, #101419 100%);
+          border: 1px solid #4a525a;
+          color: #fff; /* Updated to white */
+          cursor: pointer;
+          font-family: 'Rajdhani', sans-serif;
+          font-weight: 600;
+          font-size: 14px;
+          white-space: nowrap;
+          transition: all 0.3s ease;
+          text-transform: uppercase;
+          box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.5);
         }
-        .delete-avatar-btn.free-tier:hover {
-          opacity: 1;
+        .category-btn:hover {
+          border-color: #8a929a;
+          transform: translateY(-1px);
+        }
+        .category-btn.active {
+          background: linear-gradient(145deg, #161b22 0%, #0d1116 100%);
+          border-color: #00f5ff;
+          color: #fff;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(0, 245, 255, 0.3);
+        }
+
+        .glow-spinner {
+          width: 50px; height: 50px;
+          border: 3px solid rgba(0, 245, 255, 0.1);
+          border-top: 3px solid #00f5ff;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        /* CURRENT AVATAR STYLES */
+        .current-avatar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 20px;
+            background: linear-gradient(145deg, rgba(10, 14, 39, 0.8), rgba(26, 31, 58, 0.9));
+            border: 2px solid #00f5ff;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 245, 255, 0.2), inset 0 2px 10px rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        .current-avatar-img {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 3px solid #00f5ff;
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.5);
+            object-fit: cover;
+            background: #000;
+        }
+        .current-avatar-info { font-family: 'Rajdhani', sans-serif; }
+        .current-avatar-label {
+            font-size: 12px; color: #00f5ff; text-transform: uppercase;
+            letter-spacing: 1px; margin-bottom: 4px; text-shadow: 0 0 5px rgba(0, 245, 255, 0.5);
+        }
+        .current-avatar-name {
+            font-size: 18px; color: #fff; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
 
       `}</style>
 
-      {/* Custom Avatar Builder Modal */}
-      {showCustomBuilder && (
-        <div className="builder-modal">
-          <button className="builder-close" onClick={handleCloseBuilder}>
-            CLOSE
-          </button>
-          <CustomAvatarBuilder isVip={isVip} onClose={handleCloseBuilder} />
-        </div>
-      )}
+      {/* TOP SECTION */}
+      <div className="top-layout">
+        
+        {/* LEFT SIDE: CUSTOM AVATARS */}
+        <div className="custom-avatars-side">
+            <h2 className="section-title">MY CUSTOM {isVip ? 'AVATARS' : 'AVATAR'}</h2>
+            <p className="section-subtitle">
+              {customAvatars.length}/{maxCustomSlots} Slots Used &bull; Create Up To {maxCustomSlots} Unique AI-Generated Avatar{maxCustomSlots > 1 ? 's' : ''}
+            </p>
 
-      {/* CUSTOM AVATARS SECTION (VIP=5, FREE=1) */}
-      <div className="gallery-section">
-        <h2 className="section-title">MY CUSTOM {isVip ? 'AVATARS' : 'AVATAR'}</h2>
-        <p className="section-subtitle">
-          {customAvatars.length}/{maxCustomSlots} slots used • Create up to {maxCustomSlots} unique AI-generated avatar{maxCustomSlots > 1 ? 's' : ''}
-        </p>
+            <div className="avatar-grid">
+              {customSlots.map((customAvatar, index) => (
+                customAvatar ? (
+                  <TiltCard
+                    key={customAvatar.id}
+                    className={`avatar-card ${currentAvatar?.type === 'custom' && currentAvatar?.imageUrl === customAvatar.image_url ? 'selected' : ''} ${equippedBurst === customAvatar.image_url ? 'burst-anim' : ''}`}
+                    onClick={() => { playSound('click'); setInspectingAvatar({ ...customAvatar, isCustomObj: true, isSelected: currentAvatar?.type === 'custom' && currentAvatar?.imageUrl === customAvatar.image_url }); }}
+                  >
+                    <div className="screws"></div>
+                    {customAvatar.image_url.match(/\.(webm|mp4)$/i) ? (
+                        <video src={customAvatar.image_url} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                        <SPImage
+                        src={customAvatar.image_url}
+                        alt={`Custom Avatar ${index + 1}`}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                        />
+                    )}
 
-        <div className="avatar-grid">
-          {customSlots.map((customAvatar, index) => (
-            customAvatar ? (
-              <div
-                key={customAvatar.id}
-                className={`avatar-card ${currentAvatar?.type === 'custom' && currentAvatar?.imageUrl === customAvatar.image_url ? 'selected' : ''}`}
-                onClick={() => handleSelectCustomAvatar(customAvatar)}
-              >
-                <div className="screws"></div>
-                <SPImage
-                  src={customAvatar.image_url}
-                  alt={`Custom Avatar ${index + 1}`}
-                  fill
-                  style={{ objectFit: 'cover' }}
-                />
+                    {/* DELETE BUTTON */}
+                    <button
+                      onClick={(e) => handleDeleteCustomAvatar(e, customAvatar.id)}
+                      className={`delete-avatar-btn ${!isVip ? 'free-tier' : ''}`}
+                      title={isVip ? "Delete This Avatar" : "Delete Avatar (Warning: Cannot create another one without VIP)"}
+                    >
+                      X
+                    </button>
 
-                {/* DELETE BUTTON */}
-                <button
-                  onClick={(e) => handleDeleteCustomAvatar(e, customAvatar.id)}
-                  className={`delete-avatar-btn ${!isVip ? 'free-tier' : ''}`}
-                  title={isVip ? "Delete This Avatar" : "Delete Avatar (Warning: Cannot create another one without VIP)"}
-                >
-                  X
-                </button>
-
-                <div className="avatar-info">
-                  <p className="avatar-name">{customAvatar.prompt?.substring(0, 30) || 'Custom Avatar'}</p>
-                  <p className="avatar-tier">AI Generated</p>
-                </div>
-              </div>
-            ) : (
-              <div
-                key={`placeholder-${index}`}
-                className="avatar-card placeholder"
-                onClick={handleCreateNewCustom}
-              >
-                <div className="screws"></div>
-                <div className="placeholder-content">
-                  <div className="placeholder-icon">+</div>
-                  <div className="placeholder-text">Create Custom</div>
-                </div>
-              </div>
-            )
-          ))}
-        </div>
-
-        {/* CREATE CUSTOM AVATAR BUTTON - ALWAYS visible for VIP */}
-        <div style={{
-          marginTop: '20px',
-          textAlign: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '12px',
-        }}>
-          {/* Show active custom avatar thumbnail */}
-          {customAvatars.length > 0 && customAvatars[0]?.image_url && (
-            <div style={{
-                position: 'relative', width: 48, height: 48, borderRadius: '50%', overflow: 'hidden',
-                border: '2px solid #00f5ff',
-                boxShadow: '0 0 12px rgba(0, 245, 255, 0.4)',
-                flexShrink: 0
-            }}>
-              <div className="screws"></div>
-                <SPImage
-                src={customAvatars[0].image_url}
-                alt="Active Custom Avatar"
-                fill
-                style={{ objectFit: 'cover' }}
-              />
+                    <div className="avatar-info">
+                      <p className="avatar-name">{customAvatar.prompt?.substring(0, 30) || 'Custom Avatar'}</p>
+                      <p className="avatar-tier">AI Generated</p>
+                    </div>
+                  </TiltCard>
+                ) : (
+                  <TiltCard
+                    key={`placeholder-${index}`}
+                    className="avatar-card placeholder"
+                    onClick={handleCreateNewCustom}
+                  >
+                    <div className="screws"></div>
+                    <div className="placeholder-content">
+                      <div className="placeholder-icon">+</div>
+                      <div className="placeholder-text">Create Custom</div>
+                    </div>
+                  </TiltCard>
+                )
+              ))}
             </div>
-          )}
-          <button
-            onClick={handleCreateNewCustom}
-            className="create-custom-btn"
-          >
-            <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%', marginRight: 8, verticalAlign: 'middle' }} />
-            {isVip ? 'Create Custom Avatar' : 'Create Free AI Avatar'}
-          </button>
+            
+            <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {(() => {
+                  const activeCustom = customAvatars.find(a => a.image_url === currentAvatar?.imageUrl);
+                  if (!activeCustom) return null;
+                  return (
+                    <div style={{
+                        position: 'relative', width: 48, height: 48, borderRadius: '50%', overflow: 'hidden',
+                        border: '2px solid #00f5ff',
+                        boxShadow: '0 0 12px rgba(0, 245, 255, 0.4)',
+                        flexShrink: 0
+                    }}>
+                        <div className="screws"></div>
+                        <SPImage src={activeCustom.image_url} alt="Active Custom Avatar" fill style={{ objectFit: 'cover' }} />
+                    </div>
+                  );
+                })()}
+                <button onClick={handleCreateNewCustom} className="create-custom-btn">
+                {isVip ? 'Create Custom Avatar' : 'Create Free AI Avatar'}
+                </button>
+            </div>
         </div>
+
+        {/* RIGHT SIDE: CURRENT AVATAR */}
+        <div className="current-avatar-side">
+            {currentAvatar ? (
+                <div className="current-avatar">
+                    <img
+                        src={currentAvatar.imageUrl || '/avatars/free/shark.png'}
+                        alt="Current Avatar"
+                        className="current-avatar-img"
+                        loading="lazy" 
+                    />
+                    <div className="current-avatar-info">
+                        <div className="current-avatar-label">Current Avatar</div>
+                        <div className="current-avatar-name">{currentAvatar.name || 'Custom Avatar'}</div>
+                    </div>
+                </div>
+            ) : (
+                <div className="current-avatar" style={{ opacity: 0.7 }}>
+                    <div className="current-avatar-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,245,255,0.05)', fontSize: 24, color: '#00f5ff', textShadow: '0 0 8px rgba(0,245,255,0.6)', border: '3px solid rgba(0,245,255,0.3)' }}>?</div>
+                    <div className="current-avatar-info">
+                        <div className="current-avatar-label">Current Avatar</div>
+                        <div className="current-avatar-name">None Selected</div>
+                    </div>
+                </div>
+            )}
+        </div>
+
       </div>
 
       {/* PRESET AVATARS SECTION */}
@@ -614,7 +739,6 @@ export default function AvatarGallery({ onSelect }) {
           </div>
         ) : (
           <>
-            {/* Category Filters */}
             <div style={{
               display: 'flex',
               gap: '10px',
@@ -629,7 +753,7 @@ export default function AvatarGallery({ onSelect }) {
               {['All', ...new Set(avatars.map(a => a.category).filter(Boolean))].map(cat => (
                 <button
                   key={cat}
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() => { playSound('click'); setActiveCategory(cat); }}
                   className={`category-btn ${activeCategory === cat ? 'active' : ''}`}
                 >
                   {cat}
@@ -643,26 +767,34 @@ export default function AvatarGallery({ onSelect }) {
                 .map(av => {
                   const isSelected = currentAvatar?.id === av.id;
                   return (
-                    <div
+                    <TiltCard
                       key={av.id}
-                      className={`avatar-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleSelectPresetAvatar(av)}
-                      style={{ cursor: av.isLocked ? 'not-allowed' : 'pointer' }}
+                      className={`avatar-card ${isSelected ? 'selected' : ''} ${equippedBurst === av.id ? 'burst-anim' : ''}`}
+                      onClick={() => {
+                          playSound('click');
+                          setInspectingAvatar({ ...av, isSelected });
+                      }}
                     >
                       <div className="screws"></div>
-                <SPImage
-                        src={av.image}
-                        alt={av.name}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                      />
+                      
+                      {av.image?.match(/\.(webm|mp4)$/i) ? (
+                        <video src={av.image} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <SPImage
+                          src={av.image}
+                          alt={av.name}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                        />
+                      )}
+
                       <div className="avatar-info">
                         <p className="avatar-name">{av.name}</p>
                         <p className="avatar-tier">{av.category}</p>
                       </div>
 
                       {/* EQUIP OVERLAY */}
-                      {!av.isLocked && (
+                      {!av.isLocked && isSelected && (
                         <div style={{
                           position: 'absolute',
                           top: 0, left: 0, right: 0, bottom: 0,
@@ -670,24 +802,22 @@ export default function AvatarGallery({ onSelect }) {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          transition: 'opacity 0.2s ease',
-                          opacity: isSelected ? 1 : 0
-                        }}
-                          className={`${isSelected ? '' : 'equip-overlay'}`}>
+                          zIndex: 5
+                        }}>
                           <div style={{
                             padding: '8px 20px',
-                            background: isSelected ? 'rgba(0, 255, 0, 0.2)' : 'rgba(0, 245, 255, 0.2)',
-                            border: `2px solid ${isSelected ? '#00ff00' : '#00f5ff'}`,
+                            background: 'rgba(0, 255, 0, 0.2)',
+                            border: '2px solid #00ff00',
                             borderRadius: '20px',
-                            color: isSelected ? '#00ff00' : '#00f5ff',
+                            color: '#00ff00',
                             fontFamily: "'Rajdhani', sans-serif",
                             fontWeight: 'bold',
                             fontSize: '14px',
                             textTransform: 'uppercase',
-                            boxShadow: `0 0 15px ${isSelected ? 'rgba(0,255,0,0.4)' : 'rgba(0,245,255,0.4)'}`,
+                            boxShadow: '0 0 15px rgba(0,255,0,0.4)',
                             transform: 'translateY(-10px)'
                           }}>
-                            {isSelected ? 'EQUIPPED' : 'Equip'}
+                            EQUIPPED
                           </div>
                         </div>
                       )}
@@ -726,7 +856,7 @@ export default function AvatarGallery({ onSelect }) {
                           </div>
                         </div>
                       )}
-                    </div>
+                    </TiltCard>
                   )
                 })}
             </div>
