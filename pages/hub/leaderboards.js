@@ -18,7 +18,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { supabase } from '../../src/lib/supabase';
-import { getAuthUser } from '../../src/lib/authHelpers';
+import { getAuthUser } from '../../src/lib/authUtils';
 
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 // 2026-05-07 — UI-UX-Pro-Max icons (Lucide for tab icons + states)
