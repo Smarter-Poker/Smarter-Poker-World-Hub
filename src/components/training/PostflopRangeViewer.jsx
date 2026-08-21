@@ -306,7 +306,7 @@ const PostflopCell = memo(({ hand, freqs, isSelected, onClick, actionFilter, han
                     pointerEvents: 'none',
                     whiteSpace: 'nowrap',
                 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#00d4ff', marginBottom: 2, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#00d4ff', marginBottom: 2, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {hand}
                     </div>
                     {handClass && (
@@ -365,7 +365,7 @@ function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 22, fontWeight: 800, color: '#00d4ff', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: '#00d4ff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {hand}
                     </span>
                     {isMixed && (
@@ -405,7 +405,7 @@ function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
                     const label = SIZE_LABELS[action] || action;
                     return (
                         <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ width: 55, fontSize: 10, fontWeight: 700, color, fontFamily: "var(--font-orbitron), 'Orbitron', monospace", textAlign: 'right' }}>
+                            <div style={{ width: 55, fontSize: 10, fontWeight: 700, color, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", textAlign: 'right' }}>
                                 {label.length > 8 ? label.slice(0, 7) : label}
                             </div>
                             <div style={{
@@ -496,7 +496,7 @@ function BoardSelector({ board, onChange }) {
                     style={{
                         padding: '4px 10px', borderRadius: 6, fontSize: 12,
                         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(0,212,255,0.3)',
-                        color: '#e2e8f0', fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        color: '#e2e8f0', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         width: 160,
                     }}
                 />
@@ -534,7 +534,7 @@ function BoardSelector({ board, onChange }) {
                 return (
                     <span key={i} style={{
                         fontSize: 14, fontWeight: 800,
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         color: suitInfo.color,
                         textShadow: '0 1px 4px rgba(0,0,0,0.5)',
                     }}>
@@ -804,7 +804,7 @@ export default function PostflopRangeViewer({
                         {boardTexture.replace(/_/g, ' ')}
                     </span>
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                     Betting: {rangeStats.bettingPct.toFixed(1)}%
                 </div>
                 <div style={{ fontSize: 9, color: '#64748b' }}>

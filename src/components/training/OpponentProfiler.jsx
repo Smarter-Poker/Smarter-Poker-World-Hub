@@ -111,7 +111,7 @@ const StatBar = memo(({ label, value, max = 60, color, description }) => (
     <div style={{ marginBottom: 6 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
             <span style={{ fontSize: 9, fontWeight: 600, color: '#94a3b8' }} title={description}>{label}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                 {value}%
             </span>
         </div>
@@ -243,7 +243,7 @@ const StatComparisonTable = memo(({ selectedTypes }) => {
                         {selectedTypes.map(t => (
                             <div key={t} style={{
                                 fontSize: 11, fontWeight: 700, textAlign: 'center',
-                                color: '#e2e8f0', fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                                color: '#e2e8f0', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                             }}>
                                 {ARCHETYPES[t].stats[s]}%
                             </div>

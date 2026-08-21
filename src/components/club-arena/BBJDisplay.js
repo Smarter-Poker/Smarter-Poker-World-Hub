@@ -29,7 +29,7 @@ const STYLES = {
   container: {
     background: METAL.bg,
     color: METAL.text,
-    fontFamily: '"Rajdhani", "Orbitron", sans-serif',
+    fontFamily: '"Rajdhani", "Rajdhani", sans-serif',
     borderRadius: '12px',
     border: `1px solid ${METAL.border}`,
     boxShadow: `0 8px 32px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)`,
@@ -47,7 +47,7 @@ const STYLES = {
     position: 'relative'
   },
   title: {
-    fontFamily: '"Orbitron", sans-serif',
+    fontFamily: '"Rajdhani", sans-serif',
     fontSize: '28px',
     fontWeight: 800,
     color: METAL.cyan,
@@ -62,7 +62,7 @@ const STYLES = {
     color: METAL.gold,
     margin: 0,
     textShadow: '0 0 20px rgba(255, 215, 0, 0.4)',
-    fontFamily: '"Orbitron", sans-serif',
+    fontFamily: '"Rajdhani", sans-serif',
     letterSpacing: '1px'
   },
   tabs: {
@@ -264,12 +264,12 @@ const QualifyingHandsTab = ({ hands }) => {
 
 const BasicTab = ({ rules, tiers }) => (
   <div style={{ color: METAL.textMuted, fontSize: '14px', lineHeight: '1.6' }}>
-    <h3 style={{ color: METAL.cyan, fontFamily: '"Orbitron", sans-serif' }}>General Rules</h3>
+    <h3 style={{ color: METAL.cyan, fontFamily: '"Rajdhani", sans-serif' }}>General Rules</h3>
     <ul style={{ paddingLeft: '20px', marginBottom: '24px' }}>
       {rules?.map((r, i) => <li key={i} style={{ marginBottom: '8px' }}>{capitalizeWords(r)}</li>)}
     </ul>
     
-    <h3 style={{ color: METAL.cyan, fontFamily: '"Orbitron", sans-serif' }}>Payout Distribution</h3>
+    <h3 style={{ color: METAL.cyan, fontFamily: '"Rajdhani", sans-serif' }}>Payout Distribution</h3>
     <div style={{ display: 'flex', gap: '16px' }}>
       <div style={{ flex: 1, background: METAL.panel, padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
         <div style={{ color: METAL.gold, fontSize: '24px', fontWeight: 700 }}>50%</div>
@@ -396,8 +396,8 @@ export const BBJModal = ({ clubId, onClose }) => {
 export const BBJTicker = ({ clubId, onClick }) => {
   return (
     <div onClick={() => { triggerHaptic('medium'); onClick(); }} style={{ padding: '8px', background: METAL.panel, border: `1px solid ${METAL.border}`, borderRadius: '6px', cursor: 'pointer', textAlign: 'center', boxShadow: `0 0 10px ${METAL.cyanMuted}` }}>
-      <div style={{ fontSize: '12px', color: METAL.cyan, fontWeight: 700, fontFamily: '"Orbitron", sans-serif' }}>BAD BEAT JACKPOT</div>
-      <div style={{ fontSize: '16px', color: METAL.gold, fontWeight: 800, fontFamily: '"Orbitron", sans-serif' }}>CLICK TO VIEW</div>
+      <div style={{ fontSize: '12px', color: METAL.cyan, fontWeight: 700, fontFamily: '"Rajdhani", sans-serif' }}>BAD BEAT JACKPOT</div>
+      <div style={{ fontSize: '16px', color: METAL.gold, fontWeight: 800, fontFamily: '"Rajdhani", sans-serif' }}>CLICK TO VIEW</div>
     </div>
   );
 };

@@ -63,7 +63,7 @@ export function AIAssistantButton({ onClick }: AIAssistantButtonProps) {
             >
                 <span
                     style={{
-                        fontFamily: 'Orbitron, sans-serif',
+                        fontFamily: 'Rajdhani, sans-serif',
                         fontSize: 11,
                         fontWeight: 600,
                         color: '#00d4ff',

@@ -352,7 +352,7 @@ const styles = {
         fontWeight: 800,
         letterSpacing: 2,
         textTransform: 'uppercase',
-        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
         textShadow: '0 0 20px currentColor',
     },
     frequencyBadge: {
@@ -450,7 +450,7 @@ const styles = {
     evValue: {
         fontSize: 20,
         fontWeight: 700,
-        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
     },
     alternatesContainer: {
         display: 'flex',

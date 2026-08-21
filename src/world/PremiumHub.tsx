@@ -88,7 +88,7 @@ function SideMenuOrb({ icon, label, onClick, index }: SideMenuOrbProps) {
             {/* Label */}
             <span
                 style={{
-                    fontFamily: 'Orbitron, sans-serif',
+                    fontFamily: 'Rajdhani, sans-serif',
                     fontSize: 14,
                     fontWeight: 600,
                     color: hovered ? '#00d4ff' : 'rgba(255, 255, 255, 0.9)',
@@ -196,7 +196,7 @@ function HoloCard({ icon, label, color, onClick, offset, isActive }: HoloCardPro
                 {/* Label */}
                 <span
                     style={{
-                        fontFamily: 'Orbitron, sans-serif',
+                        fontFamily: 'Rajdhani, sans-serif',
                         fontSize: 18,
                         fontWeight: 700,
                         color: '#ffffff',
@@ -255,7 +255,7 @@ function BottomCard({ imageUrl, label, onClick }: BottomCardProps) {
             />
             <span
                 style={{
-                    fontFamily: 'Orbitron, sans-serif',
+                    fontFamily: 'Rajdhani, sans-serif',
                     fontSize: 12,
                     fontWeight: 600,
                     color: 'rgba(255, 255, 255, 0.9)',
@@ -453,7 +453,7 @@ export default function PremiumHub() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <span
                         style={{
-                            fontFamily: 'Orbitron, sans-serif',
+                            fontFamily: 'Rajdhani, sans-serif',
                             fontSize: 14,
                             fontWeight: 400,
                             color: 'rgba(255, 255, 255, 0.7)',
@@ -464,7 +464,7 @@ export default function PremiumHub() {
                     </span>
                     <span
                         style={{
-                            fontFamily: 'Orbitron, sans-serif',
+                            fontFamily: 'Rajdhani, sans-serif',
                             fontSize: 24,
                             fontWeight: 700,
                             color: '#ffffff',
@@ -494,7 +494,7 @@ export default function PremiumHub() {
                     <span style={{ fontSize: 20 }}><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
                     <span
                         style={{
-                            fontFamily: 'Orbitron, sans-serif',
+                            fontFamily: 'Rajdhani, sans-serif',
                             fontSize: 16,
                             fontWeight: 600,
                             color: '#00d4ff',

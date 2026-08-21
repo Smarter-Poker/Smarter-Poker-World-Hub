@@ -360,7 +360,7 @@ export default function PrizeWheel({
                 }
                 
                 .title {
-                    font-family: 'Orbitron', sans-serif;
+                    font-family: 'Rajdhani', sans-serif;
                     font-size: 24px;
                     font-weight: 700;
                     color: #fff;

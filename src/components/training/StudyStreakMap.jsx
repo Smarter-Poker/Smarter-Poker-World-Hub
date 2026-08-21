@@ -160,7 +160,7 @@ const styles = {
         fontWeight: 800,
         color: '#fff',
         margin: '0 0 4px 0',
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
     },
     subtitle: {
         fontSize: 12,
@@ -181,7 +181,7 @@ const styles = {
     statVal: {
         fontSize: 18,
         fontWeight: 800,
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
         color: '#fff',
     },
     statLabel: {

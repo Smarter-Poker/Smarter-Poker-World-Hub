@@ -340,14 +340,14 @@ export default function BoardExplorer() {
                     <span style={{ color: '#64748b' }}>Avg Bet Freq: </span>
                     <span style={{
                         color: stats.avgBet >= 0.6 ? '#22c55e' : stats.avgBet >= 0.35 ? '#f59e0b' : '#ef4444',
-                        fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        fontWeight: 700, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                     }}>
                         {(stats.avgBet * 100).toFixed(0)}%
                     </span>
                 </div>
                 <div style={{ fontSize: 10 }}>
                     <span style={{ color: '#64748b' }}>Avg Check Freq: </span>
-                    <span style={{ color: '#94a3b8', fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                    <span style={{ color: '#94a3b8', fontWeight: 700, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {(stats.avgCheck * 100).toFixed(0)}%
                     </span>
                 </div>

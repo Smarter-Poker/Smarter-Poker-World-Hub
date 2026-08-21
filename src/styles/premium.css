@@ -24,7 +24,7 @@
     --premium-emerald: hsl(160, 70%, 45%);
 
     /* Premium Typography */
-    --font-premium-display: var(--font-space-grotesk), var(--font-orbitron), sans-serif;
+    --font-premium-display: var(--font-space-grotesk), var(--font-rajdhani), sans-serif;
     --font-premium-body: var(--font-jakarta), var(--font-inter), -apple-system, sans-serif;
 
     /* Premium Spacing */

@@ -78,7 +78,7 @@ function RecommendationCard({ rec, isPrimary = false, onStart }) {
                             </span>
                         )}
                         {rec.stats.avgEvLoss !== undefined && (
-                            <span style={{ color: '#ef4444', fontSize: 10, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                            <span style={{ color: '#ef4444', fontSize: 10, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                                 -{rec.stats.avgEvLoss.toFixed(2)}
                             </span>
                         )}

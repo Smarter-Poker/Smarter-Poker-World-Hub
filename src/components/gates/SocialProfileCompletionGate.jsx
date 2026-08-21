@@ -481,7 +481,7 @@ const s = {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 28, animation: 'spcgPulse 2.4s ease-in-out infinite',
     },
-    title: { fontSize: 22, fontWeight: 800, margin: 0, fontFamily: '"Orbitron", sans-serif', letterSpacing: 0.3 },
+    title: { fontSize: 22, fontWeight: 800, margin: 0, fontFamily: '"Rajdhani", sans-serif', letterSpacing: 0.3 },
     subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '8px 0 0', lineHeight: 1.5 },
     stepRow: { display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 24 },
     stepDot: {

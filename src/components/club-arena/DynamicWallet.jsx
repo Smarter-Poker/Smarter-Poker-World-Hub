@@ -109,7 +109,7 @@ function BBJSlot({ top, left, width, height, value, animating, fontSize, onClick
     }}>
       <span style={{
         color: '#FFD700', fontSize: `${fontSize}px`, fontWeight: 900,
-        fontFamily: "'Rajdhani', 'Orbitron', monospace",
+        fontFamily: "'Rajdhani', 'Rajdhani', monospace",
         textShadow: '0 0 10px rgba(255,215,0,0.9), 0 0 25px rgba(255,215,0,0.4)',
         letterSpacing: 2,
       }}>
@@ -160,7 +160,7 @@ export default function DynamicWallet({
       }}>
         <span style={{
           color: '#E0F7FF', fontSize: `${fs(15)}px`, fontWeight: 800,
-          fontFamily: "'Rajdhani', 'Orbitron', monospace",
+          fontFamily: "'Rajdhani', 'Rajdhani', monospace",
           textShadow: '0 0 8px rgba(100,200,255,0.8)', letterSpacing: 1,
         }}><AnimatedCounter value={diamondBalance} prefix="💎 " /></span>
       </div>
@@ -204,7 +204,7 @@ export default function DynamicWallet({
       }}>
         <span style={{
           color: '#E0F7FF', fontSize: `${fs(16)}px`, fontWeight: 800,
-          fontFamily: "'Rajdhani', 'Orbitron', monospace",
+          fontFamily: "'Rajdhani', 'Rajdhani', monospace",
           textShadow: '0 0 8px rgba(100,200,255,0.8), 0 0 20px rgba(100,200,255,0.3)',
           letterSpacing: 1,
         }}><AnimatedCounter value={diamondBalance} prefix="💎 " /></span>

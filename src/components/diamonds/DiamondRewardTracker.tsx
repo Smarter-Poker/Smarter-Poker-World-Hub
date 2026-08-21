@@ -475,7 +475,7 @@ const styles: Record<string, React.CSSProperties> = {
         position: 'relative' as const,
     },
     streakNumber: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 36,
         fontWeight: 700,
         color: '#FFD700',

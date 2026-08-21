@@ -543,7 +543,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                     <button onClick={onExit} style={S.backBtn}>← Back</button>
                     <div style={S.headerTitle}>Preflop Range Trainer</div>
                     <div style={S.headerScore}>
-                        <span style={{ color: '#64748b', fontWeight: 'bold', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                        <span style={{ color: '#64748b', fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             ---%
                         </span>
                     </div>
@@ -565,7 +565,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                 <button onClick={onExit} style={S.backBtn}>← Back</button>
                 <div style={S.headerTitle}>Preflop Range Trainer</div>
                 <div style={S.headerScore}>
-                    <span style={{ color: accColor, fontWeight: 'bold', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                    <span style={{ color: accColor, fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {accuracy}%
                     </span>
                     <span style={{ fontSize: 9, color: '#64748b' }}>({score.correct}/{score.total})</span>
@@ -854,7 +854,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                         >
                             <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 8 }}>
                                 <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: 22, fontWeight: 'bold', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", color: rangeScore.f1 >= 80 ? '#22c55e' : rangeScore.f1 >= 60 ? '#fbbf24' : '#ef4444' }}>
+                                    <div style={{ fontSize: 22, fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", color: rangeScore.f1 >= 80 ? '#22c55e' : rangeScore.f1 >= 60 ? '#fbbf24' : '#ef4444' }}>
                                         {rangeScore.f1}%
                                     </div>
                                     <div style={{ fontSize: 9, color: '#64748b', letterSpacing: 1 }}>SCORE</div>
@@ -967,7 +967,7 @@ const S = {
     posBtn: {
         padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 'bold',
         border: '1px solid', cursor: 'pointer', letterSpacing: 0.5, minWidth: 48,
-        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
     },
     handDisplay: {
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '16px 0',
@@ -981,7 +981,7 @@ const S = {
     },
     handNotation: {
         fontSize: 13, fontWeight: 'bold', color: '#64748b',
-        fontFamily: "var(--font-orbitron), 'Orbitron', monospace", letterSpacing: 2,
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", letterSpacing: 2,
     },
     actionBar: {
         display: 'flex', gap: 8, padding: '0 16px 12px', justifyContent: 'center',

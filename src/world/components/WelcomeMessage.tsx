@@ -103,7 +103,7 @@ export function WelcomeBack({ isOnHomeScreen = true }: WelcomeBackProps) {
         >
             <span
                 style={{
-                    fontFamily: 'Orbitron, sans-serif',
+                    fontFamily: 'Rajdhani, sans-serif',
                     fontSize: 28,
                     fontWeight: 600,
                     color: '#ffffff',

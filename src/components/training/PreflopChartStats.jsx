@@ -53,7 +53,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
             <div style={{
                 fontSize: 10, fontWeight: 800, color: '#00d4ff',
                 letterSpacing: 1.5, textTransform: 'uppercase',
-                marginBottom: 12, fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                marginBottom: 12, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
             }}>
                 {position} {scenarioLabels[scenario] || 'RANGE'}
             </div>
@@ -62,7 +62,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
             <div style={{ marginBottom: 16, textAlign: 'center' }}>
                 <div style={{
                     fontSize: 36, fontWeight: 900, color: '#e2e8f0',
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace", lineHeight: 1,
+                    fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", lineHeight: 1,
                 }}>
                     {rfiPct}%
                 </div>
@@ -105,7 +105,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                         fontSize: 10, color: '#94a3b8', fontWeight: 600, marginBottom: 2,
                     }}>
                         <span>{item.label}</span>
-                        <span style={{ color: item.color, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                        <span style={{ color: item.color, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {item.value}
                         </span>
                     </div>
@@ -144,7 +144,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                 }}>
                     <div style={{
                         fontSize: 18, fontWeight: 800, color: '#00d4ff',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                     }}>
                         {pureHands}
                     </div>
@@ -159,7 +159,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                 }}>
                     <div style={{
                         fontSize: 18, fontWeight: 800, color: '#fbbf24',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                     }}>
                         {mixedHands}
                     </div>

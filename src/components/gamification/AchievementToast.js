@@ -128,7 +128,7 @@ export function AchievementToast({
                             fontSize: 15,
                             fontWeight: 700,
                             color: '#fff',
-                            fontFamily: 'Orbitron, sans-serif',
+                            fontFamily: 'Rajdhani, sans-serif',
                         }}>
                             {title}
                         </h4>

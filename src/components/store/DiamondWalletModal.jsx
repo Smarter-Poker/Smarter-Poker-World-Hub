@@ -359,7 +359,7 @@ const DonutChart = ({ data }) => {
                 <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={donutWidth} />
                 {slices}
                 {/* Center text */}
-                <text x={cx} y={cy - 4} textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="10" fontWeight="700" fontFamily="Orbitron, monospace">
+                <text x={cx} y={cy - 4} textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="10" fontWeight="700" fontFamily="Rajdhani, monospace">
                     {total.toLocaleString()}
                 </text>
                 <text x={cx} y={cy + 8} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="7">
@@ -373,7 +373,7 @@ const DonutChart = ({ data }) => {
                         <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {d.label}
                         </span>
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'Orbitron, monospace', fontWeight: 600 }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'Rajdhani, monospace', fontWeight: 600 }}>
                             {d.value.toLocaleString()}
                         </span>
                     </div>
@@ -1370,7 +1370,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         pointerEvents: 'none',
                     }}>
                         <div style={{
-                            fontFamily: "'Orbitron', sans-serif",
+                            fontFamily: "'Rajdhani', sans-serif",
                             fontSize: 'clamp(24px, 6vw, 36px)',
                             fontWeight: 900,
                             letterSpacing: '1px',
@@ -1386,7 +1386,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             {(animatedBalance ?? 0).toLocaleString()}
                         </div>
                         <div style={{
-                            fontFamily: '"Orbitron", sans-serif',
+                            fontFamily: '"Rajdhani", sans-serif',
                             fontSize: 'clamp(10px, 2.5vw, 14px)',
                             fontWeight: 700,
                             color: '#e0f0ff',
@@ -1424,7 +1424,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             }
                             return (
                                 <div style={{
-                                    fontFamily: '"Orbitron", sans-serif',
+                                    fontFamily: '"Rajdhani", sans-serif',
                                     fontSize: 'clamp(11px, 3vw, 15px)',
                                     fontWeight: 800,
                                     letterSpacing: '1px',
@@ -1951,12 +1951,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                             <div style={{ background: 'rgba(74, 222, 128, 0.08)', borderRadius: 8, padding: '8px 10px' }}>
                                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Total Earned</div>
-                                <div style={{ fontSize: 16, fontWeight: 700, color: '#4ade80', fontFamily: 'Orbitron, monospace' }}>+{stats.totalEarned.toLocaleString()}</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: '#4ade80', fontFamily: 'Rajdhani, monospace' }}>+{stats.totalEarned.toLocaleString()}</div>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>This week: +{stats.weekEarned.toLocaleString()}</div>
                             </div>
                             <div style={{ background: 'rgba(248, 113, 113, 0.08)', borderRadius: 8, padding: '8px 10px' }}>
                                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Total Spent</div>
-                                <div style={{ fontSize: 16, fontWeight: 700, color: '#f87171', fontFamily: 'Orbitron, monospace' }}>-{stats.totalSpent.toLocaleString()}</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: '#f87171', fontFamily: 'Rajdhani, monospace' }}>-{stats.totalSpent.toLocaleString()}</div>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>This week: -{stats.weekSpent.toLocaleString()}</div>
                             </div>
                         </div>
@@ -1995,7 +1995,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                     <div style={{ background: 'rgba(0,212,255,0.06)', borderRadius: 8, padding: '6px 10px' }}>
                                         <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>This Month Earned</div>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'Orbitron, monospace' }}>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'Rajdhani, monospace' }}>
                                             +{stats.monthlyTrend.thisMonthEarned.toLocaleString()}
                                         </div>
                                         {stats.monthlyTrend.earnedChange !== 0 && (
@@ -2016,7 +2016,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     </div>
                                     <div style={{ background: 'rgba(0,212,255,0.06)', borderRadius: 8, padding: '6px 10px' }}>
                                         <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>This Month Spent</div>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#f87171', fontFamily: 'Orbitron, monospace' }}>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#f87171', fontFamily: 'Rajdhani, monospace' }}>
                                             -{stats.monthlyTrend.thisMonthSpent.toLocaleString()}
                                         </div>
                                         {stats.monthlyTrend.spentChange !== 0 && (
@@ -2052,15 +2052,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
                             <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Sent</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff', fontFamily: 'Orbitron, monospace' }}>{stats.giftsSent.toLocaleString()}</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff', fontFamily: 'Rajdhani, monospace' }}>{stats.giftsSent.toLocaleString()}</div>
                             </div>
                             <div style={{ background: 'rgba(74,222,128,0.08)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Received</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'Orbitron, monospace' }}>{stats.giftsReceived.toLocaleString()}</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'Rajdhani, monospace' }}>{stats.giftsReceived.toLocaleString()}</div>
                             </div>
                             <div style={{ background: 'rgba(0,212,255,0.08)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Gifts</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#00d4ff', fontFamily: 'Orbitron, monospace' }}>{stats.giftCount}</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#00d4ff', fontFamily: 'Rajdhani, monospace' }}>{stats.giftCount}</div>
                             </div>
                         </div>
                         {stats.topRecipients.length > 0 && (
@@ -2300,7 +2300,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                 flexShrink: 0,
                                             }}>
                                                 <span style={{
-                                                    fontFamily: 'Orbitron, monospace',
+                                                    fontFamily: 'Rajdhani, monospace',
                                                     fontSize: 18,
                                                     fontWeight: 700,
                                                     color: isPositive ? '#4ade80' : '#f87171',
@@ -2435,7 +2435,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
             {/* Keyframe animations */}
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@700;900&display=swap');
                 @keyframes walletFadeScale {
                     from { opacity: 0; transform: scale(0.97) translateY(6px); }
                     to { opacity: 1; transform: scale(1) translateY(0); }

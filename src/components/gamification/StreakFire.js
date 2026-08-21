@@ -152,7 +152,7 @@ export default function StreakFire({
                     style={{
                         fontSize: sizes.font,
                         fontWeight: 800,
-                        fontFamily: 'Orbitron, sans-serif',
+                        fontFamily: 'Rajdhani, sans-serif',
                         background: isOnFire
                             ? 'linear-gradient(135deg, #ff6600, #ff4500, #ff0000)'
                             : 'linear-gradient(135deg, #ff8c00, #ff6600)',

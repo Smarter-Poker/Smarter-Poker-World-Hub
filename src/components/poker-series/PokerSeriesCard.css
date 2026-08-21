@@ -3,7 +3,7 @@
    Smarter.Poker — Skeuomorphic Sci-Fi Casino Terminal Aesthetic
    ═══════════════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap');
 
 /* ── Root Tokens ─────────────────────────────────────────────────────────── */
 :root {
@@ -115,7 +115,7 @@
 }
 
 .psc-tour-badge {
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -182,7 +182,7 @@
 }
 
 .psc-stat-label {
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.55rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -215,7 +215,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.1em;

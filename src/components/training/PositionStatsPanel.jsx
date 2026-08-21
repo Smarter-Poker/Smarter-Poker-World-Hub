@@ -217,7 +217,7 @@ const styles = {
     },
     barFill: { height: '100%', borderRadius: 4 },
     posStats: { width: 36, fontSize: 12, textAlign: 'right' },
-    posEV: { width: 42, fontSize: 10, textAlign: 'right', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", color: '#64748b' },
+    posEV: { width: 42, fontSize: 10, textAlign: 'right', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", color: '#64748b' },
     posCount: { width: 22, fontSize: 10, color: '#475569', textAlign: 'right' },
     microGrid: {
         marginBottom: 12, borderRadius: 8,

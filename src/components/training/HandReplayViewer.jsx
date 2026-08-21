@@ -215,7 +215,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                 }}>
                                     {config.icon} {config.label}
                                 </div>
-                                <div style={{ color: selectedHand.evLoss > 0 ? '#ef4444' : '#22c55e', fontWeight: 'bold', fontSize: 14, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                                <div style={{ color: selectedHand.evLoss > 0 ? '#ef4444' : '#22c55e', fontWeight: 'bold', fontSize: 14, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                                     {selectedHand.evLoss > 0 ? `-${selectedHand.evLoss.toFixed(2)}` : '0.00'} BB
                                 </div>
                             </div>
@@ -987,7 +987,7 @@ const styles = {
         background: 'rgba(0,212,255,0.1)', color: '#00d4ff', fontSize: 9,
     },
     listEV: {
-        fontSize: 12, fontWeight: 'bold', fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+        fontSize: 12, fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
         minWidth: 40, textAlign: 'right',
     },
 };

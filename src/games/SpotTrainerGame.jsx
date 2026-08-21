@@ -664,24 +664,24 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                         border: `1px solid ${gradeColor}40`,
                         borderRadius: 20, padding: 28, marginBottom: 20
                     }}>
-                        <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
+                        <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10 }}>
                             <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
-                                <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontSize: 20, fontWeight: 800, color: '#FFD700' }}>{score}</div>
+                                <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 20, fontWeight: 800, color: '#FFD700' }}>{score}</div>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
                             </div>
                             <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
-                                <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontSize: 20, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
+                                <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 20, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
                             </div>
                             <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
-                                <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontSize: 20, fontWeight: 800, color: '#A78BFA' }}>{correctAnswers}/{totalAnswers}</div>
+                                <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 20, fontWeight: 800, color: '#A78BFA' }}>{correctAnswers}/{totalAnswers}</div>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>CORRECT</div>
                             </div>
                             <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
-                                <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontSize: 20, fontWeight: 800, color: '#00ff88' }}>{SPOT_SCENARIOS.length}</div>
+                                <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 20, fontWeight: 800, color: '#00ff88' }}>{SPOT_SCENARIOS.length}</div>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SPOTS</div>
                             </div>
                         </div>
@@ -1255,7 +1255,7 @@ const styles = {
         fontWeight: 900,
         color: '#fff',
         marginBottom: 32,
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
     },
     statsGrid: {
         display: 'grid',

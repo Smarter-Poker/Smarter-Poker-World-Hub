@@ -195,7 +195,7 @@ export default function MetalModal({
 
                 .modal-title {
                     margin: 0;
-                    font-family: 'Orbitron', 'Rajdhani', sans-serif;
+                    font-family: 'Rajdhani', 'Rajdhani', sans-serif;
                     font-size: 20px;
                     font-weight: 600;
                     color: #fff;

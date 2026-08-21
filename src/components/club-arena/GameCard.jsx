@@ -261,7 +261,7 @@ function StickerBadge({ stickerKey, assetMap, gtdAmount }) {
             transform: 'translateX(-50%)',
             fontSize: 6,
             fontWeight: 800,
-            fontFamily: '"Orbitron", monospace',
+            fontFamily: '"Rajdhani", monospace',
             color: '#FFD700',
             textShadow: '0 0 3px #000, 0 0 2px #000',
             whiteSpace: 'nowrap',
@@ -745,7 +745,7 @@ const S = {
   },
   varBadge: {
     fontSize: 10, fontWeight: 800,
-    fontFamily: '"Orbitron","Rajdhani",monospace',
+    fontFamily: '"Rajdhani","Rajdhani",monospace',
     padding: '2px 6px', borderRadius: 4, border: '1px solid',
     letterSpacing: 0.4, textTransform: 'uppercase', lineHeight: 1.3, whiteSpace: 'nowrap',
   },
@@ -799,14 +799,14 @@ const S = {
   },
   overlayGameType: {
     fontSize: 10, fontWeight: 800,
-    fontFamily: '"Orbitron","Rajdhani",monospace',
+    fontFamily: '"Rajdhani","Rajdhani",monospace',
     letterSpacing: 1, textTransform: 'uppercase',
     textShadow: '0 1px 6px rgba(0,0,0,0.8)',
     lineHeight: 1.2,
   },
   overlayBlinds: {
     fontSize: 17, fontWeight: 900,
-    fontFamily: '"Orbitron",monospace',
+    fontFamily: '"Rajdhani",monospace',
     letterSpacing: -0.5, lineHeight: 1,
     textShadow: '0 1px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5)',
   },
@@ -826,7 +826,7 @@ const S = {
   },
   overlayBuyIn: {
     fontSize: 14, fontWeight: 800,
-    fontFamily: '"Orbitron",monospace',
+    fontFamily: '"Rajdhani",monospace',
     color: '#fff', lineHeight: 1,
     textShadow: '0 1px 6px rgba(0,0,0,0.9)',
   },
@@ -887,7 +887,7 @@ const S = {
     position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 7, fontWeight: 800, color: '#fff', letterSpacing: 0.3,
     textShadow: '0 1px 3px rgba(0,0,0,0.9)',
-    fontFamily: '"Orbitron",monospace',
+    fontFamily: '"Rajdhani",monospace',
   },
 
   // Quick Register Button

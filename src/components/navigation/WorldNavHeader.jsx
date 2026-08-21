@@ -159,7 +159,7 @@ export function WorldNavHeader({
                     position: 'absolute',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    fontFamily: 'Orbitron, sans-serif',
+                    fontFamily: 'Rajdhani, sans-serif',
                     fontSize: 16,
                     fontWeight: 700,
                     color: '#fff',

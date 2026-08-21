@@ -46,7 +46,7 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <span style={{ fontSize: 32, display: 'flex', alignItems: 'center' }}><Gem size={32} color="#00D4FF" /></span>
                 <div>
-                    <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 24, fontWeight: 700, color: '#00D4FF' }}>
+                    <div style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 24, fontWeight: 700, color: '#00D4FF' }}>
                         {totalDiamonds.toLocaleString()}
                     </div>
                     {pkg.bonus > 0 && (
@@ -97,7 +97,7 @@ export function VIPCard({ plan, isSelected, onSelect }) {
                 background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)',
                 padding: '40px 16px 14px', borderRadius: '0 0 14px 14px',
             }}>
-                <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 14, fontWeight: 700, color: '#FFFFFF', marginBottom: 4 }}>
+                <div style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 14, fontWeight: 700, color: '#FFFFFF', marginBottom: 4 }}>
                     {plan.name}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>

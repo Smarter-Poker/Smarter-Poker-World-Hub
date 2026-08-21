@@ -286,7 +286,7 @@ function CelebrationPopup({
 
                 {/* Message */}
                 <div style={{
-                    fontFamily: 'Orbitron, sans-serif',
+                    fontFamily: 'Rajdhani, sans-serif',
                     fontSize: 16,
                     fontWeight: 600,
                     color: 'rgba(255, 255, 255, 0.8)',
@@ -298,7 +298,7 @@ function CelebrationPopup({
 
                 {/* Diamond amount */}
                 <div style={{
-                    fontFamily: 'Orbitron, sans-serif',
+                    fontFamily: 'Rajdhani, sans-serif',
                     fontSize: 48,
                     fontWeight: 900,
                     background: `linear-gradient(135deg, ${config.color}, #ffffff)`,
@@ -500,7 +500,7 @@ export function MiniCelebration({
         }}>
             <span style={{ fontSize: 24 }}>{icon || <DiamondImg size={24} />}</span>
             <span style={{
-                fontFamily: 'Orbitron, sans-serif',
+                fontFamily: 'Rajdhani, sans-serif',
                 fontSize: 18,
                 fontWeight: 700,
                 color: '#ffffff',

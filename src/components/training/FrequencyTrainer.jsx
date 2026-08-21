@@ -173,7 +173,7 @@ function FrequencyDial({ score, grade, size = 100 }) {
             }}>
                 <div style={{
                     fontSize: size * 0.28, fontWeight: 800, color,
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                    fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                 }}>
                     {grade}
                 </div>
@@ -388,7 +388,7 @@ export default function FrequencyTrainer({ handHistory, compact = false }) {
                 <div>
                     <div style={{
                         fontSize: 12, fontWeight: 800, color: '#e2e8f0',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                     }}>
                         FREQUENCY ADHERENCE
                     </div>

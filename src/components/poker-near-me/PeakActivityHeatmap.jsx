@@ -97,7 +97,7 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
         fontFamily: 'Inter, system-ui, sans-serif',
       }}>
-        <h3 style={{ color: '#fff', marginBottom: 8, fontSize: 16, fontFamily: 'Orbitron, Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Peak Activity Heatmap</h3>
+        <h3 style={{ color: '#fff', marginBottom: 8, fontSize: 16, fontFamily: 'Rajdhani, Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Peak Activity Heatmap</h3>
         <div style={{ color: '#64748b', textAlign: 'center', padding: 24 }}>
           {data?.message || 'Not enough data yet. Heatmap populates within 24-48 hours.'}
         </div>
@@ -123,7 +123,7 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
       <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 2, background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.8), transparent)', boxShadow: '0 2px 10px rgba(0,212,255,0.4)' }} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ color: '#fff', margin: 0, fontSize: 16, fontFamily: 'Orbitron, Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Peak Activity Heatmap</h3>
+        <h3 style={{ color: '#fff', margin: 0, fontSize: 16, fontFamily: 'Rajdhani, Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Peak Activity Heatmap</h3>
         {data.best_time && (
           <div style={{
             background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)',

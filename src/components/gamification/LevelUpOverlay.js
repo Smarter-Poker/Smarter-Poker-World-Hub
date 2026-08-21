@@ -166,7 +166,7 @@ export default function LevelUpOverlay({
                                 <span style={{
                                     fontSize: 48,
                                     fontWeight: 900,
-                                    fontFamily: 'Orbitron, sans-serif',
+                                    fontFamily: 'Rajdhani, sans-serif',
                                     color: '#FFD700',
                                     textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
                                 }}>
@@ -210,7 +210,7 @@ export default function LevelUpOverlay({
                             style={{
                                 fontSize: 48,
                                 fontWeight: 900,
-                                fontFamily: 'Orbitron, sans-serif',
+                                fontFamily: 'Rajdhani, sans-serif',
                                 background: 'linear-gradient(135deg, #FFD700, #00D4FF)',
                                 WebkitBackgroundClip: 'text',
                                 WebkitTextFillColor: 'transparent',

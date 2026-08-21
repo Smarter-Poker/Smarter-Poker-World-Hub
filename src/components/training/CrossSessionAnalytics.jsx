@@ -140,7 +140,7 @@ const PositionHeatmap = memo(({ sessions, positionAccuracy }) => {
                         <div style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 }}>
                             {p.position}
                         </div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {(acc * 100).toFixed(0)}%
                         </div>
                         <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>
@@ -199,7 +199,7 @@ const SpotTypeBreakdown = memo(({ sessions, spotAccuracy }) => {
                     <div key={spot.label} style={{ marginBottom: 8 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                             <span style={{ fontSize: 10, fontWeight: 600, color: spot.color }}>{spot.label}</span>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                                 {(acc * 100).toFixed(0)}%
                             </span>
                         </div>
@@ -428,7 +428,7 @@ const RecentSessionsList = memo(({ sessions }) => {
                         <span style={{ flex: 1, fontSize: 10, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {s.gameName || s.gameId || 'Training'}
                         </span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: scoreColor, fontFamily: "var(--font-orbitron), 'Orbitron', monospace", width: 38, textAlign: 'right' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: scoreColor, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", width: 38, textAlign: 'right' }}>
                             {score > 0 ? `+${score}` : score}
                         </span>
                         <span style={{ fontSize: 10, color: '#e2e8f0', width: 34, textAlign: 'right' }}>
@@ -554,7 +554,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                         <div style={{
                             fontSize: 18, fontWeight: 700,
                             color: metrics.avgScore >= 70 ? '#22c55e' : metrics.avgScore >= 55 ? '#f59e0b' : '#ef4444',
-                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                            fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         }}>
                             {metrics.avgScore.toFixed(0)}
                         </div>
@@ -567,25 +567,25 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Best</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {metrics.bestScore}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Sessions</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: '#3b82f6', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: '#3b82f6', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {metrics.sessionCount}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Hands</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: '#818cf8', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: '#818cf8', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {metrics.totalHands}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>EV Lost</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             -{metrics.totalEV.toFixed(0)}
                         </div>
                     </div>

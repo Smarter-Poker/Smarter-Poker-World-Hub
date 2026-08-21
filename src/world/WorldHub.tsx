@@ -781,7 +781,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 3D SPATIAL LAYER — Camera for massive main card
                 z-index: 5 puts cards ABOVE background but BELOW HUD (z-index: 10)
                 ═══════════════════════════════════════════════════════════════ */}
-                <HubErrorBoundary name="3D Canvas Engine" fallback={<div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.2)', fontFamily: 'Orbitron, sans-serif' }}>[3D Engine Offline]</div>}>
+                <HubErrorBoundary name="3D Canvas Engine" fallback={<div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.2)', fontFamily: 'Rajdhani, sans-serif' }}>[3D Engine Offline]</div>}>
                     <Canvas
                         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5 }}
                         dpr={[1, 2]}

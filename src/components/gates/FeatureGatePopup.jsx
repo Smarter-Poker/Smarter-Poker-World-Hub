@@ -419,7 +419,7 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                                 <span style={{ fontSize: 32, color: '#fff' }}>✓</span>
                             </div>
                             <span style={{
-                                fontFamily: "'Orbitron', sans-serif", fontSize: 16,
+                                fontFamily: "'Rajdhani', sans-serif", fontSize: 16,
                                 fontWeight: 700, letterSpacing: '0.12em', color: '#22c55e',
                             }}>ACCESS GRANTED</span>
                         </div>
@@ -457,7 +457,7 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                             }}>
                                 <span style={{ fontSize: 18 }}>⚡</span>
                                 <span style={{
-                                    fontFamily: "'Orbitron', sans-serif",
+                                    fontFamily: "'Rajdhani', sans-serif",
                                     fontSize: 14, fontWeight: 700, letterSpacing: '0.1em',
                                     background: 'linear-gradient(135deg, #ffd700, #c9a227)',
                                     WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
@@ -471,7 +471,7 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                             }}>
                                 <span style={{ fontSize: 20 }}>💎</span>
                                 <span style={{
-                                    fontFamily: "'Orbitron', sans-serif",
+                                    fontFamily: "'Rajdhani', sans-serif",
                                     fontSize: 32, fontWeight: 900,
                                     background: 'linear-gradient(180deg, #ffffff 0%, #ffd700 100%)',
                                     WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
@@ -539,7 +539,7 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                             }}>
                                 <span style={{ fontSize: 20 }}>💎</span>
                                 <span style={{
-                                    fontFamily: "'Orbitron', sans-serif",
+                                    fontFamily: "'Rajdhani', sans-serif",
                                     fontSize: 32, fontWeight: 900,
                                     background: 'linear-gradient(180deg, #ffffff 0%, #2374e1 100%)',
                                     WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',

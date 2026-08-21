@@ -4748,7 +4748,7 @@ function UniversalDynamicTable({
                         <span style={{ fontSize: 16, color: rngTheme.fg }}>◆</span>
                         <span style={{
                             fontSize: 20, fontWeight: 900,
-                            color: rngTheme.fg, fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                            color: rngTheme.fg, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                             textShadow: `0 0 10px ${rngTheme.glow}`,
                         }}>
                             {rngRoll}
@@ -5381,7 +5381,7 @@ function UniversalDynamicTable({
                                     border: '1px solid rgba(239, 68, 68, 0.25)',
                                 }}>
                                     <div style={{ fontSize: 8, color: 'var(--sp-accent-red)', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', textAlign: 'center' }}>Cost</div>
-                                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", textAlign: 'center' }}>
+                                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", textAlign: 'center' }}>
                                         -{evCost.toFixed(2)} BB
                                     </div>
                                 </div>
@@ -6093,7 +6093,7 @@ function UniversalDynamicTable({
                                     const spr = getSPRStrategyGuide(sc.potSize || sc.estimatedPot || 0, sc.stackDepth || sc.effectiveStack || 100);
                                     if (!spr || !spr.guidance) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(0,212,255,0.03)', borderRadius: 8, border: '1px solid rgba(0,212,255,0.08)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-cyan)' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: 'var(--sp-accent-cyan)' }}>SPR: </span>{spr.spr && <span style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace", marginRight: 4 }}>{spr.spr.toFixed(1)}</span>}{spr.guidance}
+                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: 'var(--sp-accent-cyan)' }}>SPR: </span>{spr.spr && <span style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", marginRight: 4 }}>{spr.spr.toFixed(1)}</span>}{spr.guidance}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -6140,7 +6140,7 @@ function UniversalDynamicTable({
                                     if (!eq) return null;
                                     const eqColor = eq.equity >= 60 ? 'var(--sp-accent-green)' : eq.equity >= 40 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: `${eqColor}06`, borderRadius: 8, border: `1px solid ${eqColor}15`, fontSize: 9, lineHeight: 1.5, color: eqColor }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>EQUITY: </span><span style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>{eq.equity}%</span> — {eq.rangeDescription}
+                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>EQUITY: </span><span style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>{eq.equity}%</span> — {eq.rangeDescription}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}

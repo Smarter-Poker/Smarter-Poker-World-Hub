@@ -736,11 +736,11 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                 {/* Live search stats */}
                                 <div style={{ display: 'flex', gap: 24, justifyContent: 'center', marginTop: 20 }}>
                                     <div style={{ textAlign: 'center' }}>
-                                        <div style={{ color: '#9333EA', fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontSize: 18, fontWeight: 700 }}>{searchSec}s</div>
+                                        <div style={{ color: '#9333EA', fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 18, fontWeight: 700 }}>{searchSec}s</div>
                                         <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>SEARCH TIME</div>
                                     </div>
                                     <div style={{ textAlign: 'center' }}>
-                                        <div style={{ color: '#00ff88', fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontSize: 18, fontWeight: 700 }}>{playersOnline}</div>
+                                        <div style={{ color: '#00ff88', fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 18, fontWeight: 700 }}>{playersOnline}</div>
                                         <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>PLAYERS ONLINE</div>
                                     </div>
                                 </div>
@@ -776,7 +776,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
                                         transition={{ delay: 0.3, type: 'spring' }}
-                                        style={{ fontSize: 36, color: '#ff4444', fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontWeight: 900 }}
+                                        style={{ fontSize: 36, color: '#ff4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontWeight: 900 }}
                                     >
                                         VS
                                     </motion.div>
@@ -822,7 +822,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                 >
                                     ⚔️
                                 </motion.div>
-                                <div style={{ color: '#fff', fontSize: 24, fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontWeight: 700 }}>BATTLE STARTING...</div>
+                                <div style={{ color: '#fff', fontSize: 24, fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontWeight: 700 }}>BATTLE STARTING...</div>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -1034,7 +1034,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                         <div style={{ fontSize: 14, color: resultColor, fontWeight: 700, marginBottom: 8, letterSpacing: 2 }}>
                             {playerWon ? 'VICTORY!' : 'DEFEAT'}
                         </div>
-                        <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontSize: 48, fontWeight: 900, color: '#fff', lineHeight: 1, marginBottom: 4 }}>
+                        <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 48, fontWeight: 900, color: '#fff', lineHeight: 1, marginBottom: 4 }}>
                             <span style={{ color: '#00ff88' }}>{playerScore}</span>
                             <span style={{ color: 'rgba(255,255,255,0.3)', margin: '0 8px' }}>-</span>
                             <span style={{ color: '#ff4444' }}>{opponentScore}</span>
@@ -1045,13 +1045,13 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
                             <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontSize: 24, fontWeight: 800, color: lastMatch?.eloChange >= 0 ? '#00ff88' : '#ff4444' }}>
+                                <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 24, fontWeight: 800, color: lastMatch?.eloChange >= 0 ? '#00ff88' : '#ff4444' }}>
                                     {lastMatch?.eloChange >= 0 ? '+' : ''}{lastMatch?.eloChange}
                                 </div>
                                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>ELO CHANGE</div>
                             </div>
                             <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif", fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{playerElo}</div>
+                                <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{playerElo}</div>
                                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>NEW ELO</div>
                             </div>
                             <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
@@ -1217,7 +1217,7 @@ const styles = {
         fontWeight: 900,
         color: '#fff',
         marginBottom: 8,
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
     },
     lobbySubtitle: {
         fontSize: 16,
@@ -1451,7 +1451,7 @@ const styles = {
         fontSize: 48,
         fontWeight: 900,
         marginBottom: 16,
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
     },
     resultScore: {
         fontSize: 48,

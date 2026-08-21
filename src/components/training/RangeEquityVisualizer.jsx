@@ -328,7 +328,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                     {stats && (
                         <div style={{
                             fontSize: 11, fontWeight: 700, color: stats.avgEquity >= 0.55 ? '#22c55e' : stats.avgEquity >= 0.45 ? '#f59e0b' : '#ef4444',
-                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                            fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         }}>
                             Avg: {(stats.avgEquity * 100).toFixed(1)}%
                         </div>
@@ -491,7 +491,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                                             fontSize: 20, fontWeight: 700, marginTop: 4,
                                             color: selectedDetail.equity >= 0.55 ? '#22c55e'
                                                 : selectedDetail.equity >= 0.45 ? '#f59e0b' : '#ef4444',
-                                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                                            fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                                         }}>
                                             {(selectedDetail.equity * 100).toFixed(1)}%
                                         </div>
@@ -593,7 +593,7 @@ export function RangeEquityMini({ board, heroRange, vilRange }) {
             <div style={{
                 fontSize: 13, fontWeight: 700,
                 color: avgEquity >= 0.55 ? '#22c55e' : avgEquity >= 0.45 ? '#f59e0b' : '#ef4444',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
             }}>
                 {(avgEquity * 100).toFixed(1)}%
             </div>

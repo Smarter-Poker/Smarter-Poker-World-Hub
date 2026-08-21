@@ -165,7 +165,7 @@ export default function AvatarGallery({ onSelect }) {
         }
 
         .section-title {
-          font-family: 'Orbitron', sans-serif;
+          font-family: 'Rajdhani', sans-serif;
           font-size: 24px;
           font-weight: 700;
           background: linear-gradient(135deg, #00f5ff, #0099ff);
@@ -461,7 +461,7 @@ export default function AvatarGallery({ onSelect }) {
               border: 'none',
               borderRadius: '12px',
               color: '#fff',
-              fontFamily: "'Orbitron', sans-serif",
+              fontFamily: "'Rajdhani', sans-serif",
               fontSize: '16px',
               fontWeight: '700',
               cursor: 'pointer',

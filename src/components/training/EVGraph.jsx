@@ -349,7 +349,7 @@ const styles = {
     valueLabel: {
         fontSize: 11,
         fontWeight: 700,
-        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
         height: 16,
     },
     barUpperArea: {

@@ -55,7 +55,7 @@ export default function HexButton({
                     border: 2px solid #3d4f5f;
                     clip-path: polygon(8% 0%, 92% 0%, 100% 50%, 92% 100%, 8% 100%, 0% 50%);
                     color: #ffffff;
-                    font-family: 'Orbitron', 'Rajdhani', sans-serif;
+                    font-family: 'Rajdhani', 'Rajdhani', sans-serif;
                     font-weight: 700;
                     letter-spacing: 0.1em;
                     text-transform: uppercase;

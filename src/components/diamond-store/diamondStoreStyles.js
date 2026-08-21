@@ -90,7 +90,7 @@ const styles = {
         cursor: 'pointer',
     },
     pageTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 28,
         fontWeight: 700,
         color: '#E4E6EB',
@@ -162,7 +162,7 @@ const styles = {
         marginBottom: 40,
     },
     earnTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 24,
         fontWeight: 700,
         color: '#fff',
@@ -235,7 +235,7 @@ const styles = {
         alignItems: 'center',
     },
     capNumber: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 36,
         fontWeight: 700,
         color: '#FFD700',
@@ -261,13 +261,13 @@ const styles = {
         alignItems: 'center',
     },
     multiplierValue: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 24,
         fontWeight: 700,
         color: '#00ff88',
     },
     multiplierValueGold: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 24,
         fontWeight: 700,
         color: '#FFD700',
@@ -280,7 +280,7 @@ const styles = {
         marginBottom: 32,
     },
     payoutTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 18,
         fontWeight: 600,
         color: '#fff',
@@ -422,7 +422,7 @@ const styles = {
         fontSize: 32,
         fontWeight: 700,
         color: '#00ff88',
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
     },
     quickStatLabel: {
         fontSize: 12,
@@ -443,7 +443,7 @@ const styles = {
         fontWeight: 700,
         color: '#E4E6EB',
         marginBottom: 16,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
     },
     rewardList: {
         display: 'flex',
@@ -552,7 +552,7 @@ const styles = {
         fontWeight: 700,
         color: '#FFD700',
         marginBottom: 12,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
     },
     eggTrigger: {
         fontSize: 12,
@@ -568,7 +568,7 @@ const styles = {
         fontWeight: 700,
         color: '#E4E6EB',
         marginBottom: 20,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
     },
     // Rarity Badge Styles
     rarityBadge: {
@@ -611,7 +611,7 @@ const styles = {
         marginBottom: 24,
     },
     easterTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 18,
         fontWeight: 600,
         color: '#fff',
@@ -740,7 +740,7 @@ const styles = {
         marginBottom: 32,
     },
     vipTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 32,
         fontWeight: 700,
         background: 'linear-gradient(135deg, #1877F2, #4285F4)',
@@ -783,7 +783,7 @@ const styles = {
         marginBottom: 32,
     },
     benefitsTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 20,
         fontWeight: 600,
         color: '#E4E6EB',
@@ -803,7 +803,7 @@ const styles = {
         fontSize: 20,
     },
     benefitsCategoryLabel: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 13,
         fontWeight: 700,
         color: '#FFFFFF',
@@ -876,14 +876,14 @@ const styles = {
         marginBottom: 4,
     },
     valueAmount: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 28,
         fontWeight: 700,
         color: 'rgba(255, 255, 255, 0.3)',
         textDecoration: 'line-through',
     },
     vipPrice: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 28,
         fontWeight: 700,
         color: '#1877F2',
@@ -894,7 +894,7 @@ const styles = {
     },
     // MERCHANDISE STYLES
     merchTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 28,
         fontWeight: 700,
         color: '#E4E6EB',
@@ -904,7 +904,7 @@ const styles = {
         marginBottom: 32,
     },
     merchCategoryTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 18,
         fontWeight: 600,
         color: '#E4E6EB',

@@ -39,7 +39,7 @@ export function GeevesOrb({ onClick, size = 48 }: GeevesOrbProps) {
         >
             <span
                 style={{
-                    fontFamily: 'Orbitron, sans-serif',
+                    fontFamily: 'Rajdhani, sans-serif',
                     fontSize: 11,
                     fontWeight: 700,
                     color: isHovered ? '#00ffff' : '#00d4ff',

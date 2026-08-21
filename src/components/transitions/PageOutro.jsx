@@ -110,7 +110,7 @@ export function PageOutro({ isActive, onComplete }) {
 
                 {/* Logo Text */}
                 <div style={{
-                    fontFamily: "'Orbitron', -apple-system, sans-serif",
+                    fontFamily: "'Rajdhani', -apple-system, sans-serif",
                     fontSize: 48,
                     fontWeight: 800,
                     letterSpacing: '0.1em',

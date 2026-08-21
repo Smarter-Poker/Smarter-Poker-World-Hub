@@ -222,7 +222,7 @@ export function StatsCard3D({
                     fontSize: 28,
                     fontWeight: 800,
                     color: '#ffffff',
-                    fontFamily: 'Orbitron, sans-serif',
+                    fontFamily: 'Rajdhani, sans-serif',
                     transform: 'translateZ(30px)',
                     textShadow: `0 0 20px ${glowColor}60`,
                 }}>
@@ -328,7 +328,7 @@ export function FeatureCard3D({
                         fontWeight: 700,
                         color: '#fff',
                         marginBottom: 4,
-                        fontFamily: 'Orbitron, sans-serif',
+                        fontFamily: 'Rajdhani, sans-serif',
                     }}>
                         {title}
                     </h3>

@@ -1103,7 +1103,7 @@ export default function TriviaGame({
                     font-size: 22px;
                     font-weight: 900;
                     color: #2374e1;
-                    font-family: 'Orbitron', monospace;
+                    font-family: 'Rajdhani', monospace;
                 }
                 .stake-label {
                     font-size: 12px;
@@ -1324,7 +1324,7 @@ export default function TriviaGame({
                     font-size: 16px;
                     font-weight: 800;
                     color: rgba(255, 255, 255, 0.9);
-                    font-family: 'Orbitron', monospace;
+                    font-family: 'Rajdhani', monospace;
                 }
                 .timer-text.critical {
                     color: #f02849;

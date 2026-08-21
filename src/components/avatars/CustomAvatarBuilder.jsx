@@ -309,7 +309,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           marginBottom: '20px'
         }}>♦️</div>
         <h2 style={{
-          fontFamily: 'Orbitron, sans-serif',
+          fontFamily: 'Rajdhani, sans-serif',
           fontSize: '24px',
           color: '#1877F2',
           marginBottom: '15px'
@@ -342,7 +342,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           marginBottom: '20px'
         }}>🔐</div>
         <h2 style={{
-          fontFamily: 'Orbitron, sans-serif',
+          fontFamily: 'Rajdhani, sans-serif',
           fontSize: '24px',
           color: '#1877F2',
           marginBottom: '15px'
@@ -392,7 +392,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         }
 
         .builder-title {
-          font-family: 'Orbitron', sans-serif;
+          font-family: 'Rajdhani', sans-serif;
           font-size: 28px;
           font-weight: 700;
           background: linear-gradient(135deg, #1877F2, #1877F2);
@@ -496,7 +496,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         }
 
         .delete-modal h3 {
-          font-family: 'Orbitron', sans-serif;
+          font-family: 'Rajdhani', sans-serif;
           color: #1877F2;
           margin-bottom: 10px;
         }
@@ -600,7 +600,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         }
 
         .loading-text {
-          font-family: 'Orbitron', sans-serif;
+          font-family: 'Rajdhani', sans-serif;
           font-size: 24px;
           color: #00ff00;
           text-shadow: 0 0 20px #00ff00;
@@ -652,7 +652,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         }
 
         .result-title {
-          font-family: 'Orbitron', sans-serif;
+          font-family: 'Rajdhani', sans-serif;
           font-size: 24px;
           color: #1877F2;
           margin-bottom: 20px;
@@ -886,7 +886,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           border: none;
           border-radius: 12px;
           color: #0a0e27;
-          font-family: 'Orbitron', sans-serif;
+          font-family: 'Rajdhani', sans-serif;
           font-size: 18px;
           font-weight: 700;
           cursor: pointer;

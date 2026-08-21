@@ -300,13 +300,13 @@ export default function ThreeBetTrainer() {
             }}>
                 <div>
                     <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>RANGE %</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#22c55e', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#22c55e', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {currentData.pct?.toFixed(1) || '0.0'}%
                     </div>
                 </div>
                 <div>
                     <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>COMBOS</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#3b82f6', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#3b82f6', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {combos}
                     </div>
                 </div>

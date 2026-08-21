@@ -321,7 +321,7 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{
                         fontSize: 24, fontWeight: 800, color: suitInfo?.color || '#fff',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                     }}>
                         {rank}{suitInfo?.symbol || ''}
                     </span>
@@ -465,7 +465,7 @@ function RunoutSummary({ strategies }) {
             padding: '6px 10px', background: 'rgba(0,0,0,0.2)',
             borderRadius: 8, flexWrap: 'wrap', justifyContent: 'center',
         }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                 Avg: Bet {stats.avgBet}% / Check {stats.avgCheck}%
             </div>
             <div style={{ fontSize: 9, color: '#64748b' }}>
@@ -539,7 +539,7 @@ export default function RunoutStrategyMatrix({
             }}>
                 <div style={{
                     fontSize: 13, fontWeight: 800, color: '#e2e8f0',
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                    fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                 }}>
                     {street === 'turn' ? 'TURN' : 'RIVER'} RUNOUT STRATEGY
                 </div>

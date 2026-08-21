@@ -665,7 +665,7 @@ const styles = {
     },
 
     questionCounter: {
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
         fontSize: 18,
         fontWeight: 700,
     },
@@ -740,7 +740,7 @@ const styles = {
         fontSize: 16,
         fontWeight: 700,
         color: '#FFD700',
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
     },
 
     seat: {
@@ -796,7 +796,7 @@ const styles = {
     timerValue: {
         fontSize: 28,
         fontWeight: 800,
-        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
     },
 
     timerLabel: {
@@ -917,7 +917,7 @@ const styles = {
     completeTitle: {
         fontSize: 36,
         fontWeight: 800,
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
         marginBottom: 24,
     },
 
@@ -937,7 +937,7 @@ const styles = {
     scoreValue: {
         fontSize: 72,
         fontWeight: 800,
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
     },
 
     completeSubtext: {

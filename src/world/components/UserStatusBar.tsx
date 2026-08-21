@@ -72,7 +72,7 @@ function DiamondDisplay({ count }: { count: number }) {
             <span style={{ fontSize: 18 }}><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
             <span
                 style={{
-                    fontFamily: 'Orbitron, monospace',
+                    fontFamily: 'Rajdhani, monospace',
                     fontSize: 14,
                     fontWeight: 700,
                     color: '#00d4ff',
@@ -109,7 +109,7 @@ function TierDisplay({ level, tier }: { level: number; tier: string }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span
                         style={{
-                            fontFamily: 'Orbitron, monospace',
+                            fontFamily: 'Rajdhani, monospace',
                             fontSize: 12,
                             fontWeight: 700,
                             color: tierConfig.color,
@@ -120,7 +120,7 @@ function TierDisplay({ level, tier }: { level: number; tier: string }) {
                     </span>
                     <span
                         style={{
-                            fontFamily: 'Orbitron, monospace',
+                            fontFamily: 'Rajdhani, monospace',
                             fontSize: 11,
                             color: 'rgba(255, 255, 255, 0.7)',
                         }}
@@ -196,7 +196,7 @@ function StreakDisplay({ streak, multiplier }: { streak: number; multiplier: num
             <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span
                     style={{
-                        fontFamily: 'Orbitron, monospace',
+                        fontFamily: 'Rajdhani, monospace',
                         fontSize: 14,
                         fontWeight: 700,
                         color: streak >= 5 ? '#ff6600' : '#ffaa00',
@@ -207,7 +207,7 @@ function StreakDisplay({ streak, multiplier }: { streak: number; multiplier: num
                 {multiplier > 1 && (
                     <span
                         style={{
-                            fontFamily: 'Orbitron, monospace',
+                            fontFamily: 'Rajdhani, monospace',
                             fontSize: 10,
                             color: '#00ff88',
                         }}

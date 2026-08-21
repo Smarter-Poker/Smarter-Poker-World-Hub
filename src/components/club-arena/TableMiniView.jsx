@@ -760,7 +760,7 @@ const S = {
     fontSize: 7,
     fontWeight: 800,
     color: 'rgba(255,255,255,0.8)',
-    fontFamily: '"Orbitron",monospace',
+    fontFamily: '"Rajdhani",monospace',
     letterSpacing: 0.3,
   },
   handBadgeBtn: {
@@ -790,10 +790,10 @@ const S = {
     padding: '2px 6px', borderBottom: '0.5px solid rgba(0,255,100,0.2)',
     background: 'rgba(0,100,30,0.2)',
   },
-  replayTitle: { fontSize: 6, fontWeight: 800, color: '#00FF66', letterSpacing: 0.5, fontFamily: '"Orbitron",monospace' },
+  replayTitle: { fontSize: 6, fontWeight: 800, color: '#00FF66', letterSpacing: 0.5, fontFamily: '"Rajdhani",monospace' },
   replayCloseBtn: { background: 'none', border: 'none', color: '#fff', fontSize: 10, cursor: 'pointer', padding: 0, lineHeight: 1 },
   replayBody: { flex: 1, padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center', alignItems: 'center' },
-  replayWinner: { fontSize: 8, fontWeight: 800, color: '#FFD700', fontFamily: '"Orbitron",monospace', textAlign: 'center' },
+  replayWinner: { fontSize: 8, fontWeight: 800, color: '#FFD700', fontFamily: '"Rajdhani",monospace', textAlign: 'center' },
 
   tableStatsRow: {
     position: 'absolute', top: 3, left: 8, zIndex: 3,
@@ -804,7 +804,7 @@ const S = {
     background: 'rgba(0,0,0,0.6)', padding: '1px 4px',
     borderRadius: 4, backdropFilter: 'blur(2px)',
     fontSize: 6, fontWeight: 800, color: 'rgba(255,255,255,0.7)',
-    fontFamily: '"Orbitron",monospace', cursor: 'default',
+    fontFamily: '"Rajdhani",monospace', cursor: 'default',
   },
   statIcon: { fontSize: 5 },
   streakBadge: {
@@ -902,14 +902,14 @@ const S = {
   },
   stackText: {
     fontSize: 8, fontWeight: 800, color: '#FFD700',
-    fontFamily: '"Orbitron",monospace', letterSpacing: 0.2,
+    fontFamily: '"Rajdhani",monospace', letterSpacing: 0.2,
     marginTop: -1,
   },
   stackRow: {
     display: 'flex', alignItems: 'center', gap: 2, marginTop: -1,
   },
   impactText: {
-    fontSize: 5, fontWeight: 800, fontFamily: '"Orbitron",monospace',
+    fontSize: 5, fontWeight: 800, fontFamily: '"Rajdhani",monospace',
     letterSpacing: 0.2,
   },
   actionBadge: {
@@ -931,7 +931,7 @@ const S = {
     alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.5)',
     animation: 'miniCardDeal 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both',
   },
-  microRank: { fontSize: 6, fontWeight: 800, lineHeight: 1, fontFamily: '"Orbitron",monospace' },
+  microRank: { fontSize: 6, fontWeight: 800, lineHeight: 1, fontFamily: '"Rajdhani",monospace' },
   microSuit: { fontSize: 5, lineHeight: 1, marginTop: -1 },
 
   // ── Center content ──
@@ -942,7 +942,7 @@ const S = {
   },
   waitingText: { fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.3, fontStyle: 'italic' },
   dealingDots: { fontSize: 8, color: 'rgba(255,215,0,0.4)', letterSpacing: 2, animation: 'miniDealingPulse 1.5s ease-in-out infinite' },
-  phaseLabel: { fontSize: 6, fontWeight: 800, color: 'rgba(255,215,0,0.7)', textTransform: 'uppercase', letterSpacing: 1, fontFamily: '"Orbitron",monospace' },
+  phaseLabel: { fontSize: 6, fontWeight: 800, color: 'rgba(255,215,0,0.7)', textTransform: 'uppercase', letterSpacing: 1, fontFamily: '"Rajdhani",monospace' },
   
   boardsContainer: {
     display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center',
@@ -954,7 +954,7 @@ const S = {
     alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
     animation: 'miniCardDeal 0.3s ease-out both',
   },
-  cardRank: { fontSize: 8, fontWeight: 800, lineHeight: 1, fontFamily: '"Orbitron",monospace' },
+  cardRank: { fontSize: 8, fontWeight: 800, lineHeight: 1, fontFamily: '"Rajdhani",monospace' },
   cardSuit: { fontSize: 6, lineHeight: 1, marginTop: -1 },
 
   // ── Card Backs (Dealing Phase) ──
@@ -978,7 +978,7 @@ const S = {
   },
   potText: {
     fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.2,
-    fontFamily: '"Orbitron",monospace', textShadow: '0 1px 3px rgba(0,0,0,0.7)',
+    fontFamily: '"Rajdhani",monospace', textShadow: '0 1px 3px rgba(0,0,0,0.7)',
   },
   gtoBadge: {
     fontSize: 5, fontWeight: 900, color: '#000', background: '#FFD700',
@@ -1006,11 +1006,11 @@ const S = {
   winnerIcon: { fontSize: 10 },
   winnerName: {
     fontSize: 7, fontWeight: 800, color: '#FFD700',
-    fontFamily: '"Orbitron",monospace', textTransform: 'uppercase',
+    fontFamily: '"Rajdhani",monospace', textTransform: 'uppercase',
   },
   winnerAmount: {
     fontSize: 8, fontWeight: 900, color: '#39FF14',
-    fontFamily: '"Orbitron",monospace',
+    fontFamily: '"Rajdhani",monospace',
   },
 
   // ── Chat Bubble ──
@@ -1048,7 +1048,7 @@ const S = {
   tourneyLevel: {
     fontSize: 5, fontWeight: 800, color: '#FFD700',
     background: 'rgba(0,0,0,0.6)', borderRadius: 3, padding: '0 3px',
-    fontFamily: '"Orbitron",monospace',
+    fontFamily: '"Rajdhani",monospace',
   },
   tourneyPlayers: {
     fontSize: 5, fontWeight: 700, color: 'rgba(255,255,255,0.6)',

@@ -80,7 +80,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                         border: `1px solid ${gradeResult.score >= 85 ? 'rgba(0,255,136,0.3)' : 'rgba(239,68,68,0.3)'}`,
                         borderRadius: 16, padding: 20, marginBottom: 16, textAlign: 'center'
                     }}>
-                        <div style={{ fontFamily: 'Orbitron', fontSize: 48, fontWeight: 900, color: gradeResult.score >= 85 ? '#00ff88' : '#ef4444' }}>
+                        <div style={{ fontFamily: 'Rajdhani', fontSize: 48, fontWeight: 900, color: gradeResult.score >= 85 ? '#00ff88' : '#ef4444' }}>
                             {gradeResult.score}%
                         </div>
                         <div style={{ fontSize: 14, color: gradeResult.score >= 85 ? '#00ff88' : '#ef4444', fontWeight: 700, marginBottom: 8 }}>
@@ -104,7 +104,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                                 borderRadius: 12, padding: 16, textAlign: 'center'
                             }}>
                                 <div style={{ fontSize: 24, marginBottom: 4 }}>{stat.icon}</div>
-                                <div style={{ fontFamily: 'Orbitron', fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
+                                <div style={{ fontFamily: 'Rajdhani', fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
                                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{stat.label}</div>
                             </div>
                         ))}
@@ -152,7 +152,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                     {mistakes.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 40, color: '#22C55E' }}>
                             <div style={{ fontSize: 48, marginBottom: 12 }}>🎯</div>
-                            <div style={{ fontFamily: 'Orbitron', fontSize: 18, fontWeight: 800 }}>FLAWLESS!</div>
+                            <div style={{ fontFamily: 'Rajdhani', fontSize: 18, fontWeight: 800 }}>FLAWLESS!</div>
                             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>No mistakes — you nailed this range perfectly.</div>
                         </div>
                     ) : (
@@ -328,13 +328,13 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                     {/* Range Stats */}
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 16, fontSize: 12 }}>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontFamily: 'Orbitron', fontSize: 18, fontWeight: 800, color: '#00d4ff' }}>
+                            <div style={{ fontFamily: 'Rajdhani', fontSize: 18, fontWeight: 800, color: '#00d4ff' }}>
                                 {Object.keys(solution || {}).length}
                             </div>
                             <div style={{ color: 'rgba(255,255,255,0.4)' }}>Hands in Range</div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontFamily: 'Orbitron', fontSize: 18, fontWeight: 800, color: '#00d4ff' }}>
+                            <div style={{ fontFamily: 'Rajdhani', fontSize: 18, fontWeight: 800, color: '#00d4ff' }}>
                                 {Math.round(Object.keys(solution || {}).length / 169 * 100)}%
                             </div>
                             <div style={{ color: 'rgba(255,255,255,0.4)' }}>Range Width</div>

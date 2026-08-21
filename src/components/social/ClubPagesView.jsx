@@ -147,7 +147,7 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
                         {(() => { try { return !!JSON.parse(localStorage.getItem('commander_staff') || 'null'); } catch { return false; } })() && (
                             <button onClick={() => window.top.location.href = '/hub/commander'} style={{
                                 background: 'linear-gradient(135deg, #1a1a2e, #0f0f0f)', border: '1px solid #22D3EE', borderRadius: 20, padding: '8px 14px',
-                                fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#22D3EE', fontFamily: "var(--font-orbitron), sans-serif",
+                                fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#22D3EE', fontFamily: "var(--font-rajdhani), sans-serif",
                                 letterSpacing: 1, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6,
                                 boxShadow: '0 0 8px rgba(34,211,238,0.2)'
                             }}>Commander</button>

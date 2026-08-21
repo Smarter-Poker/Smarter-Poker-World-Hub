@@ -499,7 +499,7 @@ export function PerfectScoreCelebration({ onComplete }) {
                 }
                 
                 .perfect-title {
-                    font-family: 'Orbitron', sans-serif;
+                    font-family: 'Rajdhani', sans-serif;
                     font-size: 48px;
                     font-weight: 900;
                     color: #ffd700;

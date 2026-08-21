@@ -72,7 +72,7 @@ showDeleteModal, setShowDeleteModal, deleteConfirmText, setDeleteConfirmText, de
                                     borderRadius: 8,
                                     color: '#fff',
                                     fontSize: 16,
-                                    fontFamily: 'Orbitron, monospace',
+                                    fontFamily: 'Rajdhani, monospace',
                                     letterSpacing: 4,
                                     textAlign: 'center',
                                     outline: 'none',

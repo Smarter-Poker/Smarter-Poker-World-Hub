@@ -251,7 +251,7 @@ export default function GhostOpponent({
                     font-size: 28px;
                     font-weight: 900;
                     color: rgba(255, 255, 255, 0.9);
-                    font-family: 'Orbitron', monospace;
+                    font-family: 'Rajdhani', monospace;
                     min-width: 30px;
                     text-align: center;
                     transition: color 0.3s, text-shadow 0.3s;

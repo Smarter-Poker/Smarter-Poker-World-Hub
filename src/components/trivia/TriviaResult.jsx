@@ -670,7 +670,7 @@ export default function TriviaResult({
                     font-size: 16px;
                     color: #65676b;
                     margin-top: 4px;
-                    font-family: 'Orbitron', monospace;
+                    font-family: 'Rajdhani', monospace;
                 }
 
                 /* ═══ OPPONENT COMPARISON ═══ */
@@ -702,7 +702,7 @@ export default function TriviaResult({
                     font-size: 28px;
                     font-weight: 900;
                     color: #fff;
-                    font-family: 'Orbitron', monospace;
+                    font-family: 'Rajdhani', monospace;
                 }
                 .opp-vs { text-align: center; }
                 .win-badge {

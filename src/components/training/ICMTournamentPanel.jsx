@@ -71,7 +71,7 @@ const StackInput = memo(({ index, stack, onUpdate, icmEquity, isHero, color }) =
         </div>
         <div style={{
             width: 50, fontSize: 11, fontWeight: 700, textAlign: 'right',
-            color: '#e2e8f0', fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+            color: '#e2e8f0', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
         }}>
             {(icmEquity * 100).toFixed(1)}%
         </div>
@@ -149,20 +149,20 @@ const PressureGauge = memo(({ pressure, bubbleFactor, riskPremium }) => {
                 {/* Labels */}
                 <text x="10" y="68" fontSize="7" fill="#64748b" textAnchor="start">Low</text>
                 <text x="110" y="68" fontSize="7" fill="#64748b" textAnchor="end">High</text>
-                <text x="60" y="55" fontSize="14" fill={gaugeColor} fontWeight="bold" textAnchor="middle" style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                <text x="60" y="55" fontSize="14" fill={gaugeColor} fontWeight="bold" textAnchor="middle" style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                     {(pressure * 100).toFixed(0)}
                 </text>
             </svg>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 4 }}>
                 <div>
                     <div style={{ fontSize: 8, color: '#64748b' }}>Bubble Factor</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {bubbleFactor.toFixed(2)}x
                     </div>
                 </div>
                 <div>
                     <div style={{ fontSize: 8, color: '#64748b' }}>Risk Premium</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {(riskPremium * 100).toFixed(1)}%
                     </div>
                 </div>
@@ -399,7 +399,7 @@ export default function ICMTournamentPanel() {
                             <div style={{
                                 fontSize: 14, fontWeight: 700,
                                 color: rangeMode === 'push' ? '#22c55e' : '#3b82f6',
-                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                                fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                             }}>
                                 {(rangeMode === 'push' ? pushRange : callRange).handCount}
                             </div>
@@ -409,7 +409,7 @@ export default function ICMTournamentPanel() {
                             <div style={{
                                 fontSize: 14, fontWeight: 700,
                                 color: rangeMode === 'push' ? '#22c55e' : '#3b82f6',
-                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                                fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                             }}>
                                 {(rangeMode === 'push' ? pushRange : callRange).percentage.toFixed(1)}%
                             </div>
@@ -418,7 +418,7 @@ export default function ICMTournamentPanel() {
                             <div style={{ fontSize: 8, color: '#64748b' }}>Hero Stack</div>
                             <div style={{
                                 fontSize: 14, fontWeight: 700, color: '#f59e0b',
-                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                                fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                             }}>
                                 {activeStacks[heroIdx]}BB
                             </div>

@@ -27,7 +27,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5, isVIP = false }) {
             }}>
                 <div style={{ fontSize: 64, marginBottom: 16 }}><svg width='64' height='64' viewBox='0 0 24 24' fill='none'><path d='M12 2L2 9l10 13 10-13L12 2z' fill='#00D4FF' /><path d='M12 2L2 9h20L12 2z' fill='#00B8E6' /></svg></div>
                 <h2 style={{
-                    fontFamily: 'Orbitron, sans-serif',
+                    fontFamily: 'Rajdhani, sans-serif',
                     fontSize: 28,
                     fontWeight: 900,
                     color: '#ff6b00',
@@ -54,7 +54,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5, isVIP = false }) {
                             GET VIP FOR
                         </div>
                         <div style={{
-                            fontFamily: 'Orbitron, sans-serif',
+                            fontFamily: 'Rajdhani, sans-serif',
                             fontSize: 32,
                             fontWeight: 900,
                             color: '#fff',

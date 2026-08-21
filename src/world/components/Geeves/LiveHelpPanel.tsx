@@ -191,7 +191,7 @@ export function LiveHelpPanel({
                         <div>
                             <h3
                                 style={{
-                                    fontFamily: 'Orbitron, sans-serif',
+                                    fontFamily: 'Rajdhani, sans-serif',
                                     fontSize: styles.fontSize + 2,
                                     fontWeight: 600,
                                     color: colors.text,

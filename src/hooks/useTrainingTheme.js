@@ -122,7 +122,7 @@ export default function useTrainingTheme() {
         // Typography
         fonts: {
             primary: "'Inter', -apple-system, sans-serif",
-            display: "'Orbitron', 'Courier New', monospace",
+            display: "'Rajdhani', 'Courier New', monospace",
             brand: "'Rajdhani', sans-serif",
         },
 

@@ -22,7 +22,7 @@ const styles = {
     header: {},
     backButton: {},
     pageTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: 'Rajdhani, sans-serif',
         fontSize: 24,
         fontWeight: 700,
         color: '#fff',

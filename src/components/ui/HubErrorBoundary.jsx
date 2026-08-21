@@ -100,7 +100,7 @@ export class HubErrorBoundary extends React.Component {
                     justifyContent: 'center',
                     background: '#0a0a0f',
                     color: '#e4e6eb',
-                    fontFamily: 'Orbitron, "Segoe UI", sans-serif',
+                    fontFamily: 'Rajdhani, "Segoe UI", sans-serif',
                     gap: 24,
                     padding: 32,
                     textAlign: 'center',

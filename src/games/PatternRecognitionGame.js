@@ -145,7 +145,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <button onClick={onExit} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>← Exit</button>
-                <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 28, fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 28, fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     {streak > 1 && <div style={{ padding: '4px 10px', background: 'linear-gradient(135deg, #3B82F6, #0088ff)', borderRadius: 16, fontWeight: 700, fontSize: 13, color: '#fff' }}>{streak}x</div>}
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{round}/{maxRounds}</div>
@@ -155,7 +155,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
                     <div style={{ fontSize: 80, marginBottom: 20 }}>{'\uD83E\uDDE9'}</div>
-                    <h1 style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 32, color: '#00D4FF', marginBottom: 16 }}>PATTERN RECOGNITION</h1>
+                    <h1 style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 32, color: '#00D4FF', marginBottom: 16 }}>PATTERN RECOGNITION</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>See a partial range → Identify the dominant action!<br />Is this a RAISING range, CALLING range, or FOLDING range?<br />8 patterns. Test your GTO intuition!</p>
                     <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #00D4FF, #0088ff)', color: '#fff', border: 'none', borderRadius: 50, cursor: 'pointer' }}>START [SPACE]</button>
                 </div>
@@ -216,20 +216,20 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                             border: `1px solid ${gradeColor}40`,
                             borderRadius: 20, padding: 28, marginBottom: 20, textAlign: 'center'
                         }}>
-                            <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
+                            <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                                    <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
                                 </div>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
+                                    <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
                                 </div>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 24, fontWeight: 800, color: '#A78BFA' }}>{correctAnswers}/{maxRounds}</div>
+                                    <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 24, fontWeight: 800, color: '#A78BFA' }}>{correctAnswers}/{maxRounds}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>CORRECT</div>
                                 </div>
                             </div>

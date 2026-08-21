@@ -282,7 +282,7 @@ body.world-club-arena {
 .ca-hud-stat-value {
     font-size: 13px;
     font-weight: 700;
-    font-family: 'Orbitron', monospace;
+    font-family: 'Rajdhani', monospace;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -384,7 +384,7 @@ body.world-club-arena {
 .ca-health-value {
     font-size: 22px;
     font-weight: 800;
-    font-family: 'Orbitron', monospace;
+    font-family: 'Rajdhani', monospace;
     color: #E4E6EB;
 }
 

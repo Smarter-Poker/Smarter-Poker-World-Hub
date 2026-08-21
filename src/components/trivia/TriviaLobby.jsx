@@ -500,7 +500,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     padding: 0 20px 20px;
                     max-width: 1000px;
                     margin: 0 auto;
-                    font-family: 'Rajdhani', 'Orbitron', sans-serif;
+                    font-family: 'Rajdhani', 'Rajdhani', sans-serif;
                     position: relative;
                     overflow: hidden;
                 }
@@ -588,7 +588,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 }
 
                 .daily-trivia-banner__completed span {
-                    font-family: 'Orbitron', sans-serif;
+                    font-family: 'Rajdhani', sans-serif;
                     font-size: 28px;
                     font-weight: 700;
                     color: #31a24c;
@@ -665,7 +665,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 }
 
                 .mode-name {
-                    font-family: 'Orbitron', sans-serif;
+                    font-family: 'Rajdhani', sans-serif;
                     font-size: 16px;
                     font-weight: 700;
                     margin: 12px 0 8px 0;
@@ -1010,7 +1010,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     justify-content: center;
                     background: transparent;
                     color: #4df8ff;
-                    font-family: 'Orbitron', sans-serif;
+                    font-family: 'Rajdhani', sans-serif;
                     font-size: 18px;
                     font-weight: 700;
                     text-shadow: 0 0 10px rgba(77, 248, 255, 0.4);

@@ -145,7 +145,7 @@ export function DiamondStat({ onBuyClick }: DiamondStatProps) {
             <span style={{ fontSize: 16 }}><img src="/images/diamond.png" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /></span>
             <span
                 style={{
-                    fontFamily: 'Orbitron, monospace',
+                    fontFamily: 'Rajdhani, monospace',
                     fontSize: FONT_SIZE,
                     fontWeight: 600,
                     color: '#00d4ff',
@@ -233,7 +233,7 @@ export function StreakStat() {
             </span>
             <span
                 style={{
-                    fontFamily: 'Orbitron, monospace',
+                    fontFamily: 'Rajdhani, monospace',
                     fontSize: FONT_SIZE,
                     fontWeight: 600,
                     color: streak >= 5 ? '#ff6600' : '#00d4ff',
@@ -245,7 +245,7 @@ export function StreakStat() {
             {streakMultiplier > 1 && (
                 <span
                     style={{
-                        fontFamily: 'Orbitron, monospace',
+                        fontFamily: 'Rajdhani, monospace',
                         fontSize: 11,
                         fontWeight: 600,
                         color: '#00ff88',

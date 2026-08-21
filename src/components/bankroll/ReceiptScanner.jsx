@@ -435,7 +435,7 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
         fontWeight: 700,
         letterSpacing: '0.15em',
@@ -483,7 +483,7 @@ const styles = {
         marginBottom: 16,
     },
     uploadText: {
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
         fontWeight: 600,
         letterSpacing: '0.15em',

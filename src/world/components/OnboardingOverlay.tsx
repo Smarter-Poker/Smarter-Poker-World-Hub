@@ -149,7 +149,7 @@ export function OnboardingOverlay({ isOpen, onComplete }: OnboardingOverlayProps
                 {/* Step Content */}
                 <h2
                     style={{
-                        fontFamily: 'Orbitron, sans-serif',
+                        fontFamily: 'Rajdhani, sans-serif',
                         fontSize: 24,
                         fontWeight: 700,
                         color: '#ffffff',

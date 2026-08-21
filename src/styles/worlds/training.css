@@ -260,7 +260,7 @@ body.world-training ::-webkit-scrollbar-thumb:hover {
    Sizes follow a 1.25 modular scale anchored at 16px body.
    ────────────────────────────────────────────────────────────────────────── */
 body.world-training .sp-h1 {
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--font-rajdhani, 'Rajdhani'), sans-serif;
     font-size: clamp(24px, 4vw, 32px);
     font-weight: 800;
     line-height: 1.15;
@@ -269,7 +269,7 @@ body.world-training .sp-h1 {
     margin: 0;
 }
 body.world-training .sp-h2 {
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--font-rajdhani, 'Rajdhani'), sans-serif;
     font-size: clamp(18px, 3vw, 24px);
     font-weight: 700;
     line-height: 1.2;
@@ -278,7 +278,7 @@ body.world-training .sp-h2 {
     margin: 0;
 }
 body.world-training .sp-h3 {
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--font-rajdhani, 'Rajdhani'), sans-serif;
     font-size: 18px;
     font-weight: 600;
     line-height: 1.3;
@@ -394,7 +394,7 @@ body.world-training .sp-cta {
     padding: 12px 20px;
     border-radius: 10px;
     border: 1px solid transparent;
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--font-rajdhani, 'Rajdhani'), sans-serif;
     font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -491,7 +491,7 @@ body.world-training .sp-empty {
     line-height: 1.5;
 }
 body.world-training .sp-empty-title {
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--font-rajdhani, 'Rajdhani'), sans-serif;
     font-size: 16px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.7);

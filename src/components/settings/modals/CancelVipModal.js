@@ -196,7 +196,7 @@ export default function CancelVipModal({
                                             <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4 }}>Your New Price</div>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
                                                 <span style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through', fontSize: 18 }}>$19.99/mo</span>
-                                                <span style={{ color: '#1877F2', fontSize: 28, fontWeight: 700, fontFamily: 'Orbitron, sans-serif' }}>$9.99/mo</span>
+                                                <span style={{ color: '#1877F2', fontSize: 28, fontWeight: 700, fontFamily: 'Rajdhani, sans-serif' }}>$9.99/mo</span>
                                             </div>
                                             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>For 3 Months, Then Regular Price Resumes</div>
                                         </div>
