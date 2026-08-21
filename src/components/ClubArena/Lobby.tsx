@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import GameCarousel from '../club-arena/GameCarousel';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🏛️ SOFTWARE NEUTRALITY DISCLAIMER — NON-DISMISSIBLE POPUP
@@ -160,6 +161,18 @@ interface ClubArenaLobbyProps {
  * CLUB ARENA LOBBY
  * Entry point for poker home games with mandatory legal disclaimer
  */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🎮 MOCK DATA FOR LOBBY CAROUSEL
+// ─────────────────────────────────────────────────────────────────────────────
+const MOCK_GAMES = [
+    { id: 'g1', game_type: 'cash', variant: 'nlh', stakes: [1, 2], seating: 9, player_count: 6, name: "Texas Hold'em - $1/$2", club_name: "Smarter Poker Club", status: 'active' },
+    { id: 'g2', game_type: 'tournament', variant: 'nlh', buy_in: 55, registered_count: 45, name: "Sunday Deepstack", club_name: "Vegas Grinders", start_time: new Date().toISOString() },
+    { id: 'g3', game_type: 'cash', variant: 'plo', stakes: [2, 5], seating: 8, player_count: 8, name: "Omaha Kings PLO", club_name: "Omaha Kings", status: 'active' },
+    { id: 'g4', game_type: 'cash', variant: 'nlh', stakes: [0.5, 1], seating: 6, player_count: 3, name: "Casual Micro 6-Max", club_name: "Beginners Club", status: 'active' },
+    { id: 'g5', game_type: 'tournament', variant: 'nlh', buy_in: 11, registered_count: 120, name: "Bounty Builder (PKO)", club_name: "Smarter Poker Club", start_time: new Date(Date.now() + 86400000).toISOString() }
+];
+
 export const ClubArenaLobby: React.FC<ClubArenaLobbyProps> = ({ userId, onEnterClub }) => {
     const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -210,18 +223,15 @@ export const ClubArenaLobby: React.FC<ClubArenaLobbyProps> = ({ userId, onEnterC
                         </div>
                     </header>
 
-                    {/* Club List Placeholder */}
+                    {/* Endless Game Carousel (World Hub Logic) */}
                     <div style={lobbyStyles.clubList}>
-                        <div style={lobbyStyles.emptyState}>
-                            <div style={lobbyStyles.emptyIcon}>🃏</div>
-                            <h3 style={lobbyStyles.emptyTitle}>No Active Clubs</h3>
-                            <p style={lobbyStyles.emptyText}>
-                                Create or join a club to start playing home games with friends.
-                            </p>
-                            <button style={lobbyStyles.createButton}>
-                                + Create Club
-                            </button>
-                        </div>
+                        <GameCarousel 
+                            games={MOCK_GAMES} 
+                            onGameSelect={(game) => {
+                                console.log("Selected game:", game);
+                                if (onEnterClub) onEnterClub(game.id);
+                            }}
+                        />
                     </div>
 
                     {/* Footer Reminder */}
