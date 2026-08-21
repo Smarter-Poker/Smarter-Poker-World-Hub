@@ -80,6 +80,10 @@ export default async function handler(req, res) {
       } else if (period === 'month') {
           dateFilter = new Date(now.getTime() - 30 * 86400000).toISOString();
       }
+      
+      // Vercel Edge Caching: Serve stale while revalidating in the background.
+      // Limits database hits to 1 per minute max across all users.
+      res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=120');
 
       try {
           // Keyed by user_id. The merge used to be `leaders.find(...)` inside a

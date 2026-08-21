@@ -6,6 +6,7 @@
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
@@ -17,10 +18,32 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { supabase } from '../../src/lib/supabase';
+import { getAuthUser } from '../../src/lib/authHelpers';
+
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 // 2026-05-07 — UI-UX-Pro-Max icons (Lucide for tab icons + states)
 import { Trophy, MapPin, Star, Activity, AlertTriangle } from 'lucide-react';
 
+const darkShimmerKeyframes = `
+@keyframes dark-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+`;
+
+function DarkShimmerBlock({ width = '100%', height = 16, radius = 4, style = {} }) {
+    return (
+        <div style={{
+            background: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)',
+            backgroundSize: '800px 100%',
+            animation: 'dark-shimmer 1.5s infinite linear',
+            borderRadius: radius,
+            width,
+            height,
+            ...style
+        }} />
+    );
+}
 const C = {
     bg: '#0a0a0a',
     card: '#1a1a1a',
@@ -73,14 +96,16 @@ function Avatar({ src, name, size = 48 }) {
 
     if (src) {
         return (
-            <img
-                src={src}
-                alt={name}
-                style={{
-                    width: size, height: size, borderRadius: '50%',
-                    objectFit: 'cover', flexShrink: 0
-                }}
-                loading="lazy" />
+            <div style={{ position: 'relative', width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                <Image
+                    src={src}
+                    alt={name || 'Player'}
+                    fill
+                    sizes={`${size}px`}
+                    style={{ objectFit: 'cover' }}
+                    priority={size >= 50}
+                />
+            </div>
         );
     }
     return (
@@ -294,6 +319,12 @@ function ScoreBreakdown({ leader }) {
 export default function LeaderboardsPage() {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
+    
+    useEffect(() => {
+        const user = getAuthUser();
+        if (user) setCurrentUser(user);
+    }, []);
     const { filters, setFilter } = usePersistedFilters('leaderboards', { activeTab: 'overall', period: 'all' });
     const activeTab = filters.activeTab;
     const period = filters.period;
@@ -308,44 +339,12 @@ export default function LeaderboardsPage() {
     // SWR-backed fetch — cached 60s, instant on tab switch
     const swrKey = `/api/poker/leaderboards?type=${activeTab}&period=${period}&limit=50`;
     const { data: swrData, error, isLoading: loading, mutate: refreshLeaderboards } = useSWR(swrKey, (url) =>
-        fetch(url).then(r => { if (!r.ok) throw new Error('Failed to load leaderboards'); return r.json(); })
+        fetch(url).then(r => { if (!r.ok) throw new Error('Failed to load leaderboards'); return r.json(); }),
+        { refreshInterval: 60000 }
     );
     const leaders = swrData?.leaders || [];
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // TIER 3 REALTIME: Leaderboard Live Updates
-    // ═══════════════════════════════════════════════════════════════════════════
-    useEffect(() => {
-        // Subscribe to leaderboard data changes (check-ins, reviews, posts)
-        const leaderboardChannel = supabase
-            .channel(`leaderboards-live-${Date.now()}`)
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'venue_checkins'
-            }, () => {
-                refreshLeaderboards();
-            })
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'venue_reviews'
-            }, () => {
-                refreshLeaderboards();
-            })
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'social_posts'
-            }, () => {
-                refreshLeaderboards();
-            })
-            .subscribe();
 
-        return () => {
-            supabase.removeChannel(leaderboardChannel);
-        };
-    }, [refreshLeaderboards]);
 
     // Set tab from URL query
     useEffect(() => {
@@ -495,29 +494,13 @@ export default function LeaderboardsPage() {
                                                 padding: '12px 16px',
                                                 borderBottom: `1px solid ${C.border}`
                                             }}>
-                                                <div style={{
-                                                    width: 36, height: 36, borderRadius: '50%',
-                                                    background: C.border + '40', animation: 'pulse 1.5s infinite'
-                                                }} />
-                                                <div style={{
-                                                    width: 40, height: 40, borderRadius: '50%',
-                                                    background: C.border + '40', animation: 'pulse 1.5s infinite'
-                                                }} />
+                                                <DarkShimmerBlock width={36} height={36} radius={18}  />
+                                                <DarkShimmerBlock width={40} height={40} radius={20}  />
                                                 <div style={{ flex: 1 }}>
-                                                    <div style={{
-                                                        width: '60%', height: 14, borderRadius: 4,
-                                                        background: C.border + '40', animation: 'pulse 1.5s infinite',
-                                                        marginBottom: 6
-                                                    }} />
-                                                    <div style={{
-                                                        width: '30%', height: 10, borderRadius: 4,
-                                                        background: C.border + '40', animation: 'pulse 1.5s infinite'
-                                                    }} />
+                                                    <DarkShimmerBlock width="60%" height={14} style={{ marginBottom: 6, background: '#252525' }} />
+                                                    <DarkShimmerBlock width="30%" height={10}  />
                                                 </div>
-                                                <div style={{
-                                                    width: 50, height: 20, borderRadius: 4,
-                                                    background: C.border + '40', animation: 'pulse 1.5s infinite'
-                                                }} />
+                                                <DarkShimmerBlock width={50} height={20} radius={4}  />
                                             </div>
                                         ))}
                                     </div>
@@ -653,9 +636,75 @@ export default function LeaderboardsPage() {
                         </AnimatePresence>
                     </div>
                 </div>
+                
+                {/* Sticky My Rank Dashboard */}
+                {currentUser && (
+                    <div style={{
+                        position: 'fixed', bottom: 70, left: 0, right: 0,
+                        background: 'rgba(26,26,26,0.95)', backdropFilter: 'blur(10px)',
+                        borderTop: `1px solid ${C.border}`,
+                        padding: '12px 16px', zIndex: 40,
+                        display: 'flex', justifyContent: 'center'
+                    }}>
+                        <div style={{
+                            width: '100%', maxWidth: 680, display: 'flex', alignItems: 'center', gap: 12
+                        }}>
+                            {leaders.find(l => l.user?.id === currentUser.id) ? (() => {
+                                const myEntry = leaders.find(l => l.user?.id === currentUser.id);
+                                const rankInfo = getRankDisplay(myEntry.rank);
+                                return (
+                                    <>
+                                        <div style={{
+                                            width: 36, height: 36, borderRadius: '50%',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: myEntry.rank <= 3 ? 14 : 13,
+                                            fontWeight: myEntry.rank <= 3 ? 800 : 600,
+                                            color: myEntry.rank <= 3 ? (myEntry.rank <= 2 ? '#000' : '#fff') : C.textSec,
+                                            background: myEntry.rank <= 3 ? rankInfo.bg : C.border + '40',
+                                            boxShadow: rankInfo.shadow,
+                                            flexShrink: 0
+                                        }}>
+                                            {myEntry.rank}
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 13, color: C.textSec }}>Your Rank</div>
+                                            <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>You are in the Top 50!</div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: 16, fontWeight: 700, color: C.gold }}>
+                                                {activeTab === 'overall' ? (myEntry.score || 0).toLocaleString() : (myEntry.count || 0).toLocaleString()}
+                                            </div>
+                                            <div style={{ fontSize: 11, color: C.textSec }}>
+                                                {activeTab === 'overall' ? 'pts' : myEntry.metric || activeTab}
+                                            </div>
+                                        </div>
+                                    </>
+                                );
+                            })() : (
+                                <>
+                                    <div style={{
+                                        width: 36, height: 36, borderRadius: '50%',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 18, color: C.textSec, background: C.border + '40'
+                                    }}>
+                                        -
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: 13, color: C.textSec }}>Your Rank</div>
+                                        <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Unranked</div>
+                                    </div>
+                                    <div style={{ textAlign: 'right', fontSize: 12, color: C.textSec, maxWidth: 120 }}>
+                                        Check in or post to earn a spot!
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
                   <BottomNavBar />
     </PageTransition>
 
+            <style dangerouslySetInnerHTML={{ __html: darkShimmerKeyframes }} />
             <style>{`
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }
