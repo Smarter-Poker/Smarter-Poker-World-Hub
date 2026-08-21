@@ -20,7 +20,7 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 
 function enforceTitleCase(str) {
     if (!str) return '';
-    return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    return String(str).split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
 
 // ── Server-side in-memory TTL cache ──────────────────────────────────────────
@@ -205,9 +205,10 @@ export default async function handler(req, res) {
             socialNotifs
                 .filter(n => !n.actor_id && !n.data?.actor_id && !n.data?.sender_id && !n.data?.friend_id && !n.data?.liker_id && !n.data?.commenter_id)
                 .map(n => {
-                    const twoWord = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                    if (typeof n.title !== 'string') return null;
+                    const twoWord = n.title.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
                     if (twoWord) return twoWord[1];
-                    const oneWord = n.title?.match(/^([A-Za-z][A-Za-z0-9_]+)/);
+                    const oneWord = n.title.match(/^([A-Za-z][A-Za-z0-9_]+)/);
                     return oneWord ? oneWord[1] : null;
                 })
                 .filter(Boolean)
@@ -246,14 +247,15 @@ export default async function handler(req, res) {
             const profile = actorId
                 ? profileById[actorId]
                 : (() => {
-                    const twoWord = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                    const key = twoWord?.[1] ?? n.title?.match(/^([A-Za-z][A-Za-z0-9_]+)/)?.[1];
+                    if (typeof n.title !== 'string') return null;
+                    const twoWord = n.title.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                    const key = twoWord?.[1] ?? n.title.match(/^([A-Za-z][A-Za-z0-9_]+)/)?.[1];
                     return key ? profileByName[key.toLowerCase()] : null;
                 })();
 
             const displayNameRaw = profile?.display_name || profile?.full_name || profile?.username 
                 || n.data?.actor_name || n.data?.sender_name
-                || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1]
+                || (typeof n.title === 'string' ? n.title.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] : null)
                 || n.title
                 || 'Someone';
             
@@ -281,6 +283,7 @@ export default async function handler(req, res) {
 
             return {
                 ...n,
+                title: typeof n.title === 'string' ? n.title : '',
                 message,
                 // BUG-14 fix: pass DB-computed link/action_url through to client for routing
                 link: n.link || n.action_url || null,
