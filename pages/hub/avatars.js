@@ -135,30 +135,6 @@ export default function AvatarsPage() {
                         bottomLinks={menuConfig.bottomLinks}
                     />
                     <div className="avatars-content">
-                        <div className="header">
-                            {avatar ? (
-                                <div className="current-avatar">
-                                    <img
-                                        src={avatar.imageUrl || '/avatars/free/shark.png'}
-                                        alt="Current Avatar"
-                                        className="current-avatar-img"
-                                     loading="lazy" />
-                                    <div className="current-avatar-info">
-                                        <div className="current-avatar-label">Current Avatar</div>
-                                        <div className="current-avatar-name">{avatar.name || 'Custom Avatar'}</div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="current-avatar" style={{ opacity: 0.7 }}>
-                                    <div className="current-avatar-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,245,255,0.05)', fontSize: 24, color: '#00f5ff', textShadow: '0 0 8px rgba(0,245,255,0.6)', border: '3px solid rgba(0,245,255,0.3)' }}>?</div>
-                                    <div className="current-avatar-info">
-                                        <div className="current-avatar-label">Current Avatar</div>
-                                        <div className="current-avatar-name">None Selected</div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
                         {/* Avatar Gallery - Custom avatars at top for VIP, then preset avatars */}
                         <AvatarGallery />
                     </div>
