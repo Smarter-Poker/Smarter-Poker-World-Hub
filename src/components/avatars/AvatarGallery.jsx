@@ -13,7 +13,7 @@ import toast from '../../stores/toastStore';
 import SPImage from '../common/SPImage';
 
 // --- NEW COMPONENT FOR PHASE 1: PERFORMANCE SKELETON LOADING ---
-const AvatarMedia = ({ src, alt, index }) => {
+const AvatarMedia = ({ src, alt, index, frame = '', aura = '' }) => {
     const [loaded, setLoaded] = React.useState(false);
     const isVideo = src?.match(/\.(webm|mp4)$/i);
 
@@ -25,6 +25,8 @@ const AvatarMedia = ({ src, alt, index }) => {
                 animationDelay: `${-(index % 5)}s` 
             }}
         >
+            {frame && <div className={`cosmetic-frame ${frame}`} />}
+            {aura && <div className={`cosmetic-aura ${aura}`} />}
             {!loaded && <div className="skeleton-loader" />}
             {isVideo ? (
                 <video 
@@ -637,6 +639,45 @@ export default function AvatarGallery({ onSelect }) {
           animation: skeletonPulse 1.5s infinite ease-in-out;
           border-radius: 20px;
         }
+        
+        /* --- PHASE 4: MODULAR COSMETICS --- */
+        .cosmetic-frame {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .frame-diamond { box-shadow: inset 0 0 30px rgba(0, 245, 255, 0.8), 0 0 15px rgba(0, 245, 255, 0.4); border: 3px solid #00f5ff; }
+        .frame-gold { box-shadow: inset 0 0 30px rgba(255, 215, 0, 0.8), 0 0 15px rgba(255, 215, 0, 0.4); border: 3px solid #ffd700; }
+        .frame-cyber { box-shadow: inset 0 0 30px rgba(255, 0, 255, 0.8), 0 0 15px rgba(255, 0, 255, 0.4); border: 3px solid #ff00ff; }
+        .frame-hellfire { box-shadow: inset 0 0 40px rgba(255, 50, 0, 0.8), 0 0 20px rgba(255, 50, 0, 0.5); border: 3px solid #ff3200; }
+
+        .cosmetic-aura {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 1; 
+            border-radius: 20px;
+        }
+
+        @keyframes auraFire {
+            0%, 100% { box-shadow: inset 0 -50px 50px -20px rgba(255, 68, 0, 0.6); }
+            50% { box-shadow: inset 0 -60px 60px -10px rgba(255, 100, 0, 0.8); }
+        }
+        .aura-fire { animation: auraFire 2s infinite alternate; }
+
+        @keyframes auraGlitch {
+            0% { box-shadow: inset 0 0 20px rgba(0,255,255,0.5); }
+            20% { box-shadow: inset 0 0 20px rgba(255,0,255,0.5); }
+            40% { box-shadow: inset -10px 0 30px rgba(0,255,255,0.7); }
+            60% { box-shadow: inset 10px 0 30px rgba(255,0,255,0.7); }
+            100% { box-shadow: inset 0 0 20px rgba(0,255,255,0.5); }
+        }
+        .aura-glitch { animation: auraGlitch 0.3s infinite; }
+
         /* CURRENT AVATAR STYLES */
         .current-avatar {
             display: flex;
