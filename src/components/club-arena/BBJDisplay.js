@@ -1,398 +1,230 @@
 /* ═══════════════════════════════════════════════════════════════════
    BAD BEAT JACKPOT — Interactive Display Component
    
-   Used in:
-     1. Lobby: Clickable banner → opens full modal
-     2. Table page: Top-center ticker (compact mode)
-   
-   Tabs: Winner | Basic | Qualifying Hands
-   Modeled after premium BBJ display
+   Updated with Futuristic Metal UI System, Real-time celebration
+   listeners, haptics, and precise card/board logic.
    ═══════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import PlayingCard from '../poker/PlayingCard';
+import { triggerHaptic } from '../../state/userPreferences';
+import { getSupabase } from '../../config/supabaseClient';
 
-const FB = {
-  bg: '#18191A', card: '#242526', cardHover: '#3A3B3C',
-  primary: '#2374E1', text: '#E4E6EB', textSec: '#B0B3B8',
-  textMuted: '#65676B', border: '#3E4042',
-  gold: '#FFD700', goldDark: '#B8860B',
-  danger: '#FA383E', success: '#31A24C',
+const METAL = {
+  bg: '#0d1117',
+  panel: '#161b22',
+  panelHover: '#21262d',
+  border: '#30363d',
+  cyan: '#00f2fe',
+  cyanMuted: 'rgba(0, 242, 254, 0.2)',
+  text: '#c9d1d9',
+  textMuted: '#8b949e',
+  gold: '#FFD700',
+  goldDark: '#B8860B',
+  danger: '#fa383e',
+  success: '#31a24c'
 };
 
-// ═══════════════════════════════════════════════════════════
-// ANIMATED COUNTER (Direct DOM Mutation for 60FPS)
-// ═══════════════════════════════════════════════════════════
-function AnimatedAmount({ amount, hourlyRate = 0 }) {
-  const spanRef = useRef(null);
-  const targetRef = useRef(amount);
-  const displayRef = useRef(amount);
+const STYLES = {
+  container: {
+    background: METAL.bg,
+    color: METAL.text,
+    fontFamily: '"Rajdhani", "Orbitron", sans-serif',
+    borderRadius: '12px',
+    border: `1px solid ${METAL.border}`,
+    boxShadow: `0 8px 32px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)`,
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    position: 'relative'
+  },
+  header: {
+    background: `linear-gradient(180deg, ${METAL.panel} 0%, ${METAL.bg} 100%)`,
+    padding: '20px',
+    textAlign: 'center',
+    borderBottom: `1px solid ${METAL.border}`,
+    position: 'relative'
+  },
+  title: {
+    fontFamily: '"Orbitron", sans-serif',
+    fontSize: '28px',
+    fontWeight: 800,
+    color: METAL.cyan,
+    textTransform: 'uppercase',
+    letterSpacing: '2px',
+    margin: '0 0 10px 0',
+    textShadow: `0 0 15px ${METAL.cyanMuted}`
+  },
+  jackpotAmount: {
+    fontSize: '48px',
+    fontWeight: 900,
+    color: METAL.gold,
+    margin: 0,
+    textShadow: '0 0 20px rgba(255, 215, 0, 0.4)',
+    fontFamily: '"Orbitron", sans-serif',
+    letterSpacing: '1px'
+  },
+  tabs: {
+    display: 'flex',
+    background: METAL.panel,
+    borderBottom: `1px solid ${METAL.border}`
+  },
+  tab: (active) => ({
+    flex: 1,
+    padding: '12px',
+    textAlign: 'center',
+    cursor: 'pointer',
+    fontWeight: active ? 700 : 500,
+    color: active ? METAL.cyan : METAL.textMuted,
+    borderBottom: active ? `3px solid ${METAL.cyan}` : '3px solid transparent',
+    background: active ? `linear-gradient(180deg, transparent 0%, ${METAL.cyanMuted} 100%)` : 'transparent',
+    transition: 'all 0.3s ease',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    fontSize: '14px'
+  }),
+  content: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '16px',
+    background: METAL.bg
+  },
+  winnerCard: {
+    background: METAL.panel,
+    border: `1px solid ${METAL.border}`,
+    borderRadius: '8px',
+    padding: '16px',
+    marginBottom: '16px',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+    cursor: 'pointer'
+  },
+  avatar: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    background: `linear-gradient(135deg, ${METAL.goldDark}, ${METAL.gold})`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
+    color: '#000',
+    fontSize: '18px',
+    boxShadow: '0 2px 8px rgba(255,215,0,0.3)',
+    objectFit: 'cover'
+  }
+};
 
-  useEffect(() => {
-    targetRef.current = amount;
-  }, [amount]);
+const capitalizeWords = (str) => {
+  if (!str) return '';
+  return str.split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
 
-  // Tick up smoothly based on hourly contribution rate
-  useEffect(() => {
-    if (hourlyRate <= 0) {
-      if (spanRef.current) {
-        spanRef.current.textContent = amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      }
-      return;
-    }
-    const perSecond = hourlyRate / 3600;
-    let frameId;
+const parseAndSortCards = (cardString) => {
+  if (!cardString) return [];
+  const rawCards = cardString.match(/[a-zA-Z0-9]+/g) || [];
+  const rankValues = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
+  return rawCards.sort((a, b) => {
+    const valA = rankValues[a.charAt(0)] || 0;
+    const valB = rankValues[b.charAt(0)] || 0;
+    return valB - valA;
+  });
+};
 
-    const tick = () => {
-      displayRef.current += perSecond / 60; // 60fps standard
-      // Don't overshoot actual pool amount
-      if (displayRef.current > targetRef.current + hourlyRate) {
-        displayRef.current = targetRef.current;
-      }
-      if (spanRef.current) {
-        spanRef.current.textContent = displayRef.current.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      }
-      frameId = requestAnimationFrame(tick);
-    };
-    displayRef.current = amount;
-    frameId = requestAnimationFrame(tick);
-    return () => { if (frameId) cancelAnimationFrame(frameId); };
-  }, [amount, hourlyRate]);
+const formatMoney = (n) => {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
+};
 
-  return (
-    <span ref={spanRef} style={{ fontVariantNumeric: 'tabular-nums' }}>
-      {amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-    </span>
-  );
-}
+const WinnersTab = ({ winners }) => {
+  const [expandedId, setExpandedId] = useState(null);
 
-// ═══════════════════════════════════════════════════════════
-// BBJ BANNER — Clickable strip for lobby (compact mode)
-// ═══════════════════════════════════════════════════════════
-export function BBJBanner({ amount = 0, hourlyRate = 0, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 12, padding: '10px 16px', marginBottom: 12,
-        background: 'linear-gradient(135deg, #1a0a00 0%, #3d1800 30%, #1a0a00 60%, #3d1800 100%)',
-        border: '1px solid #8B6914', borderRadius: 12, cursor: 'pointer',
-        boxShadow: '0 2px 12px rgba(255,215,0,0.15), inset 0 1px 0 rgba(255,215,0,0.1)',
-      }}
-    >
-      <span style={{ fontSize: 20 }}>🏆</span>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 10, fontWeight: 600, color: FB.goldDark, letterSpacing: 2, textTransform: 'uppercase' }}>
-          Bad Beat Jackpot
-        </div>
-        <div style={{
-          fontSize: 22, fontWeight: 800, color: FB.gold,
-          textShadow: '0 0 10px rgba(255,215,0,0.5), 0 2px 4px rgba(0,0,0,0.5)',
-        }}>
-          <AnimatedAmount amount={amount} hourlyRate={hourlyRate} />
-        </div>
-      </div>
-      <span style={{ fontSize: 10, color: FB.goldDark, fontWeight: 600 }}>TAP FOR INFO ▸</span>
-    </button>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// BBJ TICKER — Compact bar for top of table pages
-// ═══════════════════════════════════════════════════════════
-export function BBJTicker({ amount = 0, hourlyRate = 0, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        padding: '4px 14px', cursor: 'pointer',
-        background: 'linear-gradient(90deg, #2d1000, #4a1a00, #2d1000)',
-        border: '1px solid #8B6914', borderRadius: 20,
-        boxShadow: '0 0 12px rgba(255,215,0,0.2)',
-      }}
-    >
-      <span style={{ fontSize: 12 }}>🏆</span>
-      <span style={{ fontSize: 9, color: FB.goldDark, fontWeight: 700, letterSpacing: 1 }}>BBJ</span>
-      <span style={{
-        fontSize: 15, fontWeight: 800, color: FB.gold,
-        textShadow: '0 0 6px rgba(255,215,0,0.4)',
-      }}>
-        <AnimatedAmount amount={amount} hourlyRate={hourlyRate} />
-      </span>
-    </button>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// BBJ FULL MODAL — Interactive 3-tab display
-// ═══════════════════════════════════════════════════════════
-export function BBJModal({ data, onClose }) {
-  const [activeTab, setActiveTab] = useState('basic');
-  if (!data) return null;
-
-  const { pool, winners = [], tiers = {}, qualifyingHands = {}, rules = [] } = data;
-  const tabs = [
-    { key: 'winners', label: 'Winners' },
-    { key: 'basic', label: 'Basic' },
-    { key: 'qualifying', label: 'Qualifying Hands' },
-  ];
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 9999,
-      background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }} onClick={onClose}>
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: '100%', maxWidth: 420, maxHeight: '90vh', overflowY: 'auto',
-          background: FB.bg, borderRadius: 16, border: `1px solid ${FB.border}`,
-          boxShadow: '0 0 60px rgba(255,215,0,0.15)',
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          background: 'linear-gradient(135deg, #1a0800 0%, #4a1a00 50%, #1a0800 100%)',
-          padding: '20px 20px 16px', textAlign: 'center', position: 'relative',
-          borderRadius: '16px 16px 0 0',
-        }}>
-          <button onClick={onClose} style={{
-            position: 'absolute', top: 12, right: 14, background: 'rgba(255,255,255,0.1)',
-            border: 'none', color: FB.text, fontSize: 18, cursor: 'pointer',
-            width: 30, height: 30, borderRadius: '50%', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-          }}>✕</button>
-
-          <div style={{ fontSize: 16, fontWeight: 800, color: FB.gold, letterSpacing: 2, textTransform: 'uppercase' }}>
-            Bad Beat Jackpot
-          </div>
-          <div style={{
-            fontSize: 32, fontWeight: 900, color: FB.gold, marginTop: 6,
-            textShadow: '0 0 20px rgba(255,215,0,0.5), 0 2px 8px rgba(0,0,0,0.6)',
-            background: 'rgba(0,0,0,0.3)', borderRadius: 10, padding: '6px 20px',
-            display: 'inline-block', border: '1px solid rgba(255,215,0,0.3)',
-          }}>
-            <AnimatedAmount amount={pool?.amount || 0} hourlyRate={data.hourlyRate || 0} />
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: `1px solid ${FB.border}` }}>
-          {tabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                flex: 1, padding: '10px 0', border: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: 700,
-                background: activeTab === tab.key ? FB.gold : 'transparent',
-                color: activeTab === tab.key ? '#000' : FB.textSec,
-                borderRadius: activeTab === tab.key ? '8px 8px 0 0' : 0,
-                transition: 'all 0.2s',
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content */}
-        <div style={{ padding: '16px 16px 20px' }}>
-          {activeTab === 'basic' && <BasicTab tiers={tiers} rules={rules} />}
-          {activeTab === 'winners' && <WinnersTab winners={winners} />}
-          {activeTab === 'qualifying' && <QualifyingTab hands={qualifyingHands} />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// BASIC TAB — Rules + stakes tier payout table
-// ═══════════════════════════════════════════════════════════
-function BasicTab({ tiers, rules }) {
-  return (
-    <div>
-      {/* Rules */}
-      <div style={{ marginBottom: 14, padding: '10px 12px', background: FB.card, borderRadius: 8, fontSize: 11, color: FB.textSec, lineHeight: 1.6 }}>
-        {rules.map((rule, i) => (
-          <div key={i}>• {rule}</div>
-        ))}
-      </div>
-
-      {/* Tier Table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-        <thead>
-          <tr style={{ borderBottom: `2px solid ${FB.border}` }}>
-            {['Stakes', 'Blinds', 'Fee', 'Payout'].map(h => (
-              <th key={h} style={{ padding: '6px 4px', color: FB.textSec, fontWeight: 700, textAlign: h === 'Payout' ? 'left' : 'center', fontSize: 11 }}>
-                {h}
-              </th>
-            ))}
-          </tr>
-          <tr style={{ borderBottom: `1px solid ${FB.border}` }}>
-            <th colSpan={3} />
-            <th style={{ fontSize: 9, color: FB.textMuted, fontWeight: 600, textAlign: 'left', padding: '2px 4px' }}>
-              Loser / Winner / Table / Total
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries(tiers || {}).map(([key, tier]) => (
-            <tr key={key} style={{ borderBottom: `1px solid ${FB.border}20` }}>
-              <td style={{ padding: '8px 4px', color: FB.gold, fontWeight: 700, textAlign: 'center', fontSize: 12 }}>
-                {tier.label}
-              </td>
-              <td style={{ padding: '8px 4px', color: FB.text, textAlign: 'center', fontSize: 11 }}>
-                {tier.blindRange}
-              </td>
-              <td style={{ padding: '8px 4px', color: FB.text, textAlign: 'center', fontWeight: 600 }}>
-                {tier.feeBB}bb
-              </td>
-              <td style={{ padding: '8px 4px', color: FB.textSec, fontSize: 11 }}>
-                {tier.payout.loser}% / {tier.payout.winner}% / {tier.payout.table}% / {tier.payout.total}%
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// WINNERS TAB — Last 5-10 BBJ winners
-// ═══════════════════════════════════════════════════════════
-function WinnersTab({ winners }) {
   if (!winners || winners.length === 0) {
-    return (
-      <div style={{ textAlign: 'center', padding: '30px 0', color: FB.textSec }}>
-        <div style={{ fontSize: 32, marginBottom: 8 }}>🏆</div>
-        <div style={{ fontSize: 14, fontWeight: 600 }}>No jackpot winners yet</div>
-        <div style={{ fontSize: 12, marginTop: 4 }}>Be the first to hit the Bad Beat!</div>
-      </div>
-    );
+    return <div style={{ textAlign: 'center', color: METAL.textMuted, padding: '40px' }}>No jackpots hit yet.</div>;
   }
 
   return (
     <div>
-      <div style={{ fontSize: 13, fontWeight: 700, color: FB.gold, textAlign: 'center', marginBottom: 12 }}>
-        Last {winners.length} Bad Beat Jackpot Winners
-      </div>
-      {winners.slice(0, 5).map((w, i) => (
-        <div key={w.id || i} style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 12px', marginBottom: 6,
-          background: FB.card, borderRadius: 10,
-          border: `1px solid ${FB.border}`,
-        }}>
-          {/* Avatar placeholder */}
-          <div style={{
-            width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-            background: `linear-gradient(135deg, ${FB.gold}, ${FB.goldDark})`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, fontWeight: 800, color: '#000',
-          }}>
-            {(w.loserName || '?')[0].toUpperCase()}
-          </div>
+      {winners.map(w => {
+        const isExpanded = expandedId === w.id;
+        const loserPayout = formatMoney(w.loserPayout);
+        const winnerPayout = formatMoney(w.winnerPayout);
+        const totalPayout = formatMoney(w.totalPayout);
+        
+        const loserCards = parseAndSortCards(w.loserCards);
+        const winnerCards = parseAndSortCards(w.winnerCards);
+        const boardCards = parseAndSortCards(w.boardCards || '');
 
-          {/* Info */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: FB.text }}>
-              {w.loserName}
-            </div>
-            <div style={{ fontSize: 10, color: FB.textMuted }}>
-              {w.loserHand} beaten by {w.winnerHand}
-            </div>
-          </div>
-
-          {/* Payout + Date */}
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: FB.success }}>
-              +{w.totalPayout?.toLocaleString() || '0'}
-            </div>
-            <div style={{ fontSize: 9, color: FB.textMuted }}>
-              {w.awardedAt ? new Date(w.awardedAt).toLocaleString('en-US', {
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit',
-              }) : ''}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// QUALIFYING HANDS TAB — Min losing hand per variant
-// ═══════════════════════════════════════════════════════════
-function QualifyingTab({ hands }) {
-  if (!hands) return null;
-
-  // Card display helpers
-  const CARD_IMAGES = {
-    'nlh': { label: 'NLH / FLH', display: 'AAAJJ+', cards: ['A♠', 'A♥', 'A♦', 'J♠', 'J♥'] },
-    'plo4': { label: 'PLO4 / FLO4', display: 'KKKK+', cards: ['K♠', 'K♥', 'K♦', 'K♣'] },
-    'plo5': { label: 'PLO5 / FLO5', display: '8-high SF', cards: ['8♠', '7♠', '6♠', '5♠', '4♠'] },
-  };
-
-  const suitColor = (s) => (s === '♥' || s === '♦') ? '#ef4444' : '#1a1a2e';
-  const suitBg = (s) => (s === '♥' || s === '♦') ? '#fff' : '#fff';
-
-  return (
-    <div>
-      <div style={{ fontSize: 12, color: FB.textSec, marginBottom: 12, lineHeight: 1.5 }}>
-        Losing players must have a Minimum Qualifying Hand. <strong style={{ color: FB.text }}>Both players must use two cards from their hands.</strong> If more than one player loses holding a hand that qualifies for the BBJP prize, the prize will be divided proportionally.
-      </div>
-
-      {Object.entries(CARD_IMAGES || {}).map(([key, variant]) => {
-        const info = hands[key];
         return (
-          <div key={key} style={{
-            padding: '14px', marginBottom: 10, background: FB.card,
-            borderRadius: 10, border: `1px solid ${FB.border}`,
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: FB.text, marginBottom: 4 }}>
-              {variant.label}
-            </div>
-            <div style={{ fontSize: 11, color: FB.textMuted, marginBottom: 10 }}>
-              Minimum Qualifying Hand:
+          <div 
+            key={w.id} 
+            style={{
+              ...STYLES.winnerCard,
+              borderColor: isExpanded ? METAL.cyan : METAL.border,
+              boxShadow: isExpanded ? `0 0 15px ${METAL.cyanMuted}` : STYLES.winnerCard.boxShadow
+            }}
+            onClick={() => {
+              triggerHaptic('light');
+              setExpandedId(isExpanded ? null : w.id);
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {w.loserAvatar ? (
+                  <img src={w.loserAvatar} style={STYLES.avatar} alt="Avatar" />
+                ) : (
+                  <div style={STYLES.avatar}>{w.loserName.charAt(0)}</div>
+                )}
+                <div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: METAL.text }}>{capitalizeWords(w.loserName)}</div>
+                  <div style={{ fontSize: '13px', color: METAL.textMuted }}>{capitalizeWords(w.gameVariant)} - {new Date(w.awardedAt).toLocaleDateString()}</div>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: METAL.gold }}>{loserPayout}</div>
+                <div style={{ fontSize: '12px', color: METAL.textMuted }}>Total Pot: {totalPayout}</div>
+              </div>
             </div>
 
-            {/* Card display */}
-            <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginBottom: 10 }}>
-              {variant.cards.map((c, i) => {
-                const rank = c.slice(0, -1);
-                const suit = c.slice(-1);
-                return (
-                  <div key={i} style={{
-                    width: 48, height: 66, borderRadius: 6,
-                    background: suitBg(suit), border: '2px solid #ddd',
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                  }}>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: suitColor(suit), lineHeight: 1 }}>
-                      {rank}
-                    </span>
-                    <span style={{ fontSize: 18, color: suitColor(suit), lineHeight: 1 }}>
-                      {suit}
-                    </span>
+            {isExpanded && (
+              <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: `1px solid ${METAL.border}`, animation: 'fadeIn 0.3s ease' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: METAL.gold, fontWeight: 700 }}>{capitalizeWords(w.loserName)} (Bad Beat)</span>
+                    <span style={{ color: METAL.textMuted }}>{capitalizeWords(w.loserHand)}</span>
                   </div>
-                );
-              })}
-            </div>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {loserCards.map((c, i) => <PlayingCard key={i} card={c} size="md" />)}
+                  </div>
+                </div>
 
-            {/* Description */}
-            {info?.description && (
-              <div style={{
-                fontSize: 10, color: FB.gold, textAlign: 'center',
-                padding: '6px 8px', background: 'rgba(255,215,0,0.06)',
-                borderRadius: 6, lineHeight: 1.4,
-              }}>
-                {info.description}
+                {boardCards.length > 0 && (
+                  <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px' }}>
+                    <div style={{ color: METAL.cyan, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Community Board</div>
+                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                      {boardCards.map((c, i) => <PlayingCard key={i} card={c} size="md" />)}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {w.winnerAvatar ? (
+                        <img src={w.winnerAvatar} style={{...STYLES.avatar, width: '24px', height: '24px', fontSize: '12px'}} alt="Avatar" />
+                      ) : (
+                        <div style={{...STYLES.avatar, width: '24px', height: '24px', fontSize: '12px'}}>{w.winnerName.charAt(0)}</div>
+                      )}
+                      <span style={{ color: METAL.text, fontWeight: 700 }}>{capitalizeWords(w.winnerName)} (Hand Winner)</span>
+                    </div>
+                    <span style={{ color: METAL.textMuted }}>{capitalizeWords(w.winnerHand)} - {winnerPayout}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {winnerCards.map((c, i) => <PlayingCard key={i} card={c} size="sm" />)}
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -400,59 +232,185 @@ function QualifyingTab({ hands }) {
       })}
     </div>
   );
-}
+};
 
-// ═══════════════════════════════════════════════════════════
-// HOOK: useBBJ — Fetch + realtime subscription
-// ═══════════════════════════════════════════════════════════
-export function useBBJ(clubId, supabase) {
-  const [bbjData, setBbjData] = useState(null);
+const QualifyingHandsTab = ({ hands }) => {
+  const demoHands = {
+    'NLH': ['As','Ac','Ah','Ad','Ks'],
+    'PLO4': ['Js','Jc','Jh','Jd','As'],
+    'PLO5': ['8s','8c','8h','8d','As'],
+    'PLO6': ['8s','8c','8h','8d','As']
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {Object.entries(hands || {}).map(([game, hand]) => {
+        const cards = demoHands[game] || demoHands['NLH'];
+        return (
+          <div key={game} style={{...STYLES.winnerCard, display: 'flex', flexDirection: 'column', gap: '12px'}}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '18px', fontWeight: 700, color: METAL.cyan }}>{game}</span>
+              <span style={{ color: METAL.textMuted }}>Minimum: {capitalizeWords(hand)}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {cards.map((c, i) => <PlayingCard key={i} card={c} size="md" />)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const BasicTab = ({ rules, tiers }) => (
+  <div style={{ color: METAL.textMuted, fontSize: '14px', lineHeight: '1.6' }}>
+    <h3 style={{ color: METAL.cyan, fontFamily: '"Orbitron", sans-serif' }}>General Rules</h3>
+    <ul style={{ paddingLeft: '20px', marginBottom: '24px' }}>
+      {rules?.map((r, i) => <li key={i} style={{ marginBottom: '8px' }}>{capitalizeWords(r)}</li>)}
+    </ul>
+    
+    <h3 style={{ color: METAL.cyan, fontFamily: '"Orbitron", sans-serif' }}>Payout Distribution</h3>
+    <div style={{ display: 'flex', gap: '16px' }}>
+      <div style={{ flex: 1, background: METAL.panel, padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+        <div style={{ color: METAL.gold, fontSize: '24px', fontWeight: 700 }}>50%</div>
+        <div>Bad Beat Loser</div>
+      </div>
+      <div style={{ flex: 1, background: METAL.panel, padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+        <div style={{ color: METAL.text, fontSize: '24px', fontWeight: 700 }}>25%</div>
+        <div>Hand Winner</div>
+      </div>
+      <div style={{ flex: 1, background: METAL.panel, padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+        <div style={{ color: METAL.text, fontSize: '24px', fontWeight: 700 }}>25%</div>
+        <div>Table Share</div>
+      </div>
+    </div>
+  </div>
+);
+
+export const BBJModal = ({ clubId, onClose }) => {
+  const [activeTab, setActiveTab] = useState('winners');
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [celebration, setCelebration] = useState(null);
 
-  const fetchBBJ = useCallback(async () => {
+  useEffect(() => {
     if (!clubId) return;
-    try {
-      const res = await fetch(`/api/club-arena/bbj?clubId=${clubId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setBbjData(data);
-      }
-    } catch (err) {
-      console.warn('[BBJ] Fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
+    fetch(`/api/club-arena/bbj?clubId=${clubId}`)
+      .then(r => r.json())
+      .then(d => {
+        setData(d);
+        setLoading(false);
+      });
   }, [clubId]);
 
-  useEffect(() => { fetchBBJ(); }, [fetchBBJ]);
-
-  // Realtime subscription for pool updates
   useEffect(() => {
-    if (!supabase || !clubId || typeof supabase.channel !== 'function') return;
-
-    const channel = supabase
-      .channel(`bbj:${clubId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'bbj_pools',
-        filter: `club_id=eq.${clubId}`,
-      }, (payload) => {
-        setBbjData(prev => prev ? {
-          ...prev,
-          pool: {
-            ...prev.pool,
-            amount: Number(payload.new.pool_amount),
-            handsContributed: Number(payload.new.hands_contributed),
-          },
-        } : prev);
+    if (!clubId) return;
+    const channel = getSupabase().channel('bbj_winners_live')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bbj_winners', filter: `club_id=eq.${clubId}` }, (payload) => {
+        triggerHaptic('heavy');
+        setTimeout(() => triggerHaptic('heavy'), 200);
+        setTimeout(() => triggerHaptic('heavy'), 400);
+        
+        try {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) {
+            const ctx = new AC();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 2);
+            osc.start();
+            osc.stop(ctx.currentTime + 2);
+          }
+        } catch(e) {}
+        
+        setCelebration(payload.new);
+        
+        fetch(`/api/club-arena/bbj?clubId=${clubId}`)
+          .then(r => r.json())
+          .then(d => setData(d));
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [supabase, clubId]);
+    return () => {
+      getSupabase().removeChannel(channel);
+    };
+  }, [clubId]);
 
-  return { bbjData, loading, refetch: fetchBBJ };
-}
+  if (loading) return <div style={{...STYLES.container, padding: '40px', justifyContent: 'center', alignItems: 'center'}}>Loading Jackpot...</div>;
+  if (!data) return null;
 
-export default BBJModal;
+  return (
+    <div style={STYLES.container}>
+      {celebration && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.9)', zIndex: 100,
+          display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+          animation: 'fadeIn 0.5s ease'
+        }}>
+          <h1 style={{...STYLES.title, fontSize: '48px', color: METAL.gold, textShadow: '0 0 40px #FFD700'}}>JACKPOT HIT!</h1>
+          <h2 style={{color: '#fff', fontSize: '24px'}}>{formatMoney(celebration.total_payout)}</h2>
+          <button 
+            onClick={() => { triggerHaptic('medium'); setCelebration(null); }}
+            style={{marginTop: '20px', padding: '12px 24px', background: METAL.cyan, color: '#000', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer'}}
+          >
+            AWESOME
+          </button>
+        </div>
+      )}
+
+      <div style={STYLES.header}>
+        <div style={STYLES.title}>Bad Beat Jackpot</div>
+        <div style={STYLES.jackpotAmount}>
+          {formatMoney(data.pool?.amount || 0)}
+        </div>
+        {data.hourlyRate > 0 && (
+          <div style={{ color: METAL.success, fontSize: '12px', marginTop: '8px', fontWeight: 700 }}>
+            +{formatMoney(data.hourlyRate)} / hr
+          </div>
+        )}
+      </div>
+
+      <div style={STYLES.tabs}>
+        <div style={STYLES.tab(activeTab === 'winners')} onClick={() => { triggerHaptic('light'); setActiveTab('winners'); }}>Recent Hits</div>
+        <div style={STYLES.tab(activeTab === 'hands')} onClick={() => { triggerHaptic('light'); setActiveTab('hands'); }}>Qualifying</div>
+        <div style={STYLES.tab(activeTab === 'rules')} onClick={() => { triggerHaptic('light'); setActiveTab('rules'); }}>Rules</div>
+      </div>
+
+      <div style={STYLES.content}>
+        {activeTab === 'winners' && <WinnersTab winners={data.winners} />}
+        {activeTab === 'hands' && <QualifyingHandsTab hands={data.qualifyingHands} />}
+        {activeTab === 'rules' && <BasicTab rules={data.rules} tiers={data.tiers} />}
+      </div>
+    </div>
+  );
+};
+
+export const BBJTicker = ({ clubId, onClick }) => {
+  return (
+    <div onClick={() => { triggerHaptic('medium'); onClick(); }} style={{ padding: '8px', background: METAL.panel, border: `1px solid ${METAL.border}`, borderRadius: '6px', cursor: 'pointer', textAlign: 'center', boxShadow: `0 0 10px ${METAL.cyanMuted}` }}>
+      <div style={{ fontSize: '12px', color: METAL.cyan, fontWeight: 700, fontFamily: '"Orbitron", sans-serif' }}>BAD BEAT JACKPOT</div>
+      <div style={{ fontSize: '16px', color: METAL.gold, fontWeight: 800, fontFamily: '"Orbitron", sans-serif' }}>CLICK TO VIEW</div>
+    </div>
+  );
+};
+
+export const useBBJ = (clubId) => {
+  const [amount, setAmount] = useState(0);
+  useEffect(() => {
+    if (!clubId) return;
+    const ch = getSupabase().channel('bbj_pools_live')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bbj_pools', filter: `club_id=eq.${clubId}` }, (payload) => {
+        setAmount(payload.new.pool_amount);
+      }).subscribe();
+    return () => getSupabase().removeChannel(ch);
+  }, [clubId]);
+  return { amount };
+};
