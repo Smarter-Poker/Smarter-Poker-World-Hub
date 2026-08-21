@@ -155,19 +155,17 @@ export default async function handler(req, res) {
 
 
           // STRICT AVATAR PROMPT - Character only, pure white background
-          const strictAvatarPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT ONLY. 
+          const strictAvatarPrompt = `Create a premium AAA sci-fi character portrait bust.
   Subject: ${prompt}
   STRICT RULES:
   - ONLY the character's head and upper shoulders (bust portrait)
-  - PURE WHITE BACKGROUND (#FFFFFF) - absolutely no gradients, textures, or shadows
-  - NO poker tables, NO cards, NO chips, NO props in the background
-  - NO scene, NO environment, NO accessories around character  
-  - Face must be the MAIN FOCUS with clear edges
-  - High quality 3D render like Pixar/Disney animation
-  - Vibrant colors, detailed facial features
-  - Professional avatar suitable for profile picture
-  - The character should embody the description given: ${prompt}
-  IMPORTANT: This is for a poker player avatar - just the character portrait with a PURE WHITE background for easy removal.`;
+  - PURE WHITE BACKGROUND (#FFFFFF) - absolutely no gradients, textures, or shadows.
+  - NO environment, NO props, NO accessories in the background.
+  - Art style: Hyper-realistic 3D render, dark cyberpunk, futuristic syndicate, or high-stakes sci-fi aesthetic.
+  - Vibrant neon lighting accents (cyan, purple, or amber).
+  - High fidelity, intricate metallic or tactical details.
+  - Face/Head must be the MAIN FOCUS with sharp, clear edges for masking.
+  IMPORTANT: This is for a high-end poker avatar - just the character portrait with a PURE WHITE background for automated alpha removal.`;
 
           // Use Grok image generation (mapped from dall-e-3 to grok-2-image-1212)
           let response;

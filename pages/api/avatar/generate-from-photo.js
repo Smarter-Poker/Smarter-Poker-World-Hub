@@ -178,17 +178,18 @@ export default async function handler(req, res) {
 
           // Step 2: Generate avatar with grok-2-image
           const additionalStyle = prompt ? `ADDITIONAL STYLE REQUESTS: ${prompt}. ` : '';
-          const dallePrompt = `Create a 3D Pixar/Disney-style cartoon PORTRAIT that MATCHES these EXACT features:
+          const dallePrompt = `Create a premium AAA sci-fi character portrait bust that MATCHES these EXACT features:
 
   ${faceDescription}
 
   ${additionalStyle}
 
   CRITICAL REQUIREMENTS:
+  - Art style: Hyper-realistic 3D render, dark cyberpunk or futuristic high-stakes aesthetic.
   - This avatar MUST be recognizable as the person described above
   - MATCH the exact face shape, skin tone, hair color/style described
   - Head and upper shoulders only (bust portrait)
-  - PURE WHITE BACKGROUND (#FFFFFF)
+  - PURE WHITE BACKGROUND (#FFFFFF) - absolutely no gradients, textures, or shadows.
   - NO props, NO accessories, NO poker chips, NO cards
   - High quality 3D render with Pixar-level detail
 
