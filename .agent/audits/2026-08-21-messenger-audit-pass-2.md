@@ -163,6 +163,43 @@ open in that repo.
    would let the rest go; that is a focused follow-up, not a side effect of
    this pass.
 
+## 8b. The statement thread was delivered but not visible
+
+Reported as still not working. It was: the thread existed, the API returned it,
+and the client then hid it four different ways. All four are the same root
+cause — **a group conversation has no "other user"**, and the messenger assumed
+every conversation has one. `fn_get_user_conversations` returns the statement
+thread as `title: "Midway Union Statements", is_group: true,
+other_user_id: null`.
+
+1. **The fallback path deleted it.** `loadConversations`' direct-Supabase
+   fallback ended with `.filter(c => c.otherUser)`, which discards every group
+   by definition. On any request that fell through to that path — circuit
+   breaker open, API error, stale schema cache — the statements were fetched
+   and then thrown away before render.
+2. **The sidebar row showed "Unknown".** `ConversationItem` derived its name
+   purely from `otherUser` and never looked at `title`, so a group rendered
+   nameless with a blank avatar.
+3. **The open thread had no name either.** The chat header and empty state both
+   read `otherUser?.full_name || ...`, which is undefined for a group.
+4. **Search hid it.** The sidebar filter matched only the other person's name,
+   so typing anything made the thread vanish.
+
+Fixed by giving both surfaces a title fallback (`title` from the API path,
+`group_name` from the fallback path), keeping groups in the filter, and adding
+the title to the search match. The Block action is correctly suppressed on
+group threads, since there is no single person to block.
+
+Also fixed while in there: **the client-side fallback ignored the club identity
+filter entirely** — it selected participations by `user_id` alone, so in club
+mode it would render private personal DMs underneath the "MESSAGING AS: CLUB"
+header. The API route's own fallback carries a long comment about fixing
+exactly this; the client copy never got it.
+
+Confirmed against live data: the message carries `message_type: 'invoice'` with
+`metadata.kind: 'union_invoice'` and a full `lines` object, so it renders as the
+statement card rather than raw text.
+
 ## 9. Verification
 
 - Every changed Hub file parses under esbuild.

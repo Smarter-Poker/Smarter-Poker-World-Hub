@@ -1614,7 +1614,16 @@ function MessengerPage() {
         try {
             const { data, error } = await withRetry(
                 async () => {
-                    const { data: participations, error: partError } = await supabase
+                    // The identity filter has to be applied here too. Without
+                    // it this fallback returned EVERY conversation the user
+                    // participates in - private personal DMs included -
+                    // rendered underneath the "MESSAGING AS: <CLUB>" header.
+                    // The API route's own fallback carries a long comment
+                    // about fixing exactly this; the client copy never got it.
+                    // IS NOT DISTINCT FROM semantics: null means the personal
+                    // inbox, and .eq() would never match a NULL column.
+                    const activeContextId = isClubMode && clubPage ? clubPage.id : null;
+                    let q = supabase
                         .from('social_conversation_participants')
                         .select(`
                             conversation_id,
@@ -1624,11 +1633,16 @@ function MessengerPage() {
                                 last_message_at,
                                 last_message_preview,
                                 is_group,
+                                group_name,
                                 is_request,
                                 request_sender_id
                             )
                         `)
-                        .eq('user_id', userId)
+                        .eq('user_id', userId);
+                    q = activeContextId
+                        ? q.eq('context_entity_id', activeContextId)
+                        : q.is('context_entity_id', null);
+                    const { data: participations, error: partError } = await q
                         .order('social_conversations(last_message_at)', { ascending: false });
 
                     if (partError) throw partError;
@@ -1713,10 +1727,18 @@ function MessengerPage() {
                 };
             });
 
-            // Sort and set - filter out conversations without other users
-            // Also filter out message requests where user is the RECIPIENT (not the sender)
+            // Sort and set.
+            //
+            // This used to be `.filter(c => c.otherUser)`, which silently threw
+            // away every GROUP conversation - a group has no single other
+            // party, so otherUser is null by definition. The union's weekly
+            // statement thread is exactly that shape, so on any request that
+            // fell through to this path the statements were fetched and then
+            // discarded before render. A group is kept if it says so or if it
+            // has a title to show.
+            // Requests where the user is the RECIPIENT stay filtered out.
             const sorted = enriched
-                .filter(c => c.otherUser)
+                .filter(c => c.otherUser || c.is_group || c.title || c.group_name)
                 .filter(c => !(c.is_request && c.request_sender_id && c.request_sender_id !== userId))
                 .sort((a, b) => {
                     const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
@@ -3545,6 +3567,17 @@ function MessengerPage() {
 
     const otherUser = activeConversation?.otherUser;
 
+    // A group thread has no other user, so every header that read otherUser
+    // rendered blank for one - including the union's weekly statement thread.
+    // The API path names it `title`, the direct-Supabase fallback `group_name`.
+    const activeTitle =
+        otherUser?.full_name
+        || otherUser?.display_name
+        || otherUser?.username
+        || activeConversation?.title
+        || activeConversation?.group_name
+        || (activeConversation?.is_group ? 'Group' : '');
+
     return (
         <>
             <Head>
@@ -4390,7 +4423,11 @@ function MessengerPage() {
                                     const otherName = conv.otherUser?.full_name?.toLowerCase() || '';
                                     const otherDisplayName = conv.otherUser?.display_name?.toLowerCase() || '';
                                     const otherUsername = conv.otherUser?.username?.toLowerCase() || '';
-                                    return otherName.includes(q) || otherDisplayName.includes(q) || otherUsername.includes(q);
+                                    // Group threads have no other user, so matching on
+                                    // names alone hid them the moment anything was typed.
+                                    const groupTitle = (conv.title || conv.group_name || '').toLowerCase();
+                                    return otherName.includes(q) || otherDisplayName.includes(q)
+                                        || otherUsername.includes(q) || groupTitle.includes(q);
                                 }).sort((a, b) => {
                                     // Pinned conversations always sort to top (using localStorage-backed state)
                                     const aPinned = pinnedConvoIds.includes(a.id);
@@ -4693,11 +4730,11 @@ function MessengerPage() {
                                     )}
 
                                     <Link href={`/hub/user/${otherUser?.username}`}>
-                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.full_name || otherUser?.display_name || otherUser?.username} size={40} online={otherUserStatus === 'online'} />
+                                        <Avatar src={otherUser?.avatar_url} name={activeTitle} size={40} online={!!otherUser && otherUserStatus === 'online'} />
                                     </Link>
 
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 15 }}>{otherUser?.full_name || otherUser?.display_name || otherUser?.username}</div>
+                                        <div style={{ fontWeight: 600, fontSize: 15 }}>{activeTitle}</div>
                                         <div style={{ fontSize: 12, color: otherUserStatus === 'online' ? C.green : C.textSec }}>
                                             {otherUserStatus === 'online' ? 'Active Now' : otherUserLastSeen ? `Active ${(() => {
                                                 const diff = Date.now() - new Date(otherUserLastSeen).getTime();
@@ -4900,8 +4937,8 @@ function MessengerPage() {
                                     )}
                                     {/* User info header */}
                                     <div style={{ textAlign: 'center', marginBottom: 24, padding: '0 20px' }}>
-                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.full_name || otherUser?.display_name || otherUser?.username} size={80} showOnline={false} />
-                                        <div style={{ marginTop: 12, fontWeight: 600, fontSize: 17 }}>{otherUser?.full_name || otherUser?.display_name || otherUser?.username}</div>
+                                        <Avatar src={otherUser?.avatar_url} name={activeTitle} size={80} showOnline={false} />
+                                        <div style={{ marginTop: 12, fontWeight: 600, fontSize: 17 }}>{activeTitle}</div>
                                         <div style={{ color: C.textSec, fontSize: 13 }}>Smarter.Poker Member</div>
                                         <Link href={`/hub/user/${otherUser?.username}`} style={{
                                             display: 'inline-block',
