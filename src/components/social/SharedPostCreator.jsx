@@ -1658,7 +1658,7 @@ export function SharedPostCreator({
           )}
         </div>
       )}
-      <div style={{ padding: 12, display: 'flex', gap: 8, transition: 'all 0.25s ease' }}>
+      <div style={{ padding: 12, display: 'flex', gap: 8, alignItems: 'center', transition: 'all 0.25s ease' }}>
         {context === 'social-pages' && authorOverride ? (
           <div style={{ display: 'block', flexShrink: 0 }}>
             <Avatar src={authorOverride.avatar_url} name={authorOverride.name} size={40} />
