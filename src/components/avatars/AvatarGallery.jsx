@@ -326,7 +326,7 @@ export default function AvatarGallery({ onSelect }) {
             const customs = await getCustomAvatarGallery(user.id);
             setCustomAvatars(customs || []);
             setShowCustomBuilder(false);
-            const result = await setActiveAvatar(newAvatar.image_url, 'custom', null, newAvatar.prompt);
+            // const result = await setActiveAvatar(newAvatar.image_url, 'custom', null, newAvatar.prompt);
           }}
         />
       )}

@@ -13,7 +13,7 @@ import { broadcastSync } from '../../lib/broadcastSync';
 import supabase from '../../lib/supabase';
 import toast from '../../stores/toastStore';
 
-function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = null }) {
+function CustomAvatarBuilder({ isVip = false, onClose = null, onAvatarCreated = null, user: propUser = null }) {
   const { user: contextUser, createCustomAvatar, isVip: contextIsVip, initializing, refreshAvatar } = useAvatar();
   // Use prop user as fallback when context is still initializing
   const user = contextUser || propUser;
@@ -193,6 +193,12 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           detail: { avatar_url: generatedImage }
         }));
 
+        // 5. Fire callback and close
+        if (typeof onClose === 'function') onClose();
+        if (typeof onAvatarCreated === 'function') {
+           onAvatarCreated({ image_url: generatedImage, prompt: prompt });
+        }
+
       } catch (err) {
         console.warn('Error in handleAccept:', err);
         toast.error('Failed to save avatar. Please try again.');
@@ -299,7 +305,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         maxWidth: '600px',
         margin: '40px auto',
         padding: '40px',
-        background: '#FFFFFF',
+        background: 'linear-gradient(145deg, #161b22, #0d1116)',
         border: '2px solid rgba(0, 245, 255, 0.3)',
         borderRadius: '20px',
         textAlign: 'center'
@@ -311,7 +317,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         <h2 style={{
           fontFamily: 'Rajdhani, sans-serif',
           fontSize: '24px',
-          color: '#1877F2',
+          color: '#00f5ff',
           marginBottom: '15px'
         }}>Loading...</h2>
         <p style={{
@@ -332,7 +338,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         maxWidth: '600px',
         margin: '40px auto',
         padding: '40px',
-        background: '#FFFFFF',
+        background: 'linear-gradient(145deg, #161b22, #0d1116)',
         border: '2px solid rgba(0, 245, 255, 0.3)',
         borderRadius: '20px',
         textAlign: 'center'
@@ -344,7 +350,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         <h2 style={{
           fontFamily: 'Rajdhani, sans-serif',
           fontSize: '24px',
-          color: '#1877F2',
+          color: '#00f5ff',
           marginBottom: '15px'
         }}>Sign In Required</h2>
         <p style={{
@@ -358,7 +364,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           onClick={() => window.top.location.href = '/auth/login'}
           style={{
             padding: '14px 32px',
-            background: 'linear-gradient(135deg, #1877F2, #166FE5)',
+            background: 'linear-gradient(135deg, #00f5ff, #0088ff)',
             border: 'none',
             borderRadius: '12px',
             color: '#fff',
@@ -375,15 +381,18 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
   }
 
   return (
-    <>
-      <div className="custom-avatar-builder">
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', overflowY: 'auto' }} onClick={onClose}>
+      <div className="custom-avatar-builder" onClick={e => e.stopPropagation()}>
+        {onClose && (
+          <button onClick={onClose} style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#888', fontSize: '24px', cursor: 'pointer', zIndex: 10 }}>✕</button>
+        )}
         <style>{`
         .custom-avatar-builder {
           width: 100%;
           max-width: 800px;
           margin: 0 auto;
           padding: 30px;
-          background: #FFFFFF;
+          background: linear-gradient(145deg, #161b22, #0d1116);
           border: 2px solid rgba(0, 245, 255, 0.3);
           border-radius: 20px;
           backdrop-filter: blur(10px);
@@ -395,7 +404,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           font-family: 'Rajdhani', sans-serif;
           font-size: 28px;
           font-weight: 700;
-          background: linear-gradient(135deg, #1877F2, #1877F2);
+          background: linear-gradient(135deg, #00f5ff, #00f5ff);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           text-align: center;
@@ -413,7 +422,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         .vip-badge {
           display: inline-block;
           padding: 4px 12px;
-          background: #1877F2;
+          background: #00f5ff;
           color: #fff;
           font-family: 'Rajdhani', sans-serif;
           font-size: 12px;
@@ -424,14 +433,14 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         }
 
         .vip-slots {
-          background: rgba(24, 119, 242, 0.1);
-          border: 1px solid rgba(24, 119, 242, 0.3);
+          background: rgba(0, 245, 255, 0.1);
+          border: 1px solid rgba(0, 245, 255, 0.3);
           border-radius: 8px;
           padding: 12px 20px;
           margin-bottom: 20px;
           text-align: center;
           font-family: 'Rajdhani', sans-serif;
-          color: #1877F2;
+          color: #00f5ff;
           font-size: 16px;
           font-weight: 600;
           display: flex;
@@ -497,7 +506,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
 
         .delete-modal h3 {
           font-family: 'Rajdhani', sans-serif;
-          color: #1877F2;
+          color: #00f5ff;
           margin-bottom: 10px;
         }
 
@@ -545,7 +554,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           background: rgba(0, 245, 255, 0.2);
           border: 1px solid rgba(0, 245, 255, 0.5);
           border-radius: 8px;
-          color: #1877F2;
+          color: #00f5ff;
           font-family: 'Rajdhani', sans-serif;
           font-size: 14px;
           cursor: pointer;
@@ -642,7 +651,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           left: 0;
           right: 0;
           bottom: 0;
-          background: #FFFFFF;
+          background: linear-gradient(145deg, #161b22, #0d1116);
           z-index: 100;
           display: flex;
           flex-direction: column;
@@ -654,7 +663,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         .result-title {
           font-family: 'Rajdhani', sans-serif;
           font-size: 24px;
-          color: #1877F2;
+          color: #00f5ff;
           margin-bottom: 20px;
           text-align: center;
         }
@@ -663,7 +672,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           max-width: 280px;
           max-height: 280px;
           border-radius: 16px;
-          border: 3px solid #1877F2;
+          border: 3px solid #00f5ff;
           box-shadow: 0 20px 60px rgba(0, 245, 255, 0.5);
           animation: popIn 0.5s ease-out;
         }
@@ -694,7 +703,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         }
 
         .accept-btn {
-          background: #1877F2;
+          background: #00f5ff;
           border: none;
           color: #fff;
         }
@@ -706,12 +715,12 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
 
         .regenerate-btn {
           background: transparent;
-          border: 2px solid #1877F2;
-          color: #1877F2;
+          border: 2px solid #00f5ff;
+          color: #00f5ff;
         }
 
         .regenerate-btn:hover {
-          background: rgba(24, 119, 242, 0.1);
+          background: rgba(0, 245, 255, 0.1);
         }
 
         .back-btn {
@@ -728,7 +737,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         .vip-note {
           font-family: 'Rajdhani', sans-serif;
           font-size: 12px;
-          color: #1877F2;
+          color: #00f5ff;
           margin-top: 15px;
           text-align: center;
         }
@@ -766,7 +775,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         }
 
         .upload-zone:hover {
-          border-color: #1877F2;
+          border-color: #00f5ff;
           background: rgba(0, 245, 255, 0.05);
           transform: translateY(-2px);
         }
@@ -775,7 +784,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         .upload-text {
           font-family: 'Rajdhani', sans-serif;
           font-size: 16px;
-          color: #1877F2;
+          color: #00f5ff;
           font-weight: 600;
           margin-bottom: 8px;
         }
@@ -794,7 +803,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         .photo-preview {
           width: 100%;
           border-radius: 12px;
-          border: 2px solid #1877F2;
+          border: 2px solid #00f5ff;
           box-shadow: 0 5px 20px rgba(0, 245, 255, 0.3);
         }
 
@@ -818,7 +827,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         .prompt-label {
           font-family: 'Rajdhani', sans-serif;
           font-size: 16px;
-          color: #1877F2;
+          color: #00f5ff;
           font-weight: 600;
           margin-bottom: 10px;
           text-transform: uppercase;
@@ -840,7 +849,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
 
         .prompt-input:focus {
           outline: none;
-          border-color: #1877F2;
+          border-color: #00f5ff;
           box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
         }
 
@@ -865,7 +874,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           background: rgba(0, 245, 255, 0.1);
           border: 1px solid rgba(0, 245, 255, 0.3);
           border-radius: 8px;
-          color: #1877F2;
+          color: #00f5ff;
           font-family: 'Rajdhani', sans-serif;
           font-size: 13px;
           cursor: pointer;
@@ -875,14 +884,14 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
 
         .example-chip:hover {
           background: rgba(0, 245, 255, 0.2);
-          border-color: #1877F2;
+          border-color: #00f5ff;
           transform: translateY(-2px);
         }
 
         .generate-btn {
           width: 100%;
           padding: 18px;
-          background: linear-gradient(135deg, #1877F2, #166FE5);
+          background: linear-gradient(135deg, #00f5ff, #0088ff);
           border: none;
           border-radius: 12px;
           color: #0a0e27;
@@ -1074,7 +1083,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         )}
       </div>
       {UpgradePopup}
-    </>
+        </div>
   );
 }
 
