@@ -159,15 +159,69 @@ says UTC. Do not "fix" this by switching to local dates.
   `supabase/migrations/` (versions 20260821031936, 20260821032034,
   20260821033012, 20260821033115).
 
-## 7. Open
+## 7. The settlement lifecycle now has an end
 
-**The settlement lifecycle has no end.** Every statement sits at
-`status = 'generated'` forever. Nothing can set `paid` or `overdue`;
-`union_presettlements` has never held a row. This was known before, but it is now
-visible on a screen: the union board renders "overdue" pills and "0 paid" with
-no way to resolve either. Closing it needs a `ca_union_mark_statement_paid` that
-records receipt (and moves no chips - ECO is an invoice adjustment, not a chip
-movement) plus the row action. Tracked, not started.
+Written up as open work an hour before it was closed, because the union board
+made it impossible to leave: the screen rendered "overdue" pills and "0 paid"
+with no way to resolve either, and every statement issued since 2026-08-20 still
+read `status = 'generated'`. Nothing in the codebase could ever set `paid`.
+
+`ca_union_set_statement_paid` closes it, gated on `ca_can_oversee_union`.
+
+**It records receipt and moves no chips.** Dan, 2026-08-20: "eco doesn't move
+chips, its an adjust on the end of week invoice." The same is true of the
+statement as a whole - it is the bookkeeping record of what was owed for a
+period, settled between people out of band. `chip_transfer_id`,
+`chips_transferred` and `transferred_at` are deliberately untouched, so a
+statement marked paid can never be mistaken for a chip movement that happened.
+The page says this on screen, not only in a comment.
+
+Four decisions worth keeping:
+
+- **Partial payments are not forced into a shape that lies about them.**
+  `settlement_invoices.status` is constrained to
+  `(pending, generated, paid, cancelled, overdue)` - there is no `partial`. A
+  part payment therefore leaves the status alone and accumulates
+  `breakdown.paid_total`, and the row reads "part paid X of Y". Inventing a
+  status value would have meant a schema change to express something the
+  breakdown already holds.
+- **Reopening is supported.** A statement that can only ever move one way turns
+  a misclick into a permanent falsehood in the record. Every payment and every
+  reversal is appended to `breakdown.payments` with who and when.
+- **The row is locked `FOR UPDATE`** while read and written, so two union admins
+  clicking at once cannot each add their payment to the same stale
+  `paid_total`.
+- **Overdue stays derived, never stored.** It is `due_at < now()` on an unpaid
+  statement, correct by construction at read time. A stored flag needs a job to
+  maintain it, and a job that does not run leaves the row lying about its own
+  state.
+
+A hundredth of a chip short counts as settled; exact equality on numeric money
+would leave statements permanently one rounding step from paid.
+
+The board gained `collected` and `outstanding`, because the headline owed figure
+does not change as money comes in and on its own cannot say what is left.
+
+Verified on production under the union owner's own JWT and rolled back: part
+payment 3,000 leaves status `generated`; settling the rest flips to `paid` at
+7,531.11; a repeat returns `already_settled` rather than double counting; the
+board then reads paid 1, collected 7,531.11, outstanding 220,615.68, which is
+exactly the other club's balance; reopening returns it to `generated` with the
+history intact. An ordinary club member is refused with 42501. Production rows
+confirmed unchanged after every probe.
+
+Migration `20260821034457_union_statements_can_be_settled.sql`.
+
+## 8. Still open
 
 **The in-game table messenger still holds 0 messages.** Scheduling now delivers
 into it; nothing has ever been sent through it.
+
+**`union_presettlements` has never held a row.** Payments made DURING a period,
+which should reduce the next statement, have no entry point. The statement
+breakdown reads `presettled` and would honour it; nothing writes it. Distinct
+from the settlement above, which records payment OF an issued statement.
+
+**A club sees a raw status.** `ca_club_union_invoices` returns `status` as
+stored, so a club owner reads "generated" on a statement that is past due. The
+union board derives overdue; the club card does not.
