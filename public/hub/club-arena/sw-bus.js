@@ -21,7 +21,7 @@ const sw = self;
 // DEPLOY VERSION — updated by CI/build to bust the service worker cache.
 // When this changes, the browser detects a new SW → install → activate → clears old caches.
 // Format: ISO timestamp of last deploy. Update via: sed -i "s/DEPLOY_TS.*/DEPLOY_TS = '$(date -u +%Y%m%d%H%M%S)';/" public/sw-bus.js
-const DEPLOY_TS = '20260822231212';
+const DEPLOY_TS = '20260822231914';
 // PERF PASS 2026-08-22: two caches instead of one.
 // - CHUNK_CACHE is versioned by deploy: hashed JS/CSS filenames change every
 //   build, so old entries are dead weight the moment a new SW activates.
