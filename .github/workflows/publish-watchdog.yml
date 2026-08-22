@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PUBLISH WATCHDOG — the only thing here that asks production what it serves.
+#
+# This repo deploys through Vercel's git integration. There is no workflow to
+# watch, so a build that errors, sits queued, is superseded and never retried,
+# or is BLOCKED because Vercel cannot attribute the commit author (CHECK 15)
+# leaves main moving while smarter.poker serves something older. Nothing said
+# so — every gate here answers "did it merge".
+#
+# It never deploys. CLAUDE.md 1.3 forbids `vercel deploy` and deploy hooks, so
+# this diagnoses precisely and says so out loud instead.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Publish Watchdog
+
+on:
+  schedule:
+    # Every 15 minutes. A Vercel build is 3-5 minutes and the budget is 20, so
+    # this notices roughly half an hour after a deploy silently stops happening
+    # — against the hours it currently takes for somebody to notice by hand.
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: publish-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Production is serving main
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Mint a GitHub App installation token
+        id: app-token
+        if: vars.AUTOPILOT_APP_ID != ''
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.AUTOPILOT_APP_ID }}
+          private-key: ${{ secrets.AUTOPILOT_APP_PRIVATE_KEY }}
+
+      - name: Compare production against main
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          # The alarm writes with GITHUB_TOKEN, whose issues: write is declared
+          # above and therefore guaranteed. An App's installation scopes can be
+          # narrowed without anyone here noticing, and a watchdog that cannot
+          # raise its alarm is not a watchdog.
+          GH_TOKEN_ISSUES: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: bash .github/scripts/publish-watchdog.sh
