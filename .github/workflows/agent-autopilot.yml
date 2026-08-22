@@ -32,7 +32,7 @@ on:
   pull_request:
     types: [opened, reopened, ready_for_review, synchronize]
   push:
-    branches: [main]
+    branches: [main, master, production]
   schedule:
     # Catches PRs opened by a workflow using GITHUB_TOKEN (those never emit a
     # `pull_request` event), plus anything a transient API error skipped.
@@ -114,7 +114,7 @@ jobs:
           fi
 
           PRS=$(gh pr list --repo "$REPO" --state open --limit 100 \
-                  --json number,isDraft,labels,mergeStateStatus,autoMergeRequest,headRefName)
+                  --json number,isDraft,labels,mergeStateStatus,autoMergeRequest,headRefName,baseRefName)
 
           echo "$PRS" | jq -c '.[]' | while read -r pr; do
             N=$(echo "$pr"      | jq -r '.number')
@@ -122,6 +122,7 @@ jobs:
             AUTO=$(echo "$pr"   | jq -r 'if .autoMergeRequest then "yes" else "no" end')
             STATE=$(echo "$pr"  | jq -r '.mergeStateStatus')
             BRANCH=$(echo "$pr" | jq -r '.headRefName')
+            BASE=$(echo "$pr"   | jq -r '.baseRefName')
             HOLD=$(echo "$pr"   | jq -r '[.labels[].name] | map(select(.=="do-not-merge" or .=="hold" or .=="wip")) | length')
 
             if [ "$DRAFT" = "true" ] || [ "$HOLD" != "0" ]; then
@@ -142,14 +143,48 @@ jobs:
             #
             # DIRTY means a real conflict: updating cannot fix it and would only
             # churn CI, so leave those for an agent to resolve hunk by hunk.
+            # WHEN TO REFRESH A BRANCH — and, more importantly, when not to.
+            #
+            # `strict_required_status_checks_policy` is OFF, so GitHub does NOT
+            # require a PR to be up to date with main in order to merge. That
+            # makes refreshing optional — and refreshing a PR that is already
+            # green CANCELS its checks and restarts them, which actively stops
+            # it merging.
+            #
+            # Refreshing on every main push therefore livelocks at this repo's
+            # velocity: main lands a commit every 5-7 minutes and CI takes ~8,
+            # so open PRs restart forever and nothing converges. Measured: #204
+            # and #205 both had their runs cancelled and restarted the moment
+            # #203 merged.
+            #
+            # So refresh ONLY when the PR cannot merge as it stands:
+            #   * its checks FAILED and it is behind  -> results are stale, retry
+            #     them against current main;
+            #   * it is very far behind               -> semantic-conflict risk
+            #     outweighs the cost of one more run.
+            # Otherwise leave it alone and let auto-merge do its job.
             if [ "$STATE" = "DIRTY" ]; then
-              echo "#$N ($BRANCH): conflicts with main — an agent must resolve this."
+              echo "#$N ($BRANCH): conflicts with $BASE — an agent must resolve this."
             else
-              BEHIND=$(gh api "repos/$REPO/compare/main...$BRANCH" --jq '.behind_by' 2>/dev/null || echo 0)
-              if [ "${BEHIND:-0}" -gt 0 ]; then
-                echo "#$N ($BRANCH): $BEHIND commit(s) behind main — updating branch."
+              # Compare against the PR's OWN base. Hardcoding "main" is wrong the
+              # moment this workflow is copied to a repo whose default branch is
+              # named something else (PepNationLab ships from `production`), and
+              # wrong for any PR that targets a release branch.
+              BEHIND=$(gh api "repos/$REPO/compare/${BASE}...$BRANCH" --jq '.behind_by' 2>/dev/null || echo 0)
+              LAST=$(gh run list --repo "$REPO" --branch "$BRANCH" --workflow ci.yml --limit 1 \
+                       --json conclusion --jq '.[0].conclusion // "none"' 2>/dev/null || echo none)
+              REFRESH=no
+              if [ "${BEHIND:-0}" -gt 0 ] && [ "$LAST" = "failure" ]; then
+                REFRESH="stale red checks ($BEHIND behind)"
+              elif [ "${BEHIND:-0}" -ge 40 ]; then
+                REFRESH="very stale ($BEHIND behind)"
+              fi
+              if [ "$REFRESH" != "no" ]; then
+                echo "#$N ($BRANCH): refreshing — $REFRESH."
                 gh pr update-branch "$N" --repo "$REPO" \
                   || echo "::warning::#$N could not fast-forward — leaving for an agent."
+              else
+                echo "#$N ($BRANCH): $BEHIND behind $BASE, last CI=$LAST — leaving it to merge."
               fi
             fi
 
