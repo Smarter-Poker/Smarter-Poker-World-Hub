@@ -60,9 +60,12 @@ export default async function handler(req, res) {
             { data: shareStreak }
         ] = await Promise.all([
             // 1. Checkins
+            // The column is `message`, and this asked for `text`. Postgres
+            // answers 42703, the `if (checkinsErr)` below returns 500, and this
+            // endpoint has been dead for every profile since it shipped.
             getSupabase()
                 .from('venue_checkins')
-                .select('venue_id, created_at, text')
+                .select('venue_id, created_at, message')
                 .eq('user_id', user_id)
                 .order('created_at', { ascending: false })
                 .limit(2000),
@@ -71,10 +74,21 @@ export default async function handler(req, res) {
             Promise.resolve({ data: [] }), 
             
             // 3. Following (only for owner)
+            // Four separate fictions lived in the old version of this query, and
+            // none of them could ever have returned a row:
+            //   .eq('follower_id') - the column is `user_id`
+            //   created_at         - the column is `followed_at`
+            //   the three embeds   - page_followers has NO foreign key to
+            //                        poker_venues, tours or tournament_series,
+            //                        so PostgREST answers PGRST200
+            //   tours              - that table does not exist at all
+            // The error was destructured away (no `error:` binding), so the
+            // Following tab has silently rendered empty rather than failing.
+            // Details are hydrated below the same way venues already are.
             isOwner ? getSupabase()
                 .from('page_followers')
-                .select('page_id, page_type, created_at, poker_venues!page_followers_page_id_fkey(name, emoji, city, state, country), tours!page_followers_page_id_fkey_tours(name, emoji, type), tournament_series!page_followers_page_id_fkey_series(name, tour_id)')
-                .eq('follower_id', user_id) : Promise.resolve({ data: [] }),
+                .select('page_id, page_type, followed_at')
+                .eq('user_id', user_id) : Promise.resolve({ data: [] }),
                 
             // 4. Share Streaks
             getSupabase()
@@ -101,7 +115,9 @@ export default async function handler(req, res) {
         if (venueIds.length > 0) {
             const { data: venues } = await getSupabase()
                 .from('poker_venues')
-                .select('id, name, city, state, emoji')
+                // No `emoji` column exists on poker_venues. Asking for it made
+                // this whole select 42703, so no checkin ever got its venue.
+                .select('id, name, city, state')
                 .in('id', venueIds);
                 
             if (venues) {
@@ -110,8 +126,11 @@ export default async function handler(req, res) {
         }
 
         // Compute Checkins (enrich top 50 with venue info for the feed)
+        // `text` is kept alongside `message` so any consumer written against
+        // the old (broken) shape still resolves rather than rendering blank.
         const enrichedCheckins = safeCheckins.slice(0, 50).map(c => ({
             ...c,
+            text: c.message ?? null,
             poker_venues: venuesMap[c.venue_id] || null
         }));
 
@@ -261,20 +280,44 @@ export default async function handler(req, res) {
             dailyTotals
         };
         
-        // Format following
-        const followingParsed = (following || []).map(f => {
-            let details = null;
-            if (f.page_type === 'venue') details = f.poker_venues;
-            else if (f.page_type === 'tour') details = f.tours;
-            else if (f.page_type === 'series') details = f.tournament_series;
-            
-            return {
-                page_id: f.page_id,
-                page_type: f.page_type,
-                created_at: f.created_at,
-                details
-            };
-        });
+        // Format following. Hydrate the details in one query per page type
+        // rather than through embeds that have no foreign key behind them.
+        const safeFollowing = following || [];
+        const detailsById = { venue: {}, series: {} };
+
+        const venueFollowIds = [...new Set(
+            safeFollowing.filter(f => f.page_type === 'venue')
+                .map(f => parseInt(f.page_id, 10)).filter(n => !isNaN(n) && n > 0)
+        )];
+        if (venueFollowIds.length > 0) {
+            const { data: rows } = await getSupabase()
+                .from('poker_venues')
+                .select('id, name, city, state, country')
+                .in('id', venueFollowIds);
+            (rows || []).forEach(r => { detailsById.venue[String(r.id)] = r; });
+        }
+
+        const seriesFollowIds = [...new Set(
+            safeFollowing.filter(f => f.page_type === 'series')
+                .map(f => parseInt(f.page_id, 10)).filter(n => !isNaN(n) && n > 0)
+        )];
+        if (seriesFollowIds.length > 0) {
+            const { data: rows } = await getSupabase()
+                .from('tournament_series')
+                .select('id, name, city, state')
+                .in('id', seriesFollowIds);
+            (rows || []).forEach(r => { detailsById.series[String(r.id)] = r; });
+        }
+
+        // page_type 'tour' is deliberately not hydrated: there is no `tours`
+        // table in this database. Those rows come back with details: null
+        // instead of taking the request down.
+        const followingParsed = safeFollowing.map(f => ({
+            page_id: f.page_id,
+            page_type: f.page_type,
+            created_at: f.followed_at,
+            details: detailsById[f.page_type]?.[String(f.page_id)] || null
+        }));
 
         // Construct final payload
         const payload = {
