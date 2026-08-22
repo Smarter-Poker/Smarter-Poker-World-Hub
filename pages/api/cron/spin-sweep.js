@@ -98,7 +98,7 @@ async function handler(req, res) {
         const { data: health, error: healthErr } = await admin
             .from('v_spin_reserve_health')
             .select(
-                'club_id, club_name, balance, highest_stake, can_draw_100x, can_draw_500x, is_thin, shortfall_events, unbooked_24h'
+                'club_id, club_name, balance, highest_stake, can_draw_100x, can_draw_500x, is_thin, shortfall_events, unbooked_24h, null_multiplier_24h'
             );
         if (healthErr) {
             return res.status(500).json({
@@ -115,6 +115,14 @@ async function handler(req, res) {
         const thin = pools.filter((p) => p.is_thin);
         const short = pools.filter((p) => Number(p.shortfall_events || 0) > 0);
         const stillUnbooked = pools.filter((p) => Number(p.unbooked_24h || 0) > 0);
+        // A Spin that reached the felt with no multiplier means the draw never
+        // happened for a game that actually ran. Three did on 2026-08-21
+        // (dea62e98, a374cdd3, 78181713) and nothing noticed: the sweep
+        // required spin_multiplier > 0 so it skipped them, and unbooked_24h
+        // aged them out after a day. fn_spin_repair_missing_multiplier now
+        // runs inside the sweep and reconstructs what it can; this alert is
+        // for whatever it could not, and for the fact that it happened at all.
+        const noDraw = pools.filter((p) => Number(p.null_multiplier_24h || 0) > 0);
 
         const alerts = [];
         if (failed > 0) alerts.push(`sweep_failed:${failed}`);
@@ -124,6 +132,9 @@ async function handler(req, res) {
         if (thin.length > 0) alerts.push(`reserve_thin:${thin.map((p) => p.club_name).join(',')}`);
         if (short.length > 0) {
             alerts.push(`shortfall_recorded:${short.map((p) => p.club_name).join(',')}`);
+        }
+        if (noDraw.length > 0) {
+            alerts.push(`spin_ran_with_no_draw:${noDraw.map((p) => p.club_name).join(',')}`);
         }
 
         // ── 3. Split-brain tripwires (2026-08-21) ─────────────────────────
