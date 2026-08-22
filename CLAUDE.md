@@ -546,6 +546,15 @@ GitHub's environment to execute:
 - `branch-protection-watchdog.yml` — daily 09:00 UTC, auto-corrects `main` branch protection (added 2026-05-10 with PR #302)
 - `push-velocity-watchdog.yml` — hourly during work hours, alerts via GitHub Issue if no commits land on main for >4h (added 2026-05-10 after the 3h CHECK 6c stall)
 - `vercel-deploy-retry.yml` — already present in the CHECK 6c allowlist but previously missing from this list; recorded here to remove the doc/CI drift.
+- `agent-autopilot.yml` — every-10-minutes sweep that enables squash auto-merge
+  on open pull requests and refreshes a branch only when it cannot merge as it
+  stands. It is CI-side work by definition: it operates on GitHub pull requests
+  through the GitHub API and has no application logic and no database access,
+  so Open Claw is not merely inconvenient here, it is the wrong layer. Added to
+  this list and to CHECK 6c on 2026-08-22 — the workflow was rolled out across
+  all seven repos without either, and CHECK 6 had been failing on `main` ever
+  since, which is one of the two reasons Pre-Deploy Safety Checks could not be
+  made a required check.
 - ~~`news-digest.yml`~~ — **RETIRED 2026-08-16.** Migrated to Open Claw and
   removed from this list and from the CHECK 6c allowlist together, as this
   entry required. The stated blocker ("Open Claw replacement cannot deploy,
