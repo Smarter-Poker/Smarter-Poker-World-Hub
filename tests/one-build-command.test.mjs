@@ -97,3 +97,48 @@ test('the E2E workflow builds and then actually serves the build', () => {
     assert.match(e2e, /Start Next.js server/, 'the E2E workflow no longer starts a server for Playwright to hit');
     assert.match(e2e, /playwright test/, 'the E2E workflow no longer runs Playwright');
 });
+
+/**
+ * The other half of the same problem: a REQUIRED gate that fails for reasons
+ * unrelated to the change under test.
+ *
+ * scripts/check-economy-invariants.mjs already carried two write-ups of this,
+ * hours apart on 2026-08-22, both statement timeouts. The third came the same
+ * day and had a cause that repeats on a schedule: every DDL migration applied
+ * to production makes PostgREST rebuild its schema cache, and until it
+ * finishes every request answers HTTP 503 PGRST002. On a schema of 831 tables
+ * and 2,024 functions that window outlasted the old 18-second retry budget.
+ *
+ * This pins the budget, not the mechanism - the mechanism is well commented in
+ * the script. A gate that blocks every merge in the repository should spend a
+ * couple of minutes being sure before it calls the database dead.
+ */
+test('the economy gate waits long enough for a schema cache reload', () => {
+    const src = fs.readFileSync(path.join(REPO, 'scripts/check-economy-invariants.mjs'), 'utf8');
+
+    const attempts = Number(src.match(/TRANSIENT_ATTEMPTS\s*=\s*(\d+)/)?.[1]);
+    const step = Number(src.match(/TRANSIENT_STEP_MS\s*=\s*(\d+)/)?.[1]);
+    const cap = Number(src.match(/TRANSIENT_MAX_WAIT_MS\s*=\s*(\d+)/)?.[1]);
+
+    assert.ok(
+        Number.isFinite(attempts) && Number.isFinite(step) && Number.isFinite(cap),
+        'the retry budget constants are gone - if the backoff was rewritten, update this test with it'
+    );
+
+    let total = 0;
+    for (let i = 1; i < attempts; i++) total += Math.min(i * step, cap);
+
+    assert.ok(
+        total >= 60_000,
+        `the transient retry budget is ${total / 1000}s. A PostgREST schema cache reload after a ` +
+            `migration takes longer than that on this schema, and this gate blocks every merge in ` +
+            `the repository while it is red.`
+    );
+
+    // A failing assertion must still never be retried; that is the signal.
+    assert.match(
+        src,
+        /A FALSE ASSERTION IS NEVER RETRIED/,
+        'the retry helper no longer states that assertions are not retried - retrying one would hide it'
+    );
+});
