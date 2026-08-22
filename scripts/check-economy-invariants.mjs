@@ -50,26 +50,69 @@ if (!url || !key) {
 // Dependency-free on purpose: the Build Safety Gate job does not npm install.
 const endpoint = `${url.replace(/\/+$/, '')}/rest/v1/rpc/economy_invariants`;
 
-let rows;
-try {
-    const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-            apikey: key,
-            Authorization: `Bearer ${key}`,
-            'Content-Type': 'application/json',
-        },
-        body: '{}',
-    });
-    if (!res.ok) {
-        console.error(`[economy-invariants] RPC failed: HTTP ${res.status} ${await res.text()}`);
-        process.exit(1);
+const TRANSIENT_ATTEMPTS = 4;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* CALL AN RPC, RETRYING ONLY TRANSPORT TROUBLE.
+ *
+ * This gate is REQUIRED to merge on main, so it cannot fail for reasons
+ * unrelated to the code. On 2026-08-22 it failed twice for exactly that, hours
+ * apart, in two different calls in this one file:
+ *
+ *   HTTP 500 {"code":"57014","message":"canceling statement due to statement
+ *   timeout"}
+ *
+ * Both times every assertion behind the call was passing. Measured immediately
+ * after the first, three identical calls returned 200 in 879ms, 200 in 4915ms,
+ * and a 503 in 2764ms - the endpoint is intermittently unavailable and it has
+ * nothing to do with what this gate guards.
+ *
+ * The first fix wrapped only the invariants call and left the merch call bare,
+ * which is why there was a second time. One helper both callers share is the
+ * point: the next RPC added to this file gets the same treatment for free
+ * instead of becoming the third incident.
+ *
+ * 5xx, 429, 57014 and a thrown fetch are the network having a bad minute.
+ * A FALSE ASSERTION IS NEVER RETRIED - that is the signal, and retrying it
+ * would be hiding it.
+ */
+async function rpcWithRetry(label, target) {
+    let lastProblem = '';
+    for (let attempt = 1; attempt <= TRANSIENT_ATTEMPTS; attempt++) {
+        try {
+            const res = await fetch(target, {
+                method: 'POST',
+                headers: {
+                    apikey: key,
+                    Authorization: `Bearer ${key}`,
+                    'Content-Type': 'application/json',
+                },
+                body: '{}',
+            });
+            if (res.ok) return await res.json();
+            const body = await res.text();
+            lastProblem = `HTTP ${res.status} ${body}`;
+            const transient = res.status >= 500 || res.status === 429 || body.includes('57014');
+            if (!transient) break;
+        } catch (err) {
+            lastProblem = err?.message || String(err);
+        }
+        if (attempt < TRANSIENT_ATTEMPTS) {
+            const wait = attempt * 3000;
+            console.warn(
+                `[${label}] transient failure (attempt ${attempt}/${TRANSIENT_ATTEMPTS}): ` +
+                    `${lastProblem} — retrying in ${wait / 1000}s`
+            );
+            await sleep(wait);
+        }
     }
-    rows = await res.json();
-} catch (err) {
-    console.error('[economy-invariants] RPC failed:', err?.message || err);
+    console.error(`[${label}] RPC failed after ${TRANSIENT_ATTEMPTS} attempts: ${lastProblem}`);
+    console.error(`[${label}] This is a TRANSPORT failure, not a failing assertion.`);
+    console.error(`[${label}] Check the Supabase project status before touching the code.`);
     process.exit(1);
 }
+
+const rows = await rpcWithRetry('economy-invariants', endpoint);
 
 if (!Array.isArray(rows) || rows.length === 0) {
     // An empty result is not "no problems" — it means the function is missing
@@ -115,26 +158,12 @@ console.log(`[economy-invariants] OK — ${rows.length} invariants hold.`);
 // safe to run against production. These were hand-run probes during the stock
 // work; running them here is what stops the next refactor from quietly
 // reintroducing overselling.
-let tests;
-try {
-    const testRes = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/rpc/test_merch_reservation`, {
-        method: 'POST',
-        headers: {
-            apikey: key,
-            Authorization: `Bearer ${key}`,
-            'Content-Type': 'application/json',
-        },
-        body: '{}',
-    });
-    if (!testRes.ok) {
-        console.error(`[merch-tests] RPC failed: HTTP ${testRes.status} ${await testRes.text()}`);
-        process.exit(1);
-    }
-    tests = await testRes.json();
-} catch (err) {
-    console.error('[merch-tests] RPC failed:', err?.message || err);
-    process.exit(1);
-}
+// Same treatment as the invariants above. THIS is the call that failed the
+// second time, because the first fix only covered half the file.
+const tests = await rpcWithRetry(
+    'merch-tests',
+    `${url.replace(/\/+$/, '')}/rest/v1/rpc/test_merch_reservation`
+);
 
 if (!Array.isArray(tests) || tests.length < 7) {
     console.error(`[merch-tests] expected at least 7 tests, got ${Array.isArray(tests) ? tests.length : 'none'}.`);
