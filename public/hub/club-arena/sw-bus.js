@@ -21,7 +21,7 @@ const sw = self;
 // DEPLOY VERSION — updated by CI/build to bust the service worker cache.
 // When this changes, the browser detects a new SW → install → activate → clears old caches.
 // Format: ISO timestamp of last deploy. Update via: sed -i "s/DEPLOY_TS.*/DEPLOY_TS = '$(date -u +%Y%m%d%H%M%S)';/" public/sw-bus.js
-const DEPLOY_TS = '20260822000000';
+const DEPLOY_TS = '20260822185422';
 // PERF PASS 2026-08-22: two caches instead of one.
 // - CHUNK_CACHE is versioned by deploy: hashed JS/CSS filenames change every
 //   build, so old entries are dead weight the moment a new SW activates.
@@ -33,6 +33,14 @@ const CACHE_NAME = `club-arena-${DEPLOY_TS}`;
 const MEDIA_CACHE = 'club-arena-media-v1';
 const MAX_CACHE_ENTRIES = 300; // Evict oldest chunk entries beyond this
 const MAX_MEDIA_ENTRIES = 600; // Cards (104/deck-style) + tiles + icons + logos fit comfortably
+
+// App-shell assets to warm at install time. EMPTY in source — the build
+// (scripts/optimize-dist-media.mjs) injects the entry chunk, modulepreloaded
+// vendors and entry CSS for the exact bundle being deployed, and stamps
+// DEPLOY_TS above with the build time. With this, a returning player gets the
+// whole shell from cache even if HTTP cache was evicted, and the new SW
+// pre-fetches the new hashed chunks the moment a deploy lands.
+const PRECACHE_URLS = ["/hub/club-arena/assets/index-SSrXB4mX-v6.js","/hub/club-arena/assets/vendor-react-BPB2zS-3-v6.js","/hub/club-arena/assets/vendor-supabase-BLlQ2fJ4-v6.js","/hub/club-arena/assets/index-C8bLFEOf-v6.css"];
 
 /**
  * Trim cache to MAX_CACHE_ENTRIES — prevents unbounded growth across deploys.
@@ -206,8 +214,25 @@ sw.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Install: skip waiting so new SW activates immediately
-sw.addEventListener('install', () => sw.skipWaiting());
+// Install: precache the app shell (build-injected list), then activate
+// immediately. addAll failures (offline install, mid-deploy 404) are
+// swallowed — the runtime cache-first path covers anything missed.
+sw.addEventListener('install', (event) => {
+    event.waitUntil(
+        (PRECACHE_URLS.length
+            ? caches.open(CACHE_NAME).then((cache) =>
+                Promise.allSettled(
+                    PRECACHE_URLS.map((url) =>
+                        fetch(url).then((res) => {
+                            if (res.ok) return cache.put(url, res);
+                        }).catch(() => {})
+                    )
+                )
+            )
+            : Promise.resolve()
+        ).then(() => sw.skipWaiting())
+    );
+});
 
 // Activate: claim clients + clean up old caches
 sw.addEventListener('activate', (event) => {
