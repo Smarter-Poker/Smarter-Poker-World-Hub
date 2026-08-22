@@ -46,6 +46,7 @@ import '../tests/shop-item-rules.test.mjs';
 import '../tests/unchecked-money-rpc.test.mjs';
 import '../tests/club-ledger-rpc-envelope.test.mjs';
 import '../tests/spin-500x-retired.test.mjs';
+import '../tests/spin-reserve-fund-contract.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -92,6 +93,12 @@ const REQUIRED_TEST_FILES = [
     // select off the three columns being removed from v_spin_reserve_health,
     // so the reader can never come back after the columns are gone.
     'tests/spin-500x-retired.test.mjs',
+    // The union Spin reserve fund control. Two functions in the database differ
+    // by a suffix: one claims an op id and refuses to mint, the other does
+    // neither and returns the identical shape. This pins the endpoint to the
+    // safe one, and pins it to reading { ok } rather than the { success } every
+    // neighbouring money RPC returns.
+    'tests/spin-reserve-fund-contract.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {

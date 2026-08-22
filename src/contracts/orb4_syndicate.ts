@@ -68,14 +68,23 @@ export const UnionWalletAction = z.enum([
     'send_to_club',
     'move_rake_to_chips',
     'process_bbj_payout',
+    'fund_spin_reserve',
     'get_transactions',
 ]);
 
+// Every wallet a union_wallet_transactions row may name. This list must stay
+// in step with the CHECK constraint on union_wallet_transactions.wallet - it is
+// what `get_transactions?wallet=` filters on, and a real wallet missing from
+// here answers 400 for a filter that is perfectly valid in the database.
+// insurance_wallet and spin_reserve_wallet were both in that CHECK and both
+// absent from here.
 export const WalletType = z.enum([
     'chip_balance',
     'rake_wallet',
     'bbj_wallet',
     'promo_wallet',
+    'insurance_wallet',
+    'spin_reserve_wallet',
 ]);
 
 // ─── UnionSettlement Contract ─────────────────────────────────
@@ -119,6 +128,23 @@ export const FundBBJPoolSchema = z.object({
 
 export type FundBBJPool = z.infer<typeof FundBBJPoolSchema>;
 
+// ─── Fund Spin Reserve Contract (union reserve wallet, 2026-08-22) ──
+//
+// The source wallet is REQUIRED and is one of three. fn_spin_reserve_wallet_fund
+// treats a null source as an operator deposit and mints the chips; that is a
+// platform operation over SQL, not something a union lead reaches over HTTP.
+// fn_spin_reserve_wallet_fund_op refuses a null source for the same reason, so
+// this schema and the database agree rather than one trusting the other.
+export const FundSpinReserveSchema = z.object({
+    action: z.literal('fund_spin_reserve'),
+    unionId: UUID,
+    amount: PositiveChipAmount,
+    fromWallet: z.enum(['promo_wallet', 'rake_wallet', 'chip_balance']),
+    notes: SafeNotes,
+}).strict();
+
+export type FundSpinReserve = z.infer<typeof FundSpinReserveSchema>;
+
 // ─── Wallet Transfer Contract ─────────────────────────────────
 export const WalletTransferSchema = z.object({
     action: z.enum(['send_to_club', 'move_rake_to_chips']),
@@ -145,6 +171,7 @@ export const UnionWalletSchema = z.discriminatedUnion('action', [
     WalletTransferSchema.extend({ action: z.literal('move_rake_to_chips') }),
     BBJPayoutSchema,
     FundBBJPoolSchema,
+    FundSpinReserveSchema,
 ]);
 
 // ─── Mint Chips Contract ──────────────────────────────────────

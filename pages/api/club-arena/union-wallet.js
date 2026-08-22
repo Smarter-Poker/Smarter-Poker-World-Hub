@@ -7,6 +7,7 @@
  *   get_balances        — Wallet balances + recent transactions
  *   send_to_club        — Transfer from union chip_balance to a club treasury
  *   move_rake_to_chips  — Move accumulated rake_wallet into chip_balance for distribution
+ *   fund_spin_reserve   — Move chips into the union's Spin reserve wallet
  *   get_transactions    — Paginated wallet transaction history
  *
  * Auth: Bearer token (union_lead or platform admin)
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
 
   // CONCURRENCY LOCKDOWN: Idempotency guard for mutation actions
   // Read-only actions (get_balances, get_transactions) are exempted
-  const mutationActions = ['send_to_club', 'move_rake_to_chips', 'process_bbj_payout', 'fund_bbj_pool'];
+  const mutationActions = ['send_to_club', 'move_rake_to_chips', 'process_bbj_payout', 'fund_bbj_pool', 'fund_spin_reserve'];
   if (mutationActions.includes(req.body?.action)) {
     if (checkIdempotency(req, res)) return;
   }
@@ -104,7 +105,7 @@ export default async function handler(req, res) {
 
       const { data: wallet } = await supabaseAdmin
         .from('union_wallets')
-        .select('chip_balance, rake_wallet, bbj_wallet, promo_wallet, insurance_wallet, total_rake_collected, total_settlements')
+        .select('chip_balance, rake_wallet, bbj_wallet, promo_wallet, insurance_wallet, spin_reserve_wallet, total_rake_collected, total_settlements')
         .eq('union_id', unionId)
         .maybeSingle();
 
@@ -146,6 +147,12 @@ export default async function handler(req, res) {
           bbj_wallet: Number(w.bbj_wallet || 0),
           promo_wallet: Number(w.promo_wallet || 0),
           insurance_wallet: Number(w.insurance_wallet || 0),
+          // The capital every Spin bonus pool this union owns is seeded from.
+          // It shipped on 2026-08-22 and nothing returned it, so the union that
+          // owned it could not see it: the 20,000 seeding the live pool had come
+          // out of promo_wallet instead, because promo_wallet was the only
+          // balance anyone could actually look at.
+          spin_reserve_wallet: Number(w.spin_reserve_wallet || 0),
           backup_bbj_balance: Number(union.backup_bbj_balance || 0),
           total_rake_collected: Number(w.total_rake_collected || 0),
           total_settlements: Number(w.total_settlements || 0),
@@ -155,6 +162,7 @@ export default async function handler(req, res) {
             Number(w.bbj_wallet || 0) +
             Number(w.promo_wallet || 0) +
             Number(w.insurance_wallet || 0) +
+            Number(w.spin_reserve_wallet || 0) +
             Number(union.backup_bbj_balance || 0),
         },
         recentTransactions: recentTxns || [],
@@ -372,6 +380,82 @@ export default async function handler(req, res) {
     // BBJ UNIFICATION 2026-07-21: lets union leads seed/boost the shared
     // jackpot. Single atomic RPC (debit wallet, credit pool per the union's
     // configured split, ledger row inside).
+    // ── FUND_SPIN_RESERVE — union wallet -> Spin reserve wallet ────────────
+    //
+    // The Spin reserve is the capital every Spin bonus pool is seeded from, and
+    // a 100x is paid out of it. Until now the only way to put money in was to
+    // type the RPC by hand, so the live pool had been seeded 20,000 out of
+    // promo_wallet - money earmarked for promotions - because that was the only
+    // wallet with a control attached to it.
+    //
+    // fn_spin_reserve_wallet_fund_op, NOT fn_spin_reserve_wallet_fund. The
+    // wrapper is the one with replay protection: it claims p_op_id on the
+    // ledger row and rolls the whole move back if that id was already used.
+    // The bare function has none, and a fund button is retried - by an
+    // impatient operator, by a cold start, by a browser resending the POST.
+    //
+    // It also refuses a null source wallet. The bare function reads that as an
+    // operator deposit and MINTS the chips; nothing reachable over HTTP should
+    // be able to do that, so the source wallet is required here, in the Zod
+    // contract, and again inside the function.
+    if (action === 'fund_spin_reserve') {
+      const { amount, fromWallet, notes } = payload;
+
+      // Without an op id the RPC refuses outright rather than moving money it
+      // cannot make idempotent. Say so plainly instead of letting the caller
+      // read 'op_id_required' out of a 500.
+      if (!opId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(opId)) {
+        return res.status(400).json({
+          success: false,
+          error: 'X-Idempotency-Key header must be a UUID for this action',
+        });
+      }
+
+      const reserveNote = (notes?.trim() || `Spin reserve funded from ${fromWallet}`)
+        .slice(0, 500)
+        .replace(/[;'"\\]/g, '');
+
+      const { data: fundRes, error: fundErr } = await supabaseAdmin.rpc(
+        'fn_spin_reserve_wallet_fund_op',
+        {
+          p_union_id: unionId,
+          p_amount: amount,
+          p_from_wallet: fromWallet,
+          p_note: reserveNote,
+          p_op_id: opId,
+          p_created_by: auth.user.id,
+        }
+      );
+
+      // This RPC returns { ok } - NOT { success } like its neighbours. Reading
+      // the wrong key here would treat every refusal as a completed transfer,
+      // which is the exact shape tests/unchecked-money-rpc.test.mjs exists to
+      // catch. `error` alone is null on a refusal.
+      if (fundErr || fundRes?.ok !== true) {
+        if (fundRes?.duplicate) {
+          return res.status(409).json({ success: false, error: 'This funding was already processed' });
+        }
+        const reason = fundErr?.message || fundRes?.reason || 'Spin reserve funding failed';
+        if (reason === 'insufficient_union_funds') {
+          return res.status(400).json({
+            success: false,
+            error: `Not enough in ${fundRes?.wallet || fromWallet}: ${Number(fundRes?.available || 0).toLocaleString()} available, ${Number(fundRes?.requested || amount).toLocaleString()} requested`,
+          });
+        }
+        console.warn('[union-wallet] fund_spin_reserve failed:', reason);
+        return res.status(400).json({ success: false, error: reason });
+      }
+
+      // No cacheResponse() call here on purpose: checkIdempotency has already
+      // wrapped res.json to cache anything under 500 against this key.
+      return res.json({
+        success: true,
+        spin_reserve_wallet: Number(fundRes.spin_reserve_wallet || 0),
+        amount,
+        fromWallet,
+      });
+    }
+
     if (action === 'fund_bbj_pool') {
       const { amount, notes } = payload;
       const { data: fundCfgRow } = await supabaseAdmin
