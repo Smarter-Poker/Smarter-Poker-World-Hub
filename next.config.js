@@ -650,6 +650,58 @@ const nextConfig = {
           },
         ],
       },
+      // ─── CLUB ARENA CACHE POLICY (perf pass 2026-08-22) ─────────────────────
+      // Vercel serves public/ files with `max-age=0, must-revalidate` by
+      // default, so every Club Arena page load was re-validating ~500 hashed
+      // bundle files + 60MB of media — dozens of round-trips per visit, the
+      // single biggest cause of the slow loads. The bundle filenames carry a
+      // content hash (assets/[name]-[hash]-v6.*), so they are immutable by
+      // construction: cache them for a year. A new deploy changes the hashes
+      // in index.html (which stays must-revalidate), so users always pick up
+      // new code on the next navigation.
+      {
+        source: '/hub/club-arena/assets/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Club Arena media (cards, tiles, icons, logos, videos): stable URLs,
+      // art changes rarely. 30 days fresh + a week of stale-while-revalidate
+      // means repeat visits render cards and the lobby from disk instantly.
+      {
+        source: '/hub/club-arena/:dir(cards|images|game-card-icons|club-logos|videos)/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=2592000, stale-while-revalidate=604800',
+          },
+        ],
+      },
+      // Apex /cards/ (hub game-card art + the legacy replay card set) gets the
+      // same media policy.
+      {
+        source: '/cards/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=2592000, stale-while-revalidate=604800',
+          },
+        ],
+      },
+      // The Club Arena service worker script must ALWAYS revalidate — a stale
+      // SW script would pin an old cache policy on players' devices.
+      {
+        source: '/hub/club-arena/sw-bus.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, must-revalidate',
+          },
+        ],
+      },
       // [In-App Article Reader] The proxy API serves external pages inside an
       // iframe on smarter.poker. We must allow same-origin framing for this
       // route only — overrides the global X-Frame-Options: DENY to SAMEORIGIN.
