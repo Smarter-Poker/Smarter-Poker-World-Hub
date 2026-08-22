@@ -38,8 +38,6 @@
   <meta name="twitter:image" content="https://smarter.poker/images/og-default.png" />
 
   <title>♠ Club Arena | Smarter.Poker</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- PERF 2026-08-22: preconnect to Supabase — every boot's first real work is
        auth (getSession → token refresh) + data fetches against this origin.
        Warming DNS+TLS in parallel with JS download saves 100-300ms on mobile. -->
@@ -49,11 +47,11 @@
        trick) instead of render-blocking. display=swap already renders text in
        fallback fonts, so nothing waits on this fetch anymore. -->
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Rajdhani:wght@400;500;600;700&display=swap"
+    href="/hub/club-arena/fonts/fonts.css"
     rel="stylesheet" media="print" onload="this.media='all'">
   <noscript>
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Rajdhani:wght@400;500;600;700&display=swap"
+      href="/hub/club-arena/fonts/fonts.css"
       rel="stylesheet">
   </noscript>
   <!-- Preload critical stylesheets -->
@@ -79,7 +77,7 @@
       else { window.addEventListener('load', inject, { once: true }); }
     })();
   </script>
-  <script type="module" crossorigin src="/hub/club-arena/assets/index-Cxj0FZeg-v6.js"></script>
+  <script type="module" crossorigin src="/hub/club-arena/assets/index-BAVw5tAd-v6.js"></script>
   <link rel="modulepreload" crossorigin href="/hub/club-arena/assets/vendor-react-BPB2zS-3-v6.js">
   <link rel="modulepreload" crossorigin href="/hub/club-arena/assets/vendor-supabase-BLlQ2fJ4-v6.js">
   <link rel="stylesheet" crossorigin href="/hub/club-arena/assets/index-Cp6Atu5X-v6.css">
