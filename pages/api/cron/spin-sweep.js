@@ -95,10 +95,23 @@ async function handler(req, res) {
         // ── 2. Health ─────────────────────────────────────────────────────
         // Read AFTER the sweep, so unbooked_24h reflects what is still
         // outstanding rather than what was outstanding a moment ago.
+        // The 500x tier was retired on 2026-08-21 (migration 20260821g). Its
+        // three columns — top_jackpot, need_for_500x, can_draw_500x — survive
+        // on this view only because THIS select was the last thing reading
+        // one, and a column cannot be dropped while a deployed client asks
+        // for it: PostgREST answers the whole request 42703 and the operator
+        // dashboard goes dark on a pool it was meant to be watching. That is
+        // the 2026-08-21 dark-badge incident verbatim. The reader goes first,
+        // this deploy publishes, and only then do the columns go.
+        //
+        // can_draw_500x was never READ here either — it rode in the select
+        // and out again through `health: pools`, describing a tier no spin
+        // can draw. Everything still listed below is either consumed by an
+        // alert or shown to the operator.
         const { data: health, error: healthErr } = await admin
             .from('v_spin_reserve_health')
             .select(
-                'club_id, club_name, balance, highest_stake, can_draw_100x, can_draw_500x, is_thin, shortfall_events, unbooked_24h, null_multiplier_24h'
+                'club_id, club_name, balance, highest_stake, can_draw_100x, is_thin, shortfall_events, unbooked_24h, null_multiplier_24h'
             );
         if (healthErr) {
             return res.status(500).json({

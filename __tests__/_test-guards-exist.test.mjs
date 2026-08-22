@@ -45,6 +45,7 @@ import assert from 'node:assert/strict';
 import '../tests/shop-item-rules.test.mjs';
 import '../tests/unchecked-money-rpc.test.mjs';
 import '../tests/club-ledger-rpc-envelope.test.mjs';
+import '../tests/spin-500x-retired.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -85,6 +86,12 @@ const REQUIRED_TEST_FILES = [
     // rather than raising — so an over-draw reached the audit writer as a
     // completed debit. Five of these seven cases fail against the old code.
     'tests/club-ledger-rpc-envelope.test.mjs',
+    // The retired 500x Spin tier. Dropping a column that a deployed client
+    // still selects answers 42703 for the WHOLE request - that is how every
+    // Spin lobby badge went dark at once on 2026-08-21. This guard keeps a
+    // select off the three columns being removed from v_spin_reserve_health,
+    // so the reader can never come back after the columns are gone.
+    'tests/spin-500x-retired.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {
