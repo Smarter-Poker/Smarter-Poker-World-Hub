@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# Get the commit message
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Check if the commit message is exactly "Daily update" or starts with it
+if echo "$COMMIT_MSG" | grep -qi "^Daily update"; then
+  # Check if locked files are in the staged files
+  if git diff --cached --name-only | grep -qE "pages/hub/diamond-store.js|pages/hub/index.js"; then
+    echo "=========================================================================="
+    echo "🚫 BLOCKED BY SMARTER.POKER GIT HOOK 🚫"
+    echo "You are trying to commit a LOCKED PAGE (like diamond-store.js) using the"
+    echo "generic 'Daily update' commit message."
+    echo ""
+    echo "CRITICAL: This file contains the highly customized Futuristic Metal UI."
+    echo "It was previously destroyed by an automated stale workspace commit."
+    echo ""
+    echo "To commit changes to this file:"
+    echo "1. Verify your working tree is NOT stale."
+    echo "2. Use a specific, descriptive commit message (NOT 'Daily update')."
+    echo "=========================================================================="
+    exit 1
+  fi
+fi
+
+exit 0
