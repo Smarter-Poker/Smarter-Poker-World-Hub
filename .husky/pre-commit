@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# One working tree per agent (rule 1a). Runs FIRST: if this commit should
+# not be happening in this directory at all, there is no point checking it.
+bash "$(git rev-parse --show-toplevel)/scripts/guard-shared-clone.sh"
+
 # 🛡️ SMARTER POKER PRE-COMMIT HOOK
 # Blocks commits containing dangerous Supabase auth methods
 
