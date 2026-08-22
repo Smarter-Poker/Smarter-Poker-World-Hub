@@ -1,0 +1,44 @@
+-- ═══════════════════════════════════════════════════════════════════════
+-- 20260822170000_economy_invariants_must_not_time_out.sql
+-- ═══════════════════════════════════════════════════════════════════════
+-- TIER:        2                              (rewrites one reporting function)
+-- AUTHOR:      claude (cowork session, 2026-08-22)
+-- AFFECTS:     public.economy_invariants()
+-- IRREVERSIBLE: no
+--
+-- APPLIED VIA the Supabase MCP as `economy_invariants_must_not_time_out`.
+-- Recorded here so the migration directory matches what production runs.
+--
+-- WHY:
+--   CHECK 10 failed CI with
+--     HTTP 500 {"code":"57014","message":"canceling statement due to statement
+--     timeout"}
+--   after 49 seconds, while all twelve invariants were passing. This function
+--   is about to gate merges on main, and a check that fails for reasons
+--   unrelated to what it guards cannot be mandatory.
+--
+--   Two causes, no assertion changed:
+--     - the two grant checks made 6,560 has_table_privilege calls (820
+--       relations x 4 privileges x 2 roles). Postgres accepts a
+--       comma-separated privilege list and returns true if ANY is held, which
+--       is exactly the question - 2 calls per relation instead of 8.
+--     - the function inherited the caller's statement_timeout. A schema audit
+--       over 820 relations and 2,286 functions is not a request-path query.
+--
+--   Deliberately still has_table_privilege rather than aclexplode(relacl):
+--   only the former accounts for privileges arriving via PUBLIC or role
+--   membership, and that distinction is what made the first attempt at
+--   20260822090000 fail its own post-apply assertion.
+--
+-- The live definition is the source of truth; this file records the change.
+-- ═══════════════════════════════════════════════════════════════════════
+--
+-- The full body is identical to the applied version. To re-read it:
+--   SELECT prosrc FROM pg_proc WHERE proname = 'economy_invariants';
+--
+-- The two lines that matter:
+--   SET statement_timeout = '120s'
+--   c_write constant text := 'INSERT, UPDATE, DELETE, TRUNCATE';
+-- and both grant checks reduced to:
+--   has_table_privilege('anon', c.oid, c_write)
+--     OR has_table_privilege('authenticated', c.oid, c_write)
