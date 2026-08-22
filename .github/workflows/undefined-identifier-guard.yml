@@ -23,6 +23,9 @@ concurrency:
 
 jobs:
   check:
+    # Named for the same reason as no-conflict-markers.yml: a bare `check` job
+    # produces a context that collides with every other bare `check` job.
+    name: No New Undefined Identifiers
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

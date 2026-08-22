@@ -3,7 +3,7 @@
  * Tabs: Clock | Structure | Chips | Payouts
  * UI: Dark industrial sci-fi gaming theme, cyan accents, mobile-first
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Trophy, Clock, DollarSign } from 'lucide-react';
@@ -63,6 +63,22 @@ export default function TournamentLivePage() {
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('clock');
+
+  /* fetchTournament reads mountedRef four times and nothing ever declared it.
+     That is a ReferenceError, and the placement made it fatal rather than
+     noisy: the first read sits inside the try, so it was swallowed and logged
+     as "Failed to fetch tournament" - but the read in the `finally` throws
+     again, outside any handler, and takes the whole page down behind the error
+     boundary. Every load of the live tournament clock, for every operator.
+
+     It is a ref and not state on purpose: the poller, the realtime channel and
+     the visibility handler all resolve after the component may be gone, and a
+     ref is readable from those closures without re-creating the callback. */
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // Fetch tournament data.
   // Static fields (buy-in, prize pool, chips) come from the plain tournament GET;

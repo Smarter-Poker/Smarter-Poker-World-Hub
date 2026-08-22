@@ -9,6 +9,11 @@ on:
     branches: [main]
 jobs:
   check:
+    # The context a ruleset can require is the JOB name, not the workflow name.
+    # Both this job and undefined-identifier-guard's were called `check`, so
+    # both reported as the context `check` and a required-checks rule naming it
+    # would have been ambiguous - satisfiable by whichever reported first.
+    name: No Conflict Markers
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
