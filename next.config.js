@@ -691,6 +691,22 @@ const nextConfig = {
           },
         ],
       },
+      // Club Arena self-hosted fonts stylesheet. The build content-hashes it
+      // (fonts-<hash>.css, club-arena scripts/self-host-fonts.mjs), so it is
+      // immutable like the hashed assets above. Scoped to the fonts-* name
+      // ON PURPOSE: the legacy un-hashed fonts.css must keep revalidating,
+      // because shells the service worker cached before the hash change
+      // still reference it and its content changes per deploy. The woff2
+      // files themselves are already immutable via vercel.json.
+      {
+        source: '/hub/club-arena/fonts/:file(fonts\\-.*\\.css)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
       // The Club Arena service worker script must ALWAYS revalidate — a stale
       // SW script would pin an old cache policy on players' devices.
       {
