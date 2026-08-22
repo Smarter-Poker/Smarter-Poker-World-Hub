@@ -185,8 +185,36 @@ const InspectModal = ({ avatar, isCustom, onClose, onEquip, isVip }) => {
   const imageUrl = isCustom ? avatar.image_url : avatar.image;
   const isVideo = imageUrl?.match(/\.(webm|mp4)$/i);
   const isSelected = avatar.isSelected;
-  
-  // Fake lore generator
+
+  /* The comment below used to introduce a function. The function is gone and
+     the CALL SITE stayed - `{getLore()}` still renders in the modal body. That
+     is a ReferenceError on every inspect, which kills the modal behind the
+     error boundary: the avatar opens to a blank card.
+
+     Restored as data-first with a deterministic fallback. Data-first because a
+     real `lore` or `description` on the avatar should always win; deterministic
+     because a random pick re-rolls on every re-render and the line visibly
+     flickers while the modal is open. Indexing by a stable hash of the name
+     gives each avatar its own line, forever. */
+  const getLore = () => {
+    if (avatar.lore) return avatar.lore;
+    if (avatar.description) return avatar.description;
+    const LINES = [
+      'Seen more river cards than most players have seen hands.',
+      'Never shows the bluff. Never has to.',
+      'Arrived at the table before anyone remembers opening it.',
+      'Counts the pot once. That is always enough.',
+      'Has folded aces, on purpose, and been right.',
+      'Plays the player. The cards are a formality.',
+      'Quiet at the table. Loud in the results.',
+      'Left the game up, twice, and came back anyway.',
+    ];
+    const key = String(name || 'avatar');
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return LINES[h % LINES.length];
+  };
+
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
