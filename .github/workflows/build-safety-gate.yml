@@ -30,6 +30,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # CHECK 17 diffs this branch against its base to find the migrations
+          # it ADDS. A shallow clone cannot do that, and that script exits 2
+          # rather than skipping - a gate that reports success for a check it
+          # never ran is the thing this whole file exists to prevent.
+          fetch-depth: 0
 
       - name: Record Start Time
         id: timer
@@ -278,6 +284,29 @@ jobs:
             exit 0
           fi
           node scripts/ci/check-phantom-tables.mjs
+
+      - name: "CHECK 17: A migration this branch adds must already be applied"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+        run: |
+          # Every other check here compares CODE to the live schema. This
+          # compares the MIGRATIONS to it, which nothing did.
+          #
+          # Motivating incident (2026-08-22): 20260821210000_user_avatars_
+          # cosmetics.sql and 20260821210001_profiles_cosmetics.sql sat in
+          # supabase/migrations/ for a day and were never applied. The avatar
+          # frames-and-auras feature is fully built around the columns they
+          # declare - the gallery renders them, the service maps them, the
+          # context writes them - and every write failed with 42703 into a
+          # catch block. Nothing went red. The repo claimed a feature the
+          # database had never heard of.
+          #
+          # It reads ALTER TABLE ... ADD COLUMN as well as CREATE, because both
+          # stranded migrations added COLUMNS and a CREATE-only version would
+          # have watched them go past: the table already exists, so every other
+          # gate stays green.
+          node scripts/ci/check-migrations-applied.mjs
 
       - name: "CHECK 13: No phantom Supabase COLUMNS"
         env:
