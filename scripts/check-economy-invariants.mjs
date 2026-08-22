@@ -50,24 +50,68 @@ if (!url || !key) {
 // Dependency-free on purpose: the Build Safety Gate job does not npm install.
 const endpoint = `${url.replace(/\/+$/, '')}/rest/v1/rpc/economy_invariants`;
 
+/* RETRY, BECAUSE THIS IS ABOUT TO BE A REQUIRED CHECK.
+ *
+ * On 2026-08-22 this failed CI with
+ *   HTTP 500 {"code":"57014","message":"canceling statement due to statement
+ *   timeout"}
+ * after 49 seconds. Every one of the twelve invariants was passing at that
+ * moment. Measured immediately afterwards, three identical calls returned
+ * 200 in 879ms, 200 in 4915ms, and a 503 in 2764ms - the endpoint is
+ * intermittently unavailable, and the failure had nothing to do with what
+ * this gate guards.
+ *
+ * A check that is required to merge cannot fail for reasons unrelated to the
+ * code. So transport-level trouble is retried and only a persistent failure
+ * is reported; a FALSE INVARIANT is never retried, because that is the signal.
+ *
+ * The distinction matters: 5xx, 57014 and a thrown fetch are the network
+ * having a bad minute. A row with ok=false is the economy being wrong, and
+ * retrying that would be hiding it.
+ */
+const TRANSIENT_ATTEMPTS = 4;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 let rows;
-try {
-    const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-            apikey: key,
-            Authorization: `Bearer ${key}`,
-            'Content-Type': 'application/json',
-        },
-        body: '{}',
-    });
-    if (!res.ok) {
-        console.error(`[economy-invariants] RPC failed: HTTP ${res.status} ${await res.text()}`);
-        process.exit(1);
+let lastProblem = '';
+for (let attempt = 1; attempt <= TRANSIENT_ATTEMPTS; attempt++) {
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                apikey: key,
+                Authorization: `Bearer ${key}`,
+                'Content-Type': 'application/json',
+            },
+            body: '{}',
+        });
+        if (res.ok) {
+            rows = await res.json();
+            break;
+        }
+        const body = await res.text();
+        lastProblem = `HTTP ${res.status} ${body}`;
+        // 5xx is the gateway or the database, not us. 57014 is the statement
+        // timeout specifically, which Supabase returns inside a 500.
+        const transient = res.status >= 500 || res.status === 429 || body.includes('57014');
+        if (!transient) break;
+    } catch (err) {
+        lastProblem = err?.message || String(err);
     }
-    rows = await res.json();
-} catch (err) {
-    console.error('[economy-invariants] RPC failed:', err?.message || err);
+    if (attempt < TRANSIENT_ATTEMPTS) {
+        const wait = attempt * 3000;
+        console.warn(
+            `[economy-invariants] transient failure (attempt ${attempt}/${TRANSIENT_ATTEMPTS}): ` +
+                `${lastProblem} — retrying in ${wait / 1000}s`
+        );
+        await sleep(wait);
+    }
+}
+
+if (!rows) {
+    console.error(`[economy-invariants] RPC failed after ${TRANSIENT_ATTEMPTS} attempts: ${lastProblem}`);
+    console.error('[economy-invariants] This is a TRANSPORT failure, not a failing invariant.');
+    console.error('[economy-invariants] Check the Supabase project status before touching the economy.');
     process.exit(1);
 }
 
