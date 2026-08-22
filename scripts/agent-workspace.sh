@@ -26,6 +26,12 @@
 #   bash scripts/agent-workspace.sh claude fix/leaderboard-rpc --print-path
 set -euo pipefail
 
+# This script moves refs backwards on purpose: `checkout -B <branch> origin/main`
+# is how it hands an agent a fresh tree. .husky/reference-transaction refuses
+# exactly that shape of update, so announce the intent rather than teaching the
+# guard to ignore a command pattern.
+export AGENT_REF_GUARD_OK=1
+
 AGENT="${1:-}"
 SLUG="${2:-}"
 MODE="${3:-}"
