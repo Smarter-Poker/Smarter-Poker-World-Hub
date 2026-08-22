@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+
+# .husky/reference-transaction refuses a ref update that would orphan local
+# commits. This script moves refs backwards as part of its job, so it
+# announces the intent rather than the guard learning to ignore a command
+# shape. See that hook for what it saves before it refuses.
+export AGENT_REF_GUARD_OK=1
 # ONE WORKING TREE PER AGENT. Never share a checkout.
 #
 # THE PROBLEM THIS SOLVES
@@ -25,12 +31,6 @@
 # Or just read the path it prints:
 #   bash scripts/agent-workspace.sh claude fix/leaderboard-rpc --print-path
 set -euo pipefail
-
-# This script moves refs backwards on purpose: `checkout -B <branch> origin/main`
-# is how it hands an agent a fresh tree. .husky/reference-transaction refuses
-# exactly that shape of update, so announce the intent rather than teaching the
-# guard to ignore a command pattern.
-export AGENT_REF_GUARD_OK=1
 
 AGENT="${1:-}"
 SLUG="${2:-}"
