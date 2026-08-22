@@ -14,8 +14,30 @@
 # old.
 set -u
 ERRORS=0
+
+# node is not guaranteed on PATH in a hook's environment (a push from an
+# agent's minimal sh had no /opt/homebrew/bin, and the bare `node` failures
+# below were then misreported as a STALE bundle). Resolve it explicitly.
+NODE_BIN=$(command -v node 2>/dev/null || true)
+[ -n "$NODE_BIN" ] || { [ -x /opt/homebrew/bin/node ] && NODE_BIN=/opt/homebrew/bin/node; }
+[ -n "$NODE_BIN" ] || { [ -x /usr/local/bin/node ] && NODE_BIN=/usr/local/bin/node; }
+
 CHANGED_FILES=$(git diff --cached --name-only 2>/dev/null)
-[ -n "$CHANGED_FILES" ] || CHANGED_FILES=$(git diff --name-only "@{push}..HEAD" 2>/dev/null || git diff --name-only HEAD~5..HEAD 2>/dev/null || true)
+# For the push range, prefer the upstream; for a NEW branch fall back to the
+# merge-base with origin/main — the old HEAD~5..HEAD fallback picked up five
+# arbitrary commits already ON main (usually club-arena syncs), which made
+# this gate fire on pushes that never touched the bundle.
+if [ -z "$CHANGED_FILES" ]; then
+  CHANGED_FILES=$(git diff --name-only "@{push}..HEAD" 2>/dev/null || true)
+fi
+if [ -z "$CHANGED_FILES" ]; then
+  MB=$(git merge-base origin/main HEAD 2>/dev/null || true)
+  if [ -n "$MB" ]; then
+    CHANGED_FILES=$(git diff --name-only "$MB"..HEAD 2>/dev/null || true)
+  else
+    CHANGED_FILES=$(git diff --name-only HEAD~5..HEAD 2>/dev/null || true)
+  fi
+fi
 
 # ─── CHECK 6: Club Arena orphaned assets ────────────────────────────────────
 # Detects when someone rebuilt Club Arena but didn't commit the results.
@@ -46,18 +68,31 @@ fi
 # output is part of the push.
 echo "CHECK 6: Club Arena throwables freshness..."
 if echo "$CHANGED_FILES" | grep -q '^public/hub/club-arena/'; then
-  CA_GATE_FAIL=0
-  # Provenance first: "older than what is deployed" explains the rest.
-  node scripts/ci/check-ca-build-provenance.mjs || CA_GATE_FAIL=1
-  node scripts/ci/check-ca-protected-features.mjs || CA_GATE_FAIL=1
-  node scripts/ci/check-ca-throwables-freshness.mjs || CA_GATE_FAIL=1
-  if [ "$CA_GATE_FAIL" -eq 0 ]; then
-    echo "  ✓ Club Arena bundle is current and complete"
-  else
-    echo "  ❌ BLOCKED: the Club Arena bundle being pushed is STALE or INCOMPLETE"
-    echo "     In ~/Documents/club-arena run: git pull --rebase origin main"
-    echo "     then rebuild — or let build-for-world-hub sync from canonical main."
+  if [ -z "$NODE_BIN" ]; then
+    # Say what is actually wrong. When `node` was missing these three checks
+    # all failed and the push was blocked as "STALE or INCOMPLETE" — a
+    # diagnosis that sends people rebuilding a bundle that was never the
+    # problem.
+    echo "  ❌ BLOCKED: node not found on PATH — the bundle checks cannot run."
+    echo "     Re-run with node available, e.g.:"
+    echo "       PATH=\"/opt/homebrew/bin:\$PATH\" git push ..."
     ERRORS=$((ERRORS + 1))
+  else
+    CA_GATE_FAIL=0
+    # Provenance first: "older than what is deployed" explains the rest.
+    "$NODE_BIN" scripts/ci/check-ca-build-provenance.mjs || CA_GATE_FAIL=1
+    "$NODE_BIN" scripts/ci/check-ca-protected-features.mjs || CA_GATE_FAIL=1
+    "$NODE_BIN" scripts/ci/check-ca-throwables-freshness.mjs || CA_GATE_FAIL=1
+    if [ "$CA_GATE_FAIL" -eq 0 ]; then
+      echo "  ✓ Club Arena bundle is current and complete"
+    else
+      echo "  ❌ BLOCKED: the Club Arena bundle being pushed is STALE or INCOMPLETE"
+      echo "     Sync ~/Documents/club-arena (fetch + fast-forward, or"
+      echo "     scripts/git-unstick.sh — its pre-rebase hook refuses a"
+      echo "     replaying 'git pull --rebase origin main' by design), then"
+      echo "     rebuild — or let build-for-world-hub sync from canonical main."
+      ERRORS=$((ERRORS + 1))
+    fi
   fi
 else
   echo "  ✓ No Club Arena build output in this push"
