@@ -46,6 +46,7 @@ import '../tests/shop-item-rules.test.mjs';
 import '../tests/unchecked-money-rpc.test.mjs';
 import '../tests/club-ledger-rpc-envelope.test.mjs';
 import '../tests/spin-500x-retired.test.mjs';
+import '../tests/one-build-command.test.mjs';
 import '../tests/spin-reserve-fund-contract.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
@@ -93,6 +94,11 @@ const REQUIRED_TEST_FILES = [
     // select off the three columns being removed from v_spin_reserve_health,
     // so the reader can never come back after the columns are gone.
     'tests/spin-500x-retired.test.mjs',
+    // One build command. The E2E workflow built the app its own way, without
+    // the patch step or the heap headroom package.json sets, and OOM'd on 14 of
+    // 14 runs across every branch - so "E2E Tests: failure" became the normal
+    // state of every PR and the job stopped meaning anything.
+    'tests/one-build-command.test.mjs',
     // The union Spin reserve fund control. Two functions in the database differ
     // by a suffix: one claims an op id and refuses to mint, the other does
     // neither and returns the identical shape. This pins the endpoint to the

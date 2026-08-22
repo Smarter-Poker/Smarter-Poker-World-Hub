@@ -45,9 +45,32 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Build Next.js
-        # MUST use --webpack: Next.js 16+ defaults to Turbopack which breaks on
-        # our custom webpack config + 246 named-export mismatches (May 2026 incident).
-        run: npx next build --webpack
+        # `npm run build`, NOT a bare `npx next build`.
+        #
+        # This step was the only place in the repository that built the app its
+        # own way, and it was missing both halves of what package.json's build
+        # script does:
+        #
+        #   node scripts/patch-next.js    repairs a WebpackError constructor bug
+        #                                 inside node_modules/next
+        #   NODE_OPTIONS=--max-old-space-size=7168
+        #
+        # Without the heap headroom the build died with "Reached heap limit -
+        # JavaScript heap out of memory", and it died on EVERY branch: 14 of the
+        # last 14 runs failed, including branches whose entire diff was
+        # documentation. A check that is red for everyone is not a check, it is
+        # a thing people learn to scroll past - and this one would have gone on
+        # saying exactly the same thing on the day a real regression landed.
+        #
+        # Going through `npm run build` means there is now ONE build command in
+        # this repository, which is also the one Vercel runs, so the two cannot
+        # drift apart again. tests/one-build-command.test.mjs pins that.
+        #
+        # The trailing --webpack is preserved deliberately: Next.js 16+ defaults
+        # to Turbopack, which breaks on our custom webpack config and the 246
+        # named-export mismatches from the May 2026 incident. npm passes
+        # everything after `--` through to the underlying next build.
+        run: npm run build -- --webpack
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
