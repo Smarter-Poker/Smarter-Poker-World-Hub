@@ -46,6 +46,7 @@ import '../tests/shop-item-rules.test.mjs';
 import '../tests/unchecked-money-rpc.test.mjs';
 import '../tests/club-ledger-rpc-envelope.test.mjs';
 import '../tests/spin-500x-retired.test.mjs';
+import '../tests/no-stray-club-arena-build.test.mjs';
 import '../tests/spin-reserve-fund-contract.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
@@ -93,6 +94,11 @@ const REQUIRED_TEST_FILES = [
     // select off the three columns being removed from v_spin_reserve_health,
     // so the reader can never come back after the columns are gone.
     'tests/spin-500x-retired.test.mjs',
+    // A stray Club Arena build at the repo root. 966 files and 108 MB landed
+    // there in one commit on 2026-08-21, none of it reachable, 345 of them
+    // chunks from a build that no longer existed - so a grep for a symbol
+    // found it twice with nothing to say which copy production served.
+    'tests/no-stray-club-arena-build.test.mjs',
     // The union Spin reserve fund control. Two functions in the database differ
     // by a suffix: one claims an op id and refuses to mint, the other does
     // neither and returns the identical shape. This pins the endpoint to the
