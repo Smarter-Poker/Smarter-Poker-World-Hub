@@ -555,6 +555,14 @@ GitHub's environment to execute:
   all seven repos without either, and CHECK 6 had been failing on `main` ever
   since, which is one of the two reasons Pre-Deploy Safety Checks could not be
   made a required check.
+- `publish-watchdog.yml` — every 15 minutes, compares `main`'s HEAD against the
+  short sha `/api/health` reports and raises a self-closing issue when they
+  diverge past a 20-minute budget. It cannot live in Open Claw: it asks GitHub
+  what `main` is and asks the Vercel API what happened to that commit's
+  deployment, and it exists precisely to catch the case where the deploy
+  pipeline is not running. A watchdog that shares a failure domain with the
+  thing it watches is not a watchdog. It never deploys anything — section 1.3
+  forbids that, and it diagnoses instead.
 - ~~`news-digest.yml`~~ — **RETIRED 2026-08-16.** Migrated to Open Claw and
   removed from this list and from the CHECK 6c allowlist together, as this
   entry required. The stated blocker ("Open Claw replacement cannot deploy,
