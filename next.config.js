@@ -651,6 +651,31 @@ const nextConfig = {
         ],
       },
       // ─── CLUB ARENA CACHE POLICY (perf pass 2026-08-22) ─────────────────────
+      //
+      // ⚠ READ BEFORE EDITING ANYTHING BELOW: for `/hub/**`, THESE RULES DO
+      // NOT DECIDE WHAT PRODUCTION SENDS. vercel.json carries its own
+      // overlapping `/hub/...` header rules and wins. Measured live on
+      // 2026-08-23:
+      //
+      //   /hub/club-arena/images/tiles/cashier-v8.jpg
+      //       served  stale-while-revalidate=86400   (vercel.json)
+      //       here we ask for                 604800  ← ignored
+      //   /hub/club-arena/sw-bus.js
+      //       served  no-cache, no-store, must-revalidate  (vercel.json's
+      //               blanket /hub/ rule)
+      //       here we ask for  no-cache, must-revalidate   ← ignored
+      //
+      // This cost a whole change: PR #662 added an immutable rule here for
+      // the content-hashed fonts stylesheet, merged green, and production
+      // kept serving no-store — because vercel.json's blanket `/hub/(...)`
+      // rule excludes assets|images|videos|cards|sounds|club-logos but not
+      // fonts/. The working fix (#670) had to go in vercel.json instead.
+      //
+      // So: edit the matching rule in **vercel.json**, and always confirm
+      // with `curl -sI` against production rather than trusting a green
+      // deploy. These entries are kept because they are correct in intent
+      // and are the fallback if the vercel.json rules are ever removed.
+      //
       // Vercel serves public/ files with `max-age=0, must-revalidate` by
       // default, so every Club Arena page load was re-validating ~500 hashed
       // bundle files + 60MB of media — dozens of round-trips per visit, the
