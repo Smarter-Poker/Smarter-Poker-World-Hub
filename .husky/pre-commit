@@ -20,6 +20,12 @@ ROOT=$(git rev-parse --show-toplevel)
 FAIL=0
 
 sh "$ROOT/scripts/guard-shared-clone.sh"    || FAIL=1
+
+# A commit Vercel cannot attribute never builds. CHECK 15 in ci.yml already
+# catches this, but only AFTER the commit is on main and the deployment has
+# already gone to BLOCKED. This is the same rule, at the only moment where
+# the answer is still "that commit was never made".
+sh "$ROOT/scripts/guard-commit-identity.sh" || FAIL=1
 sh "$ROOT/scripts/hooks/pre-commit-core.sh" || FAIL=1
 sh "$ROOT/scripts/hooks/pre-commit-transpile.sh" || FAIL=1
 
