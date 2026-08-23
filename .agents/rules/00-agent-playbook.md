@@ -37,6 +37,21 @@ trail, and every guard here reasons about repository state through the API — a
 action taken outside it is invisible to all of them. Reading a rendered page to
 check that production looks right is fine; performing an operation there is not.
 
+**If `api.github.com` is blocked in your sandbox you are still not blocked.**
+Use the host shell (`mcp__counselors__host_terminal`), where `gh` is already
+authenticated. And if you truly cannot reach the API at all, **pushing is
+enough**: `report-stuck-prs.sh` sweeps every ten minutes and opens the pull
+request for you on any `agent/*` branch under a day old. It had done that 14
+times by 2026-08-22, ten of them already merged.
+
+**Never write a `.command` file, a handoff, or a "run this on your Mac" note.**
+That turns a solved problem into a human's task, which is the one thing this
+whole system exists to prevent.
+
+Verify before you advise, too: an agent told Dan his clone was divergent and
+sent him to `git-unstick.sh` when it was `0 behind, 0 ahead`. Check with
+`git rev-list --left-right --count origin/main...HEAD` first.
+
 `gh pr checks` and the Checks API **403** with the local PAT — it has no
 Checks: Read. Not a blocker: every check here is a GitHub Actions job, and the
 Actions API reads fine with the same token.
@@ -58,7 +73,7 @@ Every guard here is written against `gh` and the REST API. Say so once and
 carry on with `gh`; do not ask for a credential.
 
 The GitHub UI also shows things that are not signals. A "had recent pushes —
-Compare & pull request" banner persists for about a day *after* the branch has
+Compare & pull request" banner persists for about a day _after_ the branch has
 merged or been deleted. Ask the API instead:
 `gh pr list --state all --head <branch>`.
 
@@ -93,7 +108,11 @@ bash scripts/agent-trees-snapshot.sh --list   # what was captured
 `.husky/reference-transaction` refuses any ref update that would orphan local
 commits and **saves them to `refs/wip/orphan-guard/<stamp>` first**, so even an
 override leaves them recoverable. A snapshot of every working tree runs every
-ten minutes.
+ten minutes ONCE the Mac has granted Full Disk Access — `~/Documents` is
+TCC-protected and a launchd agent cannot read inside it without that. Check
+with `bash scripts/install-wip-snapshot-agent.sh --status`; if it says it is
+capturing nothing, run `bash scripts/agent-trees-snapshot.sh` by hand at the
+start and end of your session.
 
 ## Before you say it is done, ask production — not the exit code
 
