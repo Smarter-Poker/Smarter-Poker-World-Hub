@@ -22,10 +22,17 @@ on:
     branches:
       - '**'
 
-  # Also fires on push to main — cancels queued previews blocking main
-  push:
-    branches:
-      - main
+  # NO push TRIGGER. Removed 2026-08-23 for cost.
+  #
+  # It cancelled every queued preview on every merge to main. World Hub takes a
+  # Club Arena bundle sync every five to seven minutes on top of real merges, so
+  # this ran about fourteen times an hour to do five seconds of API calls - and
+  # GitHub bills a job as a whole minute however short it is. Fourteen billed
+  # minutes an hour for roughly eighty seconds of work.
+  #
+  # A preview is orphaned when its BRANCH goes away, which is the `delete`
+  # trigger above and still fires the moment it happens. Merging to main does
+  # not orphan another branch's preview. workflow_dispatch remains for a purge.
 
   # Allow manual trigger for emergency cleanup
   workflow_dispatch:
