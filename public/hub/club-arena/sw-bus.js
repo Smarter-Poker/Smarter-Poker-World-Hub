@@ -21,7 +21,7 @@ const sw = self;
 // DEPLOY VERSION — updated by CI/build to bust the service worker cache.
 // When this changes, the browser detects a new SW → install → activate → clears old caches.
 // Format: ISO timestamp of last deploy. Update via: sed -i "s/DEPLOY_TS.*/DEPLOY_TS = '$(date -u +%Y%m%d%H%M%S)';/" public/sw-bus.js
-const DEPLOY_TS = '20260823203415';
+const DEPLOY_TS = '20260823205849';
 // PERF PASS 2026-08-22: two caches instead of one.
 // - CHUNK_CACHE is versioned by deploy: hashed JS/CSS filenames change every
 //   build, so old entries are dead weight the moment a new SW activates.
@@ -40,7 +40,7 @@ const MAX_MEDIA_ENTRIES = 600; // Cards (104/deck-style) + tiles + icons + logos
 // DEPLOY_TS above with the build time. With this, a returning player gets the
 // whole shell from cache even if HTTP cache was evicted, and the new SW
 // pre-fetches the new hashed chunks the moment a deploy lands.
-const PRECACHE_URLS = ["/hub/club-arena/fonts/fonts-b19fb04431.css","/hub/club-arena/assets/index-A5No6VtA-v6.js","/hub/club-arena/assets/vendor-react-BPB2zS-3-v6.js","/hub/club-arena/assets/vendor-supabase-BLlQ2fJ4-v6.js","/hub/club-arena/assets/index-BG3E6aL_-v6.css"];
+const PRECACHE_URLS = ["/hub/club-arena/fonts/fonts-b19fb04431.css","/hub/club-arena/assets/index-Cpxn33nT-v6.js","/hub/club-arena/assets/vendor-react-BPB2zS-3-v6.js","/hub/club-arena/assets/vendor-supabase-BLlQ2fJ4-v6.js","/hub/club-arena/assets/index-CbXvzmTC-v6.css"];
 
 /**
  * Trim cache to MAX_CACHE_ENTRIES — prevents unbounded growth across deploys.
@@ -218,11 +218,12 @@ sw.addEventListener('fetch', (event) => {
           }).catch(() => {
             // Offline: return cached version, or a transparent 1x1 PNG if nothing cached
             if (cached) return cached;
-            // No cache + no network = return empty transparent image to prevent crash
-            return new Response(new Uint8Array(0), {
-              status: 200,
-              headers: { 'Content-Type': 'image/png' },
-            });
+            // No cache + no network: answer with an error status, not an empty
+            // 200. A zero-byte "200 image/png" looked like success to every
+            // layer above — the <img> just rendered nothing (avatars vanished
+            // silently on flaky mobile connections). A 503 makes the element
+            // fire onerror, so the app's monogram/fallback path actually runs.
+            return new Response('', { status: 503, statusText: 'Offline' });
           });
 
           return cached || fetchPromise;
@@ -335,6 +336,22 @@ sw.addEventListener('activate', (event) => {
                         .map((key) => caches.delete(key))
                 )
             ),
+            // AVATAR HEAL (2026-08-23): before the only-cache-ok guard existed,
+            // an error response could be stored over a good avatar in the
+            // permanent media cache, and stale-while-revalidate then served
+            // that broken entry forever — avatars invisible on installed
+            // (mobile) PWAs while desktop stayed fine. Avatars are a few KB;
+            // dropping them on activate costs one refetch per deploy and
+            // guarantees a poisoned entry cannot outlive the fix.
+            caches.open(MEDIA_CACHE).then((cache) =>
+                cache.keys().then((keys) =>
+                    Promise.all(
+                        keys
+                            .filter((req) => new URL(req.url).pathname.startsWith('/avatars/'))
+                            .map((req) => cache.delete(req))
+                    )
+                )
+            ).catch(() => {}),
         ])
     );
 });
