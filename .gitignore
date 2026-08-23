@@ -137,3 +137,31 @@ src/components/__canary_route_probe.jsx
 src/__u4probe/
 src/services/__U4ProbeService.js
 data/tour-logs/*
+
+# ── A Club Arena build does not live at the World Hub repo root ─────────────
+# On 2026-08-21 a sync wrote an entire Vite dist/ here instead of into
+# public/hub/club-arena/: 966 files, 108 MB, in one commit. Next.js serves
+# public/, not the repo root, so not one byte of it was ever reachable -
+# https://smarter.poker/cards/2color/clubs_10.png answered 404 while
+# /hub/club-arena/cards/2color/clubs_10.png answered 200.
+#
+# Dead weight is the smaller half. 345 of those files were content-hashed
+# chunks from a build that no longer exists, sitting in the repo looking like
+# source: a grep for a symbol found it twice, in the live bundle and in a
+# ghost, with nothing to say which was which.
+#
+# The leading slash anchors every pattern to the repo root, so public/assets,
+# public/images, public/cards and public/videos - which ARE served - are
+# untouched.
+/assets/
+/cards/
+/club-logos/
+/game-card-icons/
+/images/
+/videos/
+/vite.svg
+/vip-card.jpg
+/vip-card.png
+/vip-card.webp
+/sw.ts
+/textarea-calibration-tool.html

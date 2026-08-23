@@ -46,6 +46,7 @@ import '../tests/shop-item-rules.test.mjs';
 import '../tests/unchecked-money-rpc.test.mjs';
 import '../tests/club-ledger-rpc-envelope.test.mjs';
 import '../tests/spin-500x-retired.test.mjs';
+import '../tests/no-stray-club-arena-build.test.mjs';
 import '../tests/one-build-command.test.mjs';
 import '../tests/spin-reserve-fund-contract.test.mjs';
 
@@ -94,6 +95,11 @@ const REQUIRED_TEST_FILES = [
     // select off the three columns being removed from v_spin_reserve_health,
     // so the reader can never come back after the columns are gone.
     'tests/spin-500x-retired.test.mjs',
+    // A stray Club Arena build at the repo root. 966 files and 108 MB landed
+    // there in one commit on 2026-08-21, none of it reachable, 345 of them
+    // chunks from a build that no longer existed - so a grep for a symbol
+    // found it twice with nothing to say which copy production served.
+    'tests/no-stray-club-arena-build.test.mjs',
     // One build command. The E2E workflow built the app its own way, without
     // the patch step or the heap headroom package.json sets, and OOM'd on 14 of
     // 14 runs across every branch - so "E2E Tests: failure" became the normal

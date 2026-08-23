@@ -103,6 +103,36 @@ test('no source selects a retired 500x column', () => {
     );
 });
 
+test('spin-sweep alerts on a Spin that charged a fee', () => {
+    /**
+     * The exclusion that hid 2,116 games.
+     *
+     * `unbooked_24h` and fn_spin_sweep_unbooked both filter on
+     * `buy_in_fee = 0`, so a fee-bearing Spin is skipped by the backstop AND
+     * uncounted by the thing that exists to notice skipped games. Those two
+     * filters are correct - settling a game against economics it does not match
+     * would be worse - but together they made one shape of broken game
+     * invisible. fee_violations_24h is the counter that ends that, and it is
+     * worth nothing if this endpoint does not read it and say so.
+     */
+    const source = fs.readFileSync(path.join(REPO, 'pages/api/cron/spin-sweep.js'), 'utf8');
+
+    assert.ok(
+        selectArguments(source).some((a) => a.includes('fee_violations_24h')),
+        'spin-sweep does not select fee_violations_24h - a Spin that charged a fee is skipped by the sweep and reported by nothing'
+    );
+    assert.match(
+        source,
+        /alerts\.push\(\s*\n?\s*`spin_charged_a_fee:/,
+        'fee_violations_24h is selected but never raises an alert, which is the same silence in a new place'
+    );
+    assert.match(
+        source,
+        /Number\(p\.fee_violations_24h \|\| 0\) > 0/,
+        'the fee filter must be a > 0 count test'
+    );
+});
+
 test('spin-sweep still reads the health view, and reads the parts it acts on', () => {
     const file = path.join(REPO, 'pages/api/cron/spin-sweep.js');
     assert.ok(

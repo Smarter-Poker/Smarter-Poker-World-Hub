@@ -25,7 +25,8 @@
  *   1. Sweeps any spin from the last 30 minutes that settled without booking.
  *   2. Reads v_spin_reserve_health and reports anything an operator must act
  *      on: an unbooked game the sweep could NOT settle, a pool too thin to
- *      offer its ladder, or a recorded shortfall.
+ *      offer its ladder, a recorded shortfall, or a Spin that charged a fee it
+ *      should never have charged.
  *
  * WHY A THIN POOL RETURNS 500
  *
@@ -111,7 +112,7 @@ async function handler(req, res) {
         const { data: health, error: healthErr } = await admin
             .from('v_spin_reserve_health')
             .select(
-                'club_id, club_name, balance, highest_stake, can_draw_100x, is_thin, shortfall_events, unbooked_24h, null_multiplier_24h'
+                'club_id, club_name, balance, highest_stake, can_draw_100x, is_thin, shortfall_events, unbooked_24h, null_multiplier_24h, fee_violations_24h'
             );
         if (healthErr) {
             return res.status(500).json({
@@ -136,6 +137,29 @@ async function handler(req, res) {
         // runs inside the sweep and reconstructs what it can; this alert is
         // for whatever it could not, and for the fact that it happened at all.
         const noDraw = pools.filter((p) => Number(p.null_multiplier_24h || 0) > 0);
+        /**
+         * A Spin that charged a fee.
+         *
+         * spinSpec.ts states the rule in capitals - the buy-in is the whole
+         * charge, because the rake is engineered into the multiplier
+         * distribution - and a fee on top makes the true edge 14.7% instead of
+         * the advertised 7.87%. That much is a pricing bug.
+         *
+         * The reason it belongs HERE, in the reserve alarm, is worse than
+         * pricing. Both `unbooked_24h` above and fn_spin_sweep_unbooked filter
+         * on `buy_in_fee = 0`, so a fee-bearing Spin is skipped by the backstop
+         * AND uncounted by the thing that exists to notice skipped games. The
+         * one shape of broken game nothing could fix was the one shape nothing
+         * could see: 2,116 of them accumulated before 2026-08-20 and not a
+         * single alert fired.
+         *
+         * The exclusions stay - settling a game against economics it does not
+         * match would be worse than leaving it alone. What changes is that the
+         * exclusion is now loud. A NOT VALID check constraint on `tournaments`
+         * should make this counter permanently zero; if it ever is not, either
+         * the constraint was dropped or something is writing around it.
+         */
+        const feeCharged = pools.filter((p) => Number(p.fee_violations_24h || 0) > 0);
 
         const alerts = [];
         if (failed > 0) alerts.push(`sweep_failed:${failed}`);
@@ -148,6 +172,13 @@ async function handler(req, res) {
         }
         if (noDraw.length > 0) {
             alerts.push(`spin_ran_with_no_draw:${noDraw.map((p) => p.club_name).join(',')}`);
+        }
+        if (feeCharged.length > 0) {
+            alerts.push(
+                `spin_charged_a_fee:${feeCharged
+                    .map((p) => `${p.club_name}(${Number(p.fee_violations_24h || 0)})`)
+                    .join(',')}`
+            );
         }
 
         // ── 3. Split-brain tripwires (2026-08-21) ─────────────────────────
