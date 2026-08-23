@@ -72,6 +72,21 @@ else
   git -C "$ROOT" worktree add --force -B "$BRANCH" "$DIR" origin/main >/dev/null
 fi
 
+# The one identity this estate can deploy under. Vercel refuses to build a
+# commit whose author it cannot resolve to a GitHub user - the deployment goes
+# to BLOCKED with no logs at all. Setting it here means an agent cannot get it
+# wrong; scripts/guard-commit-identity.sh catches work done outside this script.
+git -C "$DIR" config user.name  "Smarter-Poker"
+git -C "$DIR" config user.email "254329056+Smarter-Poker@users.noreply.github.com"
+
+# HOOKS AND DEPENDENCIES BEFORE THE FIRST COMMIT, NOT AFTER.
+bash "$ROOT/scripts/ensure-hooks.sh" 2>&1 | sed "s/^/# /" >&2 || true
+
+if [ ! -e "$DIR/node_modules" ] && [ -d "$ROOT/node_modules" ]; then
+  ln -s "$ROOT/node_modules" "$DIR/node_modules" 2>/dev/null \
+    && echo "# node_modules: linked from the main clone" >&2
+fi
+
 echo "# worktree: $DIR" >&2
 echo "# branch:   $BRANCH  (from origin/main)" >&2
 if [ "$MODE" = "--print-path" ]; then
