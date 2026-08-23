@@ -50,6 +50,9 @@ import { SearchOverlay } from './components/GlobalSearch';
 import { useLiveHelp } from './components/Geeves';
 import NewUserWelcomeModal from '../components/gates/NewUserWelcomeModal';
 import { useAvatar } from '../contexts/AvatarContext';
+/* The bottom nav's own height, so the mobile footer strip below can reserve it
+   instead of guessing (it guessed 20px and lost every card's label). */
+import { BOTTOM_NAV_H } from '../components/ui/BottomNavBar';
 
 
 
@@ -987,7 +990,16 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                         <div
                             style={{
                                 position: 'absolute',
-                                bottom: 20,
+                                /* Dan 2026-08-23, from a phone: the footer cards are
+                                   "cut off". Measured at 390x844: the strip ran to
+                                   y=812 while the FIXED bottom nav starts at y=787,
+                                   so the last 25px of every card — the whole label
+                                   row — sat behind it. `bottom: 20` was measured from
+                                   the container, which does not know the nav exists.
+                                   BOTTOM_NAV_H is the nav's own exported height and
+                                   already carries the home-indicator inset, so this
+                                   cannot drift from the bar again. */
+                                bottom: `calc(${BOTTOM_NAV_H} + 12px)`,
                                 left: 0,
                                 right: 0,
                                 overflowX: 'auto',
@@ -1007,7 +1019,18 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                                         onClick={() => handleCardSelect(orb.id)}
                                         style={{
                                             flex: '0 0 auto',
-                                            width: `clamp(100px, 18vw, 115px)`,  // Viewport-scaled mobile card
+                                            /* Dan 2026-08-23: "the poker news card is
+                                               too small". Every footer card measures
+                                               the same 100px — because this clamp
+                                               never scaled. 18vw is 70px on a 390px
+                                               phone, well under its own 100px floor,
+                                               so the "viewport-scaled" middle term
+                                               could not win on any phone ever sold and
+                                               the cards were pinned at the minimum.
+                                               30vw makes the middle term the one that
+                                               actually decides: 117px at 390, 132px on
+                                               a 440px phone, still capped at 140. */
+                                            width: `clamp(100px, 30vw, 140px)`,
                                             cursor: 'pointer',
                                         }}
                                     >
