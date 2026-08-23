@@ -17,7 +17,10 @@ on:
     # Every 15 minutes. A Vercel build is 3-5 minutes and the budget is 20, so
     # this notices roughly half an hour after a deploy silently stops happening
     # — against the hours it currently takes for somebody to notice by hand.
-    - cron: '*/15 * * * *'
+    # Halved from */15 on 2026-08-23 for cost. The real trigger is the
+    # publisher finishing; this schedule only catches a deploy that never
+    # started, and 30 minutes is well inside the window where that matters.
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
