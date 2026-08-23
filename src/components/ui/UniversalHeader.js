@@ -2,13 +2,13 @@
  * ═══════════════════════════════════════════════════════════════════════════
  * UNIVERSAL HEADER COMPONENT — Hub-Style Dark Theme
  * ═══════════════════════════════════════════════════════════════════════════
- * 
+ *
  * CRITICAL: This is the GLOBAL STANDARD header for ALL smarter.poker pages.
  * DO NOT MODIFY without running /social-feed-protection workflow.
- * 
+ *
  * Features:
  * - Dark background with neon blue accents
- * - "Smarter.Poker" in white text 
+ * - "Smarter.Poker" in white text
  * - Diamond wallet with + (REAL balance from user_diamond_balance)
  * - Profile picture (REAL avatar from profiles.avatar_url)
  * - Neon orb icons for profile, messages, notifications, settings
@@ -28,8 +28,8 @@ import FullScreenPageOverlay from './FullScreenPageOverlay';
 
 // ── PERF: Lazy-load DiamondWalletModal only when opened (saves ~95KB from initial bundle) ──
 const DiamondWalletModal = dynamic(() => import('../store/DiamondWalletModal'), {
-    ssr: false,
-    loading: () => null, // No visible flash — modal has its own skeleton
+  ssr: false,
+  loading: () => null, // No visible flash — modal has its own skeleton
 });
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
@@ -41,13 +41,13 @@ import { listenBroadcast, broadcastSync } from '../../lib/broadcastSync';
 
 // Dark theme colors matching hub
 const C = {
-    bg: '#000000',
-    border: 'rgba(0, 136, 255, 0.2)',
-    cyan: '#00f5ff',
-    blue: '#0088ff',
-    gold: '#ffd700',
-    white: '#ffffff',
-    textSec: 'rgba(255,255,255,0.6)'
+  bg: '#000000',
+  border: 'rgba(0, 136, 255, 0.2)',
+  cyan: '#00f5ff',
+  blue: '#0088ff',
+  gold: '#ffd700',
+  white: '#ffffff',
+  textSec: 'rgba(255,255,255,0.6)',
 };
 
 /**
@@ -69,11 +69,11 @@ const HEADER_CACHE_FRESH_MS = 60 * 1000;
 
 // Static — hoisted out of the component so it is not rebuilt on every render.
 const OVERLAY_TITLES = {
-    profile: 'My Profile',
-    messenger: 'Messenger',
-    notifications: 'Notifications',
-    settings: 'Settings',
-    'diamond-store': 'Diamond Store',
+  profile: 'My Profile',
+  messenger: 'Messenger',
+  notifications: 'Notifications',
+  settings: 'Settings',
+  'diamond-store': 'Diamond Store',
 };
 
 // useLayoutEffect warns when it runs during SSR, so fall back to useEffect on the
@@ -82,671 +82,732 @@ const OVERLAY_TITLES = {
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export default function UniversalHeader({
-    pageDepth = 1,  // 1 = major page (show Hub button), 2+ = nested (show Back)
-    showSearch = false,
-    onSearchClick,
-    onMenuClick,  // Callback for hamburger menu click
-    onSettingsClick,  // Override for settings gear — opens page-specific settings instead of global
-    onBackClick, // Override for back navigation
-    hideLeftIcon = false // Allows hiding the left icon (e.g. when page has an in-page back button)
+  pageDepth = 1, // 1 = major page (show Hub button), 2+ = nested (show Back)
+  showSearch = false,
+  onSearchClick,
+  onMenuClick, // Callback for hamburger menu click
+  onSettingsClick, // Override for settings gear — opens page-specific settings instead of global
+  onBackClick, // Override for back navigation
+  hideLeftIcon = false, // Allows hiding the left icon (e.g. when page has an in-page back button)
 }) {
-    const router = useRouter();
+  const router = useRouter();
 
-    // 🛡️ INSTANT UI: Single-parse helper with 24h cache TTL
-    // Parses localStorage once and returns the cached header object (or null if expired/missing).
-    // This prevents double JSON.parse and ensures stale data (>24h) is discarded.
-    // PERF (header-audit follow-up): this was a bare IIFE, so it re-read localStorage
-    // TWICE and re-parsed TWO JSON payloads on every single render — and this component
-    // re-renders on every notification tick, balance tick and realtime event. Nothing
-    // downstream wants a fresh read: the value feeds a useState initializer and two
-    // effects with [] deps, all of which only ever see the first-render value. Memoising
-    // with [] deps is therefore behaviour-preserving and drops the work to once per mount.
-    const _cachedHeader = useMemo(() => {
-        if (typeof window === 'undefined') return null;
-        try {
-            // Get current user ID to prevent cross-session cache bleed
-            let currentUserId = null;
-            const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-            currentUserId = authData?.user?.id;
-            if (!currentUserId) {
-                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                if (sbKeys.length > 0) currentUserId = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user?.id;
+  // 🛡️ INSTANT UI: Single-parse helper with 24h cache TTL
+  // Parses localStorage once and returns the cached header object (or null if expired/missing).
+  // This prevents double JSON.parse and ensures stale data (>24h) is discarded.
+  // PERF (header-audit follow-up): this was a bare IIFE, so it re-read localStorage
+  // TWICE and re-parsed TWO JSON payloads on every single render — and this component
+  // re-renders on every notification tick, balance tick and realtime event. Nothing
+  // downstream wants a fresh read: the value feeds a useState initializer and two
+  // effects with [] deps, all of which only ever see the first-render value. Memoising
+  // with [] deps is therefore behaviour-preserving and drops the work to once per mount.
+  const _cachedHeader = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      // Get current user ID to prevent cross-session cache bleed
+      let currentUserId = null;
+      const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+      currentUserId = authData?.user?.id;
+      if (!currentUserId) {
+        const sbKeys = Object.keys(localStorage).filter(
+          (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
+        );
+        if (sbKeys.length > 0)
+          currentUserId = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user?.id;
+      }
+
+      const raw = localStorage.getItem('sp-cached-header-user');
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+
+      // TTL check: discard cache older than 24 hours, OR if it belongs to a different user
+      if (data?._ts && Date.now() - data._ts > 24 * 60 * 60 * 1000) return null;
+      if (data?.userId && data.userId !== currentUserId) return null;
+
+      return data;
+    } catch (_) {
+      return null;
+    }
+  }, []);
+
+  const [user, setUser] = useState(_cachedHeader);
+  const [notificationCount, setNotificationCount] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    try {
+      const n = parseInt(localStorage.getItem('sp-notif-count') || '0', 10);
+      return isNaN(n) ? 0 : Math.max(0, n); // NaN-safe + clamp to 0
+    } catch (_) {
+      return 0;
+    }
+  });
+
+  const [isWalletOpen, setIsWalletOpen] = useState(false);
+
+  // ── FULL-SCREEN OVERLAY STATES ──
+  const [overlayPage, setOverlayPage] = useState(null); // null | 'profile' | 'messenger' | 'notifications' | 'settings' | 'diamond-store'
+  const [isVip, setIsVip] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem('sp-profile-vip') === 'true';
+    } catch (_) {
+      return false;
+    }
+  });
+  const [isAdmin, setIsAdmin] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem('sp-profile-admin') === 'true';
+    } catch (_) {
+      return false;
+    }
+  });
+  const [isMounted, setIsMounted] = useState(false);
+
+  // ── Diamond balance: shared hook handles caching, realtime, cross-tab sync ──
+  const { balance: diamondBalance, setBalance: setDiamondBalance } = useDiamondBalance(user?.id);
+
+  // ── INSTANT PROFILE LINK: Resolve cached username for direct navigation ──
+  const [profileHref, setProfileHref] = useState(() => {
+    if (typeof window === 'undefined') return '/hub/profile';
+    try {
+      // Get current user ID to prevent cross-session cache bleed
+      let currentUserId = null;
+      const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+      currentUserId = authData?.user?.id;
+      if (!currentUserId) {
+        const sbKeys = Object.keys(localStorage).filter(
+          (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
+        );
+        if (sbKeys.length > 0)
+          currentUserId = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user?.id;
+      }
+
+      const nameCache = localStorage.getItem('sp-profile-username');
+      if (nameCache) {
+        const { userId, username } = JSON.parse(nameCache);
+        if (username && (!userId || userId === currentUserId)) return `/hub/user/${username}`;
+      }
+      // Fallback: extract username from header user cache
+      const headerCache = localStorage.getItem('sp-cached-header-user');
+      if (headerCache) {
+        const { userId, username } = JSON.parse(headerCache);
+        if (username && (!userId || userId === currentUserId)) return `/hub/user/${username}`;
+      }
+    } catch (_) {
+      console.warn('[App] Handled exception:', _?.message || _);
+    }
+    return '/hub/profile';
+  });
+
+  // Global Avatar State (instant caching)
+  const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
+
+  // Global Active Identity State (for Commander/Page Owners)
+  const { isClubMode, clubPage } = useActiveIdentity();
+
+  // Global Unread Messages State (instant caching)
+  // BUG-FIX-LIVE-6: useUnreadCount is now the single source of truth for
+  // BOTH unread DM count AND unread notification count, with a Realtime
+  // subscription. Header badges now mirror the bottom-nav badges in
+  // real time — no more "header shows old count until you open the
+  // overlay and close it" lag.
+  const { unreadCount, notificationCount: liveNotificationCount } = useUnreadCount();
+
+  // Header keeps a localStorage-cached `notificationCount` for first-paint
+  // (avoids a 0→N flicker on hard reload). Once the realtime hook reports
+  // a non-null number, we trust it as the source of truth. setNotificationCount
+  // remains for the overlay-close path which still re-fetches via API to
+  // capture both social + poker counts the bare `notifications` table query
+  // does not include.
+  useEffect(() => {
+    if (typeof liveNotificationCount === 'number') {
+      setNotificationCount(liveNotificationCount);
+      try {
+        localStorage.setItem('sp-notif-count', String(liveNotificationCount));
+      } catch (_) {
+        /* private browsing — ignore */
+      }
+    }
+  }, [liveNotificationCount]);
+
+  // 🛡️ INSTANT UI: Mark mounted for hydration-safe gates.
+  // Cache read is now synchronous in _cachedHeader above — no extra effect needed.
+  useIsomorphicLayoutEffect(() => {
+    setIsMounted(true);
+    // Seed diamond balance from cache (hook needs explicit init)
+    if (_cachedHeader?.diamonds !== undefined) {
+      setDiamondBalance(_cachedHeader.diamonds);
+    }
+  }, []);
+
+  // Derived values — gated behind isMounted for SSR hydration safety.
+  // Because user/isVip are initialized synchronously from localStorage,
+  // the FIRST post-mount render (when isMounted flips true) already has
+  // cached data — so there is zero visual flash despite the gate.
+
+  // Override with Club Identity if active
+  const activeAvatarUrl =
+    isClubMode && clubPage
+      ? clubPage.avatar_url || contextAvatar?.imageUrl || user?.avatar
+      : contextAvatar?.imageUrl || user?.avatar;
+  // BUGFIX (header-audit #26): clubPage.name can be null on a page row that has not
+  // finished syncing, and `null.charAt(0)` in the orb below would throw — taking the
+  // whole page subtree down through the error boundary. Coerce at the source.
+  const activeName = (isClubMode && clubPage ? clubPage.name : user?.name) || '';
+
+  const displayAvatar = isMounted ? activeAvatarUrl || '/default-avatar.png' : null;
+  const isVipDisplay = isMounted ? !isClubMode && (isVip || contextVip) : false; // VIP badge is for personal profiles only
+  const safeUnreadCount = isMounted ? unreadCount : 0;
+  const safeNotificationCount = isMounted ? notificationCount : 0;
+
+  // Live Help state
+  const liveHelp = useLiveHelp();
+
+  // ── OVERLAY HELPERS ──
+  const openOverlay = (page) => setOverlayPage(page);
+
+  // BUGFIX (header-audit #2/#10): closing an overlay no longer schedules an 800ms
+  // poll of /api/user/get-header-stats. FullScreenPageOverlay reports the fresh count
+  // straight up its postMessage bridge (onNotifCleared), which is both faster and
+  // authoritative. The old timer RACED that bridge, so every notification-overlay
+  // close produced two competing writes and one redundant API call. Anything the
+  // bridge misses is reconciled by useUnreadCount's realtime subscription.
+  const closeOverlay = useCallback(() => {
+    setOverlayPage(null);
+  }, []);
+
+  // Fresh count pushed up from the notifications iframe. useCallback keeps the
+  // identity stable so FullScreenPageOverlay's message listener is not torn down
+  // and re-added on every count/balance tick.
+  const handleNotifCleared = useCallback((count) => {
+    setNotificationCount(count);
+    try {
+      localStorage.setItem('sp-notif-count', String(count));
+    } catch (_) {
+      /* private browsing — ignore */
+    }
+  }, []);
+
+  // Persist "all notifications read" so the optimistic badge zero is actually TRUE.
+  // An empty body means mark-all (see pages/api/notifications/mark-read.js), and that
+  // endpoint writes BOTH the `read` and `is_read` columns — which is exactly what
+  // stops the count resurrecting on the next poll.
+  const markAllNotificationsRead = useCallback(async () => {
+    try {
+      let accessToken = null;
+      try {
+        const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+        accessToken = authData?.access_token || null;
+      } catch (_) {
+        /* private browsing — ignore */
+      }
+      await fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({}),
+      });
+      try {
+        broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications' });
+      } catch (_) {}
+    } catch (e) {
+      console.warn('[UniversalHeader] mark-all-read failed:', e?.message || e);
+    }
+  }, []);
+
+  // Only the profile entry is dynamic; the rest are constants (see OVERLAY_TITLES).
+  const overlayUrlMap = useMemo(
+    () => ({
+      profile: profileHref,
+      messenger: '/hub/messenger',
+      notifications: '/hub/notifications',
+      settings: '/hub/settings',
+      'diamond-store': '/hub/diamond-store',
+    }),
+    [profileHref]
+  );
+
+  useEffect(() => {
+    let mounted = true; // Prevent state updates after unmount
+    let cleanupNotifSync = null;
+
+    const loadUser = async () => {
+      try {
+        // 🛡️ BULLETPROOF: Bypass Supabase client entirely to avoid AbortError
+        // Read user directly from localStorage instead of calling getUser()
+        let authUser = null;
+        if (typeof window !== 'undefined') {
+          try {
+            // Check explicit storage key first
+            const explicitAuth = localStorage.getItem('smarter-poker-auth');
+            if (explicitAuth) {
+              const tokenData = JSON.parse(explicitAuth);
+              authUser = tokenData?.user || null;
             }
-
-            const raw = localStorage.getItem('sp-cached-header-user');
-            if (!raw) return null;
-            const data = JSON.parse(raw);
-            
-            // TTL check: discard cache older than 24 hours, OR if it belongs to a different user
-            if (data?._ts && (Date.now() - data._ts > 24 * 60 * 60 * 1000)) return null;
-            if (data?.userId && data.userId !== currentUserId) return null;
-            
-            return data;
-        } catch (_) { return null; }
-    }, []);
-
-    const [user, setUser] = useState(_cachedHeader);
-    const [notificationCount, setNotificationCount] = useState(() => {
-        if (typeof window === 'undefined') return 0;
-        try {
-            const n = parseInt(localStorage.getItem('sp-notif-count') || '0', 10);
-            return isNaN(n) ? 0 : Math.max(0, n); // NaN-safe + clamp to 0
-        } catch (_) { return 0; }
-    });
-
-    const [isWalletOpen, setIsWalletOpen] = useState(false);
-
-    // ── FULL-SCREEN OVERLAY STATES ──
-    const [overlayPage, setOverlayPage] = useState(null); // null | 'profile' | 'messenger' | 'notifications' | 'settings' | 'diamond-store'
-    const [isVip, setIsVip] = useState(() => {
-        if (typeof window === 'undefined') return false;
-        try { return localStorage.getItem('sp-profile-vip') === 'true'; } catch (_) { return false; }
-    });
-    const [isAdmin, setIsAdmin] = useState(() => {
-        if (typeof window === 'undefined') return false;
-        try { return localStorage.getItem('sp-profile-admin') === 'true'; } catch (_) { return false; }
-    });
-    const [isMounted, setIsMounted] = useState(false);
-
-    // ── Diamond balance: shared hook handles caching, realtime, cross-tab sync ──
-    const { balance: diamondBalance, setBalance: setDiamondBalance } = useDiamondBalance(user?.id);
-
-    // ── INSTANT PROFILE LINK: Resolve cached username for direct navigation ──
-    const [profileHref, setProfileHref] = useState(() => {
-        if (typeof window === 'undefined') return '/hub/profile';
-        try {
-            // Get current user ID to prevent cross-session cache bleed
-            let currentUserId = null;
-            const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-            currentUserId = authData?.user?.id;
-            if (!currentUserId) {
-                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                if (sbKeys.length > 0) currentUserId = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user?.id;
+            // Fallback to legacy sb-* keys
+            if (!authUser) {
+              const sbKeys = Object.keys(localStorage || {}).filter(
+                (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
+              );
+              if (sbKeys.length > 0) {
+                const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                authUser = tokenData?.user || null;
+              }
             }
-
-            const nameCache = localStorage.getItem('sp-profile-username');
-            if (nameCache) {
-                const { userId, username } = JSON.parse(nameCache);
-                if (username && (!userId || userId === currentUserId)) return `/hub/user/${username}`;
-            }
-            // Fallback: extract username from header user cache
-            const headerCache = localStorage.getItem('sp-cached-header-user');
-            if (headerCache) {
-                const { userId, username } = JSON.parse(headerCache);
-                if (username && (!userId || userId === currentUserId)) return `/hub/user/${username}`;
-            }
-        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        return '/hub/profile';
-    });
-
-    // Global Avatar State (instant caching)
-    const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
-    
-    // Global Active Identity State (for Commander/Page Owners)
-    const { isClubMode, clubPage } = useActiveIdentity();
-
-    // Global Unread Messages State (instant caching)
-    // BUG-FIX-LIVE-6: useUnreadCount is now the single source of truth for
-    // BOTH unread DM count AND unread notification count, with a Realtime
-    // subscription. Header badges now mirror the bottom-nav badges in
-    // real time — no more "header shows old count until you open the
-    // overlay and close it" lag.
-    const { unreadCount, notificationCount: liveNotificationCount } = useUnreadCount();
-
-    // Header keeps a localStorage-cached `notificationCount` for first-paint
-    // (avoids a 0→N flicker on hard reload). Once the realtime hook reports
-    // a non-null number, we trust it as the source of truth. setNotificationCount
-    // remains for the overlay-close path which still re-fetches via API to
-    // capture both social + poker counts the bare `notifications` table query
-    // does not include.
-    useEffect(() => {
-        if (typeof liveNotificationCount === 'number') {
-            setNotificationCount(liveNotificationCount);
-            try { localStorage.setItem('sp-notif-count', String(liveNotificationCount)); }
-            catch (_) { /* private browsing — ignore */ }
+          } catch (e) {
+            console.warn('[UniversalHeader] Error reading localStorage:', e);
+          }
         }
-    }, [liveNotificationCount]);
 
-    // ── BACKGROUND MLB ALERT SYNC (ADMIN ONLY) ──
-    useEffect(() => {
-        if (!isAdmin) return;
-        const syncAlerts = () => {
+        if (!mounted) return;
+
+        if (authUser) {
+          // BUGFIX (header-audit, primary cause of the avatar reloading on every
+          // navigation): this was `setUser(authUser)` — a full REPLACE. `authUser`
+          // is the raw Supabase auth object read out of localStorage and carries
+          // no `avatar` / `name` keys, so the replace destroyed the cached avatar
+          // that was seeded synchronously at mount and dropped the orb to
+          // /default-avatar.png for the ENTIRE get-header-stats round-trip (up to
+          // 3 retries with backoff plus a REST fallback). Merging keeps the cached
+          // avatar painted until fresh data actually arrives.
+          setUser((prev) => ({ ...(prev || {}), ...authUser }));
+          console.debug('[UniversalHeader] User found in localStorage:', authUser.email);
+
+          // 🛡️ BULLETPROOF: Retry logic with exponential backoff
+          const MAX_RETRIES = 3;
+          const fetchProfileWithRetry = async (attempt = 1) => {
+            if (!mounted) return false;
             try {
-                const lastSync = parseInt(localStorage.getItem('sp-mlb-sync-ts') || '0', 10);
-                const now = Date.now();
-                // Debounce across tabs (wait at least 55 seconds before allowing another sync)
-                if (now - lastSync > 55000) {
-                    localStorage.setItem('sp-mlb-sync-ts', String(now));
-                    fetch('/api/mlb/sync-alerts', { method: 'POST' }).catch(() => {});
-                }
-            } catch (_) {}
-        };
-        syncAlerts(); // Sync immediately on mount
-        const interval = setInterval(syncAlerts, 60000); // Polling every minute
-        return () => clearInterval(interval);
-    }, [isAdmin]);
-
-    // 🛡️ INSTANT UI: Mark mounted for hydration-safe gates.
-    // Cache read is now synchronous in _cachedHeader above — no extra effect needed.
-    useIsomorphicLayoutEffect(() => {
-        setIsMounted(true);
-        // Seed diamond balance from cache (hook needs explicit init)
-        if (_cachedHeader?.diamonds !== undefined) {
-            setDiamondBalance(_cachedHeader.diamonds);
-        }
-    }, []);
-
-    // Derived values — gated behind isMounted for SSR hydration safety.
-    // Because user/isVip are initialized synchronously from localStorage,
-    // the FIRST post-mount render (when isMounted flips true) already has
-    // cached data — so there is zero visual flash despite the gate.
-    
-    // Override with Club Identity if active
-    const activeAvatarUrl = isClubMode && clubPage ? (clubPage.avatar_url || contextAvatar?.imageUrl || user?.avatar) : (contextAvatar?.imageUrl || user?.avatar);
-    // BUGFIX (header-audit #26): clubPage.name can be null on a page row that has not
-    // finished syncing, and `null.charAt(0)` in the orb below would throw — taking the
-    // whole page subtree down through the error boundary. Coerce at the source.
-    const activeName = (isClubMode && clubPage ? clubPage.name : user?.name) || '';
-    
-    const displayAvatar = isMounted ? (activeAvatarUrl || '/default-avatar.png') : null;
-    const isVipDisplay = isMounted ? (!isClubMode && (isVip || contextVip)) : false; // VIP badge is for personal profiles only
-    const safeUnreadCount = isMounted ? unreadCount : 0;
-    const safeNotificationCount = isMounted ? notificationCount : 0;
-
-    // Live Help state
-    const liveHelp = useLiveHelp();
-
-    // ── OVERLAY HELPERS ──
-    const openOverlay = (page) => setOverlayPage(page);
-
-    // BUGFIX (header-audit #2/#10): closing an overlay no longer schedules an 800ms
-    // poll of /api/user/get-header-stats. FullScreenPageOverlay reports the fresh count
-    // straight up its postMessage bridge (onNotifCleared), which is both faster and
-    // authoritative. The old timer RACED that bridge, so every notification-overlay
-    // close produced two competing writes and one redundant API call. Anything the
-    // bridge misses is reconciled by useUnreadCount's realtime subscription.
-    const closeOverlay = useCallback(() => {
-        setOverlayPage(null);
-    }, []);
-
-    // Fresh count pushed up from the notifications iframe. useCallback keeps the
-    // identity stable so FullScreenPageOverlay's message listener is not torn down
-    // and re-added on every count/balance tick.
-    const handleNotifCleared = useCallback((count) => {
-        setNotificationCount(count);
-        try { localStorage.setItem('sp-notif-count', String(count)); }
-        catch (_) { /* private browsing — ignore */ }
-    }, []);
-
-    // Persist "all notifications read" so the optimistic badge zero is actually TRUE.
-    // An empty body means mark-all (see pages/api/notifications/mark-read.js), and that
-    // endpoint writes BOTH the `read` and `is_read` columns — which is exactly what
-    // stops the count resurrecting on the next poll.
-    const markAllNotificationsRead = useCallback(async () => {
-        try {
-            let accessToken = null;
-            try {
+              // Get access token for JWT auth
+              let accessToken = null;
+              try {
                 const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
                 accessToken = authData?.access_token || null;
-            } catch (_) { /* private browsing — ignore */ }
-            await fetch('/api/notifications/mark-read', {
+              } catch (e) {
+                console.warn('[App] Handled exception:', e?.message || e);
+              }
+
+              const response = await fetch('/api/user/get-header-stats', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                  'Content-Type': 'application/json',
+                  ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
                 },
-                body: JSON.stringify({}),
-            });
-            try { broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications' }); } catch (_) {}
-        } catch (e) {
-            console.warn('[UniversalHeader] mark-all-read failed:', e?.message || e);
-        }
-    }, []);
+                body: JSON.stringify({ userId: authUser.id }),
+              });
 
+              const result = await response.json();
+              console.debug(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
 
-    // Only the profile entry is dynamic; the rest are constants (see OVERLAY_TITLES).
-    const overlayUrlMap = useMemo(() => ({
-        profile: profileHref,
-        messenger: '/hub/messenger',
-        notifications: '/hub/notifications',
-        settings: '/hub/settings',
-        'diamond-store': '/hub/diamond-store',
-    }), [profileHref]);
-
-    useEffect(() => {
-        let mounted = true; // Prevent state updates after unmount
-        let cleanupNotifSync = null;
-
-        const loadUser = async () => {
-            try {
-                // 🛡️ BULLETPROOF: Bypass Supabase client entirely to avoid AbortError
-                // Read user directly from localStorage instead of calling getUser()
-                let authUser = null;
-                if (typeof window !== 'undefined') {
-                    try {
-                        // Check explicit storage key first
-                        const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                        if (explicitAuth) {
-                            const tokenData = JSON.parse(explicitAuth);
-                            authUser = tokenData?.user || null;
-                        }
-                        // Fallback to legacy sb-* keys
-                        if (!authUser) {
-                            const sbKeys = Object.keys(localStorage || {}).filter(
-                                k => k.startsWith('sb-') && k.endsWith('-auth-token')
-                            );
-                            if (sbKeys.length > 0) {
-                                const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                                authUser = tokenData?.user || null;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('[UniversalHeader] Error reading localStorage:', e);
-                    }
-                }
-
-                if (!mounted) return;
-
-                if (authUser) {
-                    // BUGFIX (header-audit, primary cause of the avatar reloading on every
-                    // navigation): this was `setUser(authUser)` — a full REPLACE. `authUser`
-                    // is the raw Supabase auth object read out of localStorage and carries
-                    // no `avatar` / `name` keys, so the replace destroyed the cached avatar
-                    // that was seeded synchronously at mount and dropped the orb to
-                    // /default-avatar.png for the ENTIRE get-header-stats round-trip (up to
-                    // 3 retries with backoff plus a REST fallback). Merging keeps the cached
-                    // avatar painted until fresh data actually arrives.
-                    setUser(prev => ({ ...(prev || {}), ...authUser }));
-                    console.debug('[UniversalHeader] User found in localStorage:', authUser.email);
-
-                    // 🛡️ BULLETPROOF: Retry logic with exponential backoff
-                    const MAX_RETRIES = 3;
-                    const fetchProfileWithRetry = async (attempt = 1) => {
-                        if (!mounted) return false;
-                        try {
-                            // Get access token for JWT auth
-                            let accessToken = null;
-                            try {
-                                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                                accessToken = authData?.access_token || null;
-                            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-
-                            const response = await fetch('/api/user/get-header-stats', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-                                },
-                                body: JSON.stringify({ userId: authUser.id }),
-                            });
-
-                            const result = await response.json();
-                            console.debug(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
-
-                            if (result.success && result.profile && mounted) {
-                                const { diamonds, full_name, username, avatar_url, is_vip, is_admin } = result.profile;
-                                setDiamondBalance(diamonds ?? 0);
-                                setIsVip(!!is_vip);
-                                setIsAdmin(!!is_admin);
-                                try { localStorage.setItem('sp-profile-diamonds', String(diamonds ?? 0)); } catch (_) {}
-                                try { localStorage.setItem('sp-profile-vip', String(!!is_vip)); } catch (_) {}
-                                try { localStorage.setItem('sp-profile-admin', String(!!is_admin)); } catch (_) {}
-                                setUser(prev => ({
-                                    ...prev,
-                                    avatar: avatar_url,
-                                    name: username || full_name
-                                }));
-                                setIsVip(!!is_vip);
-                                if (typeof result.notificationCount === 'number') {
-                                    setNotificationCount(result.notificationCount);
-                                }
-                                // 🛡️ INSTANT UI: Cache user data for next page load (with TTL timestamp)
-                                // Lowercase username before caching — prevents stale mixed-case
-                                // values propagating into profileHref via the cache init path.
-                                const normalizedUsername = username ? username.toLowerCase() : null;
-                                try {
-                                    localStorage.setItem('sp-cached-header-user', JSON.stringify({
-                                        userId: authUser.id,
-                                        id: authUser.id,
-                                        avatar: avatar_url,
-                                        name: normalizedUsername || full_name,
-                                        username: normalizedUsername,
-                                        diamonds: diamonds ?? 0,
-                                        is_vip: !!is_vip,
-                                        _ts: Date.now()
-                                    }));
-                                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-
-                                // Update direct profile link if we got the username
-                                // ALWAYS lowercase — DB trigger enforces this, but
-                                // the API response may return a mixed-case value
-                                // if the profile was created before the trigger.
-                                if (username) {
-                                    const directHref = `/hub/user/${username.toLowerCase()}`;
-                                    setProfileHref(directHref);
-                                    router.prefetch(directHref);
-                                }
-                                return true; // Success
-                            }
-                            return false; // API returned error
-                        } catch (e) {
-                            console.warn(`[UniversalHeader] Attempt ${attempt} failed:`, e.message);
-                            return false;
-                        }
-                    };
-
-                    // PERF (header-audit): skip the network entirely when the cached header
-                    // payload is younger than HEADER_CACHE_FRESH_MS and belongs to THIS user.
-                    // Everything the fetch would set — avatar, name, VIP, admin, diamonds —
-                    // is already seeded synchronously from localStorage at mount, so a route
-                    // change no longer costs an API round-trip.
-                    const cacheIsFresh = !!(
-                        _cachedHeader &&
-                        _cachedHeader.userId === authUser.id &&
-                        _cachedHeader._ts &&
-                        (Date.now() - _cachedHeader._ts) < HEADER_CACHE_FRESH_MS
-                    );
-
-                    // Try up to MAX_RETRIES times with exponential backoff
-                    let success = cacheIsFresh ? true : await fetchProfileWithRetry(1);
-                    for (let attempt = 2; attempt <= MAX_RETRIES && !success && mounted; attempt++) {
-                        const delay = Math.pow(2, attempt - 1) * 500; // 500ms, 1000ms, 2000ms
-                        console.debug(`[UniversalHeader] Retrying in ${delay}ms...`);
-                        await new Promise(r => setTimeout(r, delay));
-                        success = await fetchProfileWithRetry(attempt);
-                    }
-
-                    // Final fallback: direct REST API call (not Supabase client)
-                    if (!success && mounted) {
-                        console.debug('[UniversalHeader] All API retries failed, trying direct REST...');
-                        try {
-                            // SECURITY/OPS (header-audit #13): no baked-in literals. A
-                            // hardcoded project URL and anon JWT silently survive a key
-                            // rotation and then fail in a way nobody can trace back here.
-                            // If the env is not configured we skip the fallback instead.
-                            const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-                            const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-                            if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-                                console.warn('[UniversalHeader] REST fallback skipped — Supabase env not configured');
-                                throw new Error('supabase-env-missing');
-                            }
-
-                            // Get access token for authenticated query
-                            let accessToken = SUPABASE_ANON_KEY;
-                            try {
-                                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                                if (authData.access_token) accessToken = authData.access_token;
-                            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-
-                            const response = await fetch(
-                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds,is_vip,is_admin`,
-                                {
-                                    headers: {
-                                        'apikey': SUPABASE_ANON_KEY,
-                                        'Authorization': `Bearer ${accessToken}`,
-                                        'Content-Type': 'application/json'
-                                    }
-                                }
-                            );
-                            const profiles = await response.json();
-                            const profile = profiles?.[0];
-
-                            if (profile && mounted) {
-                                setDiamondBalance(profile.diamonds ?? 0);
-                                setIsVip(!!profile.is_vip);
-                                setIsAdmin(!!profile.is_admin);
-                                setUser(prev => ({
-                                    ...prev,
-                                    avatar: profile.avatar_url,
-                                    name: profile.username || profile.full_name
-                                }));
-                                // Cache the REST fallback data too — lowercase username
-                                const normalizedFallbackUsername = profile.username ? profile.username.toLowerCase() : null;
-                                try {
-                                    localStorage.setItem('sp-cached-header-user', JSON.stringify({
-                                        userId: authUser.id,
-                                        id: authUser.id,
-                                        avatar: profile.avatar_url,
-                                        name: normalizedFallbackUsername || profile.full_name,
-                                        username: normalizedFallbackUsername,
-                                        diamonds: profile.diamonds ?? 0,
-                                        is_vip: !!profile.is_vip,
-                                        _ts: Date.now()
-                                    }));
-                                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                                // Update direct profile link — lowercase username
-                                if (normalizedFallbackUsername) {
-                                    const directHref = `/hub/user/${normalizedFallbackUsername}`;
-                                    setProfileHref(directHref);
-                                    router.prefetch(directHref);
-                                }
-                                console.debug('[UniversalHeader] Direct REST fallback SUCCESS:', { diamonds: profile.diamonds });
-                            }
-                        } catch (e) {
-                            console.warn('[UniversalHeader] Direct REST fallback failed:', e);
-                        }
-                    }
-
-                    // BUG-11 FIX: fetchProfileWithRetry already sets notificationCount (line 291-292)
-                    // above. The separate fetchUnreadCount() call here was a duplicate 3s API hit.
-                    // fetchUnreadCount is now only used by the BroadcastChannel refresh listener below.
-                    const fetchUnreadCount = async () => {
-                        try {
-                            let accessToken = null;
-                            try {
-                                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                                accessToken = authData?.access_token || null;
-                            } catch (_) {}
-                            const res = await fetch('/api/user/get-header-stats', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-                                },
-                                body: JSON.stringify({ userId: authUser.id }),
-                            });
-                            const result = await res.json();
-                            if (result.success && typeof result.notificationCount === 'number' && mounted) {
-                                setNotificationCount(result.notificationCount);
-                                try { localStorage.setItem('sp-notif-count', String(result.notificationCount)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                            }
-                        } catch (e) { console.warn('[UniversalHeader] fetchUnreadCount failed:', e); }
-                    };
-                    // NOTE: Do NOT call fetchUnreadCount() here — count already set by fetchProfileWithRetry above.
-
-                    // ── CROSS-TAB SYNC: Listen for read notifications in other tabs ──
-                    // BUGFIX (header-audit #5): the awaits above (up to 3 retries with
-                    // 500/1000/2000ms backoff plus a REST fallback) can easily outlive the
-                    // component. Without this guard the channel was opened AFTER unmount, so
-                    // the effect cleanup — which had already run while cleanupNotifSync was
-                    // still null — could never close it. That leaked one live channel per
-                    // navigation, each still hitting the API forever.
-                    if (!mounted) return;
-                    cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
-                        // Support both legacy string and new object payloads
-                        const isRefresh = msg === 'refresh_notifications' || msg?.action === 'refresh_notifications';
-                        if (isRefresh) {
-                            console.debug('[UniversalHeader] received refresh_notifications broadcast');
-                            fetchUnreadCount();
-                        }
-                    });
-
-                    // NOTE: Removed redundant Supabase Realtime channel for notifications.
-                    // useUnreadCount hook (line 150) already maintains a Realtime subscription
-                    // to the notifications table and feeds liveNotificationCount into this
-                    // component via the useEffect on line 158. Having TWO channels for the
-                    // same INSERT event caused a transient +2 flash before the reconciliation
-                    // useEffect corrected the count, and wasted a Supabase connection.
-
-                    // Global useUnreadCount handles social_messages naturally
-                }
-            } catch (e) {
-                console.warn('[UniversalHeader] Data fetch error:', e);
-            } finally {
-                // loadUser complete
-            }
-        };
-        loadUser();
-
-        return () => {
-            mounted = false;
-            if (cleanupNotifSync) cleanupNotifSync();
-        };
-    }, []);
-
-    // ── EventBus: Instant badge update when notifications are read (same-tab) ──
-    // NOTE: eventBus.on() callback receives the full event object: { type, payload, timestamp, source }
-    // The actual count lives at event.payload.count
-    useEffect(() => {
-        const unsub = eventBus.on(EventType.NOTIFICATIONS_READ, (event) => {
-            const count = event?.payload?.count || 1;
-            setNotificationCount(prev => Math.max(0, prev - count));
-        });
-        return () => unsub();
-    }, []);
-
-    // ── Diamond balance: All refresh/realtime/cross-tab logic handled by useDiamondBalance hook ──
-
-    // ── TIER 2: Avatar Changes Cross-Tab Sync ──
-    // Listen for avatar changes from AvatarContext and other tabs
-    useEffect(() => {
-        if (!user?.id) return;
-
-        const cleanup = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
-            if (msg === 'refresh') {
-                console.debug('[UniversalHeader] Avatar refresh via BroadcastChannel');
-                // Trigger a profile re-fetch so avatar + name update in the header
-                window.dispatchEvent(new CustomEvent('profile-updated'));
-            }
-        });
-
-        return cleanup;
-    }, [user?.id]);
-
-    // ── TIER 2: Club Arena Chip Balance Cross-Tab Sync ──
-    // Now handled by useDiamondBalance hook
-
-    // ── VIP status bus listener — updates VIP badge in real time ──
-    // Triggered by PhoneVerifyVIPModal after successful phone verification
-    useEffect(() => {
-        const handleVipChange = (e) => {
-            console.debug('[UniversalHeader] 🚌 VIP status change event received:', e.detail);
-            if (e.detail?.vipGranted) {
-                setIsVip(true);
-            }
-        };
-
-        const handleProfileUpdate = async () => {
-            // Re-fetch header stats to pick up all profile changes
-            if (!user?.id) return;
-            try {
-                // Get access token for JWT auth
-                let accessToken = null;
+              if (result.success && result.profile && mounted) {
+                const { diamonds, full_name, username, avatar_url, is_vip, is_admin } =
+                  result.profile;
+                setDiamondBalance(diamonds ?? 0);
+                setIsVip(!!is_vip);
+                setIsAdmin(!!is_admin);
                 try {
-                    const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                    accessToken = authData?.access_token || null;
-                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-
-                const response = await fetch('/api/user/get-header-stats', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-                    },
-                    body: JSON.stringify({ userId: user.id }),
-                });
-                const result = await response.json();
-                if (result.success && result.profile) {
-                    setDiamondBalance(result.profile.diamonds ?? 0);
-                    setIsVip(!!result.profile.is_vip);
-                    setIsAdmin(!!result.profile.is_admin);
-                    setUser(prev => ({
-                        ...prev,
-                        avatar: result.profile.avatar_url || prev?.avatar,
-                        name: result.profile.username || result.profile.full_name || prev?.name
-                    }));
-                    // Update localStorage cache with fresh profile data — lowercase username
-                    const refreshedUsername = result.profile.username ? result.profile.username.toLowerCase() : null;
-                    try {
-                        localStorage.setItem('sp-cached-header-user', JSON.stringify({
-                            userId: user.id,
-                            id: user.id,
-                            avatar: result.profile.avatar_url,
-                            name: refreshedUsername || result.profile.full_name,
-                            username: refreshedUsername,
-                            diamonds: result.profile.diamonds ?? 0,
-                            is_vip: !!result.profile.is_vip,
-                            _ts: Date.now()
-                        }));
-                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                    // Update direct profile link if username changed — always lowercase
-                    if (refreshedUsername) {
-                        const directHref = `/hub/user/${refreshedUsername}`;
-                        setProfileHref(directHref);
-                    }
-                    console.debug('[UniversalHeader] 🚌 Profile refreshed via bus event');
+                  localStorage.setItem('sp-profile-diamonds', String(diamonds ?? 0));
+                } catch (_) {}
+                try {
+                  localStorage.setItem('sp-profile-vip', String(!!is_vip));
+                } catch (_) {}
+                try {
+                  localStorage.setItem('sp-profile-admin', String(!!is_admin));
+                } catch (_) {}
+                setUser((prev) => ({
+                  ...prev,
+                  avatar: avatar_url,
+                  name: username || full_name,
+                }));
+                setIsVip(!!is_vip);
+                if (typeof result.notificationCount === 'number') {
+                  setNotificationCount(result.notificationCount);
                 }
+                // 🛡️ INSTANT UI: Cache user data for next page load (with TTL timestamp)
+                // Lowercase username before caching — prevents stale mixed-case
+                // values propagating into profileHref via the cache init path.
+                const normalizedUsername = username ? username.toLowerCase() : null;
+                try {
+                  localStorage.setItem(
+                    'sp-cached-header-user',
+                    JSON.stringify({
+                      userId: authUser.id,
+                      id: authUser.id,
+                      avatar: avatar_url,
+                      name: normalizedUsername || full_name,
+                      username: normalizedUsername,
+                      diamonds: diamonds ?? 0,
+                      is_vip: !!is_vip,
+                      _ts: Date.now(),
+                    })
+                  );
+                } catch (_) {
+                  console.warn('[App] Handled exception:', _?.message || _);
+                }
+
+                // Update direct profile link if we got the username
+                // ALWAYS lowercase — DB trigger enforces this, but
+                // the API response may return a mixed-case value
+                // if the profile was created before the trigger.
+                if (username) {
+                  const directHref = `/hub/user/${username.toLowerCase()}`;
+                  setProfileHref(directHref);
+                  router.prefetch(directHref);
+                }
+                return true; // Success
+              }
+              return false; // API returned error
             } catch (e) {
-                console.warn('[UniversalHeader] Profile refresh failed:', e.message);
+              console.warn(`[UniversalHeader] Attempt ${attempt} failed:`, e.message);
+              return false;
             }
-        };
+          };
 
-        window.addEventListener('vip-status-changed', handleVipChange);
-        window.addEventListener('profile-updated', handleProfileUpdate);
-        return () => {
-            window.removeEventListener('vip-status-changed', handleVipChange);
-            window.removeEventListener('profile-updated', handleProfileUpdate);
-        };
-    }, [user?.id]);
+          // PERF (header-audit): skip the network entirely when the cached header
+          // payload is younger than HEADER_CACHE_FRESH_MS and belongs to THIS user.
+          // Everything the fetch would set — avatar, name, VIP, admin, diamonds —
+          // is already seeded synchronously from localStorage at mount, so a route
+          // change no longer costs an API round-trip.
+          const cacheIsFresh = !!(
+            _cachedHeader &&
+            _cachedHeader.userId === authUser.id &&
+            _cachedHeader._ts &&
+            Date.now() - _cachedHeader._ts < HEADER_CACHE_FRESH_MS
+          );
 
-    // ── useCurrentUser: keep profileHref in sync with fresh DB username ──────
-    // This runs after AvatarContext resolves and gives us a guaranteed
-    // lowercase username straight from the profiles table, overriding any
-    // stale cache value that was used for the initial render.
-    const { user: currentUserProfile } = useCurrentUser();
-    useEffect(() => {
-        if (!currentUserProfile?.username) return;
-        const freshHref = `/hub/user/${currentUserProfile.username}`; // username is lowercased by DB trigger + hook
-        setProfileHref(prev => (prev !== freshHref ? freshHref : prev));
-    }, [currentUserProfile?.username]);
-    const goToProfile = useCallback(() => {
-        router.push(isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : profileHref);
-    }, [router, isClubMode, clubPage, profileHref]);
+          // Try up to MAX_RETRIES times with exponential backoff
+          let success = cacheIsFresh ? true : await fetchProfileWithRetry(1);
+          for (let attempt = 2; attempt <= MAX_RETRIES && !success && mounted; attempt++) {
+            const delay = Math.pow(2, attempt - 1) * 500; // 500ms, 1000ms, 2000ms
+            console.debug(`[UniversalHeader] Retrying in ${delay}ms...`);
+            await new Promise((r) => setTimeout(r, delay));
+            success = await fetchProfileWithRetry(attempt);
+          }
 
-    // Guard against rapid double-click on back button
-    const backInProgressRef = useRef(false);
+          // Final fallback: direct REST API call (not Supabase client)
+          if (!success && mounted) {
+            console.debug('[UniversalHeader] All API retries failed, trying direct REST...');
+            try {
+              // SECURITY/OPS (header-audit #13): no baked-in literals. A
+              // hardcoded project URL and anon JWT silently survive a key
+              // rotation and then fail in a way nobody can trace back here.
+              // If the env is not configured we skip the fallback instead.
+              const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+              const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+              if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+                console.warn(
+                  '[UniversalHeader] REST fallback skipped — Supabase env not configured'
+                );
+                throw new Error('supabase-env-missing');
+              }
 
-    const handleBack = () => {
-        if (typeof window === 'undefined') return;
-        // Block re-entrant clicks while a back navigation is in flight
-        if (backInProgressRef.current) return;
-        backInProgressRef.current = true;
+              // Get access token for authenticated query
+              let accessToken = SUPABASE_ANON_KEY;
+              try {
+                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                if (authData.access_token) accessToken = authData.access_token;
+              } catch (e) {
+                console.warn('[App] Handled exception:', e?.message || e);
+              }
 
-        // CRITICAL: Use router.back() — NOT window.history.back().
-        // window.history.back() updates the URL bar but does NOT trigger
-        // Next.js re-renders, so the user sees the old page content.
-        // router.back() is always correct for SPA navigation. Do NOT gate
-        // on window.history.length — it is unreliable in Mobile Chrome
-        // and across SPA sessions (can be 1 even after several pushes).
-        router.back();
+              const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds,is_vip,is_admin`,
+                {
+                  headers: {
+                    apikey: SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+              const profiles = await response.json();
+              const profile = profiles?.[0];
 
-        // Release the guard after a short delay to prevent double-clicks
-        setTimeout(() => {
-            backInProgressRef.current = false;
-        }, 500);
+              if (profile && mounted) {
+                setDiamondBalance(profile.diamonds ?? 0);
+                setIsVip(!!profile.is_vip);
+                setIsAdmin(!!profile.is_admin);
+                setUser((prev) => ({
+                  ...prev,
+                  avatar: profile.avatar_url,
+                  name: profile.username || profile.full_name,
+                }));
+                // Cache the REST fallback data too — lowercase username
+                const normalizedFallbackUsername = profile.username
+                  ? profile.username.toLowerCase()
+                  : null;
+                try {
+                  localStorage.setItem(
+                    'sp-cached-header-user',
+                    JSON.stringify({
+                      userId: authUser.id,
+                      id: authUser.id,
+                      avatar: profile.avatar_url,
+                      name: normalizedFallbackUsername || profile.full_name,
+                      username: normalizedFallbackUsername,
+                      diamonds: profile.diamonds ?? 0,
+                      is_vip: !!profile.is_vip,
+                      _ts: Date.now(),
+                    })
+                  );
+                } catch (_) {
+                  console.warn('[App] Handled exception:', _?.message || _);
+                }
+                // Update direct profile link — lowercase username
+                if (normalizedFallbackUsername) {
+                  const directHref = `/hub/user/${normalizedFallbackUsername}`;
+                  setProfileHref(directHref);
+                  router.prefetch(directHref);
+                }
+                console.debug('[UniversalHeader] Direct REST fallback SUCCESS:', {
+                  diamonds: profile.diamonds,
+                });
+              }
+            } catch (e) {
+              console.warn('[UniversalHeader] Direct REST fallback failed:', e);
+            }
+          }
+
+          // BUG-11 FIX: fetchProfileWithRetry already sets notificationCount (line 291-292)
+          // above. The separate fetchUnreadCount() call here was a duplicate 3s API hit.
+          // fetchUnreadCount is now only used by the BroadcastChannel refresh listener below.
+          const fetchUnreadCount = async () => {
+            try {
+              let accessToken = null;
+              try {
+                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                accessToken = authData?.access_token || null;
+              } catch (_) {}
+              const res = await fetch('/api/user/get-header-stats', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                },
+                body: JSON.stringify({ userId: authUser.id }),
+              });
+              const result = await res.json();
+              if (result.success && typeof result.notificationCount === 'number' && mounted) {
+                setNotificationCount(result.notificationCount);
+                try {
+                  localStorage.setItem('sp-notif-count', String(result.notificationCount));
+                } catch (_) {
+                  console.warn('[App] Handled exception:', _?.message || _);
+                }
+              }
+            } catch (e) {
+              console.warn('[UniversalHeader] fetchUnreadCount failed:', e);
+            }
+          };
+          // NOTE: Do NOT call fetchUnreadCount() here — count already set by fetchProfileWithRetry above.
+
+          // ── CROSS-TAB SYNC: Listen for read notifications in other tabs ──
+          // BUGFIX (header-audit #5): the awaits above (up to 3 retries with
+          // 500/1000/2000ms backoff plus a REST fallback) can easily outlive the
+          // component. Without this guard the channel was opened AFTER unmount, so
+          // the effect cleanup — which had already run while cleanupNotifSync was
+          // still null — could never close it. That leaked one live channel per
+          // navigation, each still hitting the API forever.
+          if (!mounted) return;
+          cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
+            // Support both legacy string and new object payloads
+            const isRefresh =
+              msg === 'refresh_notifications' || msg?.action === 'refresh_notifications';
+            if (isRefresh) {
+              console.debug('[UniversalHeader] received refresh_notifications broadcast');
+              fetchUnreadCount();
+            }
+          });
+
+          // NOTE: Removed redundant Supabase Realtime channel for notifications.
+          // useUnreadCount hook (line 150) already maintains a Realtime subscription
+          // to the notifications table and feeds liveNotificationCount into this
+          // component via the useEffect on line 158. Having TWO channels for the
+          // same INSERT event caused a transient +2 flash before the reconciliation
+          // useEffect corrected the count, and wasted a Supabase connection.
+
+          // Global useUnreadCount handles social_messages naturally
+        }
+      } catch (e) {
+        console.warn('[UniversalHeader] Data fetch error:', e);
+      } finally {
+        // loadUser complete
+      }
+    };
+    loadUser();
+
+    return () => {
+      mounted = false;
+      if (cleanupNotifSync) cleanupNotifSync();
+    };
+  }, []);
+
+  // ── EventBus: Instant badge update when notifications are read (same-tab) ──
+  // NOTE: eventBus.on() callback receives the full event object: { type, payload, timestamp, source }
+  // The actual count lives at event.payload.count
+  useEffect(() => {
+    const unsub = eventBus.on(EventType.NOTIFICATIONS_READ, (event) => {
+      const count = event?.payload?.count || 1;
+      setNotificationCount((prev) => Math.max(0, prev - count));
+    });
+    return () => unsub();
+  }, []);
+
+  // ── Diamond balance: All refresh/realtime/cross-tab logic handled by useDiamondBalance hook ──
+
+  // ── TIER 2: Avatar Changes Cross-Tab Sync ──
+  // Listen for avatar changes from AvatarContext and other tabs
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const cleanup = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
+      if (msg === 'refresh') {
+        console.debug('[UniversalHeader] Avatar refresh via BroadcastChannel');
+        // Trigger a profile re-fetch so avatar + name update in the header
+        window.dispatchEvent(new CustomEvent('profile-updated'));
+      }
+    });
+
+    return cleanup;
+  }, [user?.id]);
+
+  // ── TIER 2: Club Arena Chip Balance Cross-Tab Sync ──
+  // Now handled by useDiamondBalance hook
+
+  // ── VIP status bus listener — updates VIP badge in real time ──
+  // Triggered by PhoneVerifyVIPModal after successful phone verification
+  useEffect(() => {
+    const handleVipChange = (e) => {
+      console.debug('[UniversalHeader] 🚌 VIP status change event received:', e.detail);
+      if (e.detail?.vipGranted) {
+        setIsVip(true);
+      }
     };
 
-    return (
-        <>
-            <Head>
-                {/* Aggressive background cache of the Club Arena integration. This downloads the HTML document and triggers sub-resource fetching before the user clicks. */}
-                <link rel="prefetch" href="/hub/club-arena" as="document" />
-                {/* 🛡️ PRELOAD avatar image so it stays in browser cache across page navigations */}
-                {displayAvatar && <link rel="preload" as="image" href={displayAvatar} />}
-            </Head>
+    const handleProfileUpdate = async () => {
+      // Re-fetch header stats to pick up all profile changes
+      if (!user?.id) return;
+      try {
+        // Get access token for JWT auth
+        let accessToken = null;
+        try {
+          const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+          accessToken = authData?.access_token || null;
+        } catch (e) {
+          console.warn('[App] Handled exception:', e?.message || e);
+        }
 
-            {/* Mobile-responsive CSS */}
-            <style dangerouslySetInnerHTML={{ __html: `
+        const response = await fetch('/api/user/get-header-stats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+          body: JSON.stringify({ userId: user.id }),
+        });
+        const result = await response.json();
+        if (result.success && result.profile) {
+          setDiamondBalance(result.profile.diamonds ?? 0);
+          setIsVip(!!result.profile.is_vip);
+          setIsAdmin(!!result.profile.is_admin);
+          setUser((prev) => ({
+            ...prev,
+            avatar: result.profile.avatar_url || prev?.avatar,
+            name: result.profile.username || result.profile.full_name || prev?.name,
+          }));
+          // Update localStorage cache with fresh profile data — lowercase username
+          const refreshedUsername = result.profile.username
+            ? result.profile.username.toLowerCase()
+            : null;
+          try {
+            localStorage.setItem(
+              'sp-cached-header-user',
+              JSON.stringify({
+                userId: user.id,
+                id: user.id,
+                avatar: result.profile.avatar_url,
+                name: refreshedUsername || result.profile.full_name,
+                username: refreshedUsername,
+                diamonds: result.profile.diamonds ?? 0,
+                is_vip: !!result.profile.is_vip,
+                _ts: Date.now(),
+              })
+            );
+          } catch (_) {
+            console.warn('[App] Handled exception:', _?.message || _);
+          }
+          // Update direct profile link if username changed — always lowercase
+          if (refreshedUsername) {
+            const directHref = `/hub/user/${refreshedUsername}`;
+            setProfileHref(directHref);
+          }
+          console.debug('[UniversalHeader] 🚌 Profile refreshed via bus event');
+        }
+      } catch (e) {
+        console.warn('[UniversalHeader] Profile refresh failed:', e.message);
+      }
+    };
+
+    window.addEventListener('vip-status-changed', handleVipChange);
+    window.addEventListener('profile-updated', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('vip-status-changed', handleVipChange);
+      window.removeEventListener('profile-updated', handleProfileUpdate);
+    };
+  }, [user?.id]);
+
+  // ── useCurrentUser: keep profileHref in sync with fresh DB username ──────
+  // This runs after AvatarContext resolves and gives us a guaranteed
+  // lowercase username straight from the profiles table, overriding any
+  // stale cache value that was used for the initial render.
+  const { user: currentUserProfile } = useCurrentUser();
+  useEffect(() => {
+    if (!currentUserProfile?.username) return;
+    const freshHref = `/hub/user/${currentUserProfile.username}`; // username is lowercased by DB trigger + hook
+    setProfileHref((prev) => (prev !== freshHref ? freshHref : prev));
+  }, [currentUserProfile?.username]);
+  const goToProfile = useCallback(() => {
+    router.push(isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : profileHref);
+  }, [router, isClubMode, clubPage, profileHref]);
+
+  // Guard against rapid double-click on back button
+  const backInProgressRef = useRef(false);
+
+  const handleBack = () => {
+    if (typeof window === 'undefined') return;
+    // Block re-entrant clicks while a back navigation is in flight
+    if (backInProgressRef.current) return;
+    backInProgressRef.current = true;
+
+    // CRITICAL: Use router.back() — NOT window.history.back().
+    // window.history.back() updates the URL bar but does NOT trigger
+    // Next.js re-renders, so the user sees the old page content.
+    // router.back() is always correct for SPA navigation. Do NOT gate
+    // on window.history.length — it is unreliable in Mobile Chrome
+    // and across SPA sessions (can be 1 even after several pushes).
+    router.back();
+
+    // Release the guard after a short delay to prevent double-clicks
+    setTimeout(() => {
+      backInProgressRef.current = false;
+    }, 500);
+  };
+
+  return (
+    <>
+      <Head>
+        {/* Aggressive background cache of the Club Arena integration. This downloads the HTML document and triggers sub-resource fetching before the user clicks. */}
+        <link rel="prefetch" href="/hub/club-arena" as="document" />
+        {/* 🛡️ PRELOAD avatar image so it stays in browser cache across page navigations */}
+        {displayAvatar && <link rel="preload" as="image" href={displayAvatar} />}
+      </Head>
+
+      {/* Mobile-responsive CSS */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
                 .universal-header {
                     background: ${C.bg};
                     padding: 8px 12px;
@@ -1081,196 +1142,278 @@ export default function UniversalHeader({
                         font-size: 18px;
                     }
                 }
-            `}} />
+            `,
+        }}
+      />
 
-            <header className="universal-header">
-                {/* LEFT: Hamburger Menu + Back/Hub Button + "Smarter.Poker" */}
-                <div className="header-left">
-                    {onMenuClick && (
-                        <button
-                            onClick={onMenuClick}
-                            className="hamburger-btn"
-                            aria-label="Open Menu"
-                            style={{ padding: 0 }}
-                        >
-                            <img src="/images/btn-hamburger-v4.png" alt="Menu" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        </button>
-                    )}
-                    {!hideLeftIcon && (
-                        <button
-                            onClick={onBackClick ? onBackClick : (pageDepth >= 2 ? handleBack : () => router.push('/hub'))}
-                            className="header-img-btn header-nav-btn"
-                            aria-label={pageDepth >= 2 ? 'Go back' : 'Return to Hub'}
-                        >
-                            <img
-                                src={pageDepth >= 2 ? '/images/btn-back.png' : '/images/btn-hub-v4.png'}
-                                alt={pageDepth >= 2 ? 'Back' : 'Hub'}
-                                style={{ height: '100%', width: '100%', objectFit: 'contain' }}
-                            />
-                        </button>
-                    )}
-                </div>
+      <header className="universal-header">
+        {/* LEFT: Hamburger Menu + Back/Hub Button + "Smarter.Poker" */}
+        <div className="header-left">
+          {onMenuClick && (
+            <button
+              onClick={onMenuClick}
+              className="hamburger-btn"
+              aria-label="Open Menu"
+              style={{ padding: 0 }}
+            >
+              <img
+                src="/images/btn-hamburger-v4.png"
+                alt="Menu"
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              />
+            </button>
+          )}
+          {!hideLeftIcon && (
+            <button
+              onClick={
+                onBackClick ? onBackClick : pageDepth >= 2 ? handleBack : () => router.push('/hub')
+              }
+              className="header-img-btn header-nav-btn"
+              aria-label={pageDepth >= 2 ? 'Go back' : 'Return to Hub'}
+            >
+              <img
+                src={pageDepth >= 2 ? '/images/btn-back.png' : '/images/btn-hub-v4.png'}
+                alt={pageDepth >= 2 ? 'Back' : 'Hub'}
+                style={{ height: '100%', width: '100%', objectFit: 'contain' }}
+              />
+            </button>
+          )}
+        </div>
 
-                {/* CENTER: Brand Text — centered between nav and icons */}
-                <div className="header-center">
-                    <img src="/images/brand-text-clean.png" alt="Smarter.Poker" className="brand-text-img hide-mobile" style={{ height: 45, margin: 0, padding: 0, objectFit: 'contain' }} />
-                    {router.pathname.includes('/messenger') && (
-                        <span className="hide-mobile" style={{ marginLeft: 8, fontSize: 16, display: 'flex', alignItems: 'center' }} title="Securely Encrypted">🔒</span>
-                    )}
-                </div>
+        {/* CENTER: Brand Text — centered between nav and icons */}
+        <div className="header-center">
+          <img
+            src="/images/brand-text-clean.png"
+            alt="Smarter.Poker"
+            className="brand-text-img hide-mobile"
+            style={{ height: 45, margin: 0, padding: 0, objectFit: 'contain' }}
+          />
+          {router.pathname.includes('/messenger') && (
+            <span
+              className="hide-mobile"
+              style={{ marginLeft: 8, fontSize: 16, display: 'flex', alignItems: 'center' }}
+              title="Securely Encrypted"
+            >
+              🔒
+            </span>
+          )}
+        </div>
 
-                {/* RIGHT: Orb Icons */}
-                <div className="header-right">
-                    {/* Avatar/Profile */}
-                    <div
-                        className={`profile-orb${!displayAvatar && !isMounted ? ' profile-orb-shimmer' : ''}`}
-                        onClick={goToProfile}
-                        onKeyDown={(e) => {
-                            // A11Y: this advertises role="button" and sits in the tab order, but a
-                            // div gets no implicit keyboard activation — Enter/Space did nothing, so
-                            // keyboard and screen-reader users could focus the avatar and never open
-                            // it. clubPage.name is also nullable, which made the label read "null".
-                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToProfile(); }
-                        }}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={isClubMode && clubPage ? (clubPage.name || 'My Page') : 'My Profile'}
-                        style={{
-                            background: displayAvatar
-                                ? `url(${displayAvatar}) center/cover`
-                                : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
-                            ...(isVipDisplay ? {
-                                border: '2px solid #00E0FF',
-                                boxShadow: '0 0 8px rgba(0, 224, 255, 0.6), 0 0 16px rgba(0, 224, 255, 0.3)',
-                            } : {})
-                        }}
-                    >
-                        <span style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>
-                            {!displayAvatar && (isMounted ? activeName.charAt(0).toUpperCase() || '?' : '')}
-                        </span>
-                    </div>
+        {/* RIGHT: Orb Icons */}
+        <div className="header-right">
+          {/* Avatar/Profile */}
+          <div
+            className={`profile-orb${!displayAvatar && !isMounted ? ' profile-orb-shimmer' : ''}`}
+            onClick={goToProfile}
+            onKeyDown={(e) => {
+              // A11Y: this advertises role="button" and sits in the tab order, but a
+              // div gets no implicit keyboard activation — Enter/Space did nothing, so
+              // keyboard and screen-reader users could focus the avatar and never open
+              // it. clubPage.name is also nullable, which made the label read "null".
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                goToProfile();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={isClubMode && clubPage ? clubPage.name || 'My Page' : 'My Profile'}
+            style={{
+              background: displayAvatar
+                ? `url(${displayAvatar}) center/cover`
+                : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
+              ...(isVipDisplay
+                ? {
+                    border: '2px solid #00E0FF',
+                    boxShadow: '0 0 8px rgba(0, 224, 255, 0.6), 0 0 16px rgba(0, 224, 255, 0.3)',
+                  }
+                : {}),
+            }}
+          >
+            <span
+              style={{
+                textDecoration: 'none',
+                display: 'flex',
+                width: '100%',
+                height: '100%',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: 16,
+              }}
+            >
+              {!displayAvatar && (isMounted ? activeName.charAt(0).toUpperCase() || '?' : '')}
+            </span>
+          </div>
 
-                    {/* Diamond Wallet Icon */}
-                    <button
-                        onClick={() => setIsWalletOpen(true)}
-                        className="orb-btn"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                        title="Diamond Wallet"
-                    >
-                        <img src="/images/header-wallet-v4.png" alt="Wallet" style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
-                    </button>
+          {/* Diamond Wallet Icon */}
+          <button
+            onClick={() => setIsWalletOpen(true)}
+            className="orb-btn"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            title="Diamond Wallet"
+          >
+            <img
+              src="/images/header-wallet-v4.png"
+              alt="Wallet"
+              style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
+            />
+          </button>
 
-                    {/* VIP Card Icon — only for VIP members */}
-                    {isVipDisplay && (
-                        <button
-                            onClick={() => openOverlay('diamond-store')}
-                            className="orb-btn"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                            title="VIP Member"
-                        >
-                                <img
-                                    src="/images/vip-card-v8.jpg"
-                                    alt="VIP Member"
-                                    style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
-                                />
-                        </button>
-                    )}
+          {/* VIP Card Icon — only for VIP members */}
+          {isVipDisplay && (
+            <button
+              onClick={() => openOverlay('diamond-store')}
+              className="orb-btn"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              title="VIP Member"
+            >
+              <img
+                src="/images/vip-card-v8.jpg"
+                alt="VIP Member"
+                style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
+              />
+            </button>
+          )}
 
-                    {/* Messages — navigates to the full page rather than opening the overlay.
+          {/* Messages — navigates to the full page rather than opening the overlay.
                         PERF: this was window.location.href, a full document reload that discarded
                         SPA state and re-downloaded the bundle on every click. router.push keeps the
                         "no popup" behaviour the old comment was protecting. */}
-                    <button onClick={() => router.push('/hub/messenger')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Messages" aria-label="Messages">
-                            <img src="/images/header-messenger-v4.png" alt="Messages" style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
-                            {safeUnreadCount > 0 && (
-                                <span className="orb-badge" aria-live="polite" aria-atomic="true">{safeUnreadCount > 99 ? '99+' : safeUnreadCount}</span>
-                            )}
-                    </button>
-
-                    {/* Notifications - Custom Metallic Bell icon */}
-                    <button onClick={() => {
-                        // BUGFIX (header-audit #2): this used to zero the badge in the UI
-                        // ONLY. Because liveNotificationCount was untouched, the mirror
-                        // effect never re-ran — so the badge sat at 0 while rows were still
-                        // unread, and the next INSERT bumped it from 0 straight to N+1,
-                        // resurrecting everything the user had just dismissed. Persist the
-                        // read state so the optimistic zero reflects the database.
-                        setNotificationCount(0);
-                        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                        markAllNotificationsRead();
-                        openOverlay('notifications');
-                    }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Notifications" aria-label="Notifications">
-                            <img src="/images/notification-bell-trimmed.png" alt="Notifications" style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
-                            {safeNotificationCount > 0 && (
-                                <span className="orb-badge" aria-live="polite" aria-atomic="true">{safeNotificationCount > 99 ? '99+' : safeNotificationCount}</span>
-                            )}
-                    </button>
-
-                    {/* Settings - Custom Metallic Gear icon */}
-                    <button onClick={() => onSettingsClick ? onSettingsClick() : openOverlay('settings')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Settings">
-                            <img src="/images/header-settings-v4.png" alt="Settings" style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
-                    </button>
-
-                    {/* Live Help - Hidden on mobile */}
-                    <button
-                        onClick={() => {
-                            console.debug('[UniversalHeader] Live Help button clicked');
-                            liveHelp.setIsOpen(true);
-                        }}
-                        className="orb-btn"
-                        aria-label="Live Help"
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            padding: 0,
-                            cursor: 'pointer',
-                            zIndex: 10,
-                            overflow: 'hidden'
-                        }}
-                    >
-                        <img src="/images/header-help-v4.png" alt="Live Help" style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
-                    </button>
-
-
-
-                    {/* Search - HIDE on mobile */}
-                    {showSearch && (
-                        <button onClick={onSearchClick} className="hide-mobile" style={{ background: 'none', border: 'none', padding: 0 }}>
-                            <div className="orb-btn">🔍</div>
-                        </button>
-                    )}
-                </div>
-            </header>
-
-            {/* Live Help Panel */}
-            <LiveHelpPanel {...liveHelp} />
-
-            <DiamondWalletModal
-                isOpen={isWalletOpen}
-                onClose={() => setIsWalletOpen(false)}
-                onBuyClick={() => openOverlay('diamond-store')}
-                initialBalance={diamondBalance}
+          <button
+            onClick={() => router.push('/hub/messenger')}
+            className="orb-btn"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            title="Messages"
+            aria-label="Messages"
+          >
+            <img
+              src="/images/header-messenger-v4.png"
+              alt="Messages"
+              style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
             />
+            {safeUnreadCount > 0 && (
+              <span className="orb-badge" aria-live="polite" aria-atomic="true">
+                {safeUnreadCount > 99 ? '99+' : safeUnreadCount}
+              </span>
+            )}
+          </button>
 
-            {/* Full-Screen Page Overlay — opens pages as popup instead of redirect */}
-            {/* Full-Screen Page Overlay — opens pages as a popup instead of navigating.
+          {/* Notifications - Custom Metallic Bell icon */}
+          <button
+            onClick={() => {
+              // BUGFIX (header-audit #2): this used to zero the badge in the UI
+              // ONLY. Because liveNotificationCount was untouched, the mirror
+              // effect never re-ran — so the badge sat at 0 while rows were still
+              // unread, and the next INSERT bumped it from 0 straight to N+1,
+              // resurrecting everything the user had just dismissed. Persist the
+              // read state so the optimistic zero reflects the database.
+              setNotificationCount(0);
+              try {
+                localStorage.setItem('sp-notif-count', '0');
+              } catch (_) {
+                console.warn('[App] Handled exception:', _?.message || _);
+              }
+              markAllNotificationsRead();
+              openOverlay('notifications');
+            }}
+            className="orb-btn"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            title="Notifications"
+            aria-label="Notifications"
+          >
+            <img
+              src="/images/notification-bell-trimmed.png"
+              alt="Notifications"
+              style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
+            />
+            {safeNotificationCount > 0 && (
+              <span className="orb-badge" aria-live="polite" aria-atomic="true">
+                {safeNotificationCount > 99 ? '99+' : safeNotificationCount}
+              </span>
+            )}
+          </button>
+
+          {/* Settings - Custom Metallic Gear icon */}
+          <button
+            onClick={() => (onSettingsClick ? onSettingsClick() : openOverlay('settings'))}
+            className="orb-btn"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            title="Settings"
+          >
+            <img
+              src="/images/header-settings-v4.png"
+              alt="Settings"
+              style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
+            />
+          </button>
+
+          {/* Live Help - Hidden on mobile */}
+          <button
+            onClick={() => {
+              console.debug('[UniversalHeader] Live Help button clicked');
+              liveHelp.setIsOpen(true);
+            }}
+            className="orb-btn"
+            aria-label="Live Help"
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              zIndex: 10,
+              overflow: 'hidden',
+            }}
+          >
+            <img
+              src="/images/header-help-v4.png"
+              alt="Live Help"
+              style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }}
+            />
+          </button>
+
+          {/* Search - HIDE on mobile */}
+          {showSearch && (
+            <button
+              onClick={onSearchClick}
+              className="hide-mobile"
+              style={{ background: 'none', border: 'none', padding: 0 }}
+            >
+              <div className="orb-btn">🔍</div>
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Live Help Panel */}
+      <LiveHelpPanel {...liveHelp} />
+
+      <DiamondWalletModal
+        isOpen={isWalletOpen}
+        onClose={() => setIsWalletOpen(false)}
+        onBuyClick={() => openOverlay('diamond-store')}
+        initialBalance={diamondBalance}
+      />
+
+      {/* Full-Screen Page Overlay — opens pages as popup instead of redirect */}
+      {/* Full-Screen Page Overlay — opens pages as a popup instead of navigating.
                 BUGFIX (header-audit #10): rendered unconditionally and driven by isOpen.
                 It used to be mounted behind `{overlayPage && ...}` with a hardcoded
                 isOpen={true}, which made the component's entire !isOpen branch dead code,
                 and the two inline arrow props were recreated on every parent render —
                 tearing down and re-adding the keydown and postMessage listeners on every
                 notification/balance tick. */}
-            <FullScreenPageOverlay
-                isOpen={!!overlayPage}
-                onClose={closeOverlay}
-                url={overlayPage ? overlayUrlMap[overlayPage] : null}
-                title={overlayPage ? OVERLAY_TITLES[overlayPage] : ''}
-                onNotifCleared={handleNotifCleared}
-            />
-        </>
-    );
+      <FullScreenPageOverlay
+        isOpen={!!overlayPage}
+        onClose={closeOverlay}
+        url={overlayPage ? overlayUrlMap[overlayPage] : null}
+        title={overlayPage ? OVERLAY_TITLES[overlayPage] : ''}
+        onNotifCleared={handleNotifCleared}
+      />
+    </>
+  );
 }
-
 
 // GEEVES LIVE HELP PANEL EXPORT
 export { LiveHelpPanel } from '../../world/components/Geeves';
