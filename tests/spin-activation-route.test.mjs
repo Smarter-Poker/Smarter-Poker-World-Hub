@@ -42,13 +42,20 @@ test('it authenticates before doing anything', () => {
 
 test('a club inside a union is the UNION LEAD\'s to control, not the club owner\'s', () => {
   // The trap: club.owner_id alone would let one club spend the union's money.
-  assert.match(code, /if \(club\.union_id\)/);
+  // Changed 2026-08-23: the branch is now taken on `ownerIsUnion`, which is
+  // true both when the club sits in a union AND when the id passed IS a union.
+  assert.match(code, /if \(ownerIsUnion\)/);
   assert.match(code, /from\('union_admins'\)/);
   assert.match(code, /admin\?\.role !== 'union_lead'/);
 });
 
 test('a standalone club is its own owner', () => {
-  assert.match(code, /club\.owner_id !== user\.id/);
+  // Changed 2026-08-23: this was an early `return { error: 403 }` on
+  // `club.owner_id !== user.id`. It now resolves to canManage instead, so a
+  // non-owner can still READ the wallet while every money action stays behind
+  // the gate below. Same rule, one place, and the panel gets told the answer
+  // rather than guessing it.
+  assert.match(code, /canManage: club\.owner_id === user\.id \|\| isPlatformAdmin/);
   assert.match(code, /ownerKind: 'club'/);
 });
 
@@ -107,4 +114,48 @@ test('reporting an error cannot replace the error', () => {
 test('the payload is size-capped like the other club-arena routes', () => {
   assert.match(code, /2048/);
   assert.match(code, /413/);
+});
+
+/**
+ * HARDENING, 2026-08-23 — findings from the adversarial pass over the feature.
+ *
+ * Two holes, both about the gap between "who owns this pool" and "who is
+ * allowed to spend it".
+ */
+
+test('a union id passed as clubId is treated as a UNION, not a club', () => {
+  // Every union carries a clubs row with the SAME uuid. Landing on that row and
+  // then testing clubs.owner_id would authorise club ownership where union
+  // leadership is required - the exact hole this file exists to close. Asking
+  // `unions` directly means a data change cannot open it.
+  assert.match(code, /from\('unions'\)\.select\('id'\)\.eq\('id', clubId\)/);
+  assert.match(code, /const ownerIsUnion = Boolean\(unionRow\) \|\| Boolean\(club\.union_id\)/);
+  assert.match(code, /if \(ownerIsUnion\)/);
+});
+
+test('permission is decided by the route and handed to the panel', () => {
+  // The panel used to infer it from owner_kind, which hid the off switch from
+  // the union lead who may press it, and showed an activate button to a club
+  // owner who may not.
+  assert.match(code, /canManage: auth\.canManage/);
+  assert.match(code, /canManage: true/);
+  assert.match(code, /canManage: false/);
+});
+
+test('a viewer who may not manage can still READ the wallet', () => {
+  // A club owner inside a union should see their union's Spin wallet on their
+  // own settings page; they simply cannot change it.
+  const getState = code.indexOf("action === 'get_state'");
+  const gate = code.indexOf('if (!auth.canManage)');
+  assert.ok(getState > -1 && gate > -1);
+  assert.ok(getState < gate, 'the read must be answered before the manage gate');
+});
+
+test('every money action is behind that gate', () => {
+  const gate = code.indexOf('if (!auth.canManage)');
+  const activate = code.indexOf("action === 'activate'");
+  const deactivate = code.indexOf("action === 'deactivate'");
+  assert.ok(gate > -1);
+  assert.ok(gate < activate, 'activate must be behind the manage gate');
+  assert.ok(gate < deactivate, 'deactivate must be behind the manage gate');
 });

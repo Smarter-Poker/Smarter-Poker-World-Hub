@@ -60,33 +60,54 @@ async function authorise(token, clubId) {
     .maybeSingle();
   if (!club) return { error: 'Club not found', status: 404 };
 
+  /**
+   * IS THIS ID ITSELF A UNION?
+   *
+   * Every union carries a clubs row with the SAME uuid (clubs.is_union = true),
+   * so passing a union's own id as clubId lands on a real clubs row. If that
+   * row's union_id were ever null, the branch below would fall through to the
+   * standalone-club test and authorise on clubs.owner_id -- checking club
+   * ownership where union leadership is required, which is precisely the hole
+   * this file exists to close. Today those rows do carry union_id, so the
+   * fall-through is not reachable; asking `unions` directly means it cannot
+   * become reachable by a data change nobody connected to this file.
+   */
+  const { data: unionRow } = await supabaseAdmin
+    .from('unions').select('id').eq('id', clubId).maybeSingle();
+  const ownerIsUnion = Boolean(unionRow) || Boolean(club.union_id);
+  const unionId = unionRow?.id || club.union_id;
+
   // Platform admins can always act.
   const { data: profile } = await supabaseAdmin
     .from('profiles').select('role').eq('id', user.id).maybeSingle();
   const isPlatformAdmin = ['admin', 'superadmin'].includes(profile?.role);
 
-  if (club.union_id) {
+  if (ownerIsUnion) {
     // The UNION owns this pool. Only the union lead (or a platform admin) may
     // spend union money — not the individual club owner.
     const { data: admin } = await supabaseAdmin
       .from('union_admins')
       .select('role')
-      .eq('union_id', club.union_id)
+      .eq('union_id', unionId)
       .eq('user_id', user.id)
       .maybeSingle();
     if (admin?.role !== 'union_lead' && !isPlatformAdmin) {
-      return {
-        error: 'This club is in a union, so its Spin wallet belongs to the union. Only the union lead can change it.',
-        status: 403,
-      };
+      // A read is still allowed -- the club owner should be able to SEE the
+      // union's Spin wallet on their own settings page, they just cannot
+      // change it. canManage is what the panel gates its buttons on, so it no
+      // longer has to infer permission from owner_kind and get it wrong in
+      // both directions.
+      return { user, ownerId: unionId, ownerKind: 'union', canManage: false };
     }
-    return { user, ownerId: club.union_id, ownerKind: 'union' };
+    return { user, ownerId: unionId, ownerKind: 'union', canManage: true };
   }
 
-  if (club.owner_id !== user.id && !isPlatformAdmin) {
-    return { error: 'Only the club owner can change this', status: 403 };
-  }
-  return { user, ownerId: club.id, ownerKind: 'club' };
+  return {
+    user,
+    ownerId: club.id,
+    ownerKind: 'club',
+    canManage: club.owner_id === user.id || isPlatformAdmin,
+  };
 }
 
 export default async function handler(req, res) {
@@ -114,7 +135,24 @@ export default async function handler(req, res) {
     if (action === 'get_state') {
       const { data, error } = await supabaseAdmin.rpc('fn_spin_owner_state', { p_club_id: clubId });
       if (error) throw error;
-      return res.status(200).json({ success: true, state: data, ownerKind: auth.ownerKind });
+      // canManage is decided HERE, where the union_admins and clubs.owner_id
+      // rows actually are. The panel used to infer it from owner_kind, which
+      // hid the off switch from the union lead who is allowed to press it and
+      // showed an activate button to a club owner who is not.
+      return res
+        .status(200)
+        .json({ success: true, state: data, ownerKind: auth.ownerKind, canManage: auth.canManage });
+    }
+
+    // Everything past here MOVES MONEY.
+    if (!auth.canManage) {
+      return res.status(403).json({
+        success: false,
+        error:
+          auth.ownerKind === 'union'
+            ? 'This Spin wallet belongs to the union. Only the union lead can change it.'
+            : 'Only the club owner can change this',
+      });
     }
 
     if (action === 'activate') {
