@@ -277,13 +277,6 @@ ALL_CRONS = [
     # deletes them up to a 200-object cap per run. Dry-run available via
     # ?dry=1 query param.
     ('/api/cron/cleanup-orphan-uploads',    dict(hour=3, minute=30)),
-    # ── MLB Analytics Engine (SCRIPT_JOBS) ────────────────────────────────────
-    ('/api/cron/mlb-analytics-daily',       dict(hour=8,  minute=0)),   # Daily 08:00 UTC (3am CDT)  — Full MLB data refresh & predict
-    ('/api/cron/mlb-analytics-noon',        dict(hour=13, minute=0)),   # Daily 13:00 UTC (8am CDT)  — Safety-net: catch any games missed at 3am
-    ('/api/cron/mlb-analytics-noon',        dict(hour=16, minute=0)),   # Daily 16:00 UTC (11am CDT) — Pre-noon guarantee: all games predicted
-    ('/api/cron/mlb-analytics-noon',        dict(hour=17, minute=0)),   # Daily 17:00 UTC (noon CDT) — Final safety-net: 2h before first pitch
-    ('/api/cron/mlb-analytics-intraday',    dict(hour='15-23,0-3', minute='0,15,30,45')), # Every 15 mins intraday (10am–11:59pm CDT)
-    ('/api/cron/mlb-hr-cache-refresh',      dict(hour=11, minute=0)),  # Daily 11:00 UTC (7am ET) — refresh HR due-score cache for /hub/MLB-ANALYTICS/hr-tracker
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
@@ -929,90 +922,6 @@ def make_job(path):
             t0 = time.time()
             try:
                 result = subprocess.run(cmd, capture_output=False, timeout=120)
-                elapsed = round(time.time() - t0, 1)
-                if result.returncode == 0:
-                    log.info(f'✅ {path} script exited 0 [{elapsed}s]')
-                else:
-                    log.warning(f'⚠️ {path} script exited {result.returncode} [{elapsed}s]')
-            except Exception as e:
-                log.error(f'❌ {path} script error: {e}')
-    elif path == '/api/cron/mlb-analytics-daily':
-        def _job():
-            script_path = str(Path.home() / 'Documents' / 'mlb-analytics-engine' / 'run_daily.sh')
-            # Host-portability guard (2026-08-16): SCRIPT_JOBS are Mac-primary
-            # (see precedence note above). On the Hetzner dispatcher these paths
-            # do not exist, and spawning them anyway produced a failing subprocess
-            # every scheduled tick -- that exact noise is what flagged the
-            # duplicate dispatcher on reels-transcode-worker today:
-            #   can't open file '.../scrape-cardplayer.py': No such file or directory
-            #   script exited 2
-            # Skip cleanly instead, so the same file is safe to deploy to every
-            # host and the job simply runs wherever its script actually lives.
-            if not os.path.exists(script_path):
-                log.info(f'{path}: script not present on this host ({script_path}) - skipping')
-                return
-            cmd = ['bash', script_path]
-            log.info(f'▶ Script job {path} → {" ".join(cmd)}')
-            t0 = time.time()
-            try:
-                result = subprocess.run(cmd, capture_output=False, timeout=600)
-                elapsed = round(time.time() - t0, 1)
-                if result.returncode == 0:
-                    log.info(f'✅ {path} script exited 0 [{elapsed}s]')
-                else:
-                    log.warning(f'⚠️ {path} script exited {result.returncode} [{elapsed}s]')
-            except Exception as e:
-                log.error(f'❌ {path} script error: {e}')
-    elif path == '/api/cron/mlb-analytics-noon':
-        def _job():
-            # Noon safety-net: ingest+predict+push only — catches any games
-            # that had zero pred_market_output rows after the 3am daily run.
-            # Fast path (~10-15 min). Upserts are idempotent for already-predicted games.
-            script_path = str(Path.home() / 'Documents' / 'mlb-analytics-engine' / 'run_noon.sh')
-            # Host-portability guard (2026-08-16): SCRIPT_JOBS are Mac-primary
-            # (see precedence note above). On the Hetzner dispatcher these paths
-            # do not exist, and spawning them anyway produced a failing subprocess
-            # every scheduled tick -- that exact noise is what flagged the
-            # duplicate dispatcher on reels-transcode-worker today:
-            #   can't open file '.../scrape-cardplayer.py': No such file or directory
-            #   script exited 2
-            # Skip cleanly instead, so the same file is safe to deploy to every
-            # host and the job simply runs wherever its script actually lives.
-            if not os.path.exists(script_path):
-                log.info(f'{path}: script not present on this host ({script_path}) - skipping')
-                return
-            cmd = ['bash', script_path]
-            log.info(f'▶ Script job {path} → {" ".join(cmd)}')
-            t0 = time.time()
-            try:
-                result = subprocess.run(cmd, capture_output=False, timeout=600)
-                elapsed = round(time.time() - t0, 1)
-                if result.returncode == 0:
-                    log.info(f'✅ {path} script exited 0 [{elapsed}s]')
-                else:
-                    log.warning(f'⚠️ {path} script exited {result.returncode} [{elapsed}s]')
-            except Exception as e:
-                log.error(f'❌ {path} script error: {e}')
-    elif path == '/api/cron/mlb-analytics-intraday':
-        def _job():
-            script_path = str(Path.home() / 'Documents' / 'mlb-analytics-engine' / 'run_intraday.sh')
-            # Host-portability guard (2026-08-16): SCRIPT_JOBS are Mac-primary
-            # (see precedence note above). On the Hetzner dispatcher these paths
-            # do not exist, and spawning them anyway produced a failing subprocess
-            # every scheduled tick -- that exact noise is what flagged the
-            # duplicate dispatcher on reels-transcode-worker today:
-            #   can't open file '.../scrape-cardplayer.py': No such file or directory
-            #   script exited 2
-            # Skip cleanly instead, so the same file is safe to deploy to every
-            # host and the job simply runs wherever its script actually lives.
-            if not os.path.exists(script_path):
-                log.info(f'{path}: script not present on this host ({script_path}) - skipping')
-                return
-            cmd = ['bash', script_path]
-            log.info(f'▶ Script job {path} → {" ".join(cmd)}')
-            t0 = time.time()
-            try:
-                result = subprocess.run(cmd, capture_output=False, timeout=600)
                 elapsed = round(time.time() - t0, 1)
                 if result.returncode == 0:
                     log.info(f'✅ {path} script exited 0 [{elapsed}s]')

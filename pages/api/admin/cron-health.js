@@ -68,7 +68,6 @@ const CRON_REGISTRY = [
     { name: 'cleanup-stale-streams',      location: 'open-claw', intervalMin: 5,     description: 'Close stale live streams' },
     { name: 'live-cleanup',               location: 'open-claw', intervalMin: 5,     description: 'Live surface cleanup' },
     { name: 'live-reminders',             location: 'open-claw', intervalMin: 5,     description: 'Live stream reminders' },
-    { name: 'mlb-hr-cache-refresh',       location: 'open-claw', intervalMin: 1440,  description: 'MLB HR due-score cache refresh' },
     { name: 'social-page-completion-nudge', location: 'open-claw', intervalMin: 4320, description: 'Nudge incomplete social pages' },
     { name: 'transcode-videos',           location: 'open-claw', intervalMin: 1,     description: 'Drain video transcode queue' },
     { name: 'yt-pipeline-recovery',       location: 'open-claw', intervalMin: 15,    description: 'YT worker queue top-up' },

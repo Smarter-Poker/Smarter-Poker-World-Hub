@@ -19,15 +19,15 @@
 // NOTE: This handler uses Node.js Pages Router API (req.query, res.setHeader, res.status)
 // and CANNOT run on Edge Runtime. Keep as Node.js runtime (no export const runtime = 'edge').
 
-const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const getSupaConfig = () => ({ url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY });
+
 
 // Raw fetch wrapper — avoids Supabase JS client cold-start overhead (~300ms)
 async function supaFetch(path, options = {}) {
-    const res = await fetch(`${SUPA_URL}/rest/v1${path}`, {
+    const { url, key } = getSupaConfig(); const res = await fetch(`${url}/rest/v1${path}`, {
         headers: {
-            'apikey': SUPA_KEY,
-            'Authorization': `Bearer ${SUPA_KEY}`,
+            'apikey': key,
+            'Authorization': `Bearer ${key}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             ...options.headers,
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
             try {
                 const { getServerUserWithFallback } = await import('../../../src/lib/serverAuth');
                 const { createClient } = await import('../../../src/lib/supabaseServerClient');
-                const authClient = createClient(SUPA_URL, SUPA_KEY);
+                const { url: au, key: ak } = getSupaConfig(); const authClient = createClient(au, ak);
                 const { user: authUser } = await getServerUserWithFallback(req, authClient);
                 userId = authUser?.id || null;
             } catch (e) {
