@@ -4,6 +4,19 @@ name: Build Safety Gate
 on:
   push:
     branches: ['main']
+    # COST: every Club Arena merge rsyncs a compiled bundle into this repo and
+    # pushes it to main. On 2026-08-22 that happened 76 times, and each one woke
+    # nine workflows here that have nothing to say about minified output — 947
+    # runs in Club Arena produced 950 in World Hub. GitHub bills per JOB rounded
+    # up to a whole minute, so a 20-second guard costs a full minute.
+    #
+    # ONLY the `push` trigger is filtered. Never add paths-ignore to
+    # `pull_request`: a PR touching only these paths would then never report
+    # this context, and a required check that never reports is a pull request
+    # that never merges.
+    # Skipped here because its checks are all about source. This is the expensive one — four jobs including tsc and a dozen node scripts.
+    paths-ignore:
+      - 'public/hub/club-arena/**'
   pull_request:
     branches: ['main']
 
