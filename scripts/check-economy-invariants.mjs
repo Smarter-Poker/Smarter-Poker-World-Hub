@@ -50,7 +50,30 @@ if (!url || !key) {
 // Dependency-free on purpose: the Build Safety Gate job does not npm install.
 const endpoint = `${url.replace(/\/+$/, '')}/rest/v1/rpc/economy_invariants`;
 
-const TRANSIENT_ATTEMPTS = 4;
+/* The retry budget has to outlast a PostgREST SCHEMA CACHE RELOAD.
+ *
+ * 4 attempts at 3s, 6s and 9s gives up about 18 seconds after the first
+ * failure. That was enough for a statement timeout and not enough for the
+ * thing that actually happens here several times a day: every DDL migration
+ * applied to production makes PostgREST rebuild its schema cache, and while it
+ * does, every request answers
+ *
+ *   HTTP 503 {"code":"PGRST002","message":"Could not query the database for
+ *   the schema cache. Retrying."}
+ *
+ * On a schema this size - 831 tables and 2,024 functions - that window is
+ * comfortably longer than 18 seconds. It closed this gate on 2026-08-22 for the
+ * third time in one day, on a branch whose entire diff was a workflow file and
+ * a test, while every assertion behind it was passing.
+ *
+ * 7 attempts with a 5s step capped at 30s spends up to ~105 seconds before
+ * giving up. That is slower to report a genuinely dead database and much less
+ * likely to report a live one as dead, which is the right trade for a gate that
+ * blocks every merge in the repository.
+ */
+const TRANSIENT_ATTEMPTS = 7;
+const TRANSIENT_STEP_MS = 5000;
+const TRANSIENT_MAX_WAIT_MS = 30000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* CALL AN RPC, RETRYING ONLY TRANSPORT TROUBLE.
@@ -72,7 +95,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * point: the next RPC added to this file gets the same treatment for free
  * instead of becoming the third incident.
  *
- * 5xx, 429, 57014 and a thrown fetch are the network having a bad minute.
+ * 5xx, 429, 57014, PGRST002 and a thrown fetch are the network having a bad
+ * minute. PGRST002 arrives as a 503 so it is already caught by the status test;
+ * it is named here because it is the most COMMON of them in this estate and the
+ * least obviously transient-looking to someone reading the log for the first
+ * time. It is what PostgREST answers while it rebuilds its schema cache after
+ * a migration.
  * A FALSE ASSERTION IS NEVER RETRIED - that is the signal, and retrying it
  * would be hiding it.
  */
@@ -98,7 +126,7 @@ async function rpcWithRetry(label, target) {
             lastProblem = err?.message || String(err);
         }
         if (attempt < TRANSIENT_ATTEMPTS) {
-            const wait = attempt * 3000;
+            const wait = Math.min(attempt * TRANSIENT_STEP_MS, TRANSIENT_MAX_WAIT_MS);
             console.warn(
                 `[${label}] transient failure (attempt ${attempt}/${TRANSIENT_ATTEMPTS}): ` +
                     `${lastProblem} — retrying in ${wait / 1000}s`
