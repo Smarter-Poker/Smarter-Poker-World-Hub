@@ -125,9 +125,50 @@ export default async function handler(req, res) {
         .eq('status', 'active')
         .maybeSingle();
 
+      // SPIN TREASURY 2026-08-23: union_wallets.spin_reserve_wallet is the
+      // *unallocated* reserve column and it reads 0 — every chip ever seeded
+      // (20,000 taken out of promo_wallet on 2026-08-20) went straight into the
+      // pool row and never sat in the column. Reporting only the column told the
+      // union it had no Spin capital while 24,932 was live in the pool. Report
+      // both: the idle column, the deployed pool balance, and the sum.
+      const { data: unionClubRows } = await supabaseAdmin
+        .from('union_clubs')
+        .select('club_id')
+        .eq('union_id', unionId);
+      // The union-owned pool is keyed by the union id itself (owner_kind='union');
+      // club-owned pools by their club id. Cover both.
+      const spinOwnerIds = [unionId, ...(unionClubRows || []).map((r) => r.club_id)];
+      const { data: spinPools } = await supabaseAdmin
+        .from('spin_bonus_pools')
+        .select(
+          'id, club_id, owner_kind, balance, seeded_amount, total_deposited, total_drawn, is_active'
+        )
+        .in('club_id', spinOwnerIds)
+        .eq('is_active', true);
+      const spinDeployed = (spinPools || []).reduce(
+        (sum, sp) => sum + Number(sp.balance || 0),
+        0
+      );
+
       const w = wallet || {};
       return res.json({
         success: true,
+        spin_treasury: {
+          // Idle capital in the union wallet, not yet seeded into a pool.
+          unallocated: Number(w.spin_reserve_wallet || 0),
+          // Live balance across every active Spin pool this union owns.
+          deployed: spinDeployed,
+          total: Number(w.spin_reserve_wallet || 0) + spinDeployed,
+          pools: (spinPools || []).map((sp) => ({
+            id: sp.id,
+            owner_id: sp.club_id,
+            owner_kind: sp.owner_kind,
+            balance: Number(sp.balance || 0),
+            seeded_amount: Number(sp.seeded_amount || 0),
+            total_deposited: Number(sp.total_deposited || 0),
+            total_drawn: Number(sp.total_drawn || 0),
+          })),
+        },
         bbj_pool: pool
           ? {
               id: pool.id,
@@ -163,6 +204,9 @@ export default async function handler(req, res) {
             Number(w.promo_wallet || 0) +
             Number(w.insurance_wallet || 0) +
             Number(w.spin_reserve_wallet || 0) +
+            // Deployed Spin capital is union money too — it was debited out of
+            // promo_wallet, so leaving it out understated the union by 24,932.
+            spinDeployed +
             Number(union.backup_bbj_balance || 0),
         },
         recentTransactions: recentTxns || [],
