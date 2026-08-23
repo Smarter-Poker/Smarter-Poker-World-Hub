@@ -142,3 +142,52 @@ test('the economy gate waits long enough for a schema cache reload', () => {
         'the retry helper no longer states that assertions are not retried - retrying one would hide it'
     );
 });
+
+/**
+ * Every environment variable the suite READS, the workflow must PASS.
+ *
+ * e2e/00-auth.setup.ts signs in as the standing test account and saves the
+ * storage state every other spec depends on. It reads TEST_USER_PASSWORD; the
+ * workflow never passed it. page.fill() therefore received `undefined` and
+ * threw "value: expected string, got undefined" - three times, once per retry -
+ * failing the setup project and with it all 244 tests, from a message that
+ * mentions neither a secret nor CI configuration.
+ *
+ * It went unnoticed because the build had been dying of a heap OOM before
+ * Playwright ever started, so nobody had seen the suite actually run.
+ */
+test('the E2E workflow passes every env var the auth setup reads', () => {
+    const setupSrc = fs.readFileSync(path.join(REPO, 'e2e/00-auth.setup.ts'), 'utf8');
+    const workflow = fs.readFileSync(path.join(WORKFLOWS, 'e2e-tests.yml'), 'utf8');
+
+    const read = new Set(
+        [...setupSrc.matchAll(/process\.env\.([A-Z0-9_]+)/g)].map((m) => m[1])
+    );
+    assert.ok(read.size > 0, 'the auth setup reads no environment at all - has it been rewritten?');
+
+    const missing = [...read].filter((name) => !workflow.includes(name));
+    assert.deepEqual(
+        missing,
+        [],
+        'e2e/00-auth.setup.ts reads environment the E2E workflow never passes, so ' +
+            'sign-in fails and every spec behind it fails with it: ' +
+            missing.join(', ')
+    );
+});
+
+test('a missing test password fails loudly instead of skipping', () => {
+    const setupSrc = fs.readFileSync(path.join(REPO, 'e2e/00-auth.setup.ts'), 'utf8');
+
+    assert.match(
+        setupSrc,
+        /if \(!process\.env\.TEST_USER_PASSWORD\)/,
+        'the auth setup no longer checks for the password before using it - an absent value throws "expected string, got undefined", which names nothing'
+    );
+    // Skipping would be worse than failing: every assertion after this point
+    // would run against a logged-out page and still go green.
+    assert.doesNotMatch(
+        setupSrc,
+        /setup\.skip\(/,
+        'the auth setup skips when it cannot sign in - the suite would then pass without ever being logged in'
+    );
+});

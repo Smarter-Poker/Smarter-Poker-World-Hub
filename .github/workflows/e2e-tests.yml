@@ -109,6 +109,14 @@ jobs:
         run: npx playwright test --project=chromium
         env:
           CI: true
+          # e2e/00-auth.setup.ts signs in as the standing test account and every
+          # other spec depends on the storage state it saves. This value was
+          # never passed, so page.fill() got `undefined` and threw
+          # "value: expected string, got undefined" - which fails the setup
+          # project and therefore all 244 tests, from a message that says
+          # nothing about a missing secret. Nobody saw it, because the build had
+          # been OOMing before Playwright ever started.
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
