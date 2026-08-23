@@ -50,6 +50,17 @@ CREATE TABLE IF NOT EXISTS commander_blind_structure_backup_20260822 (
 COMMENT ON TABLE commander_blind_structure_backup_20260822 IS
   'Pre-image rollback for the 2026-08-22 legacy blind-key repair ({big,small} -> {big_blind,small_blind}). Safe to drop once the repaired structures have been reviewed.';
 
+-- Lock it down IN THIS FILE. CREATE TABLE in the public schema leaves RLS off
+-- and the anon/authenticated grants in place, which trips the
+-- `no_rls_off_tables_writable_by_clients` economy invariant and turns the
+-- Build Safety Gate red for every branch, not just this one. That is exactly
+-- what happened on 2026-08-22. A rollback artifact holding tournament names
+-- and structures is service_role-only.
+REVOKE ALL ON TABLE commander_blind_structure_backup_20260822 FROM PUBLIC;
+REVOKE ALL ON TABLE commander_blind_structure_backup_20260822 FROM anon;
+REVOKE ALL ON TABLE commander_blind_structure_backup_20260822 FROM authenticated;
+ALTER TABLE commander_blind_structure_backup_20260822 ENABLE ROW LEVEL SECURITY;
+
 WITH affected AS (
   SELECT id, name, blind_structure
     FROM commander_tournaments
