@@ -19,6 +19,19 @@ name: Preview Signup Gate
 on:
   deployment_status:
 
+# Without this the job runs with the default token permissions for a
+# deployment_status event, which cannot read pull requests or write comments -
+# so the "Comment on PR with result" step died with
+#   403 Resource not accessible by integration
+#     GET /repos/.../commits/<sha>/pulls
+# on every run, turning a failing gate into a failing gate that also could not
+# say why.
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+  deployments: write
+
 # Only run on Vercel previews — not localhost or production rebuilds
 jobs:
   gate:
@@ -75,6 +88,20 @@ jobs:
           # Service-role key allows the test to clean up after itself
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          # THE APIKEY THE SIGNUP CALL SENDS. signup-real.spec.ts:121-124 posts
+          # to <supabase>/auth/v1/signup and takes its `apikey` header from
+          #   page.evaluate(... __NEXT_DATA__.runtimeConfig ...)
+          #     || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+          # The page lookup returns undefined (publicRuntimeConfig is not
+          # exposed there), and this variable was never passed - so apikey was
+          # undefined and Supabase answered
+          #   401 {"message":"No API key found in request"}
+          # on EVERY run. The gate has therefore been red for a configuration
+          # reason, not a real one, which is worse than having no gate: it
+          # exists to catch the 9-day silent signup outage described at the top
+          # of this file, and a check that always fails is a check nobody reads.
+          # The secret already exists and e2e-tests.yml already passes it.
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           # Bypass Vercel deployment protection on preview URLs so
           # Playwright can reach /auth/signup, /auth/login, etc.
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
