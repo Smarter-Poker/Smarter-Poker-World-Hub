@@ -328,7 +328,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     const exitOrb = useWorldStore((state) => state.exitOrb);
 
     // NEW USER WELCOME: Get modal state from AvatarContext
-    const { showWelcomeModal, dismissWelcomeModal, user: avatarUser } = useAvatar();
+    const { showWelcomeModal, dismissWelcomeModal, user: avatarUser, avatar } = useAvatar();
 
     // Next.js router for actual page navigation
     const router = useRouter();
@@ -459,61 +459,75 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 const user = getAuthUser();
 
                 if (user) {
-                    const { supabase } = await import('../lib/supabase');
+                    // Mark user as authenticated immediately. This used to sit
+                    // AFTER the two awaits below, so authentication state was
+                    // gated on a profile query plus an API round-trip that it
+                    // does not depend on.
+                    setIsAuthenticated(true);
 
-                    // Fetch profile avatar
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('avatar_url')
-                        .eq('id', user.id)
-                        .maybeSingle();
-                    if (profile?.avatar_url) {
-                        setUserAvatarUrl(profile.avatar_url);
-                    }
+                    // PERF (2026-08-24): the profiles.avatar_url query that used
+                    // to live here has been removed. AvatarContext already holds
+                    // that value (and get-header-stats already fetched it for
+                    // the header), so this was a third read of the same column
+                    // on every hub load. It is now derived from context in the
+                    // effect below.
 
-                    // 🔑 Commander account detection — use server-side API to bypass RLS
+                    // 🔑 Commander account detection — use server-side API to bypass RLS.
+                    // PERF (2026-08-24): fire-and-forget. Nothing after this
+                    // point in the effect depends on the answer; it only calls
+                    // setHasCommanderAccount when it lands, which re-renders the
+                    // carousel on its own.
                     if (!hasCommanderAccount) {
-                        try {
-                            // Get access token from authUtils (same pattern as all Commander APIs)
-                            const { getAccessToken } = await import('../lib/authUtils');
-                            const token = getAccessToken();
-                            if (token) {
+                        void (async () => {
+                            try {
+                                // Get access token from authUtils (same pattern as all Commander APIs)
+                                const { getAccessToken } = await import('../lib/authUtils');
+                                const token = getAccessToken();
+                                if (!token) return;
                                 const res = await fetch('/api/check-access', {
                                     headers: { 'Authorization': `Bearer ${token}` },
                                 });
-                                if (res.ok) {
-                                    const data = await res.json();
-                                    if (data.hasAccess) {
-                                        setHasCommanderAccount(true);
-                                        // Backfill localStorage so future visits are instant
-                                        try {
-                                            localStorage.setItem('commander_staff', JSON.stringify({ role: 'owner', venue_id: data.venueIds?.[0] || '1' }));
-                                            // Store tier for tier-gated sidebar
-                                            if (data.tier) {
-                                                const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
-                                                sub.tier = data.tier;
-                                                localStorage.setItem('commander_subscription', JSON.stringify(sub));
-                                            }
-                                            console.log('[WorldHub] 🏢 Commander account detected via API');
-                                        } catch (e) { console.warn('[App] Handled exception:', e); }
+                                if (!res.ok) return;
+                                const data = await res.json();
+                                if (!data.hasAccess) return;
+                                setHasCommanderAccount(true);
+                                // Backfill localStorage so future visits are instant
+                                try {
+                                    localStorage.setItem('commander_staff', JSON.stringify({ role: 'owner', venue_id: data.venueIds?.[0] || '1' }));
+                                    // Store tier for tier-gated sidebar
+                                    if (data.tier) {
+                                        const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
+                                        sub.tier = data.tier;
+                                        localStorage.setItem('commander_subscription', JSON.stringify(sub));
                                     }
-                                }
+                                    console.log('[WorldHub] 🏢 Commander account detected via API');
+                                } catch (e) { console.warn('[App] Handled exception:', e); }
+                            } catch (e) {
+                                console.warn('[WorldHub] Commander check failed (non-critical):', e);
                             }
-                        } catch (e) {
-                            console.warn('[WorldHub] Commander check failed (non-critical):', e);
-                        }
+                        })();
                     }
 
                     // Employee Portal removed — Work Schedule merged into Toke Tracker
                 }
-                // Mark user as authenticated (sets isAuthenticated for future features)
-                if (user) setIsAuthenticated(true);
             } catch (e) {
                 console.warn('Failed to fetch user profile:', e);
             }
         };
         fetchUserProfile();
     }, []);
+
+    // PERF (2026-08-24): the avatar URL now comes from AvatarContext, which
+    // already loaded it, instead of a dedicated profiles.avatar_url query on
+    // every hub mount. AvatarContext resolves it from the profile row it
+    // reads once, falling back to the auth user's metadata.
+    useEffect(() => {
+        const fromContext =
+            (avatar as { imageUrl?: string } | null)?.imageUrl
+            || (avatarUser as { user_metadata?: { avatar_url?: string } } | null)?.user_metadata?.avatar_url
+            || null;
+        if (fromContext) setUserAvatarUrl(fromContext);
+    }, [avatar, avatarUser]);
 
     // Handle buy diamonds click - navigate to store
     const handleBuyDiamonds = () => {

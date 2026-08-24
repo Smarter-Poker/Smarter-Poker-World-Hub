@@ -25,7 +25,6 @@ import { supabase } from '../../lib/supabase';
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 
 import FullScreenPageOverlay from './FullScreenPageOverlay';
-import ClubArenaWarmup from '../perf/ClubArenaWarmup';
 
 // ── PERF: Lazy-load DiamondWalletModal only when opened (saves ~95KB from initial bundle) ──
 const DiamondWalletModal = dynamic(() => import('../store/DiamondWalletModal'), {
@@ -39,6 +38,7 @@ import useCurrentUser from '../../hooks/useCurrentUser';
 import { useActiveIdentity } from '../../contexts/ActiveIdentityContext';
 import { eventBus, EventType } from '../../engine/EventBus';
 import { listenBroadcast, broadcastSync } from '../../lib/broadcastSync';
+import { getHeaderStats } from '../../lib/headerStats';
 
 // Dark theme colors matching hub
 const C = {
@@ -381,28 +381,20 @@ export default function UniversalHeader({
           const fetchProfileWithRetry = async (attempt = 1) => {
             if (!mounted) return false;
             try {
-              // Get access token for JWT auth
-              let accessToken = null;
-              try {
-                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                accessToken = authData?.access_token || null;
-              } catch (e) {
-                console.warn('[App] Handled exception:', e?.message || e);
-              }
-
-              const response = await fetch('/api/user/get-header-stats', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-                },
-                body: JSON.stringify({ userId: authUser.id }),
+              // PERF (2026-08-24): this hand-rolled fetch was one of THREE
+              // concurrent /api/user/get-header-stats calls per page load (the
+              // others being UnreadProvider and useDiamondBalance), each ~8 DB
+              // round-trips. getHeaderStats() memoises the in-flight promise so
+              // they collapse into a single request.
+              // force from attempt 2 on: a retry must re-hit the network rather
+              // than be handed back the cached failure it is retrying.
+              const result = await getHeaderStats({
+                userId: authUser.id,
+                force: attempt > 1,
               });
-
-              const result = await response.json();
               console.debug(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
 
-              if (result.success && result.profile && mounted) {
+              if (result?.success && result.profile && mounted) {
                 const { diamonds, full_name, username, avatar_url, is_vip, is_admin } =
                   result.profile;
                 setDiamondBalance(diamonds ?? 0);
@@ -576,21 +568,11 @@ export default function UniversalHeader({
           // fetchUnreadCount is now only used by the BroadcastChannel refresh listener below.
           const fetchUnreadCount = async () => {
             try {
-              let accessToken = null;
-              try {
-                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                accessToken = authData?.access_token || null;
-              } catch (_) {}
-              const res = await fetch('/api/user/get-header-stats', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-                },
-                body: JSON.stringify({ userId: authUser.id }),
-              });
-              const result = await res.json();
-              if (result.success && typeof result.notificationCount === 'number' && mounted) {
+              // force: this only runs from the cross-tab "notifications were
+              // read elsewhere" broadcast, which exists precisely to pick up a
+              // change the cached payload predates.
+              const result = await getHeaderStats({ userId: authUser.id, force: true });
+              if (result?.success && typeof result.notificationCount === 'number' && mounted) {
                 setNotificationCount(result.notificationCount);
                 try {
                   localStorage.setItem('sp-notif-count', String(result.notificationCount));
@@ -798,23 +780,9 @@ export default function UniversalHeader({
 
   return (
     <>
-      {/* Puts the whole Club Arena boot set on the device while this page is
-          idle, so tapping the tile is answered from cache instead of from
-          Vercel. See ClubArenaWarmup for what it does and when it declines. */}
-      <ClubArenaWarmup />
       <Head>
-        {/* Background cache of the Club Arena shell.
-            2026-08-24: this line spent a long time doing NOTHING. The shell was
-            served `Cache-Control: no-cache, no-store, must-revalidate`, and a
-            response that may not be stored cannot be reused by the prefetch
-            cache — so the browser downloaded it on every page view and threw it
-            away. vercel.json now serves that URL `no-cache, must-revalidate`:
-            still revalidated before every use, but storable, so this works.
-            Do not put `no-store` back without deleting this line too. */}
+        {/* Aggressive background cache of the Club Arena integration. This downloads the HTML document and triggers sub-resource fetching before the user clicks. */}
         <link rel="prefetch" href="/hub/club-arena" as="document" />
-        {/* The first thing Club Arena does after boot is talk to Supabase.
-            Warming DNS + TLS from here means that handshake is already done. */}
-        <link rel="preconnect" href="https://kuklfnapbkmacvwxktbh.supabase.co" crossOrigin="anonymous" />
         {/* 🛡️ PRELOAD avatar image so it stays in browser cache across page navigations */}
         {displayAvatar && <link rel="preload" as="image" href={displayAvatar} />}
       </Head>

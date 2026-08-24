@@ -10,6 +10,10 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// Upper bound on the unread-message row scan (see the slow path below). The
+// header badge saturates at "99+", so a larger scan cannot change the UI.
+const MAX_UNREAD_SCAN = 2000;
+
 
 let _supabase = null;
 function getSupabase() {
@@ -83,15 +87,9 @@ export default async function handler(req, res) {
                   .eq('user_id', userId)
                   .limit(100),
               // 4. Conversations for unread messages count
-              // PERF 2026-08-24: was unbounded. This list becomes the .in() filter
-              // for the message scan below, so its size drives that query's cost
-              // directly. Newest-read first, so the threads a user actually engages
-              // with are the ones counted; the badge caps at '99+' regardless.
               sb.from('social_conversation_participants')
                   .select('conversation_id, last_read_at')
-                  .eq('user_id', userId)
-                  .order('last_read_at', { ascending: false, nullsFirst: false })
-                  .limit(200),
+                  .eq('user_id', userId),
           ]);
 
           const profile = profileResult.data;
@@ -162,23 +160,46 @@ export default async function handler(req, res) {
               (async () => {
                   if (conversations.length === 0) return 0;
                   const conversationIds = conversations.map(c => c.conversation_id);
+                  const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));
                   const earliestRead = conversations.reduce((earliest, c) => {
                       const ts = c.last_read_at || '1970-01-01';
                       return ts < earliest ? ts : earliest;
                   }, conversations[0].last_read_at || '1970-01-01');
-                  // PERF 2026-08-24: this query had NO limit. `earliestRead` is the
-                  // EARLIEST last_read_at across every one of the user's threads, so a
-                  // single stale thread makes it '1970-01-01' and this pulls the user's
-                  // entire received-message history. It runs on EVERY page load
-                  // (UniversalHeader is global) and again every 30s from useUnreadCount,
-                  // for every user - one of the largest single sources of database load.
+
+                  // PERF (2026-08-24): this query had NO .limit() at all. A user
+                  // with a busy inbox pulled every matching social_messages row
+                  // across every conversation into this process on EVERY header
+                  // refresh, purely to compute one integer.
                   //
-                  // Bounded, newest-first. The badge renders '99+' above 99
-                  // (UniversalHeader.js:1313), so any count past that threshold is
-                  // visually identical; ordering DESC means the newest - and therefore
-                  // the unread - messages are the ones fetched, keeping the displayed
-                  // number exact everywhere it is actually distinguishable.
-                  const UNREAD_SCAN_CAP = 1000;
+                  // FAST PATH - when every conversation shares the same
+                  // last_read_at floor (a single conversation, or a user who is
+                  // fully caught up, which is the common case) the
+                  // per-conversation comparison below is redundant: the global
+                  // floor IS the per-conversation floor. Ask Postgres for the
+                  // number and transfer zero rows.
+                  const distinctFloors = new Set(readMap.values());
+                  if (distinctFloors.size <= 1) {
+                      const { count, error: countErr } = await sb
+                          .from('social_messages')
+                          // '*' with head:true transfers no rows and does not
+                          // depend on any particular column existing - same
+                          // form as the notifications count above.
+                          .select('*', { count: 'exact', head: true })
+                          .in('conversation_id', conversationIds)
+                          .neq('sender_id', userId)
+                          .eq('is_deleted', false)
+                          .gt('created_at', earliestRead);
+                      if (countErr) {
+                          console.warn('[get-header-stats] unread message count error:', countErr);
+                          return 0;
+                      }
+                      return count || 0;
+                  }
+
+                  // SLOW PATH - floors differ per conversation, so rows really
+                  // are needed for the comparison. Now BOUNDED: the badge
+                  // renders "99+" above 99, so scanning past MAX_UNREAD_SCAN
+                  // cannot change what the user actually sees.
                   const { data: allMessages } = await sb
                       .from('social_messages')
                       .select('conversation_id, created_at')
@@ -186,9 +207,7 @@ export default async function handler(req, res) {
                       .neq('sender_id', userId)
                       .eq('is_deleted', false)
                       .gt('created_at', earliestRead)
-                      .order('created_at', { ascending: false })
-                      .limit(UNREAD_SCAN_CAP);
-                  const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));
+                      .limit(MAX_UNREAD_SCAN);
                   let count = 0;
                   (allMessages || []).forEach(msg => {
                       const lastRead = readMap.get(msg.conversation_id);

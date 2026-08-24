@@ -35,6 +35,7 @@ import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
 // EventBus import removed — Supabase Realtime is the sole badge updater
 import { listenBroadcast, broadcastSync } from '../lib/broadcastSync';
+import { getHeaderStats } from '../lib/headerStats';
 import toast from '../stores/toastStore';
 
 
@@ -135,8 +136,13 @@ export function UnreadProvider({ children }) {
     // BUG-FIX-LIVE-6: read both `read` and `is_read` columns because the table
     // has both (legacy schema) and individual code paths historically wrote to
     // one or the other. We treat "unread" as "neither flag set to true."
-    const refreshNotifications = async () => {
+    // `opts` accepts { force: true } (or bare `true`) from the periodic tick and
+    // the visibility catch-up, which must not be served a cached payload. The
+    // mount call deliberately does NOT force, so it collapses into the single
+    // shared request that UniversalHeader and useDiamondBalance also join.
+    const refreshNotifications = async (opts) => {
         if (!userId) return;
+        const force = opts === true || opts?.force === true;
 
         // BUGFIX (header-audit #3): this used to query `notifications` directly, which
         // counts SOCIAL notifications only, while /api/user/get-header-stats returns
@@ -145,27 +151,14 @@ export function UnreadProvider({ children }) {
         // within 30s — poker and page-follow notifications showed for a moment after
         // load and then vanished. The API is now the single source of truth.
         try {
-            let accessToken = null;
-            try {
-                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                accessToken = authData?.access_token || null;
-            } catch (_) { /* private browsing — ignore */ }
-
-            const res = await fetch('/api/user/get-header-stats', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-                },
-                body: JSON.stringify({}),
-            });
-            if (res.ok) {
-                const result = await res.json();
-                if (result?.success && typeof result.notificationCount === 'number') {
-                    setNotificationCount(result.notificationCount);
-                    if (typeof result.unreadMessages === 'number') setMessageCount(result.unreadMessages);
-                    return;
-                }
+            // PERF (2026-08-24): hand-rolled fetch replaced by the shared
+            // in-flight-memoising fetcher, so the three concurrent header-stats
+            // requests a page load used to make collapse into one.
+            const result = await getHeaderStats({ userId, force });
+            if (result?.success && typeof result.notificationCount === 'number') {
+                setNotificationCount(result.notificationCount);
+                if (typeof result.unreadMessages === 'number') setMessageCount(result.unreadMessages);
+                return;
             }
             console.warn('[UnreadProvider] header-stats gave no usable count — falling back to direct query');
         } catch (e) {
@@ -308,7 +301,9 @@ export function UnreadProvider({ children }) {
             const tick = () => {
                 if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
                 refreshUnread();
-                refreshNotifications();
+                // force: a drift-correction tick must never be answered from the
+                // shared short-lived result cache.
+                refreshNotifications({ force: true });
             };
             const interval = setInterval(tick, 30000);
 

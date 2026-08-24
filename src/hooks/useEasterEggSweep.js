@@ -32,11 +32,43 @@ import { getFreshAccessToken } from '../lib/authUtils';
 import toast from '../stores/toastStore';
 import { busEmit } from '../engine/EventBus';
 
-/** Minimum gap between sweeps from one tab. */
+/** Minimum gap between sweeps from one device. */
 const SWEEP_THROTTLE_MS = 5 * 60 * 1000;
 
 /** Event any surface can fire to request a sweep. */
 export const EGG_CHECK_EVENT = 'sp-egg-check';
+
+/**
+ * PERF (2026-08-24): the throttle timestamp used to live in a useRef, which is
+ * re-created on every mount - and this hook mounts globally, so it remounts on
+ * navigation. Combined with the mount sweep passing force:true, effectively
+ * every session start fired a full sweep: up to 40 verifiers, each 1-3 awaited
+ * Supabase queries. Persisting the timestamp in localStorage makes the
+ * five-minute throttle mean what it says, per user, across mounts and tabs.
+ */
+const SWEEP_TS_KEY = 'sp-egg-sweep-ts';
+
+function readLastSweep(userId) {
+    if (typeof window === 'undefined' || !userId) return 0;
+    try {
+        const raw = window.localStorage.getItem(`${SWEEP_TS_KEY}:${userId}`);
+        const ts = raw ? Number(raw) : 0;
+        return Number.isFinite(ts) ? ts : 0;
+    } catch (_) {
+        // Private browsing / storage disabled - fall back to "never swept".
+        // Losing the throttle is strictly better than losing the sweep.
+        return 0;
+    }
+}
+
+function writeLastSweep(userId, ts) {
+    if (typeof window === 'undefined' || !userId) return;
+    try {
+        window.localStorage.setItem(`${SWEEP_TS_KEY}:${userId}`, String(ts));
+    } catch (_) {
+        // Storage unavailable - the in-memory ref still throttles this mount.
+    }
+}
 
 export default function useEasterEggSweep(userId) {
     const lastSweepRef = useRef(0);
@@ -45,7 +77,8 @@ export default function useEasterEggSweep(userId) {
     const sweep = useCallback(async ({ force = false } = {}) => {
         if (!userId) return null;
         if (inFlightRef.current) return null;
-        if (!force && Date.now() - lastSweepRef.current < SWEEP_THROTTLE_MS) return null;
+        const lastSweep = Math.max(lastSweepRef.current, readLastSweep(userId));
+        if (!force && Date.now() - lastSweep < SWEEP_THROTTLE_MS) return null;
 
         inFlightRef.current = true;
         try {
@@ -64,7 +97,9 @@ export default function useEasterEggSweep(userId) {
                 },
                 body: '{}',
             });
-            lastSweepRef.current = Date.now();
+            const sweptAt = Date.now();
+            lastSweepRef.current = sweptAt;
+            writeLastSweep(userId, sweptAt);
 
             if (!res.ok) return null;
             const data = await res.json();
@@ -96,7 +131,11 @@ export default function useEasterEggSweep(userId) {
         if (!userId) return undefined;
         let cancelled = false;
         // Slight delay so the sweep never competes with first paint.
-        const t = setTimeout(() => { if (!cancelled) sweep({ force: true }); }, 4000);
+        // NOT forced (2026-08-24): this used to pass force:true, which bypassed
+        // the throttle on every single mount. The persisted timestamp above now
+        // decides - a genuine first sign-in still sweeps immediately, a route
+        // change five seconds later does not.
+        const t = setTimeout(() => { if (!cancelled) sweep(); }, 4000);
         return () => { cancelled = true; clearTimeout(t); };
     }, [userId, sweep]);
 

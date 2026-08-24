@@ -9,18 +9,23 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { eventBus, EventType } from '../engine/EventBus';
-// Lazy Supabase getter (SSG-safe)
+import { supabase } from '../lib/supabase';
+
+// Shared singleton getter (SSG-safe).
+//
+// FIX (2026-08-24): this used to call createClient() itself with DEFAULT auth
+// options, which spun up a SECOND GoTrue instance on the default storageKey
+// instead of 'smarter-poker-auth' - its own refresh timer, its own websocket,
+// and a session store that the Auth Migration v6 cleanup in pages/_app.js
+// actively deletes. It was also effectively anonymous, so every query here ran
+// as `anon` rather than as the signed-in user. src/lib/supabase.ts already
+// exports a lazily-created singleton (a Proxy, so importing it constructs
+// nothing); use that.
 // ═══════════════════════════════════════════════════════════════
-let _supabase = null;
 function getSupabase() {
-    if (_supabase) return _supabase;
+    // Touching the proxy on the server would construct a client during SSG.
     if (typeof window === 'undefined') return null;
-    const { createClient } = require('@supabase/supabase-js');
-    _supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-    return _supabase;
+    return supabase;
 }
 
 // ═══════════════════════════════════════════════════════════════

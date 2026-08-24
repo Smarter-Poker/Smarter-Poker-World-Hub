@@ -1,14 +1,18 @@
 /**
  * SUPABASE SERVER CLIENT PATCH - Phase 4.1d ESM port (2026-04-25)
  *
- * Patches the Supabase client's auth.getUser method to use local JWT
- * decoding when the GoTrue network call fails.
+ * Patches the Supabase client's auth.getUser method to verify the JWT
+ * LOCALLY first and only call GoTrue over the network when that is not
+ * possible. See the long comment on patchedGetUser below - the ordering is
+ * deliberate and must not be reversed.
  *
  * WHY:
  * supabase.auth.getUser(token) makes a network call to GoTrue which
  * intermittently fails on Vercel (timeout/AbortError), causing ALL API
- * routes to return 401 "Invalid token". This patch catches those failures
- * and falls back to local HMAC verification.
+ * routes to return 401 "Invalid token", and costs a round-trip on every
+ * request of every route. Local HMAC verification is the same check without
+ * the network or database cost, so it is the primary path and GoTrue is the
+ * fallback.
  *
  * Phase 4.1d port:
  *   - require/module.exports → ESM import/export
@@ -73,17 +77,34 @@ export function createClient(url, key, options) {
 
   // Replace with resilient version
   client.auth.getUser = async function patchedGetUser(token) {
-    // First try the original GoTrue call
-    try {
-      const result = await originalGetUser(token);
-      if (result.data?.user) {
-        return result;
-      }
-    } catch (e) {
-      console.warn('[supabase-patch] GoTrue getUser failed, trying local:', e?.message || e);
-    }
+    // ORDERING IS LOAD-BEARING - LOCAL FIRST, NETWORK SECOND.
+    // DO NOT FLIP THIS BACK (2026-08-24, performance).
+    //
+    // This patch originally called GoTrue over the network FIRST and only
+    // decoded locally when that call threw. ~78 API routes call getUser on
+    // every single request, so every request paid a full HTTPS round-trip to
+    // GoTrue - which in turn loads the same Postgres instance that is already
+    // at ~180% CPU. Local HMAC verification is the identical security check
+    // (HS256 over SUPABASE_JWT_SECRET: signature + exp + nbf, see
+    // serverAuth.js verifySupabaseJwt) done in microseconds with zero network
+    // and zero database load.
+    //
+    // Error semantics are unchanged: a malformed, tampered or expired token
+    // fails local verification, then still falls through to GoTrue, and if
+    // GoTrue also rejects it the caller gets the same
+    // { data: { user: null }, error: { message } } shape it got before.
+    // The network path is also still taken whenever local verification is
+    // IMPOSSIBLE - no SUPABASE_JWT_SECRET configured, or a secret-rotation
+    // window where the deployed secret no longer matches the signing key -
+    // so this keeps the operational resilience the patch was written for.
+    //
+    // Accepted trade-off: a token that is cryptographically valid but whose
+    // user was deleted or banned inside GoTrue mid-token-lifetime is now
+    // accepted until that token expires. Supabase access tokens are
+    // short-lived; the alternative is a network call on every request of
+    // every route.
 
-    // Fallback: decode JWT locally
+    // 1. Fast path: local HMAC verify + decode. No network, no DB.
     if (token) {
       const localUser = await decodeSupabaseJWT(token);
       if (localUser) {
@@ -92,6 +113,21 @@ export function createClient(url, key, options) {
           error: null,
         };
       }
+    }
+
+    // 2. Fallback: the original GoTrue network call. Reached only when local
+    //    verification failed or could not run at all.
+    try {
+      const result = await originalGetUser(token);
+      if (result.data?.user) {
+        return result;
+      }
+      // GoTrue answered but rejected the token - preserve its error verbatim.
+      if (result?.error) {
+        return result;
+      }
+    } catch (e) {
+      console.warn('[supabase-patch] GoTrue getUser failed after local decode failed:', e?.message || e);
     }
 
     return {

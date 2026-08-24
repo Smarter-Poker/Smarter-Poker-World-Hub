@@ -7,17 +7,17 @@
  * Falls back to a Supabase fetch only when rich fields are absent (legacy messages).
  */
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 
-let _supabase = null;
+// FIX (2026-08-24): this used to createClient() its own browser client with
+// DEFAULT auth options - a second GoTrue instance on the default storageKey,
+// with its own refresh timer and websocket, fighting the Auth Migration v6 key
+// cleanup in pages/_app.js. The shared singleton in src/lib/supabase.ts is a
+// lazy Proxy, so importing it constructs nothing until first use.
 function getSB() {
-    if (_supabase) return _supabase;
+    // Touching the proxy on the server would construct a client during SSG.
     if (typeof window === 'undefined') return null;
-    const { createClient } = require('@supabase/supabase-js');
-    _supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    );
-    return _supabase;
+    return supabase;
 }
 
 export default function SharedPostCard({ postId, mediaMetadata, isOwn }) {

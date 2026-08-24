@@ -115,14 +115,46 @@ export default async function handler(req, res) {
         let capped = false;
         let stopReason = null;
 
-        for (const key of keys) {
-            // Sequential on purpose: the memoised context means the first
-            // verifier pays for the shared reads and the rest are free, and a
-            // burst of parallel service-role queries is how you get rate
-            // limited by PostgREST.
-            const proof = await verifyEgg(key, ctx);
-            if (!proof.verified) continue;
+        // PERF (2026-08-24): the verify step used to run inside the award loop,
+        // one key at a time - up to MAX_VERIFIERS_PER_SWEEP serial round-trips,
+        // each of 1-3 awaited Supabase queries, before a single egg could be
+        // paid. Verification is READ-ONLY and order-independent, so it is now
+        // batched with bounded concurrency.
+        //
+        // Why this is safe with the shared context: createEggContext memoises
+        // PROMISES, not resolved values, so concurrent verifiers awaiting the
+        // same profile / transaction / training read join one in-flight query
+        // instead of issuing duplicates. The chunk size keeps the burst small
+        // enough not to trip PostgREST, which was the original reason for
+        // going serial.
+        //
+        // Error isolation is unchanged: verifyEgg fails CLOSED internally (an
+        // unknown egg, a missing verifier, or a thrown query error all resolve
+        // to { verified: false }), so one bad verifier cannot fail the sweep.
+        const VERIFY_CONCURRENCY = 5;
+        const verifiedKeys = [];
+        for (let i = 0; i < keys.length; i += VERIFY_CONCURRENCY) {
+            const chunk = keys.slice(i, i + VERIFY_CONCURRENCY);
+            const proofs = await Promise.all(
+                chunk.map(async (key) => {
+                    try {
+                        const proof = await verifyEgg(key, ctx);
+                        return proof?.verified === true;
+                    } catch (verifyErr) {
+                        // Belt and braces - verifyEgg already catches, but a
+                        // rejection here must never fail the whole sweep.
+                        console.warn('[EggSweep] verifier threw:', key, verifyErr?.message || verifyErr);
+                        return false;
+                    }
+                }),
+            );
+            chunk.forEach((key, idx) => { if (proofs[idx]) verifiedKeys.push(key); });
+        }
 
+        // The AWARD loop stays strictly sequential. Each award mutates the
+        // user's monthly / daily / velocity budget server-side, and the
+        // cap-stop below depends on seeing those refusals in order.
+        for (const key of verifiedKeys) {
             const egg = getEasterEgg(key);
             if (!egg) continue;
 
