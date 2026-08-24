@@ -375,15 +375,19 @@ export default async function handler(req, res) {
         const eventId = payoutEventId || poolId || null;
         let claimRowId = null;
         if (eventId) {
+          // The wallet below read 'bbj_pool' until 2026-08-24, which is NOT one
+          // of the six names union_wallet_transactions_wallet_check allows.
+          // Every insert here failed 23514 -> not 23505 -> the branch below
+          // answered 500, so no payout was ever made. The table holds zero rows
+          // stamped bbj_payout, because this claim path never once succeeded.
+          //
+          // Comments stay OUTSIDE the object literal: CHECK 13 reads any
+          // `word:` inside one as a column name, and prose ending in a colon
+          // fails the gate as a phantom column.
           const { data: claim, error: claimErr } = await supabaseAdmin
             .from('union_wallet_transactions')
             .insert({
               union_id: unionId,
-              // 'bbj_pool' until 2026-08-24, which is NOT one of the six names
-              // union_wallet_transactions_wallet_check allows. Every insert here
-              // failed 23514 -> not 23505 -> the branch below answered 500, so
-              // no payout was ever made. The table holds zero rows with
-              // tx_type='bbj_payout': this claim path never once succeeded.
               wallet: 'bbj_wallet',
               direction: 'debit',
               amount: payout,
@@ -478,9 +482,11 @@ export default async function handler(req, res) {
           if (bbjTxErr)
             console.warn('[union-wallet] Failed to finalize BBJ payout tx:', bbjTxErr.message);
         } else {
+          // Same reason as the claim insert earlier in this branch, where
+          // 'bbj_pool' violates the wallet CHECK. Comment kept outside the
+          // object literal so CHECK 13 cannot read its prose as a column.
           const { error: bbjTxErr } = await supabaseAdmin.from('union_wallet_transactions').insert({
             union_id: unionId,
-            // See the claim insert above: 'bbj_pool' violates the wallet CHECK.
             wallet: 'bbj_wallet',
             direction: 'debit',
             amount: payout,
