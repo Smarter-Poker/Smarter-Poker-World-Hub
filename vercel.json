@@ -461,6 +461,49 @@
           "value": ""
         }
       ]
+    },
+    {
+      "source": "/hub/club-arena/sw-bus.js",
+      "headers": [
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/hub/club-arena"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "source": "/hub/club-arena",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "source": "/hub/club-arena/:path((?!.*\\.[\\w]+$).*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
+      ]
     }
   ],
   "crons": [
