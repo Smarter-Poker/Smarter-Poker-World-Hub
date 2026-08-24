@@ -10,17 +10,18 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabase';
 
-let _supabase;
+// FIX (2026-08-24): this used to createClient() its own browser client with
+// DEFAULT auth options - a second GoTrue instance on the default storageKey,
+// with its own refresh timer and websocket, fighting the Auth Migration v6 key
+// cleanup in pages/_app.js. The shared singleton in src/lib/supabase.ts is a
+// lazy Proxy, so importing it constructs nothing until first use.
 function getSupabase() {
-    if (!_supabase && typeof window !== 'undefined') {
-        _supabase = typeof window !== 'undefined' ? createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        ) : null;
-    }
-    return _supabase;
+    // Touching the proxy on the server would construct a client during SSG.
+    // Returning undefined preserves the previous falsy-on-server behaviour.
+    if (typeof window === 'undefined') return undefined;
+    return supabase;
 }
 
 // Share channel configurations

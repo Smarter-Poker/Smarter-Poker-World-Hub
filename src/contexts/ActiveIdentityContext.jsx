@@ -72,65 +72,93 @@ export function ActiveIdentityProvider({ children }) {
 
                 let pagesFound = [];
 
-                // ── Step 2: Try venue_id lookup (if commander_staff exists) ──
-                try {
-                    const stored = localStorage.getItem('commander_staff');
-                    if (stored) {
-                        const data = JSON.parse(stored);
-                        if (data?.venue_id) {
-                            const res = await fetch(`/api/social/pages?linked_venue_id=${data.venue_id}`);
-                            if (mounted && res.ok) {
-                                const json = await res.json();
-                                if (json.success && json.data && json.data.length > 0) {
-                                    pagesFound = [...json.data];
-                                }
-                            }
-                        }
+                // PERF (2026-08-24): steps 2 and 3 used to be awaited one after
+                // the other, so a Commander paid two SERIAL /api/social/pages
+                // round-trips before the club drawer could settle. They share
+                // no data - step 3 is merged INTO step 2's result afterwards -
+                // so both are fired at once and merged when they land.
+                //
+                // Note on "skip the second call for users who own nothing": it
+                // cannot be skipped, because the owner_id lookup IS the call
+                // that discovers whether the user owns a page at all. What can
+                // be skipped is the venue lookup, and that was already gated on
+                // `commander_staff` - so a user with no club still makes
+                // exactly ONE request here, as before.
+                const venueId = (() => {
+                    try {
+                        const stored = localStorage.getItem('commander_staff');
+                        if (!stored) return null;
+                        return JSON.parse(stored)?.venue_id || null;
+                    } catch (e) {
+                        console.warn('[App] Handled exception:', e?.message || e);
+                        return null;
                     }
-                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+                })();
 
-                // ── Step 3: Always fallback to owner_id lookup ──
-                // This catches freshly registered Commanders who haven't logged into
-                // Commander yet (so commander_staff isn't in localStorage), and also
-                // gets ALL pages the user owns or is a member of.
-                try {
-                    const res2 = await fetch(`/api/social/pages?owner_id=${userId}&include_memberships=true`);
-                    if (mounted && res2.ok) {
-                        const json2 = await res2.json();
-                        if (json2.success && json2.data && json2.data.length > 0) {
-                            // Merge by id, FIELD-WISE. Skipping duplicates
-                            // outright meant the step-2 venue lookup won, and
-                            // that endpoint does not return unread_count --
-                            // only this owner_id + include_memberships call
-                            // does (it runs fn_get_all_identity_unread_counts).
-                            // So for anyone with commander_staff in
-                            // localStorage the enriched copy was discarded and
-                            // every club badge read 0 until the 5-minute live
-                            // sync happened to fire. Later fields win only
-                            // where the earlier record has nothing.
-                            const byId = new Map(pagesFound.map(p => [p.id, p]));
-                            for (const p of json2.data) {
-                                const existing = byId.get(p.id);
-                                if (!existing) {
-                                    pagesFound.push(p);
-                                    byId.set(p.id, p);
-                                    continue;
-                                }
-                                for (const [k, v] of Object.entries(p)) {
-                                    if (v !== null && v !== undefined &&
-                                        (existing[k] === null || existing[k] === undefined)) {
-                                        existing[k] = v;
-                                    }
-                                }
-                                // unread_count is the whole point of the second
-                                // call, so it always wins when present.
-                                if (p.unread_count !== null && p.unread_count !== undefined) {
-                                    existing.unread_count = p.unread_count;
-                                }
+                // Returns the page array, or null for "nothing usable" - every
+                // failure path stays swallowed exactly as it was before.
+                const readPages = async (url) => {
+                    try {
+                        const res = await fetch(url);
+                        if (!res.ok) return null;
+                        const json = await res.json();
+                        if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
+                            return json.data;
+                        }
+                        return null;
+                    } catch (e) {
+                        console.warn('[App] Handled exception:', e?.message || e);
+                        return null;
+                    }
+                };
+
+                // Step 2: venue_id lookup (only when commander_staff exists).
+                // Step 3: owner_id lookup - always. This catches freshly
+                //         registered Commanders who have not logged into
+                //         Commander yet (so commander_staff is absent), and
+                //         gets ALL pages the user owns or is a member of.
+                const [venuePages, ownerPages] = await Promise.all([
+                    venueId
+                        ? readPages(`/api/social/pages?linked_venue_id=${venueId}`)
+                        : Promise.resolve(null),
+                    readPages(`/api/social/pages?owner_id=${userId}&include_memberships=true`),
+                ]);
+
+                if (!mounted) return;
+                if (venuePages) pagesFound = [...venuePages];
+
+                if (ownerPages) {
+                    // Merge by id, FIELD-WISE. Skipping duplicates
+                    // outright meant the step-2 venue lookup won, and
+                    // that endpoint does not return unread_count --
+                    // only this owner_id + include_memberships call
+                    // does (it runs fn_get_all_identity_unread_counts).
+                    // So for anyone with commander_staff in
+                    // localStorage the enriched copy was discarded and
+                    // every club badge read 0 until the 5-minute live
+                    // sync happened to fire. Later fields win only
+                    // where the earlier record has nothing.
+                    const byId = new Map(pagesFound.map(p => [p.id, p]));
+                    for (const p of ownerPages) {
+                        const existing = byId.get(p.id);
+                        if (!existing) {
+                            pagesFound.push(p);
+                            byId.set(p.id, p);
+                            continue;
+                        }
+                        for (const [k, v] of Object.entries(p)) {
+                            if (v !== null && v !== undefined &&
+                                (existing[k] === null || existing[k] === undefined)) {
+                                existing[k] = v;
                             }
                         }
+                        // unread_count is the whole point of the second
+                        // call, so it always wins when present.
+                        if (p.unread_count !== null && p.unread_count !== undefined) {
+                            existing.unread_count = p.unread_count;
+                        }
                     }
-                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+                }
 
                 if (mounted && pagesFound.length > 0) {
                     setOwnedPages(pagesFound.map(page => ({

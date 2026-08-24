@@ -20,14 +20,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { listenBroadcast } from '../lib/broadcastSync';
 import { eventBus, EventType } from '../engine/EventBus';
 import { useProfileRealtime } from './useProfileRealtime';
-
-// ── Helper: read access token from localStorage ──
-function getAccessToken() {
-    try {
-        const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-        return authData?.access_token || null;
-    } catch (_) { return null; }
-}
+import { getHeaderStats } from '../lib/headerStats';
 
 // ── Helper: update cached diamond balance in localStorage ──
 // Never write an unattributed payload — an entry without a userId defeats the owner
@@ -78,17 +71,16 @@ export function useDiamondBalance(userId) {
     const refreshBalance = useCallback(async () => {
         if (!userId) return;
         try {
-            const accessToken = getAccessToken();
-            const response = await fetch('/api/user/get-header-stats', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-                },
-                body: JSON.stringify({ userId }),
-            });
-            const result = await response.json();
-            if (result.success && result.profile && mountedRef.current) {
+            // PERF (2026-08-24): this used to hand-roll its own fetch, so a page
+            // load fired /api/user/get-header-stats three times concurrently
+            // (here, UniversalHeader and UnreadProvider). getHeaderStats()
+            // memoises the in-flight promise so those collapse into one request.
+            // force:true because every caller of refreshBalance is an explicit
+            // refresh trigger (DIAMONDS_EARNED/SPENT, cross-tab sync) that must
+            // not be served a stale cached payload; concurrent forced calls
+            // still coalesce inside the shared module.
+            const result = await getHeaderStats({ userId, force: true });
+            if (result?.success && result.profile && mountedRef.current) {
                 const newBalance = result.profile.diamonds ?? 0;
                 setBalance(newBalance);
                 updateCachedBalance(newBalance, userId);

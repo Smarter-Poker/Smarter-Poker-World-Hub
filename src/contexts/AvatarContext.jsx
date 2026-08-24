@@ -195,7 +195,15 @@ export function AvatarProvider({ children }) {
 
                     // Run initialization steps concurrently, don't wait for profile generation to check VIP
                     ensureUserProfile(session.user, session).catch(e => console.warn('[AvatarContext] ensureUserProfile error:', e));
-                    await fetchVipStatus(session.user.id);
+
+                    // PERF (2026-08-24): this was `await fetchVipStatus(...)`,
+                    // which held up the session refresh below for a full VIP
+                    // round-trip even though the two share no data. They now
+                    // run genuinely concurrently - the VIP fetch still updates
+                    // context state when it lands, it just no longer gates the
+                    // refresh.
+                    fetchVipStatus(session.user.id)
+                        .catch(e => console.warn('[AvatarContext] fetchVipStatus error:', e?.message || e));
 
                     // Background refresh — non-blocking, won't affect UI if it fails
                     supabase.auth.refreshSession().then(({ data, error }) => {
@@ -447,11 +455,11 @@ export function AvatarProvider({ children }) {
         }
     }
 
-    async function selectPresetAvatar(avatarId, scope = 'both') {
+    async function selectPresetAvatar(avatarId) {
         if (!user) return { success: false, error: 'Not authenticated' };
 
         // Pass VIP status so the service can unlock the full library for VIP members
-        const result = await setPresetAvatar(user.id, avatarId, { isVip, scope });
+        const result = await setPresetAvatar(user.id, avatarId, { isVip });
 
         if (result.success) {
             await loadAvatar(); // Refresh avatar
@@ -481,7 +489,7 @@ export function AvatarProvider({ children }) {
         return result;
     }
 
-    async function setActiveAvatar(imageUrl, type = 'custom', presetAvatarId = null, prompt = null, scope = 'both') {
+    async function setActiveAvatar(imageUrl, type = 'custom', presetAvatarId = null, prompt = null) {
         if (!user) return { success: false, error: 'Not authenticated' };
 
         try {
@@ -502,14 +510,12 @@ export function AvatarProvider({ children }) {
 
             if (error) throw error;
 
-            const updateData = {};
-            if (scope === 'social' || scope === 'both') updateData.avatar_url = imageUrl;
-            if (scope === 'arena' || scope === 'both') updateData.arena_avatar_url = imageUrl;
-            
-            if (imageUrl && Object.keys(updateData).length > 0) {
+            // Sync profiles.avatar_url so Club Arena, training games and the
+            // header (all of which read profiles) see the new avatar too.
+            if (imageUrl) {
                 const { error: profileError } = await supabase
                     .from('profiles')
-                    .update(updateData)
+                    .update({ avatar_url: imageUrl })
                     .eq('id', user.id);
                 if (profileError) console.warn('Profile avatar sync failed (non-fatal):', profileError.message);
             }

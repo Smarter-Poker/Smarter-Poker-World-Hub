@@ -22,19 +22,19 @@ const C = {
     violet: '#a78bfa',
 };
 
+// FIX (2026-08-24): the catch branch here used to createClient() a whole
+// second browser client with DEFAULT auth options - its own GoTrue instance on
+// the default storageKey, its own refresh timer and websocket, fighting the
+// Auth Migration v6 key cleanup in pages/_app.js. There is no legitimate
+// reason for the shared-singleton import to fail, and silently continuing on a
+// rogue anonymous client is worse than surfacing that failure, so the fallback
+// is gone. src/lib/supabase.ts exports a lazy Proxy; the dynamic import is
+// kept so nothing is constructed during SSG.
 let _supabase = null;
 async function getSupabase() {
     if (_supabase) return _supabase;
-    try {
-        const { supabase } = await import('../../lib/supabase');
-        _supabase = supabase;
-    } catch {
-        const { createClient } = await import('@supabase/supabase-js');
-        _supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        );
-    }
+    const { supabase } = await import('../../lib/supabase');
+    _supabase = supabase;
     return _supabase;
 }
 
