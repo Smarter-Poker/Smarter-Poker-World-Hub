@@ -1298,8 +1298,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 aria-label="Diamond Wallet"
                 style={{
                     position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    zIndex: 9999,
+                    top: 60, left: 0, right: 0, bottom: 0,
+                    zIndex: 90,
                     background: 'radial-gradient(ellipse at 50% -10%, rgba(0,80,180,0.45) 0%, rgba(2,8,20,1) 55%)',
                     display: 'flex',
                     flexDirection: 'column',
@@ -1309,7 +1309,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 }}
             >
                 {/* Close button */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px 0', maxWidth: 600, margin: '0 auto', width: '100%' }}>
                     {/* Close button */}
                     <button
                         onClick={onClose}
@@ -1347,10 +1347,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 <div style={{
                     position: 'relative',
                     width: '100%',
+                    maxWidth: 600,
+                    margin: '0 auto 16px auto',
                     borderRadius: 16,
                     overflow: 'hidden',
                     boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
-                    marginBottom: 16,
                     backgroundColor: '#050a15',
                 }}>
                     <img src="/images/diamond-wallet-bg.jpg" alt="Diamond Wallet" style={{ width: '100%', height: 'auto', display: 'block' }} />
