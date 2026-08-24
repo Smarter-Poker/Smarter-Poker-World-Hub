@@ -70,6 +70,33 @@ try {
         return res.status(400).json({ error: `Invalid action: ${action}` });
       }
 
+      // ── RETIRED 2026-08-24: no new money into World Hub's second engine ──
+      // This route belongs to src/lib/poker-engine, which is NOT the engine
+      // that runs the games. Club Arena on Hetzner is. Two facts settle it:
+      // hand_history holds 1,390,864 rows and every one is source='manual'
+      // (Club Arena); this engine stamps source='engine-api' and has written
+      // none. And the only pages that call this route, /hub/poker/lobby and
+      // /hub/poker/table/[tableId], are linked from nowhere and now 404.
+      //
+      // It is refused rather than merely unreachable because it seats players
+      // in memory and never writes table_seats. table_seats is where the
+      // four-table hard rule lives (trg_enforce_four_table_limit), so anyone
+      // seated here is invisible to that trigger AND to the away-blind cap. A
+      // seat this engine grants is a seat outside both rules. sit_down also
+      // calls ChipBridge.lockChips, so it moves real balance on the way in.
+      //
+      // Read-only actions are left alone: they cannot create that state, and
+      // this route is still the shape LivePokerTable expects if the pages are
+      // ever revived deliberately.
+      const RETIRED_MONEY_ACTIONS = new Set(['sit_down', 'add_chips', 'approve_buyin']);
+      if (RETIRED_MONEY_ACTIONS.has(action)) {
+        return res.status(410).json({
+          success: false,
+          error: 'This table engine is retired. Play at /hub/club-arena/.',
+          code: 'ENGINE_RETIRED',
+        });
+      }
+
       const controller = await getController();
       const antiCheat = controller.antiCheat; // Shared instance — same data as background monitor
 
