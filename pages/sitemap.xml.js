@@ -106,20 +106,6 @@ const staticPages = [
 
   // Horses
   { path: '/horses', priority: '0.7', changefreq: 'daily' },
-
-  // Hub — MLB Analytics (full section)
-  { path: '/hub/MLB-ANALYTICS', priority: '0.9', changefreq: 'daily' },
-  { path: '/hub/MLB-ANALYTICS/best-bets', priority: '0.9', changefreq: 'daily' },
-  { path: '/hub/MLB-ANALYTICS/standings', priority: '0.8', changefreq: 'daily' },
-  { path: '/hub/MLB-ANALYTICS/props', priority: '0.8', changefreq: 'daily' },
-  { path: '/hub/MLB-ANALYTICS/players', priority: '0.7', changefreq: 'daily' },
-  { path: '/hub/MLB-ANALYTICS/teams', priority: '0.7', changefreq: 'daily' },
-  { path: '/hub/MLB-ANALYTICS/hr-tracker', priority: '0.7', changefreq: 'daily' },
-  { path: '/hub/MLB-ANALYTICS/tracker', priority: '0.7', changefreq: 'hourly' },
-  { path: '/hub/MLB-ANALYTICS/validation', priority: '0.6', changefreq: 'daily' },
-  { path: '/hub/MLB-ANALYTICS/portfolio', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/MLB-ANALYTICS/model-intel', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/MLB-ANALYTICS/status', priority: '0.4', changefreq: 'hourly' },
 ];
 
 // ─── Dynamic Home-Game URLs ──────────────────────────────────────────────────
@@ -153,13 +139,18 @@ async function buildHomeGameUrls() {
     // page itself 404s — it returns notFound once zero visible games remain —
     // plus detail URLs for deactivated and private groups. Apply the same
     // predicate here so the sitemap can only ever contain URLs that resolve.
-    const groupIds = data.map((r) => r.linked_entity_id).filter(Boolean).map(String);
+    const groupIds = data
+      .map((r) => r.linked_entity_id)
+      .filter(Boolean)
+      .map(String);
     const visibleGroupIds = new Set();
     const CHUNK = 200;
     for (let i = 0; i < groupIds.length; i += CHUNK) {
       const { data: groups } = await supabase
         .from('commander_home_groups')
-        .select('id, is_active, is_private, last_activity_at, created_at, visibility_override_until')
+        .select(
+          'id, is_active, is_private, last_activity_at, created_at, visibility_override_until'
+        )
         .in('id', groupIds.slice(i, i + CHUNK));
       for (const g of groups || []) {
         if (isGroupPubliclyVisible(g)) visibleGroupIds.add(String(g.id));

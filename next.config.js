@@ -388,7 +388,6 @@ const nextConfig = {
   // here since the eslint one was a duplicate.
   typescript: {
     ignoreBuildErrors: true,
-
   },
 
   // ─── Ultimate Dev Server Hardening ──────────────────────────────────────────────
@@ -480,8 +479,6 @@ const nextConfig = {
       { protocol: 'https', hostname: '*.smarter.poker' }, // Catch-all for platform sub-domains
       { protocol: 'https', hostname: 'api.qrserver.com' }, // QR code generation
       { protocol: 'https', hostname: 'img.youtube.com' }, // YouTube thumbnails
-      { protocol: 'https', hostname: 'img.mlbstatic.com' }, // MLB player headshots
-      { protocol: 'https', hostname: 'www.mlbstatic.com' }, // MLB team logos
       // Club Arena images now served from public/hub/club-arena/ (native)
     ],
     formats: ['image/avif', 'image/webp'],
@@ -520,7 +517,7 @@ const nextConfig = {
       // Fonts: Google Fonts CDN
       "font-src 'self' https://fonts.gstatic.com data:",
       // Images: self + Supabase + Google Storage + Maps static + QR + YouTube thumbs + Giphy + data URIs
-      "img-src 'self' data: blob: https://*.supabase.co https://*.smarter.poker https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com https://img.mlbstatic.com https://www.mlbstatic.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://*.smarter.poker https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com",
       // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.onesignal.com https://onesignal.com https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker",
       // Media: self + blob (audio/video playback)
@@ -789,8 +786,6 @@ const nextConfig = {
       { source: '/legal/terms', destination: '/terms', permanent: true },
       // Live help → messenger with Jarvis
       { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
-      // MLB Analytics Deprecations
-      { source: '/hub/MLB-ANALYTICS/backtest', destination: '/hub/MLB-ANALYTICS/model-intel', permanent: false },
       // Club Arena — /hub/club-arena IS the lobby (the SPA). The native lobby.js was removed.
       { source: '/hub/club-arena/lobby', destination: '/hub/club-arena', permanent: true },
       // Legacy avatar page names (Club Arena's ProfilePage/AvatarService still
@@ -811,20 +806,6 @@ const nextConfig = {
         destination: '/hub/poker-near-me/lobby',
         permanent: true,
       },
-      // MLB Analytics lowercase URL -> uppercase canonical proxy path
-      { source: '/hub/mlb-analytics', destination: '/hub/MLB-ANALYTICS', permanent: true },
-      {
-        source: '/hub/mlb-analytics/:path*',
-        destination: '/hub/MLB-ANALYTICS/:path*',
-        permanent: true,
-      },
-      // Team detail alias: legacy singular /team/<id> links resolve to the real
-      // /teams/[team_id] route (prevents the 404 when older links use the singular path).
-      {
-        source: '/hub/MLB-ANALYTICS/team/:id',
-        destination: '/hub/MLB-ANALYTICS/teams/:id',
-        permanent: false,
-      },
     ];
   },
 
@@ -836,10 +817,6 @@ const nextConfig = {
       //
       // afterFiles handles SPA routing — serves index.html for routes that
       // don't match a real file in public/ or a native Next.js page.
-      // MLB-ANALYTICS is served by the NATIVE World Hub pages in
-      // pages/hub/MLB-ANALYTICS/* (the 0-100 Bet Score system). Do NOT proxy it to the
-      // standalone engine app (mlb-analytics-engine.vercel.app) — that engine uses an
-      // A/B/C/D grade UI and proxying it shadowed/regressed the native pages.
       beforeFiles: [],
       afterFiles: [],
       // fallback rewrites run LAST — after pages AND public/ files.
