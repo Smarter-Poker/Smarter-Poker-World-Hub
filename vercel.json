@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "regions": [
-    "iad1"
+    "pdx1"
   ],
   "git": {
     "deploymentEnabled": true
