@@ -1,6 +1,5 @@
 {
   "framework": "nextjs",
-  "_regions_note": "pdx1 is Vercel's us-west-2. The Supabase project (kuklfnapbkmacvwxktbh) is ALSO us-west-2, so serverless functions now sit in the same AWS region as the database. Before 2026-08-24 this was iad1 (us-east-1, Virginia), which put a cross-country round trip of roughly 60-70ms on EVERY database query - and API routes here commonly issue 5-8 sequential queries, so they paid it 5-8 times before doing any work. That pin was added on 2026-05-18 as part of a Vercel COST initiative, and its own commit message says 'Vercel defaults to this for US teams anyway' - proximity to the database was never considered. Measured on 2026-08-24: raw Postgres answered a trivial single-row query in 0.17ms while the same shape through /api/health from iad1 took 294ms at best and 13,027ms under load. Do not move this back to iad1 without moving the Supabase project with it.",
   "regions": [
     "pdx1"
   ],
