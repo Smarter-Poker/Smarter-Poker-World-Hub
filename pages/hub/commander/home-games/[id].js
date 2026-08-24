@@ -3,7 +3,7 @@
  * View group info, upcoming events, members, and RSVP
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Home, Users, Calendar, MapPin, Clock, DollarSign, Share2, Settings, UserPlus, Check, X, Copy, Loader2, MessageSquare, Star } from 'lucide-react';
@@ -302,16 +302,27 @@ export default function HomeGameDetailPage() {
     return () => { supabase.removeChannel(ch); };
   }, [id]);
 
+  // PERF 2026-08-24: stable identity for the effects below.
+  // Both the RSVP channel and the review loader used to depend on `events`
+  // itself. setEvents() inside fetchGroup() produces a NEW ARRAY every time, and
+  // the RSVP channel's own callback calls fetchGroup() - so each RSVP tore the
+  // WebSocket channel down and re-subscribed it, which is self-sustaining churn
+  // rather than a subscription. Keying on the sorted id string means the effects
+  // re-run only when the set of games actually changes.
+  const gameIdsKey = useMemo(
+    () => events.map(e => e.id).sort().join(','),
+    [events]
+  );
+
   // Realtime listener - rsvps (v2 suffix forces reconnect for stale sessions)
   useEffect(() => {
-    if (events.length === 0) return;
-    const gameIds = events.map(e => e.id);
+    if (!gameIdsKey) return;
     const ch = supabase
       .channel(`hg-rsvps-v2:group-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_rsvps', filter: `game_id=in.(${gameIds.join(',')})` }, (payload) => { fetchGroup(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_rsvps', filter: `game_id=in.(${gameIdsKey})` }, (payload) => { fetchGroup(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [events]);
+  }, [id, gameIdsKey]);
 
   // Fetch reviews for past events
   useEffect(() => {
@@ -326,11 +337,23 @@ export default function HomeGameDetailPage() {
         let totalRating = 0;
         let totalCount = 0;
         // Fetch reviews for up to 5 most recent past events
+        // PERF 2026-08-24: these five requests are independent of one another
+        // and were awaited one at a time, so the reviews block cost the SUM of
+        // five round-trips. In parallel it costs the slowest one. allSettled so
+        // a single failing event no longer discards the other four's reviews.
         const recentPast = pastEvents.slice(0, 5);
-        for (const event of recentPast) {
-          const res = await fetch(`/api/commander/home-games/events/${event.id}/reviews`);
-          if (!res.ok) throw new Error(`Request failed (${res.status})`);
-          const data = await res.json();
+        const settled = await Promise.allSettled(
+          recentPast.map(event =>
+            fetch(`/api/commander/home-games/events/${event.id}/reviews`)
+              .then(res => {
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
+                return res.json();
+              })
+          )
+        );
+        for (const outcome of settled) {
+          if (outcome.status !== 'fulfilled') continue;
+          const data = outcome.value;
           if (data.success && data.data?.reviews) {
             allReviews.push(...data.data.reviews);
             totalRating += data.data.average_rating * data.data.total_reviews;
@@ -346,7 +369,9 @@ export default function HomeGameDetailPage() {
       }
     }
     loadReviews();
-  }, [events]);
+    // Keyed on the game id set, not the array identity - see gameIdsKey above.
+    // Without this the five review fetches re-ran on every single RSVP.
+  }, [gameIdsKey]);
 
   // Join group
   async function handleJoin() {

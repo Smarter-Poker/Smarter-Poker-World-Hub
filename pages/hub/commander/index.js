@@ -128,12 +128,40 @@ export default function CommanderHub() {
   useEffect(() => {
     const user = getAuthUser();
     if (!user?.id) return;
+
+    // PERF 2026-08-24: the commander_games UPDATE subscription below carries NO
+    // filter - it cannot, since this page shows venues near the viewer rather
+    // than one venue - so EVERY dealer action at EVERY venue on the platform
+    // used to fire fetchVenues() + fetchLiveGames() for EVERY player sitting on
+    // this page. During a busy evening that is a refetch storm proportional to
+    // (platform-wide game updates) x (players viewing), which is exactly the
+    // shape that saturates the database.
+    //
+    // Coalesce instead: a burst of updates schedules ONE refetch. Live game
+    // counts are a glanceable number, so settling ~1.5s after the last change
+    // is indistinguishable to the viewer and bounds the work to at most one
+    // refetch per interval no matter how loud the platform gets.
+    let gamesTimer = null;
+    const coalescedGamesRefetch = () => {
+      if (gamesTimer) clearTimeout(gamesTimer);
+      gamesTimer = setTimeout(() => {
+        gamesTimer = null;
+        fetchVenues();
+        fetchLiveGames();
+      }, 1500);
+    };
+
     const ch = supabase
-      .channel(`cmd-home-live-${Date.now()}`)
+      // Stable channel name. It used to embed Date.now(), so every re-run
+      // produced a brand-new channel identity for the same logical subscription.
+      .channel(`cmd-home-live-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `player_id=eq.${user.id}` }, () => { fetchVenues(); fetchMyWaitlists(); })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_games' }, () => { fetchVenues(); fetchLiveGames(); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_games' }, coalescedGamesRefetch)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      if (gamesTimer) clearTimeout(gamesTimer);
+      supabase.removeChannel(ch);
+    };
   }, [userLocation]);
 
   const isLeavingRef = useRef(false);
