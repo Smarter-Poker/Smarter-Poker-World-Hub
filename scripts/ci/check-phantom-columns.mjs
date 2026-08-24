@@ -237,6 +237,44 @@ function columnRefs(src) {
   return found;
 }
 
+// This check reaches over the network to PostgREST, and it runs inside
+// "Pre-Deploy Safety Checks", which is a REQUIRED status check on main. So a
+// transient blip here does not fail one check; it blocks every pull request in
+// the repository until a human notices and clicks re-run.
+//
+// What was here was a single bare fetch with no timeout, no retry, no catch:
+//   - a network-level throw (ECONNRESET, DNS, TLS) became an unhandled
+//     rejection, which is why this failed as a truncated crash with no
+//     "check-phantom-columns:" line explaining anything;
+//   - a hung socket had nothing to abort it, so the step just sat there;
+//   - a 502/503 from the gateway failed the build outright;
+//   - and PostgREST serves an EMPTY definitions object for a moment while it
+//     reloads its schema cache, which the old code treated as the fatal
+//     "refusing to pass vacuously" case rather than the transient it is.
+//
+// Bounded timeout, bounded retries, and a hard split between transient (retry)
+// and real (fail now, do not spend 40 seconds pretending it might recover).
+// The timeout has to clear a payload this size on a slow link. The OpenAPI
+// document for this project is 5.7 MB across 839 tables: 3.5-5.5s from a
+// developer machine, but the first cut of this code used a 20s ceiling and hit
+// it four times out of four on a GitHub runner. Since the version before that
+// had NO timeout and simply waited, 20s was not a fix, it was a regression -
+// it converted a slow success into a hard failure and blocked the queue.
+//
+// 60s per attempt with 3 attempts bounds the worst case at about 3 minutes,
+// against the old code's unbounded hang, while leaving a slow-but-working
+// fetch room to finish. Elapsed time is logged per attempt so the next person
+// to look at this does not have to guess whether it was slow or dead.
+const FETCH_TIMEOUT_MS = 60_000;
+const FETCH_ATTEMPTS = 3;
+const BACKOFF_MS = [3_000, 8_000];
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// A 4xx is us: wrong URL, wrong key, revoked service role. Retrying cannot fix
+// that and only delays an honest failure. Everything else is worth another go.
+const isTransientStatus = (s) => s >= 500 || s === 408 || s === 429;
+
 async function fetchSchema() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -244,24 +282,66 @@ async function fetchSchema() {
     console.error('check-phantom-columns: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required.');
     process.exit(2);
   }
-  const res = await fetch(`${url.replace(/\/$/, '')}/rest/v1/`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/openapi+json' },
-  });
-  if (!res.ok) {
-    console.error(`check-phantom-columns: PostgREST returned ${res.status}.`);
-    process.exit(2);
+
+  let lastReason = 'unknown';
+  for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt++) {
+    const startedAt = Date.now();
+    try {
+      const res = await fetch(`${url.replace(/\/$/, '')}/rest/v1/`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/openapi+json' },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+
+      if (!res.ok) {
+        if (!isTransientStatus(res.status)) {
+          console.error(`check-phantom-columns: PostgREST returned ${res.status}. Not retryable.`);
+          process.exit(2);
+        }
+        lastReason = `HTTP ${res.status}`;
+      } else {
+        const doc = await res.json();
+        const defs = doc.definitions || {};
+        const schema = new Map();
+        for (const [table, def] of Object.entries(defs)) {
+          schema.set(table, new Set(Object.keys(def.properties || {})));
+        }
+        // Still refuse to pass vacuously, but treat an empty schema as
+        // transient first: a schema-cache reload looks exactly like this and
+        // clears within a second or two.
+        if (schema.size > 0) {
+          const ms = Date.now() - startedAt;
+          if (attempt > 1) console.error(`check-phantom-columns: recovered on attempt ${attempt}.`);
+          if (ms > 15_000) {
+            console.error(
+              `check-phantom-columns: schema fetch took ${ms}ms (${schema.size} tables). ` +
+                `Budget is ${FETCH_TIMEOUT_MS}ms; raise it before it starts failing.`
+            );
+          }
+          return schema;
+        }
+        lastReason = 'zero table definitions (schema cache reloading?)';
+      }
+    } catch (err) {
+      lastReason =
+        err?.name === 'TimeoutError'
+          ? `timed out after ${FETCH_TIMEOUT_MS}ms`
+          : String(err?.message || err);
+    }
+
+    if (attempt < FETCH_ATTEMPTS) {
+      const wait = BACKOFF_MS[attempt - 1];
+      console.error(
+        `check-phantom-columns: attempt ${attempt}/${FETCH_ATTEMPTS} failed after ` +
+          `${Date.now() - startedAt}ms (${lastReason}); retrying in ${wait}ms.`
+      );
+      await sleep(wait);
+    }
   }
-  const doc = await res.json();
-  const defs = doc.definitions || {};
-  const schema = new Map();
-  for (const [table, def] of Object.entries(defs)) {
-    schema.set(table, new Set(Object.keys(def.properties || {})));
-  }
-  if (schema.size === 0) {
-    console.error('check-phantom-columns: zero table definitions — refusing to pass vacuously.');
-    process.exit(2);
-  }
-  return schema;
+
+  console.error(
+    `check-phantom-columns: could not read the schema after ${FETCH_ATTEMPTS} attempts. Last failure: ${lastReason}`
+  );
+  process.exit(2);
 }
 
 function loadAllowlist() {
