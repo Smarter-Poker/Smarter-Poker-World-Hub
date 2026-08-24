@@ -41,15 +41,23 @@ export default async function handler(req, res) {
       if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
 
       try {
-          // Verify membership and get chip balance
+          // Verify membership (role gates the Manage tab). The spendable
+          // balance is the buyer's GLOBAL diamond wallet — the marketplace is
+          // funded by diamonds, never chips (Dan, 2026-08-23).
           const { data: membership } = await getSupabase()
               .from('club_members')
-              .select('chip_balance, role')
+              .select('role')
               .eq('club_id', clubId)
               .eq('user_id', user.id)
               .maybeSingle();
 
           if (!membership) return res.status(403).json({ error: 'Not a club member' });
+
+          const { data: profileRow } = await getSupabase()
+              .from('profiles')
+              .select('diamonds')
+              .eq('id', user.id)
+              .maybeSingle();
 
           // Fetch active items — BUG-10 FIX: sort by created_at desc (not price asc) for 'Newest First'
           const { data: items, error: itemsErr } = await getSupabase()
@@ -103,7 +111,7 @@ export default async function handler(req, res) {
           try {
               const { data: purchases, error: purErr } = await getSupabase()
                   .from('club_shop_purchases')
-                  .select('id, item_id, price_paid, created_at, refunded_at, club_shop_items(name, category)')
+                  .select('id, item_id, price_paid, currency, created_at, refunded_at, club_shop_items(name, category)')
                   .eq('club_id', clubId)
                   .eq('buyer_id', user.id)
                   .order('created_at', { ascending: false });
@@ -123,6 +131,7 @@ export default async function handler(req, res) {
                   // refunded". The column is already used for my_purchase_count
                   // above; it just was not surfaced.
                   refunded_at: p.refunded_at || null,
+                  currency: p.currency || 'chips',
                   item_name: p.club_shop_items?.name || null,
                   item_category: p.club_shop_items?.category || null,
               }));
@@ -131,7 +140,7 @@ export default async function handler(req, res) {
               // Fallback: basic query without FK join
               const { data: purchases, error: purErr } = await getSupabase()
                   .from('club_shop_purchases')
-                  .select('id, item_id, price_paid, created_at, refunded_at')
+                  .select('id, item_id, price_paid, currency, created_at, refunded_at')
                   .eq('club_id', clubId)
                   .eq('buyer_id', user.id)
                   .order('created_at', { ascending: false });
@@ -139,6 +148,7 @@ export default async function handler(req, res) {
               flatPurchases = (purchases || []).map(p => ({
                   ...p,
                   refunded_at: p.refunded_at || null,
+                  currency: p.currency || 'chips',
                   item_name: null,
                   item_category: null,
               }));
@@ -148,7 +158,9 @@ export default async function handler(req, res) {
               success: true,
               items: itemsWithCount,
               purchases: flatPurchases,
-              balance: membership.chip_balance || 0,
+              // Diamond wallet balance — every marketplace price is in diamonds.
+              balance: Number(profileRow?.diamonds) || 0,
+              currency: 'diamonds',
               role: membership.role
           });
       } catch (err) {

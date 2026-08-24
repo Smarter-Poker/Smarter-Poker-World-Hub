@@ -119,6 +119,7 @@ export default async function handler(req, res) {
                 userId: user.id,
                 clubId,
                 amount: result.amount,
+                currency: result.currency || 'chips',
                 ip: extractIP(req),
                 details: { purchaseId, buyerId: result.buyer_id, reason, alreadyRefunded: !!result.already_refunded },
             });
@@ -129,6 +130,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
             success: true,
             amount: result.amount,
+            currency: result.currency || 'chips',
             buyerId: result.buyer_id,
             balanceAfter: result.balance_after,
             alreadyRefunded: !!result.already_refunded,

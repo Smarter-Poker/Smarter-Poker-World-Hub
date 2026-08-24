@@ -78,7 +78,7 @@ export default async function handler(req, res) {
 
         const { data: rows, error, count } = await getSupabase()
             .from('club_shop_purchases')
-            .select('id, item_id, buyer_id, price_paid, created_at, refunded_at, club_shop_items(name, category)', {
+            .select('id, item_id, buyer_id, price_paid, currency, created_at, refunded_at, club_shop_items(name, category)', {
                 count: 'exact',
             })
             .eq('club_id', clubId)
@@ -146,6 +146,7 @@ export default async function handler(req, res) {
                 buyerId: p.buyer_id,
                 buyerName: nameById.get(p.buyer_id) || 'Member',
                 pricePaid: Number(p.price_paid) || 0,
+                currency: p.currency || 'chips',
                 createdAt: p.created_at,
                 refundedAt: p.refunded_at,
                 status: refunded ? 'refunded' : redeemed ? 'redeemed' : invStatus ? 'owned' : 'not_delivered',
