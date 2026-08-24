@@ -447,11 +447,11 @@ export function AvatarProvider({ children }) {
         }
     }
 
-    async function selectPresetAvatar(avatarId) {
+    async function selectPresetAvatar(avatarId, scope = 'both') {
         if (!user) return { success: false, error: 'Not authenticated' };
 
         // Pass VIP status so the service can unlock the full library for VIP members
-        const result = await setPresetAvatar(user.id, avatarId, { isVip });
+        const result = await setPresetAvatar(user.id, avatarId, { isVip, scope });
 
         if (result.success) {
             await loadAvatar(); // Refresh avatar
@@ -481,7 +481,7 @@ export function AvatarProvider({ children }) {
         return result;
     }
 
-    async function setActiveAvatar(imageUrl, type = 'custom', presetAvatarId = null, prompt = null) {
+    async function setActiveAvatar(imageUrl, type = 'custom', presetAvatarId = null, prompt = null, scope = 'both') {
         if (!user) return { success: false, error: 'Not authenticated' };
 
         try {
@@ -502,12 +502,14 @@ export function AvatarProvider({ children }) {
 
             if (error) throw error;
 
-            // Sync profiles.avatar_url so Club Arena, training games and the
-            // header (all of which read profiles) see the new avatar too.
-            if (imageUrl) {
+            const updateData = {};
+            if (scope === 'social' || scope === 'both') updateData.avatar_url = imageUrl;
+            if (scope === 'arena' || scope === 'both') updateData.arena_avatar_url = imageUrl;
+            
+            if (imageUrl && Object.keys(updateData).length > 0) {
                 const { error: profileError } = await supabase
                     .from('profiles')
-                    .update({ avatar_url: imageUrl })
+                    .update(updateData)
                     .eq('id', user.id);
                 if (profileError) console.warn('Profile avatar sync failed (non-fatal):', profileError.message);
             }

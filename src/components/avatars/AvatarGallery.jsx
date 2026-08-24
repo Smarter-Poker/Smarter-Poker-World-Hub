@@ -169,22 +169,30 @@ const TiltCard = ({ children, className, onClick, style }) => {
 
 // --- AAA FEATURE: Inspect Modal ---
 const InspectModal = ({ avatar, isCustom, onClose, onEquip, isVip }) => {
+  const [showScopeSelect, setShowScopeSelect] = React.useState(false);
   if (!avatar) return null;
 
-  const handleEquip = () => {
+  const handleEquip = (scope) => {
     if (avatar.isLocked) {
       playSound('error');
       toast.warning('Upgrade to VIP to unlock this premium avatar!');
       return;
     }
     playSound('equip');
-    onEquip(avatar);
+    onEquip(avatar, scope);
   };
 
   const name = isCustom ? (avatar.prompt?.substring(0,30) || 'Custom Avatar') : avatar.name;
   const imageUrl = isCustom ? avatar.image_url : avatar.image;
   const isVideo = imageUrl?.match(/\.(webm|mp4)$/i);
   const isSelected = avatar.isSelected;
+
+  const scopeBtnStyle = {
+    padding: '10px 30px', width: '80%', background: 'linear-gradient(145deg, #00f5ff, #0088ff)',
+    border: 'none', borderRadius: '20px', color: '#000', fontFamily: "'Rajdhani', sans-serif",
+    fontSize: '16px', fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase',
+    boxShadow: '0 5px 15px rgba(0, 245, 255, 0.4)'
+  };
 
   /* The comment below used to introduce a function. The function is gone and
      the CALL SITE stayed - `{getLore()}` still renders in the modal body. That
@@ -260,25 +268,34 @@ const InspectModal = ({ avatar, isCustom, onClose, onEquip, isVip }) => {
           </p>
         </div>
 
-        <button
-          onClick={isSelected ? undefined : handleEquip}
-          style={{
-            padding: '15px 50px',
-            background: avatar.isLocked ? 'linear-gradient(145deg, #3a3a3a, #1a1a1a)' : isSelected ? 'linear-gradient(145deg, #00ff00, #008800)' : 'linear-gradient(145deg, #00f5ff, #0088ff)',
-            border: avatar.isLocked ? '2px solid #555' : 'none',
-            borderRadius: '30px',
-            color: avatar.isLocked ? '#888' : '#000',
-            fontFamily: "'Rajdhani', sans-serif",
-            fontSize: '20px',
-            fontWeight: 900,
-            cursor: avatar.isLocked ? 'not-allowed' : isSelected ? 'default' : 'pointer',
-            textTransform: 'uppercase',
-            boxShadow: avatar.isLocked ? 'none' : isSelected ? '0 10px 20px rgba(0, 255, 0, 0.4)' : '0 10px 20px rgba(0, 245, 255, 0.4)',
-            transition: 'all 0.3s'
-          }}
-        >
-          {avatar.isLocked ? 'VIP LOCKED' : isSelected ? 'CURRENTLY EQUIPPED' : 'EQUIP NOW'}
-        </button>
+        {!showScopeSelect ? (
+          <button
+            onClick={isSelected ? undefined : () => setShowScopeSelect(true)}
+            style={{
+              padding: '15px 50px',
+              background: avatar.isLocked ? 'linear-gradient(145deg, #3a3a3a, #1a1a1a)' : isSelected ? 'linear-gradient(145deg, #00ff00, #008800)' : 'linear-gradient(145deg, #00f5ff, #0088ff)',
+              border: avatar.isLocked ? '2px solid #555' : 'none',
+              borderRadius: '30px',
+              color: avatar.isLocked ? '#888' : '#000',
+              fontFamily: "'Rajdhani', sans-serif",
+              fontSize: '20px',
+              fontWeight: 900,
+              cursor: avatar.isLocked ? 'not-allowed' : isSelected ? 'default' : 'pointer',
+              textTransform: 'uppercase',
+              boxShadow: avatar.isLocked ? 'none' : isSelected ? '0 10px 20px rgba(0, 255, 0, 0.4)' : '0 10px 20px rgba(0, 245, 255, 0.4)',
+              transition: 'all 0.3s'
+            }}
+          >
+            {avatar.isLocked ? 'VIP LOCKED' : isSelected ? 'CURRENTLY EQUIPPED' : 'EQUIP NOW'}
+          </button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', alignItems: 'center' }}>
+            <h3 style={{ color: '#fff', margin: '0 0 10px 0', fontFamily: "'Rajdhani', sans-serif" }}>Where to apply?</h3>
+            <button onClick={() => handleEquip('arena')} style={scopeBtnStyle}>Club Arena Only</button>
+            <button onClick={() => handleEquip('social')} style={scopeBtnStyle}>Social Profile Only</button>
+            <button onClick={() => handleEquip('both')} style={scopeBtnStyle}>Both</button>
+          </div>
+        )}
 
       </div>
     </div>
@@ -328,12 +345,12 @@ export default function AvatarGallery({ onSelect }) {
     }
   }
 
-  async function handleConfirmEquip(avatarObj) {
+  async function handleConfirmEquip(avatarObj, scope) {
     let result;
     if (avatarObj.isCustomObj) {
-        result = await setActiveAvatar(avatarObj.image_url, 'custom', null, avatarObj.prompt);
+        result = await setActiveAvatar(avatarObj.image_url, 'custom', null, avatarObj.prompt, scope);
     } else {
-        result = await selectPresetAvatar(avatarObj.id);
+        result = await selectPresetAvatar(avatarObj.id, scope);
     }
 
     if (result.success) {

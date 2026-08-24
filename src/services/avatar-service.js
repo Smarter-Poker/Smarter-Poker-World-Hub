@@ -125,22 +125,22 @@ export async function setPresetAvatar(userId, avatarId, opts = {}) {
 
         const entry = resolvePresetAvatar(avatarId);
         const imageUrl = normalizeAvatarUrl(entry?.image || null);
+        const scope = opts.scope || 'both';
+        
+        let error = null;
 
-        // Use the database function to set active avatar.
-        // p_image_url lets the RPC sync profiles.avatar_url so Club Arena,
-        // training games and the header all pick up the change.
-        const { error } = await supabase.rpc('set_active_avatar', {
-            p_user_id: userId,
-            p_avatar_type: 'preset',
-            p_preset_avatar_id: avatarId,
-            p_image_url: imageUrl
-        });
+        // The RPC unconditionally updates `avatar_url`. So if scope is arena-only, we bypass it.
+        if (scope === 'social' || scope === 'both') {
+            const { error: rpcError } = await supabase.rpc('set_active_avatar', {
+                p_user_id: userId,
+                p_avatar_type: 'preset',
+                p_preset_avatar_id: avatarId,
+                p_image_url: imageUrl
+            });
+            error = rpcError;
+        }
 
-        if (error) {
-            // FALLBACK: direct table writes (covers environments where the RPC
-            // signature hasn't been migrated yet). RLS restricts both writes
-            // to the caller's own rows.
-            console.warn('set_active_avatar RPC failed, falling back to direct write:', error.message);
+        if (error || scope === 'arena') {
             const { error: upsertError } = await supabase
                 .from('user_avatars')
                 .upsert({
@@ -152,14 +152,16 @@ export async function setPresetAvatar(userId, avatarId, opts = {}) {
                     is_active: true,
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'user_id' });
-            if (upsertError) throw upsertError;
+            if (upsertError && error) throw upsertError; // Only throw if RPC also failed or bypassed
         }
 
-        // Belt & braces: make sure profiles.avatar_url reflects the new avatar
-        // even on the fallback path (ignore failure — RPC path already synced it).
-        if (imageUrl) {
+        const updateData = {};
+        if (scope === 'social' || scope === 'both') updateData.avatar_url = imageUrl;
+        if (scope === 'arena' || scope === 'both') updateData.arena_avatar_url = imageUrl;
+
+        if (imageUrl && Object.keys(updateData).length > 0) {
             try {
-                await supabase.from('profiles').update({ avatar_url: imageUrl }).eq('id', userId);
+                await supabase.from('profiles').update(updateData).eq('id', userId);
             } catch (_) { /* non-fatal */ }
         }
 
