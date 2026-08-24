@@ -1,7 +1,14 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/marketplace-purchase
- * Atomic marketplace item purchase. Deducts chips, records purchase + transaction.
+ * Atomic marketplace item purchase. Deducts DIAMONDS from the buyer's global
+ * wallet (profiles.diamonds), records the purchase (currency='diamonds').
+ *
+ * PRODUCT RULE (Dan, 2026-08-23): the marketplace is fully funded by diamonds,
+ * never chips. The chip debit path (fn_debit_chips) was removed in the same
+ * change that added club_shop_purchases.currency; legacy chip purchases are
+ * still refunded in chips by fn_refund_shop_purchase's currency branch.
+ *
  * Auth: Bearer token (any club member)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -77,15 +84,26 @@ export default async function handler(req, res) {
       };
 
       try {
-          // Get member
+          // Get member (marketplace is member-only; balance comes from the
+          // buyer's GLOBAL diamond wallet, not the club chip balance)
           const { data: member, error: memErr } = await getSupabase()
               .from('club_members')
-              .select('chip_balance, user_id')
+              .select('user_id, role')
               .eq('club_id', clubId)
               .eq('user_id', user.id)
               .maybeSingle();
 
           if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member' });
+
+          // Buyer's diamond wallet (profiles.diamonds is the platform truth)
+          const { data: profileRow, error: profErr } = await getSupabase()
+              .from('profiles')
+              .select('diamonds')
+              .eq('id', user.id)
+              .maybeSingle();
+          if (profErr || !profileRow) {
+              return res.status(404).json({ success: false, error: 'Wallet not found' });
+          }
 
           // Get item (scoped to this club) — BUG FIX: was .select('id'), making is_active/price undefined
           const { data: item, error: itemErr } = await getSupabase()
@@ -136,11 +154,11 @@ export default async function handler(req, res) {
 
           // Sale-aware, server-decided. The client never sends a price.
           const price = Number(avail.price) || 0;
-          const balance = member.chip_balance || 0;
+          const balance = Number(profileRow.diamonds) || 0;
 
           if (balance < price) {
               return res.status(400).json({
-                  success: false, error: `Insufficient chips. Have ${balance}, need ${price}`,
+                  success: false, error: `Insufficient diamonds. Have ${balance}, need ${price}`,
                   available: balance,
                   price,
               });
@@ -152,24 +170,21 @@ export default async function handler(req, res) {
           // The unit (if any) was already taken inside fn_claim_shop_purchase.
           stockClaimed = avail.stock_claimed === true;
 
-          // Deduct chips atomically.
+          // Deduct DIAMONDS atomically from the buyer's global wallet.
           //
-          // CRITICAL (audit 2026-08-19): fn_debit_chips does NOT raise on
-          // failure — it RETURNS {success:false, error:'insufficient chips'}.
-          // Verified against production. This code checked only `deductErr`,
-          // which is the PostgREST transport error and is null in that case,
-          // so a rejected debit fell straight through to inserting the purchase
-          // and the delivery trigger handed over the item.
-          //
-          // Under concurrency that is a free-item exploit: N requests all read
-          // the same balance, one debit lands, the other N-1 return
-          // {success:false} silently, and N items are delivered for one payment.
-          // The partial unique index used to mask it by failing the losers'
-          // insert, but stackable items are deliberately exempt from that index.
-          const { data: debit, error: deductErr } = await getSupabase().rpc('fn_debit_chips', {
-              p_club_id: clubId,
+          // add_diamonds_to_balance takes the FOR UPDATE row lock on profiles,
+          // refuses to go negative, writes the diamond_transactions ledger row,
+          // and enforces reference_id uniqueness — a raced double-submit can
+          // charge at most once. Like the chip RPCs it reports business
+          // failures via its data payload, not a thrown error, so BOTH the
+          // transport error and success:false must be handled.
+          const chargeRef = `ca-shop-${require('crypto').randomUUID()}`;
+          const { data: debit, error: deductErr } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: user.id,
-              p_amount: price,
+              p_amount: -price,
+              p_type: 'purchase',
+              p_description: `Club Shop: ${item.name || itemId}`,
+              p_reference_id: chargeRef,
           });
 
           if (deductErr) {
@@ -183,13 +198,28 @@ export default async function handler(req, res) {
               const insufficient = /insufficient/i.test(msg);
               return res.status(insufficient ? 400 : 500).json({
                   success: false,
-                  error: insufficient ? 'Insufficient chips' : 'Payment failed',
-                  available: debit?.balance ?? balance,
+                  error: insufficient ? 'Insufficient diamonds' : 'Payment failed',
+                  available: balance,
                   price,
               });
           }
+          const balanceAfterCharge = Number(debit.new_balance);
 
-          // Record purchase
+          // From here on, any failure path must give the diamonds back.
+          const refundDiamonds = async () => {
+              const { data: refundRes, error: refundRpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
+                  p_user_id: user.id,
+                  p_amount: price,
+                  p_type: 'refund',
+                  p_description: `Club Shop rollback: ${item.name || itemId}`,
+                  p_reference_id: `${chargeRef}-rollback`,
+              });
+              const dup = refundRes?.duplicate === true;
+              return refundRpcErr || (refundRes?.success || dup ? null : new Error(refundRes?.error || 'refund returned success:false'));
+          };
+
+          // Record purchase (currency travels with the row so refunds know
+          // which wallet to credit — legacy rows default to 'chips')
           const { error: purchaseErr } = await getSupabase()
               .from('club_shop_purchases')
               .insert({
@@ -198,6 +228,7 @@ export default async function handler(req, res) {
                   item_id: itemId,
                   price_paid: price,
                   stock_claimed: stockClaimed,
+                  currency: 'diamonds',
               });
 
           if (purchaseErr) {
@@ -209,23 +240,13 @@ export default async function handler(req, res) {
               const isDuplicateOwned =
                   purchaseErr.code === '23505' ||
                   /uq_shop_inventory_owned_per_item|duplicate key/i.test(purchaseErr.message || '');
-              // Rollback chip deduction atomically. CRITICAL: capture the
+              // Rollback the diamond deduction atomically. CRITICAL: capture the
               // refund error — if THIS fails, the user paid for nothing and
-              // ops needs to know immediately. Previously the call swallowed
-              // the error silently, so any rollback failure left chips
-              // permanently lost with no log to reconcile from.
-              const { data: refundRes, error: refundRpcErr } = await getSupabase().rpc('fn_credit_chips', {
-                  p_club_id: clubId,
-                  p_user_id: user.id,
-                  p_amount: price,
-              });
-              // fn_credit_chips also RETURNS {success:false} rather than
-              // raising, so a failed rollback used to look like a clean one.
-              const refundErr =
-                  refundRpcErr || (refundRes?.success ? null : new Error(refundRes?.error || 'credit returned success:false'));
+              // ops needs to know immediately.
+              const refundErr = await refundDiamonds();
               if (refundErr) {
                   // Loud audit log — this is real money the user lost.
-                  console.warn('[marketplace-purchase] CRITICAL: refund of', price, 'chips for user', user.id, 'in club', clubId, 'FAILED after purchase insert error:', refundErr?.message || refundErr);
+                  console.warn('[marketplace-purchase] CRITICAL: refund of', price, 'diamonds for user', user.id, 'in club', clubId, 'FAILED after purchase insert error:', refundErr?.message || refundErr);
                   try {
                       logAudit(supabaseAdmin, {
                           actionType: 'marketplace_refund_failed',
@@ -249,45 +270,25 @@ export default async function handler(req, res) {
               throw purchaseErr;
           }
 
-          // Record transaction. Same defensive shape — if this fails, the
-          // user has the item and the chips moved correctly, but no audit
-          // trail. Surface the error so reconciliation tools can find it.
-          const { error: txErr } = await getSupabase().from('chip_transactions').insert({
-              from_user_id: user.id,
-              to_user_id: user.id,
-              club_id: clubId,
-              transaction_type: 'purchase',
-              amount: -price,
-              notes: `Shop purchase: ${item.name || item.id}`,
-          });
-          if (txErr) {
-              console.warn('[marketplace-purchase] chip_transactions insert failed (purchase still successful):', txErr?.message || txErr);
-          }
+          // Ledger row: add_diamonds_to_balance already wrote the
+          // diamond_transactions entry (reference_id = chargeRef), so no
+          // separate transaction insert is needed here.
 
           // The purchase is COMMITTED from here on. Nothing below may throw a
-          // 500 — the chips are spent and the item is delivered, so an audit or
-          // balance-read hiccup must not tell the buyer it failed.
+          // 500 — the diamonds are spent and the item is delivered, so an audit
+          // or balance-read hiccup must not tell the buyer it failed.
           try {
               logAudit(supabaseAdmin, { actionType: 'marketplace_purchase', userId: user.id, clubId, amount: price, ip: extractIP(req), details: { itemId, itemName: item.name, itemType: item.item_type } });
           } catch (auditErr) {
               console.warn('[marketplace-purchase] audit log failed (purchase still successful):', auditErr?.message || auditErr);
           }
 
-          let updatedMember = null;
-          try {
-              ({ data: updatedMember } = await getSupabase()
-                  .from('club_members')
-                  .select('chip_balance')
-                  .eq('club_id', clubId)
-                  .eq('user_id', user.id)
-                  .maybeSingle());
-          } catch (balErr) {
-              console.warn('[marketplace-purchase] post-purchase balance read failed:', balErr?.message || balErr);
-          }
-
           return res.status(200).json({
               success: true,
-              newBalance: updatedMember?.chip_balance ?? (balance - price),
+              // Diamond balance straight from the debit RPC (post-charge,
+              // row-locked) — no re-read race.
+              newBalance: Number.isFinite(balanceAfterCharge) ? balanceAfterCharge : (balance - price),
+              currency: 'diamonds',
               // The price the server actually charged. A sale can end between
               // page load and confirm, and the modal would otherwise still be
               // showing the promo price with no way to tell.
