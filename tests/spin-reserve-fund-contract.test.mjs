@@ -85,7 +85,10 @@ test('fund_spin_reserve refuses to proceed without a usable op id', () => {
     const branch = fundBranch();
     assert.match(
         branch,
-        /if\s*\(!opId/,
+        // \s* after the paren too: Prettier wraps this condition onto its own
+        // line once the line exceeds the print width, and the guarantee here is
+        // that opId is checked BEFORE the RPC, not that it fits on one line.
+        /if\s*\(\s*!opId/,
         'the branch must reject a missing op id before calling the RPC - without one the fund is not idempotent'
     );
     assert.match(branch, /400/, 'a missing op id is a client error');
@@ -106,7 +109,10 @@ test('get_balances returns and totals the spin reserve wallet', () => {
 
     assert.match(
         branch,
-        /\.select\('[^']*spin_reserve_wallet[^']*'\)/,
+        // Same reason as above: this select list is long enough that Prettier
+        // puts the string on its own line. What must hold is that
+        // spin_reserve_wallet is in the projection.
+        /\.select\(\s*'[^']*spin_reserve_wallet[^']*'\s*\)/,
         'get_balances no longer selects spin_reserve_wallet - the union cannot see the wallet that funds its own Spin pools'
     );
     assert.match(branch, /spin_reserve_wallet:\s*Number\(w\.spin_reserve_wallet/, 'spin_reserve_wallet is selected but not returned');

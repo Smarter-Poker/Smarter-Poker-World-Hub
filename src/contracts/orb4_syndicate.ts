@@ -70,6 +70,10 @@ export const UnionWalletAction = z.enum([
     'process_bbj_payout',
     'fund_spin_reserve',
     'get_transactions',
+    'get_rake_detail',
+    'get_bbj_detail',
+    'bbj_backup_transfer',
+    'promo_send',
 ]);
 
 // Every wallet a union_wallet_transactions row may name. This list must stay
@@ -156,22 +160,73 @@ export const WalletTransferSchema = z.object({
 
 export type WalletTransfer = z.infer<typeof WalletTransferSchema>;
 
+// ─── BBJ Backup Transfer Contract (2026-08-24) ────────────────
+//
+// Dan: "back up BBJ needs to be clickable, and funds are allowed to be moved to
+// the promo fund or to the main BBJ if the owner chooses to."
+//
+// Only two destinations exist and both are inside the union's own money. There
+// is deliberately no 'club' destination here: backup is jackpot liability owed
+// to players, and paying it into a club treasury would convert player money into
+// operator money in one call.
+export const BBJBackupTransferSchema = z.object({
+    action: z.literal('bbj_backup_transfer'),
+    unionId: UUID,
+    amount: PositiveChipAmount,
+    destination: z.enum(['main', 'promo']),
+    notes: SafeNotes,
+}).strict();
+
+export type BBJBackupTransfer = z.infer<typeof BBJBackupTransferSchema>;
+
+// ─── Promo Wallet Send Contract (2026-08-24) ──────────────────
+//
+// Dan: "the promo wallet needs to be clickable and have funds sent from it."
+//
+// clubId is optional at the schema level and REQUIRED by the handler when
+// destination is 'club'. A discriminated union on `destination` would express
+// that better, but `action` is already the discriminant for the whole wallet
+// contract and Zod allows only one. The handler check is the real gate; so is
+// fn_union_promo_send, which refuses a null club_id independently.
+export const PromoSendSchema = z.object({
+    action: z.literal('promo_send'),
+    unionId: UUID,
+    amount: PositiveChipAmount,
+    destination: z.enum(['club', 'bbj_main']),
+    clubId: UUID.optional(),
+    notes: SafeNotes,
+}).strict();
+
+export type PromoSend = z.infer<typeof PromoSendSchema>;
+
 // ─── Union Wallet Get Contract ─────────────────────────────────
+//
+// `before` is the cursor for get_transactions. It was MISSING here while
+// union-wallet.js has always read req.body.before — and this schema is
+// .strict(), so every request that actually carried a cursor was rejected 400
+// before the handler ran. The Load More control could not have worked once.
+// Added 2026-08-24 alongside the wallet detail views, which page through
+// history and would have hit the same wall.
 export const UnionWalletGetSchema = z.object({
-    action: z.enum(['get_balances', 'get_transactions']),
+    action: z.enum(['get_balances', 'get_transactions', 'get_rake_detail', 'get_bbj_detail']),
     unionId: UUID,
     wallet: WalletType.optional(),
+    before: z.string().datetime().optional(),
 }).strict();
 
 // ─── Overall Union Wallet Contract ────────────────────────────
 export const UnionWalletSchema = z.discriminatedUnion('action', [
     UnionWalletGetSchema.extend({ action: z.literal('get_balances') }),
     UnionWalletGetSchema.extend({ action: z.literal('get_transactions') }),
+    UnionWalletGetSchema.extend({ action: z.literal('get_rake_detail') }),
+    UnionWalletGetSchema.extend({ action: z.literal('get_bbj_detail') }),
     WalletTransferSchema.extend({ action: z.literal('send_to_club') }),
     WalletTransferSchema.extend({ action: z.literal('move_rake_to_chips') }),
     BBJPayoutSchema,
     FundBBJPoolSchema,
     FundSpinReserveSchema,
+    BBJBackupTransferSchema,
+    PromoSendSchema,
 ]);
 
 // ─── Mint Chips Contract ──────────────────────────────────────
