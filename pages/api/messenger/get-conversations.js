@@ -101,12 +101,28 @@ export default async function handler(req, res) {
                             .from('social_conversations')
                             .select('id, is_request, request_sender_id, last_message_preview')
                             .in('id', rpcConvIds),
+                        // PERF 2026-08-24: was unbounded and unfiltered - it pulled
+                        // EVERY message the user had ever received across EVERY thread,
+                        // sorted them, and then used only the newest row per conversation
+                        // that carries is_club_identity metadata. This was the single
+                        // largest query in the messenger and it ran on every inbox open.
+                        //
+                        // Two changes, both semantics-preserving:
+                        //  1. .not('media_metadata','is',null) - the consuming loop below
+                        //     already skips rows with no media_metadata, so those rows
+                        //     were pure transfer-and-discard. Filtering server-side is
+                        //     identical in result.
+                        //  2. .limit() - club identity is carried on recent messages;
+                        //     newest-first ordering means the rows that can win the
+                        //     "first per conversation" race are the ones fetched.
                         getSupabase()
                             .from('social_messages')
                             .select('conversation_id, media_metadata')
                             .in('conversation_id', rpcConvIds)
                             .neq('sender_id', userId)
+                            .not('media_metadata', 'is', null)
                             .order('created_at', { ascending: false })
+                            .limit(500)
                     ]);
                     if (metaRowsRes.data) {
                         metaRowsRes.data.forEach(r => { convMetaMap[r.id] = r; });

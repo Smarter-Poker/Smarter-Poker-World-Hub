@@ -159,20 +159,17 @@ export default function MyTournamentStatus() {
     }, [id, authUser]);
 
     useEffect(() => { if (authChecking) return; let active = true; fetchData(); return () => { active = false; }; }, [fetchData, authChecking]);
-  // Realtime listener - live updates for tournament/[id]/my-status.js
-  useEffect(() => {
-
-    if (!router.isReady) return null;
-
-    if (!id) return;
-    const ch = supabase
-      .channel(`td-mystatus:${id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_tournaments', filter: `id=eq.${id}` }, () => { fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_tournament_entries', filter: `tournament_id=eq.${id}` }, () => { fetchData(); })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [id]);
-
+    // PERF 2026-08-24: a raw channel used to live here subscribing to
+    // commander_tournaments (UPDATE, id=eq.<id>) and commander_tournament_entries
+    // (*, tournament_id=eq.<id>) - the EXACT two tables useTournamentRealtime
+    // below already subscribes to. Every entry change therefore ran fetchData()
+    // TWICE for every player watching, and the raw channel had no debounce, so a
+    // table break or a chip-count pass fired one full refetch per player per row
+    // changed. useTournamentRealtime is the better implementation of the same
+    // thing (it also covers commander_tables, debounces bursts, keeps the
+    // callback in a ref so it never resubscribes, and cleans up properly), so
+    // the duplicate is deleted rather than debounced.
+    //
     // Supabase Realtime - instant sync when tournament/player data changes
     useTournamentRealtime(id, fetchData);
 

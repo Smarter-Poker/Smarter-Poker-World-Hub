@@ -83,9 +83,15 @@ export default async function handler(req, res) {
                   .eq('user_id', userId)
                   .limit(100),
               // 4. Conversations for unread messages count
+              // PERF 2026-08-24: was unbounded. This list becomes the .in() filter
+              // for the message scan below, so its size drives that query's cost
+              // directly. Newest-read first, so the threads a user actually engages
+              // with are the ones counted; the badge caps at '99+' regardless.
               sb.from('social_conversation_participants')
                   .select('conversation_id, last_read_at')
-                  .eq('user_id', userId),
+                  .eq('user_id', userId)
+                  .order('last_read_at', { ascending: false, nullsFirst: false })
+                  .limit(200),
           ]);
 
           const profile = profileResult.data;
@@ -160,13 +166,28 @@ export default async function handler(req, res) {
                       const ts = c.last_read_at || '1970-01-01';
                       return ts < earliest ? ts : earliest;
                   }, conversations[0].last_read_at || '1970-01-01');
+                  // PERF 2026-08-24: this query had NO limit. `earliestRead` is the
+                  // EARLIEST last_read_at across every one of the user's threads, so a
+                  // single stale thread makes it '1970-01-01' and this pulls the user's
+                  // entire received-message history. It runs on EVERY page load
+                  // (UniversalHeader is global) and again every 30s from useUnreadCount,
+                  // for every user - one of the largest single sources of database load.
+                  //
+                  // Bounded, newest-first. The badge renders '99+' above 99
+                  // (UniversalHeader.js:1313), so any count past that threshold is
+                  // visually identical; ordering DESC means the newest - and therefore
+                  // the unread - messages are the ones fetched, keeping the displayed
+                  // number exact everywhere it is actually distinguishable.
+                  const UNREAD_SCAN_CAP = 1000;
                   const { data: allMessages } = await sb
                       .from('social_messages')
                       .select('conversation_id, created_at')
                       .in('conversation_id', conversationIds)
                       .neq('sender_id', userId)
                       .eq('is_deleted', false)
-                      .gt('created_at', earliestRead);
+                      .gt('created_at', earliestRead)
+                      .order('created_at', { ascending: false })
+                      .limit(UNREAD_SCAN_CAP);
                   const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));
                   let count = 0;
                   (allMessages || []).forEach(msg => {

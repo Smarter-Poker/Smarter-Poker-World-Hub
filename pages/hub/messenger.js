@@ -554,6 +554,13 @@ function MessengerPage() {
     const goOnlineUserRef = useRef(null);
     const loadConversationsRef = useRef(null);
     const loadMessagesRef = useRef(null);
+    // PERF 2026-08-24: in-flight de-duplication for loadConversations.
+    // Opening the messenger fired the SAME full inbox request 3-4 times
+    // concurrently: the init effect, the identity effect (user?.id null->id),
+    // the auth listener (INITIAL_SESSION / TOKEN_REFRESHED) and the immediate
+    // pollInbox() all call it on mount. Holds { key, promise } so overlapping
+    // callers for the same (user, identity context) share one round-trip.
+    const loadConvInFlightRef = useRef(null);
 
     // Reload conversations and clear active chat when switching identity contexts (Personal <-> Club)
     // MUST be placed AFTER loadConversationsRef declaration so the ref exists when the effect fires.
@@ -561,7 +568,17 @@ function MessengerPage() {
         if (!user?.id) return;
         setActiveConversation(null);
         setMessages([]);
-        setConversations([]);
+        // PERF 2026-08-24: do NOT blank the list here. This effect also fires on
+        // the ordinary null->id transition of user?.id at mount, and clearing
+        // threw away the localStorage-cached conversations written on the last
+        // visit - so the sidebar went empty and the user stared at a skeleton
+        // until the slowest in-flight request returned. loadConversations()
+        // below replaces the list wholesale when it resolves, and it is keyed on
+        // the identity context, so a real Personal <-> Club switch still swaps
+        // the contents; it just no longer flashes empty on a plain reload.
+        if (!Array.isArray(conversationsRef.current) || conversationsRef.current.length === 0) {
+            setConversations([]);
+        }
         // loadConversationsRef.current is set later in the render body (line ~3694)
         // but effects fire post-render, so by the time this callback executes the ref is populated.
         loadConversationsRef.current?.(user.id);
@@ -1615,6 +1632,25 @@ function MessengerPage() {
     };
 
     const loadConversations = async (userId) => {
+        // PERF 2026-08-24: collapse concurrent duplicate loads (see
+        // loadConvInFlightRef). Keyed on the exact request identity, so a
+        // genuine context switch (Personal <-> Club) is never de-duplicated
+        // against the previous context's request. The entry is cleared when the
+        // request settles, so a LATER refresh always issues a fresh fetch.
+        const inFlightKey = `${userId}::${isClubMode && clubPage ? clubPage.id : 'personal'}`;
+        const pending = loadConvInFlightRef.current;
+        if (pending && pending.key === inFlightKey) return pending.promise;
+
+        const run = loadConversationsInner(userId);
+        loadConvInFlightRef.current = { key: inFlightKey, promise: run };
+        try {
+            return await run;
+        } finally {
+            if (loadConvInFlightRef.current?.promise === run) loadConvInFlightRef.current = null;
+        }
+    };
+
+    const loadConversationsInner = async (userId) => {
         //  HARDENED: Circuit breaker + offline detection + retry + guaranteed fallback
         const circuit = getCircuit('messenger-conversations', { failureThreshold: 3, resetTimeout: 30000 });
 
