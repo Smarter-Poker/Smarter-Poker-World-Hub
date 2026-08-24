@@ -54,6 +54,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resilientFetch } from './lib/resilient-fetch.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ALLOWLIST_PATH = path.join(REPO_ROOT, 'scripts', 'ci', 'supabase-invariants.allowlist.json');
@@ -165,14 +166,12 @@ async function fetchExposedTables() {
     );
     process.exit(2);
   }
-  const res = await fetch(`${url.replace(/\/$/, '')}/rest/v1/`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/openapi+json' },
-  });
-  if (!res.ok) {
-    console.error(`check-phantom-tables: PostgREST returned ${res.status} for the schema document.`);
-    process.exit(2);
-  }
-  const doc = await res.json();
+  const doc = await resilientFetch(
+    'check-phantom-tables',
+    `${url.replace(/\/$/, '')}/rest/v1/`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/openapi+json' } },
+    { exitCode: 2 }
+  );
   const tables = new Set();
   for (const p of Object.keys(doc.paths || {})) {
     const name = p.replace(/^\//, '');

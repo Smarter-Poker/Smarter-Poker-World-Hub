@@ -39,6 +39,7 @@
 // (Node 18+) instead of @supabase/supabase-js. diamondRewards.js is pure
 // config with no imports of its own, so it loads standalone.
 import { REWARDS } from '../src/config/diamondRewards.js';
+import { resilientFetch } from './ci/lib/resilient-fetch.mjs';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -52,20 +53,14 @@ if (!url || !key) {
 const endpoint = `${url.replace(/\/+$/, '')}/rest/v1/diamond_reward_catalog`
     + '?select=action_key,diamonds,max_per_day,counts_toward_daily_cap,lifetime,category,active';
 
-let data;
-try {
-    const res = await fetch(endpoint, {
-        headers: { apikey: key, Authorization: `Bearer ${key}` },
-    });
-    if (!res.ok) {
-        console.error(`[catalog-drift] query failed: HTTP ${res.status} ${await res.text()}`);
-        process.exit(1);
-    }
-    data = await res.json();
-} catch (err) {
-    console.error('[catalog-drift] query failed:', err?.message || err);
-    process.exit(1);
-}
+// This gate died at 2026-08-24 06:39 on HTTP 503 PGRST002, during a window
+// where PostgREST could not reach Postgres at all. Nothing was wrong with the
+// catalog. It is a required check, so that one blip stopped every merge in the
+// repository. The bare fetch it used had no timeout, no retry, and a catch that
+// only turned a transient into an exit 1.
+const data = await resilientFetch('catalog-drift', endpoint, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
+});
 
 if (!Array.isArray(data) || data.length === 0) {
     // An empty catalog is not "no drift" — it means every reward is

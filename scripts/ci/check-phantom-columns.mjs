@@ -53,6 +53,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resilientFetch } from './lib/resilient-fetch.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ALLOWLIST_PATH = path.join(REPO_ROOT, 'scripts', 'ci', 'supabase-invariants.allowlist.json');
@@ -244,21 +245,22 @@ async function fetchSchema() {
     console.error('check-phantom-columns: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required.');
     process.exit(2);
   }
-  const res = await fetch(`${url.replace(/\/$/, '')}/rest/v1/`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/openapi+json' },
-  });
-  if (!res.ok) {
-    console.error(`check-phantom-columns: PostgREST returned ${res.status}.`);
-    process.exit(2);
-  }
-  const doc = await res.json();
+  const doc = await resilientFetch(
+    'check-phantom-columns',
+    `${url.replace(/\/$/, '')}/rest/v1/`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/openapi+json' } },
+    { exitCode: 2 }
+  );
   const defs = doc.definitions || {};
   const schema = new Map();
   for (const [table, def] of Object.entries(defs)) {
     schema.set(table, new Set(Object.keys(def.properties || {})));
   }
   if (schema.size === 0) {
-    console.error('check-phantom-columns: zero table definitions — refusing to pass vacuously.');
+    // Still refuse to pass vacuously. The helper already retried the transient
+    // shape of this (PostgREST serves an empty document while it reloads its
+    // schema cache), so reaching here with zero tables means it is really empty.
+    console.error('check-phantom-columns: zero table definitions - refusing to pass vacuously.');
     process.exit(2);
   }
   return schema;

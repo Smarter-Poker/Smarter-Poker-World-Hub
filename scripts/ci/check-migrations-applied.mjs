@@ -45,6 +45,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { resilientFetch } from './lib/resilient-fetch.mjs';
 
 const REPO = process.cwd();
 const DIR = 'supabase/migrations/';
@@ -133,14 +134,12 @@ async function liveSchema() {
     );
     process.exit(2);
   }
-  const res = await fetch(`${url.replace(/\/$/, '')}/rest/v1/`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/openapi+json' },
-  });
-  if (!res.ok) {
-    console.error(`[check-migrations-applied] PostgREST returned ${res.status}.`);
-    process.exit(2);
-  }
-  const doc = await res.json();
+  const doc = await resilientFetch(
+    'check-migrations-applied',
+    `${url.replace(/\/$/, '')}/rest/v1/`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/openapi+json' } },
+    { exitCode: 2 }
+  );
   const tables = new Map();
   for (const [t, def] of Object.entries(doc.definitions || {})) {
     tables.set(t, new Set(Object.keys(def.properties || {})));
