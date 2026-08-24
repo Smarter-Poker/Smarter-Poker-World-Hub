@@ -1,2 +1,0 @@
-import{s as i}from"./index-9qJFzLYT-v6.js";const o=new Map;async function t(n){if(o.has(n))return o.get(n)??null;const{data:e}=await i.from("clubs").select("union_id").eq("id",n).maybeSingle(),s=(e==null?void 0:e.union_id)??null;return o.set(n,s),s}async function r(n){const e=await t(n);return e?`club_id.eq.${n},union_id.eq.${e}`:`club_id.eq.${n}`}export{r as c};
-//# sourceMappingURL=unionScope-Cs4G8KrH-v6.js.map
