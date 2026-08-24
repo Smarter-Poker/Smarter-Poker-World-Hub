@@ -25,6 +25,7 @@ import { supabase } from '../../lib/supabase';
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 
 import FullScreenPageOverlay from './FullScreenPageOverlay';
+import ClubArenaWarmup from '../perf/ClubArenaWarmup';
 
 // ── PERF: Lazy-load DiamondWalletModal only when opened (saves ~95KB from initial bundle) ──
 const DiamondWalletModal = dynamic(() => import('../store/DiamondWalletModal'), {
@@ -797,9 +798,23 @@ export default function UniversalHeader({
 
   return (
     <>
+      {/* Puts the whole Club Arena boot set on the device while this page is
+          idle, so tapping the tile is answered from cache instead of from
+          Vercel. See ClubArenaWarmup for what it does and when it declines. */}
+      <ClubArenaWarmup />
       <Head>
-        {/* Aggressive background cache of the Club Arena integration. This downloads the HTML document and triggers sub-resource fetching before the user clicks. */}
+        {/* Background cache of the Club Arena shell.
+            2026-08-24: this line spent a long time doing NOTHING. The shell was
+            served `Cache-Control: no-cache, no-store, must-revalidate`, and a
+            response that may not be stored cannot be reused by the prefetch
+            cache — so the browser downloaded it on every page view and threw it
+            away. vercel.json now serves that URL `no-cache, must-revalidate`:
+            still revalidated before every use, but storable, so this works.
+            Do not put `no-store` back without deleting this line too. */}
         <link rel="prefetch" href="/hub/club-arena" as="document" />
+        {/* The first thing Club Arena does after boot is talk to Supabase.
+            Warming DNS + TLS from here means that handshake is already done. */}
+        <link rel="preconnect" href="https://kuklfnapbkmacvwxktbh.supabase.co" crossOrigin="anonymous" />
         {/* 🛡️ PRELOAD avatar image so it stays in browser cache across page navigations */}
         {displayAvatar && <link rel="preload" as="image" href={displayAvatar} />}
       </Head>
