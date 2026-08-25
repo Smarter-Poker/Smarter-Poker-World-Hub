@@ -134,17 +134,12 @@ function FooterCard({ orb, index, onSelect, isIntroComplete, isMobile }: FooterC
                 }}
             >
 
-                {/* Main card face */}
                 <div
                     style={{
                         position: 'relative',
                         width: '100%',
                         aspectRatio: '2 / 3',
-                        borderRadius: 8,
-                        overflow: 'hidden',
                         background: 'transparent',
-                        border: 'none',
-                        boxShadow: `0 20px 40px rgba(0, 0, 0, 0.5)`,
                     }}
                 >
                     {/* Card image - Static for footer cards (full image, no cropping) */}
@@ -162,7 +157,6 @@ function FooterCard({ orb, index, onSelect, isIntroComplete, isMobile }: FooterC
                                 : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
                             backgroundSize: '100% 100%',
                             backgroundPosition: 'center',
-                            borderRadius: 8,
                         }}
                     />
 
@@ -1014,20 +1008,19 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                                 right: 0,
                                 display: 'flex',
                                 flexDirection: 'row',
-                                justifyContent: 'space-evenly',
-                                alignItems: 'flex-start',  // grow DOWN from the top edge — no top clipping
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
                                 padding: '0 6px',
-                                gap: 0,
-                                overflow: 'visible',       // never clip card tops
+                                gap: '6px',
+                                overflow: 'visible',
                             }}
                         >
-                            {footerCards.slice(0, 6).map((orb, index) => {
-                                // Each card gets exactly 1/6 of available width
-                                // 12px total side padding → (100vw - 12px) / 6
-                                const cardWidth = `calc((100vw - 12px) / 6)`;
+                            {footerCards.slice(0, 5).map((orb, index) => {
+                                // 5 cards, 4 gaps of 6px = 24px. Container padding 12px. Total non-card width = 36px
+                                const cardWidth = `calc((100vw - 36px) / 5)`;
                                 return (
                                     <HubErrorBoundary key={orb.id} name={`MobileCard-${orb.id}`} fallback={<div style={{ width: cardWidth }} />}>
-                                        <div style={{ width: cardWidth, flexShrink: 0, padding: '0 2px' }}>
+                                        <div style={{ width: cardWidth, flexShrink: 0 }}>
                                             <FooterCard
                                                 orb={orb}
                                                 index={index}
