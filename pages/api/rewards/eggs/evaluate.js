@@ -132,8 +132,16 @@ export default async function handler(req, res) {
         // unknown egg, a missing verifier, or a thrown query error all resolve
         // to { verified: false }), so one bad verifier cannot fail the sweep.
         const VERIFY_CONCURRENCY = 5;
-        const verifiedKeys = [];
-        for (let i = 0; i < keys.length; i += VERIFY_CONCURRENCY) {
+
+        // Verification and awarding are INTERLEAVED per chunk, not two
+        // separate passes. The cap-stop below can only be discovered from an
+        // award result, so verifying everything up front would make a user
+        // already at their monthly / daily cap - the common steady state late
+        // in a month - pay the FULL verifier workload (up to
+        // MAX_VERIFIERS_PER_SWEEP, each 1-3 queries) to award nothing.
+        // Chunking keeps the 5-wide concurrency win while letting `capped`
+        // stop the sweep after at most one further chunk.
+        for (let i = 0; i < keys.length && !capped; i += VERIFY_CONCURRENCY) {
             const chunk = keys.slice(i, i + VERIFY_CONCURRENCY);
             const proofs = await Promise.all(
                 chunk.map(async (key) => {
@@ -148,75 +156,72 @@ export default async function handler(req, res) {
                     }
                 }),
             );
-            chunk.forEach((key, idx) => { if (proofs[idx]) verifiedKeys.push(key); });
-        }
+            const verifiedKeys = chunk.filter((_, idx) => proofs[idx]);
 
-        // The AWARD loop stays strictly sequential. Each award mutates the
-        // user's monthly / daily / velocity budget server-side, and the
-        // cap-stop below depends on seeing those refusals in order.
-        for (const key of verifiedKeys) {
-            const egg = getEasterEgg(key);
-            if (!egg) continue;
+            for (const key of verifiedKeys) {
+                const egg = getEasterEgg(key);
+                if (!egg) continue;
 
-            const { ok, data, migrationMissing } = await safeAward(supabase, {
-                p_user_id: userId,
-                p_action_key: 'easter_egg',
-                p_reference_id: `easter_egg_${userId}_${key}`,
-                p_target_id: key,
-                p_metadata: {
-                    egg_key: key,
-                    egg_diamonds: egg.diamonds,
-                    _source: 'api/rewards/eggs/evaluate',
-                    _catalog_version: CATALOG_VERSION,
-                    _verified_at: new Date().toISOString(),
-                },
-            });
-
-            if (!ok) {
-                if (migrationMissing) {
-                    return res.status(200).json({
-                        success: false,
-                        awarded: [],
-                        totalDiamonds: 0,
-                        reason: 'unavailable',
-                        message: 'Rewards are temporarily unavailable.',
-                    });
-                }
-                // One egg failing must not abort the sweep.
-                continue;
-            }
-
-            const result = typeof data === 'string' ? JSON.parse(data) : data || {};
-            if (result.success && Number(result.awarded) > 0) {
-                totalDiamonds += Number(result.awarded);
-                awarded.push({
-                    key,
-                    name: egg.name,
-                    rarity: egg.rarity,
-                    icon: egg.icon,
-                    hint: egg.hint,
-                    diamonds: Number(result.awarded),
+                const { ok, data, migrationMissing } = await safeAward(supabase, {
+                    p_user_id: userId,
+                    p_action_key: 'easter_egg',
+                    p_reference_id: `easter_egg_${userId}_${key}`,
+                    p_target_id: key,
+                    p_metadata: {
+                        egg_key: key,
+                        egg_diamonds: egg.diamonds,
+                        _source: 'api/rewards/eggs/evaluate',
+                        _catalog_version: CATALOG_VERSION,
+                        _verified_at: new Date().toISOString(),
+                    },
                 });
-            } else if (
-                result.reason === 'monthly_cap'
-                || result.reason === 'daily_cap'
-                || result.reason === 'action_limit'
-                || result.reason === 'velocity'
-                || result.reason === 'budget_exhausted'
-            ) {
-                // Every one of these means the NEXT egg will be refused for the
-                // same reason, so continuing just burns RPC calls.
-                //   action_limit  — monthly egg budget spent, or the 3/day
-                //                   easter_egg limit reached
-                //   velocity      — >5 awards of one action in 60s. A first
-                //                   sweep for an established account can
-                //                   legitimately unlock more eggs than that;
-                //                   stopping here leaves the rest unclaimed and
-                //                   unburned, and the next sweep collects them.
-                //   budget_exhausted — the 2.5M platform breaker tripped.
-                capped = true;
-                stopReason = result.reason;
-                break;
+
+                if (!ok) {
+                    if (migrationMissing) {
+                        return res.status(200).json({
+                            success: false,
+                            awarded: [],
+                            totalDiamonds: 0,
+                            reason: 'unavailable',
+                            message: 'Rewards are temporarily unavailable.',
+                        });
+                    }
+                    // One egg failing must not abort the sweep.
+                    continue;
+                }
+
+                const result = typeof data === 'string' ? JSON.parse(data) : data || {};
+                if (result.success && Number(result.awarded) > 0) {
+                    totalDiamonds += Number(result.awarded);
+                    awarded.push({
+                        key,
+                        name: egg.name,
+                        rarity: egg.rarity,
+                        icon: egg.icon,
+                        hint: egg.hint,
+                        diamonds: Number(result.awarded),
+                    });
+                } else if (
+                    result.reason === 'monthly_cap'
+                    || result.reason === 'daily_cap'
+                    || result.reason === 'action_limit'
+                    || result.reason === 'velocity'
+                    || result.reason === 'budget_exhausted'
+                ) {
+                    // Every one of these means the NEXT egg will be refused for the
+                    // same reason, so continuing just burns RPC calls.
+                    //   action_limit  — monthly egg budget spent, or the 3/day
+                    //                   easter_egg limit reached
+                    //   velocity      — >5 awards of one action in 60s. A first
+                    //                   sweep for an established account can
+                    //                   legitimately unlock more eggs than that;
+                    //                   stopping here leaves the rest unclaimed and
+                    //                   unburned, and the next sweep collects them.
+                    //   budget_exhausted — the 2.5M platform breaker tripped.
+                    capped = true;
+                    stopReason = result.reason;
+                    break;
+                }
             }
         }
 

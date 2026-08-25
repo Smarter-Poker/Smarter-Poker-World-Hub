@@ -1,5 +1,5 @@
 /**
- * 🥚 useEasterEggSweep — the client half of easter egg discovery
+ * useEasterEggSweep — the client half of easter egg discovery
  * ═══════════════════════════════════════════════════════════════════════════
  * Asks the server to re-check which easter eggs this user has earned, and
  * celebrates whatever comes back. The egg catalog is 67 achievements deep and,
@@ -53,7 +53,10 @@ function readLastSweep(userId) {
     try {
         const raw = window.localStorage.getItem(`${SWEEP_TS_KEY}:${userId}`);
         const ts = raw ? Number(raw) : 0;
-        return Number.isFinite(ts) ? ts : 0;
+        // A FUTURE timestamp (clock skew, or a tampered localStorage value)
+        // would make Date.now() - lastSweep negative and block the sweep until
+        // wall-clock caught up. Treat anything not in the past as "never".
+        return Number.isFinite(ts) && ts > 0 && ts <= Date.now() ? ts : 0;
     } catch (_) {
         // Private browsing / storage disabled - fall back to "never swept".
         // Losing the throttle is strictly better than losing the sweep.
@@ -97,18 +100,23 @@ export default function useEasterEggSweep(userId) {
                 },
                 body: '{}',
             });
+            if (!res.ok) {
+                // Do NOT burn the throttle on a 401/429/5xx - nothing was
+                // evaluated, so the next mount should be allowed to retry
+                // rather than waiting out the full window for no result.
+                return null;
+            }
+
             const sweptAt = Date.now();
             lastSweepRef.current = sweptAt;
             writeLastSweep(userId, sweptAt);
-
-            if (!res.ok) return null;
             const data = await res.json();
             const awarded = Array.isArray(data?.awarded) ? data.awarded : [];
             if (!awarded.length) return data;
 
             for (const egg of awarded) {
                 toast.success(
-                    `🥚 ${egg.name} unlocked — +${egg.diamonds} 💎`,
+                    `${egg.name} unlocked, +${egg.diamonds} diamonds`,
                     6000,
                 );
             }

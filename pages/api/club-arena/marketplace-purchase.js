@@ -16,7 +16,7 @@ import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settle
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
-const { requireEmailVerified } = require('../../../src/lib/emailVerifiedGate');
+const { requireEmailVerified, requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -57,8 +57,17 @@ export default async function handler(req, res) {
       const { proceed } = await beginIdempotent(getSupabase(), req, res, 'marketplace-purchase');
       if (!proceed) return;
 
-      // [Phase 6.1.12] Email must be verified before chip/diamond purchases
-      const emailGate = requireEmailVerified(user);
+      // [Phase 6.1.12] Email must be verified before chip/diamond purchases.
+      // requireEmailVerified reads user.email_confirmed_at, which is NOT a JWT
+      // claim. Since auth verification became local-first (2026-08-24) the user
+      // object is built from the token and that field is always undefined, so
+      // the bare gate rejects EVERY user including verified ones. The three
+      // sibling store endpoints already carry this DB fallback; this one did
+      // not, which made it a hard 403 on every marketplace purchase.
+      let emailGate = requireEmailVerified(user);
+      if (!emailGate.ok && typeof user.email_confirmed_at === 'undefined') {
+          emailGate = await requireEmailVerifiedByUserId(getSupabase(), user.id);
+      }
       if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
 
       const { clubId, itemId } = req.body;
