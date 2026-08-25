@@ -12,6 +12,7 @@
  *   showTypePrefs? render the per-category list (default true)
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Switch from '../ui/Switch';
 import {
     enablePush, disablePush, sendTestPush,
     isWebPushSupported, notificationPermission,
@@ -27,31 +28,9 @@ import { supabase } from '../../lib/supabase';
 // message instead of an eternal "Enabling...".
 const STUCK_GUARD_MS = 120_000;
 
-function Switch({ checked, disabled, onChange, label }) {
-    return (
-        <button
-            type="button"
-            role="switch"
-            aria-checked={checked}
-            aria-label={label}
-            disabled={disabled}
-            onClick={() => onChange(!checked)}
-            className={[
-                'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors',
-                'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500',
-                checked ? 'bg-teal-500' : 'bg-gray-600',
-                disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer',
-            ].join(' ')}
-        >
-            <span
-                className={[
-                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                    checked ? 'translate-x-6' : 'translate-x-1',
-                ].join(' ')}
-            />
-        </button>
-    );
-}
+// The local switch this file used to draw lives in src/components/ui/Switch.jsx
+// now. It was one of 120 hand-rolled toggles in World Hub, each its own size
+// and colour; the call sites below are unchanged because the props match.
 
 export default function PushNotificationToggle({
     title = 'Device Notifications',
