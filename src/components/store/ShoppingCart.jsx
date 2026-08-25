@@ -45,10 +45,10 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                 onClick={toggleCart}
                 style={{
                     position: 'fixed',
-                    bottom: 24,
+                    bottom: 110,
                     right: 24,
-                    width: 68,
-                    height: 68,
+                    width: 136,
+                    height: 136,
                     borderRadius: 14,
                     background: 'transparent',
                     border: 'none',
@@ -70,7 +70,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                 }}
             >
                 <img
-                    src="/images/cart-icon.png"
+                    src="/images/cart-icon.jpg"
                     alt="Shopping Cart"
                     style={{
                         width: '100%',
