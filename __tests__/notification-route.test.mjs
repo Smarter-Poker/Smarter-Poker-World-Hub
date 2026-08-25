@@ -99,6 +99,22 @@ test('friend_accept with no resolvable username lands on friends, not nowhere', 
     assert.equal(route({ type: 'friend_accept', data: { sender_id: '165df98e' } }), '/hub/friends');
 });
 
+test('a username with a space is percent-encoded, not pasted raw', () => {
+    // 232 of 906 production usernames need encoding. Raw interpolation put a
+    // literal space in the path, and that value is also what the push-outbox
+    // trigger sends as the notification URL.
+    assert.equal(
+        route({ type: 'friend_request', actor_username: 'solver steve' }),
+        '/hub/user/solver%20steve'
+    );
+});
+
+test('apostrophes, @ and non-ASCII usernames encode correctly', () => {
+    assert.equal(route({ type: 'new_follow', actor_username: "chase o'ryan" }), "/hub/user/chase%20o'ryan");
+    assert.equal(route({ type: 'new_follow', actor_username: '@todd' }), '/hub/user/%40todd');
+    assert.equal(route({ type: 'new_follow', actor_username: 'j\u00f6rg' }), '/hub/user/j%C3%B6rg');
+});
+
 // ── Social posts: the dropped-post-id bug ────────────────────────────────
 test('a like opens the post itself, not the feed root', () => {
     assert.equal(
