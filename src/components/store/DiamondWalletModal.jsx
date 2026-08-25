@@ -1284,7 +1284,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             <div
                 onClick={onClose}
                 style={{
-                    position: 'fixed', inset: 0, zIndex: 9998,
+                    position: 'fixed', inset: 0, zIndex: 89,
                     background: 'rgba(0, 0, 0, 0.6)',
                     backdropFilter: 'blur(4px)',
                     animation: 'walletFadeIn 0.2s ease',
@@ -1339,7 +1339,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
-                    style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+                    style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: 600, margin: '0 auto', width: '100%' }}
                 >
                 {/* ═══════════════════════════════════════════════
                      PREMIUM HEADER — Image-Backed Layout
@@ -1347,11 +1347,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 <div style={{
                     position: 'relative',
                     width: '100%',
-                    maxWidth: 600,
-                    margin: '0 auto 16px auto',
                     borderRadius: 16,
                     overflow: 'hidden',
                     boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+                    marginBottom: 16,
                     backgroundColor: '#050a15',
                 }}>
                     <img src="/images/diamond-wallet-bg.jpg" alt="Diamond Wallet" style={{ width: '100%', height: 'auto', display: 'block' }} />
