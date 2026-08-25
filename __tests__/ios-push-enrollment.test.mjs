@@ -133,3 +133,48 @@ test('push-client still exports the iOS helpers this depends on', () => {
     assert.match(client, /export function isIos\b/, 'isIos was removed from push-client');
     assert.match(client, /export function isIosStandalonePwa\b/, 'isIosStandalonePwa was removed from push-client');
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  POST-SHIP AUDIT (2026-08-25) — three defects found by re-reading my own
+//  merged diff rather than trusting it.
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('the pre-rename installed flag is still honoured', () => {
+    // I renamed the key from 'pwa_installed' to 'sp_pwa_installed'. Every user
+    // who had ALREADY installed under the old build carried the old name, and
+    // nothing read it any more -- so they were treated as never-installed and
+    // re-offered an app they already had. A rename is a stale-localStorage bug
+    // unless the old name is read on the way past.
+    const lib = readFileSync(join(ROOT, 'src/lib/pwaInstall.js'), 'utf8');
+    assert.match(lib, /pwa_installed'/, "the legacy key name must still be read");
+    assert.match(lib, /LEGACY_INSTALLED_KEY/, 'the legacy key needs a named constant, not a magic string');
+
+    const known = lib.slice(lib.indexOf('export function isKnownInstalled'), lib.indexOf('export function isIos'));
+    assert.match(known, /LEGACY_INSTALLED_KEY/, 'isKnownInstalled must consult the legacy key');
+    // The old build wrote the STRING 'true', not '1'. Comparing to '1' would
+    // silently keep the bug, so the check must be truthy, not an equality.
+    assert.ok(
+        !/safeGet\(LEGACY_INSTALLED_KEY\)\s*===\s*'1'/.test(known),
+        "legacy value was 'true', not '1' -- an === '1' comparison reintroduces the bug"
+    );
+});
+
+test('the install reason is not iPhone-specific on Android', () => {
+    // The reason line was hardcoded to "Required on iPhone for notifications"
+    // and passed unconditionally, so Android users were told something untrue:
+    // Android receives push from a plain browser tab.
+    const src2 = readFileSync(join(ROOT, 'src/components/ui/PWAInstallPrompt.jsx'), 'utf8');
+    const block = src2.slice(src2.indexOf('<InstallAppSheet'), src2.indexOf('<InstallAppSheet') + 700);
+    assert.match(block, /reason=\{/, 'reason must be computed per-device, not a fixed string');
+    assert.match(block, /isIos\(\)/, 'the reason must branch on the actual platform');
+});
+
+test('standalone_detected analytics survived the rewrite', () => {
+    // The pre-rewrite component recorded this; my rewrite dropped it, which
+    // would have silently killed the only signal for how many devices run
+    // standalone. It must also be guarded, because evaluate() re-runs on
+    // every install-state change.
+    const src2 = readFileSync(join(ROOT, 'src/components/ui/PWAInstallPrompt.jsx'), 'utf8');
+    assert.match(src2, /recordOnServer\('standalone_detected'\)/, 'standalone_detected must still be recorded');
+    assert.match(src2, /alreadyCountedRef/, 'it must be guarded or it fires repeatedly per session');
+});
