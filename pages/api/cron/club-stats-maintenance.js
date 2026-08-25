@@ -17,6 +17,10 @@
  *     deliberately shares this route rather than adding a cron file — see the
  *     inline note at the call site). Its advisory lock makes a concurrent
  *     page-triggered refresh a no-op, so it cannot collide with the steps below.
+ *     It is immediately followed by the ca_hand_player_stat forward roll, which
+ *     the Club Arena stats page depends on in the same way: whatever that step
+ *     has not rolled, the page's RPC computes live, so the gap since this route
+ *     last succeeded is directly a term in that page's response time.
  *
  *  1. DRAIN THE REBUILD BACKLOG. club_member_daily_stats is maintained live by
  *     the hand_history trigger, so NEW hands are always exact. History is not:
@@ -76,6 +80,7 @@ async function handler(req, res) {
     drained: [],
     rollup: [],
     hand_index: null,
+    stat_rollup: null,
     stat_distribution: null,
     errors: [],
   };
@@ -192,6 +197,36 @@ async function handler(req, res) {
       }
     } catch (e) {
       result.errors.push(`hand index: ${e?.message || e}`);
+    }
+
+    // ── 0a2. ROLL THE PER-HAND STAT SUMMARIES FORWARD ─────────────────────
+    // ca_hand_player_stat holds the ~28 scalars per (player, hand) that the
+    // Club Arena stats page actually needs, so ca_player_stats_full reads ~20
+    // pages instead of dragging 750 rows of 6.4 KB JSONB off disk. Measured
+    // before it existed: 15,071 ms cold against an 8,000 ms statement_timeout,
+    // which meant the page was being CANCELLED on heavy accounts, not merely
+    // being slow.
+    //
+    // Anything the rollup has not reached, the RPC computes live. So the gap
+    // since this last ran IS a term in the page's response time - at roughly
+    // 142,000 hands a day, 15 minutes is about 1,500 hands and costs the page
+    // very little, while a day of this step failing silently would be 142,000
+    // and would put the page back where it started. That is why the row count
+    // is reported rather than discarded: a number that keeps climbing across
+    // runs means this step is not keeping up.
+    //
+    // Ordered immediately after the hand index for the same reason that one is
+    // ordered early: the backlog drain below can take 150 seconds, and a step
+    // placed after it is not guaranteed to run on a heavy day.
+    try {
+      const { data: rolled, error: rollErr } = await admin.rpc('ca_roll_hand_stats_forward');
+      if (rollErr) {
+        result.errors.push(`stat rollup: ${rollErr.message}`);
+      } else {
+        result.stat_rollup = { hands_rolled: Number(rolled) || 0 };
+      }
+    } catch (e) {
+      result.errors.push(`stat rollup: ${e?.message || e}`);
     }
 
     // ── 0b. REFRESH THE PERCENTILE DISTRIBUTION ────────────────────────────
