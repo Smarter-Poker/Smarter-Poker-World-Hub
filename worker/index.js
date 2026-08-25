@@ -29,6 +29,17 @@ const SP_SW_VERSION = 'sp-push-v3';
 //   2. ChunkLoadRecovery.jsx -- catches ChunkLoadError -> auto-reload
 //   3. hmr-reconnect-guard.js -- dev-mode HMR death loop breaker
 // ---------------------------------------------------------------------------
+// Activate a new worker immediately instead of queueing behind the old one.
+//
+// Without this, a freshly deployed worker sits in `waiting` until every tab of
+// the site is closed. Combined with navigator.serviceWorker.ready — which waits
+// for a worker to CONTROL the page — that produced "Service worker startup
+// timed out" when enabling push, because the worker the page was waiting on
+// was never going to activate while the page itself was open.
+self.addEventListener('install', () => {
+    self.skipWaiting();
+});
+
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         (async () => {
