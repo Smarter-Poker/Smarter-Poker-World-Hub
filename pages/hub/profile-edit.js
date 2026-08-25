@@ -689,6 +689,31 @@ export default function ProfilePage() {
                             Build A Custom Avatar
                         </button>
                     </div>
+                    {/* Avatar/Profile Photo clarification note */}
+                    <div style={{
+                        textAlign: 'center',
+                        fontSize: 12,
+                        color: 'rgba(255,255,255,0.45)',
+                        marginTop: 8,
+                        paddingBottom: 4,
+                    }}>
+                        🎮 Club Arena avatar is separate from your profile photo.
+                        Switch between them on your{' '}
+                        <button
+                            onClick={() => router.push(`/hub/user/${profile.username || ''}`)}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#1877F2',
+                                cursor: 'pointer',
+                                fontSize: 12,
+                                padding: 0,
+                                textDecoration: 'underline',
+                            }}
+                        >
+                            profile page
+                        </button>.
+                    </div>
                 </div>
 
                 {/* Main Content */}

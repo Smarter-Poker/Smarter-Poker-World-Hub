@@ -155,11 +155,13 @@ export async function setPresetAvatar(userId, avatarId, opts = {}) {
             if (upsertError) throw upsertError;
         }
 
-        // Belt & braces: make sure profiles.avatar_url reflects the new avatar
+        // Belt & braces: make sure profiles.arena_avatar_url reflects the new CA avatar
         // even on the fallback path (ignore failure — RPC path already synced it).
+        // NOTE: we write arena_avatar_url, NOT avatar_url — the user's real profile
+        // photo lives in avatar_url and must never be overwritten by a CA selection.
         if (imageUrl) {
             try {
-                await supabase.from('profiles').update({ avatar_url: imageUrl }).eq('id', userId);
+                await supabase.from('profiles').update({ arena_avatar_url: imageUrl }).eq('id', userId);
             } catch (_) { /* non-fatal */ }
         }
 

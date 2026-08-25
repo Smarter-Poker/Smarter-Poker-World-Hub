@@ -22,7 +22,7 @@
 // Mirror this string when reading another user's profile via direct table query.
 export const SAFE_PROFILE_COLUMNS =
     'id, full_name, display_name, first_name, last_name, username, bio, city, state, alias, ' +
-    'avatar_url, role, status, is_vip, is_horse, is_admin, is_online, player_number, ' +
+    'avatar_url, arena_avatar_url, use_avatar_as_profile_pic, role, status, is_vip, is_horse, is_admin, is_online, player_number, ' +
     'diamonds, diamond_balance, diamond_multiplier, level, tier, skill_tier, login_streak, ' +
     'streak_days, settings, preferences, social_page_id, favorite_venue, home_poker_club, ' +
     'referred_by, friends_count, hendon_total_cashes, hendon_total_earnings, email_verified, ' +
