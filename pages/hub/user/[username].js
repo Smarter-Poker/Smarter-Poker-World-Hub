@@ -2464,6 +2464,20 @@ export default function UserProfilePage() {
         setProfile(data);
         loadedUsernameRef.current = username;
 
+        // Fetch avatar preference columns separately — these cannot be in SAFE_PROFILE_COLUMNS
+        // because adding non-standard columns to that string causes a PostgREST 403 when
+        // column-level grants are in play (see comment above). Failure here is non-fatal:
+        // the toggle just won't show, which is correct fallback behavior.
+        supabase
+          .from('profiles')
+          .select('arena_avatar_url, use_avatar_as_profile_pic')
+          .eq('id', data.id)
+          .maybeSingle()
+          .then(({ data: avatarPrefs }) => {
+            if (avatarPrefs) setProfile((prev) => prev ? { ...prev, ...avatarPrefs } : prev);
+          })
+          .catch(() => {}); // non-fatal
+
         // ═══════════════════════════════════════════════════════════
         // HORSE SOCIAL IDENTITY RESOLUTION
         // ═══════════════════════════════════════════════════════════
