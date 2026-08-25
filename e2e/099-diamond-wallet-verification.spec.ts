@@ -13,7 +13,7 @@ test.describe('Diamond Wallet Premium Visual & Functional Verification', () => {
     // 2. Perform authentic login
     console.log('[Test] Performing authentication...');
     await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
-    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
+    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD || '');
     await page.click('button[type="submit"]');
 
     // 3. Wait for hub page load

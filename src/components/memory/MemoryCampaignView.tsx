@@ -172,10 +172,10 @@ export default function MemoryCampaignView() {
 
           .upsert({
                 user_id: userId,
-                level_id: activeLevel.chart.chart_id,
-                accuracy: Math.max(activeLevel.bestAccuracy, accuracy),
-                status: shouldUnlock ? 'unlocked' : 'in_progress',
-                attempts: activeLevel.timesPlayed + 1,
+                chart_id: activeLevel.chart.chart_id,
+                best_accuracy: Math.max(activeLevel.bestAccuracy, accuracy),
+                is_unlocked: shouldUnlock || activeLevel.isUnlocked,
+                times_played: activeLevel.timesPlayed + 1,
             });
 
         if (err_user_level_progress_3aagg) console.warn('[Supabase] Silent mutation failed in user_level_progress:', err_user_level_progress_3aagg.message);

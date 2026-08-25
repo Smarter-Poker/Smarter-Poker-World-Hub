@@ -52,12 +52,12 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
             .order('created_at', { ascending: false })
             .limit(5);
 
-        const recentActivity = recentSessions?.map(s =>
+        const recentActivity = (recentSessions as any[])?.map(s =>
             `${s.game_id}: ${s.gtow_score}pts`
         ) || [];
 
         // Get last drill type
-        const lastDrillType = recentSessions?.[0]?.game_id || undefined;
+        const lastDrillType = (recentSessions as any[])?.[0]?.game_id || undefined;
 
         // Get poker stats (if available)
         const { data: stats } = await supabase
