@@ -500,7 +500,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                                         sub.tier = data.tier;
                                         localStorage.setItem('commander_subscription', JSON.stringify(sub));
                                     }
-                                    console.log('[WorldHub] 🏢 Commander account detected via API');
+                                    console.log('[WorldHub] Commander account detected via API');
                                 } catch (e) { console.warn('[App] Handled exception:', e); }
                             } catch (e) {
                                 console.warn('[WorldHub] Commander check failed (non-critical):', e);
@@ -526,7 +526,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
             (avatar as { imageUrl?: string } | null)?.imageUrl
             || (avatarUser as { user_metadata?: { avatar_url?: string } } | null)?.user_metadata?.avatar_url
             || null;
-        if (fromContext) setUserAvatarUrl(fromContext);
+        // Always assign, including null. Guarding on truthiness meant a
+        // REMOVED avatar stayed on screen until a full reload.
+        setUserAvatarUrl(fromContext);
     }, [avatar, avatarUser]);
 
     // Handle buy diamonds click - navigate to store

@@ -40,6 +40,13 @@ let inflightAt = 0;
 let inflightForced = false;
 let cached = null;
 let cachedAt = 0;
+// The user id that `cached` and `inflight` belong to. THIS IS A SECURITY
+// CONTROL, not an optimisation. get-header-stats returns diamonds, avatar_url,
+// VIP flag, is_admin, notification count and unread messages. Without this key
+// a sign-out followed by a sign-in inside DEFAULT_MAX_AGE_MS would hand the new
+// user the previous user's payload, and an in-flight request issued under the
+// old bearer token would be joined by the new user's callers.
+let cacheOwner = null;
 
 function readAccessToken() {
     if (typeof window === 'undefined') return null;
@@ -82,6 +89,16 @@ export function getHeaderStats(options = {}) {
     const { userId = null, force = false, maxAgeMs = DEFAULT_MAX_AGE_MS } = options;
     const now = Date.now();
 
+    // Identity changed: drop everything belonging to the previous user before
+    // any cache or in-flight request can be handed to this caller.
+    if (cacheOwner !== userId) {
+        inflight = null;
+        inflightForced = false;
+        cached = null;
+        cachedAt = 0;
+        cacheOwner = userId;
+    }
+
     if (inflight) {
         // Non-forced callers always join. A forced caller joins only a request
         // that is itself forced or that started moments ago, so a genuine
@@ -93,14 +110,21 @@ export function getHeaderStats(options = {}) {
         return Promise.resolve(cached);
     }
 
+    const requestedFor = userId;
     const pending = requestHeaderStats(userId).then(
         (result) => {
+            // Only the CURRENT in-flight request may write the cache. A
+            // superseded older request resolving late must not clobber a
+            // fresher payload, and a request issued under a previous identity
+            // must not populate the new owner's cache.
             if (inflight === pending) {
                 inflight = null;
                 inflightForced = false;
+                if (cacheOwner === requestedFor) {
+                    cached = result;
+                    cachedAt = Date.now();
+                }
             }
-            cached = result;
-            cachedAt = Date.now();
             return result;
         },
         (err) => {
@@ -122,6 +146,12 @@ export function getHeaderStats(options = {}) {
 export function invalidateHeaderStats() {
     cached = null;
     cachedAt = 0;
+    // Clearing only `cached` is not enough: an in-flight request issued under
+    // the outgoing identity would still be joined by the next caller.
+    inflight = null;
+    inflightAt = 0;
+    inflightForced = false;
+    cacheOwner = null;
 }
 
 export default getHeaderStats;

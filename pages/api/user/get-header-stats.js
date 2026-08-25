@@ -87,9 +87,16 @@ export default async function handler(req, res) {
                   .eq('user_id', userId)
                   .limit(100),
               // 4. Conversations for unread messages count
+              // BOUNDED DELIBERATELY. conversationIds feeds a .in(...) below,
+              // which PostgREST sends as a URL query parameter - a few thousand
+              // conversations produces a 414 and this endpoint fails outright.
+              // Newest-read first, so the 200 kept are the ones a badge can
+              // plausibly be about. Do not remove the order/limit pair.
               sb.from('social_conversation_participants')
                   .select('conversation_id, last_read_at')
-                  .eq('user_id', userId),
+                  .eq('user_id', userId)
+                  .order('last_read_at', { ascending: false, nullsFirst: false })
+                  .limit(200),
           ]);
 
           const profile = profileResult.data;
@@ -207,6 +214,11 @@ export default async function handler(req, res) {
                       .neq('sender_id', userId)
                       .eq('is_deleted', false)
                       .gt('created_at', earliestRead)
+                      // ORDER BY is required, not cosmetic: a bare LIMIT in
+                      // Postgres returns ARBITRARY rows. Newest-first
+                      // guarantees the rows scanned are the ones actually
+                      // unread, so the badge stays exact below the 99 cap.
+                      .order('created_at', { ascending: false })
                       .limit(MAX_UNREAD_SCAN);
                   let count = 0;
                   (allMessages || []).forEach(msg => {
