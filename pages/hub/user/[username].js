@@ -4107,127 +4107,127 @@ export default function UserProfilePage() {
         {/* PROFILE HEADER - SmarterPoker Style */}
         <div style={{ padding: '0 16px', marginTop: -50, position: 'relative', zIndex: 10 }}>
           <div className="sp-profile-header-row">
-            {/* Avatar */}
-            <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
-              {/* Compute which photo to display:
-                  - use_avatar_as_profile_pic=true  → Club Arena avatar (arena_avatar_url)
-                  - use_avatar_as_profile_pic=false → real uploaded profile photo (avatar_url)
-                  The CA avatar NEVER appears here unless the user explicitly opts in. */}
-              <Avatar
-                src={
-                  profile.use_avatar_as_profile_pic
-                    ? (profile.arena_avatar_url || profile.avatar_url)
-                    : profile.avatar_url
-                }
-                name={displayName}
-                size={120}
-              />
-              {(() => {
-                const hid = socialIdRef.current || profile.id;
-                return horseProfileIds.has(hid) && isHorseOnlineNow(hid);
-              })() && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    bottom: 4,
-                    right: 4,
-                    width: 18,
-                    height: 18,
-                    background: '#31a24c',
-                    border: `3px solid ${C.bg}`,
-                    borderRadius: '50%',
-                    zIndex: 5,
-                  }}
+            {/* Avatar Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                {/* Compute which photo to display:
+                    - use_avatar_as_profile_pic=true  → Club Arena avatar (arena_avatar_url)
+                    - use_avatar_as_profile_pic=false → real uploaded profile photo (avatar_url)
+                    The CA avatar NEVER appears here unless the user explicitly opts in. */}
+                <Avatar
+                  src={
+                    profile.use_avatar_as_profile_pic
+                      ? (profile.arena_avatar_url || profile.avatar_url)
+                      : profile.avatar_url
+                  }
+                  name={displayName}
+                  size={120}
                 />
-              )}
-              {isOwnProfile && (
-                <Link
-                  href="/hub/profile-edit"
+                {(() => {
+                  const hid = socialIdRef.current || profile.id;
+                  return horseProfileIds.has(hid) && isHorseOnlineNow(hid);
+                })() && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      bottom: 4,
+                      right: 4,
+                      width: 18,
+                      height: 18,
+                      background: '#31a24c',
+                      border: `3px solid ${C.bg}`,
+                      borderRadius: '50%',
+                      zIndex: 5,
+                    }}
+                  />
+                )}
+                {isOwnProfile && (
+                  <Link
+                    href="/hub/profile-edit"
+                    style={{
+                      position: 'absolute',
+                      bottom: -2,
+                      right: 4,
+                      width: 34,
+                      height: 34,
+                      background: '#21262d',
+                      border: `2px solid ${C.bg}`,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: C.text,
+                      zIndex: 10,
+                      transition: 'background 0.2s',
+                      textDecoration: 'none',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#30363d')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = '#E4E6EB')}
+                  >
+                    <svg viewBox="0 0 24 24" width={18} height={18} fill="currentColor">
+                      <path d="M4 6h4l1.5-2h5L16 6h4c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2zm8 11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0-8c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3z" />
+                    </svg>
+                  </Link>
+                )}
+              </div>
+              
+              {/* Profile Picture Source Toggle — own profile only, shown only if a CA avatar exists */}
+              {isOwnProfile && profile.arena_avatar_url && (
+                <div
                   style={{
-                    position: 'absolute',
-                    bottom: -2,
-                    right: 4,
-                    width: 34,
-                    height: 34,
-                    background: '#21262d',
-                    border: `2px solid ${C.bg}`,
-                    borderRadius: '50%',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: C.text,
-                    zIndex: 10,
-                    transition: 'background 0.2s',
-                    textDecoration: 'none',
+                    background: 'rgba(0,0,0,0.55)',
+                    borderRadius: 20,
+                    padding: '3px 4px',
+                    gap: 2,
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    backdropFilter: 'blur(6px)',
+                    zIndex: 20,
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#30363d')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '#E4E6EB')}
                 >
-                  <svg viewBox="0 0 24 24" width={18} height={18} fill="currentColor">
-                    <path d="M4 6h4l1.5-2h5L16 6h4c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2zm8 11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0-8c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3z" />
-                  </svg>
-                </Link>
+                  <button
+                    onClick={async () => {
+                      if (!profile.use_avatar_as_profile_pic) return;
+                      try {
+                        await supabase.from('profiles').update({ use_avatar_as_profile_pic: false }).eq('id', profile.id);
+                        setProfile((prev) => prev ? { ...prev, use_avatar_as_profile_pic: false } : prev);
+                      } catch (e) { console.warn('[ProfilePicToggle]', e); }
+                    }}
+                    title="Show my real profile photo"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
+                      borderRadius: 16, border: 'none', fontSize: 11, fontWeight: 600,
+                      cursor: profile.use_avatar_as_profile_pic ? 'pointer' : 'default',
+                      background: !profile.use_avatar_as_profile_pic ? '#1877F2' : 'transparent',
+                      color: !profile.use_avatar_as_profile_pic ? '#fff' : 'rgba(255,255,255,0.55)',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    📷 Photo
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (profile.use_avatar_as_profile_pic) return;
+                      try {
+                        await supabase.from('profiles').update({ use_avatar_as_profile_pic: true }).eq('id', profile.id);
+                        setProfile((prev) => prev ? { ...prev, use_avatar_as_profile_pic: true } : prev);
+                      } catch (e) { console.warn('[ProfilePicToggle]', e); }
+                    }}
+                    title="Show my Club Arena avatar as profile picture"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
+                      borderRadius: 16, border: 'none', fontSize: 11, fontWeight: 600,
+                      cursor: !profile.use_avatar_as_profile_pic ? 'pointer' : 'default',
+                      background: profile.use_avatar_as_profile_pic ? '#E74C3C' : 'transparent',
+                      color: profile.use_avatar_as_profile_pic ? '#fff' : 'rgba(255,255,255,0.55)',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    🎮 Avatar
+                  </button>
+                </div>
               )}
             </div>
-            {/* Profile Picture Source Toggle — own profile only, shown only if a CA avatar exists */}
-            {isOwnProfile && profile.arena_avatar_url && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 16,
-                  bottom: -42,
-                  display: 'flex',
-                  background: 'rgba(0,0,0,0.55)',
-                  borderRadius: 20,
-                  padding: '3px 4px',
-                  gap: 2,
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  backdropFilter: 'blur(6px)',
-                  zIndex: 20,
-                }}
-              >
-                <button
-                  onClick={async () => {
-                    if (!profile.use_avatar_as_profile_pic) return;
-                    try {
-                      await supabase.from('profiles').update({ use_avatar_as_profile_pic: false }).eq('id', profile.id);
-                      setProfile((prev) => prev ? { ...prev, use_avatar_as_profile_pic: false } : prev);
-                    } catch (e) { console.warn('[ProfilePicToggle]', e); }
-                  }}
-                  title="Show my real profile photo"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
-                    borderRadius: 16, border: 'none', fontSize: 11, fontWeight: 600,
-                    cursor: profile.use_avatar_as_profile_pic ? 'pointer' : 'default',
-                    background: !profile.use_avatar_as_profile_pic ? '#1877F2' : 'transparent',
-                    color: !profile.use_avatar_as_profile_pic ? '#fff' : 'rgba(255,255,255,0.55)',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  📷 Photo
-                </button>
-                <button
-                  onClick={async () => {
-                    if (profile.use_avatar_as_profile_pic) return;
-                    try {
-                      await supabase.from('profiles').update({ use_avatar_as_profile_pic: true }).eq('id', profile.id);
-                      setProfile((prev) => prev ? { ...prev, use_avatar_as_profile_pic: true } : prev);
-                    } catch (e) { console.warn('[ProfilePicToggle]', e); }
-                  }}
-                  title="Show my Club Arena avatar as profile picture"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
-                    borderRadius: 16, border: 'none', fontSize: 11, fontWeight: 600,
-                    cursor: !profile.use_avatar_as_profile_pic ? 'pointer' : 'default',
-                    background: profile.use_avatar_as_profile_pic ? '#E74C3C' : 'transparent',
-                    color: profile.use_avatar_as_profile_pic ? '#fff' : 'rgba(255,255,255,0.55)',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  🎮 Arena
-                </button>
-              </div>
-            )}
 
 
             {/* Streak Break Alert — shown once per session when user's streak expired */}
