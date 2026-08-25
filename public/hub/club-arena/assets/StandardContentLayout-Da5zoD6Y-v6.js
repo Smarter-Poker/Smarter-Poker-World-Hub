@@ -1,0 +1,2 @@
+import{j as e}from"./vendor-react-BPB2zS-3-v6.js";const s="_pageContainer_1s0kf_6",c="_contentColumn_1s0kf_26",i="_feedLayout_1s0kf_33",l="_pageTitle_1s0kf_40",n={pageContainer:s,contentColumn:c,feedLayout:i,pageTitle:l};function d({children:a,title:t,className:o=""}){return e.jsx("div",{className:`${n.pageContainer} ${o}`,children:e.jsxs("div",{className:n.contentColumn,children:[t&&e.jsx("h1",{className:n.pageTitle,children:t}),e.jsx("div",{className:n.feedLayout,children:a})]})})}export{d as S};
+//# sourceMappingURL=StandardContentLayout-Da5zoD6Y-v6.js.map

@@ -1,2 +1,0 @@
-import{j as e}from"./vendor-react-BPB2zS-3-v6.js";const s="_pageContainer_yk1wk_6",c="_contentColumn_yk1wk_20",i="_feedLayout_yk1wk_27",l="_pageTitle_yk1wk_34",n={pageContainer:s,contentColumn:c,feedLayout:i,pageTitle:l};function d({children:a,title:t,className:o=""}){return e.jsx("div",{className:`${n.pageContainer} ${o}`,children:e.jsxs("div",{className:n.contentColumn,children:[t&&e.jsx("h1",{className:n.pageTitle,children:t}),e.jsx("div",{className:n.feedLayout,children:a})]})})}export{d as S};
-//# sourceMappingURL=StandardContentLayout-BGDrNFFe-v6.js.map
