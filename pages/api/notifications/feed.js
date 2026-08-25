@@ -14,6 +14,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { resolveNotificationRoute } from '../../../src/lib/notificationRoute';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -241,7 +242,12 @@ export default async function handler(req, res) {
 
         // ── Phase 5: Apply actor profile enrichment to combined list ──
         const enriched = combined.map(n => {
-            if (n._source === 'poker') return n; // poker notifs don't have actor profiles
+            // Poker/page notifications carry no actor profile, but they still
+            // need a destination — they were previously handed to the client
+            // with no `link` at all and relied on each renderer guessing.
+            if (n._source === 'poker') {
+                return { ...n, link: resolveNotificationRoute(n) };
+            }
 
             const actorId = n.actor_id || n.data?.actor_id || n.data?.sender_id || n.data?.friend_id || n.data?.liker_id || n.data?.commenter_id;
             const profile = actorId
@@ -281,16 +287,24 @@ export default async function handler(req, res) {
             }
             message = enforceTitleCase(message);
 
-            return {
+            const row = {
                 ...n,
                 title: typeof n.title === 'string' ? n.title : '',
                 message,
-                // BUG-14 fix: pass DB-computed link/action_url through to client for routing
-                link: n.link || n.action_url || null,
                 actor_avatar_url: profile?.avatar_url || null,
                 actor_name: displayName,
                 actor_username: profile?.username || null,
             };
+
+            // ── Resolve the destination ONCE, here, server-side ───────────
+            // Every renderer used to re-implement this and each covered a
+            // different subset, which is why "Seat Open" (1219 rows, no
+            // link column) was a dead tap in Club Arena. Routing must run
+            // AFTER actor enrichment above, because friend_* notifications
+            // resolve to /hub/user/<username> and the username only exists
+            // once data.sender_id has been joined to profiles.
+            // See src/lib/notificationRoute.js and its test.
+            return { ...row, link: resolveNotificationRoute(row) };
 
         });
 
