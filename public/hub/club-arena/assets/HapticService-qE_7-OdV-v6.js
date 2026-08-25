@@ -1,2 +1,0 @@
-import{f as r}from"./vibrationGate-pFc41mJC-v6.js";const t={light:10,medium:25,heavy:50,success:[10,50,30],warning:[30,30,30],error:[50,100,50,100],selection:5};function e(i="light"){return r(t[i])}const n={light:()=>e("light"),medium:()=>e("medium"),heavy:()=>e("heavy"),success:()=>e("success"),warning:()=>e("warning"),error:()=>e("error"),selection:()=>e("selection")};export{n as default,n as haptic,e as triggerHaptic};
-//# sourceMappingURL=HapticService-qE_7-OdV-v6.js.map
