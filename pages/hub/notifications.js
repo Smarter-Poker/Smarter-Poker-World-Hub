@@ -23,6 +23,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAccessToken } from '../../src/lib/authUtils';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { homeGameUrl } from '../../src/lib/home-games/urls';
+import { resolveNotificationRoute } from '../../src/lib/notificationRoute';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -327,12 +328,21 @@ function NotificationsPage() {
                 if (payload.new) {
                     const n = payload.new;
                     if (mounted.current) {
-                        setNotifications(prev => [{
+                        // Realtime rows arrive straight from Postgres and never
+                        // pass through /api/notifications/feed, so nothing has
+                        // resolved a destination for them. Resolve here or the
+                        // newest notification — the one the user is most likely
+                        // to tap — would be the only dead one in the list.
+                        const row = {
                             ...n,
                             _source: 'social',
                             actor_name: n.title || 'New Notification',
                             actor_avatar_url: null,
-                        }, ...prev]);
+                        };
+                        setNotifications(prev => [
+                            { ...row, link: resolveNotificationRoute(row) },
+                            ...prev,
+                        ]);
                     }
                 }
             })
@@ -813,6 +823,22 @@ function NotificationsPage() {
 
                                     try {
                                         if (window.self !== window.top) {
+                                            // Club Arena embeds this page (?embed=ca) and can
+                                            // route to its own paths in-SPA. Handing it the
+                                            // path instead of reloading the top document keeps
+                                            // the already-warm table client alive — reloading
+                                            // to open a seat-open alert would tear down the
+                                            // socket and rebuild the whole SPA.
+                                            // The parent ignores anything outside its basename,
+                                            // so fall through to a real navigation for those.
+                                            const embedder = new URLSearchParams(window.location.search).get('embed');
+                                            if (embedder === 'ca' && localPath.startsWith('/hub/club-arena')) {
+                                                window.parent.postMessage(
+                                                    { type: 'SP_NOTIF_NAVIGATE', path: localPath },
+                                                    window.location.origin
+                                                );
+                                                return;
+                                            }
                                             window.top.location.href = localPath;
                                         } else {
                                             router.push(localPath);
@@ -825,111 +851,64 @@ function NotificationsPage() {
                                 const t = n.type || '';
                                 const d = n.data || {};
 
-                                // ── BUG-14 FIX: Use DB-precomputed link/action_url FIRST ────
-                                // home_game_new, home_group_announcement, new_follow etc all have
-                                // a 'link' column set by the backend trigger. Use it directly.
-                                if (n.link) { navigate(n.link); return; }
-                                if (n.action_url) { navigate(n.action_url); return; }
-
-                                // ── STREAM-BUG-8: live-stream notifications deep-link to viewer ─────
-                                // pages/api/notifications/live-notify.js emits type='live' with
-                                // data.stream_id. Without an explicit branch we fall through to
-                                // /hub/social-media (no ?stream= query) and tapping the alert
-                                // lands on the feed root instead of the actual broadcast.
-                                // /hub/social-media?stream=<id> is the same route GoLiveModal's
-                                // share link uses — the existing viewer mount path picks it up.
-                                if (t === 'live' || t === 'live_started' || t === 'live_now') {
-                                    const sid = d.stream_id || d.streamId;
-                                    if (sid) { navigate(`/hub/social-media?stream=${sid}`); return; }
-                                    navigate('/hub/lives'); return;
-                                }
-                                // 2026-08-15 audit: co-host invite → the guest join page
-                                // (was falling through to a generic route, so tapping the
-                                // invite notification never opened the join surface).
-                                if (t === 'live_invite') {
-                                    const raw = (d.content || '').replace('[LIVE_INVITE]', '').trim();
-                                    if (raw) { navigate(`/hub/live/guest?${raw}`); return; }
-                                    navigate('/hub/lives'); return;
-                                }
-                                if (t === 'live_scheduled') {
-                                    navigate('/hub/lives'); return;
-                                }
-
-                                // ── Home Games / Groups ──────────────────────────────
-                                if (t.startsWith('home_group') || t.startsWith('home_game') || t === 'member_joined') {
-                                    // audit 2026-08-14: pushed the raw group UUID into the
-                                    // slug-only route — every home-game notification tap 404'd.
-                                    // /hub/venues/<uuid> resolves group UUIDs (Phase 41).
-                                    if (d.group_id) navigate(homeGameUrl({ id: d.group_id }));
-                                    else navigate('/hub/home-games');
-
-                                // ── Friends ──────────────────────────────────────────
-                                // BUG-17 FIX: friend_request has sender_id (not actor_id) in data
-                                } else if (t === 'friend_request' || t === 'friend_accepted' || t === 'friend_accept' || t === 'new_follow' || t === 'follow') {
-                                    // The old second branch tested (d.sender_id && n.actor_username)
-                                    // and was unreachable — the first branch already covers every
-                                    // case where actor_username is set. Without a username there is
-                                    // no profile URL to build, so a bare sender_id falls through to
-                                    // the friends list.
-                                    if (n.actor_username) navigate(`/hub/user/${n.actor_username}`);
-                                    else navigate('/hub/friends');
-
-                                // ── Poker Pages / Clubs ──────────────────────────────
-                                } else if (d.page_type && d.page_id) {
-                                    const pt = d.page_type;
-                                    const pid = d.page_id;
-                                    if (pt === 'venue') navigate(`/hub/venues/${pid}`);
-                                    else if (pt === 'tour') navigate(`/hub/tours/${pid}`);
-                                    else if (pt === 'series') navigate(`/hub/series/${pid}`);
-                                    else navigate(`/club/${pid}`);
-
-                                // ── Social Pages (Commander clubs) ───────────────────
-                                } else if (d.club_id) {
-                                    navigate(`/club/${d.club_id}`);
-                                } else if (d.page_id) {
-                                    navigate(`/hub/social-pages/${d.page_id}`);
-
-                                // ── Posts ────────────────────────────────────────────
-                                } else if (d.post_id) {
-                                    if (d.is_reel || d.post_type === 'reel') {
-                                        navigate(`/hub/reels?id=${d.post_id}`);
-                                    } else {
-                                        navigate('/hub/social-media');
+                                // ── Live streams: viewer state, not a plain route ──────
+                                // These stay local because they need the stream id folded
+                                // into the social-media viewer mount, and live_invite has
+                                // to unpack a '[LIVE_INVITE]' prefixed querystring out of
+                                // data.content. Everything below them is generic routing
+                                // and belongs to the shared resolver.
+                                if (!n.link && !n.action_url) {
+                                    if (t === 'live' || t === 'live_started' || t === 'live_now') {
+                                        const sid = d.stream_id || d.streamId;
+                                        if (sid) { navigate(`/hub/social-media?stream=${sid}`); return; }
+                                        navigate('/hub/lives'); return;
                                     }
-
-                                // ── Tournaments ──────────────────────────────────────
-                                } else if (d.tournament_id) {
-                                    navigate('/hub/tournaments');
-
-                                // ── User Profile ─────────────────────────────────────
-                                } else if (n.actor_username) {
-                                    navigate(`/hub/user/${n.actor_username}`);
-
-                                // ── Generic friend types ─────────────────────────────
-                                } else if (t.includes('friend') || t.includes('follow')) {
-                                    navigate('/hub/friends');
-
-                                // ── Social fallback ──────────────────────────────────
-                                } else if (n._source === 'social') {
-                                    navigate('/hub/social-media');
+                                    if (t === 'live_invite') {
+                                        const raw = (d.content || '').replace('[LIVE_INVITE]', '').trim();
+                                        if (raw) { navigate(`/hub/live/guest?${raw}`); return; }
+                                        navigate('/hub/lives'); return;
+                                    }
+                                    if (t === 'live_scheduled') { navigate('/hub/lives'); return; }
                                 }
+
+                                // ── Home games keep their slug-aware URL builder ───────
+                                // homeGameUrl() resolves a group UUID through the Phase 41
+                                // venue route; a raw /hub/home-games/<uuid> 404s.
+                                if (!n.link && !n.action_url
+                                    && (t.startsWith('home_group') || t.startsWith('home_game') || t === 'member_joined')) {
+                                    if (d.group_id) { navigate(homeGameUrl({ id: d.group_id })); return; }
+                                    navigate('/hub/home-games'); return;
+                                }
+
+                                // ── Everything else: ONE resolver, shared with the API ──
+                                // /api/notifications/feed already ran this and put the
+                                // answer in n.link. Running it again here costs nothing
+                                // and covers rows that arrived by realtime INSERT without
+                                // passing through the API. See src/lib/notificationRoute.js.
+                                const target = resolveNotificationRoute(n);
+                                if (target) { navigate(target); return; }
+
+                                // Genuinely nowhere to go. The row is rendered
+                                // unclickable (see isClickable), so this is unreachable
+                                // in practice — it exists so a future type that slips
+                                // past the resolver fails visibly in the console rather
+                                // than looking like a broken tap.
+                                console.warn('[notifications] No route for type:', t, n.id);
                             };
 
 
                             
                             // BUG-16 fix: include home_game/home_group types in isClickable
                             // BUG-14 fix: n.link / n.action_url makes any notification clickable
+                            // A row shows the pointer cursor only when tapping it
+                            // will actually go somewhere. This used to be its own
+                            // hand-maintained list of payload keys that drifted from
+                            // the routing switch below it, so rows advertised
+                            // themselves as clickable and then did nothing.
+                            // Now it asks exactly the same question handleClick does.
                             const isClickable = !!(
-                                n.link ||
-                                n.action_url ||
-                                n.data?.page_id || 
-                                n.data?.club_id || 
-                                n.data?.group_id || 
-                                n.data?.post_id || 
-                                n.data?.tournament_id || 
-                                n.actor_username || 
-                                (n.type && (n.type.includes('friend') || n.type.includes('follow') || n.type.startsWith('home_'))) || 
-                                n._source === 'social'
+                                resolveNotificationRoute(n) ||
+                                (n.type && (n.type.startsWith('live') || n.type.startsWith('home_') || n.type === 'member_joined'))
                             );
 
                             const isSwiped = swipedId === n.id;
