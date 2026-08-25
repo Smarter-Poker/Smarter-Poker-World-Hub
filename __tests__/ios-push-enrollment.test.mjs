@@ -57,7 +57,55 @@ test('the unsupported-push branch offers iOS install instead of returning silent
 
 test('an install state is rendered, not just set', () => {
     assert.match(src, /state === 'install'/, "setState('install') with no matching render branch renders nothing");
-    assert.match(src, /Add to Home Screen/, 'the install state must name the actual iOS action');
+    // The steps used to be inline here. They now live in the shared sheet, so
+    // assert the DELEGATION -- otherwise this test passes on the header
+    // comment alone, which is how a guard quietly stops guarding.
+    assert.match(src, /<InstallAppSheet/, 'the install state must render the shared install sheet');
+    assert.match(src, /from '\.\.\/pwa\/InstallAppSheet'/, 'InstallAppSheet must actually be imported');
+});
+
+test('the shared sheet carries the real iOS instructions', () => {
+    const sheet = readFileSync(join(ROOT, 'src/components/pwa/InstallAppSheet.jsx'), 'utf8');
+    assert.match(sheet, /Add To Home Screen/i, 'the sheet must name the actual iOS action');
+    assert.match(sheet, /Share/, 'the sheet must tell the user where to start');
+});
+
+test('the sheet has a path for Android, not just iOS', () => {
+    // Dan, mid-task: "THIS NEEDS TO WORK FOR ANDROID USERS AS WELL."
+    const sheet = readFileSync(join(ROOT, 'src/components/pwa/InstallAppSheet.jsx'), 'utf8');
+    assert.match(sheet, /canPromptInstall/, 'the sheet must detect a native install being available');
+    assert.match(sheet, /triggerInstall/, 'the sheet must be able to fire the native Android/desktop install');
+});
+
+test('beforeinstallprompt is captured at module scope, not inside an effect', () => {
+    // The original bug: the listener was attached inside the .then() of an
+    // async fetch, so Chrome had already fired the one event it ever sends.
+    // Module scope is the only place that cannot miss it.
+    const raw = readFileSync(join(ROOT, 'src/lib/pwaInstall.js'), 'utf8');
+    // Strip comments first. The original version of this test matched the
+    // words '.then(' inside the comment that EXPLAINS the bug, so it failed
+    // on a correct file -- a guard that reads prose instead of code.
+    const lib = raw
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '');
+
+    const idx = lib.indexOf("addEventListener('beforeinstallprompt'");
+    assert.ok(idx > -1, 'beforeinstallprompt is not captured anywhere');
+
+    // The real property: the registration is not nested inside any function
+    // body. Count unbalanced braces before it -- module scope means the only
+    // open block is the `if (typeof window !== 'undefined')` guard, so depth
+    // must be 1 or 0, never deeper.
+    const before = lib.slice(0, idx);
+    const depth = (before.match(/{/g) || []).length - (before.match(/}/g) || []).length;
+    assert.ok(
+        depth <= 1,
+        `beforeinstallprompt is registered ${depth} blocks deep. It must be at module scope: inside an effect or a .then() it is attached after Chrome has already fired the one event it sends.`
+    );
+    assert.ok(
+        !/useEffect/.test(lib),
+        'pwaInstall.js must stay framework-free; a React effect cannot capture this event in time'
+    );
 });
 
 test('deferring the install nudge does not burn the one-time permission prompt', () => {

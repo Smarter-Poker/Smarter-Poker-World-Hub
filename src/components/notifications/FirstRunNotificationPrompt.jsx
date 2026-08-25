@@ -46,6 +46,7 @@ import {
     enablePush, isWebPushSupported, notificationPermission,
     hasLocalSubscription, isIos, isIosStandalonePwa,
 } from '../../lib/push-client';
+import InstallAppSheet from '../pwa/InstallAppSheet';
 
 const KEY_PREFIX = 'sp_firstrun_notif_';
 const SHOW_DELAY_MS = 20_000; // let the user land before asking for anything
@@ -161,6 +162,24 @@ export default function FirstRunNotificationPrompt({ userId }) {
 
     if (!state) return null;
 
+    // ── The install path uses the SHARED sheet ────────────────────────────
+    // This component used to draw its own three-step Add-to-Home-Screen list.
+    // So did the PWA install banner. Two hand-maintained copies of the same
+    // instructions is exactly the duplication that had five notification
+    // renderers disagreeing about routing, so there is now one install UI.
+    // The shared sheet also handles what an inline list cannot: it upgrades
+    // itself to a one-tap native install if Chrome fires beforeinstallprompt
+    // while it is open, and it tells iOS Chrome/Firefox users to switch to
+    // Safari rather than hunt for a menu item their share sheet lacks.
+    if (state === 'install') {
+        return (
+            <InstallAppSheet
+                onClose={handleDismiss}
+                reason="Required on iPhone for notifications"
+            />
+        );
+    }
+
     return (
         <div
             role="dialog"
@@ -189,50 +208,6 @@ export default function FirstRunNotificationPrompt({ userId }) {
                         <p style={{ marginTop: 8, fontSize: 14, color: '#9CA3AF' }}>
                             Notifications are on for this device.
                         </p>
-                    </>
-                ) : state === 'install' ? (
-                    <>
-                        <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
-                            Get Alerts On This iPhone
-                        </h3>
-                        <p style={{ marginTop: 8, fontSize: 14, color: '#9CA3AF', lineHeight: 1.5 }}>
-                            Apple only allows notifications once Smarter Poker is on your Home
-                            Screen. It takes about ten seconds, and then seat alerts, messages and
-                            game updates arrive like any other app.
-                        </p>
-                        <ol
-                            style={{
-                                margin: '14px 0 0', paddingLeft: 0, listStyle: 'none',
-                                display: 'flex', flexDirection: 'column', gap: 10,
-                            }}
-                        >
-                            {[
-                                'Tap the Share button at the bottom of Safari.',
-                                'Scroll down and tap Add to Home Screen.',
-                                'Open Smarter Poker from your Home Screen, then allow notifications.',
-                            ].map((step, i) => (
-                                <li
-                                    key={step}
-                                    style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, color: '#D1D5DB' }}
-                                >
-                                    <span
-                                        aria-hidden="true"
-                                        style={{
-                                            flexShrink: 0, width: 22, height: 22, borderRadius: '50%',
-                                            background: '#14B8A6', color: '#04211E', fontSize: 12,
-                                            fontWeight: 700, display: 'flex', alignItems: 'center',
-                                            justifyContent: 'center', marginTop: 1,
-                                        }}
-                                    >
-                                        {i + 1}
-                                    </span>
-                                    <span style={{ lineHeight: 1.45 }}>{step}</span>
-                                </li>
-                            ))}
-                        </ol>
-                        <button type="button" onClick={handleDismiss} style={btnPrimary}>
-                            Got It
-                        </button>
                     </>
                 ) : state === 'blocked' ? (
                     <>
