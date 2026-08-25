@@ -56,6 +56,7 @@ import { GoLiveModal } from '../../../src/components/social/GoLiveModal';
 import { LiveStreamCard } from '../../../src/components/social/LiveStreamCard';
 import { LiveStreamViewer } from '../../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../../src/services/LiveStreamService';
+import { resolveNotificationRoute } from '../../../src/lib/notificationRoute';
 import ArticleCard from '../../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
@@ -7083,17 +7084,19 @@ function SocialMediaPage() {
                                 })();
                               }
                             } else {
-                              const postId = n.data?.post_id;
-                              if (
-                                (n.type === 'like' ||
-                                  n.type === 'comment' ||
-                                  n.type === 'mention') &&
-                                postId
-                              ) {
-                                router.push(`/hub/social-media?post=${postId}`);
-                              } else if (n.actor_username) {
-                                router.push(`/hub/user/${n.actor_username}`);
-                              }
+                              // ONE resolver, shared with /api/notifications/feed
+                              // and /hub/notifications (src/lib/notificationRoute.js).
+                              //
+                              // This branch used to hand-roll its own routes and
+                              // never looked at n.link or n.action_url at all, so
+                              // every destination the backend had already computed
+                              // -- seat-open alerts, home games, union statements,
+                              // page nudges -- was dead HERE while working on the
+                              // notifications page, which is exactly the "five
+                              // renderers, five answers" split that made taps
+                              // silently fail in the first place.
+                              const target = resolveNotificationRoute(n);
+                              if (target) router.push(target);
                             }
                           }}
                           style={{
