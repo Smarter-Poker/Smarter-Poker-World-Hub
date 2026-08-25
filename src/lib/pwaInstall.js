@@ -32,6 +32,17 @@
 
 const INSTALLED_KEY = 'sp_pwa_installed';
 
+/**
+ * The key the PREVIOUS build wrote when a user installed.
+ *
+ * Renaming the key orphaned it: anyone who installed under the old build
+ * carries `pwa_installed`, nothing new looked at it, and they were treated
+ * as never-installed and re-offered an app they already had. Read-only —
+ * nothing writes the legacy name any more. A rename is a stale-localStorage
+ * bug unless the old name is read on the way past.
+ */
+const LEGACY_INSTALLED_KEY = 'pwa_installed';
+
 /** @type {Event & { prompt: () => Promise<void>, userChoice: Promise<{outcome: string}> } | null} */
 let deferred = null;
 const subscribers = new Set();
@@ -95,7 +106,17 @@ export function isRunningAsApp() {
 export function isKnownInstalled() {
     if (typeof window === 'undefined') return false;
     if (isRunningAsApp()) return true;
-    return safeGet(INSTALLED_KEY) === '1';
+    if (safeGet(INSTALLED_KEY) === '1') return true;
+
+    // The old build stored the string 'true', not '1', so this must be a
+    // truthy check rather than an equality or the bug survives. Migrate it
+    // forward so the lookup costs nothing next visit.
+    const legacy = safeGet(LEGACY_INSTALLED_KEY);
+    if (legacy) {
+        safeSet(INSTALLED_KEY, '1');
+        return true;
+    }
+    return false;
 }
 
 /** iOS (including iPadOS, which reports as MacIntel with touch points). */

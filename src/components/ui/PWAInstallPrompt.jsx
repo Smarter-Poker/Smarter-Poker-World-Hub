@@ -76,6 +76,7 @@ export default function PWAInstallPrompt() {
     const [sheetOpen, setSheetOpen] = useState(false);
     const mountedRef = useRef(true);
     const timerRef = useRef(null);
+    const alreadyCountedRef = useRef(false);
 
     useEffect(() => {
         mountedRef.current = true;
@@ -91,6 +92,14 @@ export default function PWAInstallPrompt() {
         // Already running as the app, or known installed on this device.
         if (isRunningAsApp()) {
             safeSet(PWA_INSTALLED_KEY, '1');
+            // The previous build recorded this; the rewrite dropped it, which
+            // would have silently killed the only signal for how many devices
+            // run standalone. evaluate() re-runs on every install-state
+            // change, so it needs a guard or it fires repeatedly.
+            if (!alreadyCountedRef.current) {
+                alreadyCountedRef.current = true;
+                recordOnServer('standalone_detected');
+            }
             setShow(false);
             return;
         }
@@ -145,7 +154,14 @@ export default function PWAInstallPrompt() {
         return (
             <InstallAppSheet
                 onClose={handleSheetClose}
-                reason="Required on iPhone for notifications"
+                // Was hardcoded to the iPhone wording and shown to Android
+                // users too, where it is untrue: Android receives push from a
+                // plain browser tab. Say what is true for THIS device.
+                reason={
+                    isIos() && !isRunningAsApp()
+                        ? 'Required on iPhone for notifications'
+                        : 'Faster, and alerts land like any other app'
+                }
             />
         );
     }
