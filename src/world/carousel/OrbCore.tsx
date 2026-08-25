@@ -18,7 +18,7 @@ interface OrbCoreProps {
     active: boolean;
     imageUrl?: string;
     description?: string;
-    scale?: number;
+    scale?: [number, number];
 }
 
 // Holographic color palette (cyan/blue/green/white only)
@@ -31,7 +31,7 @@ const HOLO_COLORS = [
     '#ffffff', // Pure White
 ];
 
-export function OrbCore({ id, color, label, gradient, active, imageUrl, description, scale = 1 }: OrbCoreProps) {
+export function OrbCore({ id, color, label, gradient, active, imageUrl, description, scale = [1, 1] }: OrbCoreProps) {
     const groupRef = useRef<THREE.Group>(null);
     const isMarketplace = id === 'marketplace';
 
@@ -51,10 +51,12 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
                 loadedTex.wrapS = THREE.ClampToEdgeWrapping;
                 loadedTex.wrapT = THREE.ClampToEdgeWrapping;
                 // If the image has built-in transparent padding, we scale it UP to crop it out
-                const repeatVal = 1 / scale;
-                const offsetVal = (1 - repeatVal) / 2;
-                loadedTex.repeat.set(repeatVal, repeatVal);
-                loadedTex.offset.set(offsetVal, offsetVal);
+                const repeatX = 1 / scale[0];
+                const repeatY = 1 / scale[1];
+                const offsetX = (1 - repeatX) / 2;
+                const offsetY = (1 - repeatY) / 2;
+                loadedTex.repeat.set(repeatX, repeatY);
+                loadedTex.offset.set(offsetX, offsetY);
                 loadedTex.needsUpdate = true;
             });
             tex.colorSpace = THREE.SRGBColorSpace;

@@ -5,7 +5,7 @@
 
 export interface OrbConfig {
   id: string;
-  scale?: number;
+  scale?: [number, number];
   color: string;
   label: string;
   gradient: [string, string]; // [top color, bottom color]
@@ -25,7 +25,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
   },
   {
     id: 'bankroll-manager',
-    scale: 1.085,
+    scale: [1.085, 1.035],
     color: '#ff00ff',
     label: 'Bankroll Manager',
     gradient: ['#f48fb1', '#c2185b'],
@@ -34,7 +34,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
   },
   {
     id: 'preflop-charts',
-    scale: 1.21,
+    scale: [1.21, 1.18],
     color: '#00ffff',
     label: 'Preflop Charts',
     gradient: ['#84ffff', '#00bcd4'],
@@ -51,6 +51,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
   },
   {
     id: 'marketplace',
+    scale: [1.013, 1.004],
     color: '#ffd700',
     label: 'Marketplace',
     gradient: ['#ffe066', '#ccaa00'],
@@ -67,7 +68,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
   },
   {
     id: 'training',
-    scale: 1.21,
+    scale: [1.21, 1.192],
     color: '#00ff66',
     label: 'Training',
     gradient: ['#69f0ae', '#00c853'],
@@ -76,7 +77,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
   },
   {
     id: 'news',
-    scale: 1.157,
+    scale: [1.157, 1.123],
     color: '#ff6600',
     label: 'News',
     gradient: ['#ff8c42', '#e55812'],
@@ -85,6 +86,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
   },
   {
     id: 'trivia',
+    scale: [1.016, 1.016],
     color: '#00ccff',
     label: 'Trivia',
     gradient: ['#4dd0e1', '#0097a7'],
@@ -93,6 +95,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
   },
   {
     id: 'social-media',
+    scale: [1.021, 1.008],
     color: '#ff4d4d',
     label: 'Social Media',
     gradient: ['#ff6b6b', '#c73d3d'],
@@ -109,7 +112,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
   },
   {
     id: 'my-clubs',
-    scale: 1.149,
+    scale: [1.149, 1.016],
     color: '#00bfff',
     label: 'My Clubs',
     gradient: ['#4dd0e1', '#00838f'],
@@ -118,7 +121,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
   },
   {
     id: 'video-library',
-    scale: 1.123,
+    scale: [1.123, 1.018],
     color: '#ff4444',
     label: 'Video Library',
     gradient: ['#ff6666', '#cc3333'],
@@ -127,6 +130,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
   },
   {
     id: 'poker-tools',
+    scale: [1.019, 1.015],
     color: '#1877F2',
     label: 'Odds Calculator',
     gradient: ['#4299E1', '#1A56DB'],
@@ -138,7 +142,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
 // Club Commander — only shown to users with a Commander account
 export const COMMANDER_ORB: OrbConfig = {
   id: 'club-commander',
-    scale: 1.089,
+    scale: [1.089, 1.033],
   color: '#cc0000',
   label: 'Club Commander',
   gradient: ['#991111', '#440000'],
