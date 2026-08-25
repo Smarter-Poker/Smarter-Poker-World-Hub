@@ -2203,10 +2203,10 @@ export default function UserProfilePage() {
     const cleanupAvatar = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
       // Self-tab suppression: skip if this tab triggered the avatar change
       if (msg?.tabId === BROADCAST_TAB_ID) return;
-      // Avatar changed in another tab — refresh profile to get new avatar
+      // Avatar changed in another tab — refresh avatar columns
       supabase
         .from('profiles')
-        .select('avatar_url, full_name, bio, username')
+        .select('avatar_url, arena_avatar_url, use_avatar_as_profile_pic, full_name, bio, username')
         .ilike('username', username)
         .maybeSingle()
         .then(({ data }) => {
@@ -4095,7 +4095,19 @@ export default function UserProfilePage() {
           <div className="sp-profile-header-row">
             {/* Avatar */}
             <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
-              <Avatar src={profile.avatar_url} name={displayName} size={120} />
+              {/* Compute which photo to display:
+                  - use_avatar_as_profile_pic=true  → Club Arena avatar (arena_avatar_url)
+                  - use_avatar_as_profile_pic=false → real uploaded profile photo (avatar_url)
+                  The CA avatar NEVER appears here unless the user explicitly opts in. */}
+              <Avatar
+                src={
+                  profile.use_avatar_as_profile_pic
+                    ? (profile.arena_avatar_url || profile.avatar_url)
+                    : profile.avatar_url
+                }
+                name={displayName}
+                size={120}
+              />
               {(() => {
                 const hid = socialIdRef.current || profile.id;
                 return horseProfileIds.has(hid) && isHorseOnlineNow(hid);
@@ -4143,6 +4155,66 @@ export default function UserProfilePage() {
                 </Link>
               )}
             </div>
+            {/* Profile Picture Source Toggle — own profile only, shown only if a CA avatar exists */}
+            {isOwnProfile && profile.arena_avatar_url && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 16,
+                  bottom: -42,
+                  display: 'flex',
+                  background: 'rgba(0,0,0,0.55)',
+                  borderRadius: 20,
+                  padding: '3px 4px',
+                  gap: 2,
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  backdropFilter: 'blur(6px)',
+                  zIndex: 20,
+                }}
+              >
+                <button
+                  onClick={async () => {
+                    if (!profile.use_avatar_as_profile_pic) return;
+                    try {
+                      await supabase.from('profiles').update({ use_avatar_as_profile_pic: false }).eq('id', profile.id);
+                      setProfile((prev) => prev ? { ...prev, use_avatar_as_profile_pic: false } : prev);
+                    } catch (e) { console.warn('[ProfilePicToggle]', e); }
+                  }}
+                  title="Show my real profile photo"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
+                    borderRadius: 16, border: 'none', fontSize: 11, fontWeight: 600,
+                    cursor: profile.use_avatar_as_profile_pic ? 'pointer' : 'default',
+                    background: !profile.use_avatar_as_profile_pic ? '#1877F2' : 'transparent',
+                    color: !profile.use_avatar_as_profile_pic ? '#fff' : 'rgba(255,255,255,0.55)',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  📷 Photo
+                </button>
+                <button
+                  onClick={async () => {
+                    if (profile.use_avatar_as_profile_pic) return;
+                    try {
+                      await supabase.from('profiles').update({ use_avatar_as_profile_pic: true }).eq('id', profile.id);
+                      setProfile((prev) => prev ? { ...prev, use_avatar_as_profile_pic: true } : prev);
+                    } catch (e) { console.warn('[ProfilePicToggle]', e); }
+                  }}
+                  title="Show my Club Arena avatar as profile picture"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
+                    borderRadius: 16, border: 'none', fontSize: 11, fontWeight: 600,
+                    cursor: !profile.use_avatar_as_profile_pic ? 'pointer' : 'default',
+                    background: profile.use_avatar_as_profile_pic ? '#E74C3C' : 'transparent',
+                    color: profile.use_avatar_as_profile_pic ? '#fff' : 'rgba(255,255,255,0.55)',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  🎮 Arena
+                </button>
+              </div>
+            )}
+
 
             {/* Streak Break Alert — shown once per session when user's streak expired */}
             {isOwnProfile && streakBreakAlert && (

@@ -461,7 +461,7 @@ export function AvatarProvider({ children }) {
         }
     }
 
-    async function selectPresetAvatar(avatarId, scope = 'both') {
+    async function selectPresetAvatar(avatarId, scope = 'arena') {
         if (!user) return { success: false, error: 'Not authenticated' };
 
         // Pass VIP status so the service can unlock the full library for VIP members
@@ -495,7 +495,7 @@ export function AvatarProvider({ children }) {
         return result;
     }
 
-    async function setActiveAvatar(imageUrl, type = 'custom', presetAvatarId = null, prompt = null, scope = 'both') {
+    async function setActiveAvatar(imageUrl, type = 'custom', presetAvatarId = null, prompt = null, scope = 'arena') {
         if (!user) return { success: false, error: 'Not authenticated' };
 
         try {
