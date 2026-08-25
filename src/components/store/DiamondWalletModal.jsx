@@ -394,16 +394,16 @@ function getCachedTransactions() {
     try {
         const raw = localStorage.getItem(CACHE_KEY);
         if (!raw) return null;
-        const { transactions, balance, total, vip_expiration_date, ts } = JSON.parse(raw);
+        const { transactions, balance, total, vip_expiration_date, is_vip, vip_tier, ts } = JSON.parse(raw);
         if (Date.now() - ts > CACHE_TTL_MS) return null; // stale
-        return { transactions, balance, total, vip_expiration_date };
+        return { transactions, balance, total, vip_expiration_date, is_vip, vip_tier };
     } catch (_) { return null; }
 }
 
-function setCachedTransactions(transactions, balance, total, vip_expiration_date) {
+function setCachedTransactions(transactions, balance, total, vip_expiration_date, is_vip, vip_tier) {
     try {
         localStorage.setItem(CACHE_KEY, JSON.stringify({
-            transactions, balance, total, vip_expiration_date, ts: Date.now()
+            transactions, balance, total, vip_expiration_date, is_vip, vip_tier, ts: Date.now()
         }));
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
@@ -578,6 +578,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // ── PERF-4: Initialize balance from prop (header cache) or localStorage ──
     const [balance, setBalance] = useState(() => initialBalance ?? getCachedBalance());
     const [vipExpirationDate, setVipExpirationDate] = useState(null);
+    const [isVipStatus, setIsVipStatus] = useState(false);
+    const [vipTier, setVipTier] = useState(null);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(null);
@@ -798,10 +800,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 setBalance(bal);
                 setTotal(tot);
                 setVipExpirationDate(data.vip_expiration_date || null);
+                setIsVipStatus(data.is_vip || false);
+                setVipTier(data.vip_tier || null);
                 fetchedRef.current = true;
                 // ── PERF-2: Cache first page for instant re-opens ──
                 if (offset === 0) {
-                    setCachedTransactions(txns, bal, tot, data.vip_expiration_date || null);
+                    setCachedTransactions(txns, bal, tot, data.vip_expiration_date || null, data.is_vip || false, data.vip_tier || null);
                 }
             } else {
                 throw new Error(`Server error ${res.status}`);
@@ -1099,6 +1103,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setBalance(cached.balance ?? getCachedBalance());
             setTotal(cached.total);
             if (cached.vip_expiration_date) setVipExpirationDate(cached.vip_expiration_date);
+            setIsVipStatus(cached.is_vip || false);
+            setVipTier(cached.vip_tier || null);
             setLoading(false);
             // Still refresh in background for freshness
             fetchTransactions();
@@ -1412,16 +1418,23 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     }}>
                         {(() => {
                             let daysLeftText = '--';
-                            let isVipActive = false;
+                            let isVipActive = isVipStatus;
+                            
                             if (vipExpirationDate) {
                                 const diff = new Date(vipExpirationDate).getTime() - new Date().getTime();
                                 if (diff > 0) {
-                                    daysLeftText = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                                    daysLeftText = `Expires: ${Math.ceil(diff / (1000 * 60 * 60 * 24))} Days`;
                                     isVipActive = true;
                                 } else {
-                                    daysLeftText = '0';
+                                    daysLeftText = 'Inactive';
+                                    isVipActive = false;
                                 }
+                            } else if (isVipStatus) {
+                                daysLeftText = (vipTier === 'lifetime' || vipTier === 'founder') ? 'Lifetime VIP' : 'Active VIP';
+                            } else {
+                                daysLeftText = 'Inactive';
                             }
+                            
                             return (
                                 <div style={{
                                     fontFamily: '"Rajdhani", sans-serif',
@@ -1432,9 +1445,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     textTransform: 'uppercase',
                                     fontVariantNumeric: 'normal',
                                     fontFeatureSettings: '"zero" 0',
-                                    textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,180,255,0.6)',
+                                    textShadow: isVipActive ? '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,180,255,0.6)' : 'none',
                                 }}>
-                                    {isVipActive ? `Expires: ${daysLeftText} Days` : 'Inactive'}
+                                    {daysLeftText}
                                 </div>
                             );
                         })()}
