@@ -1,0 +1,2 @@
+const i="vibrationsEnabled",o="ca_vibration_enabled";function f(){if(typeof navigator>"u"||typeof navigator.vibrate!="function")return!1;try{return!(localStorage.getItem(o)==="false"||localStorage.getItem(i)==="false")}catch{return!0}}const l=60;let a=0,n=0;function s(t){return Array.isArray(t)?t.filter((r,e)=>e%2===0).reduce((r,e)=>r+e,0):t}function u(t){if(!f())return!1;const r=Date.now(),e=s(t);if(r-a<l&&e<=n)return!1;a=r,n=e;try{return navigator.vibrate(t),!0}catch{return!1}}export{u as f,f as i};
+//# sourceMappingURL=vibrationGate-pFc41mJC-v6.js.map
