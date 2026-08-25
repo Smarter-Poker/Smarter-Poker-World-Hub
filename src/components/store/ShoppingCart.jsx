@@ -50,7 +50,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                     width: 68,
                     height: 68,
                     borderRadius: 14,
-                    background: '#000',
+                    background: 'transparent',
                     border: 'none',
                     boxShadow: 'none',
                     cursor: 'pointer',
