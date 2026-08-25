@@ -1205,19 +1205,6 @@ export default function DiamondStorePage() {
             </div>
           )}
 
-          {/* VIP Membership Banner — Outside content container for full width */}
-          {activeTab === 'vip' && (
-            <div style={{ width: '100%', position: 'relative', marginTop: 0 }}>
-              <img
-                src="/images/vip-membership-header.png"
-                alt="VIP Membership — Unlock Everything For One Low Monthly Price. No Diamond Costs, No Limits."
-                style={{ width: '100%', height: 'auto', display: 'block' }}
-                draggable={false}
-                loading="lazy"
-              />
-            </div>
-          )}
-
           {/* Main Content (non-diamonds tabs) */}
           <div
             style={{
@@ -1230,76 +1217,6 @@ export default function DiamondStorePage() {
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {activeTab === 'vip' && (
               <>
-                {/* VIP Plan Selection */}
-                <div style={styles.vipPlansRow}>
-                  <VIPCard
-                    plan={VIP_MEMBERSHIP.daily}
-                    isSelected={selectedVIP === 'vip-daily'}
-                    onSelect={setSelectedVIP}
-                  />
-                  <VIPCard
-                    plan={VIP_MEMBERSHIP.monthly}
-                    isSelected={selectedVIP === 'vip-monthly'}
-                    onSelect={setSelectedVIP}
-                  />
-                  <VIPCard
-                    plan={VIP_MEMBERSHIP.annual}
-                    isSelected={selectedVIP === 'vip-annual'}
-                    onSelect={setSelectedVIP}
-                  />
-                </div>
-
-                {/* Subscribe Button — Metallic Image */}
-                <div style={styles.vipSubscribeSection}>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    aria-label={isProcessing ? 'Processing...' : vipSubscribeLabel}
-                    aria-disabled={isProcessing}
-                    onClick={handleVIPSubscribe}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleVIPSubscribe();
-                      }
-                    }}
-                    style={{
-                      cursor: isProcessing ? 'wait' : 'pointer',
-                      opacity: isProcessing ? 0.6 : 1,
-                      transition: 'transform 0.15s ease, filter 0.15s ease',
-                      display: 'inline-block',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.03)';
-                      e.currentTarget.style.filter = 'brightness(1.15)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.filter = 'brightness(1)';
-                    }}
-                  >
-                    <img
-                      src="/images/subscribe-button.png"
-                      alt={isProcessing ? 'Processing...' : vipSubscribeLabel}
-                      style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
-                      draggable={false}
-                      loading="lazy"
-                    />
-                    {/* Plan-aware caption — the image itself is static ($19.99/month) */}
-                    <div
-                      style={{
-                        textAlign: 'center',
-                        marginTop: 8,
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: '#FFD700',
-                      }}
-                    >
-                      {isProcessing ? 'Processing...' : vipSubscribeLabel}
-                    </div>
-                  </div>
-                </div>
-
                 {/* VIP Benefits Table */}
                 <div style={styles.benefitsSection}>
                   <h3 style={styles.benefitsTitle}>Everything Included With VIP</h3>
