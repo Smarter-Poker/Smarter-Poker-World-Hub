@@ -804,7 +804,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                     <Canvas
                         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5 }}
                         dpr={[1, 2]}
-                        camera={{ position: [0, 0, 24], fov: isMobile ? 75 : 60 }}
+                        camera={{ position: [0, 0, 24], fov: isMobile ? 55 : 60 }}
                         gl={{
                             antialias: true,
                             powerPreference: 'high-performance',
@@ -1002,27 +1002,27 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                         </div>
                     )}
 
-                    {/* MOBILE: All 6 footer cards visible simultaneously — no scrolling */}
+                    {/* MOBILE: All 6 footer cards visible simultaneously — full portrait images, no clipping */}
                     {isMobile && (
                         <div
                             style={{
                                 position: 'absolute',
-                                bottom: `calc(${BOTTOM_NAV_H} + 8px)`,
+                                bottom: `calc(${BOTTOM_NAV_H} + 6px)`,
                                 left: 0,
                                 right: 0,
                                 display: 'flex',
                                 flexDirection: 'row',
                                 justifyContent: 'space-evenly',
-                                alignItems: 'flex-end',
-                                padding: '0 8px',
+                                alignItems: 'flex-start',  // grow DOWN from the top edge — no top clipping
+                                padding: '0 6px',
                                 gap: 0,
-                                overflow: 'hidden',
+                                overflow: 'visible',       // never clip card tops
                             }}
                         >
                             {footerCards.slice(0, 6).map((orb, index) => {
-                                // Each card gets exactly 1/6 of the available width
-                                // 16px total side padding → (100vw - 16px) / 6 per card
-                                const cardWidth = `calc((100vw - 16px) / 6)`;
+                                // Each card gets exactly 1/6 of available width
+                                // 12px total side padding → (100vw - 12px) / 6
+                                const cardWidth = `calc((100vw - 12px) / 6)`;
                                 return (
                                     <HubErrorBoundary key={orb.id} name={`MobileCard-${orb.id}`} fallback={<div style={{ width: cardWidth }} />}>
                                         <div
@@ -1035,25 +1035,25 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                                                 flexDirection: 'column',
                                                 alignItems: 'center',
                                                 cursor: 'pointer',
-                                                padding: '0 2px',
+                                                padding: '0 1px',
                                             }}
                                         >
+                                            {/* Full portrait card image — no clipping, no cropping */}
                                             <div
                                                 style={{
                                                     width: '100%',
                                                     aspectRatio: '2 / 3',
-                                                    borderRadius: 6,
+                                                    borderRadius: 5,
                                                     background: orb.imageUrl
                                                         ? `url('${orb.imageUrl}') center/cover`
                                                         : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                                                    border: 'none',
-                                                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.5)',
-                                                    position: 'relative',
+                                                    border: '1px solid rgba(255,255,255,0.1)',
+                                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.6)',
                                                 }}
                                             />
                                             <div
                                                 style={{
-                                                    marginTop: 4,
+                                                    marginTop: 3,
                                                     fontSize: 9,
                                                     fontWeight: 600,
                                                     color: 'rgba(255, 255, 255, 0.9)',

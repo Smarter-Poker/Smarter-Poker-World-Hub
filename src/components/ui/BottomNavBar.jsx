@@ -62,7 +62,7 @@ const TABS = [
   { href: '/hub/profile', label: 'Profile', Icon: User },
 ];
 
-function BottomNavBar({ theme = 'auto', autoHide = 'auto' }) {
+function BottomNavBar({ theme = 'auto', autoHide = 'auto', noSafeArea = false }) {
   const router = useRouter();
   const path = router.asPath || '';
   const { notificationCount } = useUnreadCount() || {};
@@ -159,7 +159,7 @@ function BottomNavBar({ theme = 'auto', autoHide = 'auto' }) {
         borderTop: `1px solid ${c.border}`,
         display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
         zIndex: BOTTOM_NAV_Z,
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingBottom: noSafeArea ? 0 : 'env(safe-area-inset-bottom, 0px)',
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
         transform: hidden ? 'translateY(110%)' : 'translateY(0)',
