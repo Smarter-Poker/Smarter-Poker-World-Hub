@@ -80,11 +80,12 @@ interface FooterCardProps {
     index: number;
     onSelect: (id: string) => void;
     isIntroComplete: boolean;
+    isMobile?: boolean;
 }
 
 
 
-function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) {
+function FooterCard({ orb, index, onSelect, isIntroComplete, isMobile }: FooterCardProps) {
     const [hasAnimatedIn, setHasAnimatedIn] = useState(false);
 
     // Intro animation only - no continuous floating (footer cards are static)
@@ -110,7 +111,8 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                     : `translateY(150px) scale(0.5)`,
                 opacity: hasAnimatedIn ? 1 : 0,
                 flex: 1,
-                maxWidth: `clamp(140px, 17vw, 186px)`,  // Viewport-scaled card width
+                width: '100%',
+                maxWidth: isMobile ? '100%' : `clamp(140px, 17vw, 186px)`,  // clamp only on desktop
                 transition: hasAnimatedIn ? 'none' : 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease-out',
                 transformStyle: 'preserve-3d',
             }}
@@ -804,7 +806,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                     <Canvas
                         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5 }}
                         dpr={[1, 2]}
-                        camera={{ position: [0, 0, 24], fov: isMobile ? 55 : 60 }}
+                        camera={{ position: [0, 0, 24], fov: 60 }}
                         gl={{
                             antialias: true,
                             powerPreference: 'high-performance',
@@ -1025,49 +1027,14 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                                 const cardWidth = `calc((100vw - 12px) / 6)`;
                                 return (
                                     <HubErrorBoundary key={orb.id} name={`MobileCard-${orb.id}`} fallback={<div style={{ width: cardWidth }} />}>
-                                        <div
-                                            onClick={() => handleCardSelect(orb.id)}
-                                            style={{
-                                                width: cardWidth,
-                                                flexShrink: 0,
-                                                flexGrow: 0,
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
-                                                cursor: 'pointer',
-                                                padding: '0 1px',
-                                            }}
-                                        >
-                                            {/* Full portrait card image — no clipping, no cropping */}
-                                            <div
-                                                style={{
-                                                    width: '100%',
-                                                    aspectRatio: '2 / 3',
-                                                    borderRadius: 5,
-                                                    background: orb.imageUrl
-                                                        ? `url('${orb.imageUrl}') center/cover`
-                                                        : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                                                    border: '1px solid rgba(255,255,255,0.1)',
-                                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.6)',
-                                                }}
+                                        <div style={{ width: cardWidth, flexShrink: 0, padding: '0 2px' }}>
+                                            <FooterCard
+                                                orb={orb}
+                                                index={index}
+                                                onSelect={handleCardSelect}
+                                                isIntroComplete={isIntroComplete}
+                                                isMobile={isMobile}
                                             />
-                                            <div
-                                                style={{
-                                                    marginTop: 3,
-                                                    fontSize: 9,
-                                                    fontWeight: 600,
-                                                    color: 'rgba(255, 255, 255, 0.9)',
-                                                    textAlign: 'center',
-                                                    textShadow: '0 0 6px rgba(0, 212, 255, 0.5)',
-                                                    whiteSpace: 'nowrap',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    width: '100%',
-                                                    lineHeight: 1.2,
-                                                }}
-                                            >
-                                                {orb.label}
-                                            </div>
                                         </div>
                                     </HubErrorBoundary>
                                 );
