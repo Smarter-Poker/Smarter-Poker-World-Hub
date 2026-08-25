@@ -3,14 +3,59 @@
  * /hub/install
  * Step-by-step guide to add the app to your home screen
  */
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { Smartphone, Tablet, ArrowRight, CheckCircle2 } from 'lucide-react';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import {
+    triggerInstall, canPromptInstall, isRunningAsApp, isIos,
+    subscribeInstallState,
+} from '../../src/lib/pwaInstall';
 
 export default function InstallPage() {
     const [tab, setTab] = useState('ipad');
+
+    // ── One-tap install, where the platform supports it ───────────────────
+    // This page was instructions-only. The "Install App" menu item that
+    // brings people here therefore handed an Android user a wall of text
+    // when their browser could have installed the app in a single tap.
+    // On iOS there is no install API, so the steps below remain the answer.
+    const [canInstall, setCanInstall] = useState(false);
+    const [installed, setInstalled] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [note, setNote] = useState(null);
+
+    const refresh = useCallback(() => {
+        setCanInstall(canPromptInstall());
+        setInstalled(isRunningAsApp());
+    }, []);
+
+    useEffect(() => {
+        refresh();
+        // Chrome can fire beforeinstallprompt after this page mounts.
+        return subscribeInstallState(refresh);
+    }, [refresh]);
+
+    useEffect(() => {
+        // Open on the tab that matches the device rather than always iPad.
+        if (typeof navigator !== 'undefined' && !isIos()) {
+            if (/Android/i.test(navigator.userAgent || '')) setTab('android');
+        }
+    }, []);
+
+    const handleInstall = async () => {
+        if (busy) return;
+        setBusy(true);
+        setNote(null);
+        const result = await triggerInstall();
+        setBusy(false);
+        if (result === 'accepted') { setInstalled(true); return; }
+        if (result === 'already-installed') { setInstalled(true); return; }
+        if (result === 'dismissed') { setNote('Install cancelled. You can tap Install App again any time.'); return; }
+        if (result === 'ios-needs-safari') { setNote('Open smarter.poker in Safari to add it to your Home Screen.'); return; }
+        setNote('Your browser did not offer an install. Follow the steps below instead.');
+    };
 
     const steps = {
         ipad: [
@@ -110,9 +155,31 @@ export default function InstallPage() {
                         <h1 className="text-4xl md:text-5xl font-extrabold mb-4 bg-gradient-to-r from-white via-[#E4E6EB] to-[#B0B3B8] bg-clip-text text-transparent">
                             Get Smarter.Poker<br />On Your Device
                         </h1>
-                        <p className="text-[#B0B3B8] text-lg max-w-md mx-auto mb-8">
+                        <p className="text-[#B0B3B8] text-lg max-w-md mx-auto mb-6">
                             Add Smarter.Poker to your home screen for a full-screen, native app experience — completely free.
+                            Notifications only work from the installed app.
                         </p>
+
+                        {installed ? (
+                            <div className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#34A853]/15 border border-[#34A853]/40 text-[#34A853] font-bold text-sm mb-8">
+                                <CheckCircle2 className="w-5 h-5" />
+                                Already Installed On This Device
+                            </div>
+                        ) : canInstall ? (
+                            <button
+                                type="button"
+                                onClick={handleInstall}
+                                disabled={busy}
+                                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[#34A853] text-white font-bold text-base shadow-lg shadow-[#34A853]/25 mb-8 disabled:opacity-60"
+                            >
+                                <Smartphone className="w-5 h-5" />
+                                {busy ? 'Opening...' : 'Install Now'}
+                            </button>
+                        ) : null}
+
+                        {note && (
+                            <p className="text-[#FCD34D] text-sm max-w-md mx-auto mb-6">{note}</p>
+                        )}
                     </div>
                 </div>
 
