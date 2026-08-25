@@ -844,189 +844,268 @@ export default function DiamondStorePage() {
           {/* Header */}
           <UniversalHeader pageDepth={1} />
 
-{activeTab !== 'diamonds' && (
-<>
-          {/* ═══════════════════════════════════════════════════════ */}
-          {/* SHARED HEADER IMAGE — Shows on ALL tabs */}
-          {/* ═══════════════════════════════════════════════════════ */}
-          <div
-            style={{
-              position: 'relative',
-              width: '100%',
-            }}
-          >
-            <img
-              src="/images/diamond-store-header.png"
-              alt="Diamonds Store"
-              style={{ width: '100%', height: 'auto', display: 'block' }}
-              draggable={false}
-            />
-
-            {/* ── Tab button clickable zones ── */}
-            {/* Diamonds tab */}
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label="Diamonds tab"
-              onClick={() => {
-                if (navigator?.vibrate) navigator.vibrate(50);
-                setActiveTab('diamonds');
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  e.currentTarget.click();
-                }
-              }}
-              style={{
-                position: 'absolute',
-                left: '3%',
-                top: '62%',
-                width: '18%',
-                height: '34%',
-                cursor: 'pointer',
-              }}
-            />
-            {/* VIP Membership tab */}
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label="VIP Membership tab"
-              onClick={() => {
-                if (navigator?.vibrate) navigator.vibrate(50);
-                setActiveTab('vip');
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  e.currentTarget.click();
-                }
-              }}
-              style={{
-                position: 'absolute',
-                left: '24%',
-                top: '62%',
-                width: '26%',
-                height: '34%',
-                cursor: 'pointer',
-              }}
-            />
-            {/* Merch tab */}
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label="Merch tab"
-              onClick={() => {
-                if (navigator?.vibrate) navigator.vibrate(50);
-                setActiveTab('merch');
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  e.currentTarget.click();
-                }
-              }}
-              style={{
-                position: 'absolute',
-                left: '53%',
-                top: '62%',
-                width: '19%',
-                height: '34%',
-                cursor: 'pointer',
-              }}
-            />
-            {/* Smarter Rewards tab */}
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label="Smarter Rewards tab"
-              onClick={() => {
-                if (navigator?.vibrate) navigator.vibrate(50);
-                setActiveTab('rewards');
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  e.currentTarget.click();
-                }
-              }}
-              style={{
-                position: 'absolute',
-                left: '75%',
-                top: '62%',
-                width: '23%',
-                height: '34%',
-                cursor: 'pointer',
-              }}
-            />
-          </div>
-
-          {/* ═══ Club Shop Text Tab — Below Header Image ═══ */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 8,
-              padding: '12px 16px 0',
-              background: 'rgba(0,0,0,0.6)',
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
-            }}
-          >
-            {['diamonds', 'vip', 'merch', 'rewards', 'club-shop'].map((tabId) => {
-              const LABEL_ICONS = {
-                diamonds: Gem,
-                vip: Crown,
-                merch: ShoppingBag,
-                rewards: Trophy,
-                'club-shop': Gamepad2,
-              };
-              const LABEL_TEXT = {
-                diamonds: 'Diamonds',
-                vip: 'VIP',
-                merch: 'Merch',
-                rewards: 'Rewards',
-                'club-shop': 'Club Shop',
-              };
-              const isActive = activeTab === tabId;
-              return (
-                <button
-                  key={tabId}
-                  onClick={() => {
-                    if (navigator?.vibrate) navigator.vibrate(50);
-                    setActiveTab(tabId);
-                    if (tabId === 'club-shop' && !clubShopLoaded) loadClubShop();
-                  }}
-                  style={{
-                    padding: '10px 16px',
-                    background: isActive ? 'rgba(0,180,255,0.15)' : 'transparent',
-                    border: 'none',
-                    borderBottom: isActive ? '2px solid #00B4FF' : '2px solid transparent',
-                    color: isActive ? '#00D4FF' : 'rgba(255,255,255,0.5)',
-                    fontSize: 13,
-                    fontWeight: isActive ? 700 : 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {(() => {
-                    const LI = LABEL_ICONS[tabId];
-                    return LI ? (
-                      <LI
-                        size={14}
-                        style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
-                      />
-                    ) : null;
-                  })()}
-                  {LABEL_TEXT[tabId]}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* ═══════════════════════════════════════════════════════ */}
-</>
-)}
+          {/* ── DYNAMIC HEADERS FOR OTHER TABS ── */}
+          {activeTab !== 'diamonds' && (
+            <div style={{ position: 'relative', width: '100%' }}>
+              {activeTab === 'vip' && (
+                <>
+                  <img
+                    src="/images/store-header-vip.png"
+                    alt="VIP Membership"
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                    draggable={false}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('diamonds')}
+                    style={{
+                      position: 'absolute',
+                      left: '3%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('merch')}
+                    style={{
+                      position: 'absolute',
+                      left: '27%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('rewards')}
+                    style={{
+                      position: 'absolute',
+                      left: '51%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setActiveTab('club-shop');
+                      if (!clubShopLoaded) loadClubShop();
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: '75%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                </>
+              )}
+              {activeTab === 'merch' && (
+                <>
+                  <img
+                    src="/images/store-header-merch.png"
+                    alt="Merchandise"
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                    draggable={false}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('diamonds')}
+                    style={{
+                      position: 'absolute',
+                      left: '3%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('vip')}
+                    style={{
+                      position: 'absolute',
+                      left: '27%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('rewards')}
+                    style={{
+                      position: 'absolute',
+                      left: '51%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setActiveTab('club-shop');
+                      if (!clubShopLoaded) loadClubShop();
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: '75%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                </>
+              )}
+              {activeTab === 'rewards' && (
+                <>
+                  <img
+                    src="/images/store-header-rewards.png"
+                    alt="Smarter Rewards"
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                    draggable={false}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('diamonds')}
+                    style={{
+                      position: 'absolute',
+                      left: '3%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('vip')}
+                    style={{
+                      position: 'absolute',
+                      left: '27%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('merch')}
+                    style={{
+                      position: 'absolute',
+                      left: '51%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setActiveTab('club-shop');
+                      if (!clubShopLoaded) loadClubShop();
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: '75%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                </>
+              )}
+              {activeTab === 'club-shop' && (
+                <>
+                  <img
+                    src="/images/store-header-arena.png"
+                    alt="Club Arena"
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                    draggable={false}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('diamonds')}
+                    style={{
+                      position: 'absolute',
+                      left: '3%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('vip')}
+                    style={{
+                      position: 'absolute',
+                      left: '27%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('merch')}
+                    style={{
+                      position: 'absolute',
+                      left: '51%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('rewards')}
+                    style={{
+                      position: 'absolute',
+                      left: '75%',
+                      top: '42%',
+                      width: '23%',
+                      height: '22%',
+                      cursor: 'pointer',
+                    }}
+                  />
+                </>
+              )}
+            </div>
+          )}
           {/* DIAMONDS TAB — Checkout image with clickable zones */}
           {/* ═══════════════════════════════════════════════════════ */}
           {activeTab === 'diamonds' && (
@@ -1037,34 +1116,91 @@ export default function DiamondStorePage() {
                 style={{ width: '100%', height: 'auto', display: 'block' }}
                 draggable={false}
               />
-              
+
               {/* ── New Image Tab Clickable Zones ── */}
-              <div role="button" tabIndex={0} onClick={() => setActiveTab('vip')} style={{ position: 'absolute', left: '18%', top: '14%', width: '17%', height: '8%', cursor: 'pointer' }} />
-              <div role="button" tabIndex={0} onClick={() => setActiveTab('merch')} style={{ position: 'absolute', left: '35%', top: '14%', width: '17%', height: '8%', cursor: 'pointer' }} />
-              <div role="button" tabIndex={0} onClick={() => setActiveTab('rewards')} style={{ position: 'absolute', left: '52%', top: '14%', width: '20%', height: '8%', cursor: 'pointer' }} />
-              <div role="button" tabIndex={0} onClick={() => window.location.href = '/hub'} style={{ position: 'absolute', left: '72%', top: '14%', width: '18%', height: '8%', cursor: 'pointer' }} />
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setActiveTab('vip')}
+                style={{
+                  position: 'absolute',
+                  left: '18%',
+                  top: '14%',
+                  width: '17%',
+                  height: '8%',
+                  cursor: 'pointer',
+                }}
+              />
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setActiveTab('merch')}
+                style={{
+                  position: 'absolute',
+                  left: '35%',
+                  top: '14%',
+                  width: '17%',
+                  height: '8%',
+                  cursor: 'pointer',
+                }}
+              />
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setActiveTab('rewards')}
+                style={{
+                  position: 'absolute',
+                  left: '52%',
+                  top: '14%',
+                  width: '20%',
+                  height: '8%',
+                  cursor: 'pointer',
+                }}
+              />
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => (window.location.href = '/hub')}
+                style={{
+                  position: 'absolute',
+                  left: '72%',
+                  top: '14%',
+                  width: '18%',
+                  height: '8%',
+                  cursor: 'pointer',
+                }}
+              />
 
               {/* ── Diamond package clickable zones (6 boxes, 2×3 grid) ── */}
               {[
-                  { pkgIndex: 2, left: '3%', top: '41%', width: '46%', height: '18%' }, // 1,000 Diamonds
-                  { pkgIndex: 3, left: '51%', top: '41%', width: '46%', height: '18%' }, // 2,500 Diamonds
-                  { pkgIndex: 4, left: '3%', top: '60%', width: '46%', height: '18%' }, // 5,000 Diamonds
-                  { pkgIndex: 5, left: '51%', top: '60%', width: '46%', height: '18%' }, // 10,500 Diamonds
-                  { pkgIndex: 6, left: '3%', top: '79%', width: '46%', height: '18%' }, // 26,250 Diamonds
-                  { pkgIndex: 7, left: '51%', top: '79%', width: '46%', height: '18%' }, // 52,500 Diamonds
+                { pkgIndex: 2, left: '3%', top: '41%', width: '46%', height: '18%' }, // 1,000 Diamonds
+                { pkgIndex: 3, left: '51%', top: '41%', width: '46%', height: '18%' }, // 2,500 Diamonds
+                { pkgIndex: 4, left: '3%', top: '60%', width: '46%', height: '18%' }, // 5,000 Diamonds
+                { pkgIndex: 5, left: '51%', top: '60%', width: '46%', height: '18%' }, // 10,500 Diamonds
+                { pkgIndex: 6, left: '3%', top: '79%', width: '46%', height: '18%' }, // 26,250 Diamonds
+                { pkgIndex: 7, left: '51%', top: '79%', width: '46%', height: '18%' }, // 52,500 Diamonds
               ].map(({ pkgIndex, left, top, width, height }) => {
-                  const pkg = DIAMOND_PACKAGES[pkgIndex];
-                  if (!pkg) return null;
-                  return (
-                      <div
-                          key={pkg.id}
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`Buy ${pkg.name}`}
-                          onClick={() => handleDirectCheckout(pkg)}
-                          style={{ position: 'absolute', left, top, width, height, cursor: 'pointer', background: 'transparent', borderRadius: 8 }}
-                      />
-                  );
+                const pkg = DIAMOND_PACKAGES[pkgIndex];
+                if (!pkg) return null;
+                return (
+                  <div
+                    key={pkg.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Buy ${pkg.name}`}
+                    onClick={() => handleDirectCheckout(pkg)}
+                    style={{
+                      position: 'absolute',
+                      left,
+                      top,
+                      width,
+                      height,
+                      cursor: 'pointer',
+                      background: 'transparent',
+                      borderRadius: 8,
+                    }}
+                  />
+                );
               })}
             </div>
           )}
