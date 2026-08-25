@@ -1,0 +1,87 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  THE iPHONE MUST NOT BE TOLD NOTHING
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Dan, 2026-08-25: "[PepNationLab] send push notifications to the phone via
+ * the webapp, I get actual real notifications in real time... this is not
+ * working or functional for smarter.poker."
+ *
+ * Every piece of the push stack was already present and correct: VAPID keys,
+ * /api/push/subscribe, push_outbox, the dispatch cron, and a service worker
+ * with push / notificationclick / pushsubscriptionchange handlers, all
+ * verified against production. The pipeline had delivered exactly ONE push
+ * ever. push_subscriptions held ZERO active rows and 1,376 push_outbox rows
+ * were marked skipped / no_subscription.
+ *
+ * Nothing was broken. Nobody could ENROL from a phone.
+ *
+ * On iOS, PushManager does not exist in Safari. Web push works only after the
+ * site is added to the Home Screen and opened standalone. So
+ * isWebPushSupported() returned false and FirstRunNotificationPrompt returned
+ * silently -- the iPhone user saw nothing at all and concluded push was
+ * broken. The Add-to-Home-Screen instructions existed in the file the whole
+ * time, but only inside the 'blocked' branch, which iOS Safari can never
+ * reach: permission there is 'default', not 'denied', and the effect had
+ * already returned above it.
+ *
+ * These are static assertions, in the same style as menu-routes-exist and
+ * pa-no-undef, because the failure mode is "a branch that cannot be reached",
+ * which a render test would not catch either.
+ *
+ * Run: node --test __tests__/ios-push-enrollment.test.mjs
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const PROMPT = join(ROOT, 'src/components/notifications/FirstRunNotificationPrompt.jsx');
+const src = readFileSync(PROMPT, 'utf8');
+
+test('the unsupported-push branch offers iOS install instead of returning silently', () => {
+    const gate = src.indexOf('if (!isWebPushSupported())');
+    assert.ok(gate > -1, 'the isWebPushSupported gate is gone; this test needs rewriting');
+
+    // Whatever follows that gate must consider iOS-not-installed BEFORE giving up.
+    const afterGate = src.slice(gate, gate + 1400);
+    assert.match(
+        afterGate,
+        /isIos\(\)\s*&&\s*!isIosStandalonePwa\(\)/,
+        'iOS Safari falls through the unsupported gate with no install path — the exact dead end that left push_subscriptions empty'
+    );
+    assert.match(afterGate, /setState\('install'\)/, 'the iOS branch must actually surface a state');
+});
+
+test('an install state is rendered, not just set', () => {
+    assert.match(src, /state === 'install'/, "setState('install') with no matching render branch renders nothing");
+    assert.match(src, /Add to Home Screen/, 'the install state must name the actual iOS action');
+});
+
+test('deferring the install nudge does not burn the one-time permission prompt', () => {
+    // markDone() sets the permanent "already asked" key. If the install nudge
+    // used it, the real permission prompt would never run once the user did
+    // install — the same one-way door that made a rotated subscription silent
+    // forever.
+    const dismiss = src.slice(src.indexOf('const handleDismiss'), src.indexOf('const handleDismiss') + 700);
+    assert.match(dismiss, /state === 'install'/, 'handleDismiss must treat the install nudge differently');
+    assert.match(dismiss, /IOS_KEY_PREFIX/, 'the install nudge needs its own cooldown key');
+
+    // And that cooldown must be finite, not "never again".
+    assert.match(src, /IOS_COOLDOWN_MS\s*=/, 'the install nudge must be re-showable');
+});
+
+test('the iOS helpers it depends on are imported', () => {
+    const imports = src.slice(0, src.indexOf('const KEY_PREFIX'));
+    for (const fn of ['isIos', 'isIosStandalonePwa', 'isWebPushSupported']) {
+        assert.match(imports, new RegExp(`\\b${fn}\\b`), `${fn} is used but not imported`);
+    }
+});
+
+test('push-client still exports the iOS helpers this depends on', () => {
+    const client = readFileSync(join(ROOT, 'src/lib/push-client.js'), 'utf8');
+    assert.match(client, /export function isIos\b/, 'isIos was removed from push-client');
+    assert.match(client, /export function isIosStandalonePwa\b/, 'isIosStandalonePwa was removed from push-client');
+});
