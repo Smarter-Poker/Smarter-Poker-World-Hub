@@ -155,7 +155,7 @@ function FooterCard({ orb, index, onSelect, isIntroComplete, isMobile }: FooterC
                             backgroundImage: orb.imageUrl
                                 ? `url('${orb.imageUrl}')`
                                 : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                            backgroundSize: '100% 100%',
+                            backgroundSize: orb.scale ? `${orb.scale * 100}% ${orb.scale * 100}%` : '100% 100%',
                             backgroundPosition: 'center',
                         }}
                     />
