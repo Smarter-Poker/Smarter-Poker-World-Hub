@@ -21,9 +21,10 @@ interface CarouselEngineProps {
     onIndexChange?: (index: number) => void;
     isIntroComplete?: boolean;
     orbs?: OrbConfig[];
+    isMobile?: boolean;
 }
 
-export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, isIntroComplete = true, orbs }: CarouselEngineProps) {
+export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, isIntroComplete = true, orbs, isMobile = false }: CarouselEngineProps) {
     const allOrbs = orbs || POKER_IQ_ORBS;
     const TOTAL_ORBS = allOrbs.length;
     const groupRef = useRef<Group>(null);
@@ -231,8 +232,11 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
     // Calculate viewport-based positioning
     const halfVW = viewport.width / 2;
 
-    // Vertical offset to shift carousel up (336px ≈ 2.8 units in 3D space)
-    const verticalOffset = 2.8;
+    // Mobile-aware layout constants — scale down everything so all 5 cards fit on-screen
+    const maxScale       = isMobile ? 5.5 : 8;
+    const minScale       = isMobile ? 2.5 : 3.5;
+    const spacing        = isMobile ? 4.0 : 5.5;  // tighter horizontal spread on mobile
+    const verticalOffset = isMobile ? 1.5 : 2.8;  // less upward shift on mobile
 
     return (
         <group ref={groupRef} position={[0, verticalOffset, 0]}>
@@ -242,15 +246,12 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
                 // SINGLE SMOOTH FORMULA - Consistent spacing throughout rotation
                 // No jumps, no overlap, completely fluid
 
-                // Scale: smoothly decreases from center (8) to edges (3.5)
-                const maxScale = 8;
-                const minScale = 3.5;
+                // Scale: smoothly decreases from center to edges
                 const scaleRange = maxScale - minScale;
                 let scale = maxScale - (absOffset * scaleRange / 2.5);
                 scale = Math.max(minScale, scale); // Clamp to minimum
 
                 // X Position: linear, consistent spacing
-                const spacing = 5.5; // Fixed spacing multiplier
                 const xPos = offset * spacing;
 
                 // Z Depth: smoothly moves back with distance
@@ -302,4 +303,3 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
 
 // Legacy export
 export const Carousel = CarouselEngine;
-

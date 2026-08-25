@@ -740,7 +740,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 top: 0,
                 left: 0,
                 width: '100vw',
-                height: '100vh',
+                height: '100dvh',  // dvh = dynamic viewport height, eliminates white gap on mobile browsers
                 background: 'linear-gradient(180deg, #0a0a12 0%, #050510 50%, #0a1218 100%)',
                 overflow: 'visible',
                 opacity: showIntro ? 0 : 1,
@@ -804,7 +804,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                     <Canvas
                         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5 }}
                         dpr={[1, 2]}
-                        camera={{ position: [0, 0, 24], fov: 60 }}
+                        camera={{ position: [0, 0, 24], fov: isMobile ? 75 : 60 }}
                         gl={{
                             antialias: true,
                             powerPreference: 'high-performance',
@@ -846,6 +846,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                                 onIndexChange={setLastCarouselIndex}
                                 isIntroComplete={isIntroComplete}
                                 orbs={carouselOrbs}
+                                isMobile={isMobile}
                             />
                         </Suspense>
                     </Canvas>
@@ -1001,86 +1002,76 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                         </div>
                     )}
 
-                    {/* MOBILE: Horizontal scrolling footer */}
+                    {/* MOBILE: All 6 footer cards visible simultaneously — no scrolling */}
                     {isMobile && (
                         <div
                             style={{
                                 position: 'absolute',
-                                /* Dan 2026-08-23, from a phone: the footer cards are
-                                   "cut off". Measured at 390x844: the strip ran to
-                                   y=812 while the FIXED bottom nav starts at y=787,
-                                   so the last 25px of every card — the whole label
-                                   row — sat behind it. `bottom: 20` was measured from
-                                   the container, which does not know the nav exists.
-                                   BOTTOM_NAV_H is the nav's own exported height and
-                                   already carries the home-indicator inset, so this
-                                   cannot drift from the bar again. */
-                                bottom: `calc(${BOTTOM_NAV_H} + 12px)`,
+                                bottom: `calc(${BOTTOM_NAV_H} + 8px)`,
                                 left: 0,
                                 right: 0,
-                                overflowX: 'auto',
-                                overflowY: 'hidden',
-                                WebkitOverflowScrolling: 'touch',
                                 display: 'flex',
-                                gap: 12,
-                                padding: '0 16px 12px 16px',
-                                scrollbarWidth: 'none',
-                                msOverflowStyle: 'none',
+                                flexDirection: 'row',
+                                justifyContent: 'space-evenly',
+                                alignItems: 'flex-end',
+                                padding: '0 8px',
+                                gap: 0,
+                                overflow: 'hidden',
                             }}
                         >
-                            {/* Mobile footer cards — each isolated */}
-                            {footerCards.map((orb, index) => (
-                                <HubErrorBoundary key={orb.id} name={`MobileCard-${orb.id}`} fallback={<div style={{ flex: '0 0 auto', width: 100, height: 150 }} />}>
-                                    <div
-                                        onClick={() => handleCardSelect(orb.id)}
-                                        style={{
-                                            flex: '0 0 auto',
-                                            /* Dan 2026-08-23: "the poker news card is
-                                               too small". Every footer card measures
-                                               the same 100px — because this clamp
-                                               never scaled. 18vw is 70px on a 390px
-                                               phone, well under its own 100px floor,
-                                               so the "viewport-scaled" middle term
-                                               could not win on any phone ever sold and
-                                               the cards were pinned at the minimum.
-                                               30vw makes the middle term the one that
-                                               actually decides: 117px at 390, 132px on
-                                               a 440px phone, still capped at 140. */
-                                            width: `clamp(100px, 30vw, 140px)`,
-                                            cursor: 'pointer',
-                                        }}
-                                    >
+                            {footerCards.slice(0, 6).map((orb, index) => {
+                                // Each card gets exactly 1/6 of the available width
+                                // 16px total side padding → (100vw - 16px) / 6 per card
+                                const cardWidth = `calc((100vw - 16px) / 6)`;
+                                return (
+                                    <HubErrorBoundary key={orb.id} name={`MobileCard-${orb.id}`} fallback={<div style={{ width: cardWidth }} />}>
                                         <div
+                                            onClick={() => handleCardSelect(orb.id)}
                                             style={{
-                                                width: '100%',
-                                                aspectRatio: '2 / 3',
-                                                borderRadius: 8,
-                                                background: orb.imageUrl
-                                                    ? `url('${orb.imageUrl}') center/cover`
-                                                    : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                                                border: 'none',
-                                                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
-                                                position: 'relative',
-                                            }}
-                                        />
-                                        <div
-                                            style={{
-                                                marginTop: 6,
-                                                fontSize: `clamp(9px, 1.2vh, 10px)`,  // Viewport-scaled label
-                                                fontWeight: 600,
-                                                color: 'rgba(255, 255, 255, 0.9)',
-                                                textAlign: 'center',
-                                                textShadow: '0 0 8px rgba(0, 212, 255, 0.5)',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
+                                                width: cardWidth,
+                                                flexShrink: 0,
+                                                flexGrow: 0,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                cursor: 'pointer',
+                                                padding: '0 2px',
                                             }}
                                         >
-                                            {orb.label}
+                                            <div
+                                                style={{
+                                                    width: '100%',
+                                                    aspectRatio: '2 / 3',
+                                                    borderRadius: 6,
+                                                    background: orb.imageUrl
+                                                        ? `url('${orb.imageUrl}') center/cover`
+                                                        : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
+                                                    border: 'none',
+                                                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.5)',
+                                                    position: 'relative',
+                                                }}
+                                            />
+                                            <div
+                                                style={{
+                                                    marginTop: 4,
+                                                    fontSize: 9,
+                                                    fontWeight: 600,
+                                                    color: 'rgba(255, 255, 255, 0.9)',
+                                                    textAlign: 'center',
+                                                    textShadow: '0 0 6px rgba(0, 212, 255, 0.5)',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    width: '100%',
+                                                    lineHeight: 1.2,
+                                                }}
+                                            >
+                                                {orb.label}
+                                            </div>
                                         </div>
-                                    </div>
-                                </HubErrorBoundary>
-                            ))}
+                                    </HubErrorBoundary>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
