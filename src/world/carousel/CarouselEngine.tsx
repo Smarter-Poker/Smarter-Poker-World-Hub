@@ -232,11 +232,11 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
     // Calculate viewport-based positioning
     const halfVW = viewport.width / 2;
 
-    // Mobile-aware layout constants — scale down everything so all 5 cards fit on-screen
-    const maxScale       = isMobile ? 5.5 : 8;
-    const minScale       = isMobile ? 2.5 : 3.5;
-    const spacing        = isMobile ? 4.0 : 5.5;  // tighter horizontal spread on mobile
-    const verticalOffset = isMobile ? 1.5 : 2.8;  // less upward shift on mobile
+    // Mobile-aware layout constants — large center card, outer cards bleed off screen edges
+    const maxScale       = isMobile ? 10 : 8;    // mobile: BIG center card
+    const minScale       = isMobile ? 3.5 : 3.5; // adjacent cards still visible but smaller
+    const spacing        = isMobile ? 3.8 : 5.5; // tight enough that edge cards are cut off
+    const verticalOffset = isMobile ? 2.0 : 2.8; // centered vertically on mobile
 
     return (
         <group ref={groupRef} position={[0, verticalOffset, 0]}>
