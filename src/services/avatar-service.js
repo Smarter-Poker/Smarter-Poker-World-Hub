@@ -125,7 +125,7 @@ export async function setPresetAvatar(userId, avatarId, opts = {}) {
 
         const entry = resolvePresetAvatar(avatarId);
         const imageUrl = normalizeAvatarUrl(entry?.image || null);
-        const scope = opts.scope || 'both';
+        const scope = opts.scope || 'arena';
         
         let error = null;
 
