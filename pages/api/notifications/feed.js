@@ -19,9 +19,49 @@ import { resolveNotificationRoute } from '../../../src/lib/notificationRoute';
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
+/**
+ * Title-case for display, WITHOUT destroying acronyms.
+ *
+ * Dan's house rule is that forward-facing copy has the first letter of every
+ * word capitalised. The original implementation did that by lowercasing the
+ * rest of each word, which is fine for prose and wrong for a poker product,
+ * because this table is full of acronyms:
+ *
+ *     'A Seat Just Opened At PLO5 1.00/2.00'  ->  '... At Plo5 1.00/2.00'
+ *     'A Seat Just Opened At NLH 3.00/6.00'   ->  '... At Nlh 3.00/6.00'
+ *     'Weekly player P&L failed'              ->  'Weekly Player P&l Failed'
+ *     "club/union settlement"                 ->  'Club/union Settlement'
+ *
+ * All four were visible in the notifications list. NLH, PLO, PLO5, MTT, SNG,
+ * BBJ, VIP, GTO, ICM, EV are not typos to be corrected.
+ *
+ * Rules:
+ *   - a token with no lowercase letters and at least two characters is left
+ *     exactly as it is (NLH, PLO5, P&L, SHARK CLUB, roman numerals);
+ *   - otherwise capitalise the first letter of each alphabetic run, so
+ *     hyphens and slashes get their own capital ('win-loss' -> 'Win-Loss',
+ *     'club/union' -> 'Club/Union') instead of only the first fragment.
+ */
 function enforceTitleCase(str) {
     if (!str) return '';
-    return String(str).split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    return String(str)
+        .split(' ')
+        .map((word) => {
+            if (!word) return word;
+            // Already an acronym / deliberately capitalised. Leave it alone.
+            const letters = word.replace(/[^A-Za-z]/g, '');
+            if (letters.length >= 2 && letters === letters.toUpperCase()) return word;
+            // Capitalise each alphabetic run: handles hyphens, slashes, dots.
+            // A run directly after an apostrophe is a possessive or a
+            // contraction, not a new word -- capitalising it gives "Week'S"
+            // and "Don'T", which is worse than the problem being solved.
+            return word.toLowerCase().replace(/[A-Za-z]+/g, (run, offset, full) => {
+                const prev = offset > 0 ? full[offset - 1] : '';
+                if (prev === "'" || prev === '\u2019') return run;
+                return run.charAt(0).toUpperCase() + run.slice(1);
+            });
+        })
+        .join(' ');
 }
 
 // ── Server-side in-memory TTL cache ──────────────────────────────────────────
@@ -259,9 +299,36 @@ export default async function handler(req, res) {
                     return key ? profileByName[key.toLowerCase()] : null;
                 })();
 
+            // ── The bold prefix ──────────────────────────────────────────
+            // The row renders `<b>{actor_name}</b> {message}`, so whatever
+            // lands here IS the headline and the rest of the title is never
+            // shown. The old fallback took the first two words of the title
+            // unconditionally, which is right for "Mason Bekavac commented on
+            // your post" and silently truncates every system notification:
+            //
+            //   'Finish Setting Up Your Page'    -> 'Finish Setting'
+            //   'Weekly player P&L failed'       -> 'Weekly player'
+            //   'Push Health Alert'              -> 'Push Health'
+            //   'Midway Union weekly statement'  -> 'Midway Union'
+            //
+            // All four were visible in the notifications list with their
+            // headline cut off mid-sentence. The two-word slice now applies
+            // ONLY when the remainder of the title reads like a social action,
+            // i.e. we are actually looking at a person doing something.
+            const SOCIAL_VERB = /^(commented|liked|replied|mentioned|shared|posted|started|sent|accepted|added|followed|invited|is\s+now|wants)/i;
+            const personFromTitle = (() => {
+                if (typeof n.title !== 'string') return null;
+                // Names carry apostrophes and hyphens: O'Ryan, Al-Rashid,
+                // Anne-Marie. The original [A-Za-z]+ split "Chase O'Ryan"
+                // into "Chase O" and left "'Ryan ..." as the remainder.
+                const m = n.title.match(/^([A-Za-z][A-Za-z'\u2019-]*\s+[A-Za-z][A-Za-z'\u2019-]*)\s+(.*)$/);
+                if (!m) return null;
+                return SOCIAL_VERB.test(m[2]) ? m[1] : null;
+            })();
+
             const displayNameRaw = profile?.display_name || profile?.full_name || profile?.username 
                 || n.data?.actor_name || n.data?.sender_name
-                || (typeof n.title === 'string' ? n.title.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] : null)
+                || personFromTitle
                 || n.title
                 || 'Someone';
             
