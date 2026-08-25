@@ -46,7 +46,7 @@ const T = {
     permission: 90_000, // a human needs time to read the OS dialog
     vapid: 10_000,
     register: 10_000,
-    ready: 10_000,
+    ready: 30_000,   // cold PWA launch on a weak connection; see getRegistration
     getSubscription: 8_000,
     subscribe: 20_000,
     save: 10_000,
@@ -144,14 +144,78 @@ async function fetchVapidKey() {
     return json.key;
 }
 
+/**
+ * Resolve once THIS registration has an active worker.
+ *
+ * Deliberately not `navigator.serviceWorker.ready`: that resolves only when a
+ * worker is active AND CONTROLLING the current page. On the very first launch
+ * of a freshly installed PWA the page is loaded before any worker controls it,
+ * so `ready` waits on control we do not need — `pushManager.subscribe()` only
+ * needs an ACTIVE registration.
+ */
+function waitForActiveWorker(reg, ms) {
+    if (reg?.active) return Promise.resolve(reg);
+    const pending = reg?.installing || reg?.waiting;
+    if (!pending) return Promise.resolve(reg);
+
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            pending.removeEventListener('statechange', onState);
+            clearTimeout(timer);
+            resolve(reg);
+        };
+        const onState = () => {
+            // 'redundant' means this worker was replaced — reg.active is the
+            // one that won, so stop waiting either way.
+            if (pending.state === 'activated' || pending.state === 'redundant') finish();
+        };
+        const timer = setTimeout(finish, ms);
+        pending.addEventListener('statechange', onState);
+    });
+}
+
 async function getRegistration() {
-    // next-pwa registers /sw.js itself, but on a cold first visit `ready` can
-    // outrun that. Register explicitly, then wait for ready.
+    // Dan, 2026-08-25: "Service worker startup timed out after 10s" when
+    // turning push on, on iPhone, on one bar of signal.
+    //
+    // The old implementation awaited navigator.serviceWorker.ready with a 10s
+    // budget. Two things made that hang:
+    //   1. `ready` waits for the page to be CONTROLLED. A PWA opened for the
+    //      first time from the Home Screen is not controlled yet, so the
+    //      promise waits on the activate+claim round trip.
+    //   2. The worker had no skipWaiting, so a NEW version installed behind an
+    //      old one sat in `waiting` and never activated while a tab was open.
+    // Ten seconds to fetch a 76KB worker, install, activate and claim on a
+    // weak mobile connection is simply not enough time.
+    //
+    // We now hold the registration itself and wait for IT to go active, which
+    // is the only condition pushManager actually requires.
+    let reg = null;
     try {
-        await withTimeout(navigator.serviceWorker.register('/sw.js'), T.register, 'Service worker registration');
+        reg = await withTimeout(
+            navigator.serviceWorker.register('/sw.js'),
+            T.register,
+            'Service worker registration'
+        );
     } catch {
-        // Already registered, or registration raced. `ready` below is the real gate.
+        // Already registered by next-pwa, or the call raced. Fall through.
     }
+
+    if (!reg) {
+        try { reg = await navigator.serviceWorker.getRegistration('/'); } catch { /* ignore */ }
+    }
+
+    if (reg) {
+        await waitForActiveWorker(reg, T.ready);
+        // An active worker is all subscribe() needs. Control is irrelevant.
+        if (reg.active && reg.pushManager) return reg;
+    }
+
+    // Nothing usable yet: fall back to the original gate, which will also pick
+    // up a registration made elsewhere (next-pwa's own call).
     return withTimeout(navigator.serviceWorker.ready, T.ready, 'Service worker startup');
 }
 
