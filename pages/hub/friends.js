@@ -24,7 +24,7 @@ import { usePersistedState } from '../../src/hooks/usePersistedState';
 import { getAccessToken } from '../../src/lib/authUtils';
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import BottomNavBar, { BOTTOM_NAV_CLEARANCE } from '../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',
@@ -939,7 +939,7 @@ function FriendsPage() {
     // ═══════════════════════════════════════════════════════════════════════
 
     if (loading) return (
-        <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 70 }}>
+        <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: BOTTOM_NAV_CLEARANCE }}>
             <style>{`
                 @keyframes fr-shimmer {
                     0%   { background-position: -600px 0; }

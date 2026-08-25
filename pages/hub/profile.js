@@ -15,7 +15,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import BottomNavBar, { BOTTOM_NAV_CLEARANCE } from '../../src/components/ui/BottomNavBar';
 
 const CACHE_KEY = 'sp-profile-username';
 
@@ -103,7 +103,7 @@ export default function ProfileRedirect() {
     // Show Smarter.Poker logo while redirecting
     return (
         <div style={{
-            minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+            minHeight: '100vh', paddingBottom: BOTTOM_NAV_CLEARANCE, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
             background: '#0a0e1a',
             display: 'flex',
             alignItems: 'center',
