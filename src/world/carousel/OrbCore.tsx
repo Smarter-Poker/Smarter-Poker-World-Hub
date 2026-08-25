@@ -18,6 +18,7 @@ interface OrbCoreProps {
     active: boolean;
     imageUrl?: string;
     description?: string;
+    scale?: number;
 }
 
 // Holographic color palette (cyan/blue/green/white only)
@@ -30,7 +31,7 @@ const HOLO_COLORS = [
     '#ffffff', // Pure White
 ];
 
-export function OrbCore({ id, color, label, gradient, active, imageUrl, description }: OrbCoreProps) {
+export function OrbCore({ id, color, label, gradient, active, imageUrl, description, scale = 1 }: OrbCoreProps) {
     const groupRef = useRef<THREE.Group>(null);
     const isMarketplace = id === 'marketplace';
 
@@ -43,17 +44,17 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
     }), []);
 
     // Load texture if imageUrl is provided
-    // Show FULL image without any cropping or scaling adjustments
     const texture = useMemo(() => {
         if (imageUrl) {
             const loader = new TextureLoader();
             const tex = loader.load(imageUrl, (loadedTex) => {
                 loadedTex.wrapS = THREE.ClampToEdgeWrapping;
                 loadedTex.wrapT = THREE.ClampToEdgeWrapping;
-                // Show full image - no repeat/offset adjustments
-                // Images have been physically cropped to remove black borders
-                loadedTex.repeat.set(1, 1);
-                loadedTex.offset.set(0, 0);
+                // If the image has built-in transparent padding, we scale it UP to crop it out
+                const repeatVal = 1 / scale;
+                const offsetVal = (1 - repeatVal) / 2;
+                loadedTex.repeat.set(repeatVal, repeatVal);
+                loadedTex.offset.set(offsetVal, offsetVal);
                 loadedTex.needsUpdate = true;
             });
             tex.colorSpace = THREE.SRGBColorSpace;

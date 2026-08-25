@@ -293,6 +293,7 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
                             active={isActive}
                             imageUrl={config.imageUrl}
                             description={config.description}
+                            scale={config.scale}
                         />
                     </group>
                 );
