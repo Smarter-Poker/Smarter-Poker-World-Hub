@@ -1306,7 +1306,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     position: 'fixed',
                     top: 60, left: 0, right: 0, bottom: 0,
                     zIndex: 90,
-                    background: 'radial-gradient(ellipse at 50% -10%, rgba(0,80,180,0.45) 0%, rgba(2,8,20,1) 55%)',
+                    background: `radial-gradient(ellipse at 50% -10%, rgba(0,100,220,0.25) 0%, rgba(2,8,20,0.4) 100%), url('/images/diamond-wallet-bg-new.png') center/cover no-repeat`,
                     display: 'flex',
                     flexDirection: 'column',
                     animation: 'walletFadeScale 0.3s cubic-bezier(0.16,1,0.3,1)',
