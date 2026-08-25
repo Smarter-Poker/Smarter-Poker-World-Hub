@@ -26,6 +26,11 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 import { resolveNotificationRoute as route } from '../src/lib/notificationRoute.js';
 
 // ── Explicit destinations win ────────────────────────────────────────────
@@ -197,4 +202,45 @@ test('no resolver output is ever a bare word', () => {
         assert.ok(r, `${f.type} must resolve`);
         assert.ok(r.startsWith('/'), `${f.type} resolved to a non-path: ${r}`);
     }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  EVERY NOTIFICATION SURFACE USES THE ONE RESOLVER
+// ═══════════════════════════════════════════════════════════════════════════
+// The original bug was not a wrong route, it was FIVE renderers each deciding
+// routes differently, so a notification that worked on one screen was dead on
+// another. Fixing the resolver does nothing if a surface quietly stops calling
+// it -- which is exactly what happened to the social-media modal: its fix was
+// written, lost to a `git reset --hard` in a shared clone, and never shipped,
+// while the notifications page had been fixed. Nothing caught that. This does.
+
+test('every notification renderer delegates to the shared resolver', () => {
+    const surfaces = [
+        'pages/api/notifications/feed.js',
+        'pages/hub/notifications.js',
+        'pages/hub/social-media/index.js',
+    ];
+    for (const rel of surfaces) {
+        const src = readFileSync(join(ROOT, rel), 'utf8');
+        assert.match(
+            src,
+            /resolveNotificationRoute/,
+            `${rel} renders notifications but does not use the shared resolver -- it will drift`
+        );
+    }
+});
+
+test('no surface hand-rolls the profile route it used to get wrong', () => {
+    // `/hub/user/${n.actor_username}` raw was the old duplicated logic AND the
+    // unencoded-username bug. If it reappears next to a notification click
+    // handler, the split is back.
+    const modal = readFileSync(join(ROOT, 'pages/hub/social-media/index.js'), 'utf8');
+    const handler = modal.slice(
+        modal.indexOf('setShowNotifications(false);'),
+        modal.indexOf('setShowNotifications(false);') + 1800
+    );
+    assert.ok(
+        !/router\.push\(`\/hub\/user\/\$\{n\.actor_username\}`\)/.test(handler),
+        'the notification modal is hand-rolling a profile route again instead of using the resolver'
+    );
 });
