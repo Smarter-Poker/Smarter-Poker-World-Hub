@@ -16,16 +16,18 @@ import { getAuthUser } from '../../src/lib/authUtils';
 import { useRouter } from 'next/router';
 
 /* smarter.poker palette. Mirrors pages/horses/horses.module.css and the Club
-   Arena design tokens. Dan 2026-08-26: no purples, no greens - cyan is the
-   accent AND the positive/win colour. This page used the zinc scale plus
-   #10b981 for wins, which matched nothing else on the platform. */
+   Arena design tokens (~/Documents/club-arena/src/styles/design-tokens.css).
+   Dan 2026-08-26: no purples, no greens - cyan is the accent AND the
+   positive/win colour. This page used the zinc scale plus #10b981 for wins,
+   which matched nothing else on the platform. POSITIVE is deliberately an
+   alias of ACCENT so a later edit cannot reintroduce green by reaching for a
+   plausible "success" name. */
 const BG = '#0a0e17';
 const PANEL = '#111827';
 const SURFACE = '#1a2234';
 const INSET = '#0d1520';
 const BORDER = 'rgba(255,255,255,0.08)';
 const TEXT = '#f3f4f6';
-const DIM = '#9ca3af';
 const MUTED = '#6b7280';
 const ACCENT = '#00d4ff';
 const ACCENT_SOFT = 'rgba(0,212,255,0.12)';
@@ -40,8 +42,8 @@ const FORMATS = ['', 'cash', 'hu_cash', 'tournament'];
 const PAGE_SIZE = 50;
 
 const SUIT_GLYPH = { hearts: 'h', diamonds: 'd', clubs: 'c', spades: 's' };
-// Club Arena's canonical deck is two-colour (src/styles/club-engine.css).
-// The suit letter is rendered next to the rank, so hearts and diamonds stay
+// Club Arena's canonical deck is two-colour (src/styles/club-engine.css:52-55).
+// The suit letter renders beside the rank, so hearts and diamonds stay
 // distinguishable without a third and fourth hue.
 const SUIT_COLOR = { hearts: RED, diamonds: RED, clubs: TEXT, spades: TEXT };
 
@@ -77,7 +79,8 @@ function CardChip({ card }) {
 }
 
 function TagChip({ tag }) {
-  const isLeak = tag !== 'big_win';
+  // Tags only exist on losses (wins are stored untagged), so every chip is a
+  // leak chip.
   return (
     <span
       style={{
@@ -143,6 +146,10 @@ export default function HorseHandReviews() {
   const [summary, setSummary] = useState(null);
   const [summaryError, setSummaryError] = useState(null);
 
+  const [audits, setAudits] = useState([]);
+  const [auditsError, setAuditsError] = useState(null);
+  const [auditOpen, setAuditOpen] = useState(null);
+
   const [filters, setFilters] = useState({ horse: '', variant: '', format: '', tag: '', win: '' });
   const [rows, setRows] = useState([]);
   const [rowsError, setRowsError] = useState(null);
@@ -184,6 +191,13 @@ export default function HorseHandReviews() {
     else setSummary(data);
   }, [days]);
 
+  const loadAudits = useCallback(async () => {
+    setAuditsError(null);
+    const { data, error } = await supabase.rpc('ca_horse_daily_audit', { p_days: 14 });
+    if (error) setAuditsError(error.message);
+    else setAudits(data || []);
+  }, []);
+
   const loadRows = useCallback(async () => {
     setBusy(true);
     setRowsError(null);
@@ -205,6 +219,9 @@ export default function HorseHandReviews() {
   useEffect(() => {
     if (isAdmin) loadSummary();
   }, [isAdmin, loadSummary]);
+  useEffect(() => {
+    if (isAdmin) loadAudits();
+  }, [isAdmin, loadAudits]);
   useEffect(() => {
     if (isAdmin) loadRows();
   }, [isAdmin, loadRows]);
@@ -248,13 +265,107 @@ export default function HorseHandReviews() {
               Every hand where a horse won or lost 20bb+, flagged at settlement with leak tags. Raw hands kept 30 days; rollups permanent.
             </p>
           </div>
-          <button
-            onClick={() => router.push('/horses')}
-            style={{ background: SURFACE, color: TEXT, border: `1px solid ${BORDER}`, padding: '0.5rem 1rem', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
-          >
-            Back To Stable
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => {
+                loadAudits();
+                loadSummary();
+                loadRows();
+              }}
+              style={{ background: SURFACE, color: TEXT, border: `1px solid ${BORDER}`, padding: '0.5rem 1rem', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
+            >
+              Refresh
+            </button>
+            <button
+              onClick={() => router.push('/horses')}
+              style={{ background: BORDER, color: TEXT, border: 'none', padding: '0.5rem 1rem', borderRadius: 4, cursor: 'pointer' }}
+            >
+              Back To Stable
+            </button>
+          </div>
         </header>
+
+        {/* ── Daily Audit ── */}
+        <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Daily Audit</h2>
+            <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+              Machine Findings Nightly (06:00 UTC) Plus The Daily Claude Analysis
+            </span>
+          </div>
+          {auditsError && <div style={{ color: RED, fontSize: '0.85rem' }}>{auditsError}</div>}
+          {audits.length === 0 && !auditsError && (
+            <div style={{ color: MUTED, fontSize: '0.85rem' }}>No audit rows yet. The first row appears after the next 06:00 UTC engine run.</div>
+          )}
+          {audits.map((a) => {
+            const findings = Array.isArray(a.findings) ? a.findings : [];
+            const crit = findings.filter((f) => f.severity === 'critical').length;
+            const warn = findings.filter((f) => f.severity === 'warn').length;
+            const open = auditOpen === a.day;
+            return (
+              <div key={a.day} style={{ borderTop: `1px solid ${BORDER}` }}>
+                <div
+                  onClick={() => setAuditOpen(open ? null : a.day)}
+                  style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '0.5rem 0.25rem', cursor: 'pointer' }}
+                >
+                  <span style={{ fontWeight: 700, minWidth: 100 }}>{a.day}</span>
+                  <span style={{ color: crit > 0 ? RED : POSITIVE, fontWeight: 600 }}>{crit} Critical</span>
+                  <span style={{ color: warn > 0 ? AMBER : MUTED }}>{warn} Warn</span>
+                  <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+                    {a.stats?.flagged_hands ?? 0} flagged hands / net {a.stats?.net_bb_sum ?? 0} bb
+                  </span>
+                  <span style={{ marginLeft: 'auto', color: a.agent_analysis ? POSITIVE : MUTED, fontSize: '0.8rem' }}>
+                    {a.agent_analysis ? 'Claude Analysis Ready' : 'Awaiting Claude Analysis'}
+                  </span>
+                </div>
+                {open && (
+                  <div style={{ padding: '0.25rem 0.25rem 0.75rem' }}>
+                    {findings.length === 0 && <div style={{ color: MUTED, fontSize: '0.85rem' }}>No findings. A clean day.</div>}
+                    {findings.map((f, i) => (
+                      <div key={i} style={{ background: INSET, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${f.severity === 'critical' ? RED : f.severity === 'warn' ? AMBER : BORDER}`, borderRadius: 6, padding: '0.6rem 0.8rem', marginBottom: 6 }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 700 }}>{f.title}</span>
+                          <span style={{ color: MUTED, fontSize: '0.75rem', textTransform: 'uppercase' }}>{f.category} / {f.code}</span>
+                        </div>
+                        <div style={{ color: MUTED, fontSize: '0.8rem', marginTop: 4 }}>{f.recommendation}</div>
+                        {f.evidence && (
+                          <pre style={{ margin: '6px 0 0', fontSize: '0.72rem', color: MUTED, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                            {JSON.stringify(f.evidence)}
+                          </pre>
+                        )}
+                      </div>
+                    ))}
+                    {a.agent_analysis && (
+                      <div style={{ background: ACCENT_SOFT, border: `1px solid ${ACCENT_LINE}`, borderRadius: 6, padding: '0.75rem 1rem', marginTop: 8 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 6, color: POSITIVE }}>
+                          Claude Daily Analysis
+                          {a.agent_analyzed_at ? ` (${new Date(a.agent_analyzed_at).toLocaleString()})` : ''}
+                        </div>
+                        {typeof a.agent_analysis === 'object' && a.agent_analysis.summary && (
+                          <div style={{ fontSize: '0.85rem', marginBottom: 6, whiteSpace: 'pre-wrap' }}>{a.agent_analysis.summary}</div>
+                        )}
+                        {Array.isArray(a.agent_analysis?.flaws) &&
+                          a.agent_analysis.flaws.map((fl, i) => (
+                            <div key={i} style={{ fontSize: '0.8rem', marginBottom: 4 }}>
+                              <span style={{ color: fl.severity === 'critical' ? RED : AMBER, fontWeight: 600, marginRight: 6 }}>[{fl.severity || 'note'}]</span>
+                              <span style={{ fontWeight: 600 }}>{fl.title}: </span>
+                              <span style={{ color: TEXT }}>{fl.detail}</span>
+                              {fl.action && <span style={{ color: POSITIVE }}> Action: {fl.action}</span>}
+                            </div>
+                          ))}
+                        {Array.isArray(a.agent_analysis?.shipped) && a.agent_analysis.shipped.length > 0 && (
+                          <div style={{ fontSize: '0.8rem', color: MUTED, marginTop: 4 }}>
+                            Shipped: {a.agent_analysis.shipped.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
         {/* ── Fleet summary ── */}
         <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '1rem', marginBottom: '1.5rem' }}>
@@ -266,12 +377,7 @@ export default function HorseHandReviews() {
               <option value={30}>Last 30 Days</option>
             </select>
           </div>
-          {summaryError && (
-            <div style={{ color: RED, fontSize: '0.85rem', marginBottom: 8 }}>
-              {summaryError}{' '}
-              <button onClick={loadSummary} style={{ ...inputStyle, cursor: 'pointer', color: ACCENT, marginLeft: 8 }}>Retry</button>
-            </div>
-          )}
+          {summaryError && <div style={{ color: RED, fontSize: '0.85rem' }}>{summaryError}</div>}
           <div style={{ marginBottom: '0.75rem' }}>
             <span style={{ color: MUTED, fontSize: '0.85rem', marginRight: 8 }}>Fleet Leak Tags:</span>
             {Object.keys(fleetLeaks).length === 0 && <span style={{ color: MUTED, fontSize: '0.85rem' }}>none recorded yet</span>}
@@ -356,12 +462,7 @@ export default function HorseHandReviews() {
             )}
             <span style={{ color: MUTED, fontSize: '0.8rem', marginLeft: 'auto' }}>{busy ? 'Loading...' : `${rows.length} rows`}</span>
           </div>
-          {rowsError && (
-            <div style={{ color: RED, fontSize: '0.85rem', marginBottom: 8 }}>
-              {rowsError}{' '}
-              <button onClick={loadRows} style={{ ...inputStyle, cursor: 'pointer', color: ACCENT, marginLeft: 8 }}>Retry</button>
-            </div>
-          )}
+          {rowsError && <div style={{ color: RED, fontSize: '0.85rem', marginBottom: 8 }}>{rowsError}</div>}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
