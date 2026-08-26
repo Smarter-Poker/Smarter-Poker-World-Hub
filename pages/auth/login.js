@@ -20,6 +20,17 @@ import { capture, identify, FunnelEvents } from '../../src/lib/analytics';
 // weak passwords AND nudge users to the canonical form, instead of silently
 // minting accounts that fail downstream provisioning.
 import { validatePassword } from '../../src/lib/passwordStrength';
+// The code -> message table the callback indexes into, the provider allowlist,
+// and the shared server-side error reporter. See src/lib/authErrors.js for why
+// the URL carries a code and never prose.
+import {
+  AUTH_BOUNCE_KEY,
+  AUTH_ORIGIN_KEY,
+  OAUTH_PROVIDERS,
+  authErrorMessage,
+  reportAuthError,
+  takeAuthErrorDetail,
+} from '../../src/lib/authErrors';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,33 +45,90 @@ export default function LoginPage() {
   const [existingUser, setExistingUser] = useState(null); // Track if already signed in
   const [oauthLoading, setOauthLoading] = useState(''); // Google OAuth loading state
 
+  // The provider's own words, carried here in sessionStorage by /auth/callback.
+  // Rendered under the headline message; never comes from the URL, so it cannot
+  // be planted by a link. See src/lib/authErrors.js.
+  const [errorDetail, setErrorDetail] = useState(null);
+
   // Error banners auto-expire. The old banner had no dismiss and sat on top
   // of the email field, so one wrong password left the form unusable until a
   // full page reload. Success messages (e.g. "magic link sent") stay - the
   // user may need to read those while switching to their inbox.
+  //
+  // EXCEPT the one the callback forwarded. A failed sign-in bounce is not
+  // invalidated by anything the user types next, and 8 seconds on a 0.7rem
+  // banner is not long enough to read "Facebook did not share an email
+  // address" and act on it. `errorDetail` is set only on that path, so it is
+  // the flag: sticky while it is present, ordinary once it is dismissed.
   useEffect(() => {
-    if (!error) return undefined;
+    if (!error || errorDetail) return undefined;
     const t = setTimeout(() => setError(null), 8000);
     return () => clearTimeout(t);
-  }, [error]);
+  }, [error, errorDetail]);
 
   // ── Show the reason the callback bounced us here (Dan 2026-08-25) ────────
   // /auth/callback used to flash a provider error for 1500ms and then land the
   // user on a CLEAN login page, so a failed Facebook sign-in was indistinguish-
-  // able from a click that did nothing at all. It now forwards the message as
-  // ?authError=; render it in the same banner as every other auth failure and
-  // strip the param so a refresh does not resurrect a stale error.
+  // able from a click that did nothing at all.
+  //
+  // THE URL CARRIES A CODE, NOT PROSE. Rendering forwarded free text inside a
+  // first-party red role="alert" banner would let anyone send
+  // /auth/login?authError=Account+locked,+call+1-800-… and have it read as
+  // ours - and /auth/signin forwards arbitrary query params straight here, so
+  // the link need not even look like this page. The code indexes a table we
+  // own; the provider's actual words arrive out-of-band in sessionStorage,
+  // which a link cannot write.
+  //
+  // ONE EFFECT, NOT TWO. This and the OAuth-resume effect below both keyed on
+  // router.isReady and both called router.replace with a copy of router.query
+  // snapshotted in the same commit - so whichever ran second wrote the other's
+  // deleted param straight back into the URL, and a refresh resurrected the
+  // very error this is supposed to clear. They strip both params in one pass.
   useEffect(() => {
     if (!router.isReady) return;
-    const raw = router.query.authError;
-    const msg = Array.isArray(raw) ? raw[0] : raw;
-    if (!msg) return;
-    setError(String(msg));
-    const cleanQuery = { ...router.query };
-    delete cleanQuery.authError;
-    router.replace({ pathname: router.pathname, query: cleanQuery }, undefined, {
-      shallow: true,
-    });
+
+    const one = (v) => (Array.isArray(v) ? v[0] : v);
+    const codeRaw = one(router.query.authError);
+    const providerRaw = one(router.query.provider);
+    const provider =
+      typeof providerRaw === 'string' && OAUTH_PROVIDERS.includes(providerRaw)
+        ? providerRaw
+        : null;
+
+    if (codeRaw) {
+      const code = String(codeRaw);
+      setError(authErrorMessage(code));
+      // Only shows when it adds something: takeAuthErrorDetail drops a detail
+      // that is just the headline the table already renders.
+      setErrorDetail(takeAuthErrorDetail(code));
+    }
+
+    if (codeRaw || providerRaw) {
+      const cleanQuery = { ...router.query };
+      delete cleanQuery.authError;
+      delete cleanQuery.provider;
+      router.replace({ pathname: router.pathname, query: cleanQuery }, undefined, {
+        shallow: true,
+      });
+    }
+
+    // RESUMING OAUTH AFTER THE www -> apex BOUNCE, and ONLY that.
+    // This used to fire on any ?provider= in the URL, which meant a link to
+    // /auth/login?provider=facebook silently threw whoever opened it at Meta's
+    // consent dialog - a drive-by OAuth initiation, and /auth/signin forwards
+    // the param here for free. The bounce now leaves a one-shot marker in
+    // sessionStorage (same origin, survives the redirect, unreachable from a
+    // link) and only a matching marker resumes the flow.
+    if (provider) {
+      let armed = false;
+      try {
+        armed = sessionStorage.getItem(AUTH_BOUNCE_KEY) === provider;
+        if (armed) sessionStorage.removeItem(AUTH_BOUNCE_KEY);
+      } catch (_e) {
+        /* storage disabled - do not auto-launch on an unverifiable hint */
+      }
+      if (armed) handleOAuthSignIn(provider);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 
@@ -74,29 +142,12 @@ export default function LoginPage() {
   };
 
   // ── [2026-08-04] Server-side error visibility ────────────────────────────
-  // Client Sentry is disabled (OOM workaround), so console.warn in these
-  // catch blocks was invisible in production — a big reason auth failures
-  // looked "silent". Fire-and-forget POST to the capture endpoint; never
-  // let telemetry break the auth flow itself.
-  const reportAuthError = (flow, err) => {
-    try {
-      fetch('/api/auth/log-client-error', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          flow,
-          message: err?.message || String(err),
-          stack: err?.stack,
-          code: err?.code || err?.status,
-          url: typeof window !== 'undefined' ? window.location.href : '',
-        }),
-      }).catch(() => {
-        /* telemetry is best-effort */
-      });
-    } catch (_e) {
-      /* never throw from telemetry */
-    }
-  };
+  // Client Sentry is disabled (OOM workaround), so console.warn in these catch
+  // blocks was invisible in production — a big reason auth failures looked
+  // "silent". Lifted into src/lib/authErrors.js on 2026-08-25 so signup.js and
+  // callback.js share it rather than each keeping a private copy; signup.js had
+  // no copy at all, which is why a Facebook failure started from the signup
+  // page was still completely unrecorded.
 
   // Load remembered email on mount
   useEffect(() => {
@@ -334,19 +385,44 @@ export default function LoginPage() {
   };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // GOOGLE OAUTH SIGN IN
+  // OAUTH SIGN IN (Google, Facebook)
   // ─────────────────────────────────────────────────────────────────────────
   const handleOAuthSignIn = async (provider) => {
     setError(null);
+    setErrorDetail(null);
     setOauthLoading(provider);
+    // Which page started this, so /auth/callback returns a failure to the page
+    // the user was actually looking at rather than always to /auth/login.
     try {
-      // Apex-domain hardening (same as signup.js)
+      sessionStorage.setItem(AUTH_ORIGIN_KEY, '/auth/login');
+    } catch (_e) {
+      /* storage disabled - the callback falls back to /auth/login anyway */
+    }
+    try {
+      // Apex-domain hardening (same as signup.js). middleware.ts already 301s
+      // every non-API route off www, so in production this should be dead -
+      // but PKCE stores its code_verifier per ORIGIN, so if a www hostname
+      // ever does reach the client, starting the flow here would strand the
+      // verifier on a domain the callback never returns to.
       const host = (typeof window !== 'undefined' && window.location.hostname) || '';
       if (host.startsWith('www.')) {
         const apex = host.replace(/^www\./, '');
-        window.location.replace(
-          `https://${apex}/auth/login?provider=${encodeURIComponent(provider)}`
-        );
+        // Arm the one-shot resume marker. The ?provider= in the URL is only a
+        // hint now: without this same-origin marker the resume effect ignores
+        // it, so a link to /auth/login?provider=facebook can no longer throw
+        // whoever opens it straight at Meta's consent dialog.
+        try {
+          sessionStorage.setItem(AUTH_BOUNCE_KEY, provider);
+        } catch (_e) {
+          /* storage disabled - the user will have to click again on the apex */
+        }
+        // Carry the whole query string, not just the provider. A user bounced
+        // here from a protected page arrives with ?redirect=, and rebuilding
+        // the URL from one hard-coded param silently dropped their
+        // destination.
+        const params = new URLSearchParams(window.location.search);
+        params.set('provider', provider);
+        window.location.replace(`https://${apex}/auth/login?${params.toString()}`);
         return;
       }
     } catch (_originErr) {
@@ -359,6 +435,13 @@ export default function LoginPage() {
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
+          // ASK FACEBOOK FOR A NAME AND A PICTURE, NOT JUST AN ADDRESS.
+          // Supabase's Facebook default is `email` alone, so the session came
+          // back with no `name` and no `picture` - which is why an OAuth
+          // signup's username fell through to `Player<N>` and its avatar to
+          // nothing. `public_profile` is granted to every Live app without
+          // review; `email` is the one that needs Meta's approval.
+          scopes: provider === 'facebook' ? 'email,public_profile' : undefined,
         },
       });
       if (error) throw error;
@@ -369,24 +452,6 @@ export default function LoginPage() {
       setOauthLoading('');
     }
   };
-
-  // Resume OAuth after www→apex bounce
-  useEffect(() => {
-    if (!router.isReady) return;
-    const provider = router.query.provider;
-    if (
-      typeof provider === 'string' &&
-      ['google', 'apple', 'discord', 'facebook'].includes(provider)
-    ) {
-      const cleanQuery = { ...router.query };
-      delete cleanQuery.provider;
-      router.replace({ pathname: router.pathname, query: cleanQuery }, undefined, {
-        shallow: true,
-      });
-      handleOAuthSignIn(provider);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady]);
 
   return (
     <div
@@ -634,11 +699,29 @@ export default function LoginPage() {
               }}
             >
               {error || message}
+              {/* The provider's own words, when the callback had any. Never
+                  from the URL - sessionStorage only - so this cannot be
+                  planted by a link. Smaller and dimmer than the headline
+                  because it is a technical detail, not an instruction. */}
+              {error && errorDetail && (
+                <div
+                  style={{
+                    marginTop: 4,
+                    fontSize: '0.6rem',
+                    lineHeight: 1.3,
+                    opacity: 0.8,
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {errorDetail}
+                </div>
+              )}
               <button
                 type="button"
                 aria-label="Dismiss"
                 onClick={() => {
                   setError(null);
+                  setErrorDetail(null);
                   setMessage(null);
                 }}
                 style={{
@@ -672,7 +755,10 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
-              if (error) setError(null);
+              if (error) {
+                setError(null);
+                setErrorDetail(null);
+              }
             }}
             required
             autoComplete="email"
@@ -696,7 +782,10 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
-              if (error) setError(null);
+              if (error) {
+                setError(null);
+                setErrorDetail(null);
+              }
             }}
             required
             minLength={6}

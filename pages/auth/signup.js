@@ -19,6 +19,17 @@ import {
   MIN_LENGTH as PW_MIN_LENGTH,
   MIN_ENTROPY_BITS,
 } from '../../src/lib/passwordStrength';
+// Shared with /auth/login and /auth/callback: the code -> message table the
+// callback indexes into, the provider allowlist, and the server-side error
+// reporter this page previously did not have at all.
+import {
+  AUTH_BOUNCE_KEY,
+  AUTH_ORIGIN_KEY,
+  OAUTH_PROVIDERS,
+  authErrorMessage,
+  reportAuthError,
+  takeAuthErrorDetail,
+} from '../../src/lib/authErrors';
 
 // US States for dropdown
 const US_STATES = [
@@ -130,6 +141,10 @@ export default function SignUpPage() {
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // The provider's own words, handed over by /auth/callback in sessionStorage.
+  // Never read from the URL - a red first-party banner that renders whatever a
+  // link says is a phishing surface. See src/lib/authErrors.js.
+  const [errorDetail, setErrorDetail] = useState(null);
   const [aliasError, setAliasError] = useState('');
   const [aliasChecking, setAliasChecking] = useState(false);
   const [aliasAvailable, setAliasAvailable] = useState(null);
@@ -466,13 +481,31 @@ export default function SignUpPage() {
   const handleOAuthSignIn = async (provider) => {
     setError('');
     setOauthLoading(provider);
+    // Remember which page started the flow. /auth/callback always bounces a
+    // failure to /auth/login, so without this a user who clicked Facebook HERE
+    // was teleported to a different page to read the reason - which reads as
+    // "the button logged me out", not "here is what went wrong".
+    try {
+      sessionStorage.setItem(AUTH_ORIGIN_KEY, '/auth/signup');
+    } catch (_e) {
+      /* storage disabled - the error still lands, just on /auth/login */
+    }
     try {
       const host = (typeof window !== 'undefined' && window.location.hostname) || '';
       if (host.startsWith('www.')) {
         const apex = host.replace(/^www\./, '');
-        window.location.replace(
-          `https://${apex}/auth/signup?provider=${encodeURIComponent(provider)}`
-        );
+        // One-shot marker: the resume effect below ignores a bare ?provider=
+        // in the URL now, so a link cannot auto-launch someone into Meta's
+        // consent dialog. Carry the rest of the query string too rather than
+        // rebuilding the URL from one hard-coded param.
+        try {
+          sessionStorage.setItem(AUTH_BOUNCE_KEY, provider);
+        } catch (_e) {
+          /* storage disabled - the user clicks again on the apex */
+        }
+        const params = new URLSearchParams(window.location.search);
+        params.set('provider', provider);
+        window.location.replace(`https://${apex}/auth/signup?${params.toString()}`);
         return;
       }
     } catch (_originErr) {
@@ -485,30 +518,64 @@ export default function SignUpPage() {
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
+          // Supabase's Facebook default is `email` alone - no name, no avatar,
+          // which is why an OAuth signup's username fell through to Player<N>.
+          // public_profile needs no App Review; email does.
+          scopes: provider === 'facebook' ? 'email,public_profile' : undefined,
         },
       });
       if (error) throw error;
     } catch (err) {
       console.warn(`${provider} sign in error:`, err);
+      // PARITY WITH login.js (2026-08-25). This page had no server-side error
+      // capture at all, and client Sentry is off in production - so a Facebook
+      // button that failed HERE was still completely invisible, which is the
+      // exact bug the callback fix was written to close.
+      reportAuthError('signup_oauth_init', err);
       setError(err.message || `Failed to sign in with ${provider}`);
       setOauthLoading('');
     }
   };
 
-  // [2026-05-03] Resume OAuth after the www→apex bounce above.
+  // [2026-05-03] Resume OAuth after the www→apex bounce above, and surface
+  // anything /auth/callback bounced back at us. One effect, one router.replace:
+  // two effects each writing a copy of router.query snapshotted in the same
+  // commit put back whichever param the other had just deleted.
   useEffect(() => {
     if (!router.isReady) return;
-    const provider = router.query.provider;
-    if (
-      typeof provider === 'string' &&
-      ['google', 'apple', 'discord', 'facebook'].includes(provider)
-    ) {
+
+    const one = (v) => (Array.isArray(v) ? v[0] : v);
+    const codeRaw = one(router.query.authError);
+    const providerRaw = one(router.query.provider);
+    const provider =
+      typeof providerRaw === 'string' && OAUTH_PROVIDERS.includes(providerRaw)
+        ? providerRaw
+        : null;
+
+    if (codeRaw) {
+      const code = String(codeRaw);
+      setError(authErrorMessage(code));
+      setErrorDetail(takeAuthErrorDetail(code));
+    }
+
+    if (codeRaw || providerRaw) {
       const cleanQuery = { ...router.query };
+      delete cleanQuery.authError;
       delete cleanQuery.provider;
       router.replace({ pathname: router.pathname, query: cleanQuery }, undefined, {
         shallow: true,
       });
-      handleOAuthSignIn(provider);
+    }
+
+    if (provider) {
+      let armed = false;
+      try {
+        armed = sessionStorage.getItem(AUTH_BOUNCE_KEY) === provider;
+        if (armed) sessionStorage.removeItem(AUTH_BOUNCE_KEY);
+      } catch (_e) {
+        /* storage disabled - never auto-launch on an unverifiable hint */
+      }
+      if (armed) handleOAuthSignIn(provider);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
@@ -745,6 +812,13 @@ export default function SignUpPage() {
       if (looksLikeEnumeration) {
         setStep('email_pending');
       } else {
+        // Parity with login.js (2026-08-25): this page had no server-side
+        // capture at all, so a signup that failed for a real reason showed the
+        // user a generic sentence and left no record anywhere. The enumeration
+        // branch above is deliberately NOT reported - it is a normal outcome
+        // dressed up as one, and logging it would recreate the very signal the
+        // branch exists to suppress.
+        reportAuthError('signup_form_submit', err);
         setError('Failed to create account. Please check your details and try again.');
       }
     } finally {
@@ -916,8 +990,25 @@ export default function SignUpPage() {
                     fontSize: '14px',
                     fontWeight: 'bold',
                   }}
+                  role="alert"
                 >
                   {error}
+                  {/* The provider's own words when /auth/callback bounced us
+                      back here. sessionStorage only, never the URL - see
+                      src/lib/authErrors.js. */}
+                  {errorDetail && (
+                    <div
+                      style={{
+                        marginTop: 4,
+                        fontSize: '11px',
+                        fontWeight: 'normal',
+                        opacity: 0.85,
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {errorDetail}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1230,6 +1321,26 @@ export default function SignUpPage() {
                       </button>
                     )}
                   </div>
+                  {/* SEND-CODE FAILURES WERE INVISIBLE (fixed 2026-08-25).
+                      sendPhoneOtp's catch sets phoneError, but the only render
+                      of it lived inside {showPhoneModal && ...} - and the modal
+                      is opened on SUCCESS only. So a Twilio outage, a rate
+                      limit or a rejected number made the button flicker and
+                      nothing else, while !phoneVerified hard-disables Create
+                      Account below: a dead form with no explanation. */}
+                  {!showPhoneModal && phoneError && (
+                    <div
+                      role="alert"
+                      style={{
+                        marginTop: '6px',
+                        color: '#ff6b6b',
+                        fontSize: '11px',
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {phoneError}
+                    </div>
+                  )}
                 </div>
 
                 {/* Promo Code */}
@@ -1249,6 +1360,34 @@ export default function SignUpPage() {
                     maxLength={20}
                     style={{ textTransform: "uppercase" }}
                   />
+                  {/* THE VALIDATION RAN, NOTHING SHOWED IT (fixed 2026-08-25).
+                      The debounced effect above calls
+                      /api/promo/validate-{promo,referral}-code and sets
+                      promoChecking / promoError / promoDetails - and not one of
+                      the three was rendered anywhere. A mistyped code looked
+                      exactly like a good one right up until the account was
+                      created without the bonus, because handleSignUp only
+                      stores the pending code when `promoValid` is true. */}
+                  {promoChecking && (
+                    <div style={{ marginTop: '6px', color: '#9aa5b6', fontSize: '11px' }}>
+                      Checking Code...
+                    </div>
+                  )}
+                  {!promoChecking && promoError && (
+                    <div
+                      role="alert"
+                      style={{ marginTop: '6px', color: '#ff6b6b', fontSize: '11px' }}
+                    >
+                      {promoError}
+                    </div>
+                  )}
+                  {!promoChecking && promoValid && (
+                    <div style={{ marginTop: '6px', color: '#31A24C', fontSize: '11px' }}>
+                      {isReferralCode
+                        ? `Referral Code Accepted${referralDetails?.username ? ` - ${referralDetails.username}` : ''}`
+                        : `Promo Code Accepted${promoDetails?.description ? ` - ${promoDetails.description}` : ''}`}
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -1561,6 +1700,23 @@ export default function SignUpPage() {
 
                 <p style={styles.emailPendingText}>We've sent a 6-digit verification code to:</p>
                 <p style={styles.emailHighlight}>{formData.email}</p>
+
+                {/* THE OTP STEP HAD NO ERROR SURFACE AT ALL (fixed 2026-08-25).
+                    handleVerifyCode runs only here and sets errors for an
+                    incomplete code and for a rejected one, but the page's only
+                    `{error && ...}` render lives inside the `info` branch —
+                    so a wrong verification code produced NOTHING: the button
+                    stopped spinning and that was the entire feedback. */}
+                {error && (
+                  <div style={styles.errorBox} role="alert">
+                    {error}
+                    {errorDetail && (
+                      <div style={{ marginTop: 6, fontSize: '12px', opacity: 0.85 }}>
+                        {errorDetail}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <form onSubmit={handleVerifyCode} style={styles.otpForm}>
                   <div style={styles.inputGroup}>

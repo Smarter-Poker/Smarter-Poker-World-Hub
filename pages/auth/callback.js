@@ -24,6 +24,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
+import {
+    AUTH_DETAIL_KEY,
+    AUTH_ORIGIN_KEY,
+    AUTH_ORIGINS,
+    reportAuthError,
+} from '../../src/lib/authErrors';
 
 // Email-link `type` values that Supabase produces.
 // https://supabase.com/docs/reference/javascript/auth-verifyotp
@@ -55,35 +61,52 @@ export default function AuthCallback() {
         // nobody reads and was then thrown away — every distinct failure
         // (app not live, redirect URI mismatch, email permission not granted,
         // user cancelled) looked identical from the outside: click the button,
-        // round-trip, land back on sign-in with nothing to go on. The message
-        // now rides in ?authError= and login.js renders it in its error banner.
-        const goLogin = (msg) => {
+        // round-trip, land back on sign-in with nothing to go on.
+        //
+        // A CODE IN THE URL, THE DETAIL IN SAME-ORIGIN STORAGE.
+        // The first cut of this put the raw provider text in ?authError= and
+        // rendered it verbatim in a first-party red role="alert" banner. That
+        // is a ready-made phishing surface on a gambling domain: anyone can
+        // send /auth/login?authError=Account+locked,+call+1-800-… and it reads
+        // as ours. /auth/signin forwards arbitrary query params too, so the
+        // link does not even have to look like the login page.
+        //
+        // So the URL now carries only a CODE from a fixed table that login.js
+        // owns, and the provider's own words — which are the diagnostic value,
+        // and the reason this exists — go into sessionStorage. Same origin,
+        // same tab, not settable by a link someone was sent. login.js renders
+        // it underneath the headline message and clears it on read.
+        const goLogin = (msg, code = 'generic') => {
             setError(msg);
+            // RETURN TO THE PAGE THAT STARTED THE FLOW. A user who clicked
+            // Facebook on /auth/signup was landed on /auth/login to read the
+            // reason, which reads as "the button logged me out" rather than
+            // "here is what went wrong". Both pages render the same table, so
+            // the only thing needed is to go back where they were. Allowlisted,
+            // never a raw path from storage.
+            let dest = '/auth/login';
+            try {
+                if (msg) sessionStorage.setItem(AUTH_DETAIL_KEY, String(msg).slice(0, 300));
+                else sessionStorage.removeItem(AUTH_DETAIL_KEY);
+                const origin = sessionStorage.getItem(AUTH_ORIGIN_KEY);
+                sessionStorage.removeItem(AUTH_ORIGIN_KEY);
+                if (AUTH_ORIGINS.includes(origin)) dest = origin;
+            } catch (_e) {
+                /* private mode / storage disabled - the code in the URL still lands */
+            }
             // 1500ms: still long enough to read the error; was 2500ms which caused
             // the e2e/07-auth.spec.ts 8000ms timeout to expire in CI.
             setTimeout(
-                () => router.replace(`/auth/login?authError=${encodeURIComponent(msg || '')}`),
+                () => router.replace(`${dest}?authError=${encodeURIComponent(code)}`),
                 1500
             );
         };
 
         // [2026-08-04] Server-side error capture — client Sentry is disabled,
         // so console.warn here was invisible in prod. Best-effort, never throws.
-        const reportAuthError = (flow, err) => {
-            try {
-                fetch('/api/auth/log-client-error', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        flow,
-                        message: err?.message || String(err),
-                        stack: err?.stack,
-                        code: err?.code || err?.status,
-                        url: typeof window !== 'undefined' ? window.location.href : '',
-                    }),
-                }).catch(() => { /* best-effort */ });
-            } catch (_e) { /* never throw from telemetry */ }
-        };
+        // [2026-08-25] Now imported from src/lib/authErrors.js rather than
+        // redeclared per page; the three copies had already drifted (this one
+        // and login.js had it, signup.js did not).
 
         const handleCallback = async () => {
             try {
@@ -130,7 +153,7 @@ export default function AuthCallback() {
                         message: desc || String(providerError),
                         code: String(providerError),
                     });
-                    return goLogin(desc || 'Sign-in failed. Please try again.');
+                    return goLogin(desc || 'Sign-in failed. Please try again.', 'provider');
                 }
 
                 // ── 2. PKCE OAuth code exchange (Google, etc.) ──
@@ -141,7 +164,10 @@ export default function AuthCallback() {
                     if (exchErr) {
                         console.warn('[auth-callback] exchangeCodeForSession failed:', exchErr);
                         reportAuthError('signup_oauth_callback', exchErr);
-                        return goLogin('Could not complete sign-in. Please try again.');
+                        return goLogin(
+                            exchErr?.message || 'Could not complete sign-in. Please try again.',
+                            'exchange'
+                        );
                     }
                 }
 
@@ -151,7 +177,7 @@ export default function AuthCallback() {
                     const tokenStr = Array.isArray(token_hash) ? token_hash[0] : token_hash;
                     const typeStr = Array.isArray(type) ? type[0] : type;
                     if (!EMAIL_VERIFY_TYPES.has(typeStr)) {
-                        return goLogin('Unsupported verification type.');
+                        return goLogin('Unsupported verification type.', 'verify_type');
                     }
                     const { error: verifyErr } = await supabase.auth.verifyOtp({
                         token_hash: tokenStr,
@@ -159,7 +185,11 @@ export default function AuthCallback() {
                     });
                     if (verifyErr) {
                         console.warn('[auth-callback] verifyOtp failed:', verifyErr);
-                        return goLogin('Verification link is invalid or expired. Please request a new one.');
+                        return goLogin(
+                            verifyErr?.message ||
+                                'Verification link is invalid or expired. Please request a new one.',
+                            'verify'
+                        );
                     }
 
                     // Recovery links go to the password-reset page, not the hub.
@@ -192,10 +222,39 @@ export default function AuthCallback() {
                 }
 
                 if (!session?.user) {
-                    return goLogin('No active session found. Please sign in again.');
+                    return goLogin('No active session found. Please sign in again.', 'no_session');
                 }
 
                 const user = session.user;
+
+                // ── 5.5 A SESSION WITH NO EMAIL IS NOT A USABLE ACCOUNT ──────
+                // Supabase's default Facebook scope is `email` alone, and Meta
+                // only actually returns it once the app has been approved for
+                // that permission. Until then the handshake SUCCEEDS and hands
+                // back a user with `email === undefined`. Everything downstream
+                // then degrades quietly: ensure-profile's username falls
+                // through to `Player<N>` where <N> comes from a read-max, so
+                // two such signups collide on the unique index, land in the
+                // CREATED_MINIMAL branch, and that branch returns before the
+                // diamond grant — a permanently hollow account, created by a
+                // sign-in the user was told worked.
+                //
+                // Stop at the door instead, and say which door.
+                if (!user.email) {
+                    const provider =
+                        user.app_metadata?.provider ||
+                        user.identities?.[0]?.provider ||
+                        'That provider';
+                    const pretty = provider.charAt(0).toUpperCase() + provider.slice(1);
+                    reportAuthError('oauth_no_email', {
+                        message: `${provider} returned a session with no email address`,
+                        code: provider,
+                    });
+                    return goLogin(
+                        `${pretty} did not share an email address, so we cannot create your account. Sign in with Google, or use email and password.`,
+                        'no_email'
+                    );
+                }
 
                 // ── 6. Ensure the profile exists. /api/auth/ensure-profile is
                 //      the single source of truth for profile creation; it
@@ -317,7 +376,7 @@ export default function AuthCallback() {
                 setTimeout(() => router.replace(dest), 400);
             } catch (err) {
                 console.warn('[auth-callback] unexpected error:', err);
-                goLogin('Something went wrong. Please try signing in.');
+                goLogin(err?.message || 'Something went wrong. Please try signing in.', 'generic');
             }
         };
 

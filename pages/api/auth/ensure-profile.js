@@ -18,8 +18,14 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // antiAbuse.js was written for exactly this and had no caller until now.
 import { isDisposableEmail, normalizeEmail, hashEmail } from '../../../src/lib/antiAbuse';
 
-// ORB-0 FIX-5: No hardcoded fallbacks — env vars are mandatory
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+/**
+ * How long a phone-verification receipt stays usable. The signup form verifies
+ * the handset, then the user still has to finish the form, submit, and confirm
+ * their email before ensure-profile runs — so this cannot be tight. Long enough
+ * to complete a signup, short enough that a receipt is not a permanent bearer
+ * token for a number.
+ */
+const PHONE_RECEIPT_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 let _supabase = null;
 function getSupabase() {
@@ -145,7 +151,21 @@ export default async function handler(req, res) {
                   .ilike('email', email.trim().replace(/([\\%_])/g, '\\$1'))
                   .maybeSingle();
 
-              if (emailMatch && !emailCheckError) {
+              // A FAILED LOOKUP IS NOT "NO DUPLICATE" (2026-08-25).
+              // The `!emailCheckError` guard below meant an errored read fell
+              // straight past the whole linking branch, so the insert further
+              // down ran WITH the email, hit the unique constraint, and dropped
+              // the user into the minimal-profile fallback. The sibling
+              // existence check at the top of this handler already answers a
+              // read failure with 503 RETRY; this one silently guessed. Same
+              // answer here: a transient blip is worth one retry, not a
+              // permanently degraded account.
+              if (emailCheckError) {
+                  console.warn('[ensure-profile] duplicate-email check failed:', emailCheckError.message);
+                  return res.status(503).json({ status: 'RETRY', reason: 'email_check_unavailable' });
+              }
+
+              if (emailMatch) {
                   console.info('[ANTIGRAVITY] Duplicate email found — nullifying email for new profile to prevent constraint violation and orphaning.');
 
                   // Update the existing profile to reflect the latest login just in case
@@ -173,15 +193,82 @@ export default async function handler(req, res) {
 
           // NOTE: player_number is stored as TEXT. We must cast to int for numeric MAX
           // to avoid lexicographic ordering where '999' > '1500'.
-          const { data: maxPlayer } = await getSupabase()
+          //
+          // A FAILED READ IS NOT "1499" (2026-08-25). The error was discarded,
+          // so an RPC blip handed EVERY concurrent caller the same 1500 - and
+          // the same `Player1500` username underneath it. Two signups in that
+          // window collide on the unique index and both fall into the minimal
+          // path below. Surfacing the error lets the caller retry against a
+          // real number instead of silently minting a duplicate.
+          const { data: maxPlayer, error: maxPlayerError } = await getSupabase()
               .rpc('get_max_player_number');
+          if (maxPlayerError) {
+              console.warn('[ensure-profile] get_max_player_number failed:', maxPlayerError.message);
+              return res.status(503).json({ status: 'RETRY', reason: 'player_number_unavailable' });
+          }
 
           const nextPlayerNumber = Math.max(1500, (parseInt(maxPlayer, 10) || 1499) + 1);
 
-          // Generate username if not provided
-          let finalUsername = username ||
-              email?.split('@')[0] ||
-              `Player${nextPlayerNumber}`;
+          // A SUFFIX, BECAUSE THE NUMBER IS NOT A LOCK.
+          // `nextPlayerNumber` comes from a read-max, so two callers in the same
+          // window compute the same one. When the caller supplied no username
+          // and no email - which is exactly what Facebook does before its app is
+          // approved for the `email` permission - `Player<N>` was the entire
+          // identity, and identical for both. The user id is already unique, so
+          // borrowing six characters of it makes the fallback unique too without
+          // needing a lock.
+          // ── IS THIS HANDSET ACTUALLY VERIFIED? ──────────────────────────
+          // The signup form verifies the phone BEFORE the account exists, so
+          // /api/sms/verify-otp has no session to write to and used to return
+          // success and write nothing at all - leaving the client as the only
+          // witness. It now writes a receipt keyed on the number the moment
+          // Twilio's code matches, which is a fact the browser cannot invent.
+          // Fail CLOSED: no receipt, or a read that errors, means not verified.
+          const claimedPhone = String(metadata?.phone || metadata?.phone_number || '')
+              .replace(/\D/g, '');
+          let phoneVerified = Boolean(authUser?.phone_confirmed_at);
+          if (!phoneVerified && claimedPhone.length >= 10) {
+              const cutoff = new Date(Date.now() - PHONE_RECEIPT_TTL_MS).toISOString();
+              const { data: receipt, error: receiptError } = await getSupabase()
+                  .from('phone_verification_receipts')
+                  .select('phone')
+                  .eq('phone', claimedPhone)
+                  .gte('verified_at', cutoff)
+                  .maybeSingle();
+              if (receiptError) {
+                  console.warn('[ensure-profile] phone receipt read failed:', receiptError.message);
+              }
+              phoneVerified = Boolean(receipt);
+          }
+
+          const uniqueSuffix = String(user_id).replace(/-/g, '').slice(0, 6);
+          const fallbackUsername = `Player${nextPlayerNumber}_${uniqueSuffix}`;
+
+          let finalUsername = username || email?.split('@')[0] || fallbackUsername;
+
+          /**
+           * The welcome grant, as a function so BOTH insert paths can run it.
+           * It used to be inline below the full insert, underneath a
+           * `return res.json({ status: 'CREATED_MINIMAL' })` - so the fallback
+           * path could never reach it and those accounts had no balance row at
+           * all. Upsert on user_id, so calling it twice is harmless.
+           */
+          const grantWelcomeDiamonds = async () => {
+              const { error: balanceErr } = await getSupabase()
+                  .from('user_diamond_balance')
+                  .upsert(
+                      {
+                          user_id: user_id,
+                          balance: isDisposable ? 0 : 500,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                      },
+                      { onConflict: 'user_id' }
+                  );
+              if (balanceErr) {
+                  console.warn('[ANTIGRAVITY] Failed to grant welcome diamonds:', balanceErr.message);
+              }
+          };
 
           // ── Reserved-word guard ──
           // Calls the centralized public.is_reserved_username() so the JS path,
@@ -193,7 +280,7 @@ export default async function handler(req, res) {
               const { data: isReserved } = await getSupabase()
                   .rpc('is_reserved_username', { p_username: finalUsername });
               if (isReserved === true) {
-                  finalUsername = `Player${nextPlayerNumber}`;
+                  finalUsername = fallbackUsername;
               }
           } catch (_e) {
               // If the RPC fails, fall back to a small inline block on the most
@@ -206,7 +293,7 @@ export default async function handler(req, res) {
                   'null','undefined','anonymous',
               ]);
               if (typeof finalUsername === 'string' && fallbackReserved.has(finalUsername.toLowerCase())) {
-                  finalUsername = `Player${nextPlayerNumber}`;
+                  finalUsername = fallbackUsername;
               }
           }
 
@@ -272,9 +359,23 @@ export default async function handler(req, res) {
                   // Without this the duplicate-phone guard in
                   // pages/api/sms/verify-otp.js (which only matches
                   // phone_verified = true) never fires for email signups, so
-                  // one handset can open unlimited accounts. Strictly ===
-                  // true: a truthy string from metadata must not count.
-                  phone_verified: metadata?.phone_verified === true,
+                  // one handset can open unlimited accounts.
+                  //
+                  // [2026-08-25] BUT NOT ON THE CLIENT'S SAY-SO. `metadata` is
+                  // `user_metadata`, which the account holder can set for
+                  // themselves at any time with
+                  // supabase.auth.updateUser({ data: { phone_verified: true } }).
+                  // `=== true` only rejects a truthy STRING; a genuine boolean
+                  // written by the user sailed through and disarmed the very
+                  // duplicate-phone guard this line exists to arm - one handset,
+                  // unlimited accounts, unlimited welcome diamonds, which the
+                  // comment above correctly calls the cheapest attack on the
+                  // economy.
+                  //
+                  // `phoneVerified` is resolved above from a RECEIPT that
+                  // /api/sms/verify-otp writes server-side after Twilio's code
+                  // actually matched. See the block near the top of this handler.
+                  phone_verified: phoneVerified,
                   city: metadata?.city || null,
                   state: metadata?.state || null,
                   birthday: metadata?.birthday || null,
@@ -304,14 +405,35 @@ export default async function handler(req, res) {
           if (insertError) {
               console.warn('[ANTIGRAVITY] Profile creation failed:', insertError);
 
-              // Try with minimal fields if full insert failed
+              // MINIMAL IS STILL A REAL ACCOUNT (2026-08-25).
+              // This fallback used to insert four columns and RETURN - above
+              // the welcome-diamond upsert 15 lines below, which it therefore
+              // never reached. So the users most likely to land here (an
+              // emailless OAuth signup colliding on the username, i.e. exactly
+              // the Facebook case) ended up with no player_number, no
+              // access_tier, no diamonds row and no VIP, permanently, from a
+              // sign-in they were told had worked.
+              //
+              // Carry the fields that make the account usable. `email` stays
+              // null on purpose - bypassing the unique constraint is the whole
+              // point of the fallback - and the username gets the unique
+              // suffix rather than a bare timestamp, because two callers in
+              // the same millisecond is precisely the race that got us here.
               const { data: minimalProfile, error: minimalError } = await getSupabase()
                   .from('profiles')
                   .insert({
                       id: user_id,
                       email: null, // Always use null on fallback to bypass email unique constraints
-                      username: `Player${Date.now()}`,
-                      created_at: new Date().toISOString()
+                      username: `Player${Date.now()}_${uniqueSuffix}`,
+                      player_number: nextPlayerNumber,
+                      access_tier: 'Full_Access',
+                      skill_tier: 'Newcomer',
+                      diamonds: isDisposable ? 0 : 500,
+                      diamond_multiplier: 1.0,
+                      streak_count: 0,
+                      created_at: new Date().toISOString(),
+                      last_login: new Date().toISOString(),
+                      last_active: new Date().toISOString(),
                   })
                   .select()
                   .maybeSingle();
@@ -324,6 +446,8 @@ export default async function handler(req, res) {
                   });
               }
 
+              await grantWelcomeDiamonds();
+
               return res.json({
                   status: 'CREATED_MINIMAL',
                   profile: minimalProfile,
@@ -335,18 +459,7 @@ export default async function handler(req, res) {
           console.info(`[ANTIGRAVITY] ✓ Profile created — username: ${finalUsername}`);
 
           // CRITICAL: Ensure new users receive their welcome diamonds in the actual balance table!
-          if (!insertError) {
-              const { error: balanceErr } = await getSupabase()
-                  .from('user_diamond_balance')
-                  .upsert({
-                      user_id: user_id,
-                      balance: isDisposable ? 0 : 500,
-                      created_at: new Date().toISOString(),
-                      updated_at: new Date().toISOString(),
-                  }, { onConflict: 'user_id' });
-              
-              if (balanceErr) console.warn('[ANTIGRAVITY] Failed to grant welcome diamonds:', balanceErr.message);
-          }
+          await grantWelcomeDiamonds();
           // ── MySpace Tom: Auto-friend + auto-follow Dan Bekavac for every new user ──
           const DAN_BEKAVAC_ID = '47965354-0e56-43ef-931c-ddaab82af765';
           if (user_id !== DAN_BEKAVAC_ID) {
