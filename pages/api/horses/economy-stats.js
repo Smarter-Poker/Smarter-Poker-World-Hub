@@ -171,10 +171,24 @@ export default async function handler(req, res) {
                   .select('user_id, current_points, lifetime_points')
                   .limit(VIP_POINTS_CAP),
 
-              // 9. Size of the VIP points ledger (3.4M rows) — head count only.
+              // 9. The VIP points ledger.
+              //
+              // This USED to be `{ count: 'exact', head: true }`. On the live
+              // 3.4M-row table that count takes 8.5 SECONDS on its own
+              // (measured against production 2026-08-26), and sitting inside
+              // this Promise.all it pushed the whole route past its budget --
+              // /api/horses/economy-stats was returning 500 and the Economy
+              // tab was dead. Caught by walking the panel in a real browser;
+              // no amount of reading the code would have shown it.
+              //
+              // An exact row count of a ledger is not worth eight seconds of
+              // an operator's time. The most recent entry is enough to say
+              // whether the ledger is live, and it is an index hit.
               getSupabase()
                   .from('vip_points_ledger')
-                  .select('id', { count: 'exact', head: true }),
+                  .select('created_at')
+                  .order('created_at', { ascending: false })
+                  .limit(1),
           ]);
 
           // Every result is checked. None of these were checked before, so a
@@ -189,16 +203,25 @@ export default async function handler(req, res) {
               ['profiles new-user count', newUsersResult],
               ['profiles recent users', recentUsersResult],
               ['vip_points', vipPointsResult],
-              ['vip_points_ledger count', vipLedgerCountResult],
+              ['vip_points_ledger latest entry', vipLedgerCountResult],
           ];
+          // PARTIAL FAILURE IS NOT TOTAL FAILURE.
+          //
+          // This used to `return 500` the moment ANY one of the ten sources
+          // errored, which turned a single slow or broken query into a blank
+          // Economy tab. The original sin was the opposite -- unchecked
+          // results rendering as a confident 0 -- and the fix for that
+          // overcorrected.
+          //
+          // Now: every failure is named and surfaced, the sources that DID
+          // load still render, and the UI shows the `failedSources` banner it
+          // already knows how to draw. An operator sees real numbers plus an
+          // honest note about what is missing, rather than nothing at all.
           const failed = named.filter(([, r]) => r?.error);
           if (failed.length > 0) {
-              failed.forEach(([label, r]) => console.warn(`[EconomyStats] ${label} error:`, r.error.message || r.error));
-              return res.status(500).json({
-                  error: 'Failed to load economy stats',
-                  failedSources: failed.map(([label]) => label),
-              });
+              failed.forEach(([label, r]) => console.warn(`[EconomyStats] ${label} error:`, r.error?.message || r.error));
           }
+          const failedSources = failed.map(([label]) => label);
 
           // Calculate aggregates. De-duplicate the two reward queries by id so
           // rows carrying the action in both columns are not counted twice.
@@ -249,6 +272,7 @@ export default async function handler(req, res) {
 
           // LIVE VIP system. vip_subscriptions is empty in production; these
           // are the numbers the Economy tab can truthfully show.
+          const vipLedgerLatest = vipLedgerCountResult.data?.[0]?.created_at || null;
           const vipPointRows = vipPointsResult.data || [];
           const vipPointsHolders = vipPointRows.length;
           const vipPointsOutstanding = vipPointRows.reduce((sum, r) => sum + (Number(r.current_points) || 0), 0);
@@ -292,12 +316,19 @@ export default async function handler(req, res) {
                   activeVipCount,
               },
 
+              // Named sources that failed to load, if any. The tab renders
+              // these in a banner and still shows everything that did load.
+              failedSources: failedSources.length ? failedSources : undefined,
+
               // LIVE VIP system (vip_subscriptions is empty in production).
               vipPoints: {
                   holders: vipPointsHolders,
                   pointsOutstanding: vipPointsOutstanding,
                   pointsLifetime: vipPointsLifetime,
-                  ledgerEntries: vipLedgerCountResult.count ?? null,
+                  // Not a row count: see the query above. An exact count of
+                  // this 3.4M-row ledger costs 8.5 seconds and was 500ing the
+                  // whole tab.
+                  ledgerLastEntryAt: vipLedgerLatest,
                   truncated: vipPointRows.length >= VIP_POINTS_CAP,
                   note: 'Live VIP system. vip_subscriptions carries no rows in production; VIP standing is tracked in vip_points and vip_points_ledger.',
               },

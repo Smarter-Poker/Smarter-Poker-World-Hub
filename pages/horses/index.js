@@ -59,6 +59,9 @@ const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
  *  thing this page did; the roster is paginated now. */
 const HORSES_PER_PAGE = 48;
 
+/** The reviews route clamps `limit` to 500; 100 keeps a page readable. */
+const REVIEWS_PER_PAGE = 100;
+
 const SPECIALTIES = [
   ['cash_games', 'Cash Games'],
   ['tournaments', 'Tournaments'],
@@ -207,6 +210,13 @@ export default function HorsesAdmin() {
   // The valid reward types come from the route rather than a hardcoded list
   // that included a value the route rejects.
   const [promoRewardTypes, setPromoRewardTypes] = useState([]);
+  // The PATCH route has always accepted code, description, max_uses,
+  // reward_type, reward_value and expires_at. The panel exposed exactly one of
+  // them (is_active), so a typo'd code or a wrong expiry meant issuing a new
+  // code and retiring the old one.
+  const [promoEditing, setPromoEditing] = useState(null);
+  const [promoEditForm, setPromoEditForm] = useState(null);
+  const [promoSaving, setPromoSaving] = useState(false);
 
   // ── Economy ──
   const [economyData, setEconomyData] = useState(null);
@@ -232,6 +242,12 @@ export default function HorsesAdmin() {
   const [reviewsSearch, setReviewsSearch] = useState('');
   const [reviewsDeleteConfirm, setReviewsDeleteConfirm] = useState(null);
   const [reviewsProcessing, setReviewsProcessing] = useState(false);
+  // The route has always returned `page: { offset, limit, returned }` and
+  // accepted offset/limit. The panel hardcoded limit=200 and never sent an
+  // offset, so only the newest 200 reviews were ever reachable -- and the
+  // search box filtered client-side over those 200 while a KPI labelled
+  // "Showing" made it look like a whole-table figure.
+  const [reviewsPage, setReviewsPage] = useState(0);
 
   // ── Grinder ──
   const [grinderData, setGrinderData] = useState(null);
@@ -573,7 +589,8 @@ export default function HorsesAdmin() {
     try {
       const params = new URLSearchParams({
         sort: reviewsFilter,
-        limit: '200',
+        limit: String(REVIEWS_PER_PAGE),
+        offset: String(reviewsPage * REVIEWS_PER_PAGE),
         ...(reviewsRatingFilter !== 'all' ? { rating: reviewsRatingFilter } : {}),
         ...(reviewsFlaggedOnly ? { flagged: 'true' } : {}),
       });
@@ -586,7 +603,7 @@ export default function HorsesAdmin() {
     } finally {
       setReviewsLoading(false);
     }
-  }, [authFetch, reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly]);
+  }, [authFetch, reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsPage]);
 
   const loadScraperHealth = useCallback(async () => {
     setScraperHealthLoading(true);
@@ -1311,6 +1328,44 @@ export default function HorsesAdmin() {
     }
   };
 
+  const openPromoEdit = (code) => {
+    setPromoEditing(code);
+    setPromoEditForm({
+      // PATCH takes the snake_case column names, unlike POST which takes
+      // camelCase. Mirroring the column names here keeps the mapping honest.
+      code: code.code || '',
+      description: code.description || '',
+      reward_type: code.reward_type || code.type || 'diamonds',
+      reward_value: code.reward_value ?? code.value ?? 0,
+      max_uses: code.max_uses ?? '',
+      expires_at: code.expires_at ? String(code.expires_at).slice(0, 16) : '',
+    });
+  };
+
+  const savePromoEdit = async (e) => {
+    e.preventDefault();
+    if (!promoEditing || !promoEditForm) return;
+    setPromoSaving(true);
+    try {
+      const body = { id: promoEditing.id, ...promoEditForm };
+      // Empty string clears the cap and the expiry; the route treats '' and
+      // null the same way for both.
+      if (body.max_uses === '') body.max_uses = null;
+      if (body.expires_at === '') body.expires_at = null;
+      body.reward_value = parseInt(body.reward_value, 10) || 0;
+      await authFetch('/api/promo/admin-promo-codes', { method: 'PATCH', body: JSON.stringify(body) });
+      showNotification(`Promo Code ${body.code} Saved`);
+      setPromoEditing(null);
+      setPromoEditForm(null);
+      await loadPromoCodes();
+      window.dispatchEvent(new CustomEvent('promo-codes-updated'));
+    } catch (err) {
+      showNotification(err.message, 'error');
+    } finally {
+      setPromoSaving(false);
+    }
+  };
+
   const togglePromoCode = async (code) => {
     try {
       await authFetch('/api/promo/admin-promo-codes', {
@@ -1452,7 +1507,11 @@ export default function HorsesAdmin() {
   useEffect(() => {
     if (activeTab === 'reviews' && reviewsLoaded) loadAdminReviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly]);
+  }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsPage]);
+
+  // A filter change must return to page one, or the operator lands on page 4
+  // of a result set that now has one page.
+  useEffect(() => { setReviewsPage(0); }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly]);
 
   useEffect(() => {
     if (activeTab !== 'scrapers' || !user) return undefined;
@@ -1460,6 +1519,16 @@ export default function HorsesAdmin() {
     const interval = setInterval(loadScraperHealth, 60000);
     return () => clearInterval(interval);
   }, [activeTab, user, loadScraperHealth]);
+
+  // ── Keep the active tab visible in the mobile nav strip ──
+  const navRef = useRef(null);
+  useEffect(() => {
+    const el = navRef.current?.querySelector(`[data-tabid="${activeTab}"]`);
+    if (!el || typeof el.scrollIntoView !== 'function') return;
+    el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    // `badges` is in the deps because the counts land after mount and change
+    // the width of the strip, which is what was displacing it.
+  }, [activeTab, badges]);
 
   // ── Derived ──
   const filteredPersonas = useMemo(() => {
@@ -1667,10 +1736,18 @@ export default function HorsesAdmin() {
           </div>
         </header>
 
-        <nav className={styles.nav}>
+        {/* Below 768px this is a horizontal scroll strip. Measured on a real
+            375px viewport: the strip is 1173px wide against a 375px window,
+            and it was opening scrolled 781px in -- the ACTIVE tab was off the
+            left edge with nothing to indicate the panel had more tabs. The
+            badges arriving asynchronously change the strip's width after
+            mount, which is what moved it. Scroll the active tab into view
+            whenever it changes, and once more after the badges land. */}
+        <nav className={styles.nav} ref={navRef}>
           {TABS.map((tab) => (
             <button
               key={tab.id}
+              data-tabid={tab.id}
               className={activeTab === tab.id ? styles.active : ''}
               onClick={() => setActiveTab(tab.id)}
               aria-current={activeTab === tab.id ? 'page' : undefined}
@@ -1679,9 +1756,11 @@ export default function HorsesAdmin() {
                 ? { color: T.danger, fontWeight: 700 } : undefined}
             >
               {tab.label}
-              {tab.id === 'scrapers' && deadScrapers > 0 ? ` (${deadScrapers})` : ''}
-              {tab.id === 'clubarena' && clubArenaBadge > 0 ? ` (${clubArenaBadge})` : ''}
-              {tab.id === 'bugreports' && bugReportBadge > 0 ? ` (${bugReportBadge})` : ''}
+              {/* num() not raw interpolation: the ledger badge is in the tens
+                  of thousands and rendered as "Club Arena (20206)". */}
+              {tab.id === 'scrapers' && deadScrapers > 0 ? ` (${num(deadScrapers)})` : ''}
+              {tab.id === 'clubarena' && clubArenaBadge > 0 ? ` (${num(clubArenaBadge)})` : ''}
+              {tab.id === 'bugreports' && bugReportBadge > 0 ? ` (${num(bugReportBadge)})` : ''}
             </button>
           ))}
           {EXTERNAL_LINKS.map((link) => (
@@ -2696,6 +2775,9 @@ export default function HorsesAdmin() {
                                       }
                                     }}
                                   >Copy</button>
+                                  <button className={styles.filterBtn} onClick={() => openPromoEdit(code)}>
+                                    Edit
+                                  </button>
                                   <button className={styles.filterBtn} onClick={() => togglePromoCode(code)}>
                                     {code.is_active ? 'Deactivate' : 'Activate'}
                                   </button>
@@ -4373,7 +4455,8 @@ export default function HorsesAdmin() {
                   ['Flagged', reviewsStats.flagged, T.warn],
                   ['Avg Rating', reviewsStats.avg_rating !== null && reviewsStats.avg_rating !== undefined
                     ? Number(reviewsStats.avg_rating).toFixed(1) : null, T.accent],
-                  ['Showing', visibleReviews.length, T.accent],
+                  // Labelled honestly: the search filters the current page.
+                  ['Showing (page)', visibleReviews.length, T.accent],
                 ].map(([label, value, color]) => (
                   <div key={label} className={styles.kpi}>
                     <div className={styles.kpiValue} style={{ color }}>
@@ -4491,6 +4574,25 @@ export default function HorsesAdmin() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Server-side paging. The search box still filters only the
+                  CURRENT page, which is why the count below says so -- the KPI
+                  used to read "Showing" over a hardcoded 200-row window and
+                  looked like a total. */}
+              {(reviewsPage > 0 || reviewsData.length >= REVIEWS_PER_PAGE) && (
+                <div className={styles.pagination}>
+                  <button onClick={() => setReviewsPage((p) => Math.max(0, p - 1))}
+                    disabled={reviewsPage === 0 || reviewsLoading}>Previous</button>
+                  <span className={styles.pageInfo}>
+                    Page {reviewsPage + 1}
+                    {reviewsStats.total !== null && reviewsStats.total !== undefined
+                      ? ` of ${Math.max(1, Math.ceil(reviewsStats.total / REVIEWS_PER_PAGE))}` : ''}
+                    {' '}— showing {num(visibleReviews.length)} of {num(reviewsData.length)} on this page
+                  </span>
+                  <button onClick={() => setReviewsPage((p) => p + 1)}
+                    disabled={reviewsData.length < REVIEWS_PER_PAGE || reviewsLoading}>Next</button>
                 </div>
               )}
             </div>
@@ -4640,6 +4742,94 @@ export default function HorsesAdmin() {
             </div>
           )}
         </main>
+
+
+        {/* ── EDIT PROMO CODE ──
+            The PATCH route has always accepted these six fields; the panel
+            offered only the active toggle, so fixing a typo in a code meant
+            issuing a replacement. Note the casing: POST takes camelCase
+            (type/value/maxUses/expiresAt), PATCH takes the snake_case column
+            names. This form speaks PATCH. */}
+        {promoEditing && promoEditForm && (
+          <div
+            className={styles.modalOverlay}
+            onClick={(e) => { if (e.target === e.currentTarget) setPromoEditing(null); }}
+            role="dialog" aria-modal="true" aria-label={`Edit promo code ${promoEditing.code}`}
+          >
+            <div className={styles.modalContent}>
+              <div className={styles.modalHeader}>
+                <h2>Edit {promoEditing.code}</h2>
+                <button className={styles.closeBtn} onClick={() => setPromoEditing(null)} aria-label="Close">
+                  Close
+                </button>
+              </div>
+              <form onSubmit={savePromoEdit}>
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="pe-code">Code</label>
+                    <input
+                      id="pe-code" type="text" maxLength={20} required
+                      value={promoEditForm.code}
+                      onChange={(e) => setPromoEditForm({
+                        ...promoEditForm,
+                        code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
+                      })}
+                      style={{ textTransform: 'uppercase', letterSpacing: 2 }}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="pe-type">Type</label>
+                    <select id="pe-type" value={promoEditForm.reward_type}
+                      onChange={(e) => setPromoEditForm({ ...promoEditForm, reward_type: e.target.value })}>
+                      {(promoRewardTypes.length ? promoRewardTypes : [promoEditForm.reward_type]).map((t) => (
+                        <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="pe-desc">Description</label>
+                  <input id="pe-desc" type="text" value={promoEditForm.description}
+                    onChange={(e) => setPromoEditForm({ ...promoEditForm, description: e.target.value })} />
+                </div>
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="pe-value">
+                      Value ({['vip_days', 'free_trial'].includes(promoEditForm.reward_type) ? 'Days' : 'Diamonds'})
+                    </label>
+                    <input id="pe-value" type="number" min="0" max="10000" required
+                      value={promoEditForm.reward_value}
+                      onChange={(e) => setPromoEditForm({ ...promoEditForm, reward_value: e.target.value })} />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="pe-max">Max Uses (blank clears the cap)</label>
+                    <input id="pe-max" type="number" min="1" placeholder="Unlimited"
+                      value={promoEditForm.max_uses}
+                      onChange={(e) => setPromoEditForm({ ...promoEditForm, max_uses: e.target.value })} />
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="pe-exp">Expires At (blank clears it)</label>
+                  <input id="pe-exp" type="datetime-local" value={promoEditForm.expires_at}
+                    onChange={(e) => setPromoEditForm({ ...promoEditForm, expires_at: e.target.value })} />
+                  {/* Unlike POST, PATCH accepts a past date, so a code can be
+                      retired by expiring it rather than deactivating it. */}
+                  <small style={{ color: T.muted, fontSize: 11 }}>
+                    A past date retires the code immediately.
+                  </small>
+                </div>
+                <div className={styles.formActions}>
+                  <button type="button" className={styles.btnCancel} onClick={() => setPromoEditing(null)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className={styles.btnSubmit} disabled={promoSaving}>
+                    {promoSaving ? 'Saving' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* ─────────────────────────── CREATE / EDIT HORSE ──────────────────── */}
         {showCreateModal && (

@@ -15,6 +15,12 @@
  *     <PokerBrainLaunchButton />
  *     <button>+ New Horse</button>
  *   </div>
+ *
+ * PALETTE, 2026-08-26: this button was a green/emerald/teal gradient. It
+ * renders inside the /horses staff console, where the rule is the
+ * smarter.poker cyan schema and explicitly no greens -- it was the only green
+ * thing on the page. Now cyan/sky/blue, matching the console and the Club
+ * Arena accent.
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
@@ -26,7 +32,7 @@ const PokerBrainHUD = dynamic(() => import('./HUD'), {
   loading: () => (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center text-white z-50">
       <div className="text-center">
-        <div className="animate-spin w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full mx-auto mb-4" />
+        <div className="animate-spin w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4" />
         <p className="text-lg">Loading Poker Brain…</p>
       </div>
     </div>
@@ -129,9 +135,9 @@ export default function PokerBrainLaunchButton({
           onClick={openPicker}
           disabled={starting}
           className="group relative flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-white
-                     bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500
-                     hover:from-green-400 hover:via-emerald-400 hover:to-teal-400
-                     shadow-lg shadow-green-500/30 hover:shadow-green-500/50
+                     bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-500
+                     hover:from-cyan-400 hover:via-sky-400 hover:to-blue-400
+                     shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50
                      transition-all duration-200 disabled:opacity-60"
           title="Open Poker Brain with screen capture"
         >
@@ -185,7 +191,7 @@ export default function PokerBrainLaunchButton({
               <button
                 onClick={requestScreen}
                 disabled={starting}
-                className="px-5 py-2 rounded-lg font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 disabled:opacity-60 transition"
+                className="px-5 py-2 rounded-lg font-semibold text-white bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 disabled:opacity-60 transition"
               >
                 {starting ? 'Starting...' : 'Start Capture'}
               </button>

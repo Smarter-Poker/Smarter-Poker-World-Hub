@@ -23,12 +23,13 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  *   30/min).
  *
  * SELECTION
- *   Horses with `avatar_url IS NULL` AND `profile_id IS NOT NULL`, capped at
+ *   Horses with `avatar_url IS NULL`, capped at
  *   `limit`. A horse that ALREADY HAS AN AVATAR IS NEVER TOUCHED — it does not
  *   match the filter, so no image is generated for it, nothing is overwritten,
  *   and no money is spent on it. There is no force/regenerate flag; to redo an
  *   avatar its avatar_url must first be cleared. In production 55 horses have
- *   no avatar, but only 16 of those also have a profile_id, so only 16 are
+ *   no avatar and all 55 are now eligible (a `profile_id IS NOT NULL` filter
+ *   used to cut that to 16; see the note at the selector). Of those, 16 are
  *   eligible under the current filter.
  *
  * RESPONSE
@@ -203,11 +204,21 @@ export default async function handler(req, res) {
 
       try {
           // Get horses without avatars
+          // The `profile_id IS NOT NULL` filter that used to be here excluded
+          // 39 of the 55 avatar-less horses -- exactly the ones with no
+          // profiles row -- so only 16 were ever reachable and the operator
+          // would have watched the count stall at 39 remaining with no
+          // explanation.
+          //
+          // That filter only ever existed so the profiles mirror below had an
+          // id to write to. But the avatar the Social Horses tab actually
+          // renders is content_authors.avatar_url, and that write does not
+          // need a profile at all. The mirror is conditional now, and all 55
+          // are eligible.
           const { data: horses, error } = await getSupabase()
               .from('content_authors')
               .select('id, name, gender, location, specialty, profile_id')
               .is('avatar_url', null)
-              .not('profile_id', 'is', null)
               .limit(limit);
 
           if (error) throw error;
@@ -233,21 +244,41 @@ export default async function handler(req, res) {
                   continue;
               }
 
-              // Update content_authors
-              const { error: err_content_authors_q9b4w } = await getSupabase()
+              // The write that matters: this is what the Social Horses tab
+              // renders. A zero-row result here means the horse was retired
+              // mid-batch, and the image we just paid for is orphaned -- say
+              // so rather than reporting success.
+              const { data: updated, error: caErr } = await getSupabase()
                 .from('content_authors')
                 .update({ avatar_url: permanentUrl })
-                  .eq('id', horse.id);
-              if (err_content_authors_q9b4w) console.warn('[Supabase] Silent mutation failed in content_authors:', err_content_authors_q9b4w.message);
+                .eq('id', horse.id)
+                .select('id');
+              if (caErr || !updated?.length) {
+                console.warn('[generate-avatars] content_authors write failed for', horse.name, caErr?.message || 'no rows matched');
+                results.push({
+                  horse: horse.name,
+                  success: false,
+                  error: caErr ? `Save failed: ${caErr.message}` : 'Horse no longer exists',
+                  url: permanentUrl,
+                });
+                await new Promise(r => setTimeout(r, 2000));
+                continue;
+              }
 
-              // Update profiles
-              const { error: err_profiles_g2rzs } = await getSupabase()
-                .from('profiles')
-                .update({ avatar_url: permanentUrl })
+              // Mirror onto the player profile, but only when there is one.
+              // 39 horses have no profiles row; they are social-only and never
+              // sit at a table.
+              let mirrored = false;
+              if (horse.profile_id) {
+                const { error: profErr } = await getSupabase()
+                  .from('profiles')
+                  .update({ avatar_url: permanentUrl })
                   .eq('id', horse.profile_id);
-              if (err_profiles_g2rzs) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_g2rzs.message);
+                if (profErr) console.warn('[generate-avatars] profiles mirror failed for', horse.name, profErr.message);
+                else mirrored = true;
+              }
 
-              results.push({ horse: horse.name, success: true, url: permanentUrl });
+              results.push({ horse: horse.name, success: true, url: permanentUrl, mirroredToProfile: mirrored });
 
               // Small delay between generations
               await new Promise(r => setTimeout(r, 2000));
@@ -282,7 +313,6 @@ async function getRemainingCount() {
         .from('content_authors')
         .select('*', { count: 'exact', head: true })
         .is('avatar_url', null)
-        .not('profile_id', 'is', null)
             .limit(100);
     return count || 0;
 }
