@@ -90,6 +90,7 @@ import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
 import PWAInstallPrompt from '../src/components/ui/PWAInstallPrompt';
+import ServiceWorkerUpdater from '../src/components/ui/ServiceWorkerUpdater';
 import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import { HubErrorBoundary } from '../src/components/ui/HubErrorBoundary';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
@@ -786,6 +787,7 @@ export default function App({ Component, pageProps }) {
                                   <GlobalNotificationPrompt />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="PWA Install Prompt" fallback={<></>}>
+                                  <ServiceWorkerUpdater />
                                   <PWAInstallPrompt />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Phone Verify Gate" fallback={<></>}>

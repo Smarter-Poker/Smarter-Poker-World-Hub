@@ -40,6 +40,17 @@ self.addEventListener('install', () => {
     self.skipWaiting();
 });
 
+// A worker installed BEHIND an older one that predates skipWaiting will still
+// sit in `waiting`, because the old worker never yields and this new one's
+// skipWaiting above already ran during ITS install. The page reaches across
+// and asks explicitly. Without this, the very fix for a stuck worker cannot
+// deploy, because it lives inside the worker that is stuck.
+self.addEventListener('message', (event) => {
+    if (event?.data?.type === 'SP_SKIP_WAITING') {
+        self.skipWaiting();
+    }
+});
+
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         (async () => {
