@@ -86,7 +86,22 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
+                    /*
+                     * .fsp-overlay is position: fixed; inset: 0, so this bar
+                     * starts at y=0 — underneath the status bar. With
+                     * apple-mobile-web-app-status-bar-style: black-translucent
+                     * and viewport-fit=cover, that means the clock is painted
+                     * directly on top of the title. In Dan's screenshot
+                     * "10:46" sits on the word "Settings".
+                     *
+                     * Fixing UniversalHeader did nothing for this, because
+                     * Settings is opened through openOverlay('settings') and
+                     * renders in THIS bar, not the page header.
+                     *
+                     * padding-top after the shorthand, or the shorthand wins.
+                     */
                     padding: 8px 16px;
+                    padding-top: calc(8px + env(safe-area-inset-top, 0px));
                     background: #0a0a0a;
                     border-bottom: 1px solid rgba(255,255,255,0.1);
                     flex-shrink: 0;
@@ -128,6 +143,9 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
                     flex: 1;
                     position: relative;
                     overflow: hidden;
+                    /* Keep the framed page clear of the home indicator. */
+                    padding-bottom: env(safe-area-inset-bottom, 0px);
+                    box-sizing: border-box;
                 }
 
                 .fsp-iframe {
