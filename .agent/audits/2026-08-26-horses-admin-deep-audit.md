@@ -250,7 +250,40 @@ Also removed all emoji from these files (house rule 7 — bare emoji break SWC).
 * All database claims in this document were verified with read-only queries against
   production (`kuklfnapbkmacvwxktbh`). No migration was applied and no data was written.
 
-`npx next build` could not be run from the authoring sandbox — its `node_modules` are
-installed for darwin-arm64 and `@rollup/rollup-linux-arm64-gnu` is absent, and the npm
-registry is blocked there. The build therefore runs for the first time in CI on this
-pull request; treat a red check as this change's problem, not a flake.
+`npx next build` **passes**: run on the Mac in an isolated worktree cut from
+`origin/main`, exit 0, `Compiled successfully`, with `/horses`, `/horses/hand-reviews`,
+`/horses/hg-moderation`, `/horses/sql-console` and `/api/horses/club-arena-admin` all
+in the route manifest.
+
+That build caught two things static analysis had not:
+
+1. **`pages/horses/adminTokens.js` was a route.** Anything under `pages/` is a page, and
+   a page must default-export a React component — the build failed with
+   "found page without a React Component as default export". The helper now lives at
+   `src/lib/horsesAdminTokens.js`.
+2. **The pre-commit hook rejected the client auth calls.** CHECK C bans the
+   argument-less client session read repo-wide because it round-trips and hangs when
+   GoTrue is slow. All three pages now use `getAuthUser()` / `getFreshAccessToken()`
+   from `src/lib/authUtils` instead — which is a real improvement, not just a lint
+   appeasement: that hang is one of the ways this panel used to stop loading.
+
+The full `.husky/pre-push` suite also passes on this branch — conflict markers,
+undefined identifiers, TypeScript (no new errors), Vercel config sanity, JSX comment
+guard, and both Club Arena bundle checks.
+
+## 7. Shipping status
+
+Branch `fix/horses-admin-deep-audit-2026-08-26`, commit `c1efd62`, pull request **#785**.
+Vercel's preview deployment for it completed successfully.
+
+**It is not merged.** `main` is governed by the ruleset "main: no rewinds", which
+requires seven status checks, and **GitHub never created any workflow runs for this
+PR's head SHA** — zero, including after a close/reopen. This is not specific to this
+change: PR #782 has zero runs too, and the repository has a workflow run that has been
+`queued` since **2026-08-19**, seven days, alongside several `startup_failure` results.
+Cancelling those stuck runs needs a token with Actions write scope, which the PAT on
+this machine does not have.
+
+Squash **auto-merge is armed** on #785, so it will land on its own the moment those
+checks report. If the queue stays jammed, the runs have to be cancelled from the
+Actions tab first.
