@@ -227,18 +227,29 @@ export default function DiamondStorePage({ initialTab }) {
   useTrainingBus('diamond-store');
   const router = useRouter();
 
-  // Persisted filters for activeTab and rewardsSubTab
+  // Persisted filters. `activeTab` is deliberately NOT one of them any more.
+  //
+  // It used to be, and that was correct while the store was a single URL with
+  // five tabs of component state. It stopped being correct the moment each tab
+  // became its own address: `usePersistedFilters` hydrates from a localStorage
+  // entry with a 30-DAY TTL, so a member who last looked at the VIP tab would
+  // open /hub/diamond-store and be shown VIP — under a tab titled "Diamond
+  // Store", with a diamond-store URL to share and diamond-store meta in the
+  // head. The URL and the screen disagreed, and the URL was the one thing the
+  // user actually chose.
+  //
+  // The route is now the single source of truth for which tab is shown. A
+  // pre-existing `activeTab` key left in a browser's storage is simply never
+  // read again — no migration needed, it ages out on its own TTL.
+  //
+  // `rewardsSubTab` stays persisted: that is a sub-view WITHIN one page, it has
+  // no URL of its own, and remembering it is the behaviour people want.
   const { filters, setFilter } = usePersistedFilters('diamond-store', {
-    activeTab: 'diamonds',
     rewardsSubTab: 'overview',
   });
 
-  // A wrapper route (/hub/vip-membership etc.) owns the tab outright: the
-  // persisted filter must not be able to drag a user who asked for the VIP URL
-  // back to whatever tab they last used on /hub/diamond-store.
-  const activeTab = initialTab || filters.activeTab;
+  const activeTab = initialTab || 'diamonds';
   const rewardsSubTab = filters.rewardsSubTab;
-  const setActiveTab = (val) => setFilter('activeTab', val);
   const setRewardsSubTab = (val) => setFilter('rewardsSubTab', val);
 
   const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
@@ -275,19 +286,32 @@ export default function DiamondStorePage({ initialTab }) {
   const clubShopLoadingRef = useRef(false);
   const clubShopSuccessTimerRef = useRef(null);
 
-  // Deep-link support: /hub/diamond-store?tab=<tabId> (e.g. middle-click on
-  // the "View in Marketplace" link, or external links targeting a tab)
+  // LEGACY DEEP LINKS: /hub/diamond-store?tab=<tabId>
+  //
+  // Those links are years old and live in bookmarks, emails and old posts, so
+  // they must keep working. They are now REDIRECTED to the tab's own URL rather
+  // than quietly switching a tab behind a diamond-store address: the visitor
+  // ends up somewhere with the right title, the right meta description and a
+  // URL they can copy and share correctly.
+  //
+  // `router.replace` rather than `push` so the Back button returns to wherever
+  // they came from instead of bouncing off the redirect. No loop is possible —
+  // the destination renders with `initialTab` set, and this effect returns on
+  // its first line when that is true.
   useEffect(() => {
     if (!router.isReady) return;
-    // A wrapper route already decided the tab. Do not let a stale ?tab= or a
-    // persisted filter override the URL the user actually opened.
     if (initialTab) return;
-    const tab = router.query.tab;
-    if (typeof tab === 'string' && STORE_TABS.includes(tab)) {
-      setActiveTab(tab);
+    const raw = router.query.tab;
+    const tab = Array.isArray(raw) ? raw[0] : raw;
+    if (typeof tab !== 'string' || !STORE_TABS.includes(tab)) return;
+    if (tab === 'diamonds') {
+      // Already the right page; just drop the redundant query string.
+      router.replace(TAB_ROUTES.diamonds, undefined, { shallow: true });
+      return;
     }
+    router.replace(TAB_ROUTES[tab]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady, initialTab]);
+  }, [router.isReady, initialTab, router.query.tab]);
 
   // Clear any pending club-shop success-toast timer on unmount
   useEffect(
