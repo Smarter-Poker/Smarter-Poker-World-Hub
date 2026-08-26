@@ -312,7 +312,7 @@ export default function HorseHandReviews() {
               <span style={{ color: MUTED, fontSize: '0.8rem' }}>
                 Live-Table Execution Counts Per Layer. A Deployed Layer At Zero Is A Wiring Regression.
               </span>
-              <span style={{ marginLeft: 'auto', color: GREEN, fontSize: '0.8rem' }}>
+              <span style={{ marginLeft: 'auto', color: POSITIVE, fontSize: '0.8rem' }}>
                 {telemetry.length > 0 ? `${telemetry.length} rows` : 'No Data Yet'}
               </span>
             </div>
@@ -331,7 +331,7 @@ export default function HorseHandReviews() {
                       <tr key={`${t.day}-${t.feature}`} style={{ borderTop: `1px solid ${BORDER}` }}>
                         <td style={{ padding: '0.3rem', whiteSpace: 'nowrap' }}>{t.day}</td>
                         <td style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{t.feature}</td>
-                        <td style={{ padding: '0.3rem', color: Number(t.fires) > 0 ? GREEN : RED, fontWeight: 600 }}>
+                        <td style={{ padding: '0.3rem', color: Number(t.fires) > 0 ? POSITIVE : RED, fontWeight: 600 }}>
                           {Number(t.fires).toLocaleString()}
                         </td>
                       </tr>
