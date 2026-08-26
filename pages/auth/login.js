@@ -44,6 +44,26 @@ export default function LoginPage() {
     return () => clearTimeout(t);
   }, [error]);
 
+  // ── Show the reason the callback bounced us here (Dan 2026-08-25) ────────
+  // /auth/callback used to flash a provider error for 1500ms and then land the
+  // user on a CLEAN login page, so a failed Facebook sign-in was indistinguish-
+  // able from a click that did nothing at all. It now forwards the message as
+  // ?authError=; render it in the same banner as every other auth failure and
+  // strip the param so a refresh does not resurrect a stale error.
+  useEffect(() => {
+    if (!router.isReady) return;
+    const raw = router.query.authError;
+    const msg = Array.isArray(raw) ? raw[0] : raw;
+    if (!msg) return;
+    setError(String(msg));
+    const cleanQuery = { ...router.query };
+    delete cleanQuery.authError;
+    router.replace({ pathname: router.pathname, query: cleanQuery }, undefined, {
+      shallow: true,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady]);
+
   // Honor ?redirect= param from useRequireAuth() — send user back to the page they came from
   const getRedirectUrl = () => {
     const r = router.query.redirect;
