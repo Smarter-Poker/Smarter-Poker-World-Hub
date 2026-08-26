@@ -63,12 +63,13 @@ function CardChip({ card }) {
 }
 
 function TagChip({ tag }) {
-  const isLeak = tag !== 'big_win';
+  // Tags only exist on losses (wins are stored untagged), so every chip is a
+  // leak chip.
   return (
     <span
       style={{
         display: 'inline-block',
-        background: isLeak ? '#7f1d1d' : '#064e3b',
+        background: '#7f1d1d',
         color: '#fecaca',
         borderRadius: 4,
         padding: '2px 8px',
@@ -128,6 +129,10 @@ export default function HorseHandReviews() {
   const [summary, setSummary] = useState(null);
   const [summaryError, setSummaryError] = useState(null);
 
+  const [audits, setAudits] = useState([]);
+  const [auditsError, setAuditsError] = useState(null);
+  const [auditOpen, setAuditOpen] = useState(null);
+
   const [filters, setFilters] = useState({ horse: '', variant: '', format: '', tag: '', win: '' });
   const [rows, setRows] = useState([]);
   const [rowsError, setRowsError] = useState(null);
@@ -169,6 +174,13 @@ export default function HorseHandReviews() {
     else setSummary(data);
   }, [days]);
 
+  const loadAudits = useCallback(async () => {
+    setAuditsError(null);
+    const { data, error } = await supabase.rpc('ca_horse_daily_audit', { p_days: 14 });
+    if (error) setAuditsError(error.message);
+    else setAudits(data || []);
+  }, []);
+
   const loadRows = useCallback(async () => {
     setBusy(true);
     setRowsError(null);
@@ -190,6 +202,9 @@ export default function HorseHandReviews() {
   useEffect(() => {
     if (isAdmin) loadSummary();
   }, [isAdmin, loadSummary]);
+  useEffect(() => {
+    if (isAdmin) loadAudits();
+  }, [isAdmin, loadAudits]);
   useEffect(() => {
     if (isAdmin) loadRows();
   }, [isAdmin, loadRows]);
@@ -232,13 +247,107 @@ export default function HorseHandReviews() {
               Every hand where a horse won or lost 20bb+, flagged at settlement with leak tags. Raw hands kept 30 days; rollups permanent.
             </p>
           </div>
-          <button
-            onClick={() => router.push('/horses')}
-            style={{ background: BORDER, color: TEXT, border: 'none', padding: '0.5rem 1rem', borderRadius: 4, cursor: 'pointer' }}
-          >
-            Back To Stable
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => {
+                loadAudits();
+                loadSummary();
+                loadRows();
+              }}
+              style={{ background: '#064e3b', color: TEXT, border: 'none', padding: '0.5rem 1rem', borderRadius: 4, cursor: 'pointer' }}
+            >
+              Refresh
+            </button>
+            <button
+              onClick={() => router.push('/horses')}
+              style={{ background: BORDER, color: TEXT, border: 'none', padding: '0.5rem 1rem', borderRadius: 4, cursor: 'pointer' }}
+            >
+              Back To Stable
+            </button>
+          </div>
         </header>
+
+        {/* ── Daily Audit ── */}
+        <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Daily Audit</h2>
+            <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+              Machine Findings Nightly (06:00 UTC) Plus The Daily Claude Analysis
+            </span>
+          </div>
+          {auditsError && <div style={{ color: RED, fontSize: '0.85rem' }}>{auditsError}</div>}
+          {audits.length === 0 && !auditsError && (
+            <div style={{ color: MUTED, fontSize: '0.85rem' }}>No audit rows yet. The first row appears after the next 06:00 UTC engine run.</div>
+          )}
+          {audits.map((a) => {
+            const findings = Array.isArray(a.findings) ? a.findings : [];
+            const crit = findings.filter((f) => f.severity === 'critical').length;
+            const warn = findings.filter((f) => f.severity === 'warn').length;
+            const open = auditOpen === a.day;
+            return (
+              <div key={a.day} style={{ borderTop: `1px solid ${BORDER}` }}>
+                <div
+                  onClick={() => setAuditOpen(open ? null : a.day)}
+                  style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '0.5rem 0.25rem', cursor: 'pointer' }}
+                >
+                  <span style={{ fontWeight: 700, minWidth: 100 }}>{a.day}</span>
+                  <span style={{ color: crit > 0 ? RED : GREEN, fontWeight: 600 }}>{crit} Critical</span>
+                  <span style={{ color: warn > 0 ? AMBER : MUTED }}>{warn} Warn</span>
+                  <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+                    {a.stats?.flagged_hands ?? 0} flagged hands / net {a.stats?.net_bb_sum ?? 0} bb
+                  </span>
+                  <span style={{ marginLeft: 'auto', color: a.agent_analysis ? GREEN : MUTED, fontSize: '0.8rem' }}>
+                    {a.agent_analysis ? 'Claude Analysis Ready' : 'Awaiting Claude Analysis'}
+                  </span>
+                </div>
+                {open && (
+                  <div style={{ padding: '0.25rem 0.25rem 0.75rem' }}>
+                    {findings.length === 0 && <div style={{ color: MUTED, fontSize: '0.85rem' }}>No findings. A clean day.</div>}
+                    {findings.map((f, i) => (
+                      <div key={i} style={{ background: '#0f0f11', border: `1px solid ${BORDER}`, borderLeft: `3px solid ${f.severity === 'critical' ? RED : f.severity === 'warn' ? AMBER : BORDER}`, borderRadius: 6, padding: '0.6rem 0.8rem', marginBottom: 6 }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 700 }}>{f.title}</span>
+                          <span style={{ color: MUTED, fontSize: '0.75rem', textTransform: 'uppercase' }}>{f.category} / {f.code}</span>
+                        </div>
+                        <div style={{ color: MUTED, fontSize: '0.8rem', marginTop: 4 }}>{f.recommendation}</div>
+                        {f.evidence && (
+                          <pre style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#71717a', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                            {JSON.stringify(f.evidence)}
+                          </pre>
+                        )}
+                      </div>
+                    ))}
+                    {a.agent_analysis && (
+                      <div style={{ background: '#052e16', border: '1px solid #14532d', borderRadius: 6, padding: '0.75rem 1rem', marginTop: 8 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 6, color: GREEN }}>
+                          Claude Daily Analysis
+                          {a.agent_analyzed_at ? ` (${new Date(a.agent_analyzed_at).toLocaleString()})` : ''}
+                        </div>
+                        {typeof a.agent_analysis === 'object' && a.agent_analysis.summary && (
+                          <div style={{ fontSize: '0.85rem', marginBottom: 6, whiteSpace: 'pre-wrap' }}>{a.agent_analysis.summary}</div>
+                        )}
+                        {Array.isArray(a.agent_analysis?.flaws) &&
+                          a.agent_analysis.flaws.map((fl, i) => (
+                            <div key={i} style={{ fontSize: '0.8rem', marginBottom: 4 }}>
+                              <span style={{ color: fl.severity === 'critical' ? RED : AMBER, fontWeight: 600, marginRight: 6 }}>[{fl.severity || 'note'}]</span>
+                              <span style={{ fontWeight: 600 }}>{fl.title}: </span>
+                              <span style={{ color: TEXT }}>{fl.detail}</span>
+                              {fl.action && <span style={{ color: GREEN }}> Action: {fl.action}</span>}
+                            </div>
+                          ))}
+                        {Array.isArray(a.agent_analysis?.shipped) && a.agent_analysis.shipped.length > 0 && (
+                          <div style={{ fontSize: '0.8rem', color: MUTED, marginTop: 4 }}>
+                            Shipped: {a.agent_analysis.shipped.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
         {/* ── Fleet summary ── */}
         <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '1rem', marginBottom: '1.5rem' }}>
