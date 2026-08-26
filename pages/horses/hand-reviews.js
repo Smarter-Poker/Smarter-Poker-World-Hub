@@ -85,9 +85,9 @@ function TagChip({ tag }) {
     <span
       style={{
         display: 'inline-block',
-        background: isLeak ? RED_SOFT : ACCENT_SOFT,
-        color: isLeak ? RED : ACCENT,
-        border: `1px solid ${isLeak ? 'rgba(239,68,68,0.3)' : ACCENT_LINE}`,
+        background: RED_SOFT,
+        color: RED,
+        border: '1px solid rgba(239,68,68,0.3)',
         borderRadius: 4,
         padding: '2px 8px',
         marginRight: 4,

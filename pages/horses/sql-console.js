@@ -163,7 +163,7 @@ export default function OmnichannelSQLConsole() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({ sql: sqlQuery, allowDestructive })
             });
