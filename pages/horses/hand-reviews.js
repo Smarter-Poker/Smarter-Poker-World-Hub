@@ -63,12 +63,13 @@ function CardChip({ card }) {
 }
 
 function TagChip({ tag }) {
-  const isLeak = tag !== 'big_win';
+  // Tags only exist on losses (wins are stored untagged), so every chip is a
+  // leak chip.
   return (
     <span
       style={{
         display: 'inline-block',
-        background: isLeak ? '#7f1d1d' : '#064e3b',
+        background: '#7f1d1d',
         color: '#fecaca',
         borderRadius: 4,
         padding: '2px 8px',
@@ -246,12 +247,24 @@ export default function HorseHandReviews() {
               Every hand where a horse won or lost 20bb+, flagged at settlement with leak tags. Raw hands kept 30 days; rollups permanent.
             </p>
           </div>
-          <button
-            onClick={() => router.push('/horses')}
-            style={{ background: BORDER, color: TEXT, border: 'none', padding: '0.5rem 1rem', borderRadius: 4, cursor: 'pointer' }}
-          >
-            Back To Stable
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => {
+                loadAudits();
+                loadSummary();
+                loadRows();
+              }}
+              style={{ background: '#064e3b', color: TEXT, border: 'none', padding: '0.5rem 1rem', borderRadius: 4, cursor: 'pointer' }}
+            >
+              Refresh
+            </button>
+            <button
+              onClick={() => router.push('/horses')}
+              style={{ background: BORDER, color: TEXT, border: 'none', padding: '0.5rem 1rem', borderRadius: 4, cursor: 'pointer' }}
+            >
+              Back To Stable
+            </button>
+          </div>
         </header>
 
         {/* ── Daily Audit ── */}
