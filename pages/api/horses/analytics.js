@@ -1,5 +1,5 @@
 /**
- * 📊 HORSE ANALYTICS API
+ * HORSE ANALYTICS API
  * Returns metrics for the admin dashboard
  */
 

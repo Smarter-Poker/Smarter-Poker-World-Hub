@@ -5,14 +5,24 @@
  *
  * Colour: smarter.poker / Club Arena palette. Cyan #00d4ff is THE accent and
  * also means SUCCESS / ACTIVE. No purples, no greens.
+ *
+ * 2026-08-26: moderators can no longer act blind. The Review modal now loads
+ * the reported content itself (GET /api/horses/hg-reports?id=<uuid>, backed by
+ * get_home_content_report_detail) and the destructive actions stay disabled
+ * until that content has actually been seen — either rendered, or explicitly
+ * reported as no longer existing.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
 
 const TABS = ['Reports', 'Appeals', 'Onboarding', 'GDPR Scrub'];
+
+// #6b7280 measures 3.67:1 on the #111827 panel and fails WCAG AA for body
+// text. #8b93a1 is 5.15:1 and matches the shared token in horses.module.css.
+const MUTED = '#8b93a1';
 
 const RESOLVE_ACTIONS = [
   { value: 'dismiss', label: 'Dismiss' },
@@ -22,6 +32,39 @@ const RESOLVE_ACTIONS = [
   { value: 'strike_author', label: 'Strike Author' },
   { value: 'ban_author', label: 'Ban Author' },
 ];
+
+// Inline styles cannot express :focus-visible or a media query, and this page
+// is inline-styled throughout. One small stylesheet covers both.
+const PAGE_CSS = `
+.hgm-root select:focus,
+.hgm-root input:focus,
+.hgm-root textarea:focus,
+.hgm-root button:focus,
+.hgm-root summary:focus {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+.hgm-root select:focus:not(:focus-visible),
+.hgm-root input:focus:not(:focus-visible),
+.hgm-root textarea:focus:not(:focus-visible),
+.hgm-root button:focus:not(:focus-visible),
+.hgm-root summary:focus:not(:focus-visible) {
+  outline: none;
+}
+.hgm-root select:focus-visible,
+.hgm-root input:focus-visible,
+.hgm-root textarea:focus-visible,
+.hgm-root button:focus-visible,
+.hgm-root summary:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .hgm-page { padding: 16px 12px 64px !important; }
+  .hgm-panel { padding: 14px !important; }
+  .hgm-modal { padding: 16px !important; }
+}
+`;
 
 /**
  * Resolves the bearer token from the SHARED supabase client and keeps it fresh.
@@ -78,6 +121,186 @@ async function apiFetch(path, token, opts = {}) {
   return json;
 }
 
+// ── Accessible modal shell ─────────────────────────────────────────────────
+// role/aria-modal/accessible name, Escape to close, focus moved to the first
+// control on open and returned to the opener on close, Tab kept inside.
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+
+function Modal({ title, onClose, children }) {
+  const boxRef = useRef(null);
+  const closeRef = useRef(onClose);
+  const titleId = useId();
+
+  useEffect(() => { closeRef.current = onClose; }, [onClose]);
+
+  useEffect(() => {
+    const opener = typeof document !== 'undefined' ? document.activeElement : null;
+    const box = boxRef.current;
+    const first = box?.querySelector(FOCUSABLE);
+    if (first) first.focus();
+    else box?.focus();
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        closeRef.current?.();
+        return;
+      }
+      if (e.key !== 'Tab' || !boxRef.current) return;
+      const items = Array.from(boxRef.current.querySelectorAll(FOCUSABLE)).filter(
+        (el) => el.offsetParent !== null || el === document.activeElement
+      );
+      if (items.length === 0) return;
+      const firstEl = items[0];
+      const lastEl = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === firstEl) {
+        e.preventDefault();
+        lastEl.focus();
+      } else if (!e.shiftKey && document.activeElement === lastEl) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+      if (opener && typeof opener.focus === 'function') opener.focus();
+    };
+  }, []);
+
+  return (
+    <div style={S.backdrop} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div
+        ref={boxRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="hgm-modal"
+        style={S.modal}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <h3 id={titleId} style={{ margin: '0 0 12px', color: '#f3f4f6' }}>{title}</h3>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Reported content rendering ─────────────────────────────────────────────
+// get_home_content_report_detail returns a per-type snapshot. These are the
+// human-readable fields for each reported_type it knows about.
+function snapshotBody(reportedType, snap) {
+  if (!snap) return '';
+  switch (reportedType) {
+    case 'post':
+    case 'comment':
+      return snap.content || '';
+    case 'review':
+      return snap.review_text || '';
+    case 'game':
+      return [snap.title, snap.description].filter(Boolean).join('\n\n');
+    case 'group':
+      return [snap.name, snap.description].filter(Boolean).join('\n\n');
+    case 'member':
+      return [
+        snap.role ? `Role: ${snap.role}` : null,
+        snap.status ? `Status: ${snap.status}` : null,
+        snap.flake_strikes != null ? `Flake strikes: ${snap.flake_strikes}` : null,
+        snap.ban_reason ? `Ban reason: ${snap.ban_reason}` : null,
+      ].filter(Boolean).join('\n');
+    default:
+      return '';
+  }
+}
+
+function snapshotMedia(snap) {
+  if (!snap) return [];
+  const urls = [];
+  if (Array.isArray(snap.image_urls)) urls.push(...snap.image_urls.filter(Boolean));
+  if (snap.video_url) urls.push(snap.video_url);
+  return urls;
+}
+
+/**
+ * The whole point of this block: the moderator sees what they are acting on
+ * BEFORE the action select is usable. Three terminal states — rendered,
+ * "no longer exists", or a load failure. Only the first two release the
+ * actions; a failure keeps them locked and offers a retry.
+ */
+function ReportedContentPanel({ reportedType, loading, error, detail, onRetry }) {
+  const snap = detail?.content_snapshot || null;
+  const body = snapshotBody(reportedType, snap);
+  const media = snapshotMedia(snap);
+
+  return (
+    <section style={S.contentBox} aria-live="polite" aria-busy={loading ? 'true' : 'false'}>
+      <div style={S.contentHead}>
+        Reported Content{reportedType ? ` (${reportedType})` : ''}
+      </div>
+
+      {loading && <div style={S.contentDim}>Loading the reported content…</div>}
+
+      {!loading && error && (
+        <div>
+          <div style={S.err}>Could not load the reported content: {error}</div>
+          <button type="button" style={S.btnSm} onClick={onRetry}>Retry</button>
+          <p style={S.gateNote}>
+            Actions stay disabled until the content loads. Do not resolve a report you have not read.
+          </p>
+        </div>
+      )}
+
+      {!loading && !error && detail && !snap && (
+        <div style={S.contentGone}>
+          Content unavailable — the reported item is no longer in the database (already deleted,
+          purged, or of an unrecognised type). There is nothing left to hide or delete.
+        </div>
+      )}
+
+      {!loading && !error && snap && (
+        <div>
+          <div style={S.contentMeta}>
+            {snap.created_at ? <span>Posted {String(snap.created_at).slice(0, 10)}</span> : null}
+            {snap.author_id || snap.reviewer_id || snap.host_id || snap.owner_id || snap.user_id ? (
+              <span>
+                Author <code style={{ fontSize: 11 }}>
+                  {String(snap.author_id || snap.reviewer_id || snap.host_id || snap.owner_id || snap.user_id).slice(0, 8)}
+                </code>
+              </span>
+            ) : null}
+            {snap.is_hidden ? <span style={{ color: '#ef4444', fontWeight: 700 }}>Already hidden</span> : null}
+          </div>
+
+          {body ? (
+            <blockquote style={S.contentQuote}>{body}</blockquote>
+          ) : (
+            <div style={S.contentDim}>This item carries no text body.</div>
+          )}
+
+          {media.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 12, color: MUTED, marginBottom: 4 }}>Attached media ({media.length})</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#9ca3af', wordBreak: 'break-all' }}>
+                {media.map((u, i) => <li key={i}>{u}</li>)}
+              </ul>
+            </div>
+          )}
+
+          <details style={{ marginTop: 10 }}>
+            <summary style={{ cursor: 'pointer', fontSize: 12, color: MUTED }}>Raw content record</summary>
+            <pre style={{ margin: '8px 0 0', fontSize: 11, color: '#9ca3af', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+              {JSON.stringify(snap, null, 2)}
+            </pre>
+          </details>
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ── Reports Tab ────────────────────────────────────────────────────────────
 function ReportsTab({ token }) {
   const [reports, setReports] = useState([]);
@@ -89,6 +312,11 @@ function ReportsTab({ token }) {
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [modalErr, setModalErr] = useState('');
+
+  // Reported-content detail, fetched when the Review modal opens.
+  const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailErr, setDetailErr] = useState('');
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -102,6 +330,38 @@ function ReportsTab({ token }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // GET /api/horses/hg-reports?id=<uuid> responds
+  //   { success: true, report: { success, report, content_snapshot } }
+  // where the inner object is the raw jsonb from get_home_content_report_detail.
+  const loadDetail = useCallback(async (reportId) => {
+    if (!token || !reportId) return;
+    setDetailLoading(true); setDetailErr(''); setDetail(null);
+    try {
+      const d = await apiFetch(`/api/horses/hg-reports?id=${encodeURIComponent(reportId)}`, token);
+      const payload = d.report || null;
+      if (!payload) throw new Error('Empty response from the report detail endpoint');
+      setDetail(payload);
+    } catch (e) {
+      setDetailErr(e.message || 'Request failed');
+    }
+    setDetailLoading(false);
+  }, [token]);
+
+  const openReview = (r) => {
+    setResolving(r);
+    setAction('dismiss');
+    setNote('');
+    setModalErr('');
+    loadDetail(r.id);
+  };
+
+  const closeReview = () => {
+    setResolving(null);
+    setDetail(null);
+    setDetailErr('');
+    setDetailLoading(false);
+  };
+
   const handleResolve = async () => {
     setSubmitting(true); setModalErr('');
     try {
@@ -110,15 +370,26 @@ function ReportsTab({ token }) {
         body: { report_id: resolving.id, action, moderator_note: note },
       });
       setResolving(null); setNote(''); setAction('dismiss');
+      setDetail(null); setDetailErr('');
       load();
     } catch (e) { setModalErr(e.message); }
     setSubmitting(false);
   };
 
+  // The moderator has seen the content once it has rendered, or once the
+  // endpoint has told us plainly that the content no longer exists.
+  const contentSeen = !detailLoading && !detailErr && detail !== null;
+
   return (
     <div>
+      <h2 style={S.srOnly}>Content Reports</h2>
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-        <select value={status} onChange={e => setStatus(e.target.value)} style={S.select}>
+        <select
+          value={status}
+          onChange={e => setStatus(e.target.value)}
+          style={S.select}
+          aria-label="Filter reports by status"
+        >
           <option value="pending">Pending</option>
           <option value="resolved">Resolved</option>
           <option value="">All</option>
@@ -131,7 +402,8 @@ function ReportsTab({ token }) {
       ) : (
         <div style={S.tableWrap}>
           <table style={S.table}>
-            <thead><tr>{['ID','Type','Category','Reporter','Author','Status','Date',''].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+            <caption style={S.srOnly}>Home Games content reports, newest first. The last column opens a review dialog.</caption>
+            <thead><tr>{['ID','Type','Category','Reporter','Author','Status','Date','Review'].map(h => <th key={h} scope="col" style={S.th}>{h === 'Review' ? <span style={S.srOnly}>Review</span> : h}</th>)}</tr></thead>
             <tbody>
               {reports.map(r => (
                 <tr key={r.id}>
@@ -142,7 +414,7 @@ function ReportsTab({ token }) {
                   <td style={S.td}>{r.content_author_name || '—'}</td>
                   <td style={S.td}>{r.status}</td>
                   <td style={S.td}>{r.created_at?.slice(0,10)}</td>
-                  <td style={S.td}>{r.status === 'pending' && <button style={S.btnSm} onClick={() => { setResolving(r); setAction('dismiss'); setNote(''); setModalErr(''); }}>Review</button>}</td>
+                  <td style={S.td}>{r.status === 'pending' && <button type="button" style={S.btnSm} onClick={() => openReview(r)}>Review</button>}</td>
                 </tr>
               ))}
             </tbody>
@@ -151,26 +423,49 @@ function ReportsTab({ token }) {
       )}
 
       {resolving && (
-        <div style={S.backdrop} onClick={e => { if (e.target === e.currentTarget) setResolving(null); }}>
-          <div style={S.modal}>
-            <h3 style={{ margin: '0 0 12px', color: '#f3f4f6' }}>Resolve Report</h3>
-            <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>Category: <strong style={{ color: '#ef4444' }}>{resolving.reason_category}</strong></p>
-            <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 16px' }}>{resolving.reason_text}</p>
-            {modalErr && <div style={S.err}>{modalErr}</div>}
-            <label style={S.label}>Action
-              <select value={action} onChange={e => setAction(e.target.value)} style={{ ...S.select, width: '100%', marginTop: 4 }}>
-                {RESOLVE_ACTIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
-              </select>
-            </label>
-            <label style={S.label}>Moderator Note (optional)
-              <textarea value={note} onChange={e => setNote(e.target.value)} maxLength={2000} rows={3} style={S.textarea} />
-            </label>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button style={S.btnGhost} onClick={() => setResolving(null)}>Cancel</button>
-              <button style={S.btnPrimary} onClick={handleResolve} disabled={submitting}>{submitting ? 'Saving…' : 'Submit'}</button>
-            </div>
+        <Modal title="Resolve Report" onClose={closeReview}>
+          <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>Reporter category: <strong style={{ color: '#ef4444' }}>{resolving.reason_category}</strong></p>
+          <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 16px' }}>{resolving.reason_text}</p>
+
+          <ReportedContentPanel
+            reportedType={resolving.reported_type}
+            loading={detailLoading}
+            error={detailErr}
+            detail={detail}
+            onRetry={() => loadDetail(resolving.id)}
+          />
+
+          {modalErr && <div style={S.err}>{modalErr}</div>}
+          <label style={S.label}>Action
+            <select
+              value={action}
+              onChange={e => setAction(e.target.value)}
+              disabled={!contentSeen}
+              style={{ ...S.select, width: '100%', marginTop: 4, opacity: contentSeen ? 1 : 0.5 }}
+            >
+              {RESOLVE_ACTIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+            </select>
+          </label>
+          <label style={S.label}>Moderator Note (optional)
+            <textarea value={note} onChange={e => setNote(e.target.value)} maxLength={2000} rows={3} style={S.textarea} />
+          </label>
+          {!contentSeen && (
+            <p style={S.gateNote}>
+              {detailLoading ? 'Waiting for the reported content…' : 'Load the reported content before resolving this report.'}
+            </p>
+          )}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <button type="button" style={S.btnGhost} onClick={closeReview}>Cancel</button>
+            <button
+              type="button"
+              style={{ ...S.btnPrimary, opacity: (submitting || !contentSeen) ? 0.5 : 1 }}
+              onClick={handleResolve}
+              disabled={submitting || !contentSeen}
+            >
+              {submitting ? 'Saving…' : 'Submit'}
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
@@ -215,8 +510,14 @@ function AppealsTab({ token }) {
 
   return (
     <div>
+      <h2 style={S.srOnly}>Ban Appeals</h2>
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <select value={status} onChange={e => setStatus(e.target.value)} style={S.select}>
+        <select
+          value={status}
+          onChange={e => setStatus(e.target.value)}
+          style={S.select}
+          aria-label="Filter appeals by status"
+        >
           <option value="pending">Pending</option>
           <option value="approved">Approved</option>
           <option value="denied">Denied</option>
@@ -230,7 +531,8 @@ function AppealsTab({ token }) {
       ) : (
         <div style={S.tableWrap}>
           <table style={S.table}>
-            <thead><tr>{['Appeal ID','Group','User','Ban Reason','Days Pending','Status',''].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+            <caption style={S.srOnly}>Home Games ban appeals. The last column opens a review dialog.</caption>
+            <thead><tr>{['Appeal ID','Group','User','Ban Reason','Days Pending','Status','Review'].map(h => <th key={h} scope="col" style={S.th}>{h === 'Review' ? <span style={S.srOnly}>Review</span> : h}</th>)}</tr></thead>
             <tbody>
               {appeals.map(a => (
                 <tr key={a.out_appeal_id}>
@@ -240,7 +542,7 @@ function AppealsTab({ token }) {
                   <td style={S.td}>{a.out_ban_reason}</td>
                   <td style={S.td}>{a.out_days_pending}</td>
                   <td style={S.td}>{a.out_status}</td>
-                  <td style={S.td}>{a.out_status === 'pending' && <button style={S.btnSm} onClick={() => { setReviewing(a); setDecision('approved'); setNote(''); setModalErr(''); }}>Review</button>}</td>
+                  <td style={S.td}>{a.out_status === 'pending' && <button type="button" style={S.btnSm} onClick={() => { setReviewing(a); setDecision('approved'); setNote(''); setModalErr(''); }}>Review</button>}</td>
                 </tr>
               ))}
             </tbody>
@@ -249,27 +551,24 @@ function AppealsTab({ token }) {
       )}
 
       {reviewing && (
-        <div style={S.backdrop} onClick={e => { if (e.target === e.currentTarget) setReviewing(null); }}>
-          <div style={S.modal}>
-            <h3 style={{ margin: '0 0 12px', color: '#f3f4f6' }}>Review Ban Appeal</h3>
-            <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>User: <strong style={{ color: '#f3f4f6' }}>{reviewing.out_user_display}</strong></p>
-            <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>Appeal: {reviewing.out_appeal_text}</p>
-            {modalErr && <div style={S.err}>{modalErr}</div>}
-            <label style={S.label}>Decision
-              <select value={decision} onChange={e => setDecision(e.target.value)} style={{ ...S.select, width: '100%', marginTop: 4 }}>
-                <option value="approved">Approve (Unban)</option>
-                <option value="denied">Deny</option>
-              </select>
-            </label>
-            <label style={S.label}>Note (optional)
-              <textarea value={note} onChange={e => setNote(e.target.value)} maxLength={2000} rows={3} style={S.textarea} />
-            </label>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button style={S.btnGhost} onClick={() => setReviewing(null)}>Cancel</button>
-              <button style={S.btnPrimary} onClick={handleReview} disabled={submitting}>{submitting ? 'Saving…' : 'Submit'}</button>
-            </div>
+        <Modal title="Review Ban Appeal" onClose={() => setReviewing(null)}>
+          <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>User: <strong style={{ color: '#f3f4f6' }}>{reviewing.out_user_display}</strong></p>
+          <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>Appeal: {reviewing.out_appeal_text}</p>
+          {modalErr && <div style={S.err}>{modalErr}</div>}
+          <label style={S.label}>Decision
+            <select value={decision} onChange={e => setDecision(e.target.value)} style={{ ...S.select, width: '100%', marginTop: 4 }}>
+              <option value="approved">Approve (Unban)</option>
+              <option value="denied">Deny</option>
+            </select>
+          </label>
+          <label style={S.label}>Note (optional)
+            <textarea value={note} onChange={e => setNote(e.target.value)} maxLength={2000} rows={3} style={S.textarea} />
+          </label>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <button type="button" style={S.btnGhost} onClick={() => setReviewing(null)}>Cancel</button>
+            <button type="button" style={S.btnPrimary} onClick={handleReview} disabled={submitting}>{submitting ? 'Saving…' : 'Submit'}</button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
@@ -294,8 +593,15 @@ function OnboardingTab({ token }) {
 
   return (
     <div>
+      <h2 style={S.srOnly}>Onboarding Lookup</h2>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input value={userId} onChange={e => setUserId(e.target.value)} placeholder="User UUID" style={{ ...S.select, flex: 1, minWidth: 180 }} />
+        <input
+          value={userId}
+          onChange={e => setUserId(e.target.value)}
+          placeholder="User UUID"
+          aria-label="User UUID to look up"
+          style={{ ...S.select, flex: 1, minWidth: 180 }}
+        />
         <button onClick={lookup} style={S.btn} disabled={loading}>{loading ? '…' : 'Look Up'}</button>
       </div>
       {err && <div style={S.err}>{err}</div>}
@@ -333,15 +639,22 @@ function GdprTab({ token }) {
 
   return (
     <div>
+      <h2 style={S.srOnly}>GDPR Scrub</h2>
       <div style={{ background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 13, color: '#ef4444' }}>
         WARNING — GDPR Erasure Is Irreversible. Anonymizes all Home Games posts, messages, and profile data for the target user. Use only on verified DPO/legal request.
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 500 }}>
         <label style={S.label}>Target User UUID
-          <input value={userId} onChange={e => setUserId(e.target.value)} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style={{ ...S.select, width: '100%', boxSizing: 'border-box', marginTop: 4 }} />
+          <input
+            value={userId}
+            onChange={e => setUserId(e.target.value)}
+            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            aria-label="Target user UUID for GDPR erasure"
+            style={{ ...S.select, width: '100%', boxSizing: 'border-box', marginTop: 4 }}
+          />
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}>
-          <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} style={{ accentColor: '#00d4ff' }} />
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#9ca3af', fontSize: 13, cursor: 'pointer', minHeight: 44 }}>
+          <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} style={{ accentColor: '#00d4ff', width: 20, height: 20 }} />
           I confirm this action is authorized and irreversible
         </label>
         <button onClick={handleErase} disabled={loading || !userId || !confirmed} style={{ ...S.btnPrimary, background: '#ef4444', color: '#f3f4f6', maxWidth: 200 }}>
@@ -399,22 +712,32 @@ export default function HgModerationPage() {
         <title>HG Moderation | Horses</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div style={{ minHeight: '100vh', background: '#0a0e17', color: '#f3f4f6', fontFamily: 'Inter,-apple-system,sans-serif', padding: '24px 20px 80px' }}>
+      <style>{PAGE_CSS}</style>
+      <div className="hgm-root hgm-page" style={{ minHeight: '100vh', background: '#0a0e17', color: '#f3f4f6', fontFamily: 'Inter,-apple-system,sans-serif', padding: '24px 20px 80px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
             <button onClick={() => router.push('/horses')} style={S.backBtn}>&larr; Back to Horses</button>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', color: '#f3f4f6' }}>Home Games Moderation</h1>
-          <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 24px' }}>Platform-staff surface — all escalation categories, cross-group actions, GDPR tools</p>
+          <p style={{ fontSize: 13, color: MUTED, margin: '0 0 24px' }}>Platform-staff surface — all escalation categories, cross-group actions, GDPR tools</p>
 
           {/* Tab bar */}
-          <div style={{ display: 'flex', gap: 2, marginBottom: 24, background: 'rgba(255,255,255,.04)', borderRadius: 10, padding: 4, width: 'fit-content', maxWidth: '100%', flexWrap: 'wrap' }}>
+          <div role="tablist" aria-label="Moderation sections" style={{ display: 'flex', gap: 2, marginBottom: 24, background: 'rgba(255,255,255,.04)', borderRadius: 10, padding: 4, width: 'fit-content', maxWidth: '100%', flexWrap: 'wrap' }}>
             {TABS.map((t, i) => (
-              <button key={t} onClick={() => setTab(i)} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all .15s', background: tab === i ? 'rgba(0,212,255,0.12)' : 'transparent', color: tab === i ? '#00d4ff' : '#9ca3af' }}>{t}</button>
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={tab === i}
+                onClick={() => setTab(i)}
+                style={{ padding: '8px 18px', minHeight: 44, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all .15s', background: tab === i ? 'rgba(0,212,255,0.12)' : 'transparent', color: tab === i ? '#00d4ff' : '#9ca3af' }}
+              >
+                {t}
+              </button>
             ))}
           </div>
 
-          <div style={{ background: 'rgba(17,24,39,.55)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 20 }}>
+          <div className="hgm-panel" style={{ background: 'rgba(17,24,39,.55)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 20 }}>
             {tab === 0 && <ReportsTab token={token} />}
             {tab === 1 && <AppealsTab token={token} />}
             {tab === 2 && <OnboardingTab token={token} />}
@@ -428,23 +751,33 @@ export default function HgModerationPage() {
 
 // ── Shared styles ──────────────────────────────────────────────────────────
 // Palette: bg #0a0e17 / panel #111827 / elevated #1f2937 / inset #0d1520
-//          accent #00d4ff (also SUCCESS) · danger #ef4444 · text #f3f4f6/#9ca3af/#6b7280
+//          accent #00d4ff (also SUCCESS) · danger #ef4444 · text #f3f4f6/#9ca3af/#8b93a1
+// Focus rings live in PAGE_CSS (inline styles cannot express :focus-visible).
 const S = {
-  select: { background: '#0d1520', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#f3f4f6', padding: '8px 12px', fontSize: 13, outline: 'none' },
-  btn: { padding: '8px 16px', background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.30)', borderRadius: 8, color: '#00d4ff', fontSize: 13, fontWeight: 700, cursor: 'pointer' },
-  btnSm: { padding: '4px 12px', background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.30)', borderRadius: 6, color: '#00d4ff', fontSize: 12, fontWeight: 700, cursor: 'pointer' },
-  btnPrimary: { padding: '10px 20px', background: '#00d4ff', border: 'none', borderRadius: 8, color: '#0a0e17', fontSize: 13, fontWeight: 700, cursor: 'pointer' },
-  btnGhost: { padding: '10px 20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#9ca3af', fontSize: 13, fontWeight: 700, cursor: 'pointer' },
-  backBtn: { padding: '6px 14px', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#9ca3af', fontSize: 12, fontWeight: 700, cursor: 'pointer' },
+  select: { background: '#0d1520', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#f3f4f6', padding: '8px 12px', fontSize: 13, minHeight: 44 },
+  btn: { padding: '8px 16px', minHeight: 44, background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.30)', borderRadius: 8, color: '#00d4ff', fontSize: 13, fontWeight: 700, cursor: 'pointer' },
+  btnSm: { padding: '4px 12px', minHeight: 44, background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.30)', borderRadius: 6, color: '#00d4ff', fontSize: 12, fontWeight: 700, cursor: 'pointer' },
+  btnPrimary: { padding: '10px 20px', minHeight: 44, background: '#00d4ff', border: 'none', borderRadius: 8, color: '#0a0e17', fontSize: 13, fontWeight: 700, cursor: 'pointer' },
+  btnGhost: { padding: '10px 20px', minHeight: 44, background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#9ca3af', fontSize: 13, fontWeight: 700, cursor: 'pointer' },
+  backBtn: { padding: '6px 14px', minHeight: 44, background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#9ca3af', fontSize: 12, fontWeight: 700, cursor: 'pointer' },
   tableWrap: { overflowX: 'auto', WebkitOverflowScrolling: 'touch' },
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
-  th: { textAlign: 'left', padding: '10px 12px', color: '#6b7280', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap' },
+  table: { width: '100%', minWidth: 760, borderCollapse: 'collapse', fontSize: 13 },
+  th: { textAlign: 'left', padding: '10px 12px', color: MUTED, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap' },
   td: { padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#f3f4f6', verticalAlign: 'middle' },
   err: { background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.30)', borderRadius: 8, padding: '10px 14px', color: '#ef4444', fontSize: 13, marginBottom: 12 },
-  empty: { textAlign: 'center', padding: 40, color: '#6b7280', fontSize: 14 },
-  dim: { textAlign: 'center', padding: 40, color: '#6b7280' },
-  backdrop: { position: 'fixed', inset: 0, background: 'rgba(10,14,23,.8)', backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modal: { background: 'linear-gradient(180deg,#1f2937,#111827)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 16, padding: 24, maxWidth: 480, width: '100%', color: '#f3f4f6' },
+  empty: { textAlign: 'center', padding: 40, color: MUTED, fontSize: 14 },
+  dim: { textAlign: 'center', padding: 40, color: MUTED },
+  backdrop: { position: 'fixed', inset: 0, background: 'rgba(10,14,23,.8)', backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' },
+  modal: { background: 'linear-gradient(180deg,#1f2937,#111827)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 16, padding: 24, maxWidth: 480, width: '100%', color: '#f3f4f6', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' },
   label: { display: 'block', marginBottom: 14, fontSize: 13, color: '#9ca3af', fontWeight: 600 },
   textarea: { width: '100%', boxSizing: 'border-box', padding: '10px 12px', background: '#0d1520', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#f3f4f6', fontFamily: 'inherit', fontSize: 14, resize: 'vertical', minHeight: 72, marginTop: 4 },
+  srOnly: { position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 },
+  // Reported-content block
+  contentBox: { background: '#0d1520', border: '1px solid rgba(0,212,255,0.30)', borderRadius: 10, padding: 14, margin: '0 0 16px' },
+  contentHead: { fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: '#00d4ff', marginBottom: 8 },
+  contentDim: { fontSize: 13, color: MUTED },
+  contentGone: { fontSize: 13, color: MUTED, lineHeight: 1.5 },
+  contentMeta: { display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11, color: MUTED, marginBottom: 8 },
+  contentQuote: { margin: 0, padding: '8px 12px', borderLeft: '3px solid rgba(0,212,255,0.30)', background: 'rgba(255,255,255,0.03)', borderRadius: 4, color: '#f3f4f6', fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 260, overflowY: 'auto' },
+  gateNote: { fontSize: 12, color: MUTED, margin: '0 0 12px' },
 };

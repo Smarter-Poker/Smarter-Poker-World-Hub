@@ -14,6 +14,12 @@ const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 // (pages/api/promo/redeem.js, redeem-promo-code.js, seed-premade.js) plus the
 // values already present in production. An unknown type would create a code
 // that redeems into nothing.
+//
+// `vip_trial` IS NOT ONE OF THEM and must not be added. The /horses UI offered
+// it as one of three choices, so picking it 400'd every time. The real VIP
+// value is `vip_days` — that is what production's VIP30 code carries. The
+// allowlist is echoed back on GET as `rewardTypes` so a UI can build its
+// select from the truth instead of guessing.
 const VALID_REWARD_TYPES = [
     'signup_bonus', 'diamonds', 'vip_days', 'free_trial', 'commander_discount',
     'time_credit', 'referral_bonus', 'retention_bonus', 'vip_reward',
@@ -102,7 +108,32 @@ export default async function handler(req, res) {
 
               if (error) throw error;
 
-              return res.status(200).json({ success: true, codes: data || [] });
+              // The embedded count was fetched and then thrown away, so the
+              // UI could only show `times_used` — a counter incremented by the
+              // redemption paths, which already disagrees with reality in
+              // production (WELCOME500 reads times_used 1 with zero rows in
+              // promo_code_redemptions). `redemption_count` is the measured
+              // number of redemption rows; both are returned so the drift is
+              // visible rather than hidden.
+              const codes = (data || []).map(c => {
+                  const embed = Array.isArray(c.promo_code_redemptions) ? c.promo_code_redemptions : [];
+                  const redemptionCount = embed.length > 0 ? (embed[0]?.count ?? 0) : 0;
+                  const { promo_code_redemptions: _embed, ...rest } = c;
+                  return {
+                      ...rest,
+                      redemption_count: redemptionCount,
+                      // True when the stored counter disagrees with the rows.
+                      redemption_count_mismatch: (c.times_used || 0) !== redemptionCount,
+                  };
+              });
+
+              return res.status(200).json({
+                  success: true,
+                  codes,
+                  // Source of truth for a reward-type select.
+                  rewardTypes: VALID_REWARD_TYPES,
+                  maxRewardValue: MAX_REWARD_VALUE,
+              });
           } catch (err) {
               console.warn('List promo codes error:', err);
               return res.status(500).json({ success: false, error: 'Failed to fetch promo codes' });
@@ -111,7 +142,7 @@ export default async function handler(req, res) {
 
       // POST — Create a new promo code
       if (req.method === 'POST') {
-          const { code, description, type, value, maxUses, expiresAt } = req.body;
+          const { code, description, type, value, maxUses, expiresAt } = req.body || {};
 
           try {
               // ── Validate before minting. A promo code is a bearer token for
@@ -209,8 +240,35 @@ export default async function handler(req, res) {
       }
 
       // PATCH — Update promo code (toggle, rename, set max uses, etc.)
+      //
+      // BODY SHAPE (application/json). `id` is REQUIRED; every other key is
+      // OPTIONAL and only the keys actually present are written, so a partial
+      // edit never blanks a field it did not mention. At least one editable
+      // key must be present or the call 400s with 'No updates provided'.
+      //
+      //   id            string (uuid)  REQUIRED — promo_codes.id
+      //   is_active     boolean        written as-is
+      //   code          string         upper-cased and trimmed, must match
+      //                                /^[A-Z0-9]{4,20}$/, unique (409-style
+      //                                400 'already exists' on collision)
+      //   description   string         written as-is
+      //   max_uses      number|string|null|''  '' or null clears the cap,
+      //                                otherwise parseInt base 10
+      //   reward_type   string         must be in VALID_REWARD_TYPES
+      //   reward_value  number|string  clamped to 0..MAX_REWARD_VALUE (10000)
+      //   expires_at    ISO date string|null|''  '' or null clears the expiry,
+      //                                otherwise must parse as a date. Unlike
+      //                                POST, PATCH does NOT require a future
+      //                                date, so an expiry can be backdated to
+      //                                retire a code.
+      //
+      // Note the casing split, which is deliberate and must be matched by the
+      // caller: POST takes camelCase (type, value, maxUses, expiresAt), PATCH
+      // takes the snake_case column names above.
+      //
+      // Response: 200 { success: true, code: <full updated row> }.
       if (req.method === 'PATCH') {
-          const { id, is_active, code, description, max_uses, reward_type, reward_value, expires_at } = req.body;
+          const { id, is_active, code, description, max_uses, reward_type, reward_value, expires_at } = req.body || {};
           if (!id) return res.status(400).json({ success: false, error: 'Code ID required' });
 
           try {

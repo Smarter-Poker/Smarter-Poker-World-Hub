@@ -66,3 +66,53 @@ export function when(value, withTime = false) {
   if (Number.isNaN(d.getTime())) return '—';
   return withTime ? d.toLocaleString() : d.toLocaleDateString();
 }
+
+/**
+ * CSV export.
+ *
+ * The panel renders tables of horses, diamond transactions, reviews, tickets,
+ * abuse records and chip movement, and had no way to get any of it out. An
+ * operator who wanted to reconcile a figure in a spreadsheet had to select the
+ * rendered table with a mouse.
+ *
+ * `columns` is [key, header] pairs so the export is an explicit contract
+ * rather than "whatever keys the API happened to return" -- a new column
+ * appearing upstream must not silently change the shape of a file someone has
+ * built a spreadsheet around.
+ */
+export function toCsv(rows, columns) {
+  const esc = (v) => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') v = JSON.stringify(v);
+    const str = String(v);
+    // A leading =, +, - or @ makes Excel and Sheets treat the cell as a
+    // formula. Prefix with a single quote so an exported display name cannot
+    // execute in someone's spreadsheet.
+    const safe = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+    return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+  };
+  const head = columns.map(([, header]) => esc(header)).join(',');
+  const body = (rows || []).map((row) => columns.map(([key]) => esc(row[key])).join(',')).join('\n');
+  return `${head}\n${body}`;
+}
+
+/** Trigger a browser download of `content` as `filename`. */
+export function downloadCsv(filename, content) {
+  if (typeof window === 'undefined') return;
+  // The BOM is what makes Excel open a UTF-8 CSV without mangling accents.
+  const blob = new Blob([`\uFEFF${content}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Revoking synchronously can cancel the download in Safari.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** `horses-2026-08-26.csv` */
+export function stampedName(prefix) {
+  return `${prefix}-${new Date().toISOString().slice(0, 10)}.csv`;
+}

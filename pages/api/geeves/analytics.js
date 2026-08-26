@@ -7,11 +7,14 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
      GET  ?action=summary       — KB hit rate, Grok call count, avg confidence this week
      GET  ?action=top_missed    — Top 20 unanswered questions by asked_count
      POST { action:'mark_resolved', id, added_to_kb }
+            `id` MUST be an integer (geeves_missed_questions.id is a bigint).
+            A non-integer id returns 400, not 500.
    Auth: admin or superadmin role required
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { logAdminAction } = require('../../../src/lib/antiAbuse');
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 let _supabase = null;
@@ -28,6 +31,10 @@ export default async function handler(req, res) {
   // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
+  } else if (!applyRateLimit(req, res, LIMITS.read)) {
+    // GET was unlimited. The Geeves tab polls it and the summary branch fires
+    // four DB round-trips per call, so it is bounded the same way writes are.
+    return;
   }
 
   try {
@@ -70,10 +77,15 @@ export default async function handler(req, res) {
               // Week ago cutoff
               const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
+              // Each result is kept WHOLE rather than destructured straight to
+              // { count }. The three counts previously discarded `.error`, so
+              // a failed count arrived as undefined and rendered on the
+              // dashboard as a confident 0 — the same class of bug as reading
+              // a null as a zero.
               const [
-                  { count: totalMissed },
-                  { count: totalResolved },
-                  { count: totalAddedToKB },
+                  missedRes,
+                  resolvedRes,
+                  addedToKbRes,
                   cacheRes,
               ] = await Promise.all([
                   getSupabase()
@@ -96,6 +108,22 @@ export default async function handler(req, res) {
                       .limit(500),
               ]);
 
+              const named = [
+                  ['geeves_missed_questions (missed this week)', missedRes],
+                  ['geeves_missed_questions (resolved this week)', resolvedRes],
+                  ['geeves_missed_questions (added to KB)', addedToKbRes],
+                  ['geeves_knowledge_cache', cacheRes],
+              ];
+              const failed = named.filter(([, r]) => r?.error);
+              if (failed.length > 0) {
+                  failed.forEach(([label, r]) => console.warn(`[Geeves Analytics] ${label} error:`, r.error.message || r.error));
+                  return res.status(500).json({
+                      success: false,
+                      error: 'Failed to load Geeves analytics',
+                      failedSources: failed.map(([label]) => label),
+                  });
+              }
+
               const cacheData = cacheRes.data || [];
               const totalCacheServed = cacheData.reduce((s, r) => s + (r.times_served || 0), 0);
               const avgRating = cacheData.length > 0
@@ -105,9 +133,9 @@ export default async function handler(req, res) {
               return res.status(200).json({
                   success: true,
                   summary: {
-                      missedThisWeek: totalMissed || 0,
-                      resolvedThisWeek: totalResolved || 0,
-                      totalAddedToKB: totalAddedToKB || 0,
+                      missedThisWeek: missedRes.count ?? 0,
+                      resolvedThisWeek: resolvedRes.count ?? 0,
+                      totalAddedToKB: addedToKbRes.count ?? 0,
                       cacheAnswersServedThisWeek: totalCacheServed,
                       avgCacheRating: avgRating,
                   },
@@ -118,20 +146,59 @@ export default async function handler(req, res) {
       }
 
       if (req.method === 'POST') {
-          const { action, id, added_to_kb } = req.body;
+          const { action, id, added_to_kb } = req.body || {};
 
           if (action === 'mark_resolved') {
-              if (!id) return res.status(400).json({ success: false, error: 'id required' });
-              const { error } = await getSupabase()
+              if (id === undefined || id === null || id === '') {
+                  return res.status(400).json({ success: false, error: 'id required' });
+              }
+
+              // geeves_missed_questions.id is a BIGINT. The /horses UI
+              // optimistically appends live rows carrying a synthetic string
+              // id such as "live-1756...", and .eq('id', 'live-1756...') made
+              // Postgres raise 22P02 (invalid input syntax for type bigint),
+              // which surfaced as an opaque 500. A non-numeric id is a bad
+              // request, not a server fault, and it now says so.
+              const numericId = typeof id === 'number' ? id : Number(String(id).trim());
+              if (!Number.isSafeInteger(numericId)) {
+                  return res.status(400).json({
+                      success: false,
+                      error: 'id must be an integer — geeves_missed_questions.id is a bigint. A client-generated placeholder id (for example "live-1756...") belongs to an unsaved row and cannot be resolved.',
+                  });
+              }
+
+              const { data: updated, error } = await getSupabase()
                   .from('geeves_missed_questions')
                   .update({
                       resolved: true,
                       added_to_kb: Boolean(added_to_kb),
                   })
-                  .eq('id', id);
+                  .eq('id', numericId)
+                  .select('id, question, resolved, added_to_kb')
+                  .maybeSingle();
 
-              if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
-              return res.status(200).json({ success: true });
+              if (error) {
+                  console.warn('[Geeves Analytics] mark_resolved failed:', error.message || error);
+                  return res.status(500).json({ success: false, error: 'Internal server error' });
+              }
+              if (!updated) {
+                  return res.status(404).json({ success: false, error: 'No missed question with that id' });
+              }
+
+              // Audit: resolving a missed question changes what the Geeves KB
+              // reports as outstanding. DELETE-class admin actions elsewhere in
+              // this panel are logged; this one was not.
+              await logAdminAction(getSupabase(), {
+                  admin_user_id: user.id,
+                  action: 'geeves_question.marked_resolved',
+                  target_type: 'geeves_missed_question',
+                  target_id: numericId,
+                  details: { question: updated.question, added_to_kb: Boolean(added_to_kb) },
+                  after: updated,
+                  req,
+              });
+
+              return res.status(200).json({ success: true, question: updated });
           }
 
           return res.status(400).json({ success: false, error: 'Unknown action' });

@@ -1,10 +1,62 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
- * 🐴 HORSE AVATAR GENERATOR
- * Generates profile pictures for all horses using AI
- * 
- * POST /api/horses/generate-avatars
- * Generates avatars for horses that don't have one
+ * HORSE AVATAR GENERATOR
+ *
+ * Generates profile pictures for horses that do not have one, using the image
+ * model behind getGrokClient(), then stores the result permanently in the
+ * `avatars` Supabase storage bucket and writes the public URL back to both
+ * content_authors.avatar_url and profiles.avatar_url.
+ *
+ * REQUEST
+ *   POST /api/horses/generate-avatars?limit=<1..10>
+ *   Body: none (ignored entirely).
+ *   Query: `limit` only. Optional, defaults to 5, coerced with parseInt and
+ *          CLAMPED to 1..10 — a missing, zero, negative, non-numeric or
+ *          oversized value can never produce an unbounded run. The clamp is
+ *          the spend ceiling for a single call: each horse costs one image
+ *          generation.
+ *   Auth (either one):
+ *     - `Authorization: Bearer <supabase JWT>` for a user whose profiles.role
+ *       is admin, superadmin or god (this is what the /horses UI sends), or
+ *     - `x-admin-secret: <ADMIN_ROUTE_SECRET>` for server-to-server callers.
+ *   Any other method returns 405. Writes are rate limited (LIMITS.write,
+ *   30/min).
+ *
+ * SELECTION
+ *   Horses with `avatar_url IS NULL` AND `profile_id IS NOT NULL`, capped at
+ *   `limit`. A horse that ALREADY HAS AN AVATAR IS NEVER TOUCHED — it does not
+ *   match the filter, so no image is generated for it, nothing is overwritten,
+ *   and no money is spent on it. There is no force/regenerate flag; to redo an
+ *   avatar its avatar_url must first be cleared. In production 55 horses have
+ *   no avatar, but only 16 of those also have a profile_id, so only 16 are
+ *   eligible under the current filter.
+ *
+ * RESPONSE
+ *   200 { message: 'All horses have avatars!', generated: 0 }
+ *       when nothing matched the filter (note: no `success` key on this one).
+ *   200 { success: true, generated: <n>, remaining: <n>, results: [...] }
+ *       where each result is either
+ *         { horse: '<name>', success: true,  url: '<public url>' }
+ *       or
+ *         { horse: '<name>', success: false, error: 'Generation failed' | 'Upload failed' }
+ *       `generated` counts only the successful entries; `remaining` re-counts
+ *       eligible horses AFTER the run.
+ *   401 { success: false, error: 'Admin authentication required' }
+ *   405 { success: false, error: 'POST only' }
+ *   429 from the rate limiter
+ *   500 { success: false, error: 'Internal server error' }
+ *
+ *   A per-horse failure does NOT fail the request: partial success is reported
+ *   in `results`, so the caller must read the array rather than trusting the
+ *   200.
+ *
+ * TIMING
+ *   Serial, one horse at a time, with a hardcoded 2-second pause between
+ *   horses. Budget roughly 15-25 seconds per horse (image generation, then a
+ *   download-and-upload round trip), plus the 2s gap. A batch of 10 is
+ *   therefore on the order of 3-4 minutes and WILL EXCEED a typical Vercel
+ *   serverless function timeout. Keep interactive batches small (5 or fewer)
+ *   and call repeatedly, using `remaining` to drive the progress display.
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -132,7 +184,21 @@ export default async function handler(req, res) {
           return res.status(401).json({ success: false, error: 'Admin authentication required' });
       }
 
-      const limit = parseInt(req.query.limit) || 5; // Process 5 at a time to avoid timeout
+      // EXPLICIT, SAFE CLAMP. Every horse in this batch costs one image
+      // generation, so the batch size is a spend control, not a paging hint.
+      // `parseInt(req.query.limit) || 5` alone accepted `?limit=500` and
+      // would have queued 500 paid generations from a single query string.
+      // Bounds: 1..MAX_BATCH, default DEFAULT_BATCH, and an unparseable or
+      // out-of-range value is coerced rather than honoured.
+      const DEFAULT_BATCH = 5;
+      const MAX_BATCH = 10;
+      const requestedLimit = parseInt(
+          Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit,
+          10
+      );
+      const limit = Number.isFinite(requestedLimit)
+          ? Math.min(Math.max(requestedLimit, 1), MAX_BATCH)
+          : DEFAULT_BATCH;
 
 
       try {
@@ -190,6 +256,11 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               generated: results.filter(r => r.success).length,
+              attempted: results.length,
+              // Echo the clamp that was actually applied, so a UI can show the
+              // real batch size rather than the one it asked for.
+              limit,
+              maxBatch: MAX_BATCH,
               remaining: await getRemainingCount(),
               results
           });

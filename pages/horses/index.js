@@ -50,7 +50,7 @@ import { eventBus, EventType } from '../../src/engine/EventBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import PokerBrainLaunchButton from '../../src/components/poker-brain/LaunchButton';
 import styles from './horses.module.css';
-import { T, num, signed, when } from '../../src/lib/horsesAdminTokens';
+import { T, num, signed, when, toCsv, downloadCsv, stampedName } from '../../src/lib/horsesAdminTokens';
 
 const SYNC_CHANNEL = 'horses-admin-sync';
 const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
@@ -116,7 +116,9 @@ const EXTERNAL_LINKS = [
 const CA_SECTIONS = [
   ['overview', 'Overview'],
   ['clubs', 'Clubs'],
-  ['finance', 'Finance'],
+  ['revenue', 'Revenue'],
+  ['ledger', 'Ledger'],
+  ['finance', 'Cashouts'],
   ['users', 'Users'],
   ['unions', 'Unions'],
   ['approvals', 'Approvals'],
@@ -147,10 +149,22 @@ export default function HorsesAdmin() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
   const [page, setPage] = useState(0);
+  // The Grinder roster used to reuse searchTerm/filter/page from the Social
+  // Horses tab, so a search typed there silently filtered a table on a
+  // different tab with no visible control explaining why.
+  const [grinderSearch, setGrinderSearch] = useState('');
+  const [grinderPage, setGrinderPage] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPersona, setEditingPersona] = useState(null);
   const [personaForm, setPersonaForm] = useState(EMPTY_PERSONA);
   const [savingPersona, setSavingPersona] = useState(false);
+  // Bulk selection over the 593-horse stable.
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  // Avatar generation. 55 horses have no avatar; the endpoint existed with no
+  // caller anywhere in the app.
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarResult, setAvatarResult] = useState(null);
 
   // ── Settings ──
   const [settings, setSettings] = useState({
@@ -159,6 +173,8 @@ export default function HorsesAdmin() {
     peak_hours: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
   });
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsError, setSettingsError] = useState(null);
+  const [settingsSavedAt, setSettingsSavedAt] = useState(null);
 
   // ── Pipeline ──
   const [pipelineRuns, setPipelineRuns] = useState([]);
@@ -168,6 +184,10 @@ export default function HorsesAdmin() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
   const [analyticsError, setAnalyticsError] = useState(null);
+  // Platform pulse -- live tables, seats, hands. None of it had a surface.
+  const [platform, setPlatform] = useState(null);
+  const [platformLoading, setPlatformLoading] = useState(false);
+  const [platformError, setPlatformError] = useState(null);
 
   // ── Geeves ──
   const [geevesAnalytics, setGeevesAnalytics] = useState({ summary: null, questions: [] });
@@ -184,6 +204,9 @@ export default function HorsesAdmin() {
   const [promoForm, setPromoForm] = useState({
     code: '', description: '', type: 'signup_bonus', value: 100, maxUses: '', expiresAt: '',
   });
+  // The valid reward types come from the route rather than a hardcoded list
+  // that included a value the route rejects.
+  const [promoRewardTypes, setPromoRewardTypes] = useState([]);
 
   // ── Economy ──
   const [economyData, setEconomyData] = useState(null);
@@ -254,6 +277,15 @@ export default function HorsesAdmin() {
   const [caLeaveRequests, setCaLeaveRequests] = useState([]);
   const [caLeaveLoading, setCaLeaveLoading] = useState(false);
   const [caLeaveTab, setCaLeaveTab] = useState('pending');
+  // Ledger reconciliation and revenue -- both tables had 0 surface anywhere.
+  const [caLedger, setCaLedger] = useState(null);
+  const [caLedgerLoading, setCaLedgerLoading] = useState(false);
+  const [caLedgerError, setCaLedgerError] = useState(null);
+  const [caRevenue, setCaRevenue] = useState(null);
+  const [caRevenueLoading, setCaRevenueLoading] = useState(false);
+  const [caRevenueError, setCaRevenueError] = useState(null);
+  // Cheap counts fetched once on mount so the nav badges can actually warn.
+  const [badges, setBadges] = useState(null);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // NOTIFICATIONS
@@ -297,6 +329,23 @@ export default function HorsesAdmin() {
     window.dispatchEvent(new CustomEvent(eventType));
     broadcastSync(SYNC_CHANNEL, { type: 'sync_update', timestamp: Date.now() });
   }, []);
+
+  // Declared HIGH in the component on purpose. `const` is hoisted but sits in
+  // the temporal dead zone until its initialiser runs, and useCallback
+  // dependency arrays are evaluated during render -- so a loader referenced in
+  // the deps of anything declared above it throws
+  // "Cannot access '...' before initialization" at prerender, not at runtime.
+  // The production build caught exactly that here.
+  /** Counts only. Cheap enough to run on mount so the nav can warn on load. */
+  const loadBadges = useCallback(async () => {
+    try {
+      const d = await authFetch('/api/horses/club-arena-admin?section=badges');
+      setBadges(d.badges || null);
+    } catch {
+      // A badge is an affordance, not data. Failing to fetch one is not worth
+      // a toast on page load.
+    }
+  }, [authFetch]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // AUTH
@@ -374,6 +423,12 @@ export default function HorsesAdmin() {
     setCaLoaded(false); setCaStats(null); setCaClubs([]); setCaUnions([]);
     setCaFinance(null); setCaPendingCashouts([]); setCaSelectedClub(null);
     setCaClubDetail(null); setCaSelectedUser(null); setCaUserResults([]);
+    // These carry PII -- union applications embed the owner's display name and
+    // email -- and were surviving into the next admin's session.
+    setCaApplications([]); setCaLeaveRequests([]); setCaAppCommission({});
+    setCaAppReason(''); setCaUserSearch(''); setCaAppTab('pending'); setCaLeaveTab('pending');
+    setCaLedger(null); setCaRevenue(null); setBadges(null);
+    setScraperHealthLastFetch(null); setSelectedIds(new Set()); setAvatarResult(null);
     setActiveTab('stable');
   };
 
@@ -407,6 +462,7 @@ export default function HorsesAdmin() {
     try {
       const data = await authFetch('/api/promo/admin-promo-codes');
       setPromoCodes(data.codes || []);
+      if (Array.isArray(data.rewardTypes)) setPromoRewardTypes(data.rewardTypes);
     } catch (err) {
       setPromoError(err.message);
     } finally {
@@ -569,46 +625,75 @@ export default function HorsesAdmin() {
     }
   }, [authFetch]);
 
+  // Click club A then club B fast enough and A's late response used to render
+  // under B's header. Same shape on the user loaders, where the stale response
+  // replaced the whole card including the identity.
+  const caReqRef = useRef(0);
+
   const loadCaClubDetail = useCallback(async (club) => {
+    const reqId = ++caReqRef.current;
     setCaSelectedClub(club);
     setCaClubTab('overview');
     setCaClubDetail(null);
     setCaLoading(true);
     try {
-      const d = await authFetch(`/api/horses/club-arena-admin?section=club&clubId=${encodeURIComponent(club.id)}`);
-      setCaClubDetail(d);
+      // Flags and sessions come from the anti-cheat route, which owns the
+      // review and kick actions too. reviewFlag and kickSession have existed
+      // in this file with no caller since the tab was written.
+      const [d, flagsRes, sessionsRes] = await Promise.all([
+        authFetch(`/api/horses/club-arena-admin?section=club&clubId=${encodeURIComponent(club.id)}`),
+        authFetch('/api/club-arena/anti-cheat', {
+          method: 'POST', body: JSON.stringify({ action: 'get_flags', clubId: club.id }),
+        }).catch((e) => ({ flags: [], error: e.message })),
+        authFetch('/api/club-arena/anti-cheat', {
+          method: 'POST', body: JSON.stringify({ action: 'get_sessions', clubId: club.id }),
+        }).catch((e) => ({ sessions: [], error: e.message })),
+      ]);
+      if (reqId !== caReqRef.current) return;
+      setCaClubDetail({
+        ...d,
+        flags: flagsRes.flags || [],
+        sessions: sessionsRes.sessions || [],
+        securityError: flagsRes.error || sessionsRes.error || null,
+      });
       if (d.failedSources) setCaWarnings(d.failedSources);
     } catch (err) {
-      showNotification(err.message, 'error');
+      if (reqId === caReqRef.current) showNotification(err.message, 'error');
     } finally {
-      setCaLoading(false);
+      if (reqId === caReqRef.current) setCaLoading(false);
     }
   }, [authFetch, showNotification]);
 
   const searchCaUsers = useCallback(async (query) => {
     const q = (query || '').trim();
     if (q.length < 2) { setCaUserResults([]); return; }
+    const reqId = ++caReqRef.current;
     setCaUserSearching(true);
     try {
       // The query is sanitized server-side. It used to be interpolated straight
       // into a PostgREST .or() filter string in the browser, where a comma or a
       // parenthesis rewrote the whole filter tree.
       const d = await authFetch(`/api/horses/club-arena-admin?section=user_search&q=${encodeURIComponent(q)}`);
+      if (reqId !== caReqRef.current) return;
       setCaUserResults(d.results || []);
     } catch (err) {
+      if (reqId !== caReqRef.current) return;
       showNotification(err.message, 'error');
       setCaUserResults([]);
     } finally {
-      setCaUserSearching(false);
+      if (reqId === caReqRef.current) setCaUserSearching(false);
     }
   }, [authFetch, showNotification]);
 
   const loadCaUserDetail = useCallback(async (profile) => {
+    const reqId = ++caReqRef.current;
     setCaSelectedUser({ ...profile, loading: true });
     try {
       const d = await authFetch(`/api/horses/club-arena-admin?section=user&userId=${encodeURIComponent(profile.id)}`);
+      if (reqId !== caReqRef.current) return;
       setCaSelectedUser({ ...profile, ...d, loading: false });
     } catch (err) {
+      if (reqId !== caReqRef.current) return;
       showNotification(err.message, 'error');
       setCaSelectedUser((prev) => (prev ? { ...prev, loading: false } : null));
     }
@@ -634,25 +719,39 @@ export default function HorsesAdmin() {
     }
   }, [authFetch, caSelectedClub, showNotification]);
 
-  const forceCashoutApprove = useCallback(async (cashout) => {
-    if (!window.confirm(`Force approve a cashout of ${num(cashout.amount)} chips? This moves real chips.`)) return;
+  /**
+   * The route accepts action 'approve' | 'cancel' and the console only ever
+   * sent 'approve'. An admin looking at a fraudulent or mistaken request had
+   * no way to release it -- their only options were to pay it or leave it
+   * pending forever. 'cancel' is the reversible branch: the chips go back to
+   * the player's balance.
+   */
+  const resolveCashout = useCallback(async (cashout, action) => {
+    const label = action === 'approve' ? 'Force approve' : 'Cancel';
+    const consequence = action === 'approve'
+      ? 'This pays the request and moves real chips.'
+      : 'This releases the request and returns the chips to the player.';
+    if (!window.confirm(`${label} a cashout of ${num(cashout.amount)} chips?\n\n${consequence}`)) return;
     setCaProcessing(true);
     try {
       await authFetch('/api/club-arena/approve-cashout', {
         method: 'POST',
-        body: JSON.stringify({ cashoutId: cashout.id, clubId: cashout.club_id, action: 'approve' }),
+        body: JSON.stringify({ cashoutId: cashout.id, clubId: cashout.club_id, action }),
       });
       setCaPendingCashouts((prev) => prev.filter((c) => c.id !== cashout.id));
       setCaClubDetail((prev) => (prev
         ? { ...prev, pendingCashouts: (prev.pendingCashouts || []).filter((c) => c.id !== cashout.id) }
         : prev));
-      showNotification('Cashout Approved');
+      showNotification(action === 'approve' ? 'Cashout Approved' : 'Cashout Cancelled, Chips Returned');
+      loadBadges();
     } catch (err) {
       showNotification(err.message, 'error');
     } finally {
       setCaProcessing(false);
     }
-  }, [authFetch, showNotification]);
+  }, [authFetch, showNotification, loadBadges]);
+
+  const forceCashoutApprove = useCallback((cashout) => resolveCashout(cashout, 'approve'), [resolveCashout]);
 
   const loadApplications = useCallback(async (statusFilter = 'pending') => {
     setCaAppLoading(true);
@@ -760,51 +859,197 @@ export default function HorsesAdmin() {
     }
   }, [authFetch, caSelectedClub, loadCaClubDetail, showNotification]);
 
+  const loadPlatform = useCallback(async () => {
+    setPlatformLoading(true);
+    setPlatformError(null);
+    try {
+      const d = await authFetch('/api/horses/club-arena-admin?section=platform');
+      setPlatform(d.platform || null);
+    } catch (err) {
+      setPlatformError(err.message);
+    } finally {
+      setPlatformLoading(false);
+    }
+  }, [authFetch]);
+
+  const loadCaLedger = useCallback(async () => {
+    setCaLedgerLoading(true);
+    setCaLedgerError(null);
+    try {
+      setCaLedger(await authFetch('/api/horses/club-arena-admin?section=ledger'));
+    } catch (err) {
+      setCaLedgerError(err.message);
+    } finally {
+      setCaLedgerLoading(false);
+    }
+  }, [authFetch]);
+
+  const loadCaRevenue = useCallback(async () => {
+    setCaRevenueLoading(true);
+    setCaRevenueError(null);
+    try {
+      setCaRevenue(await authFetch('/api/horses/club-arena-admin?section=revenue'));
+    } catch (err) {
+      setCaRevenueError(err.message);
+    } finally {
+      setCaRevenueLoading(false);
+    }
+  }, [authFetch]);
+
+
+  // ── Avatar generation ──
+  // /api/horses/generate-avatars has existed, fully built and admin-gated,
+  // with NO caller anywhere in the application. It generates and uploads an
+  // avatar for horses where avatar_url IS NULL AND profile_id IS NOT NULL,
+  // serially, with a 2 second pause between each -- so batches are small and
+  // the operator runs it repeatedly.
+  const AVATAR_BATCH = 5;
+  const generateAvatars = async () => {
+    if (!window.confirm(
+      `Generate avatars for up to ${AVATAR_BATCH} horses?\n\n`
+      + 'Each one calls a paid image API and takes roughly 15 to 25 seconds, '
+      + 'so this batch may take a couple of minutes. Horses that already have '
+      + 'an avatar are never touched.',
+    )) return;
+    setAvatarBusy(true);
+    setAvatarResult(null);
+    try {
+      const d = await authFetch(`/api/horses/generate-avatars?limit=${AVATAR_BATCH}`, { method: 'POST' });
+      // The "nothing eligible" branch returns no `success` key at all, so do
+      // not test for one.
+      setAvatarResult(d);
+      const made = d.generated || 0;
+      const failedCount = (d.results || []).filter((r) => !r.success).length;
+      showNotification(
+        made === 0
+          ? (d.message || 'No Horses Were Eligible')
+          : `${num(made)} Avatars Generated${failedCount ? `, ${num(failedCount)} Failed` : ''}`,
+        failedCount ? 'info' : 'success',
+      );
+      if (made > 0) loadData();
+    } catch (err) {
+      showNotification(err.message, 'error');
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
   // ═══════════════════════════════════════════════════════════════════════════
   // MUTATIONS — every one of these reverts its optimistic update on failure.
   // ═══════════════════════════════════════════════════════════════════════════
+  // EVERY WRITE BELOW NOW GOES THROUGH /api/horses/stable-admin.
+  //
+  // They used to go straight from the browser to PostgREST, and every one of
+  // them was a SILENT NO-OP. `content_authors` is gated on
+  // `profiles.is_admin = true`, which is true for ZERO rows in production --
+  // the three real admin accounts are identified by `profiles.role`. A
+  // PostgREST update matching zero rows returns `{ error: null }`, so the
+  // optimistic update stuck, the toast said "saved", and nothing had been.
+  // The service-role route validates, writes, reports the affected row count,
+  // and records an admin_audit_log entry.
   const togglePersona = async (id, currentStatus) => {
     const newStatus = !currentStatus;
     setPersonas((prev) => prev.map((p) => (p.id === id ? { ...p, is_active: newStatus } : p)));
-    const { error } = await supabase.from('content_authors').update({ is_active: newStatus }).eq('id', id);
-    if (error) {
+    try {
+      await authFetch('/api/horses/stable-admin', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'set_active', id, is_active: newStatus }),
+      });
+      showNotification(`Horse ${newStatus ? 'Activated' : 'Rested'}`);
+      broadcastUpdate('horses-updated');
+    } catch (err) {
       setPersonas((prev) => prev.map((p) => (p.id === id ? { ...p, is_active: currentStatus } : p)));
-      showNotification(`Could Not Save: ${error.message}`, 'error');
-      return;
+      showNotification(err.message, 'error');
     }
-    showNotification(`Horse ${newStatus ? 'Activated' : 'Rested'}`);
-    broadcastUpdate('horses-updated');
+  };
+
+  /** Apply an active/rest change to an explicit set of horses. */
+  const setActiveForIds = async (ids, activate, label) => {
+    if (!ids.length) return;
+    const snapshot = personas;
+    const idSet = new Set(ids);
+    setPersonas((prev) => prev.map((p) => (idSet.has(p.id) ? { ...p, is_active: activate } : p)));
+    setBulkBusy(true);
+    try {
+      const d = await authFetch('/api/horses/stable-admin', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'bulk_active', ids, is_active: activate }),
+      });
+      // The route reports how many rows it actually touched, so a partial
+      // apply cannot be reported as a clean success.
+      const missed = (d.requested || ids.length) - (d.affected || 0);
+      showNotification(
+        missed > 0
+          ? `${label}: ${num(d.affected, '0')} Updated, ${num(missed)} No Longer Exist`
+          : `${label}: ${num(d.affected, '0')} Updated`,
+        missed > 0 ? 'info' : 'success',
+      );
+      broadcastUpdate('horses-updated');
+      loadData();
+    } catch (err) {
+      setPersonas(snapshot);
+      showNotification(err.message, 'error');
+    } finally {
+      setBulkBusy(false);
+    }
   };
 
   const toggleAllPersonas = async (activate) => {
-    const snapshot = personas;
-    setPersonas((prev) => prev.map((p) => ({ ...p, is_active: activate })));
-    // `.neq('id', 0)` was a no-op-shaped way of saying "all rows"; keep the
-    // intent explicit but guard against a bare unfiltered update.
-    const ids = snapshot.map((p) => p.id).filter((id) => id !== undefined && id !== null);
-    if (ids.length === 0) return;
-    const { error } = await supabase.from('content_authors').update({ is_active: activate }).in('id', ids);
-    if (error) {
-      setPersonas(snapshot);
-      showNotification(`Bulk Update Failed: ${error.message}`, 'error');
-      return;
-    }
-    showNotification(`All Horses ${activate ? 'Activated' : 'Rested'}`);
-    broadcastUpdate('horses-updated');
+    // Resting all 593 horses stops the content engine and the grinder fleet.
+    // It used to happen on a single unconfirmed click.
+    const ids = personas.map((p) => p.id).filter((id) => id !== undefined && id !== null);
+    if (!ids.length) return;
+    if (!activate && !window.confirm(
+      `Rest all ${ids.length} horses? This stops the content engine and takes the whole grinder fleet off the tables.`,
+    )) return;
+    await setActiveForIds(ids, activate, activate ? 'All Horses Activated' : 'All Horses Rested');
   };
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Retire ${name}? This deletes the horse permanently.`)) return;
+    // Irreversible: there is no soft-delete column on content_authors. The
+    // route writes the whole row into admin_audit_log before removing it, so
+    // a mistake is at least recoverable by hand.
+    if (!window.confirm(
+      `Retire ${name}?\n\nThis permanently deletes the horse. It cannot be undone from this panel.`,
+    )) return;
     const snapshot = personas;
     setPersonas((prev) => prev.filter((p) => p.id !== id));
-    const { error } = await supabase.from('content_authors').delete().eq('id', id);
-    if (error) {
+    try {
+      await authFetch('/api/horses/stable-admin', {
+        method: 'POST', body: JSON.stringify({ action: 'delete_horse', id }),
+      });
+      showNotification(`${name} Retired`, 'info');
+      broadcastUpdate('horses-updated');
+    } catch (err) {
       setPersonas(snapshot);
-      showNotification(`Could Not Retire ${name}: ${error.message}`, 'error');
-      return;
+      showNotification(err.message, 'error');
     }
-    showNotification(`${name} Retired`, 'info');
-    broadcastUpdate('horses-updated');
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    if (!window.confirm(
+      `Retire ${ids.length} horses?\n\nThis permanently deletes them. It cannot be undone from this panel.`,
+    )) return;
+    const snapshot = personas;
+    const idSet = new Set(ids);
+    setPersonas((prev) => prev.filter((p) => !idSet.has(p.id)));
+    setBulkBusy(true);
+    try {
+      const d = await authFetch('/api/horses/stable-admin', {
+        method: 'POST', body: JSON.stringify({ action: 'bulk_delete', ids }),
+      });
+      setSelectedIds(new Set());
+      showNotification(`${num(d.affected, '0')} Horses Retired`, 'info');
+      broadcastUpdate('horses-updated');
+      loadData();
+    } catch (err) {
+      setPersonas(snapshot);
+      showNotification(err.message, 'error');
+    } finally {
+      setBulkBusy(false);
+    }
   };
 
   const openCreateModal = () => { setEditingPersona(null); setPersonaForm(EMPTY_PERSONA); setShowCreateModal(true); };
@@ -823,27 +1068,19 @@ export default function HorsesAdmin() {
     setSavingPersona(true);
     try {
       if (editingPersona) {
-        // There was no way to edit a horse at all. 593 of them, create and
-        // delete only.
-        const { data, error } = await supabase
-          .from('content_authors').update(personaForm).eq('id', editingPersona.id)
-          .select().maybeSingle();
-        if (error) throw error;
-        if (!data) throw new Error('The horse could not be found. It may have been retired in another tab.');
-        setPersonas((prev) => prev.map((p) => (p.id === data.id ? data : p)));
-        showNotification(`${data.name} Updated`);
+        const d = await authFetch('/api/horses/stable-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'update_horse', id: editingPersona.id, horse: personaForm }),
+        });
+        setPersonas((prev) => prev.map((p) => (p.id === d.horse.id ? d.horse : p)));
+        showNotification(`${d.horse.name} Updated`);
       } else {
-        const alias = personaForm.name.replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 1000);
-        const { data, error } = await supabase
-          .from('content_authors')
-          .insert([{ ...personaForm, alias, avatar_seed: alias.toLowerCase(), timezone: 'America/New_York', is_active: true }])
-          .select().maybeSingle();
-        if (error) throw error;
-        // The old catch fabricated a local row and toasted "Horse created
-        // (fallback)" — the horse did not exist and the next refresh lost it.
-        if (!data) throw new Error('The horse was not created. Nothing was saved.');
-        setPersonas((prev) => [data, ...prev]);
-        showNotification(`${data.name} Stabled`);
+        const d = await authFetch('/api/horses/stable-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'create_horse', horse: { ...personaForm, is_active: true } }),
+        });
+        setPersonas((prev) => [d.horse, ...prev]);
+        showNotification(`${d.horse.name} Stabled`);
       }
       setShowCreateModal(false);
       setEditingPersona(null);
@@ -868,21 +1105,25 @@ export default function HorsesAdmin() {
     if (!payload) return;
     pendingSettings.current = null;
     setSettingsSaving(true);
+    setSettingsError(null);
     try {
-      const upsert = { ...payload, updated_at: new Date().toISOString() };
-      if (!upsert.id) {
-        const { data } = await supabase.from('content_settings').select('id').limit(1).maybeSingle();
-        if (data?.id) upsert.id = data.id;
-      }
-      const { error } = await supabase.from('content_settings').upsert(upsert);
-      if (error) throw error;
+      // content_settings writes are service_role ONLY in production, so the
+      // browser upsert this replaces never wrote a single byte -- every
+      // posts-per-day, delay, model, temperature and grinder-* change the
+      // operator has ever made was discarded silently.
+      const d = await authFetch('/api/horses/stable-admin', {
+        method: 'POST', body: JSON.stringify({ action: 'save_settings', settings: payload }),
+      });
+      if (d.settings) setSettings((prev) => ({ ...prev, ...d.settings }));
+      setSettingsSavedAt(new Date());
       broadcastUpdate('horses-settings-updated');
     } catch (err) {
+      setSettingsError(err.message);
       showNotification(`Setting Not Saved: ${err.message}`, 'error');
     } finally {
       setSettingsSaving(false);
     }
-  }, [broadcastUpdate, showNotification]);
+  }, [authFetch, broadcastUpdate, showNotification]);
 
   const updateSetting = useCallback((key, value) => {
     // Reject NaN before it reaches state, let alone the database.
@@ -899,6 +1140,23 @@ export default function HorsesAdmin() {
   useEffect(() => () => {
     if (settingsTimer.current) clearTimeout(settingsTimer.current);
   }, []);
+
+  // ── Modal keyboard behaviour ──
+  // The dialog had role/aria-modal and click-outside, but no Escape, no focus
+  // move on open and no focus restore -- so Tab from inside it walked straight
+  // into the sixteen nav buttons behind it.
+  const modalRef = useRef(null);
+  useEffect(() => {
+    if (!showCreateModal) return undefined;
+    const previouslyFocused = document.activeElement;
+    const onKey = (e) => { if (e.key === 'Escape') setShowCreateModal(false); };
+    document.addEventListener('keydown', onKey);
+    modalRef.current?.querySelector('input, select, textarea, button')?.focus();
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      if (previouslyFocused && typeof previouslyFocused.focus === 'function') previouslyFocused.focus();
+    };
+  }, [showCreateModal]);
 
   const triggerPipeline = async (type) => {
     setPipelineBusy(true);
@@ -978,6 +1236,14 @@ export default function HorsesAdmin() {
   };
 
   const markGeevesQuestionResolved = async (id, addedToKB) => {
+    // The live eventBus feed synthesises `live-<timestamp>` ids for questions
+    // that have not come back from the API yet. geeves_missed_questions.id is
+    // a bigint, so posting one produced a Postgres 22P02 and a 500. Those rows
+    // are display-only until a real id arrives.
+    if (typeof id === 'string' && id.startsWith('live-')) {
+      showNotification('This Question Is Still Arriving. Refresh, Then Mark It.', 'info');
+      return;
+    }
     setGeevesMarkingId(id);
     try {
       await authFetch('/api/geeves/analytics', {
@@ -1076,54 +1342,61 @@ export default function HorsesAdmin() {
     if (!user) return undefined;
     loadData();
     loadPromoCodes();
-  }, [user, loadData, loadPromoCodes]);
+    loadBadges();
+  }, [user, loadData, loadPromoCodes, loadBadges]);
 
+  // ── Cross-tab and in-app sync. Always on: these are the paths that actually
+  //    carry this panel's own mutations between tabs. ──
   useEffect(() => {
     if (!user) return undefined;
-
-    // Coalescing matters here: `tables` and `table_seats` change constantly on
-    // a live poker platform (88,000+ table rows, seats turning over every
-    // hand). The old handlers called a full reload on EVERY row event, which
-    // meant a sustained request storm for as long as the tab was open.
     let coreTimer = null;
-    let caTimer = null;
     const refreshCore = () => {
       if (coreTimer) return;
       coreTimer = setTimeout(() => { coreTimer = null; loadDataRef.current(); }, 2000);
     };
-    const refreshCa = () => {
-      if (!caLoadedRef.current || caTimer) return;
-      caTimer = setTimeout(() => { caTimer = null; loadCaRef.current(); }, 5000);
-    };
-
     const cleanupBc = listenBroadcast(SYNC_CHANNEL, (msg) => {
       if (msg?.type === 'sync_update') refreshCore();
     });
     window.addEventListener('horses-updated', refreshCore);
     window.addEventListener('horses-grinder-updated', refreshCore);
     window.addEventListener('horses-settings-updated', refreshCore);
-
-    const channel = supabase
-      .channel('horses-db-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'content_authors' }, refreshCore)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'content_settings' }, refreshCore)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipeline_runs' }, refreshCore)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, refreshCa)
-      .subscribe();
-
     const unsubMutated = eventBus.on(EventType.DATA_MUTATED, refreshCore);
-
     return () => {
       if (coreTimer) clearTimeout(coreTimer);
-      if (caTimer) clearTimeout(caTimer);
       cleanupBc();
       window.removeEventListener('horses-updated', refreshCore);
       window.removeEventListener('horses-grinder-updated', refreshCore);
       window.removeEventListener('horses-settings-updated', refreshCore);
-      supabase.removeChannel(channel);
       unsubMutated();
     };
   }, [user]);
+
+  // ── Supabase realtime, scoped to the one tab that renders live table data.
+  //
+  //    THE OLD SUBSCRIPTION WAS EXACTLY INVERTED. Checked against
+  //    pg_publication_tables for `supabase_realtime`: content_authors,
+  //    content_settings and pipeline_runs are NOT published, so those three
+  //    handlers could never fire and the coalescing built for them was dead
+  //    code. `tables` IS published, holds ~89,000 rows with seats turning over
+  //    every hand, and was subscribed unconditionally from mount -- so an
+  //    admin sitting on the Social Horses tab was taking every table event on
+  //    the platform over the socket for as long as the tab stayed open. ──
+  useEffect(() => {
+    if (!user || activeTab !== 'clubarena') return undefined;
+    let caTimer = null;
+    const refreshCa = () => {
+      if (!caLoadedRef.current || caTimer) return;
+      caTimer = setTimeout(() => { caTimer = null; loadCaRef.current(); }, 5000);
+    };
+    const channel = supabase
+      .channel('horses-club-arena-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, refreshCa)
+      .subscribe();
+    return () => {
+      if (caTimer) clearTimeout(caTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [user, activeTab]);
 
   // Geeves live feed
   useEffect(() => {
@@ -1162,6 +1435,7 @@ export default function HorsesAdmin() {
     if (!user) return;
     if (activeTab === 'grinder' && !grinderData && !grinderLoading) loadGrinderData();
     if (activeTab === 'stats' && !analyticsLoaded) loadAnalytics();
+    if (activeTab === 'stats' && !platform && !platformLoading) loadPlatform();
     if (activeTab === 'economy' && !economyLoaded && !economyLoading) loadEconomyData();
     if (activeTab === 'antiabuse' && !abuseLoaded && !abuseLoading) loadAntiAbuseData();
     if (activeTab === 'geeves' && !geevesLoaded && !geevesLoading) loadGeevesAnalytics();
@@ -1208,6 +1482,60 @@ export default function HorsesAdmin() {
   const pagedPersonas = filteredPersonas.slice(safePage * HORSES_PER_PAGE, (safePage + 1) * HORSES_PER_PAGE);
   useEffect(() => { setPage(0); }, [searchTerm, filter]);
 
+  // ── Grinder roster: its own search and paging ──
+  const grinderPersonas = useMemo(() => {
+    const q = grinderSearch.trim().toLowerCase();
+    if (!q) return personas;
+    return personas.filter((p) => p.name?.toLowerCase().includes(q) || p.alias?.toLowerCase().includes(q));
+  }, [personas, grinderSearch]);
+  const grinderTotalPages = Math.max(1, Math.ceil(grinderPersonas.length / HORSES_PER_PAGE));
+  const grinderSafePage = Math.min(grinderPage, grinderTotalPages - 1);
+  const pagedGrinderPersonas = grinderPersonas.slice(
+    grinderSafePage * HORSES_PER_PAGE, (grinderSafePage + 1) * HORSES_PER_PAGE,
+  );
+  useEffect(() => { setGrinderPage(0); }, [grinderSearch]);
+
+  // The roster lookup was `roster.find(...)` inside a map over 48 rows against
+  // a 554-entry array -- ~26,000 comparisons on every keystroke anywhere in
+  // this component. One index instead.
+  const rosterById = useMemo(() => {
+    const map = new Map();
+    for (const r of grinderData?.roster || []) map.set(r.horse_id, r);
+    return map;
+  }, [grinderData]);
+
+  // ── Bulk selection ──
+  const allPagedSelected = pagedPersonas.length > 0 && pagedPersonas.every((p) => selectedIds.has(p.id));
+  const toggleSelect = useCallback((id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+  const toggleSelectPage = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const every = pagedPersonas.length > 0 && pagedPersonas.every((p) => next.has(p.id));
+      for (const p of pagedPersonas) { if (every) next.delete(p.id); else next.add(p.id); }
+      return next;
+    });
+  }, [pagedPersonas]);
+  const selectAllFiltered = useCallback(() => {
+    setSelectedIds(new Set(filteredPersonas.map((p) => p.id)));
+  }, [filteredPersonas]);
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  const exportHorses = useCallback(() => {
+    const rows = (selectedIds.size ? personas.filter((p) => selectedIds.has(p.id)) : filteredPersonas);
+    downloadCsv(stampedName('horses'), toCsv(rows, [
+      ['id', 'ID'], ['name', 'Name'], ['alias', 'Alias'], ['gender', 'Gender'],
+      ['location', 'Location'], ['specialty', 'Specialty'], ['stakes', 'Stakes'],
+      ['voice', 'Voice'], ['is_active', 'Active'], ['avatar_url', 'Avatar URL'], ['bio', 'Bio'],
+    ]));
+    showNotification(`Exported ${num(rows.length)} Horses`);
+  }, [personas, filteredPersonas, selectedIds, showNotification]);
+
   const visibleReviews = useMemo(() => {
     const q = reviewsSearch.trim().toLowerCase();
     if (!q) return reviewsData;
@@ -1216,9 +1544,22 @@ export default function HorsesAdmin() {
       || (r.review_text || '').toLowerCase().includes(q));
   }, [reviewsData, reviewsSearch]);
 
-  const pendingAppCount = caApplications.filter((a) => a.status === 'pending').length;
-  const pendingLeaveCount = caLeaveRequests.filter((r) => r.status === 'pending').length;
+  const pendingAppCount = useMemo(
+    () => caApplications.filter((a) => a.status === 'pending').length, [caApplications],
+  );
+  const pendingLeaveCount = useMemo(
+    () => caLeaveRequests.filter((r) => r.status === 'pending').length, [caLeaveRequests],
+  );
+  // These used to read only tab-local state, so a badge could not appear until
+  // you had already visited the tab it was pointing at. `badges` is fetched
+  // once on mount and is what makes them work on page load.
   const deadScrapers = scraperHealth?.summary?.deadCount || 0;
+  const ledgerCritical = badges?.ledgerCritical || 0;
+  const clubArenaBadge = Math.max(
+    pendingAppCount + pendingLeaveCount,
+    (badges?.pendingCashouts || 0) + (badges?.ledgerCritical || 0),
+  );
+  const bugReportBadge = badges?.openTickets || 0;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
@@ -1290,8 +1631,19 @@ export default function HorsesAdmin() {
       </Head>
 
       <div className={styles.dashboard}>
+        {/* The toast is the ONLY confirmation channel for every mutation on
+            this page -- create, retire, promo toggle, club suspend, force
+            cashout approve -- and it was not announced at all. The always-
+            mounted region matters: a live region inserted in the same tick as
+            its content is unreliable in NVDA and JAWS. */}
+        <div role="status" aria-live="polite" className={styles.srOnly}>
+          {notification?.message || ''}
+        </div>
         {notification && (
-          <div className={`${styles.notification} ${styles[notification.type] || ''}`}>
+          <div
+            className={`${styles.notification} ${styles[notification.type] || ''}`}
+            role={notification.type === 'error' ? 'alert' : 'status'}
+          >
             {notification.message}
           </div>
         )}
@@ -1321,12 +1673,15 @@ export default function HorsesAdmin() {
               key={tab.id}
               className={activeTab === tab.id ? styles.active : ''}
               onClick={() => setActiveTab(tab.id)}
-              style={tab.id === 'scrapers' && deadScrapers > 0 ? { color: T.danger, fontWeight: 700 } : undefined}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
+              style={(tab.id === 'scrapers' && deadScrapers > 0)
+                || (tab.id === 'clubarena' && ledgerCritical > 0)
+                ? { color: T.danger, fontWeight: 700 } : undefined}
             >
               {tab.label}
               {tab.id === 'scrapers' && deadScrapers > 0 ? ` (${deadScrapers})` : ''}
-              {tab.id === 'clubarena' && pendingAppCount + pendingLeaveCount > 0
-                ? ` (${pendingAppCount + pendingLeaveCount})` : ''}
+              {tab.id === 'clubarena' && clubArenaBadge > 0 ? ` (${clubArenaBadge})` : ''}
+              {tab.id === 'bugreports' && bugReportBadge > 0 ? ` (${bugReportBadge})` : ''}
             </button>
           ))}
           {EXTERNAL_LINKS.map((link) => (
@@ -1340,6 +1695,7 @@ export default function HorsesAdmin() {
           {/* ─────────────────────────── SOCIAL HORSES ─────────────────────── */}
           {activeTab === 'stable' && (
             <div className={styles.stableView}>
+              <h2 className={styles.srOnly}>Social Horses</h2>
               <div className={styles.stableHeader}>
                 <div className={styles.stableStats}>
                   <div className={styles.statBox}>
@@ -1368,8 +1724,19 @@ export default function HorsesAdmin() {
                     <option value="inactive">Resting Only</option>
                   </select>
                   <PokerBrainLaunchButton />
-                  <button className={styles.btnSuccess} onClick={() => toggleAllPersonas(true)}>Activate All</button>
-                  <button className={styles.actionBtn} onClick={() => toggleAllPersonas(false)}>Rest All</button>
+                  <button className={styles.btnSuccess} onClick={() => toggleAllPersonas(true)} disabled={bulkBusy}>
+                    Activate All
+                  </button>
+                  <button className={styles.actionBtn} onClick={() => toggleAllPersonas(false)} disabled={bulkBusy}>
+                    Rest All
+                  </button>
+                  <button className={styles.actionBtn} onClick={exportHorses}>
+                    Export CSV
+                  </button>
+                  <button className={styles.actionBtn} onClick={generateAvatars} disabled={avatarBusy}
+                    title="Generate avatars for horses that have none">
+                    {avatarBusy ? 'Generating Avatars' : 'Generate Avatars'}
+                  </button>
                   <button className={styles.btnCreate} onClick={openCreateModal}>New Horse</button>
                 </div>
               </div>
@@ -1389,6 +1756,63 @@ export default function HorsesAdmin() {
                 </div>
               )}
 
+              {avatarBusy && (
+                <div className={styles.warnBanner} role="status">
+                  Generating avatars. Each horse takes roughly 15 to 25 seconds and they run one
+                  at a time, so a batch of {AVATAR_BATCH} can take a couple of minutes. Leave this tab open.
+                </div>
+              )}
+              {avatarResult && !avatarBusy && (
+                <div className={styles.warnBanner} role="status">
+                  {num(avatarResult.generated, '0')} generated
+                  {avatarResult.remaining !== undefined && <>, {num(avatarResult.remaining)} still without an avatar</>}
+                  {(avatarResult.results || []).some((r) => !r.success) && (
+                    <> — failures: {(avatarResult.results || []).filter((r) => !r.success)
+                      .map((r) => `${r.horse}: ${r.error}`).join('; ')}</>
+                  )}
+                  {avatarResult.remaining > 0 && ' Run it again to continue.'}
+                </div>
+              )}
+
+              {/* Bulk selection. 593 horses and, until now, no way to act on
+                  more than one at a time. */}
+              <div className={styles.bulkBar}>
+                <label className={styles.bulkCheck}>
+                  <input
+                    type="checkbox"
+                    checked={allPagedSelected}
+                    onChange={toggleSelectPage}
+                    aria-label={allPagedSelected ? 'Deselect this page' : 'Select this page'}
+                  />
+                  <span>Select page</span>
+                </label>
+                {selectedIds.size > 0 ? (
+                  <>
+                    <span className={styles.countPill}>{num(selectedIds.size)} selected</span>
+                    <button className={styles.filterBtn} onClick={selectAllFiltered} disabled={bulkBusy}>
+                      Select all {num(filteredPersonas.length)}
+                    </button>
+                    <button className={styles.filterBtn} onClick={clearSelection} disabled={bulkBusy}>Clear</button>
+                    <span className={styles.bulkSpacer} />
+                    <button className={styles.filterBtn} disabled={bulkBusy}
+                      onClick={() => setActiveForIds([...selectedIds], true, 'Activated')}>
+                      Activate
+                    </button>
+                    <button className={styles.filterBtn} disabled={bulkBusy}
+                      onClick={() => setActiveForIds([...selectedIds], false, 'Rested')}>
+                      Rest
+                    </button>
+                    <button className={styles.btnDanger} disabled={bulkBusy} onClick={handleBulkDelete}>
+                      Retire {num(selectedIds.size)}
+                    </button>
+                  </>
+                ) : (
+                  <span className={styles.bulkHint}>
+                    Select horses to activate, rest or retire them together.
+                  </span>
+                )}
+              </div>
+
               <div className={styles.personaGrid}>
                 {pagedPersonas.map((persona) => (
                   <div
@@ -1396,6 +1820,13 @@ export default function HorsesAdmin() {
                     className={`${styles.personaCard} ${persona.is_active ? styles.active : styles.inactive}`}
                   >
                     <div className={styles.personaHeader}>
+                      <input
+                        type="checkbox"
+                        className={styles.personaSelect}
+                        checked={selectedIds.has(persona.id)}
+                        onChange={() => toggleSelect(persona.id)}
+                        aria-label={`Select ${persona.name || 'this horse'}`}
+                      />
                       <div className={styles.personaAvatar}>
                         {persona.avatar_url ? (
                           <img
@@ -1419,10 +1850,14 @@ export default function HorsesAdmin() {
                         <h3>{persona.name || 'Unnamed'}</h3>
                         <span className={styles.alias}>@{persona.alias || 'no-alias'}</span>
                       </div>
-                      <label className={styles.toggleSwitch} title={persona.is_active ? 'Rest this horse' : 'Activate this horse'}>
+                      <label className={styles.toggleSwitch}>
+                        {/* The wrapping label had no text content, so this
+                            control -- the primary one on all 593 cards -- had
+                            no accessible name at all. */}
                         <input
                           type="checkbox" checked={!!persona.is_active}
                           onChange={() => togglePersona(persona.id, persona.is_active)}
+                          aria-label={`${persona.is_active ? 'Rest' : 'Activate'} ${persona.name || 'this horse'}`}
                         />
                         <span className={styles.slider} />
                       </label>
@@ -1435,6 +1870,8 @@ export default function HorsesAdmin() {
                     <div className={styles.personaBio}>{persona.bio || 'No bio.'}</div>
                     <div className={styles.personaVoice}>
                       <span className={styles.voiceTag}>{persona.voice || 'casual'}</span>
+                      {/* Resting used to be signalled by opacity alone. */}
+                      {!persona.is_active && <span className={styles.restingTag}>Resting</span>}
                       <div>
                         <button className={styles.editBtn} onClick={() => openEditModal(persona)}>Edit</button>
                         <button
@@ -1482,14 +1919,19 @@ export default function HorsesAdmin() {
                 </div>
               )}
 
-              {grinderData?.derivation && (
-                <div className={styles.warnBanner}>{grinderData.derivation}</div>
+              {/* `derivation` used to be returned as a sibling of `stats`, so
+                  this never rendered -- and it was an OBJECT, so if it ever
+                  had, React would have thrown. It is a string on stats now. */}
+              {grinderData?.derivationNote && (
+                <div className={styles.warnBanner}>{grinderData.derivationNote}</div>
               )}
 
               <div className={styles.grinderStats}>
                 <div className={styles.statBox}>
-                  <span className={styles.statNumber}>{num(personas.length, '0')}</span>
-                  <span className={styles.statLabel}>Total Grinders</span>
+                  {/* This used to render personas.length while the API returned
+                      its own, smaller, active-only count under the same label. */}
+                  <span className={styles.statNumber}>{num(grinderData?.totalGrinders ?? activeCount)}</span>
+                  <span className={styles.statLabel}>Active Grinders</span>
                 </div>
                 <div className={`${styles.statBox} ${styles.activeBox}`}>
                   <span className={styles.statNumber}>{num(grinderData?.currentlyPlaying)}</span>
@@ -1500,8 +1942,16 @@ export default function HorsesAdmin() {
                   <span className={styles.statLabel}>Active Tables</span>
                 </div>
                 <div className={styles.statBox}>
-                  <span className={styles.statNumber}>{num(settings.grinder_daily_hours ?? 16)}h</span>
-                  <span className={styles.statLabel}>Daily Playtime</span>
+                  <span className={styles.statNumber}>{num(grinderData?.totalHands)}</span>
+                  <span className={styles.statLabel}>Hands Played</span>
+                </div>
+                <div className={styles.statBox}>
+                  <span className={styles.statNumber}
+                    style={{ color: Number(grinderData?.totalProfit || 0) >= 0 ? T.accent : T.danger }}>
+                    {grinderData?.totalProfit === null || grinderData?.totalProfit === undefined
+                      ? '—' : signed(grinderData.totalProfit)}
+                  </span>
+                  <span className={styles.statLabel}>Fleet Profit</span>
                 </div>
               </div>
 
@@ -1580,26 +2030,35 @@ export default function HorsesAdmin() {
               <div className={styles.grinderTable}>
                 <h3 className={styles.sectionTitle}>
                   Horse Roster
-                  <span className={styles.countPill}>{num(filteredPersonas.length)}</span>
+                  <span className={styles.countPill}>{num(grinderPersonas.length)}</span>
+                  {/* This table used to be filtered and paged by the SEARCH BOX
+                      ON A DIFFERENT TAB, with no control here to explain it. */}
+                  <input
+                    type="search" value={grinderSearch}
+                    onChange={(e) => setGrinderSearch(e.target.value)}
+                    placeholder="Search roster" className={styles.searchInput}
+                    aria-label="Search the grinder roster"
+                    style={{ marginLeft: 'auto', maxWidth: 240 }}
+                  />
                 </h3>
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th>Horse</th><th>Specialty</th><th>Play Style</th>
-                        <th>Tables</th><th>Hands</th><th>Profit</th><th>Status</th>
+                        <th scope="col">Horse</th><th scope="col">Specialty</th><th scope="col">Play Style</th>
+                        <th scope="col">Tables</th><th scope="col">Hands</th><th scope="col">Profit</th><th scope="col">Status</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {pagedPersonas.map((persona) => {
-                        const stats = grinderData?.roster?.find((r) => r.horse_id === persona.id);
+                      {pagedGrinderPersonas.map((persona) => {
+                        const stats = rosterById.get(persona.id);
                         return (
                           <tr key={persona.id}>
                             <td>
                               <div className={styles.horseCell}>
                                 {persona.avatar_url
                                   ? <img src={persona.avatar_url} alt="" className={styles.tableCellAvatar} loading="lazy" />
-                                  : <span className={styles.avatarFallback}>{(persona.name || '?').charAt(0).toUpperCase()}</span>}
+                                  : <span className={styles.avatarFallback} aria-hidden="true">{(persona.name || '?').charAt(0).toUpperCase()}</span>}
                                 <div>
                                   <strong>{persona.name}</strong>
                                   <small>@{persona.alias}</small>
@@ -1611,7 +2070,13 @@ export default function HorsesAdmin() {
                             <td>{num(stats?.tables, '0')}/{num(settings.grinder_max_tables ?? 4)}</td>
                             {/* hands and profit are null, not 0, when they cannot be derived. */}
                             <td>{num(stats?.hands)}</td>
-                            <td className={styles.profitCell}>{stats?.profit === null || stats?.profit === undefined ? '—' : signed(stats.profit)}</td>
+                            <td style={{
+                              fontWeight: 700,
+                              color: stats?.profit === null || stats?.profit === undefined
+                                ? T.dim : (Number(stats.profit) >= 0 ? T.accent : T.danger),
+                            }}>
+                              {stats?.profit === null || stats?.profit === undefined ? '—' : signed(stats.profit)}
+                            </td>
                             <td>
                               {stats?.status === 'playing'
                                 ? <span className={styles.statusActive}>Playing</span>
@@ -1623,11 +2088,11 @@ export default function HorsesAdmin() {
                     </tbody>
                   </table>
                 </div>
-                {filteredPersonas.length > HORSES_PER_PAGE && (
+                {grinderPersonas.length > HORSES_PER_PAGE && (
                   <div className={styles.pagination}>
-                    <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0}>Previous</button>
-                    <span className={styles.pageInfo}>Page {safePage + 1} of {totalPages}</span>
-                    <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}>Next</button>
+                    <button onClick={() => setGrinderPage((p) => Math.max(0, p - 1))} disabled={grinderSafePage === 0}>Previous</button>
+                    <span className={styles.pageInfo}>Page {grinderSafePage + 1} of {grinderTotalPages}</span>
+                    <button onClick={() => setGrinderPage((p) => Math.min(grinderTotalPages - 1, p + 1))} disabled={grinderSafePage >= grinderTotalPages - 1}>Next</button>
                   </div>
                 )}
               </div>
@@ -1640,6 +2105,14 @@ export default function HorsesAdmin() {
               <h2>Content Pipeline</h2>
               <div className={styles.pipelineActions}>
                 <h3>Quick Actions</h3>
+                {/* The cron handler these posted to does not exist. The route
+                    returns 501 now instead of a fabricated success, but until
+                    it is implemented the only way to learn that was to click. */}
+                <div className={styles.warnBanner}>
+                  The content pipeline is not implemented server-side yet. These four
+                  actions return an explicit error rather than reporting a run that did
+                  not happen.
+                </div>
                 <div className={styles.actionButtons}>
                   {[
                     ['test', 'Test Run', '3 Posts, No Video'],
@@ -1670,7 +2143,7 @@ export default function HorsesAdmin() {
                   <div className={styles.tableWrapper}>
                     <table className={styles.table}>
                       <thead>
-                        <tr><th>Time</th><th>Type</th><th>Posts</th><th>Videos</th><th>Duration</th></tr>
+                        <tr><th scope="col">Time</th><th scope="col">Type</th><th scope="col">Posts</th><th scope="col">Videos</th><th scope="col">Duration</th></tr>
                       </thead>
                       <tbody>
                         {pipelineRuns.map((run) => (
@@ -1694,9 +2167,22 @@ export default function HorsesAdmin() {
           {activeTab === 'settings' && (
             <div className={styles.settingsView}>
               <h2>Engine Settings</h2>
-              <p style={{ color: T.dim, fontSize: 13, marginBottom: 20 }}>
+              <p style={{ color: T.dim, fontSize: 13, marginBottom: 12 }}>
                 Changes save automatically about a second after you stop editing.
               </p>
+              {/* Until today every one of these saves was discarded silently:
+                  content_settings is service_role-write only, and the browser
+                  upsert that used to run here matched nothing and reported no
+                  error. The save state is now visible either way. */}
+              {settingsError ? (
+                <div className={styles.errorState} role="alert" style={{ marginBottom: 16 }}>
+                  Settings not saved: {settingsError}
+                </div>
+              ) : settingsSavedAt ? (
+                <div style={{ color: T.accent, fontSize: 12, marginBottom: 16 }} role="status">
+                  Saved at {settingsSavedAt.toLocaleTimeString()}
+                </div>
+              ) : null}
               <div className={styles.settingsGrid}>
                 <div className={styles.settingCard}>
                   <h3>Posting Schedule</h3>
@@ -1780,7 +2266,118 @@ export default function HorsesAdmin() {
           {/* ─────────────────────────── STATISTICS ────────────────────────── */}
           {activeTab === 'stats' && (
             <div className={styles.statsView}>
-              <h2>Content Statistics</h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 8 }}>
+                <h2 style={{ margin: 0 }}>Platform Statistics</h2>
+                <button className={styles.actionBtn} onClick={() => { loadPlatform(); loadAnalytics(); }}
+                  disabled={platformLoading}>
+                  {platformLoading ? 'Refreshing' : 'Refresh'}
+                </button>
+              </div>
+
+              {/* ── PLATFORM PULSE ──
+                  This tab used to show four numbers about the blog-post engine
+                  and call itself Statistics. Meanwhile the platform was running
+                  137 tables with 680 players seated and nearly 20,000 hands an
+                  hour, and none of that was visible anywhere in the console. */}
+              <h3 className={styles.sectionTitle}>Live Now</h3>
+              {platformError ? (
+                <div className={styles.errorState} role="alert">
+                  <div>Platform pulse unavailable: {platformError}</div>
+                  <button className={styles.actionBtn} onClick={loadPlatform}>Retry</button>
+                </div>
+              ) : platformLoading && !platform ? (
+                <div className={styles.loadingSpinner}>Reading The Platform</div>
+              ) : platform ? (
+                <>
+                  <div className={styles.kpiGrid}>
+                    <div className={styles.kpi}>
+                      <div className={styles.kpiValue} style={{ color: T.accent }}>{num(platform.liveTables)}</div>
+                      <div className={styles.kpiLabel}>Live Tables</div>
+                    </div>
+                    <div className={styles.kpi}>
+                      <div className={styles.kpiValue}>{num(platform.seatedNow)}</div>
+                      <div className={styles.kpiLabel}>Players Seated</div>
+                    </div>
+                    <div className={styles.kpi}>
+                      <div className={styles.kpiValue} style={{ color: T.accent }}>{num(platform.hands1h)}</div>
+                      <div className={styles.kpiLabel}>Hands (last hour)</div>
+                    </div>
+                    <div className={styles.kpi}>
+                      <div className={styles.kpiValue}>{num(platform.hands24h)}</div>
+                      <div className={styles.kpiLabel}>
+                        Hands (24h)
+                        {platform.handsTrendPct !== null && platform.handsTrendPct !== undefined && (
+                          <span style={{
+                            marginLeft: 6,
+                            color: platform.handsTrendPct >= 0 ? T.accent : T.warn,
+                          }}>
+                            {platform.handsTrendPct >= 0 ? '+' : ''}{platform.handsTrendPct}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className={styles.kpi}>
+                      <div className={styles.kpiValue}>{num(platform.waitingTables)}</div>
+                      <div className={styles.kpiLabel}>Tables Waiting</div>
+                    </div>
+                    <div className={styles.kpi}>
+                      <div className={styles.kpiValue}>{num(platform.liveTournaments)}</div>
+                      <div className={styles.kpiLabel}>Live Tournaments</div>
+                    </div>
+                    <div className={styles.kpi}>
+                      <div className={styles.kpiValue}>{num(platform.signups24h)}</div>
+                      <div className={styles.kpiLabel}>Signups (24h)</div>
+                    </div>
+                    <div className={styles.kpi}>
+                      <div className={styles.kpiValue}>{num(platform.signups7d)}</div>
+                      <div className={styles.kpiLabel}>Signups (7d)</div>
+                    </div>
+                  </div>
+
+                  {/* ── ATTENTION ──
+                      A roll-up of everything that currently wants a human,
+                      gathered from the tabs that own each number so an operator
+                      does not have to visit six of them to find out. */}
+                  {(ledgerCritical > 0 || deadScrapers > 0 || bugReportBadge > 0
+                    || (badges?.pendingCashouts || 0) > 0) && (
+                    <>
+                      <h3 className={styles.sectionTitle}>Needs Attention</h3>
+                      <div className={styles.kpiGrid}>
+                        {ledgerCritical > 0 && (
+                          <button type="button" className={`${styles.kpi} ${styles.kpiAction}`}
+                            onClick={() => { setActiveTab('clubarena'); setCaSection('ledger'); if (!caLedger) loadCaLedger(); }}>
+                            <div className={styles.kpiValue} style={{ color: T.danger }}>{num(ledgerCritical)}</div>
+                            <div className={styles.kpiLabel}>Ledger Drift Rows</div>
+                          </button>
+                        )}
+                        {(badges?.pendingCashouts || 0) > 0 && (
+                          <button type="button" className={`${styles.kpi} ${styles.kpiAction}`}
+                            onClick={() => { setActiveTab('clubarena'); setCaSection('finance'); }}>
+                            <div className={styles.kpiValue} style={{ color: T.warn }}>{num(badges.pendingCashouts)}</div>
+                            <div className={styles.kpiLabel}>Pending Cashouts</div>
+                          </button>
+                        )}
+                        {bugReportBadge > 0 && (
+                          <button type="button" className={`${styles.kpi} ${styles.kpiAction}`}
+                            onClick={() => setActiveTab('bugreports')}>
+                            <div className={styles.kpiValue} style={{ color: T.warn }}>{num(bugReportBadge)}</div>
+                            <div className={styles.kpiLabel}>Open Tickets</div>
+                          </button>
+                        )}
+                        {deadScrapers > 0 && (
+                          <button type="button" className={`${styles.kpi} ${styles.kpiAction}`}
+                            onClick={() => setActiveTab('scrapers')}>
+                            <div className={styles.kpiValue} style={{ color: T.danger }}>{num(deadScrapers)}</div>
+                            <div className={styles.kpiLabel}>Dead Scrapers</div>
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : null}
+
+              <h3 className={styles.sectionTitle}>Content Engine</h3>
               {!analyticsLoaded ? (
                 <div className={styles.loadingSpinner}>Loading Analytics</div>
               ) : analyticsError ? (
@@ -1793,7 +2390,7 @@ export default function HorsesAdmin() {
                   <div className={styles.statsOverview}>
                     <div className={styles.statCardLarge}>
                       <span className={styles.statNumber}>{num(personas.length, '0')}</span>
-                      <span className={styles.statLabel}>Total Authors</span>
+                      <span className={styles.statLabel}>Total Horses</span>
                     </div>
                     <div className={styles.statCardLarge}>
                       <span className={styles.statNumber}>{num(analyticsData?.activeHorses ?? activeCount)}</span>
@@ -1869,7 +2466,7 @@ export default function HorsesAdmin() {
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
                     <thead>
-                      <tr><th>User</th><th>Subject</th><th>Priority</th><th>Status</th><th>Date</th><th>Actions</th></tr>
+                      <tr><th scope="col">User</th><th scope="col">Subject</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col">Date</th><th scope="col">Actions</th></tr>
                     </thead>
                     <tbody>
                       {bugReports.map((ticket) => {
@@ -1987,15 +2584,21 @@ export default function HorsesAdmin() {
                   <div className={styles.formRow} style={{ marginBottom: 12 }}>
                     <div className={styles.formGroup}>
                       <label htmlFor="promo-type">Type</label>
+                      {/* This select used to offer `vip_trial`, which is not
+                          in the route's allowlist at all -- picking it always
+                          400'd. The valid list now comes from the API. */}
                       <select id="promo-type" value={promoForm.type}
                         onChange={(e) => setPromoForm({ ...promoForm, type: e.target.value })}>
-                        <option value="signup_bonus">Signup Bonus (Diamonds)</option>
-                        <option value="diamonds">Diamond Bonus</option>
-                        <option value="vip_trial">VIP Trial (Days)</option>
+                        {(promoRewardTypes.length ? promoRewardTypes : ['signup_bonus', 'diamonds', 'vip_days'])
+                          .map((t) => (
+                            <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
+                          ))}
                       </select>
                     </div>
                     <div className={styles.formGroup}>
-                      <label htmlFor="promo-value">Value ({promoForm.type === 'vip_trial' ? 'Days' : 'Diamonds'})</label>
+                      <label htmlFor="promo-value">
+                        Value ({['vip_days', 'free_trial'].includes(promoForm.type) ? 'Days' : 'Diamonds'})
+                      </label>
                       <input
                         id="promo-value" type="number" min="1" max="10000" required
                         value={promoForm.value}
@@ -2039,11 +2642,14 @@ export default function HorsesAdmin() {
                   <div className={styles.tableWrapper}>
                     <table className={styles.table}>
                       <thead>
-                        <tr><th>Code</th><th>Type</th><th>Value</th><th>Uses</th><th>Status</th><th>Actions</th></tr>
+                        <tr><th scope="col">Code</th><th scope="col">Type</th><th scope="col">Value</th><th scope="col">Uses</th><th scope="col">Status</th><th scope="col">Actions</th></tr>
                       </thead>
                       <tbody>
                         {promoCodes.map((code) => {
-                          const uses = Number(code.current_uses ?? code.times_used) || 0;
+                          // redemption_count is the real count from
+                          // promo_code_redemptions; times_used is a counter
+                          // that can drift from it.
+                          const uses = Number(code.redemption_count ?? code.current_uses ?? code.times_used) || 0;
                           const max = code.max_uses;
                           return (
                             <tr key={code.id}>
@@ -2062,11 +2668,12 @@ export default function HorsesAdmin() {
                                   background: (code.type || code.reward_type) === 'vip_trial' ? T.warnSoft : T.infoSoft,
                                   color: (code.type || code.reward_type) === 'vip_trial' ? T.warn : T.info,
                                 }}>
-                                  {(code.type || code.reward_type || 'unknown').replace(/_/g, ' ')}
+                                  {(code.reward_type || code.type || 'unknown').replace(/_/g, ' ')}
                                 </span>
                               </td>
                               <td style={{ fontWeight: 600 }}>
-                                {num(code.value ?? code.reward_value)} {(code.type || code.reward_type) === 'vip_trial' ? 'days' : 'diamonds'}
+                                {num(code.reward_value ?? code.value)}{' '}
+                                {['vip_days', 'free_trial'].includes(code.reward_type || code.type) ? 'days' : 'diamonds'}
                               </td>
                               <td>{num(uses, '0')}{max ? ` / ${num(max)}` : ' / unlimited'}</td>
                               <td>
@@ -2163,7 +2770,13 @@ export default function HorsesAdmin() {
                     </div>
                     <div className={styles.statCardLarge}>
                       <span className={styles.statNumber} style={{ color: T.warn }}>
-                        ${((Number(economyData.stats?.diamondPurchaseRevenue) || 0) / 100).toFixed(2)}
+                        {/* Two stacked bugs used to live here. The route summed
+                            `amount_paid || price`, and diamond_purchases has
+                            NEITHER column -- the real one is `price_usd` -- so
+                            the figure was always 0. Then this divided it by
+                            100, which would have made a real number 100x too
+                            small. price_usd is already dollars. */}
+                        ${(Number(economyData.stats?.diamondPurchaseRevenue) || 0).toFixed(2)}
                       </span>
                       <span className={styles.statLabel}>Purchase Revenue</span>
                     </div>
@@ -2171,7 +2784,22 @@ export default function HorsesAdmin() {
                       <span className={styles.statNumber} style={{ color: T.accent }}>
                         {num(economyData.stats?.activeVipCount)} / {num(economyData.stats?.vipSubscriptionCount)}
                       </span>
-                      <span className={styles.statLabel}>VIP Active / Total</span>
+                      <span className={styles.statLabel}>VIP Subscriptions</span>
+                    </div>
+                    {/* vip_subscriptions has ZERO rows in production. The live
+                        VIP system is vip_points / vip_points_ledger, which had
+                        no surface at all. */}
+                    <div className={styles.statCardLarge}>
+                      <span className={styles.statNumber} style={{ color: T.accent }}>
+                        {num(economyData.vipPoints?.holders)}
+                      </span>
+                      <span className={styles.statLabel}>VIP Point Holders</span>
+                    </div>
+                    <div className={styles.statCardLarge}>
+                      <span className={styles.statNumber} style={{ color: T.warn }}>
+                        {num(economyData.vipPoints?.pointsOutstanding)}
+                      </span>
+                      <span className={styles.statLabel}>VIP Points Outstanding</span>
                     </div>
                   </div>
 
@@ -2180,7 +2808,7 @@ export default function HorsesAdmin() {
                       <h3>Recent Signups</h3>
                       <div className={styles.tableWrapper}>
                         <table className={styles.table}>
-                          <thead><tr><th>Username</th><th>Name</th><th>Joined</th></tr></thead>
+                          <thead><tr><th scope="col">Username</th><th scope="col">Name</th><th scope="col">Joined</th></tr></thead>
                           <tbody>
                             {economyData.recentUsers.map((u) => (
                               <tr key={u.id}>
@@ -2202,7 +2830,7 @@ export default function HorsesAdmin() {
                     ) : (
                       <div className={styles.tableWrapper} style={{ maxHeight: 500, overflowY: 'auto' }}>
                         <table className={styles.table}>
-                          <thead><tr><th>Date</th><th>User</th><th>Type</th><th>Amount</th><th>Source</th><th>Description</th></tr></thead>
+                          <thead><tr><th scope="col">Date</th><th scope="col">User</th><th scope="col">Type</th><th scope="col">Amount</th><th scope="col">Source</th><th scope="col">Description</th></tr></thead>
                           <tbody>
                             {(economyData.transactions || []).map((tx, i) => {
                               const credit = tx.type === 'earned' || tx.type === 'reward' || Number(tx.amount) > 0;
@@ -2236,7 +2864,7 @@ export default function HorsesAdmin() {
                       <h3>VIP Subscriptions</h3>
                       <div className={styles.tableWrapper}>
                         <table className={styles.table}>
-                          <thead><tr><th>Date</th><th>User</th><th>Plan</th><th>Status</th><th>Expires</th></tr></thead>
+                          <thead><tr><th scope="col">Date</th><th scope="col">User</th><th scope="col">Plan</th><th scope="col">Status</th><th scope="col">Expires</th></tr></thead>
                           <tbody>
                             {economyData.vipSubscriptions.map((s, i) => (
                               <tr key={s.id || i}>
@@ -2306,6 +2934,12 @@ export default function HorsesAdmin() {
                       </span>
                       <span className={styles.statLabel}>Alerts (24h)</span>
                     </div>
+                    <div className={styles.statCardLarge}>
+                      <span className={styles.statNumber} style={{ color: T.warn }}>
+                        {num(abuseData.abuse?.stats?.deletedAccounts)}
+                      </span>
+                      <span className={styles.statLabel}>Deleted Accounts</span>
+                    </div>
                   </div>
 
                   {abuseData.alerts?.length > 0 && (
@@ -2338,7 +2972,7 @@ export default function HorsesAdmin() {
                       <div className={styles.tableWrapper} style={{ maxHeight: 400, overflowY: 'auto' }}>
                         <table className={styles.table}>
                           <thead>
-                            <tr><th>Email</th><th>IP</th><th>Signups</th><th>Deletions</th><th>Welcome</th><th>Flags</th><th>Last Signup</th></tr>
+                            <tr><th scope="col">Email</th><th scope="col">IP</th><th scope="col">Signups</th><th scope="col">Deletions</th><th scope="col">Welcome</th><th scope="col">Flags</th><th scope="col">Last Signup</th></tr>
                           </thead>
                           <tbody>
                             {(abuseData.abuse?.log || []).map((entry, i) => (
@@ -2396,7 +3030,17 @@ export default function HorsesAdmin() {
 
                   {abuseData.economy?.sourceBreakdown && Object.keys(abuseData.economy.sourceBreakdown).length > 0 && (
                     <div className={styles.contentBreakdown} style={{ marginTop: 24 }}>
-                      <h3>Diamond Source Breakdown</h3>
+                      <h3>
+                        Diamond Source Breakdown
+                        {/* This was a 30-day figure presented as a lifetime
+                            total, with nothing on screen saying so. */}
+                        {abuseData.economy?.windowLabel && (
+                          <span style={{ color: T.dim, fontWeight: 400, fontSize: 13, marginLeft: 8 }}>
+                            ({abuseData.economy.windowLabel}
+                            {abuseData.economy.truncated ? ', truncated' : ''})
+                          </span>
+                        )}
+                      </h3>
                       <div className={styles.statsOverview}>
                         <div className={styles.statCardLarge}>
                           <span className={styles.statNumber} style={{ color: T.accent }}>
@@ -2436,15 +3080,17 @@ export default function HorsesAdmin() {
                       <h3>Top Diamond Holders</h3>
                       <div className={styles.tableWrapper}>
                         <table className={styles.table}>
-                          <thead><tr><th>Rank</th><th>Username</th><th>Email</th><th>Diamonds</th><th>VIP</th><th>Phone</th></tr></thead>
+                          {/* Email was removed from this response: a bulk PII
+                              leaderboard did not need it. */}
+                          <thead><tr>
+                            <th scope="col">Rank</th><th scope="col">Username</th>
+                            <th scope="col">Diamonds</th><th scope="col">VIP</th><th scope="col">Phone</th>
+                          </tr></thead>
                           <tbody>
                             {abuseData.economy.topHolders.map((holder, i) => (
                               <tr key={holder.id}>
                                 <td style={{ fontWeight: 700, color: i < 3 ? T.warn : T.muted }}>{i + 1}</td>
                                 <td>{holder.username || '—'}</td>
-                                <td style={{ fontSize: 12, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {holder.email || '—'}
-                                </td>
                                 <td style={{ fontWeight: 700, color: T.accent }}>{num(holder.diamonds, '0')}</td>
                                 <td>{holder.is_vip ? (holder.vip_tier || 'VIP') : '—'}</td>
                                 <td style={{ color: holder.phone_verified ? T.accent : T.muted }}>
@@ -2463,7 +3109,7 @@ export default function HorsesAdmin() {
                       <h3>Admin Audit Log</h3>
                       <div className={styles.tableWrapper} style={{ maxHeight: 300, overflowY: 'auto' }}>
                         <table className={styles.table}>
-                          <thead><tr><th>Time</th><th>Action</th><th>Target</th><th>Details</th><th>IP</th></tr></thead>
+                          <thead><tr><th scope="col">Time</th><th scope="col">Action</th><th scope="col">Target</th><th scope="col">Details</th><th scope="col">IP</th></tr></thead>
                           <tbody>
                             {abuseData.audit.map((entry, i) => (
                               <tr key={entry.id || i}>
@@ -2518,15 +3164,26 @@ export default function HorsesAdmin() {
                   <button
                     key={id}
                     className={caSection === id ? styles.active : ''}
-                    onClick={() => { setCaSection(id); setCaSelectedClub(null); setCaSelectedUser(null); }}
+                    aria-current={caSection === id ? 'page' : undefined}
+                    onClick={() => {
+                      setCaSection(id);
+                      setCaSelectedClub(null);
+                      setCaSelectedUser(null);
+                      if (id === 'ledger' && !caLedger && !caLedgerLoading) loadCaLedger();
+                      if (id === 'revenue' && !caRevenue && !caRevenueLoading) loadCaRevenue();
+                    }}
                   >
                     {label}
                     {id === 'approvals' && pendingAppCount + pendingLeaveCount > 0
                       ? ` (${pendingAppCount + pendingLeaveCount})` : ''}
                     {id === 'finance' && caPendingCashouts.length > 0 ? ` (${caPendingCashouts.length})` : ''}
+                    {id === 'ledger' && ledgerCritical > 0 ? ` (${num(ledgerCritical)})` : ''}
                   </button>
                 ))}
-                <button onClick={loadClubArenaData} disabled={caLoading} style={{ marginLeft: 'auto' }}>
+                {/* margin-left:auto pinned this to the end of the SCROLL width
+                    on mobile, where .subNav becomes a nowrap overflow strip --
+                    so the primary refresh sat past seven tabs, invisible. */}
+                <button onClick={loadClubArenaData} disabled={caLoading} className={styles.subNavRefresh}>
                   {caLoading ? 'Refreshing' : 'Refresh'}
                 </button>
               </div>
@@ -2568,7 +3225,7 @@ export default function HorsesAdmin() {
                       ) : (
                         <div className={styles.tableWrapper}>
                           <table className={styles.table}>
-                            <thead><tr><th>Time</th><th>Club</th><th>Type</th><th>Amount</th><th>Notes</th></tr></thead>
+                            <thead><tr><th scope="col">Time</th><th scope="col">Club</th><th scope="col">Type</th><th scope="col">Amount</th><th scope="col">Notes</th></tr></thead>
                             <tbody>
                               {(caFinance?.recentTxns || []).slice(0, 25).map((txn, i) => (
                                 <tr key={txn.id || i}>
@@ -2596,13 +3253,19 @@ export default function HorsesAdmin() {
                       <div className={styles.emptyState}>No clubs found.</div>
                     ) : (
                       <div className={styles.cardGrid}>
+                        {/* These cards used to be role="button" with a real
+                            <button> nested inside, which ARIA forbids:
+                            role="button" has presentational children, so the
+                            Suspend control may not have been exposed at all.
+                            The card is a plain container now and the club name
+                            carries the activation, which also gets Space and
+                            Enter for free. */}
                         {caClubs.map((club) => (
-                          <div key={club.id} className={`${styles.card} ${styles.clickableCard}`}
-                            onClick={() => loadCaClubDetail(club)}
-                            role="button" tabIndex={0}
-                            onKeyDown={(e) => { if (e.key === 'Enter') loadCaClubDetail(club); }}
-                          >
-                            <div style={{ fontWeight: 700, fontSize: 15, color: T.text, marginBottom: 4 }}>{club.name}</div>
+                          <div key={club.id} className={styles.card}>
+                            <button type="button" className={styles.cardTitleBtn}
+                              onClick={() => loadCaClubDetail(club)}>
+                              {club.name}
+                            </button>
                             <div style={{ fontSize: 12, color: T.dim, marginBottom: 10 }}>
                               Code {club.club_id || club.code || '—'} — {num(club.member_count, '0')} members — {num(club.table_count, '0')} tables
                             </div>
@@ -2662,8 +3325,12 @@ export default function HorsesAdmin() {
                           ['agents', `Agents (${num(caClubDetail?.agents?.length, '0')})`],
                           ['tables', `Tables (${num(caClubDetail?.tables?.length, '0')})`],
                           ['cashouts', `Cashouts (${num(caClubDetail?.pendingCashouts?.length, '0')})`],
+                          ['flags', `Flags (${num(caClubDetail?.flags?.length, '0')})`],
+                          ['sessions', `Sessions (${num(caClubDetail?.sessions?.length, '0')})`],
                         ].map(([id, label]) => (
-                          <button key={id} className={caClubTab === id ? styles.active : ''} onClick={() => setCaClubTab(id)}>
+                          <button key={id} className={caClubTab === id ? styles.active : ''}
+                            aria-current={caClubTab === id ? 'page' : undefined}
+                            onClick={() => setCaClubTab(id)}>
                             {label}
                           </button>
                         ))}
@@ -2693,7 +3360,7 @@ export default function HorsesAdmin() {
                           ) : (
                             <div className={styles.tableWrapper}>
                               <table className={styles.table}>
-                                <thead><tr><th>Time</th><th>Type</th><th>Amount</th><th>Notes</th></tr></thead>
+                                <thead><tr><th scope="col">Time</th><th scope="col">Type</th><th scope="col">Amount</th><th scope="col">Notes</th></tr></thead>
                                 <tbody>
                                   {caClubDetail.recentTxns.map((txn, i) => (
                                     <tr key={txn.id || i}>
@@ -2716,7 +3383,7 @@ export default function HorsesAdmin() {
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
-                              <thead><tr><th>Player</th><th>Role</th><th>Chips</th><th>Hands</th><th>Status</th><th>Joined</th></tr></thead>
+                              <thead><tr><th scope="col">Player</th><th scope="col">Role</th><th scope="col">Chips</th><th scope="col">Hands</th><th scope="col">Status</th><th scope="col">Joined</th></tr></thead>
                               <tbody>
                                 {caClubDetail.members.map((m) => (
                                   // club_members has a COMPOSITE key and no id column;
@@ -2743,7 +3410,7 @@ export default function HorsesAdmin() {
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
-                              <thead><tr><th>Agent</th><th>Role</th><th>Commission</th><th>Credit Used</th><th>Players</th><th>Status</th></tr></thead>
+                              <thead><tr><th scope="col">Agent</th><th scope="col">Role</th><th scope="col">Commission</th><th scope="col">Credit Used</th><th scope="col">Players</th><th scope="col">Status</th></tr></thead>
                               <tbody>
                                 {caClubDetail.agents.map((a) => (
                                   <tr key={a.id}>
@@ -2766,7 +3433,7 @@ export default function HorsesAdmin() {
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
-                              <thead><tr><th>Table</th><th>Game</th><th>Stakes</th><th>Seats</th><th>Status</th><th>Created</th></tr></thead>
+                              <thead><tr><th scope="col">Table</th><th scope="col">Game</th><th scope="col">Stakes</th><th scope="col">Seats</th><th scope="col">Status</th><th scope="col">Created</th></tr></thead>
                               <tbody>
                                 {caClubDetail.tables.map((t) => (
                                   <tr key={t.id}>
@@ -2785,13 +3452,92 @@ export default function HorsesAdmin() {
                             </table>
                           </div>
                         )
+                      ) : caClubTab === 'flags' ? (
+                        /* reviewFlag() has existed in this file with no caller
+                           since the tab was written. The anti-cheat route
+                           exposes nine actions and the console reached two. */
+                        (caClubDetail.flags || []).length === 0 ? (
+                          <div className={styles.emptyState}>
+                            {caClubDetail.securityError
+                              ? `Flags unavailable: ${caClubDetail.securityError}`
+                              : 'No open anti-cheat flags for this club.'}
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {caClubDetail.flags.map((flag) => (
+                              <div key={flag.id} className={styles.card} style={{
+                                borderLeft: `4px solid ${flag.severity === 'high' ? T.danger
+                                  : flag.severity === 'medium' ? T.warn : T.line}`,
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                                  <span style={{
+                                    background: flag.severity === 'high' ? T.dangerSoft : T.warnSoft,
+                                    color: flag.severity === 'high' ? T.danger : T.warn,
+                                    borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                  }}>{flag.severity || 'low'}</span>
+                                  <span style={{ fontWeight: 600, color: T.text }}>{flag.flag_type || 'flag'}</span>
+                                  <span style={{ fontSize: 11, color: T.muted, marginLeft: 'auto' }}>
+                                    {when(flag.created_at || flag.flagged_at, true)}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: 13, color: T.dim, marginBottom: 10 }}>
+                                  Player <strong style={{ color: T.text }}>{flag.player_name || flag.user_id || 'unknown'}</strong>
+                                  {flag.description && <> — {flag.description}</>}
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                  <button className={styles.filterBtn} disabled={caProcessing}
+                                    onClick={() => reviewFlag(flag, 'dismiss')}>Dismiss</button>
+                                  <button className={styles.filterBtn} disabled={caProcessing}
+                                    onClick={() => reviewFlag(flag, 'reviewed')}>Mark Reviewed</button>
+                                  <button className={styles.btnDanger} disabled={caProcessing}
+                                    onClick={() => reviewFlag(flag, 'kick')}>Kick Player</button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      ) : caClubTab === 'sessions' ? (
+                        (caClubDetail.sessions || []).length === 0 ? (
+                          <div className={styles.emptyState}>
+                            {caClubDetail.securityError
+                              ? `Sessions unavailable: ${caClubDetail.securityError}`
+                              : 'No active sessions at this club right now.'}
+                          </div>
+                        ) : (
+                          <div className={styles.tableWrapper}>
+                            <table className={styles.table}>
+                              <caption className={styles.srOnly}>Players currently seated at this club</caption>
+                              <thead><tr>
+                                <th scope="col">Player</th><th scope="col">Table</th>
+                                <th scope="col">Duration</th><th scope="col">Action</th>
+                              </tr></thead>
+                              <tbody>
+                                {caClubDetail.sessions.map((session, i) => (
+                                  <tr key={session.id || i}>
+                                    <td style={{ fontWeight: 600 }}>{session.player_name || session.user_id || 'unknown'}</td>
+                                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                                      {session.table_id ? String(session.table_id).slice(0, 8) : '—'}
+                                    </td>
+                                    <td>{session.duration_minutes !== undefined && session.duration_minutes !== null
+                                      ? `${num(session.duration_minutes)}m` : '—'}</td>
+                                    <td>
+                                      <button className={styles.btnDanger} disabled={caProcessing}
+                                        onClick={() => kickSession(session)}>Kick</button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )
                       ) : (
                         (caClubDetail.pendingCashouts || []).length === 0 ? (
                           <div className={styles.emptyState}>No pending cashouts for this club.</div>
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
-                              <thead><tr><th>Player</th><th>Amount</th><th>Requested</th><th>Note</th><th>Action</th></tr></thead>
+                              <thead><tr><th scope="col">Player</th><th scope="col">Amount</th><th scope="col">Requested</th><th scope="col">Note</th><th scope="col">Action</th></tr></thead>
                               <tbody>
                                 {caClubDetail.pendingCashouts.map((c) => (
                                   <tr key={c.id}>
@@ -2800,10 +3546,12 @@ export default function HorsesAdmin() {
                                     <td style={{ fontSize: 12, color: T.dim }}>{when(c.created_at, true)}</td>
                                     <td style={{ fontSize: 12, color: T.dim }}>{c.agent_note || c.player_note || '—'}</td>
                                     <td>
-                                      <button className={styles.filterBtn} disabled={caProcessing}
-                                        onClick={() => forceCashoutApprove(c)}>
-                                        Force Approve
-                                      </button>
+                                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                        <button className={styles.filterBtn} disabled={caProcessing}
+                                          onClick={() => resolveCashout(c, 'approve')}>Approve</button>
+                                        <button className={styles.filterBtn} disabled={caProcessing}
+                                          onClick={() => resolveCashout(c, 'cancel')}>Return Chips</button>
+                                      </div>
                                     </td>
                                   </tr>
                                 ))}
@@ -2844,7 +3592,7 @@ export default function HorsesAdmin() {
                       ) : (
                         <div className={styles.tableWrapper}>
                           <table className={styles.table}>
-                            <thead><tr><th>Club</th><th>Player</th><th>Amount</th><th>Requested</th><th>Note</th><th>Action</th></tr></thead>
+                            <thead><tr><th scope="col">Club</th><th scope="col">Player</th><th scope="col">Amount</th><th scope="col">Requested</th><th scope="col">Note</th><th scope="col">Action</th></tr></thead>
                             <tbody>
                               {caPendingCashouts.map((c) => (
                                 <tr key={c.id}>
@@ -2856,10 +3604,12 @@ export default function HorsesAdmin() {
                                     {c.agent_note || c.player_note || '—'}
                                   </td>
                                   <td>
-                                    <button className={styles.filterBtn} disabled={caProcessing}
-                                      onClick={() => forceCashoutApprove(c)}>
-                                      Force Approve
-                                    </button>
+                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                      <button className={styles.filterBtn} disabled={caProcessing}
+                                        onClick={() => resolveCashout(c, 'approve')}>Approve</button>
+                                      <button className={styles.filterBtn} disabled={caProcessing}
+                                        onClick={() => resolveCashout(c, 'cancel')}>Return Chips</button>
+                                    </div>
                                   </td>
                                 </tr>
                               ))}
@@ -2874,7 +3624,7 @@ export default function HorsesAdmin() {
                       ) : (
                         <div className={styles.tableWrapper} style={{ maxHeight: 420, overflowY: 'auto' }}>
                           <table className={styles.table}>
-                            <thead><tr><th>Time</th><th>Club</th><th>Type</th><th>Amount</th><th>Notes</th></tr></thead>
+                            <thead><tr><th scope="col">Time</th><th scope="col">Club</th><th scope="col">Type</th><th scope="col">Amount</th><th scope="col">Notes</th></tr></thead>
                             <tbody>
                               {caFinance.recentTxns.map((txn, i) => (
                                 <tr key={txn.id || i}>
@@ -2892,6 +3642,287 @@ export default function HorsesAdmin() {
                         </div>
                       )}
                     </>
+                  )}
+
+                  {/* ── REVENUE ──
+                      rake_records holds 1.37M rows and 4,028,434 chips of rake
+                      all time, and had NO surface anywhere in this console.
+                      The Cashouts section headlined "Chips Minted (24h)" -- a
+                      zero -- while nearly 200,000 chips of rake moved in that
+                      same window, invisible. */}
+                  {caSection === 'revenue' && (
+                    caRevenueError ? (
+                      <div className={styles.errorState} role="alert">
+                        <div>Revenue unavailable: {caRevenueError}</div>
+                        <button className={styles.actionBtn} onClick={loadCaRevenue}>Retry</button>
+                      </div>
+                    ) : caRevenueLoading || !caRevenue ? (
+                      <div className={styles.loadingSpinner}>Loading Revenue</div>
+                    ) : (
+                      <>
+                        <div className={styles.kpiGrid}>
+                          <div className={styles.kpi}>
+                            <div className={styles.kpiValue} style={{ color: T.accent }}>{num(caRevenue.rake24h?.total)}</div>
+                            <div className={styles.kpiLabel}>Rake (24h)</div>
+                          </div>
+                          <div className={styles.kpi}>
+                            <div className={styles.kpiValue}>{num(caRevenue.rake7d?.total)}</div>
+                            <div className={styles.kpiLabel}>Rake (7d)</div>
+                          </div>
+                          <div className={styles.kpi}>
+                            <div className={styles.kpiValue} style={{ color: T.warn }}>{num(caRevenue.rake24h?.bbj)}</div>
+                            <div className={styles.kpiLabel}>Into BBJ (24h)</div>
+                          </div>
+                          <div className={styles.kpi}>
+                            <div className={styles.kpiValue}>{num(caRevenue.rake24h?.handCount ?? caRevenue.rake24h?.hands)}</div>
+                            <div className={styles.kpiLabel}>Raked Hands (24h)</div>
+                          </div>
+                          <div className={styles.kpi}>
+                            <div className={styles.kpiValue} style={{ color: T.warn }}>
+                              {num(caRevenue.unsettledCommissions?.total)}
+                            </div>
+                            <div className={styles.kpiLabel}>Unsettled Commission</div>
+                          </div>
+                        </div>
+
+                        {(caRevenue.rake24h?.truncated || caRevenue.rake7d?.truncated
+                          || caRevenue.unsettledCommissions?.truncated) && (
+                          <div className={styles.warnBanner}>
+                            One or more of these totals is summed over the most recent{' '}
+                            {num(caRevenue.pageSize)} rows only, so it is a floor rather than an exact
+                            figure. PostgREST aggregate functions are disabled on this project, so the
+                            sums are computed row by row.
+                          </div>
+                        )}
+
+                        <h3 className={styles.sectionTitle}>
+                          Rake By Club (24h)
+                          <button className={styles.filterBtn} style={{ marginLeft: 'auto' }}
+                            onClick={() => {
+                              downloadCsv(stampedName('rake-by-club'), toCsv(caRevenue.byClub || [], [
+                                ['club_name', 'Club'], ['club_id', 'Club ID'],
+                                ['rake', 'Rake'], ['bbj', 'BBJ'], ['hands', 'Hands'],
+                              ]));
+                              showNotification('Exported Rake By Club');
+                            }}>Export CSV</button>
+                        </h3>
+                        {(caRevenue.byClub || []).length === 0 ? (
+                          <div className={styles.emptyState}>No rake recorded in the last 24 hours.</div>
+                        ) : (
+                          <div className={styles.tableWrapper}>
+                            <table className={styles.table}>
+                              <caption className={styles.srOnly}>Rake taken per club over the last 24 hours</caption>
+                              <thead><tr>
+                                <th scope="col">Club</th><th scope="col">Rake</th>
+                                <th scope="col">Into BBJ</th><th scope="col">Hands</th>
+                              </tr></thead>
+                              <tbody>
+                                {caRevenue.byClub.map((c) => (
+                                  <tr key={c.club_id}>
+                                    <td>{c.club_name || <span style={{ color: T.muted }}>Unattributed</span>}</td>
+                                    <td style={{ fontWeight: 700, color: T.accent }}>{num(c.rake)}</td>
+                                    <td style={{ color: T.warn }}>{num(c.bbj)}</td>
+                                    <td>{num(c.hands)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+
+                        <h3 className={styles.sectionTitle}>
+                          Unsettled Agent Commission
+                          {caRevenue.unsettledCommissions?.rowCount > 0 && (
+                            <span className={`${styles.countPill} ${styles.warnPill}`}>
+                              {num(caRevenue.unsettledCommissions.rowCount)} rows
+                            </span>
+                          )}
+                        </h3>
+                        {(caRevenue.unsettledCommissions?.byAgent || []).length === 0 ? (
+                          <div className={styles.emptyState}>Nothing outstanding.</div>
+                        ) : (
+                          <div className={styles.tableWrapper}>
+                            <table className={styles.table}>
+                              <caption className={styles.srOnly}>Agent commission that has not been settled</caption>
+                              <thead><tr>
+                                <th scope="col">Agent</th><th scope="col">Club</th>
+                                <th scope="col">Owed</th><th scope="col">Entries</th>
+                              </tr></thead>
+                              <tbody>
+                                {caRevenue.unsettledCommissions.byAgent.map((a) => (
+                                  <tr key={a.user_id || 'unassigned'}>
+                                    <td style={{ fontWeight: 600 }}>{a.agent_name}</td>
+                                    <td>{a.club_name || '—'}</td>
+                                    <td style={{ fontWeight: 700, color: T.warn }}>{num(a.amount)}</td>
+                                    <td>{num(a.rows)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </>
+                    )
+                  )}
+
+                  {/* ── LEDGER ──
+                      reconcile_ledger_nightly has been filing drift into
+                      ledger_reconcile_log every morning and nothing had ever
+                      read it. CLAUDE.md section 11.5 built this machinery
+                      specifically so chip loss would be LOUD; it was silent
+                      because the only surface that could have shown it did not
+                      query it. */}
+                  {caSection === 'ledger' && (
+                    caLedgerError ? (
+                      <div className={styles.errorState} role="alert">
+                        <div>Ledger unavailable: {caLedgerError}</div>
+                        <button className={styles.actionBtn} onClick={loadCaLedger}>Retry</button>
+                      </div>
+                    ) : caLedgerLoading || !caLedger ? (
+                      <div className={styles.loadingSpinner}>Loading Ledger Reconciliation</div>
+                    ) : (
+                      <>
+                        {caLedger.counts?.critical > 0 && (
+                          <div className={styles.errorState} role="alert" style={{ textAlign: 'left' }}>
+                            <strong>{num(caLedger.counts.critical)} critical reconciliation rows.</strong>{' '}
+                            The nightly job found the chip ledger and the stored balances disagreeing.
+                            Every row below is a wallet whose recorded history does not add up to its balance.
+                          </div>
+                        )}
+
+                        <div className={styles.kpiGrid}>
+                          <div className={styles.kpi}>
+                            <div className={styles.kpiValue} style={{ color: caLedger.counts?.critical > 0 ? T.danger : T.accent }}>
+                              {num(caLedger.counts?.critical)}
+                            </div>
+                            <div className={styles.kpiLabel}>Critical</div>
+                          </div>
+                          <div className={styles.kpi}>
+                            <div className={styles.kpiValue} style={{ color: T.warn }}>{num(caLedger.counts?.warn)}</div>
+                            <div className={styles.kpiLabel}>Warnings</div>
+                          </div>
+                          <div className={styles.kpi}>
+                            <div className={styles.kpiValue} style={{ color: caLedger.counts?.unaccountedSeatExits > 0 ? T.danger : T.accent }}>
+                              {num(caLedger.counts?.unaccountedSeatExits)}
+                            </div>
+                            <div className={styles.kpiLabel}>Unaccounted Seat Exits</div>
+                          </div>
+                          <div className={styles.kpi}>
+                            <div className={styles.kpiValue} style={{ fontSize: 15 }}>{when(caLedger.lastRun?.run_ts, true)}</div>
+                            <div className={styles.kpiLabel}>Last Reconciliation</div>
+                          </div>
+                        </div>
+
+                        {caLedger.circulation?.length > 0 && (
+                          <>
+                            <h3 className={styles.sectionTitle}>Chip Circulation</h3>
+                            <div className={styles.tableWrapper}>
+                              <table className={styles.table}>
+                                <caption className={styles.srOnly}>Where the chips are, per club</caption>
+                                <thead><tr>
+                                  <th scope="col">Club</th><th scope="col">Member Wallets</th>
+                                  <th scope="col">On The Felt</th><th scope="col">Treasury</th><th scope="col">Total</th>
+                                </tr></thead>
+                                <tbody>
+                                  {caLedger.circulation.map((c, i) => (
+                                    <tr key={c.club_id || i}>
+                                      <td>{c.club_name || '—'}</td>
+                                      <td>{num(c.member_wallets)}</td>
+                                      <td>{num(c.on_the_felt)}</td>
+                                      <td>{num(c.treasury)}</td>
+                                      <td style={{ fontWeight: 700, color: T.accent }}>{num(c.total)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </>
+                        )}
+
+                        <h3 className={styles.sectionTitle}>
+                          Largest Drift
+                          <span className={styles.countPill}>
+                            top {num(caLedger.sampleSize)} of {num(caLedger.counts?.critical)}
+                          </span>
+                          <button className={styles.filterBtn} style={{ marginLeft: 'auto' }}
+                            onClick={() => {
+                              downloadCsv(stampedName('ledger-drift'), toCsv(caLedger.critical || [], [
+                                ['run_date', 'Run Date'], ['entity_type', 'Entity Type'],
+                                ['entity_id', 'Entity ID'], ['entity_name', 'Name'],
+                                ['ledger_balance', 'Ledger Balance'], ['stored_balance', 'Stored Balance'],
+                                ['drift', 'Drift'], ['severity', 'Severity'], ['notes', 'Notes'],
+                              ]));
+                              showNotification('Exported Ledger Drift');
+                            }}>Export CSV</button>
+                        </h3>
+                        {(caLedger.critical || []).length === 0 ? (
+                          <div className={styles.emptyState}>No critical drift. The ledger reconciles.</div>
+                        ) : (
+                          <div className={styles.tableWrapper} style={{ maxHeight: 520, overflowY: 'auto' }}>
+                            <table className={styles.table}>
+                              <caption className={styles.srOnly}>Wallets with the largest drift between ledger and stored balance</caption>
+                              <thead><tr>
+                                <th scope="col">Entity</th><th scope="col">Type</th>
+                                <th scope="col">Ledger</th><th scope="col">Stored</th>
+                                <th scope="col">Drift</th><th scope="col">Run</th>
+                              </tr></thead>
+                              <tbody>
+                                {caLedger.critical.map((r) => (
+                                  <tr key={r.id}>
+                                    <td>
+                                      <div style={{ fontWeight: 600 }}>{r.entity_name || '—'}</div>
+                                      <div style={{ fontSize: 11, color: T.muted, fontFamily: 'monospace' }}>
+                                        {r.entity_id ? String(r.entity_id).slice(0, 8) : ''}
+                                      </div>
+                                    </td>
+                                    <td>{r.entity_type}</td>
+                                    <td>{num(r.ledger_balance)}</td>
+                                    <td>{num(r.stored_balance)}</td>
+                                    <td style={{ fontWeight: 700, color: Number(r.drift) < 0 ? T.danger : T.warn }}>
+                                      {signed(r.drift)}
+                                    </td>
+                                    <td style={{ fontSize: 12, color: T.dim }}>{when(r.run_date)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+
+                        <h3 className={styles.sectionTitle}>
+                          Unaccounted Seat Exits
+                          <span style={{ color: T.dim, fontWeight: 400, fontSize: 13 }}>last 7 days</span>
+                        </h3>
+                        {(caLedger.unaccountedSeatExits || []).length === 0 ? (
+                          <div className={styles.emptyState}>
+                            Every non-zero stack that left a seat has a matching wallet credit.
+                          </div>
+                        ) : (
+                          <div className={styles.tableWrapper}>
+                            <table className={styles.table}>
+                              <caption className={styles.srOnly}>Stacks that left a seat with no matching wallet credit</caption>
+                              <thead><tr>
+                                <th scope="col">When</th><th scope="col">Player</th>
+                                <th scope="col">Stack</th><th scope="col">Exit</th>
+                                <th scope="col">Role</th><th scope="col">Application</th>
+                              </tr></thead>
+                              <tbody>
+                                {caLedger.unaccountedSeatExits.map((e) => (
+                                  <tr key={e.exit_id || e.id}>
+                                    <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{when(e.occurred_at, true)}</td>
+                                    <td style={{ fontWeight: 600 }}>{e.player_name}</td>
+                                    <td style={{ fontWeight: 700, color: T.danger }}>{num(e.stack)}</td>
+                                    <td>{e.exit_kind || '—'}</td>
+                                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{e.db_role || '—'}</td>
+                                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{e.app_name || '—'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </>
+                    )
                   )}
 
                   {/* ── USERS ── (searchCaUsers and loadCaUserDetail were unreachable) */}
@@ -2947,7 +3978,7 @@ export default function HorsesAdmin() {
                               ) : (
                                 <div className={styles.tableWrapper}>
                                   <table className={styles.table}>
-                                    <thead><tr><th>Club</th><th>Role</th><th>Chips</th><th>Hands</th><th>Status</th><th>Joined</th></tr></thead>
+                                    <thead><tr><th scope="col">Club</th><th scope="col">Role</th><th scope="col">Chips</th><th scope="col">Hands</th><th scope="col">Status</th><th scope="col">Joined</th></tr></thead>
                                     <tbody>
                                       {caSelectedUser.memberships.map((m) => (
                                         <tr key={m.row_key}>
@@ -2970,7 +4001,7 @@ export default function HorsesAdmin() {
                               ) : (
                                 <div className={styles.tableWrapper}>
                                   <table className={styles.table}>
-                                    <thead><tr><th>Time</th><th>Club</th><th>Direction</th><th>Type</th><th>Amount</th></tr></thead>
+                                    <thead><tr><th scope="col">Time</th><th scope="col">Club</th><th scope="col">Direction</th><th scope="col">Type</th><th scope="col">Amount</th></tr></thead>
                                     <tbody>
                                       {caSelectedUser.txns.map((t, i) => (
                                         <tr key={t.id || i}>
@@ -2994,7 +4025,7 @@ export default function HorsesAdmin() {
                               ) : (
                                 <div className={styles.tableWrapper}>
                                   <table className={styles.table}>
-                                    <thead><tr><th>Time</th><th>Club</th><th>Amount</th><th>Status</th><th>Note</th></tr></thead>
+                                    <thead><tr><th scope="col">Time</th><th scope="col">Club</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Note</th></tr></thead>
                                     <tbody>
                                       {caSelectedUser.cashouts.map((c) => (
                                         <tr key={c.id}>
@@ -3020,13 +4051,15 @@ export default function HorsesAdmin() {
                         </div>
                       ) : (
                         <div className={styles.cardGrid}>
+                          {/* Same change as the club cards: a real button
+                              carries the activation instead of a div with
+                              role="button" and an Enter-only key handler. */}
                           {caUserResults.map((u) => (
-                            <div key={u.id} className={`${styles.card} ${styles.clickableCard}`}
-                              onClick={() => loadCaUserDetail(u)}
-                              role="button" tabIndex={0}
-                              onKeyDown={(e) => { if (e.key === 'Enter') loadCaUserDetail(u); }}
-                            >
-                              <div style={{ fontWeight: 700, color: T.text }}>{u.display_name || u.username || 'Unknown'}</div>
+                            <div key={u.id} className={styles.card}>
+                              <button type="button" className={styles.cardTitleBtn}
+                                onClick={() => loadCaUserDetail(u)}>
+                                {u.display_name || u.username || 'Unknown'}
+                              </button>
                               <div style={{ fontSize: 12, color: T.dim, marginTop: 2 }}>{u.email || 'no email'}</div>
                               <div style={{ fontSize: 11, color: T.muted, marginTop: 6 }}>
                                 Player #{num(u.player_number)} — {u.role || 'user'}
@@ -3073,7 +4106,7 @@ export default function HorsesAdmin() {
                       </h3>
                       <div className={styles.filterBar}>
                         {['pending', 'all'].map((f) => (
-                          <button key={f} className={`${styles.filterBtn} ${caAppTab === f ? styles.active : ''}`}
+                          <button key={f} className={`${styles.filterBtn} ${caAppTab === f ? styles.active : ''}`} aria-pressed={caAppTab === f}
                             onClick={() => { setCaAppTab(f); loadApplications(f); }}>
                             {f === 'pending' ? 'Pending' : 'All'}
                           </button>
@@ -3157,7 +4190,7 @@ export default function HorsesAdmin() {
                       </h3>
                       <div className={styles.filterBar}>
                         {['pending', 'all'].map((f) => (
-                          <button key={f} className={`${styles.filterBtn} ${caLeaveTab === f ? styles.active : ''}`}
+                          <button key={f} className={`${styles.filterBtn} ${caLeaveTab === f ? styles.active : ''}`} aria-pressed={caLeaveTab === f}
                             onClick={() => { setCaLeaveTab(f); loadLeaveRequests(f); }}>
                             {f === 'pending' ? 'Pending' : 'All'}
                           </button>
@@ -3270,7 +4303,7 @@ export default function HorsesAdmin() {
                     <div className={styles.tableWrapper}>
                       <table className={styles.table}>
                         <thead>
-                          <tr><th>Question</th><th>Page</th><th>Asked</th><th>Last Asked</th><th>Actions</th></tr>
+                          <tr><th scope="col">Question</th><th scope="col">Page</th><th scope="col">Asked</th><th scope="col">Last Asked</th><th scope="col">Actions</th></tr>
                         </thead>
                         <tbody>
                           {geevesAnalytics.questions.map((q) => (
@@ -3505,7 +4538,8 @@ export default function HorsesAdmin() {
                         ['Healthy', scraperHealth.summary.healthyCount, T.accent],
                         ['Warning', scraperHealth.summary.warningCount, T.warn],
                         ['Dead', scraperHealth.summary.deadCount, T.danger],
-                        ['Unknown', scraperHealth.summary.unknownCount, T.muted],
+                        ['Not Instrumented', scraperHealth.summary.notInstrumentedCount, T.muted],
+                        ['Disabled', scraperHealth.summary.disabledCount, T.muted],
                         ['Supabase Data', scraperHealth.summary.dataFresh ? 'Fresh' : 'Stale',
                           scraperHealth.summary.dataFresh ? T.accent : T.danger],
                       ].map(([label, value, color]) => (
@@ -3524,9 +4558,19 @@ export default function HorsesAdmin() {
                   ) : (
                     <div className={styles.cardGrid}>
                       {scraperHealth.daemons.map((daemon) => {
+                        // `not_instrumented` and `disabled` are distinct from
+                        // `unknown`: seven daemons publish no heartbeat at all,
+                        // and Bravo is intentionally off per the live cash
+                        // games policy. Rendering those as faults made the tab
+                        // permanently alarming and therefore ignorable.
                         const color = {
-                          healthy: T.accent, warning: T.warn, dead: T.danger, unknown: T.muted,
+                          healthy: T.accent, warning: T.warn, dead: T.danger,
+                          unknown: T.muted, not_instrumented: T.muted, disabled: T.muted,
                         }[daemon.status] || T.muted;
+                        const statusLabel = {
+                          healthy: 'Healthy', warning: 'Warning', dead: 'Dead',
+                          unknown: 'Unknown', not_instrumented: 'Not Instrumented', disabled: 'Disabled',
+                        }[daemon.status] || daemon.status || 'Unknown';
                         const hb = daemon.heartbeat;
                         return (
                           <div key={daemon.id} className={styles.card} style={{ borderLeft: `4px solid ${color}` }}>
@@ -3536,12 +4580,17 @@ export default function HorsesAdmin() {
                                 <div style={{ fontSize: 12, color: T.dim, marginTop: 2 }}>
                                   {daemon.type ? `${daemon.type} — ` : ''}interval {daemon.interval || 'unknown'}
                                 </div>
+                                {daemon.statusReason && (
+                                  <div style={{ fontSize: 12, color: T.muted, marginTop: 4, maxWidth: 420 }}>
+                                    {daemon.statusReason}
+                                  </div>
+                                )}
                               </div>
                               <span style={{
                                 background: `${color}22`, color, border: `1px solid ${color}`,
                                 borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700,
                                 whiteSpace: 'nowrap', textTransform: 'capitalize',
-                              }}>{daemon.status || 'unknown'}</span>
+                              }}>{statusLabel}</span>
                             </div>
 
                             {hb ? (
@@ -3599,7 +4648,7 @@ export default function HorsesAdmin() {
             onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false); }}
             role="dialog" aria-modal="true" aria-label={editingPersona ? 'Edit horse' : 'New horse'}
           >
-            <div className={styles.modalContent}>
+            <div className={styles.modalContent} ref={modalRef}>
               <div className={styles.modalHeader}>
                 <h2>{editingPersona ? `Edit ${editingPersona.name}` : 'New Horse'}</h2>
                 <button className={styles.closeBtn} onClick={() => setShowCreateModal(false)} aria-label="Close">

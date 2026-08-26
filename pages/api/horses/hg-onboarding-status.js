@@ -24,6 +24,36 @@ function getSB() {
   return _sb;
 }
 
+
+/**
+ * A client that speaks AS THE CALLER.
+ *
+ * The Home Games moderation RPCs open with:
+ *
+ *     IF auth.uid() IS NULL OR auth.uid() <> p_caller_user_id THEN
+ *       RAISE EXCEPTION 'UNAUTHORIZED';
+ *
+ * They are SECURITY DEFINER, so they do their own role check internally and
+ * do not need the service role to read the tables -- but they DO need
+ * `auth.uid()` to resolve. Under the service-role key `auth.uid()` is NULL, so
+ * calling them with the module-level admin client raised UNAUTHORIZED every
+ * single time and this route turned that into a 500.
+ *
+ * That is why the whole Home Games moderation page has been non-functional:
+ * the list never loaded, and no report or appeal could be resolved.
+ *
+ * Passing the caller's JWT as the Authorization header makes `auth.uid()`
+ * resolve to the admin who is actually clicking the button, which is also the
+ * identity the functions want to attribute the action to.
+ */
+function getUserSB(token) {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } },
+  );
+}
+
 async function requireAdmin(req, res) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) { res.status(401).json({ error: 'Authorization required' }); return null; }
@@ -43,6 +73,9 @@ export default async function handler(req, res) {
   if (!applyRateLimit(req, res, LIMITS.read)) return;
 
   try {
+    // The SECURITY DEFINER moderation RPCs need auth.uid() to resolve to the
+    // caller, so the raw bearer token is forwarded to them below.
+    const callerToken = req.headers.authorization?.replace('Bearer ', '');
     const user = await requireAdmin(req, res);
     if (!user) return;
 
@@ -54,7 +87,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'userId must be a valid uuid' });
     }
 
-    const { data, error } = await getSB().rpc('fn_get_home_games_onboarding_status_admin', {
+    const { data, error } = await getUserSB(callerToken).rpc('fn_get_home_games_onboarding_status_admin', {
       p_caller_user_id: user.id,
       p_target_user_id: userId,
     });
