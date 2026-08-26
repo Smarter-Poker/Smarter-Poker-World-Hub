@@ -5,8 +5,13 @@
  * ADMIN-ONLY (admin|superadmin|god). Customer-support lookup.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
+
+// A malformed id reaches Postgres as an invalid uuid literal and comes back as
+// a 500. Reject it up front as the 400 it actually is.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 let _sb = null;
 function getSB() {
@@ -35,6 +40,8 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
   try {
     const user = await requireAdmin(req, res);
     if (!user) return;
@@ -43,6 +50,9 @@ export default async function handler(req, res) {
     if (!userId) {
       return res.status(400).json({ success: false, error: 'userId query param required' });
     }
+    if (!UUID_RE.test(String(userId))) {
+      return res.status(400).json({ success: false, error: 'userId must be a valid uuid' });
+    }
 
     const { data, error } = await getSB().rpc('fn_get_home_games_onboarding_status_admin', {
       p_caller_user_id: user.id,
@@ -50,7 +60,7 @@ export default async function handler(req, res) {
     });
     if (error) {
       console.warn('[hg-onboarding-status GET]', error);
-      return res.status(500).json({ success: false, error: error.message });
+      return res.status(500).json({ success: false, error: 'Failed to load onboarding status' });
     }
     return res.status(200).json({ success: true, status: data });
   } catch (err) {

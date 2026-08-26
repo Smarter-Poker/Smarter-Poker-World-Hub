@@ -6,6 +6,7 @@
 import { HorseAlertingService, ClipUsageTracker } from '../../../src/content-engine/pipeline/HorseAlertingService.js';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -15,6 +16,7 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
       // BUG #250 FIX: Require admin auth for analytics dashboard
       const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
       const _token = req.headers.authorization?.replace('Bearer ', '');
@@ -78,10 +80,12 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Invalid type parameter' });
 
       } catch (error) {
+          // Log the real cause server-side; never hand internal error text
+          // (table names, connection strings, stack detail) to the client.
           console.warn('Analytics API error:', error);
           return res.status(500).json({
               success: false,
-              error: error.message
+              error: 'Failed to load analytics'
           });
       }
 

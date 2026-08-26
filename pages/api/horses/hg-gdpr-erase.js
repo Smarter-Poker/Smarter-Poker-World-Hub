@@ -10,6 +10,10 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 
+// A malformed id reaches Postgres as an invalid uuid literal and comes back as
+// a 500. Reject it up front as the 400 it actually is.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 let _sb = null;
 function getSB() {
   if (!_sb) {
@@ -48,6 +52,9 @@ export default async function handler(req, res) {
     if (!userId) {
       return res.status(400).json({ success: false, error: 'userId required' });
     }
+    if (!UUID_RE.test(String(userId))) {
+      return res.status(400).json({ success: false, error: 'userId must be a valid uuid' });
+    }
     if (confirmed !== true) {
       return res.status(400).json({ success: false, error: 'confirmed must be true — this action is irreversible' });
     }
@@ -59,7 +66,7 @@ export default async function handler(req, res) {
     });
     if (error) {
       console.warn('[hg-gdpr-erase POST]', error);
-      return res.status(500).json({ success: false, error: error.message });
+      return res.status(500).json({ success: false, error: 'Erasure request failed' });
     }
     return res.status(200).json({ success: true, counts: data });
   } catch (err) {

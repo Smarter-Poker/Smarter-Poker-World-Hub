@@ -15,21 +15,35 @@ import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { useRouter } from 'next/router';
 
-const BG = '#09090b';
-const PANEL = '#18181b';
-const BORDER = '#27272a';
-const TEXT = '#e4e4e7';
-const MUTED = '#a1a1aa';
-const GREEN = '#10b981';
+/* smarter.poker palette. Mirrors pages/horses/horses.module.css and the Club
+   Arena design tokens. Dan 2026-08-26: no purples, no greens - cyan is the
+   accent AND the positive/win colour. This page used the zinc scale plus
+   #10b981 for wins, which matched nothing else on the platform. */
+const BG = '#0a0e17';
+const PANEL = '#111827';
+const SURFACE = '#1a2234';
+const INSET = '#0d1520';
+const BORDER = 'rgba(255,255,255,0.08)';
+const TEXT = '#f3f4f6';
+const DIM = '#9ca3af';
+const MUTED = '#6b7280';
+const ACCENT = '#00d4ff';
+const ACCENT_SOFT = 'rgba(0,212,255,0.12)';
+const ACCENT_LINE = 'rgba(0,212,255,0.30)';
+const POSITIVE = ACCENT;
 const RED = '#ef4444';
-const AMBER = '#f59e0b';
+const RED_SOFT = 'rgba(239,68,68,0.12)';
+const AMBER = '#ffd700';
 
 const VARIANTS = ['', 'nlh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_deck', 'pineapple'];
 const FORMATS = ['', 'cash', 'hu_cash', 'tournament'];
 const PAGE_SIZE = 50;
 
 const SUIT_GLYPH = { hearts: 'h', diamonds: 'd', clubs: 'c', spades: 's' };
-const SUIT_COLOR = { hearts: RED, diamonds: '#3b82f6', clubs: GREEN, spades: TEXT };
+// Club Arena's canonical deck is two-colour (src/styles/club-engine.css).
+// The suit letter is rendered next to the rank, so hearts and diamonds stay
+// distinguishable without a third and fourth hue.
+const SUIT_COLOR = { hearts: RED, diamonds: RED, clubs: TEXT, spades: TEXT };
 
 function CardChip({ card }) {
   if (!card) return null;
@@ -46,7 +60,7 @@ function CardChip({ card }) {
     <span
       style={{
         display: 'inline-block',
-        background: '#0f0f11',
+        background: INSET,
         border: `1px solid ${BORDER}`,
         borderRadius: 4,
         padding: '2px 6px',
@@ -68,8 +82,9 @@ function TagChip({ tag }) {
     <span
       style={{
         display: 'inline-block',
-        background: isLeak ? '#7f1d1d' : '#064e3b',
-        color: '#fecaca',
+        background: isLeak ? RED_SOFT : ACCENT_SOFT,
+        color: isLeak ? RED : ACCENT,
+        border: `1px solid ${isLeak ? 'rgba(239,68,68,0.3)' : ACCENT_LINE}`,
         borderRadius: 4,
         padding: '2px 8px',
         marginRight: 4,
@@ -86,7 +101,7 @@ function HandDetail({ row }) {
   const actions = Array.isArray(row.actions) ? row.actions : [];
   const stages = ['preflop', 'flop', 'turn', 'river'];
   return (
-    <div style={{ background: '#0f0f11', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '0.75rem 1rem', margin: '0.5rem 0' }}>
+    <div style={{ background: INSET, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '0.75rem 1rem', margin: '0.5rem 0' }}>
       <div style={{ marginBottom: 8 }}>
         <span style={{ color: MUTED, marginRight: 8 }}>Hole Cards:</span>
         {(row.hole_cards || []).map((c, i) => (
@@ -143,7 +158,7 @@ export default function HorseHandReviews() {
     const verify = async () => {
       const user = getAuthUser();
       if (!user?.id) {
-        router.push('/login');
+        router.push('/auth/login?redirect=/horses/hand-reviews');
         return;
       }
       const { data: profile } = await supabase
@@ -211,7 +226,7 @@ export default function HorseHandReviews() {
   };
 
   const inputStyle = {
-    background: '#0f0f11',
+    background: INSET,
     color: TEXT,
     border: `1px solid ${BORDER}`,
     borderRadius: 4,
@@ -222,19 +237,20 @@ export default function HorseHandReviews() {
   return (
     <div style={{ background: BG, minHeight: '100vh', color: TEXT, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <Head>
-        <title>Horse Hand Reviews</title>
+        <title>Horse Hand Reviews | Smarter.Poker</title>
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '2rem' }}>
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: `1px solid ${BORDER}`, paddingBottom: '1rem' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: '#f4f4f5' }}>Horse Hand Reviews</h1>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: TEXT }}>Horse Hand Reviews</h1>
             <p style={{ margin: '0.5rem 0 0 0', color: MUTED, fontSize: '0.875rem' }}>
               Every hand where a horse won or lost 20bb+, flagged at settlement with leak tags. Raw hands kept 30 days; rollups permanent.
             </p>
           </div>
           <button
             onClick={() => router.push('/horses')}
-            style={{ background: BORDER, color: TEXT, border: 'none', padding: '0.5rem 1rem', borderRadius: 4, cursor: 'pointer' }}
+            style={{ background: SURFACE, color: TEXT, border: `1px solid ${BORDER}`, padding: '0.5rem 1rem', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
           >
             Back To Stable
           </button>
@@ -250,14 +266,19 @@ export default function HorseHandReviews() {
               <option value={30}>Last 30 Days</option>
             </select>
           </div>
-          {summaryError && <div style={{ color: RED, fontSize: '0.85rem' }}>{summaryError}</div>}
+          {summaryError && (
+            <div style={{ color: RED, fontSize: '0.85rem', marginBottom: 8 }}>
+              {summaryError}{' '}
+              <button onClick={loadSummary} style={{ ...inputStyle, cursor: 'pointer', color: ACCENT, marginLeft: 8 }}>Retry</button>
+            </div>
+          )}
           <div style={{ marginBottom: '0.75rem' }}>
             <span style={{ color: MUTED, fontSize: '0.85rem', marginRight: 8 }}>Fleet Leak Tags:</span>
             {Object.keys(fleetLeaks).length === 0 && <span style={{ color: MUTED, fontSize: '0.85rem' }}>none recorded yet</span>}
             {Object.entries(fleetLeaks)
               .sort((a, b) => b[1] - a[1])
               .map(([k, v]) => (
-                <button key={k} onClick={() => setFilter('tag', filters.tag === k ? '' : k)} style={{ background: filters.tag === k ? '#7f1d1d' : '#0f0f11', color: TEXT, border: `1px solid ${filters.tag === k ? RED : BORDER}`, borderRadius: 4, padding: '2px 8px', marginRight: 6, marginBottom: 4, cursor: 'pointer', fontSize: '0.78rem' }}>
+                <button key={k} onClick={() => setFilter('tag', filters.tag === k ? '' : k)} style={{ background: filters.tag === k ? RED_SOFT : INSET, color: TEXT, border: `1px solid ${filters.tag === k ? RED : BORDER}`, borderRadius: 4, padding: '2px 8px', marginRight: 6, marginBottom: 4, cursor: 'pointer', fontSize: '0.78rem' }}>
                   {k}: {v}
                 </button>
               ))}
@@ -278,12 +299,12 @@ export default function HorseHandReviews() {
                   <tr
                     key={hRow.horse_user_id}
                     onClick={() => setFilter('horse', filters.horse === hRow.horse_user_id ? '' : hRow.horse_user_id)}
-                    style={{ borderTop: `1px solid ${BORDER}`, cursor: 'pointer', background: filters.horse === hRow.horse_user_id ? '#1e293b' : 'transparent' }}
+                    style={{ borderTop: `1px solid ${BORDER}`, cursor: 'pointer', background: filters.horse === hRow.horse_user_id ? ACCENT_SOFT : 'transparent' }}
                   >
-                    <td style={{ padding: '0.4rem', fontWeight: 600 }}>{hRow.alias || hRow.horse_user_id.slice(0, 8)}</td>
-                    <td style={{ padding: '0.4rem', color: GREEN }}>{hRow.big_wins}</td>
+                    <td style={{ padding: '0.4rem', fontWeight: 600 }}>{hRow.alias || (hRow.horse_user_id ? String(hRow.horse_user_id).slice(0, 8) : 'unknown')}</td>
+                    <td style={{ padding: '0.4rem', color: POSITIVE }}>{hRow.big_wins}</td>
                     <td style={{ padding: '0.4rem', color: RED }}>{hRow.big_losses}</td>
-                    <td style={{ padding: '0.4rem', color: Number(hRow.sum_net_bb) >= 0 ? GREEN : RED }}>{hRow.sum_net_bb}</td>
+                    <td style={{ padding: '0.4rem', color: Number(hRow.sum_net_bb) >= 0 ? POSITIVE : RED }}>{hRow.sum_net_bb}</td>
                     <td style={{ padding: '0.4rem' }}>
                       {Object.entries(hRow.leak_counts || {})
                         .sort((a, b) => b[1] - a[1])
@@ -335,7 +356,12 @@ export default function HorseHandReviews() {
             )}
             <span style={{ color: MUTED, fontSize: '0.8rem', marginLeft: 'auto' }}>{busy ? 'Loading...' : `${rows.length} rows`}</span>
           </div>
-          {rowsError && <div style={{ color: RED, fontSize: '0.85rem', marginBottom: 8 }}>{rowsError}</div>}
+          {rowsError && (
+            <div style={{ color: RED, fontSize: '0.85rem', marginBottom: 8 }}>
+              {rowsError}{' '}
+              <button onClick={loadRows} style={{ ...inputStyle, cursor: 'pointer', color: ACCENT, marginLeft: 8 }}>Retry</button>
+            </div>
+          )}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
@@ -359,7 +385,7 @@ export default function HorseHandReviews() {
                       <td style={{ padding: '0.4rem', whiteSpace: 'nowrap' }}>{new Date(r.played_at).toLocaleString()}</td>
                       <td style={{ padding: '0.4rem' }}>{r.game_variant}</td>
                       <td style={{ padding: '0.4rem' }}>{r.format}</td>
-                      <td style={{ padding: '0.4rem', fontWeight: 700, color: r.net_bb >= 0 ? GREEN : RED }}>
+                      <td style={{ padding: '0.4rem', fontWeight: 700, color: r.net_bb >= 0 ? POSITIVE : RED }}>
                         {r.net_bb >= 0 ? '+' : ''}
                         {r.net_bb}
                       </td>

@@ -6,6 +6,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
 function getSupabase() {
@@ -20,6 +21,8 @@ function getSupabase() {
 export default async function handler(req, res) {
   try {
       if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       // ── AUTH: Require valid JWT + admin role ──
       const token = req.headers.authorization?.replace('Bearer ', '');
@@ -48,13 +51,32 @@ export default async function handler(req, res) {
                   .order('last_signup_at', { ascending: false })
                   .limit(100);
 
-              // Stats
-              const totalSignups = abuseLog?.length || 0;
-              const blocked = abuseLog?.filter(a => a.deleted_account_count > 0 || (a.abuse_flags && a.abuse_flags.length > 0)).length || 0;
-              const disposable = abuseLog?.filter(a => {
+              // Stats over the WHOLE table, not just the 100-row page above.
+              // These were previously derived from `abuseLog` alone, so
+              // "Total Signups" was really the page size.
+              const [totalRes, deletedRes, flaggedRes] = await Promise.all([
+                  getSupabase().from('signup_abuse_log').select('id', { count: 'exact', head: true }),
+                  getSupabase().from('signup_abuse_log').select('id', { count: 'exact', head: true }).gt('deleted_account_count', 0),
+                  getSupabase().from('signup_abuse_log').select('id', { count: 'exact', head: true })
+                      .not('abuse_flags', 'is', null).neq('abuse_flags', '[]'),
+              ]);
+
+              if (totalRes.error) console.warn('[Anti-Abuse] total count error:', totalRes.error.message || totalRes.error);
+              if (deletedRes.error) console.warn('[Anti-Abuse] deleted count error:', deletedRes.error.message || deletedRes.error);
+              if (flaggedRes.error) console.warn('[Anti-Abuse] flagged count error:', flaggedRes.error.message || flaggedRes.error);
+
+              const totalSignups = totalRes.count ?? null;
+              const blocked = flaggedRes.count ?? null;
+              const deletedAccounts = deletedRes.count ?? null;
+
+              // `disposable` depends on the CONTENT of each abuse_flags entry,
+              // which PostgREST cannot aggregate. It is therefore computed over
+              // the fetched page only and labelled as such rather than being
+              // presented as a whole-table figure.
+              const disposable = (abuseLog || []).filter(a => {
                   const flags = a.abuse_flags || [];
-                  return flags.some(f => f.reason?.includes('disposable'));
-              }).length || 0;
+                  return Array.isArray(flags) && flags.some(f => f?.reason?.includes('disposable'));
+              }).length;
 
               // Top IPs
               const ipCounts = {};
@@ -70,7 +92,13 @@ export default async function handler(req, res) {
 
               result.abuse = {
                   log: abuseLog || [],
-                  stats: { totalSignups, blocked, disposable },
+                  stats: {
+                      totalSignups,
+                      blocked,
+                      deletedAccounts,
+                      disposable,
+                      disposableScope: 'current page only',
+                  },
                   topIPs,
               };
           }
@@ -88,11 +116,20 @@ export default async function handler(req, res) {
 
           // ── DIAMOND ECONOMY ──
           if (section === 'all' || section === 'economy') {
-              // Diamond source breakdown
-              const { data: transactions } = await getSupabase()
+              // Diamond source breakdown over a defined 30-day window.
+              // Previously this pulled 5000 rows with NO order and NO window,
+              // so Postgres returned an arbitrary 5000 rows and the breakdown
+              // described no particular period at all.
+              const ECONOMY_WINDOW_DAYS = 30;
+              const economySince = new Date(Date.now() - ECONOMY_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+              const { data: transactions, error: txErr } = await getSupabase()
                   .from('diamond_transactions')
                   .select('transaction_type, amount')
+                  .gte('created_at', economySince)
+                  .order('created_at', { ascending: false })
                   .limit(5000);
+
+              if (txErr) console.warn('[Anti-Abuse] diamond_transactions error:', txErr.message || txErr);
 
               const sourceBreakdown = {};
               let totalGranted = 0;
@@ -117,6 +154,9 @@ export default async function handler(req, res) {
                   totalGranted,
                   totalSpent,
                   topHolders: topHolders || [],
+                  windowDays: ECONOMY_WINDOW_DAYS,
+                  windowSince: economySince,
+                  truncated: (transactions || []).length >= 5000,
               };
           }
 

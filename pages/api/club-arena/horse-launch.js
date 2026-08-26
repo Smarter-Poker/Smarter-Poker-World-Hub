@@ -8,10 +8,6 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  *
  * Actions:
  *   launch_all     — Full fleet deployment (cash + tournaments + SNGs + Spins)
- *   launch_cash    — Cash tables only
- *   launch_tournaments — Today's tournaments only
- *   launch_sngs    — All SNGs
- *   launch_spins   — All Spins
  *   status         — Current fleet status
  *   shutdown       — Mark all horse-owned tables as closed
  *
@@ -19,6 +15,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // Phase 61: Was injected by automated retrofit at line 291 INSIDE
@@ -55,7 +52,8 @@ function getSupabase() {
 const SHARK_CLUB_ID = 'a41434bb-8d0c-400a-8f0d-e8b3d65afed4';
 const JAQK_CLUB_ID  = 'a0000000-0000-0000-0000-000000000001';
 const UNION_ID      = 'fade0000-0000-0000-0000-000000000001';
-const OWNER_ID      = '47965354-0e56-43ef-931c-ddaab82af765'; // Dan
+// (The former OWNER_ID constant gated this route to a single hardcoded
+// account. Authorization now reads profiles.role — see the handler.)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CASH TABLE CONFIGS (39 tables)
@@ -418,11 +416,28 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
   const user = authData?.user;
   if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
-  if (user.id !== OWNER_ID) return res.status(403).json({ error: 'Admin only' });
+
+  // Was `user.id !== OWNER_ID` against a hardcoded UUID, which locked out
+  // every admin except that one account.
+  const { data: callerProfile } = await getSupabase()
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (!['admin', 'superadmin', 'god'].includes(callerProfile?.role)) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
 
   const { action } = req.body;
   const log = [];
   const t0 = Date.now();
+
+  // Heaviest write on the platform: launch_all creates ~117 tables plus every
+  // tournament, SNG and Spin, and seats hundreds of horses. shutdown walks
+  // every active table. One per five minutes, per caller.
+  if (action === 'launch_all' || action === 'shutdown') {
+    if (!applyRateLimit(req, res, { max: 1, windowMs: 5 * 60_000, scope: `:${action}` })) return;
+  }
 
   try {
     // ═══════════════════════════════════════════════════════
@@ -482,7 +497,7 @@ export default async function handler(req, res) {
       log.push(`✅ Tournaments created: ${tournamentsCreated}, horses registered: ${tournamentsRegistered}`);
 
       // 3. Create SNGs (alternating clubs)
-      let sngsCreated = 0, sngRegistered = 0;
+      let sngsCreated = 0, sngRegistered = 0, sngFailures = 0;
       for (const cfg of SNG_CONFIGS) {
         // UNION LAW: SNGs are hosted by the Midway Union house club.
         const clubId = UNION_ID;
@@ -518,9 +533,15 @@ export default async function handler(req, res) {
             const stat = horseStats.get(h.id);
             stat.tournaments += 1;
           }
+        } else {
+          // Previously swallowed entirely: sngsCreated just under-reported
+          // with no signal anywhere that inserts were failing.
+          sngFailures++;
+          log.push(`SNG "${cfg.name}" failed: ${error?.message || 'insert returned no row'}`);
+          console.warn('[horse-launch] SNG insert failed:', cfg.name, error?.message || error);
         }
       }
-      log.push(`✅ SNGs created: ${sngsCreated}, horses registered: ${sngRegistered}`);
+      log.push(`✅ SNGs created: ${sngsCreated}, horses registered: ${sngRegistered}, failed: ${sngFailures}`);
 
       // 4. Create Spins (alternating clubs, with multiplier)
       let spinsCreated = 0, spinRegistered = 0;
@@ -634,6 +655,7 @@ export default async function handler(req, res) {
         tournamentsRegistered,
         sngRegistered,
         spinRegistered,
+        warnings: sngFailures,
         elapsed: `${elapsed}ms`,
         log,
       };
@@ -736,7 +758,10 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[horse-launch]', err);
-    return res.status(500).json({ error: err.message || 'Launch failed', log });
+    // The internal step-by-step log and the raw error text both stay
+    // server-side; neither belongs in a client response.
+    console.error('[horse-launch] failed:', err);
+    console.error('[horse-launch] progress log at failure:', log);
+    return res.status(500).json({ error: 'Launch failed' });
   }
 }

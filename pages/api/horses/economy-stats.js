@@ -10,6 +10,11 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+
+// Upper bound on any unbounded row pull in this route.
+const ROW_CAP = 500;
+const TX_CAP = 20000;
 
 let _supabase = null;
 function getSupabase() {
@@ -27,6 +32,8 @@ export default async function handler(req, res) {
           return res.status(405).json({ error: 'Method not allowed' });
       }
 
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
+
       // Auth: require valid JWT session
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Authorization required' });
@@ -43,10 +50,31 @@ export default async function handler(req, res) {
       }
 
       try {
+          // A transaction counts as a REWARD when its type matches an
+          // action_key in diamond_reward_catalog — the same definition
+          // award_diamonds_v2 uses. This used to be expressed as a PostgREST
+          // embed (`diamond_reward_catalog!inner(action_key)`), but there is NO
+          // foreign key between diamond_transactions and
+          // diamond_reward_catalog in production, so PostgREST rejected it with
+          // PGRST200 on every call. The error was never checked, so
+          // totalDiamondsEarned and totalRewardClaims silently rendered 0
+          // forever. The catalog is now read directly and matched server-side.
+          const { data: catalogRows, error: catalogError } = await getSupabase()
+              .from('diamond_reward_catalog')
+              .select('action_key');
+
+          if (catalogError) {
+              console.warn('[EconomyStats] diamond_reward_catalog error:', catalogError.message || catalogError);
+              return res.status(500).json({ error: 'Failed to load economy stats' });
+          }
+
+          const actionKeys = (catalogRows || []).map(r => r.action_key).filter(Boolean);
+
           // ── Parallel data fetching for speed ──
           const [
               transactionsResult,
-              rewardClaimsResult,
+              rewardsByTxTypeResult,
+              rewardsByTypeResult,
               diamondPurchasesResult,
               vipSubsResult,
               totalUsersResult,
@@ -65,30 +93,42 @@ export default async function handler(req, res) {
               // Reads the LEDGER, not diamond_reward_claims. That table looks
               // like the right source and is not: award_diamonds_v2 never
               // writes it (verified against prosrc), so it holds only legacy
-              // v1 rows and stopped growing on 2026-07-25. Every reward paid
-              // since then was invisible here, so this dashboard has been
-              // under-reporting earned diamonds for weeks.
+              // v1 rows and stopped growing on 2026-07-25.
               //
-              // The join to diamond_reward_catalog is what makes a row a
-              // REWARD rather than a purchase, an admin adjustment or a
-              // received gift — the same definition award_diamonds_v2 uses for
-              // its cap accounting.
-              getSupabase()
-                  .from('diamond_transactions')
-                  .select('amount, transaction_type, diamond_reward_catalog!inner(action_key)')
-                  .gt('amount', 0),
+              // Two queries because the ledger records the action in EITHER
+              // column: older rows carry it in `type` with `transaction_type`
+              // null, newer rows populate both. They are de-duplicated by id.
+              actionKeys.length
+                  ? getSupabase()
+                      .from('diamond_transactions')
+                      .select('id, amount')
+                      .gt('amount', 0)
+                      .in('transaction_type', actionKeys)
+                      .limit(TX_CAP)
+                  : Promise.resolve({ data: [], error: null }),
+
+              actionKeys.length
+                  ? getSupabase()
+                      .from('diamond_transactions')
+                      .select('id, amount')
+                      .gt('amount', 0)
+                      .in('type', actionKeys)
+                      .limit(TX_CAP)
+                  : Promise.resolve({ data: [], error: null }),
 
               // 3. Diamond purchases (Stripe)
               getSupabase()
                   .from('diamond_purchases')
                   .select('*')
-                  .order('created_at', { ascending: false }),
+                  .order('created_at', { ascending: false })
+                  .limit(ROW_CAP),
 
               // 4. VIP subscriptions
               getSupabase()
                   .from('vip_subscriptions')
                   .select('*')
-                  .order('created_at', { ascending: false }),
+                  .order('created_at', { ascending: false })
+                  .limit(ROW_CAP),
 
               // 5. Total user count
               getSupabase()
@@ -109,13 +149,44 @@ export default async function handler(req, res) {
                   .limit(10),
           ]);
 
-          // Calculate aggregates
-          const rewardClaims = rewardClaimsResult.data || [];
+          // Every result is checked. None of these were checked before, so a
+          // failing query rendered as a confident 0 on the dashboard.
+          const named = [
+              ['diamond_transactions', transactionsResult],
+              ['reward transactions (transaction_type)', rewardsByTxTypeResult],
+              ['reward transactions (type)', rewardsByTypeResult],
+              ['diamond_purchases', diamondPurchasesResult],
+              ['vip_subscriptions', vipSubsResult],
+              ['profiles total count', totalUsersResult],
+              ['profiles new-user count', newUsersResult],
+              ['profiles recent users', recentUsersResult],
+          ];
+          const failed = named.filter(([, r]) => r?.error);
+          if (failed.length > 0) {
+              failed.forEach(([label, r]) => console.warn(`[EconomyStats] ${label} error:`, r.error.message || r.error));
+              return res.status(500).json({
+                  error: 'Failed to load economy stats',
+                  failedSources: failed.map(([label]) => label),
+              });
+          }
+
+          // Calculate aggregates. De-duplicate the two reward queries by id so
+          // rows carrying the action in both columns are not counted twice.
+          const rewardById = new Map();
+          [...(rewardsByTxTypeResult.data || []), ...(rewardsByTypeResult.data || [])]
+              .forEach(r => { if (r?.id != null) rewardById.set(r.id, r); });
+          const rewardClaims = Array.from(rewardById.values());
           const totalDiamondsEarned = rewardClaims.reduce((sum, c) => sum + (c.amount || 0), 0);
 
           const transactions = transactionsResult.data || [];
+          // Raw ledger rows name the column `transaction_type`; `type` is only
+          // populated on some rows. Reading t.type alone missed every row that
+          // used the other column.
           const totalDiamondsSpent = transactions
-              .filter(t => (t.type === 'spent' || t.type === 'purchase' || (t.amount && t.amount < 0)))
+              .filter(t => {
+                  const kind = t.type || t.transaction_type;
+                  return kind === 'spent' || kind === 'purchase' || (t.amount && t.amount < 0);
+              })
               .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
 
           const purchases = diamondPurchasesResult.data || [];

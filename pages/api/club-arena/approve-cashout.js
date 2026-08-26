@@ -46,7 +46,10 @@ export default async function handler(req, res) {
     // ── RED TEAM: Payload size + field allowlist + UUID validation ──
     const guardErr = runStandardGuards(req.body, {
       maxBodySize: 512,
-      allowedFields: new Set(['cashoutId', 'action', 'note']),
+      // clubId is sent by the /horses admin panel. It is IGNORED server-side
+      // (cashout.club_id is read from the DB), but the allowlist 400s on any
+      // unknown key, so every admin force-approve was rejected outright.
+      allowedFields: new Set(['cashoutId', 'action', 'note', 'clubId']),
       uuids: { cashoutId: req.body?.cashoutId },
     });
     if (guardErr) return res.status(guardErr.status).json({ success: false, error: guardErr.error });
@@ -124,6 +127,15 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       // 2. Verify caller is the assigned agent or club owner/admin
       // ═════════════════════════════════════════════════════════════
+      // Platform staff are not members of every club whose cashouts they
+      // action from /horses. Without this branch they were 403'd on all of them.
+      const { data: callerProfile } = await getSupabase()
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+      const isPlatformAdmin = ['admin', 'superadmin', 'god'].includes(callerProfile?.role);
+
       const { data: callerMember } = await getSupabase()
         .from('club_members')
         .select('role')
@@ -133,7 +145,7 @@ export default async function handler(req, res) {
 
       const isAgent = cashout.agent_id === user.id;
       const isAdmin = ['owner', 'admin'].includes(callerMember?.role);
-      if (!isAgent && !isAdmin) {
+      if (!isPlatformAdmin && !isAgent && !isAdmin) {
         // Union admin fallback
         const { data: clubInfo } = await getSupabase().from('clubs').select('union_id').eq('id', cashout.club_id).maybeSingle();
         let unionAuth = false;
@@ -167,6 +179,13 @@ export default async function handler(req, res) {
         .maybeSingle();
       const agentName = agentProfile?.display_name || agentProfile?.username || 'Your agent';
 
+      // True only when NEITHER the club nor the agent relationship authorized
+      // this caller — i.e. the action went through purely on platform role.
+      const viaPlatformOverride = isPlatformAdmin && !isAgent && !isAdmin;
+
+      // cashout.amount is nullable; .toLocaleString() on null throws.
+      const amountText = Number(cashout.amount || 0).toLocaleString();
+
       // ═════════════════════════════════════════════════════════════
       // APPROVE: Held chips → treasury (agent settles fiat off-platform)
       // ═════════════════════════════════════════════════════════════
@@ -186,12 +205,12 @@ export default async function handler(req, res) {
         await notifyPlayer(cashout, playerName, agentName,
           `[CASHOUT APPROVED]
 
-  ${agentName} approved your cashout of ${cashout.amount.toLocaleString()} chips.`,
-          `[OK] Cashout approved! ${cashout.amount.toLocaleString()} chips`,
+  ${agentName} approved your cashout of ${amountText} chips.`,
+          `[OK] Cashout approved! ${amountText} chips`,
           'approve'
         );
 
-        logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, agentNote: note || 'Approved' } });
+        logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, agentNote: note || 'Approved', platformAdminOverride: viaPlatformOverride } });
         return res.status(200).json({
           success: true,
           action: 'approved',
@@ -222,12 +241,12 @@ export default async function handler(req, res) {
         await notifyPlayer(cashout, playerName, agentName,
           `[CASHOUT CANCELLED]
 
-  ${agentName} cancelled your cashout request for ${cashout.amount.toLocaleString()} chips.\nYour chips have been returned to your balance.${note ? `\n\nNote: ${note}` : ''}`,
-          `Cashout cancelled. ${cashout.amount.toLocaleString()} chips returned to your balance.`,
+  ${agentName} cancelled your cashout request for ${amountText} chips.\nYour chips have been returned to your balance.${note ? `\n\nNote: ${note}` : ''}`,
+          `Cashout cancelled. ${amountText} chips returned to your balance.`,
           'cancel'
         );
 
-        logAudit(supabaseAdmin, { actionType: 'cashout_cancelled', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, chipsReturned: cashout.amount, playerNewBalance, agentNote: note || 'Cancelled by agent' } });
+        logAudit(supabaseAdmin, { actionType: 'cashout_cancelled', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, chipsReturned: cashout.amount, playerNewBalance, agentNote: note || 'Cancelled by agent', platformAdminOverride: viaPlatformOverride } });
         return res.status(200).json({
           success: true,
           action: 'cancelled',
@@ -296,19 +315,26 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
       || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
 
     if (baseUrl) {
-      await fetch(`${baseUrl}/api/notifications/send`, {
+      // /api/notifications/send targets ONLY on externalUserIds (Supabase user
+      // ids). The old `userId` key was silently 400'd, so no cashout push
+      // notification has ever been delivered.
+      const resp = await fetch(`${baseUrl}/api/notifications/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
         },
         body: JSON.stringify({
-          userId: cashout.player_id,
+          externalUserIds: [cashout.player_id],
           title: action === 'approve' ? 'Cashout Approved' : 'Cashout Cancelled',
           message: pushText,
           url: '/hub/club-arena/cashier',
         }),
       });
+      if (!resp.ok) {
+        const detail = await resp.text().catch(() => '');
+        console.warn(`[approve-cashout] notifications/send returned ${resp.status}: ${detail}`);
+      }
     }
   } catch (e) {
       try { reportApiError(e, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }

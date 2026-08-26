@@ -12,6 +12,10 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 
+// A malformed id reaches Postgres as an invalid uuid literal and comes back as
+// a 500. Reject it up front as the 400 it actually is.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 let _sb = null;
 function getSB() {
   if (!_sb) {
@@ -50,13 +54,16 @@ export default async function handler(req, res) {
 
       // Detail mode
       if (id) {
+        if (!UUID_RE.test(String(id))) {
+          return res.status(400).json({ success: false, error: 'id must be a valid uuid' });
+        }
         const { data, error } = await getSB().rpc('get_home_content_report_detail', {
           p_report_id: id,
           p_caller_user_id: user.id,
         });
         if (error) {
           console.warn('[hg-reports GET detail]', error);
-          return res.status(500).json({ success: false, error: error.message });
+          return res.status(500).json({ success: false, error: 'Failed to load report' });
         }
         return res.status(200).json({ success: true, report: data });
       }
@@ -72,7 +79,7 @@ export default async function handler(req, res) {
       const { data, error } = await getSB().rpc('list_home_content_reports', params);
       if (error) {
         console.warn('[hg-reports GET list]', error);
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: 'Failed to load reports' });
       }
       return res.status(200).json({ success: true, reports: data || [] });
     }
@@ -82,6 +89,9 @@ export default async function handler(req, res) {
       const { report_id, action, moderator_note } = req.body || {};
       if (!report_id || !action) {
         return res.status(400).json({ success: false, error: 'report_id and action required' });
+      }
+      if (!UUID_RE.test(String(report_id))) {
+        return res.status(400).json({ success: false, error: 'report_id must be a valid uuid' });
       }
       const VALID_ACTIONS = ['dismiss', 'hide_content', 'delete_content', 'warn_author', 'strike_author', 'ban_author'];
       if (!VALID_ACTIONS.includes(action)) {
@@ -95,7 +105,7 @@ export default async function handler(req, res) {
       });
       if (error) {
         console.warn('[hg-reports PATCH]', error);
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: 'Failed to resolve report' });
       }
       return res.status(200).json({ success: true, result: data });
     }
