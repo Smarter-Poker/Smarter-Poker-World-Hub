@@ -96,9 +96,134 @@ const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 const GEM = '\uD83D\uDC8E';
 
 // ═══════════════════════════════════════════════════════════════════════════
+// STORE TAB ROUTES
+// ═══════════════════════════════════════════════════════════════════════════
+// Dan 2026-08-25: "Each tab should open to a new page, and tab, not just stay
+// within the diamond-store slug." Every tab is now a real, linkable, indexable
+// URL rather than a piece of component state, and every tab control opens it in
+// a new browser tab so the page you came from stays where it was.
+//
+// The pages under pages/hub/ are thin wrappers that render THIS component with
+// an `initialTab` prop, so there is exactly one implementation of the store and
+// five addresses into it. The old `?tab=` deep links still work.
+export const STORE_TABS = ['diamonds', 'vip', 'merch', 'rewards', 'club-shop'];
+
+export const TAB_ROUTES = {
+  diamonds: '/hub/diamond-store',
+  vip: '/hub/vip-membership',
+  merch: '/hub/merch-store',
+  rewards: '/hub/smarter-rewards',
+  'club-shop': '/hub/club-shop',
+};
+
+// Five addresses means five tab titles and five meta descriptions. Without
+// this, all five routes would share "Diamond Store" and be indistinguishable in
+// the browser's tab strip — which is the exact problem opening them in separate
+// tabs is meant to solve.
+export const TAB_META = {
+  diamonds: {
+    title: 'Diamond Store — Smarter.Poker',
+    description: 'Buy Diamonds To Unlock Premium Features Across Smarter.Poker And Club Arena.',
+  },
+  vip: {
+    title: 'VIP Membership — Smarter.Poker',
+    description:
+      'Everything Included With VIP: Every Premium Day Pass, Higher Diamond Caps, 500 Bonus Diamonds A Month And The Full Club Arena Feature Set.',
+  },
+  merch: {
+    title: 'Merch Store — Smarter.Poker',
+    description: 'Official Smarter.Poker Apparel, Card Protectors, Decks And Chip Sets.',
+  },
+  rewards: {
+    title: 'Smarter Rewards — Smarter.Poker',
+    description:
+      'Every Way To Earn Diamonds, The Real Daily And Monthly Caps, And Every Hidden Achievement.',
+  },
+  'club-shop': {
+    title: 'Club Shop — Smarter.Poker',
+    description: 'Spend Club Chips On Time Banks, Cosmetics And Items Your Club Owner Stocks.',
+  },
+};
+
+/**
+ * Opens a store tab in its own browser tab.
+ *
+ * `currentTab` is not optional politeness — without it, clicking "Diamonds"
+ * while already on /hub/diamond-store spawns a duplicate of the page you are
+ * standing on, which is the one thing a new-tab policy must not do. Falls back
+ * to same-tab navigation when a popup blocker refuses the window.
+ */
+function openTab(tabId, currentTab) {
+  const href = TAB_ROUTES[tabId];
+  if (!href || typeof window === 'undefined') return;
+  if (tabId === currentTab) return;
+  const win = window.open(href, '_blank', 'noopener,noreferrer');
+  if (!win) window.location.href = href;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIP FREQUENTLY ASKED QUESTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+// Rewritten 2026-08-25. Every answer was checked against the code that runs it.
+// Two answers changed materially:
+//   • "Switch plans anytime, prorated credit" was fiction. There is no
+//     change-plan route in this repo and no use of proration_behavior anywhere;
+//     the only stripe.subscriptions.update call is the cancellation. Promising
+//     a prorated credit we cannot issue is a chargeback waiting to happen, so
+//     the answer now says what actually happens.
+//   • "Select crypto options" was removed. No crypto processor is wired.
+// House style: first letter of every word is capitalized, per Dan.
+const VIP_FAQ = [
+  {
+    q: 'Can I Cancel Anytime?',
+    a: 'Yes. Cancel From The Store At Any Time And Your VIP Benefits Stay Active Through The End Of The Period You Have Already Paid For. There Is No Cancellation Fee, And No Partial Refund For The Days Remaining.',
+  },
+  {
+    q: 'What Are My Options For Getting VIP?',
+    a: 'Four. A Daily Pass For 150 Diamonds Covers 24 Hours. Monthly Is $19.99. Annual Is $199.99, Which Works Out To Roughly Two Months Free. You Can Also Buy A Full 30 Days With 1,999 Diamonds Instead Of Cash.',
+  },
+  {
+    q: 'What Happens When My VIP Expires?',
+    a: 'Your Account Returns To The Free Tier. Every Diamond You Earned Or Bought Stays Yours Permanently, And So Does Anything You Unlocked Outright. VIP-Gated Features Simply Lock Again Until You Renew.',
+  },
+  {
+    q: 'Do I Keep My 500 Bonus Diamonds?',
+    a: 'Yes. Diamonds Credited To Your Balance Are Permanently Yours, Monthly VIP Stipends Included, Even After The Membership Ends. The Stipend Is Credited To Active Monthly And Annual Subscriptions.',
+  },
+  {
+    q: 'Does A Daily Pass Stack With A Subscription?',
+    a: 'Yes. Buying A Daily Pass While You Already Have VIP Extends Your Existing Expiry By 24 Hours Rather Than Overwriting It. If The Activation Ever Fails, Your Diamonds Are Refunded Automatically.',
+  },
+  {
+    q: 'Is Everything Truly Unlimited, Or Are There Caps?',
+    a: 'Most Of It Is Unlimited. Three Perks Carry An Honest Monthly Ceiling: 100 Free Rabbit Hunts, 500 Free Throwables, And 120 Extra Time Bank Seconds. Past Those You Pay The Normal Diamond Price. We List The Real Number Rather Than The Word Unlimited.',
+  },
+  {
+    q: 'How Much Higher Are My Diamond Earning Caps?',
+    a: 'VIP Raises Your Daily Earning Cap From 110 To 150 Diamonds, And Your Monthly Cap From 3,300 To 4,500. Share-Streak Multipliers Make Those Caps Easier To Reach, But They Never Raise Them.',
+  },
+  {
+    q: 'Does One Membership Cover Both Smarter.Poker And Club Arena?',
+    a: 'Yes. A Single Membership Covers The Whole Platform. The Same Account Session Carries Your VIP Status Into Club Arena, Diamond Arena And Every Training Tool, With Nothing Extra To Activate.',
+  },
+  {
+    q: 'Do I Still Pay Tournament Buy-Ins As A VIP?',
+    a: 'Yes. VIP Waives Diamond Costs On Training Games, Trivia Entries And Table Features. Tournament Buy-Ins And Entry Fees Are A Separate Thing, And Are Still Charged Normally.',
+  },
+  {
+    q: 'Can I Switch Between Monthly And Annual?',
+    a: 'Not Automatically Yet. Cancel Your Current Plan And Start The Other One When The Paid Period Ends, Or Contact Support And We Will Move You Across By Hand. We Do Not Auto-Prorate Between Plans Today.',
+  },
+  {
+    q: 'What Payment Methods Are Accepted?',
+    a: 'All Major Credit And Debit Cards Through Our Secure Stripe Checkout, Including Apple Pay And Google Pay Where Your Device Supports Them. You Can Also Pay Entirely In Diamonds Using The Daily Pass Or The 1,999 Diamond Monthly Option.',
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN DIAMOND STORE PAGE
 // ═══════════════════════════════════════════════════════════════════════════
-export default function DiamondStorePage() {
+export default function DiamondStorePage({ initialTab }) {
   useTrainingBus('diamond-store');
   const router = useRouter();
 
@@ -108,7 +233,10 @@ export default function DiamondStorePage() {
     rewardsSubTab: 'overview',
   });
 
-  const activeTab = filters.activeTab;
+  // A wrapper route (/hub/vip-membership etc.) owns the tab outright: the
+  // persisted filter must not be able to drag a user who asked for the VIP URL
+  // back to whatever tab they last used on /hub/diamond-store.
+  const activeTab = initialTab || filters.activeTab;
   const rewardsSubTab = filters.rewardsSubTab;
   const setActiveTab = (val) => setFilter('activeTab', val);
   const setRewardsSubTab = (val) => setFilter('rewardsSubTab', val);
@@ -151,15 +279,15 @@ export default function DiamondStorePage() {
   // the "View in Marketplace" link, or external links targeting a tab)
   useEffect(() => {
     if (!router.isReady) return;
+    // A wrapper route already decided the tab. Do not let a stale ?tab= or a
+    // persisted filter override the URL the user actually opened.
+    if (initialTab) return;
     const tab = router.query.tab;
-    if (
-      typeof tab === 'string' &&
-      ['diamonds', 'vip', 'merch', 'rewards', 'club-shop'].includes(tab)
-    ) {
+    if (typeof tab === 'string' && STORE_TABS.includes(tab)) {
       setActiveTab(tab);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady]);
+  }, [router.isReady, initialTab]);
 
   // Clear any pending club-shop success-toast timer on unmount
   useEffect(
@@ -822,8 +950,11 @@ export default function DiamondStorePage() {
         {/* INTRO VIDEO OVERLAY - Plays while page loads behind it */}
 
         <Head>
-          <title>Diamond Store — Smarter.Poker</title>
-          <meta name="description" content="Purchase diamonds to unlock premium features" />
+          <title>{TAB_META[activeTab]?.title || TAB_META.diamonds.title}</title>
+          <meta
+            name="description"
+            content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
+          />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
 
           <style>{`
@@ -858,7 +989,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('diamonds')}
+                    onClick={() => openTab('diamonds', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '3%',
@@ -871,7 +1002,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('merch')}
+                    onClick={() => openTab('merch', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '27%',
@@ -884,7 +1015,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('rewards')}
+                    onClick={() => openTab('rewards', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '51%',
@@ -897,10 +1028,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => {
-                      setActiveTab('club-shop');
-                      if (!clubShopLoaded) loadClubShop();
-                    }}
+                    onClick={() => openTab('club-shop', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '75%',
@@ -923,7 +1051,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('diamonds')}
+                    onClick={() => openTab('diamonds', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '3%',
@@ -936,7 +1064,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('vip')}
+                    onClick={() => openTab('vip', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '27%',
@@ -949,7 +1077,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('rewards')}
+                    onClick={() => openTab('rewards', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '51%',
@@ -962,10 +1090,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => {
-                      setActiveTab('club-shop');
-                      if (!clubShopLoaded) loadClubShop();
-                    }}
+                    onClick={() => openTab('club-shop', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '75%',
@@ -988,7 +1113,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('diamonds')}
+                    onClick={() => openTab('diamonds', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '3%',
@@ -1001,7 +1126,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('vip')}
+                    onClick={() => openTab('vip', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '27%',
@@ -1014,7 +1139,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('merch')}
+                    onClick={() => openTab('merch', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '51%',
@@ -1027,10 +1152,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => {
-                      setActiveTab('club-shop');
-                      if (!clubShopLoaded) loadClubShop();
-                    }}
+                    onClick={() => openTab('club-shop', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '75%',
@@ -1053,7 +1175,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('diamonds')}
+                    onClick={() => openTab('diamonds', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '3%',
@@ -1066,7 +1188,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('vip')}
+                    onClick={() => openTab('vip', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '27%',
@@ -1079,7 +1201,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('merch')}
+                    onClick={() => openTab('merch', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '51%',
@@ -1092,7 +1214,7 @@ export default function DiamondStorePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveTab('rewards')}
+                    onClick={() => openTab('rewards', activeTab)}
                     style={{
                       position: 'absolute',
                       left: '75%',
@@ -1121,7 +1243,7 @@ export default function DiamondStorePage() {
               <div
                 role="button"
                 tabIndex={0}
-                onClick={() => setActiveTab('vip')}
+                onClick={() => openTab('vip', activeTab)}
                 style={{
                   position: 'absolute',
                   left: '18%',
@@ -1134,7 +1256,7 @@ export default function DiamondStorePage() {
               <div
                 role="button"
                 tabIndex={0}
-                onClick={() => setActiveTab('merch')}
+                onClick={() => openTab('merch', activeTab)}
                 style={{
                   position: 'absolute',
                   left: '35%',
@@ -1147,7 +1269,7 @@ export default function DiamondStorePage() {
               <div
                 role="button"
                 tabIndex={0}
-                onClick={() => setActiveTab('rewards')}
+                onClick={() => openTab('rewards', activeTab)}
                 style={{
                   position: 'absolute',
                   left: '52%',
@@ -1261,11 +1383,9 @@ export default function DiamondStorePage() {
                 <div style={{ textAlign: 'center', marginTop: 24, marginBottom: 32 }}>
                   {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                   <a
-                    href="/hub/diamond-store?tab=merch"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setActiveTab('merch');
-                    }}
+                    href={TAB_ROUTES.merch}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -1315,32 +1435,14 @@ export default function DiamondStorePage() {
                     Frequently Asked Questions
                   </h3>
 
-                  {[
-                    {
-                      q: 'Can I cancel anytime?',
-                      a: 'Yes! You can cancel your VIP membership at any time. Your benefits will remain active until the end of your current billing period.',
-                    },
-                    {
-                      q: 'What happens when my diamond VIP expires?',
-                      a: "When your VIP membership expires, you'll revert to the free tier. Any diamonds you've earned are yours to keep, but VIP-exclusive features will become locked.",
-                    },
-                    {
-                      q: 'Do I keep my bonus diamonds?',
-                      a: 'Yes! All diamonds credited to your account — including monthly VIP bonuses — are permanently yours, even after your membership ends.',
-                    },
-                    {
-                      q: 'Can I switch between monthly and annual?',
-                      a: "Absolutely. You can switch plans at any time. If upgrading to annual, you'll receive a prorated credit for your remaining monthly period.",
-                    },
-                    {
-                      q: 'What payment methods are accepted?',
-                      a: 'We accept all major credit and debit cards, Apple Pay, Google Pay, and select crypto options through our secure payment processor.',
-                    },
-                  ].map((faq, idx) => (
+                  {VIP_FAQ.map((faq, idx) => (
                     <details
                       key={idx}
                       style={{
-                        borderBottom: idx < 4 ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
+                        borderBottom:
+                          idx < VIP_FAQ.length - 1
+                            ? '1px solid rgba(255, 255, 255, 0.06)'
+                            : 'none',
                         paddingBottom: 0,
                       }}
                     >
@@ -1625,7 +1727,7 @@ export default function DiamondStorePage() {
                           </div>
                         </div>
                         <button
-                          onClick={() => setActiveTab('vip')}
+                          onClick={() => openTab('vip', activeTab)}
                           style={{
                             marginTop: 12,
                             padding: '10px 28px',
