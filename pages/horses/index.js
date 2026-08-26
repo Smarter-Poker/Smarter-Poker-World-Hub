@@ -1461,6 +1461,16 @@ export default function HorsesAdmin() {
     return () => clearInterval(interval);
   }, [activeTab, user, loadScraperHealth]);
 
+  // ── Keep the active tab visible in the mobile nav strip ──
+  const navRef = useRef(null);
+  useEffect(() => {
+    const el = navRef.current?.querySelector(`[data-tabid="${activeTab}"]`);
+    if (!el || typeof el.scrollIntoView !== 'function') return;
+    el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    // `badges` is in the deps because the counts land after mount and change
+    // the width of the strip, which is what was displacing it.
+  }, [activeTab, badges]);
+
   // ── Derived ──
   const filteredPersonas = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -1667,10 +1677,18 @@ export default function HorsesAdmin() {
           </div>
         </header>
 
-        <nav className={styles.nav}>
+        {/* Below 768px this is a horizontal scroll strip. Measured on a real
+            375px viewport: the strip is 1173px wide against a 375px window,
+            and it was opening scrolled 781px in -- the ACTIVE tab was off the
+            left edge with nothing to indicate the panel had more tabs. The
+            badges arriving asynchronously change the strip's width after
+            mount, which is what moved it. Scroll the active tab into view
+            whenever it changes, and once more after the badges land. */}
+        <nav className={styles.nav} ref={navRef}>
           {TABS.map((tab) => (
             <button
               key={tab.id}
+              data-tabid={tab.id}
               className={activeTab === tab.id ? styles.active : ''}
               onClick={() => setActiveTab(tab.id)}
               aria-current={activeTab === tab.id ? 'page' : undefined}
@@ -1679,9 +1697,11 @@ export default function HorsesAdmin() {
                 ? { color: T.danger, fontWeight: 700 } : undefined}
             >
               {tab.label}
-              {tab.id === 'scrapers' && deadScrapers > 0 ? ` (${deadScrapers})` : ''}
-              {tab.id === 'clubarena' && clubArenaBadge > 0 ? ` (${clubArenaBadge})` : ''}
-              {tab.id === 'bugreports' && bugReportBadge > 0 ? ` (${bugReportBadge})` : ''}
+              {/* num() not raw interpolation: the ledger badge is in the tens
+                  of thousands and rendered as "Club Arena (20206)". */}
+              {tab.id === 'scrapers' && deadScrapers > 0 ? ` (${num(deadScrapers)})` : ''}
+              {tab.id === 'clubarena' && clubArenaBadge > 0 ? ` (${num(clubArenaBadge)})` : ''}
+              {tab.id === 'bugreports' && bugReportBadge > 0 ? ` (${num(bugReportBadge)})` : ''}
             </button>
           ))}
           {EXTERNAL_LINKS.map((link) => (
