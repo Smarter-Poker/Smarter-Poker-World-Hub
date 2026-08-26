@@ -250,40 +250,174 @@ Also removed all emoji from these files (house rule 7 — bare emoji break SWC).
 * All database claims in this document were verified with read-only queries against
   production (`kuklfnapbkmacvwxktbh`). No migration was applied and no data was written.
 
-`npx next build` **passes**: run on the Mac in an isolated worktree cut from
-`origin/main`, exit 0, `Compiled successfully`, with `/horses`, `/horses/hand-reviews`,
-`/horses/hg-moderation`, `/horses/sql-console` and `/api/horses/club-arena-admin` all
-in the route manifest.
+`npx next build` could not be run from the authoring sandbox — its `node_modules` are
+installed for darwin-arm64 and `@rollup/rollup-linux-arm64-gnu` is absent, and the npm
+registry is blocked there. The build therefore runs for the first time in CI on this
+pull request; treat a red check as this change's problem, not a flake.
 
-That build caught two things static analysis had not:
 
-1. **`pages/horses/adminTokens.js` was a route.** Anything under `pages/` is a page, and
-   a page must default-export a React component — the build failed with
-   "found page without a React Component as default export". The helper now lives at
-   `src/lib/horsesAdminTokens.js`.
-2. **The pre-commit hook rejected the client auth calls.** CHECK C bans the
-   argument-less client session read repo-wide because it round-trips and hangs when
-   GoTrue is slow. All three pages now use `getAuthUser()` / `getFreshAccessToken()`
-   from `src/lib/authUtils` instead — which is a real improvement, not just a lint
-   appeasement: that hang is one of the ways this panel used to stop loading.
+---
 
-The full `.husky/pre-push` suite also passes on this branch — conflict markers,
-undefined identifiers, TypeScript (no new errors), Vercel config sanity, JSX comment
-guard, and both Club Arena bundle checks.
+# ROUND TWO — 2026-08-26, later the same day
 
-## 7. Shipping status
+Dan: "there is a ton of work inside the admin panel that you still need to
+audit, enhance, improve and optimize." He was right. Round one fixed what was
+broken on the surface. Round two found that the panel could not **write**, and
+that the platform's money had no surface at all.
 
-Branch `fix/horses-admin-deep-audit-2026-08-26`, commit `c1efd62`, pull request **#785**.
-Vercel's preview deployment for it completed successfully.
+Shipped as PR #788, squash `5652d341`, verified serving on production at
+2026-08-26T19:45:18Z.
 
-**It is not merged.** `main` is governed by the ruleset "main: no rewinds", which
-requires seven status checks, and **GitHub never created any workflow runs for this
-PR's head SHA** — zero, including after a close/reopen. This is not specific to this
-change: PR #782 has zero runs too, and the repository has a workflow run that has been
-`queued` since **2026-08-19**, seven days, alongside several `startup_failure` results.
-Cancelling those stuck runs needs a token with Actions write scope, which the PAT on
-this machine does not have.
+## 8. The writes never worked
 
-Squash **auto-merge is armed** on #785, so it will land on its own the moment those
-checks report. If the queue stays jammed, the runs have to be cancelled from the
-Actions tab first.
+`content_authors` RLS, verified in production:
+
+```sql
+"Admins manage authors"  ALL  USING/WITH CHECK
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+
+select count(*) from profiles where is_admin is true;  ->  0
+```
+
+`profiles.is_admin` is true for **zero rows**. The three accounts that
+administer this platform are identified by `profiles.role`
+(`daniel@smarter.poker` god, `daniel@bekavactrading.com` god,
+`danimal5022@yahoo.com` admin). `content_settings` is worse — its only write
+policy is `{service_role}`.
+
+A PostgREST UPDATE or DELETE matching zero rows returns `{ error: null }`. So
+creating a horse, renaming one, retiring one, flipping the active toggle, and
+**every posts-per-day, delay, model, temperature and grinder setting anyone has
+ever changed** reported success and saved nothing. For as long as those
+policies have existed.
+
+Fixed with `pages/api/horses/stable-admin.js` — service role behind an admin
+gate, payload validated, affected row count returned, `admin_audit_log` written
+on every mutation. Deliberately not a policy change: widening
+`content_authors` would make 593 rows of content identity writable by anything
+holding an admin JWT, with no validation and no audit trail.
+
+## 9. Home Games moderation has never worked
+
+Five of the seven RPCs behind `/horses/hg-moderation` open with:
+
+```sql
+IF auth.uid() IS NULL OR auth.uid() <> p_caller_user_id THEN
+  RAISE EXCEPTION 'UNAUTHORIZED';
+```
+
+Every route called them with the module-level **service-role** client, where
+`auth.uid()` is NULL. All five raised UNAUTHORIZED on every request and the
+routes turned that into a 500. Reports never listed, appeals never listed,
+nothing could ever be resolved, and the GDPR erase path could not run.
+
+The caller's JWT is forwarded now. `fn_get_home_games_onboarding_status_admin`
+additionally has no EXECUTE grant for `authenticated`, so it needs the
+migration below even with the JWT.
+
+Separately: moderators were approving `delete_content`, `ban_author` and
+`strike_author` **without ever seeing the content**. `hg-reports` already had a
+detail endpoint returning the reported item; nothing called it. The review
+modal renders the content now and will not enable the irreversible actions
+until it has loaded.
+
+## 10. execute-sql
+
+- **No rate limit at all** on a route that accepts a 10MB body, opens a direct
+  Postgres connection and runs arbitrary SQL.
+- The guard whose comment said it "cannot be bypassed" matched `DELETE FROM`
+  and `DROP TABLE` but **not `UPDATE` or `INSERT`**. `UPDATE club_members SET
+  chip_balance = 999999999` ran, committed, and moved real money. Production
+  holds ~121 million chips in that column.
+- The "Allow Destructive Operations (DROP, DELETE, TRUNCATE)" checkbox was sent
+  as `allowDestructive` and **the server never read it**. The operator ticked
+  it, watched it turn red, ran a DELETE, and got a 403.
+
+Now: mutations execute inside `BEGIN ... ROLLBACK` and report the row count
+they *would* have affected; a commit requires the caller to echo the statement
+back verbatim; every commit writes `admin_audit_log`. The checkbox is gone,
+replaced by that flow. The regex is still a regex and the comment now says so.
+
+## 11. Money with no surface
+
+| Table | Rows | What it holds | Surface before |
+|---|---|---|---|
+| `ledger_reconcile_log` | 20,206 critical | **3.1 billion chips** of wallet drift, filed daily by `reconcile_ledger_nightly` | none |
+| `rake_records` | 1,375,288 | 4,028,434 chips all-time, 196,636 in 24h | none |
+| `agent_commissions` | 922,861 | 126,934 chips owed, unsettled | none |
+| `ca_seat_stack_exits` | 7,919 | non-zero stacks that left the felt | none |
+
+CLAUDE.md section 11.5 describes building that reconciliation machinery
+specifically so chip loss would be **loud**. It has been silent because the
+only console that could have shown it did not query it. The Club Arena tab now
+has Ledger and Revenue sections; the nav badge turns red on critical drift.
+
+The Statistics tab showed four numbers about the blog-post engine. Production
+at the time of writing: **137 live tables, 680 players seated, 19,563 hands in
+the previous hour, 472,924 in 24 hours** — none of it visible anywhere. It
+opens on a platform pulse now, with a "Needs Attention" roll-up that routes to
+whichever tab owns each number.
+
+## 12. Fabricated and unreachable
+
+- **Purchase Revenue was pinned at $0.00** by two stacked bugs: the route summed
+  `amount_paid || price` and `diamond_purchases` has neither column (it is
+  `price_usd`), then the UI divided by 100 — so even a correct figure would have
+  rendered 100x too small.
+- **`vip_trial`** was one of three promo types the UI offered and is not in the
+  route's allowlist at all; picking it always 400'd. The real value is
+  `vip_days`. The select is built from the API now.
+- **Per-horse hands and profit** were returned as `null` under a comment saying
+  they were underivable. `player_stats` has them for all 554 horses that have
+  played. (`ca_hand_player_stat` looked like the answer but is a rolling
+  1,000-row-per-user window, so summing it would have produced a two-day figure
+  labelled lifetime.)
+- **The realtime subscription was exactly inverted.** `content_authors`,
+  `content_settings` and `pipeline_runs` are not in the `supabase_realtime`
+  publication, so those three handlers could never fire. `tables` is — 89,000
+  rows, seats turning over every hand — and it was subscribed unconditionally
+  from mount, on every tab.
+- **`reviewFlag` and `kickSession`** had existed with no caller since the tab
+  was written. The anti-cheat route exposes nine actions; the console reached
+  two.
+- **Cashouts could be approved but never released.** The route has always
+  accepted `action: 'cancel'` — the reversible branch — and the console only
+  ever sent `'approve'`.
+- Seven scraper daemons were scored `unknown` and one permanently `dead`,
+  producing a red nav badge that never cleared. Bravo is intentionally off per
+  the live-cash-games policy and now says so.
+
+## 13. What the build and CI caught that review did not
+
+Worth recording, because both were mine:
+
+1. **`pages/horses/adminTokens.js` was a route.** Anything under `pages/` must
+   default-export a React component. Moved to `src/lib/`.
+2. **A temporal dead zone crash.** `resolveCashout` listed `loadBadges` in its
+   `useCallback` deps while `loadBadges` was declared 170 lines below it. `const`
+   hoists into the TDZ and dep arrays evaluate during render, so it threw
+   `Cannot access 'dG' before initialization` at prerender — not at runtime,
+   where it would have been someone else's incident. I then wrote a static check
+   for the same shape across the file; nothing else matched.
+3. **Two ReferenceErrors** caught by the Undefined Identifier Guard on the first
+   PR: a `session.access_token` left behind by the auth refactor, which would
+   have thrown on every SQL console query, and an `isLeak` that a concurrent PR
+   had already removed.
+
+## 14. Still open
+
+- **The two migrations in PR #788 are NOT applied.** Both need review:
+  `20260826143000_live_help_tickets_platform_admin_rls.sql` (also grants EXECUTE
+  on `fn_is_platform_admin()` to `authenticated`, which **44 other policies
+  already call** and currently 42501 on — wider blast radius than the two
+  policies it fixes) and `20260826190000_hg_moderation_rpc_grant.sql`.
+  Until the first is applied, the Bug Reports tab stays empty for the two `god`
+  accounts.
+- `admin_audit_log` held **9 rows** for a console with this many destructive
+  buttons. Every mutation added in this pass writes one; the older paths still
+  do not.
+- Only **16 of the 55** avatar-less horses are eligible for generation — the
+  route filters on `profile_id IS NOT NULL` and 39 of them have none.
+- The site-wide stylesheet (303KB, every page) still carries 4 purple and 12
+  green values. None belong to `/horses`; repainting it would change pages
+  outside the brief.
