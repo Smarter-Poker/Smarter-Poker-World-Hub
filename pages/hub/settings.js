@@ -105,6 +105,21 @@ function Select({ value, onChange, options, label }) {
 const CancelVipModal = dynamic(() => import('../../src/components/settings/modals/CancelVipModal'), { ssr: false });
 // ═══════════════════════════════════════════════════════════════════════════
 export default function SettingsPage() {
+    /*
+     * Settings is opened two ways: as its own route, and inside
+     * FullScreenPageOverlay (the gear icon calls openOverlay('settings')).
+     * When framed, drawing our own header + bottom nav stacks a second set of
+     * chrome inside the overlay's chrome — which is the "too much padding at
+     * the bottom" Dan sees: a full-height white nav plus its home-indicator
+     * inset, inside a dark overlay that already has its own bar.
+     * pages/hub/notifications.js has done this since it was framed; settings
+     * never did.
+     */
+    const [isInIframe, setIsInIframe] = useState(false);
+    useEffect(() => {
+        try { setIsInIframe(window.self !== window.top); } catch (_) { setIsInIframe(true); }
+    }, []);
+
     const router = useRouter();
     useTrainingBus('settings');
     const { avatar, isVip, user: contextUser, initializing, setActiveAvatar } = useAvatar();
@@ -879,10 +894,10 @@ export default function SettingsPage() {
                 <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
 
                 {/* Header - Universal Header */}
-                <UniversalHeader
+                {!isInIframe && <UniversalHeader
                     pageDepth={1}
                     onMenuClick={() => setMenuOpen(true)}
-                />
+                />}
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
@@ -2585,7 +2600,7 @@ export default function SettingsPage() {
                     setLocalUser={setLocalUser}
                 />
             )}
-              <BottomNavBar />
+              {!isInIframe && <BottomNavBar />}
     </PageTransition>
     );
 }
