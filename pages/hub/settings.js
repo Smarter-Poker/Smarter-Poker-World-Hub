@@ -7,6 +7,7 @@
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
+import Switch from '../../src/components/ui/Switch';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
 // useTheme removed — unused (DarkModeToggle handles theme internally)
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
@@ -62,23 +63,18 @@ function Toggle({ value, onChange, label, description }) {
                 <span style={styles.settingLabel}>{label}</span>
                 {description && <span style={styles.settingDesc}>{description}</span>}
             </div>
-            <button
-                onClick={() => onChange(!value)}
-                role="switch"
-                aria-checked={!!value}
-                aria-label={label}
-                style={{
-                    ...styles.toggle,
-                    background: value
-                        ? 'linear-gradient(135deg, #00D4FF, #0088cc)'
-                        : 'rgba(255, 255, 255, 0.1)',
-                }}
-            >
-                <div style={{
-                    ...styles.toggleKnob,
-                    transform: value ? 'translateX(20px)' : 'translateX(0)',
-                }} />
-            </button>
+            {/*
+              * All 21 toggles on this page render through this one component,
+              * which drew its own cyan-gradient pill. It is now the shared
+              * Switch (src/components/ui/Switch.jsx) so this page matches
+              * Club Arena, Commander and everything else. Changing this one
+              * function changes every toggle on the settings screen.
+              */}
+            <Switch
+                checked={!!value}
+                onChange={onChange}
+                label={label}
+            />
         </div>
     );
 }
