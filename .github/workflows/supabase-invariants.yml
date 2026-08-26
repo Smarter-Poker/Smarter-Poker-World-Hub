@@ -63,6 +63,38 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/ci/check-phantom-tables.mjs
 
+  policy-function-grants:
+    name: "U4.4: Policy functions are executable"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Added 2026-08-26 after a severity-1 outage that nothing could have
+      # caught. 44 tables carried a SELECT policy calling
+      # fn_is_platform_admin(), and `authenticated` had no EXECUTE on it.
+      # Postgres does NOT short-circuit the OR in a policy, so every signed-in
+      # user reading their OWN notifications, direct messages, bookmarks,
+      # purchase history or devices got a hard permission error rather than a
+      # list. A policy referencing a function it cannot call is perfectly
+      # valid DDL -- the failure only exists at query time, as the caller.
+      #
+      # This check found three MORE broken tables (disputes,
+      # settlement_invoices, settlement_locks, via fn_is_club_admin_uid) on
+      # its first run, so it is enforcing from the start rather than starting
+      # non-blocking like U4.2 and U4.3: it is currently green and a
+      # regression here is a user-visible outage.
+      #
+      # See .agent/audits/2026-08-26-platform-rls-outage.md
+      - name: Check every policy function is executable by that policy's roles
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/ci/check-policy-function-grants.mjs
+
   cron-liveness:
     name: "U4.3: Scheduled jobs actually succeed"
     runs-on: ubuntu-latest
