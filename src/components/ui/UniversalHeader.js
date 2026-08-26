@@ -793,7 +793,18 @@ export default function UniversalHeader({
           __html: `
                 .universal-header {
                     background: ${C.bg};
+                    /*
+                     * THE NOTCH. In a standalone PWA the document starts at
+                     * y=0, UNDERNEATH the status bar, so an 8px top pad put
+                     * the header contents directly beneath the clock. On an
+                     * iPhone the time overlapped the word "Settings".
+                     * The bottom nav has reserved the home indicator from the
+                     * start (env(safe-area-inset-bottom)); the top was simply
+                     * never done. padding-top MUST come after the shorthand,
+                     * or the shorthand resets it back to 8px.
+                     */
                     padding: 8px 12px;
+                    padding-top: calc(8px + env(safe-area-inset-top, 0px));
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
