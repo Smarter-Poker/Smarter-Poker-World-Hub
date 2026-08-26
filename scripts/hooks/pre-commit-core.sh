@@ -146,6 +146,28 @@ for file in $AUTH_FILES; do
     CONTENT=$(git show ":$file" 2>/dev/null)
 
     case "$file" in
+        # THE OAUTH CALLBACK IS WHERE A RAW SESSION READ BELONGS (2026-08-25).
+        # pages/auth/callback.js is the one browser file whose entire job is to
+        # resolve the session that has JUST been created by
+        # exchangeCodeForSession / verifyOtp. authUtils' getAuthUser returns
+        # what is already hydrated - which is exactly what is not true here.
+        # The 5x400ms getSession retry exists to absorb the cookie-set /
+        # hydration race, and swapping it out would break OAuth sign-in to
+        # satisfy a lint. getSession is allowed HERE ONLY; getUser stays
+        # blocked, and no other browser file changes.
+        #
+        # Why this had to be narrowed: the blanket rule made ANY edit to the
+        # OAuth callback permanently uncommittable - including a fix TO the
+        # OAuth callback. That is the exact shape this check's own 2026-08-05
+        # note warns about for pages/api: it pushes people to --no-verify,
+        # which drops checks A and B (conflict markers) as collateral.
+        pages/auth/callback.js)
+            if printf '%s' "$CONTENT" | grep -q 'supabase\.auth\.getUser'; then
+                echo "🚫 BLOCKED: $file contains supabase.auth.getUser()"
+                echo "   Use: import { getAuthUser } from '@/lib/authUtils'"
+                DANGEROUS=1
+            fi
+            ;;
         pages/api/*)
             if printf '%s' "$CONTENT" | grep -q 'supabase\.auth\.getUser()'; then
                 echo "🚫 BLOCKED: $file contains argument-less supabase.auth.getUser()"
