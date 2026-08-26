@@ -352,34 +352,82 @@ export const VIP_MEMBERSHIP = {
     },
 };
 
+// ───────────────────────────────────────────────────────────────────────────
+// VIP BENEFITS — EVERY LINE IS BACKED BY ENFORCING CODE
+// ───────────────────────────────────────────────────────────────────────────
+// Rewritten 2026-08-25 after a full entitlement audit of both repos. The old
+// list advertised fourteen things the platform does not do, and understated
+// nine things it does. The rule this list now lives by:
+//
+//   A LINE ONLY APPEARS HERE IF A CODE PATH ENFORCES IT.
+//
+// Removed, with the reason (do not re-add without shipping the feature first):
+//   • "Ad-Free Experience"            — there is no ad system in either repo.
+//                                       Zero hits for adsbygoogle/AdSlot/hideAds.
+//   • "Priority Support"              — no ticket priority field keyed on is_vip.
+//   • "Early Access / Beta Programs"  — no feature-flag or beta cohort exists.
+//   • "3 Exclusive Table Themes"      — VIP_GOLD_LIMITS.themes is display-only;
+//                                       theme_unlock is a 25 dia. purchase for
+//                                       everyone, with no VIP grant path.
+//   • "Create Up To 3 Private Clubs"  — clubCreation: 3 is display-only. The
+//                                       only real limit is ClubsService
+//                                       MAX_CLUBS = 4 on JOINS, for all users;
+//                                       club_creation costs 100 dia. flat.
+//   • "VIP Priority Tournament Seating" — is_vip_only is the opposite: it
+//                                       restricts a tournament TO VIPs.
+//   • "1,200 Interactive Emojis"      — the quota is written under key
+//                                       'emoji_pack' and read under 'emojis',
+//                                       so it never decrements. The real,
+//                                       enforced table allowance is the 500
+//                                       throwables line below.
+//   • "1,000 Player Tags"             — same key mismatch ('tag_pack' vs
+//                                       'tags'). Never enforced.
+//   • "Unlimited Preflop Charts"      — preflop-charts.js has no cost or VIP
+//                                       check at all. It is free for everyone,
+//                                       so it is not a VIP benefit.
+//   • "Show Stack In BBs"             — FEATURE_PRICING.show_stack_bb.cost is 0.
+//                                       Free for everyone.
+//   • "Free Entry To Freeroll Tournaments" — no freeroll+VIP logic exists.
+//                                       tournament-enter.js REQUIRES VIP and
+//                                       still deducts the entry fee.
+//   • "6% Leaderboard Boost"          — VIP_GOLD_LIMITS.leaderboardBoost is
+//                                       declared but never applied in scoring.
+//   • "$50/$25/$15 Per Month" values  — invented retail prices. Replaced with
+//                                       the real diamond day-pass prices from
+//                                       FEATURE_CONFIG, which are verifiable.
+//   • "Unlimited Rabbit Hunting"      — it is 100/month, then 5 dia. each
+//                                       (fn_consume_rabbit_hunt). Corrected,
+//                                       not removed.
+// ───────────────────────────────────────────────────────────────────────────
 export const VIP_BENEFITS = [
     // ─── SMARTER.POKER PLATFORM ───
-    { icon: '◆', title: 'Ad-Free Experience Across The Entire Platform', description: 'No Ads Or Banners Anywhere On The Platform', value: 'Platform', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Unlimited GTO Training Games (No Diamond Cost)', description: 'Play All GTO Training Games Without Spending Diamonds', value: 'Unlimited', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Unlimited Preflop Charts Training (No Diamond Cost)', description: 'Play All Preflop Chart Training Games Without Spending Diamonds', value: 'Unlimited', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Unlimited Poker Trivia (No Diamond Cost)', description: 'Play All Poker Trivia Games Without Spending Diamonds', value: 'Unlimited', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Full Access To GTO AI Personal Assistant', description: 'Priority AI Coaching & Hand Analysis', value: 'Unlimited', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Advanced Leak Finder Analysis Tools', description: 'Full Leak Detection And Analysis Tools', value: '$50/Mo', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Bankroll Manager Pro — All Session Tracking & Analytics', description: 'All Pro Tools For Session Tracking & Analytics', value: '$25/Mo', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Advanced Poker Near Me Filters & Venue Intelligence', description: 'Premium Filters And Venue Intelligence', value: '$15/Mo', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Free Entry To All Diamond Arena Freeroll Tournaments', description: 'Unlimited Freeroll Tournament Entries', value: 'Unlimited', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Early Access To New Platform Features & Beta Programs', description: 'Be First To Try New Features Before Public Release', value: 'VIP Only', category: 'Smarter.Poker' },
-    // ─── BONUS PERKS (included in Platform) ───
-    { icon: '◆', title: '500 Bonus Diamonds Credited Every Month', description: '500 Bonus Diamonds Credited Every Month', value: '500/Mo', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Up To 5 Custom AI-Generated Avatars', description: 'Create Up To 5 AI-Generated Custom Avatars', value: '5 Slots', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Exclusive Gold VIP Profile Badge & Cosmetic Flair', description: 'Exclusive Gold VIP Border, Crown Icon & Profile Cosmetics', value: 'Exclusive', category: 'Smarter.Poker' },
-    { icon: '◆', title: 'Priority Support With Fast-Track Assistance', description: 'Fast-Track Support And Dedicated Assistance', value: 'VIP Only', category: 'Smarter.Poker' },
+    // The headline. premiumFeatureGate.checkFeatureAccess short-circuits on
+    // profile.is_vip, so VIP silently owns every day pass in FEATURE_CONFIG —
+    // which is exactly the 150 dia. Daily All-Access Pass, every single day.
+    { icon: '◆', title: 'Every Premium Day Pass Included, Every Single Day', description: 'VIP Replaces The 150 Diamond All-Access Pass. Bankroll Pro, Poker Near Me Pro, Personal Assistant, GTO Training, PvP Trivia, Lives And The Custom Avatar Builder All Unlock Automatically', value: '150 ◆/Day Value', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Full GTO AI Assistant — Every Postflop Scenario Unlocked', description: 'Free Accounts Are Limited To Preflop. VIP Opens Postflop Analysis And Scenario Difficulty Levels 4 Through 10', value: 'VIP Only', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'AI Hand Reader And Deep Hand Breakdowns', description: 'Range Reading And Full Hand Analysis From The Personal Assistant Engine, With No Day Pass To Buy', value: 'VIP Only', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Advanced Leak Finder Analysis Suite', description: 'The Complete Leak Detection Toolset Inside Personal Assistant, Which Free Accounts Rent For 100 Diamonds Per Day', value: '100 ◆/Day Value', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Bankroll Manager Pro — Full Session Tracking And Analytics', description: 'Every Analytics Panel Unblurred And Fully Interactive. Free Accounts Rent It For 25 Diamonds Per Day', value: '25 ◆/Day Value', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Poker Near Me Pro — Venue Intelligence And Historical Activity', description: 'Historical Venue Analytics And Every Advanced Filter. Free Accounts Rent It For 25 Diamonds Per Day', value: '25 ◆/Day Value', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Every GTO Training Game Free — No Entry Cost', description: 'The 10 Diamond Entry Is Waived On Every Game, And Difficulty Levels 4 Through 10 Unlock Alongside It', value: 'No ◆ Cost', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Every Poker Trivia Game Free — No Entry Cost', description: 'The 10 Diamond Entry Is Waived Across Endless, Mixed, Time Attack, Survival And Strategy Trivia', value: 'No ◆ Cost', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Free Trivia Lifelines And Hints', description: 'Every Hint And Lifeline Costs You Nothing Instead Of Being Charged In Diamonds', value: 'No ◆ Cost', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Entry To VIP-Only Trivia Tournaments', description: 'Trivia Tournaments Are Restricted To VIP Members. The Tournament Buy-In Still Applies Normally', value: 'VIP Only', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Higher Daily Diamond Earning Cap', description: 'Earn Up To 150 Diamonds Per Day Instead Of The Free Ceiling Of 110', value: '150 ◆/Day', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Higher Monthly Diamond Earning Cap', description: 'Earn Up To 4,500 Diamonds Per Month Instead Of The Free Ceiling Of 3,300', value: '4,500 ◆/Mo', category: 'Smarter.Poker' },
+    { icon: '◆', title: '500 Bonus Diamonds Credited Every Month', description: 'Credited Automatically To Active Monthly And Annual Subscriptions, And Yours To Keep Forever', value: '500 ◆/Mo', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Up To 5 Custom AI-Generated Avatars', description: 'Free Accounts Get One Custom Avatar, Ever. VIP Holds Five At Once And Can Delete One To Make Room For A New Build', value: '5 Slots', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'The Full VIP Avatar Library Unlocked', description: 'Every Locked Avatar In The Selection Pool Opens, Including The Entire VIP-Only Set', value: 'VIP Only', category: 'Smarter.Poker' },
+    { icon: '◆', title: 'Gold VIP Badge, Crown And Profile Flair', description: 'A Gold Border, Crown Icon And VIP Tag On Your Profile, The Site Header And Every Leaderboard Row', value: 'Exclusive', category: 'Smarter.Poker' },
     // ─── CLUB & DIAMOND ARENA FEATURES ───
-    { icon: '◆', title: 'Unlimited Rabbit Hunting — See What Cards Would Have Come', description: 'See What Cards Would Have Come After Folding', value: 'Unlimited', category: 'Club & Diamond Arena' },
-    { icon: '◆', title: 'Show Stack In BBs — Always-On Big-Blind Display', description: 'Display Chip Stacks In Big-Blinds For Better Decisions', value: 'Unlimited', category: 'Club & Diamond Arena' },
-    { icon: '◆', title: 'Unlimited Offline Protection During Hands', description: 'Protection When Disconnected During Hands', value: 'Unlimited', category: 'Club & Diamond Arena' },
-    { icon: '◆', title: 'Auto Time Bank Activation When Needed', description: 'Automatic Time Bank Activation When Needed', value: 'Unlimited', category: 'Club & Diamond Arena' },
-    { icon: '◆', title: '120 Seconds Of Free Time Bank Each Month', description: '120 Seconds Of Free Time Bank Each Month', value: '+120s/Mo', category: 'Club & Diamond Arena' },
-    { icon: '◆', title: '1,200 Interactive Emojis Per Month', description: '1,200 Free Emojis To Throw At The Tables', value: '1,200/Mo', category: 'Club & Diamond Arena' },
-    { icon: '◆', title: '3 Exclusive Table Themes Unlocked', description: '3 Exclusive Table Themes Unlocked', value: '3 Themes', category: 'Club & Diamond Arena' },
-    { icon: '◆', title: 'Create Up To 3 Private Clubs', description: 'Create Up To 3 Private Clubs', value: '3 Clubs', category: 'Club & Diamond Arena' },
-    { icon: '◆', title: '1,000 Player Tags Per Month To Track Opponents', description: '1,000 Tags Per Month To Track Opponents', value: '1,000/Mo', category: 'Club & Diamond Arena' },
-    { icon: '◆', title: 'VIP Priority Tournament Seating & Early Registration', description: 'Get Priority Seating And Early Registration For Tournaments', value: 'VIP Only', category: 'Club & Diamond Arena' },
+    { icon: '◆', title: '100 Free Rabbit Hunts Every Month', description: 'See The Cards That Would Have Come After You Fold. Hunts Beyond The First 100 Cost 5 Diamonds Each', value: '100/Mo', category: 'Club & Diamond Arena' },
+    { icon: '◆', title: 'Unlimited Offline Protection During Hands', description: 'Your Hand Is Protected Every Time You Disconnect. Free Accounts Get Exactly One Per Session', value: 'Unlimited', category: 'Club & Diamond Arena' },
+    { icon: '◆', title: 'Auto Time Bank Activation, Free Every Time', description: 'Your Time Bank Fires Automatically The Moment You Need It. Free Accounts Pay 5 Diamonds Per Activation', value: 'No ◆ Cost', category: 'Club & Diamond Arena' },
+    { icon: '◆', title: '120 Extra Time Bank Seconds Every Month', description: 'Added On Top Of The 40 Second Base Bank, For 160 Seconds Of Thinking Time In Total', value: '+120s/Mo', category: 'Club & Diamond Arena' },
+    { icon: '◆', title: '500 Free Throwables Every Month', description: 'Throw Any Of The 49 Items At The Table For Free. Throws Beyond The First 500 Cost 1 Diamond Each', value: '500/Mo', category: 'Club & Diamond Arena' },
+    { icon: '◆', title: 'VIP Cosmetic Frames And Borders Owned Outright', description: 'Every VIP-Tier Avatar Frame Belongs To You For As Long As You Are A Member, With No Separate Unlock To Buy', value: 'VIP Only', category: 'Club & Diamond Arena' },
+    { icon: '◆', title: 'Entry To VIP-Only Club Tournaments', description: 'Tournaments A Club Flags As VIP Only Are Open To You And Carry A VIP Tag In The Lobby', value: 'VIP Only', category: 'Club & Diamond Arena' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════

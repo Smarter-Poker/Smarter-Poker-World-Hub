@@ -23,6 +23,12 @@ const staticPages = [
   { path: '/hub/news', priority: '0.9', changefreq: 'hourly' },
   { path: '/hub/video-library', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/diamond-store', priority: '0.8', changefreq: 'weekly' },
+  // Store tabs became real routes on 2026-08-25. VIP outranks the store front
+  // page because it is the page that sells the subscription.
+  { path: '/hub/vip-membership', priority: '0.9', changefreq: 'weekly' },
+  { path: '/hub/merch-store', priority: '0.7', changefreq: 'weekly' },
+  { path: '/hub/smarter-rewards', priority: '0.7', changefreq: 'weekly' },
+  { path: '/hub/club-shop', priority: '0.5', changefreq: 'weekly' },
   { path: '/hub/bankroll-manager', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/preflop-charts', priority: '0.7', changefreq: 'weekly' },
 
