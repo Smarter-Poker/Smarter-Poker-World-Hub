@@ -40,6 +40,10 @@ export default async function handler(req, res) {
   // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
+  } else if (!applyRateLimit(req, res, LIMITS.read)) {
+    // The GET enumerates every review plus the reviewers' user_ids — bound it
+    // the same way the write verbs are bounded.
+    return;
   }
 
     try {
@@ -57,6 +61,13 @@ export default async function handler(req, res) {
                 sort = 'newest',
             } = req.query;
 
+            // Coerce paging inputs FIRST. parseInt('abc') is NaN, and
+            // .range(NaN, NaN) makes PostgREST return 400. Also drop the
+            // redundant .limit() — .range() already bounds the page, and
+            // applying both made the two disagree whenever offset > 0.
+            const off = Math.max(parseInt(offset, 10) || 0, 0);
+            const lim = Math.min(Math.max(parseInt(limit, 10) || 100, 1), 500);
+
             let query = getSupabase()
                 .from('venue_reviews')
                 .select(`
@@ -73,8 +84,7 @@ export default async function handler(req, res) {
                     created_at,
                     metadata
                 `)
-                .limit(parseInt(limit, 10) || 100)
-                .range(parseInt(offset, 10), parseInt(offset, 10) + (parseInt(limit, 10) || 100) - 1);
+                .range(off, off + lim - 1);
 
             // Filters
             if (venue_id) query = query.eq('venue_id', String(venue_id));
@@ -110,12 +120,27 @@ export default async function handler(req, res) {
                 }
             }
 
-            // Count stats
-            const totalCount = reviews?.length || 0;
-            const flaggedCount = (reviews || []).filter(r => r.is_flagged).length;
-            const avgRating = totalCount > 0
-                ? ((reviews || []).reduce((sum, r) => sum + (r.rating || 0), 0) / totalCount).toFixed(2)
-                : 0;
+            // Whole-table stats. These were previously computed over the
+            // CURRENT PAGE only, so the dashboard's "Total Reviews" was really
+            // just the page size (100 by default).
+            const AVG_SAMPLE_CAP = 10000;
+            const [totalRes, flaggedRes, ratingsRes] = await Promise.all([
+                getSupabase().from('venue_reviews').select('id', { count: 'exact', head: true }),
+                getSupabase().from('venue_reviews').select('id', { count: 'exact', head: true }).eq('is_flagged', true),
+                getSupabase().from('venue_reviews').select('rating').not('rating', 'is', null).limit(AVG_SAMPLE_CAP),
+            ]);
+
+            if (totalRes.error) console.warn('[Admin Reviews GET] total count error:', totalRes.error.message || totalRes.error);
+            if (flaggedRes.error) console.warn('[Admin Reviews GET] flagged count error:', flaggedRes.error.message || flaggedRes.error);
+            if (ratingsRes.error) console.warn('[Admin Reviews GET] rating average error:', ratingsRes.error.message || ratingsRes.error);
+
+            const totalCount = totalRes.count ?? null;
+            const flaggedCount = flaggedRes.count ?? null;
+
+            const ratingRows = ratingsRes.data || [];
+            const avgRating = ratingRows.length > 0
+                ? parseFloat((ratingRows.reduce((sum, r) => sum + (r.rating || 0), 0) / ratingRows.length).toFixed(2))
+                : null;
 
             return res.status(200).json({
                 success: true,
@@ -123,7 +148,16 @@ export default async function handler(req, res) {
                     ...r,
                     venue_name: venueNames[String(r.venue_id)] || `Venue ${r.venue_id}`,
                 })),
-                stats: { total: totalCount, flagged: flaggedCount, avg_rating: parseFloat(avgRating) },
+                page: { offset: off, limit: lim, returned: reviews?.length || 0 },
+                stats: {
+                    total: totalCount,
+                    flagged: flaggedCount,
+                    avg_rating: avgRating,
+                    // True when the average was computed from a capped sample
+                    // rather than every row, so the number is not presented as
+                    // something it is not.
+                    avg_rating_sampled: ratingRows.length >= AVG_SAMPLE_CAP,
+                },
             });
         }
 
@@ -182,19 +216,33 @@ export default async function handler(req, res) {
                            ? 'Your review was removed. Due to repeated violations of Community Guidelines, you can no longer leave reviews.'
                            : 'Your recent poker venue review was removed for violating Community Guidelines.';
                            
-                        await fetch(`${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
-                            },
-                            body: JSON.stringify({
-                                userId: existing.user_id,
-                                title: 'Community Guidelines Update',
-                                message: pushMessage, // /api/notifications/send uses 'message' or 'body', typically 'message'
-                                type: 'moderation_alert'
-                            })
-                        }).catch(e => console.warn("Push Dispatch Warning:", e));
+                        // /api/notifications/send takes `externalUserIds` (an
+                        // array of Supabase user ids) and authenticates
+                        // server-to-server callers with the x-admin-secret
+                        // header. The old call sent `userId` with a
+                        // service-role JWT as a Bearer token — that JWT has no
+                        // `sub`, so it failed auth every time and no
+                        // moderation notification was ever delivered.
+                        try {
+                            const notifyRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || ''
+                                },
+                                body: JSON.stringify({
+                                    externalUserIds: [existing.user_id],
+                                    title: 'Community Guidelines Update',
+                                    message: pushMessage
+                                })
+                            });
+                            if (!notifyRes.ok) {
+                                const detail = await notifyRes.text().catch(() => '');
+                                console.warn('[Admin Reviews DELETE] Moderation notification not delivered:', notifyRes.status, detail.slice(0, 300));
+                            }
+                        } catch (e) {
+                            console.warn('[Admin Reviews DELETE] Push dispatch failed:', e?.message || e);
+                        }
                     }
                 } catch (punishErr) {
                     console.warn('[Admin Reviews DELETE] Trust Score Error:', punishErr);
@@ -221,9 +269,12 @@ export default async function handler(req, res) {
                 return res.status(400).json({ success: false, error: 'review_id and action (flag|unflag) required' });
             }
 
+            // NOTE: venue_reviews has NO updated_at column in production.
+            // Sending one made PostgREST reject every flag/unflag with
+            // PGRST204, so moderation flagging 500'd 100% of the time.
             const updatePayload = action === 'flag'
-                ? { is_flagged: true, flag_reason: reason || 'Admin flagged', updated_at: new Date().toISOString() }
-                : { is_flagged: false, flag_reason: null, updated_at: new Date().toISOString() };
+                ? { is_flagged: true, flag_reason: reason || 'Admin flagged' }
+                : { is_flagged: false, flag_reason: null };
 
             const { error } = await getSupabase()
                 .from('venue_reviews')

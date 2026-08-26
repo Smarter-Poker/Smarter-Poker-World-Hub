@@ -17,17 +17,26 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateUnionApplication } from '../../../src/contracts/orb4_syndicate';
-import { checkIdempotency, cacheResponse } from '../../../src/lib/club-arena/idempotency';
+import { checkIdempotency } from '../../../src/lib/club-arena/idempotency';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Lazy accessor — a module-scope createClient() throws at IMPORT time when the
+// service-role key is missing, which takes the whole route down before any
+// request handler can report why.
+let _supabase = null;
+function getSupabase() {
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
+}
 
 // Resolve Midway Union ID dynamically
 async function getMidwayUnionId() {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabase()
     .from('unions')
     .select('id, name, owner_id')
     .ilike('name', '%midway%')
@@ -36,19 +45,21 @@ async function getMidwayUnionId() {
   return data || null;
 }
 
-// Check if caller is platform admin (has admin/superadmin in profiles.role)
+// Check if caller is platform admin (has admin/superadmin/god in profiles.role)
 async function isPlatformAdmin(userId) {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabase()
     .from('profiles')
     .select('role')
     .eq('id', userId)
     .maybeSingle();
-  return ['admin', 'superadmin'].includes(data?.role);
+  // 'god' is the role the real owner accounts carry — omitting it locked
+  // them out of every union review action.
+  return ['admin', 'superadmin', 'god'].includes(data?.role);
 }
 
 // Check if caller is union_lead for the given unionId
 async function isUnionLead(userId, unionId) {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabase()
     .from('union_admins')
     .select('role')
     .eq('union_id', unionId)
@@ -76,7 +87,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   // CONCURRENCY LOCKDOWN: Idempotency guard for mutation actions
-  const readOnlyActions = ['list', 'status'];
+  const readOnlyActions = ['list', 'status', 'list_leave_requests'];
   if (!readOnlyActions.includes(req.body?.action)) {
     if (checkIdempotency(req, res)) return;
   }
@@ -84,7 +95,7 @@ export default async function handler(req, res) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-  const { data: authData, error: authErr } = await supabaseAdmin.auth.getUser(token);
+  const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
   const user = authData?.user;
   if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
@@ -98,7 +109,16 @@ export default async function handler(req, res) {
   }
 
   // Use Zod-validated data (not raw req.body) for all downstream logic
-  const { clubId, applicationId, unionId: bodyUnionId, message, reason, commissionRate } = validation.data;
+  const {
+    clubId,
+    applicationId,
+    leaveRequestId,
+    unionId: bodyUnionId,
+    message,
+    reason,
+    commissionRate,
+    statusFilter: validatedStatusFilter,
+  } = validation.data;
 
   try {
     // ═══════════════════════════════════════════════════════════════
@@ -108,7 +128,7 @@ export default async function handler(req, res) {
       if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
       // Verify caller owns this club
-      const { data: club } = await supabaseAdmin
+      const { data: club } = await getSupabase()
         .from('clubs')
         .select('id, name, club_id, union_id, owner_id, member_count')
         .eq('id', clubId)
@@ -123,7 +143,7 @@ export default async function handler(req, res) {
       // ILIKE lookup remains only as the legacy fallback for old callers.
       let union = null;
       if (bodyUnionId) {
-        const { data: target } = await supabaseAdmin
+        const { data: target } = await getSupabase()
           .from('unions').select('id, name, owner_id').eq('id', bodyUnionId).maybeSingle();
         if (!target) return res.status(404).json({ success: false, error: 'Union not found' });
         union = target;
@@ -133,7 +153,7 @@ export default async function handler(req, res) {
       }
 
       // Check for existing pending application
-      const { data: existing } = await supabaseAdmin
+      const { data: existing } = await getSupabase()
         .from('union_applications')
         .select('id, status')
         .eq('club_id', clubId)
@@ -149,7 +169,7 @@ export default async function handler(req, res) {
       }
 
       // Insert application
-      const { data: app, error: insertErr } = await supabaseAdmin
+      const { data: app, error: insertErr } = await getSupabase()
         .from('union_applications')
         .insert({
           union_id: union.id,
@@ -184,7 +204,7 @@ export default async function handler(req, res) {
       // UNION AUDIT FIX 2026-07-21: honor explicit unionId; Midway fallback for legacy.
       let union = null;
       if (bodyUnionId) {
-        const { data: target } = await supabaseAdmin
+        const { data: target } = await getSupabase()
           .from('unions').select('id, name').eq('id', bodyUnionId).maybeSingle();
         union = target;
       } else {
@@ -192,7 +212,7 @@ export default async function handler(req, res) {
       }
       if (!union) return res.status(200).json({ success: true, application: null });
 
-      const { data: app } = await supabaseAdmin
+      const { data: app } = await getSupabase()
         .from('union_applications')
         .select('id, club_id, union_id, status, applied_at, reviewed_at, review_note')
         .eq('club_id', clubId)
@@ -220,8 +240,8 @@ export default async function handler(req, res) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
-      const statusFilter = req.body.statusFilter || 'pending';
-      let query = supabaseAdmin
+      const statusFilter = validatedStatusFilter || 'pending';
+      let query = getSupabase()
         .from('union_applications')
         .select('*, unions(name)')
         .eq('union_id', targetUnionId)
@@ -242,7 +262,7 @@ export default async function handler(req, res) {
       if (!applicationId) return res.status(400).json({ success: false, error: 'applicationId required' });
 
       // Load application first to get union_id for auth check
-      const { data: app } = await supabaseAdmin
+      const { data: app } = await getSupabase()
         .from('union_applications')
         .select('id, club_id, union_id, club_name, status, applied_at')
         .eq('id', applicationId)
@@ -270,15 +290,16 @@ export default async function handler(req, res) {
       // fn_union_close_club_tables_for_join does refund -> vacate -> close
       // (with is_deleted so it survives the engine sweeps) in one transaction,
       // and refuses outright if the club still has live public tournaments.
-      const { data: closeRes, error: closeErr } = await supabaseAdmin.rpc(
+      const { data: closeRes, error: closeErr } = await getSupabase().rpc(
         'fn_union_close_club_tables_for_join',
         { p_club_id: app.club_id }
       );
 
       if (closeErr) {
+        console.error('[union-application] fn_union_close_club_tables_for_join failed:', closeErr);
         return res.status(500).json({
           success: false,
-          error: `Could not close ${app.club_name}'s tables — approval aborted, nothing was changed. (${closeErr.message})`,
+          error: `Could not close ${app.club_name}'s tables — approval aborted, nothing was changed.`,
         });
       }
       if (closeRes && closeRes.success === false) {
@@ -288,9 +309,10 @@ export default async function handler(req, res) {
             error: `${app.club_name} still has ${closeRes.live_tournaments} live tournament(s). They must finish or be cancelled before the club can join the union.`,
           });
         }
+        console.error('[union-application] close-tables RPC reported failure:', closeRes);
         return res.status(500).json({
           success: false,
-          error: `Could not close ${app.club_name}'s tables: ${closeRes.error}`,
+          error: `Could not close ${app.club_name}'s tables — approval aborted, nothing was changed.`,
         });
       }
 
@@ -298,7 +320,7 @@ export default async function handler(req, res) {
       const refundedSeats = closeRes?.seats_refunded ?? 0;
 
       // Fully integrate club into union (same logic as manage-union add_club)
-      const { error: err_union_clubs_dam40 } = await supabaseAdmin
+      const { error: err_union_clubs_dam40 } = await getSupabase()
         .from('union_clubs')
         .upsert(
           { union_id: app.union_id, club_id: app.club_id, club_commission_rate: rate },
@@ -311,16 +333,17 @@ export default async function handler(req, res) {
         // for months instead of the union's, because rake routing reads the
         // clubs mirror while settlement reads union_clubs. The club's tables
         // have already been closed and refunded by this point, so say so.
+        console.error('[union-application] union_clubs upsert failed:', err_union_clubs_dam40);
         return res.status(500).json({
           success: false,
-          error: `Could not add ${app.club_name} to the union: ${err_union_clubs_dam40.message}. `
+          error: `Could not add ${app.club_name} to the union. `
             + `Its tables were already closed and players refunded — re-run the approval `
             + `once the cause is fixed.`,
           tablesAlreadyClosed: closedTables,
         });
       }
 
-      const { error: err_clubs_akfss } = await supabaseAdmin
+      const { error: err_clubs_akfss } = await getSupabase()
 
         .from('clubs')
 
@@ -336,17 +359,18 @@ export default async function handler(req, res) {
         // console.warn is how the mirror drifts. trg_union_clubs_sync_mirror
         // repairs the INSERT path, but an upsert that hits onConflict takes the
         // UPDATE path where the trigger does not fire — so this must be loud.
+        console.error('[union-application] clubs mirror update failed:', err_clubs_akfss);
         return res.status(500).json({
           success: false,
           error: `${app.club_name} was added to union_clubs but its club record could not `
-            + `be updated: ${err_clubs_akfss.message}. The club is half-joined — rake would `
+            + `be updated. The club is half-joined — rake would `
             + `route to the wrong treasury. Re-run the approval.`,
           halfJoined: true,
         });
       }
 
       // Mark application approved
-      const { error: err_union_applications_0zcko } = await supabaseAdmin
+      const { error: err_union_applications_0zcko } = await getSupabase()
         .from('union_applications')
         .update({ status: 'approved', reviewed_by: user.id, reviewed_at: new Date().toISOString(), review_note: reason || null })
         .eq('id', applicationId);
@@ -354,10 +378,11 @@ export default async function handler(req, res) {
         // The club IS in the union at this point; only the paperwork failed.
         // Report it rather than claiming success, or the application stays
         // 'pending' and the whole approval replays — closing tables again.
+        console.error('[union-application] marking application approved failed:', err_union_applications_0zcko);
         return res.status(500).json({
           success: false,
           error: `${app.club_name} was integrated into the union, but marking the `
-            + `application approved failed: ${err_union_applications_0zcko.message}. `
+            + `application approved failed. `
             + `Set it to 'approved' by hand — do NOT re-run the approval.`,
           integrationComplete: true,
         });
@@ -381,7 +406,7 @@ export default async function handler(req, res) {
     if (action === 'reject') {
       if (!applicationId) return res.status(400).json({ success: false, error: 'applicationId required' });
 
-      const { data: app } = await supabaseAdmin
+      const { data: app } = await getSupabase()
         .from('union_applications')
         .select('club_name, status, union_id')
         .eq('id', applicationId)
@@ -394,7 +419,7 @@ export default async function handler(req, res) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
-      const { error: err_union_applications_wozws } = await supabaseAdmin
+      const { error: err_union_applications_wozws } = await getSupabase()
 
         .from('union_applications')
 
@@ -402,13 +427,180 @@ export default async function handler(req, res) {
         .eq('id', applicationId);
 
       if (err_union_applications_wozws) {
+        console.error('[union-application] reject update failed:', err_union_applications_wozws);
         return res.status(500).json({
           success: false,
-          error: `Could not reject the application: ${err_union_applications_wozws.message}`,
+          error: 'Could not reject the application. Please try again.',
         });
       }
 
       return res.status(200).json({ success: true, message: `${app.club_name} application rejected` });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // LIST_LEAVE_REQUESTS — Union lead or platform admin lists clubs
+    // asking to leave the union
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'list_leave_requests') {
+      let targetUnionId = bodyUnionId;
+      if (!targetUnionId) {
+        const midway = await getMidwayUnionId();
+        if (!midway) return res.status(404).json({ success: false, error: 'Union not found' });
+        targetUnionId = midway.id;
+      }
+
+      if (!(await canAdminUnion(user.id, targetUnionId))) {
+        return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
+      }
+
+      const leaveStatusFilter = validatedStatusFilter || 'pending';
+      let leaveQuery = getSupabase()
+        .from('union_leave_requests')
+        .select('id, union_id, club_id, requester_user_id, club_name, club_code, reason, status, requested_at, reviewed_by, reviewed_at, unions(name)')
+        .eq('union_id', targetUnionId)
+        .order('requested_at', { ascending: false });
+
+      if (leaveStatusFilter !== 'all') leaveQuery = leaveQuery.eq('status', leaveStatusFilter);
+
+      const { data: rows, error: leaveErr } = await leaveQuery;
+      if (leaveErr) throw leaveErr;
+
+      // union_leave_requests.requester_user_id has NO foreign key to profiles,
+      // so PostgREST cannot embed it. Fetch the requesters separately and
+      // attach them under the `profiles` key the panel reads.
+      const requesterIds = [...new Set((rows || []).map((r) => r.requester_user_id).filter(Boolean))];
+      const profileById = new Map();
+      if (requesterIds.length > 0) {
+        const { data: requesters } = await getSupabase()
+          .from('profiles')
+          .select('id, display_name, email')
+          .in('id', requesterIds);
+        for (const p of requesters || []) profileById.set(p.id, p);
+      }
+
+      const leaveRequests = (rows || []).map((r) => {
+        const p = profileById.get(r.requester_user_id) || null;
+        return {
+          ...r,
+          profiles: p ? { display_name: p.display_name, email: p.email } : null,
+        };
+      });
+
+      return res.status(200).json({ success: true, leaveRequests });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // APPROVE_LEAVE — Union lead or platform admin lets a club out of
+    // the union. Reverses exactly what `approve` writes: the
+    // union_clubs membership row AND the clubs mirror. Both, or the
+    // club is half-out and rake routes to the wrong treasury.
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'approve_leave') {
+      if (!leaveRequestId) return res.status(400).json({ success: false, error: 'leaveRequestId required' });
+
+      const { data: lr } = await getSupabase()
+        .from('union_leave_requests')
+        .select('id, club_id, union_id, club_name, status')
+        .eq('id', leaveRequestId)
+        .maybeSingle();
+
+      if (!lr) return res.status(404).json({ success: false, error: 'Leave request not found' });
+      if (lr.status !== 'pending') return res.status(400).json({ success: false, error: `Leave request is already ${lr.status}` });
+
+      if (!(await canAdminUnion(user.id, lr.union_id))) {
+        return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
+      }
+
+      const { error: unlinkErr } = await getSupabase()
+        .from('union_clubs')
+        .delete()
+        .eq('union_id', lr.union_id)
+        .eq('club_id', lr.club_id);
+      if (unlinkErr) {
+        console.error('[union-application] union_clubs delete failed:', unlinkErr);
+        return res.status(500).json({
+          success: false,
+          error: `Could not remove ${lr.club_name} from the union. Nothing was changed.`,
+        });
+      }
+
+      const { error: mirrorErr } = await getSupabase()
+        .from('clubs')
+        .update({ union_id: null, auto_settlement_enabled: false })
+        .eq('id', lr.club_id);
+      if (mirrorErr) {
+        // Same pairing hazard as `approve`: the membership row is gone but
+        // the mirror still points at the union. Say so rather than warn.
+        console.error('[union-application] clubs mirror unlink failed:', mirrorErr);
+        return res.status(500).json({
+          success: false,
+          error: `${lr.club_name} was removed from union_clubs but its club record still `
+            + `points at the union. The club is half-out — re-run the approval.`,
+          halfLeft: true,
+        });
+      }
+
+      const { error: markErr } = await getSupabase()
+        .from('union_leave_requests')
+        .update({ status: 'approved', reviewed_by: user.id, reviewed_at: new Date().toISOString() })
+        .eq('id', leaveRequestId);
+      if (markErr) {
+        console.error('[union-application] marking leave request approved failed:', markErr);
+        return res.status(500).json({
+          success: false,
+          error: `${lr.club_name} has left the union, but marking the leave request approved `
+            + `failed. Set it to 'approved' by hand — do NOT re-run the approval.`,
+          integrationComplete: true,
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: `${lr.club_name} has been released from the union`,
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // REJECT_LEAVE — Union lead or platform admin denies a leave request
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'reject_leave') {
+      if (!leaveRequestId) return res.status(400).json({ success: false, error: 'leaveRequestId required' });
+
+      const { data: lr } = await getSupabase()
+        .from('union_leave_requests')
+        .select('id, club_name, status, union_id')
+        .eq('id', leaveRequestId)
+        .maybeSingle();
+
+      if (!lr) return res.status(404).json({ success: false, error: 'Leave request not found' });
+      if (lr.status !== 'pending') return res.status(400).json({ success: false, error: `Leave request is already ${lr.status}` });
+
+      if (!(await canAdminUnion(user.id, lr.union_id))) {
+        return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
+      }
+
+      const { error: denyErr } = await getSupabase()
+        .from('union_leave_requests')
+        .update({ status: 'denied', reviewed_by: user.id, reviewed_at: new Date().toISOString() })
+        .eq('id', leaveRequestId);
+
+      if (denyErr) {
+        console.error('[union-application] leave request denial failed:', denyErr);
+        return res.status(500).json({
+          success: false,
+          error: 'Could not deny the leave request. Please try again.',
+        });
+      }
+
+      // NOTE: union_leave_requests has no review-note column — the club's own
+      // `reason` lives there and must not be overwritten. The reviewer's
+      // reason is echoed back and logged, not stored.
+      if (reason) console.warn(`[union-application] leave request ${leaveRequestId} denied, reason: ${reason}`);
+
+      return res.status(200).json({
+        success: true,
+        message: `${lr.club_name} leave request denied${reason ? `: ${reason}` : ''}`,
+      });
     }
 
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
@@ -420,9 +612,9 @@ export default async function handler(req, res) {
   }
 
   } catch (err) {
-    console.warn('[API] Unhandled exception in handler:', err?.message || err);
+    console.error('[union-application] Unhandled exception in handler:', err);
     if (!res.headersSent) {
-      return res.status(500).json({ error: 'Internal server error', message: err?.message || 'Unknown error' });
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
   }
 }

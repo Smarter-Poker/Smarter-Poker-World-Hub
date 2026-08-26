@@ -2,8 +2,35 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 // Admin CRUD for promo codes — GET (list), POST (create), DELETE (deactivate)
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-const { logAdminAction, extractClientIP } = require('../../../src/lib/antiAbuse');
+const { logAdminAction } = require('../../../src/lib/antiAbuse');
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { randomInt } from 'crypto';
+
+// promo_codes is a GLOBAL table with no venue_id column, so a code minted here
+// grants diamonds platform-wide. Only platform admins may touch it.
+const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
+
+// reward_type values the redemption paths actually understand
+// (pages/api/promo/redeem.js, redeem-promo-code.js, seed-premade.js) plus the
+// values already present in production. An unknown type would create a code
+// that redeems into nothing.
+const VALID_REWARD_TYPES = [
+    'signup_bonus', 'diamonds', 'vip_days', 'free_trial', 'commander_discount',
+    'time_credit', 'referral_bonus', 'retention_bonus', 'vip_reward',
+    'loyalty_bonus', 'anniversary', 'tournament_credit', 'multiplier',
+    'discount_percent', 'event_bonus', 'birthday',
+    'lifetime_commander_charity', 'lifetime_commander_club_vip',
+];
+
+// Hard ceiling on a single code's payout. Without it a typo (or a hostile
+// caller) can mint a code granting 999,999,999 diamonds.
+const MAX_REWARD_VALUE = 10000;
+
+function clampRewardValue(value) {
+    return Math.min(Math.max(parseInt(value, 10) || 0, 0), MAX_REWARD_VALUE);
+}
+
+const CODE_PATTERN = /^[A-Z0-9]{4,20}$/;
 
 let _supabase = null;
 function getSupabase() {
@@ -17,9 +44,11 @@ function getSupabase() {
 
 function generateCode(length = 8) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No I/O/0/1 for readability
+    // crypto.randomInt, not Math.random: these codes are bearer tokens for
+    // diamonds, so a predictable PRNG makes them guessable.
     let code = '';
     for (let i = 0; i < length; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
+        code += chars.charAt(randomInt(chars.length));
     }
     return code;
 }
@@ -41,36 +70,22 @@ export default async function handler(req, res) {
       const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
-      // Verify user is owner/manager at a venue OR a platform admin/superadmin
-      let isAuthorized = false;
-
-      // Check commander_staff first (venue owners/managers)
-      const { data: staff } = await getSupabase()
-          .from('commander_staff')
-          .select('id, role, venue_id')
-          .eq('user_id', user.id)
-          .in('role', ['owner', 'manager'])
-          .eq('is_active', true)
-          .limit(1)
+      // PLATFORM ADMINS ONLY.
+      //
+      // This route previously authorized ANY active commander_staff row with
+      // role owner|manager at ANY venue, then applied no venue scoping at all.
+      // Because promo_codes is a global diamond-granting table with no
+      // venue_id column, that let any venue manager on the platform list,
+      // create, re-price and deactivate EVERY promo code. That branch is
+      // deleted; this surface is reached only from /horses.
+      const { data: profile } = await getSupabase()
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
           .maybeSingle();
 
-      if (staff) {
-          isAuthorized = true;
-      } else {
-          // Fallback: check profiles table for admin/superadmin role
-          const { data: profile } = await getSupabase()
-              .from('profiles')
-              .select('role')
-              .eq('id', user.id)
-              .maybeSingle();
-
-          if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) {
-              isAuthorized = true;
-          }
-      }
-
-      if (!isAuthorized) {
-          return res.status(403).json({ success: false, error: 'Only owners, managers, or platform admins can manage promo codes' });
+      if (!profile || !ADMIN_ROLES.includes(profile.role)) {
+          return res.status(403).json({ success: false, error: 'Platform admin access required' });
       }
 
       // GET — List all promo codes
@@ -87,7 +102,7 @@ export default async function handler(req, res) {
 
               if (error) throw error;
 
-              return res.status(200).json({ codes: data || [] });
+              return res.status(200).json({ success: true, codes: data || [] });
           } catch (err) {
               console.warn('List promo codes error:', err);
               return res.status(500).json({ success: false, error: 'Failed to fetch promo codes' });
@@ -99,17 +114,40 @@ export default async function handler(req, res) {
           const { code, description, type, value, maxUses, expiresAt } = req.body;
 
           try {
-              const promoCode = code?.toUpperCase().trim() || generateCode();
+              // ── Validate before minting. A promo code is a bearer token for
+              // diamonds, so nothing here is trusted from the client. ──
+              const rawCode = typeof code === 'string' ? code.toUpperCase().trim() : '';
+              const promoCode = rawCode || generateCode();
+              if (!CODE_PATTERN.test(promoCode)) {
+                  return res.status(400).json({ success: false, error: 'Code must be 4-20 characters, letters A-Z and digits 0-9 only' });
+              }
+
+              const rewardType = type || 'signup_bonus';
+              if (!VALID_REWARD_TYPES.includes(rewardType)) {
+                  return res.status(400).json({ success: false, error: `Invalid reward type. Must be one of: ${VALID_REWARD_TYPES.join(', ')}` });
+              }
+
+              let expiresAtIso = null;
+              if (expiresAt !== undefined && expiresAt !== null && expiresAt !== '') {
+                  const parsed = new Date(expiresAt);
+                  if (Number.isNaN(parsed.getTime())) {
+                      return res.status(400).json({ success: false, error: 'expiresAt is not a valid date' });
+                  }
+                  if (parsed.getTime() <= Date.now()) {
+                      return res.status(400).json({ success: false, error: 'expiresAt must be in the future' });
+                  }
+                  expiresAtIso = parsed.toISOString();
+              }
 
               const { data, error } = await getSupabase()
                   .from('promo_codes')
                   .insert({
                       code: promoCode,
                       description: description || '',
-                      reward_type: type || 'signup_bonus',
-                      reward_value: parseInt(value) || 0,
-                      max_uses: maxUses ? parseInt(maxUses) : null,
-                      expires_at: expiresAt || null,
+                      reward_type: rewardType,
+                      reward_value: clampRewardValue(value),
+                      max_uses: maxUses ? parseInt(maxUses, 10) : null,
+                      expires_at: expiresAtIso,
                   })
                   .select()
                   .maybeSingle();
@@ -126,8 +164,8 @@ export default async function handler(req, res) {
                   admin_user_id: user.id,
                   action: 'promo_code.created',
                   target_type: 'promo_code',
-                  target_id: data.id,
-                  details: { code: promoCode, type, value, maxUses, expiresAt },
+                  target_id: data?.id,
+                  details: { code: promoCode, type: rewardType, value: clampRewardValue(value), maxUses, expiresAt: expiresAtIso },
                   after: data,
                   req,
               });
@@ -178,12 +216,35 @@ export default async function handler(req, res) {
           try {
               const updates = {};
               if (is_active !== undefined) updates.is_active = is_active;
-              if (code !== undefined) updates.code = code.toUpperCase().trim();
+              if (code !== undefined) {
+                  const nextCode = String(code).toUpperCase().trim();
+                  if (!CODE_PATTERN.test(nextCode)) {
+                      return res.status(400).json({ success: false, error: 'Code must be 4-20 characters, letters A-Z and digits 0-9 only' });
+                  }
+                  updates.code = nextCode;
+              }
               if (description !== undefined) updates.description = description;
-              if (max_uses !== undefined) updates.max_uses = max_uses === '' || max_uses === null ? null : parseInt(max_uses);
-              if (reward_type !== undefined) updates.reward_type = reward_type;
-              if (reward_value !== undefined) updates.reward_value = parseInt(reward_value) || 0;
-              if (expires_at !== undefined) updates.expires_at = expires_at || null;
+              if (max_uses !== undefined) updates.max_uses = max_uses === '' || max_uses === null ? null : parseInt(max_uses, 10);
+              if (reward_type !== undefined) {
+                  if (!VALID_REWARD_TYPES.includes(reward_type)) {
+                      return res.status(400).json({ success: false, error: `Invalid reward type. Must be one of: ${VALID_REWARD_TYPES.join(', ')}` });
+                  }
+                  updates.reward_type = reward_type;
+              }
+              // Clamped: an unbounded re-price is the same diamond-minting hole
+              // as an unbounded create.
+              if (reward_value !== undefined) updates.reward_value = clampRewardValue(reward_value);
+              if (expires_at !== undefined) {
+                  if (expires_at === null || expires_at === '') {
+                      updates.expires_at = null;
+                  } else {
+                      const parsed = new Date(expires_at);
+                      if (Number.isNaN(parsed.getTime())) {
+                          return res.status(400).json({ success: false, error: 'expires_at is not a valid date' });
+                      }
+                      updates.expires_at = parsed.toISOString();
+                  }
+              }
 
               if (Object.keys(updates || {}).length === 0) {
                   return res.status(400).json({ success: false, error: 'No updates provided' });

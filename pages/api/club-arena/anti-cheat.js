@@ -35,22 +35,10 @@ function getSupabase() {
 
 
 
-// ─── Idempotency Store (in-memory, TTL-based) ────────────────
-// Prevents double-tap / fat-finger duplicate mutations.
-// Key = X-Idempotency-Key header, Value = { response, expiry }
-const idempotencyStore = new Map();
-const IDEMPOTENCY_TTL_MS = 60_000; // 1 minute
-const MUTATION_ACTIONS = ['review_flag', 'kick_player'];
-
-// Clean up expired idempotency keys every 2 minutes
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, entry] of idempotencyStore.entries()) {
-      if (now > entry.expiry) idempotencyStore.delete(key);
-    }
-  }, 2 * 60_000);
-}
+// Idempotency is handled entirely by the shared checkIdempotency helper
+// (see the guard in the handler below). A second, hand-rolled in-memory
+// store used to live here; it duplicated that helper and leaked an
+// un-unref'd setInterval handle per lambda instance.
 
 export default async function handler(req, res) {
     if (!applyCors(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type, Authorization, X-Idempotency-Key' })) return;
@@ -64,16 +52,6 @@ try {
     if (checkIdempotency(req, res)) return;
   }
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
-
-    // ── Idempotency Check: dedup mutation requests ──
-    const idempotencyKey = req.headers['x-idempotency-key'];
-    if (idempotencyKey && typeof idempotencyKey === 'string') {
-      const cached = idempotencyStore.get(idempotencyKey);
-      if (cached && Date.now() < cached.expiry) {
-        res.setHeader('X-Idempotent-Replayed', 'true');
-        return res.status(cached.status).json(cached.body);
-      }
-    }
 
     try {
       // ── Auth: verify JWT identity ──
@@ -133,13 +111,12 @@ try {
         params.minHands = mh;
       }
 
-      // ── Input Validation: string params must not contain SQL/injection ──
-      const SQL_RE = /[;'"\\]|(--)|(\/\*)|DROP|ALTER|DELETE|INSERT|UPDATE|UNION|SELECT/i;
+      // ── Input Validation: string params length cap ──
+      // The old regex blocklist here rejected any apostrophe and the word
+      // SELECT. It bought nothing (PostgREST parameterizes every value) and
+      // rejected legitimate moderator notes such as "player's second account".
       for (const key of ['notes', 'reason', 'flagType', 'eventType']) {
         if (params[key] && typeof params[key] === 'string') {
-          if (SQL_RE.test(params[key])) {
-            return res.status(400).json({ error: `Invalid characters in ${key}` });
-          }
           if (params[key].length > 500) {
             return res.status(400).json({ error: `${key} too long (max 500 chars)` });
           }
@@ -147,25 +124,37 @@ try {
       }
 
       // ── Input Validation: UUID params ──
-      for (const key of ['flagId', 'playerId', 'tableId']) {
+      for (const key of ['flagId', 'playerId', 'targetUserId', 'tableId']) {
         if (params[key] && typeof params[key] === 'string' && !UUID_RE.test(params[key])) {
           return res.status(400).json({ error: `${key} must be a valid UUID` });
         }
       }
 
+      // Platform staff operating from /horses are not members of every club
+      // they moderate. Without this branch they were 403'd on every club they
+      // did not personally belong to, which is all of them.
+      const { data: callerProfile } = await getSupabase()
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+      const isPlatformAdmin = ['admin', 'superadmin', 'god'].includes(callerProfile?.role);
+
       // Verify caller is club owner / admin / super_agent.
       // Round 72: dropped 'manager' (0 rows in production), added
       // 'super_agent' (the de-facto admin role used elsewhere — waitlist,
       // club-analytics, lobby-ordering all gate on this trio).
-      const { data: membership } = await getSupabase()
-        .from('club_members')
-        .select('role')
-        .eq('club_id', clubId)
-        .eq('user_id', userId)
-        .maybeSingle();
+      if (!isPlatformAdmin) {
+        const { data: membership } = await getSupabase()
+          .from('club_members')
+          .select('role')
+          .eq('club_id', clubId)
+          .eq('user_id', userId)
+          .maybeSingle();
 
-      if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
-        return res.status(403).json({ error: 'Not authorized. Club admin access required.' });
+        if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
+          return res.status(403).json({ error: 'Not authorized. Club admin access required.' });
+        }
       }
 
       switch (action) {
@@ -179,7 +168,7 @@ try {
             .from('anti_cheat_flags')
             .select(`
               *,
-              player:player_id (id, display_name, avatar_url),
+              player:player_id (id, display_name, username, avatar_url),
               reviewer:reviewed_by (id, display_name)
             `)
             .eq('club_id', clubId)
@@ -193,7 +182,17 @@ try {
           const { data, error, count } = await query;
           if (error) throw error;
 
-          return res.status(200).json({ success: true, flags: data || [], count });
+          // The admin panel reads FLAT fields. anti_cheat_flags has no
+          // user_id and no description column, so both are derived here
+          // rather than selected.
+          const flags = (data || []).map((f) => ({
+            ...f,
+            user_id: f.player_id,
+            player_name: f.player?.display_name || f.player?.username || f.player_id,
+            description: f.reason,
+          }));
+
+          return res.status(200).json({ success: true, flags, count });
         }
 
         // ─────────────────────────────────────────────────
@@ -231,7 +230,7 @@ try {
             .from('table_sessions')
             .select(`
               *,
-              player:player_id (id, display_name, avatar_url)
+              player:player_id (id, display_name, username, avatar_url)
             `)
             .eq('club_id', clubId)
             .eq('is_active', true)
@@ -243,7 +242,25 @@ try {
           const { data, error } = await query;
           if (error) throw error;
 
-          return res.status(200).json({ success: true, sessions: data || [] });
+          // Flattened for the admin panel, same as get_flags. table_sessions
+          // carries table_id (no table_name) and seated_at (no stored
+          // duration), so duration_minutes is computed here.
+          const now = Date.now();
+          const sessions = (data || []).map((s) => {
+            const startedMs = s.seated_at ? Date.parse(s.seated_at) : NaN;
+            const endedMs = s.left_at ? Date.parse(s.left_at) : now;
+            const durationMinutes = Number.isFinite(startedMs)
+              ? Math.max(0, Math.round((endedMs - startedMs) / 60000))
+              : null;
+            return {
+              ...s,
+              user_id: s.player_id,
+              player_name: s.player?.display_name || s.player?.username || s.player_id,
+              duration_minutes: durationMinutes,
+            };
+          });
+
+          return res.status(200).json({ success: true, sessions });
         }
 
         // ─────────────────────────────────────────────────
@@ -253,10 +270,16 @@ try {
         // succeeds, the other gets 409 Conflict.
         // ─────────────────────────────────────────────────
         case 'review_flag': {
-          const { flagId, newStatus, notes } = params;
+          const { flagId, newStatus, verdict, notes } = params;
 
           if (!flagId) return res.status(400).json({ error: 'flagId required' });
-          if (!['reviewed', 'dismissed', 'actioned'].includes(newStatus)) {
+
+          // The admin panel sends `verdict` ('dismiss' | 'reviewed'); older
+          // callers send `newStatus`. Accept either, and normalise the
+          // panel's 'dismiss' to the stored 'dismissed'.
+          let status = newStatus ?? verdict;
+          if (status === 'dismiss') status = 'dismissed';
+          if (!['reviewed', 'dismissed', 'actioned'].includes(status)) {
             return res.status(400).json({ error: 'newStatus must be reviewed, dismissed, or actioned' });
           }
 
@@ -264,7 +287,7 @@ try {
           const { data, error } = await getSupabase()
             .from('anti_cheat_flags')
             .update({
-              status: newStatus,
+              status,
               reviewed_by: userId,
               reviewed_at: new Date().toISOString(),
               review_notes: notes || null,
@@ -299,23 +322,16 @@ try {
 
           // Log the review event
           const { error: eventErr } = await getSupabase().from('anti_cheat_events').insert({
-            event_type: `flag_${newStatus}`,
+            event_type: `flag_${status}`,
             player_id: data.player_id,
             club_id: clubId,
             table_id: data.table_id,
-            details: { flag_id: flagId, new_status: newStatus, notes },
+            details: { flag_id: flagId, new_status: status, notes },
             triggered_by: userId,
           });
           if (eventErr) console.warn('[AntiCheat] Failed to log review event:', eventErr.message);
 
-          const reviewResult = { success: true, flag: data };
-          // Cache idempotent response
-          if (idempotencyKey) {
-            idempotencyStore.set(idempotencyKey, {
-              status: 200, body: reviewResult, expiry: Date.now() + IDEMPOTENCY_TTL_MS,
-            });
-          }
-          return res.status(200).json(reviewResult);
+          return res.status(200).json({ success: true, flag: data });
         }
 
         // ─────────────────────────────────────────────────
@@ -332,11 +348,14 @@ try {
           // the request to the engine's POST /admin/kick endpoint, which
           // independently verifies the caller's club_members.role + drives
           // the real ServerTableEngine.leaveTable cleanup.
-          const { playerId: targetPlayerId, reason } = params;
+          // The admin panel sends `targetUserId`; older callers send
+          // `playerId`. Accept either.
+          const { playerId, targetUserId, reason } = params;
+          const targetPlayerId = playerId ?? targetUserId;
           let { tableId } = params;
 
           if (!targetPlayerId) {
-            return res.status(400).json({ error: 'playerId required' });
+            return res.status(400).json({ error: 'playerId (or targetUserId) required' });
           }
 
           // If no tableId provided, look up the player's active session
@@ -355,16 +374,21 @@ try {
           let engineResult = null;
           if (tableId) {
             const engineUrl = process.env.GAME_SERVER_URL || 'https://engine.smarter.poker';
+            // Server-to-server secret, NOT the caller's own JWT. Forwarding a
+            // player-scoped token to another service hands that service a
+            // credential it can replay as the caller.
+            const engineSecret = process.env.GAME_SERVER_ADMIN_SECRET || process.env.CRON_SECRET || '';
             try {
               const resp = await fetch(`${engineUrl}/admin/kick`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
+                  Authorization: `Bearer ${engineSecret}`,
                 },
                 body: JSON.stringify({
                   tableId,
                   userId: targetPlayerId,
+                  actingUserId: userId,
                   reason: reason || 'Anti-cheat violation: removed by admin',
                 }),
               });
@@ -411,20 +435,13 @@ try {
             // Non-fatal — kick already succeeded server-side
           }
 
-          const kickResult = {
+          return res.status(200).json({
             success: true,
             message: tableId
               ? 'Player removed from engine table'
               : 'Player not at any active table — kick logged only',
             engine_result: engineResult,
-          };
-
-          if (idempotencyKey) {
-            idempotencyStore.set(idempotencyKey, {
-              status: 200, body: kickResult, expiry: Date.now() + IDEMPOTENCY_TTL_MS,
-            });
-          }
-          return res.status(200).json(kickResult);
+          });
         }
 
         // ─────────────────────────────────────────────────

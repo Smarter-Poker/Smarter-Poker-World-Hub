@@ -595,6 +595,18 @@ export const UnionApplicationReviewSchema = z.object({
     commissionRate: CommissionRate.optional(),
 });
 
+export const UnionLeaveListSchema = z.object({
+    action: z.literal('list_leave_requests'),
+    unionId: UUID.optional(),
+    statusFilter: z.enum(['pending', 'approved', 'denied', 'all']).optional(),
+});
+
+export const UnionLeaveReviewSchema = z.object({
+    action: z.enum(['approve_leave', 'reject_leave']),
+    leaveRequestId: UUID,
+    reason: z.string().max(500).optional(),
+});
+
 export function validateUnionApplication(body: unknown) {
     if (!body || typeof body !== 'object' || !('action' in body)) {
         return { success: false as const, error: 'action is required', data: null };
@@ -606,6 +618,9 @@ export function validateUnionApplication(body: unknown) {
         case 'list': return validatePayload(UnionApplicationListSchema, body);
         case 'approve': case 'reject':
             return validatePayload(UnionApplicationReviewSchema, body);
+        case 'list_leave_requests': return validatePayload(UnionLeaveListSchema, body);
+        case 'approve_leave': case 'reject_leave':
+            return validatePayload(UnionLeaveReviewSchema, body);
         default:
             return { success: false as const, error: `Unknown action: ${action}`, data: null };
     }

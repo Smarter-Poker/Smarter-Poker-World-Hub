@@ -1,6 +1,88 @@
 /* HORSES ADMIN - NEXT.JS CSS MODULE */
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS — smarter.poker / Club Arena palette
+   ───────────────────────────────────────────────────────────────────────────
+   Single source of colour for this panel. Mirrors the Club Arena club page
+   (~/Documents/club-arena/src/styles/design-tokens.css). No purples, no
+   greens: cyan is THE accent and cyan is also SUCCESS / ACTIVE / ONLINE.
+   Every rule below references these vars — never a raw hex.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* NOTE ON THE HOST SELECTOR — do not "simplify" this back to `:root`.
+   Next.js runs CSS Modules through css-loader in `mode: 'pure'`
+   (next/dist/build/webpack/config/blocks/css/loaders/modules.js). Pure mode
+   REJECTS any selector without a local class or id, so a bare `:root {}` —
+   and `:global(:root) {}` too — fails the build outright with
+   "Selector ':root' is not pure". Verified against this repo's own Next
+   16.3.2 loaders; this is also why no other *.module.css in the tree has one.
+   Custom properties inherit, so declaring them on every top-level container
+   of this module reaches every descendant. The fixed-position surfaces
+   (.modalOverlay, .notification) are listed explicitly so the tokens still
+   resolve if they are ever rendered outside the .dashboard subtree. */
+.loading,
+.loginContainer,
+.dashboard,
+.modalOverlay,
+.notification {
+    /* ─── Surfaces ─── */
+    --bg-page: #0a0e17;
+    --bg-panel: #111827;
+    --bg-surface: #1a2234;
+    --bg-elevated: #1f2937;
+    --bg-inset: #0d1520;
+
+    /* ─── Accent ─── */
+    --accent: #00d4ff;
+    --accent-dim: #0099cc;
+    --accent-soft: rgba(0, 212, 255, 0.12);
+    --accent-line: rgba(0, 212, 255, 0.30);
+    --accent-glow: rgba(0, 212, 255, 0.35);
+
+    /* ─── Semantic ─── */
+    --info: #3b82f6;
+    --warn: #ffd700;
+    --warn-soft: rgba(255, 215, 0, 0.12);
+    --danger: #ef4444;
+    --danger-soft: rgba(239, 68, 68, 0.12);
+    --positive: #00d4ff;
+
+    /* ─── Text ─── */
+    --text: #f3f4f6;
+    --text-dim: #9ca3af;
+    --text-muted: #6b7280;
+
+    /* ─── Lines ─── */
+    --line: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(255, 255, 255, 0.15);
+
+    /* ─── Derived (alpha-only variants of the above — no new hues) ─── */
+    --bg-panel-90: rgba(17, 24, 39, 0.90);
+    --bg-panel-80: rgba(17, 24, 39, 0.80);
+    --bg-page-80: rgba(10, 14, 23, 0.80);
+    --bg-page-50: rgba(10, 14, 23, 0.50);
+    --bg-hairline: rgba(255, 255, 255, 0.05);
+    --info-soft: rgba(59, 130, 246, 0.12);
+    --danger-line: rgba(239, 68, 68, 0.30);
+    --danger-dim: #dc2626;
+    --muted-soft: rgba(107, 114, 128, 0.18);
+    --shadow-drop: rgba(0, 0, 0, 0.4);
+    --shadow-drop-strong: rgba(0, 0, 0, 0.5);
+}
+
+/* SPINNER KEYFRAME — deliberately NOT defined here.
+   pages/horses/index.js applies `animation: 'spin 0.8s linear infinite'` from an
+   INLINE style, which can only see a GLOBAL keyframe — a keyframe declared in a
+   CSS Module is renamed (`spin` -> `horses_spin__hash`) and would never match.
+   A module cannot escape that: under Next's pure mode BOTH
+   `:global(@keyframes spin)` and `@keyframes :global(spin)` are build errors
+   ("@keyframes :global(...) is not allowed in pure mode").
+   It does not need to. `src/index.css` line ~622 already declares a global
+   `@keyframes spin { to { transform: rotate(360deg); } }`, and _app.js imports
+   that file app-wide, so the inline spinner in index.js already animates.
+   If that global is ever removed, the spinner stops — fix it there, not here. */
+
+/* ═══════════════════════════════════════════════════════════════════════════
    BASE & LOADING
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -10,8 +92,8 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-    color: #f8fafc;
+    background: linear-gradient(135deg, var(--bg-page) 0%, var(--bg-panel) 50%, var(--bg-surface) 100%);
+    color: var(--text);
     gap: 24px;
 }
 
@@ -34,7 +116,7 @@
 
 .loading p {
     font-size: 18px;
-    color: #94a3b8;
+    color: var(--text-dim);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -46,19 +128,19 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+    background: linear-gradient(135deg, var(--bg-page) 0%, var(--bg-panel) 50%, var(--bg-surface) 100%);
     padding: 24px;
 }
 
 .loginCard {
-    background: rgba(26, 26, 46, 0.9);
+    background: var(--bg-panel-90);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 48px;
     width: 100%;
     max-width: 420px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 40px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 24px var(--shadow-drop), 0 0 40px var(--accent-glow);
 }
 
 .loginHeader {
@@ -77,14 +159,14 @@
     font-size: 32px;
     font-weight: 800;
     letter-spacing: 4px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #22c55e 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--info) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 .loginHeader p {
-    color: #94a3b8;
+    color: var(--text-dim);
     margin-top: 8px;
 }
 
@@ -97,32 +179,32 @@
     margin-bottom: 8px;
     font-size: 14px;
     font-weight: 500;
-    color: #94a3b8;
+    color: var(--text-dim);
 }
 
 .inputGroup input {
     width: 100%;
     padding: 14px 18px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-inset);
+    border: 1px solid var(--line);
     border-radius: 12px;
-    color: #f8fafc;
+    color: var(--text);
     font-size: 16px;
     transition: all 0.2s;
 }
 
 .inputGroup input:focus {
     outline: none;
-    border-color: #8b5cf6;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .error {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: var(--danger-soft);
+    border: 1px solid var(--danger-line);
     border-radius: 12px;
     padding: 12px 16px;
-    color: #ef4444;
+    color: var(--danger);
     font-size: 14px;
     margin-bottom: 20px;
 }
@@ -130,10 +212,10 @@
 .loginBtn {
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
     border: none;
     border-radius: 12px;
-    color: white;
+    color: var(--bg-page);
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -142,7 +224,7 @@
 
 .loginBtn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 8px 24px var(--accent-glow);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -151,8 +233,8 @@
 
 .dashboard {
     min-height: 100vh;
-    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-    color: #f8fafc;
+    background: linear-gradient(135deg, var(--bg-page) 0%, var(--bg-panel) 50%, var(--bg-surface) 100%);
+    color: var(--text);
     font-family: 'Inter', -apple-system, sans-serif;
 }
 
@@ -161,21 +243,23 @@
     top: 20px;
     right: 20px;
     padding: 16px 24px;
-    background: #22c55e;
-    color: white;
+    background: var(--accent);
+    color: var(--bg-page);
     border-radius: 12px;
     font-weight: 500;
     z-index: 9999;
     animation: slideIn 0.3s ease;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 24px var(--shadow-drop);
 }
 
 .notification.info {
-    background: #8b5cf6;
+    background: var(--info);
+    color: var(--text);
 }
 
 .notification.error {
-    background: #ef4444;
+    background: var(--danger);
+    color: var(--text);
 }
 
 @keyframes slideIn {
@@ -196,8 +280,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 32px;
-    background: rgba(26, 26, 46, 0.8);
-    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border-bottom: 1px solid var(--line);
     backdrop-filter: blur(20px);
     position: sticky;
     top: 0;
@@ -218,14 +302,14 @@
     font-size: 24px;
     font-weight: 800;
     letter-spacing: 3px;
-    background: linear-gradient(135deg, #8b5cf6, #22c55e);
+    background: linear-gradient(135deg, var(--accent), var(--info));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 .subtitle {
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 14px;
 }
 
@@ -240,7 +324,7 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-hairline);
     border-radius: 20px;
     font-size: 14px;
 }
@@ -249,32 +333,32 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #ef4444;
+    background: var(--danger);
 }
 
 .statusDot.active {
-    background: #22c55e;
-    box-shadow: 0 0 10px #22c55e;
+    background: var(--positive);
+    box-shadow: 0 0 10px var(--positive);
 }
 
 .userInfo {
-    color: #94a3b8;
+    color: var(--text-dim);
     font-size: 14px;
 }
 
 .logoutBtn {
     padding: 8px 16px;
     background: transparent;
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    border: 1px solid var(--line);
     border-radius: 12px;
-    color: #94a3b8;
+    color: var(--text-dim);
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .logoutBtn:hover {
-    border-color: #ef4444;
-    color: #ef4444;
+    border-color: var(--danger);
+    color: var(--danger);
 }
 
 /* Navigation */
@@ -282,8 +366,8 @@
     display: flex;
     gap: 8px;
     padding: 12px 32px;
-    background: rgba(15, 15, 26, 0.5);
-    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-page-50);
+    border-bottom: 1px solid var(--line);
 }
 
 .nav button {
@@ -291,7 +375,7 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: 12px;
-    color: #94a3b8;
+    color: var(--text-dim);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -299,14 +383,14 @@
 }
 
 .nav button:hover {
-    background: rgba(26, 26, 46, 0.8);
-    color: #f8fafc;
+    background: var(--bg-panel-80);
+    color: var(--text);
 }
 
 .nav button.active {
-    background: rgba(26, 26, 46, 0.8);
-    border-color: #8b5cf6;
-    color: #8b5cf6;
+    background: var(--bg-panel-80);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 /* Content */
@@ -331,8 +415,8 @@
 }
 
 .statBox {
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border: 1px solid var(--line);
     border-radius: 12px;
     padding: 20px 32px;
     text-align: center;
@@ -342,22 +426,22 @@
     display: block;
     font-size: 32px;
     font-weight: 700;
-    color: #f8fafc;
+    color: var(--text);
 }
 
 .statLabel {
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
 .activeBox .statNumber {
-    color: #22c55e;
+    color: var(--positive);
 }
 
 .inactiveBox .statNumber {
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .stableControls {
@@ -370,24 +454,24 @@
     flex: 1;
     min-width: 200px;
     padding: 12px 18px;
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-inset);
+    border: 1px solid var(--line);
     border-radius: 12px;
-    color: #f8fafc;
+    color: var(--text);
     font-size: 14px;
 }
 
 .searchInput:focus {
     outline: none;
-    border-color: #8b5cf6;
+    border-color: var(--accent);
 }
 
 .filterSelect {
     padding: 12px 18px;
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-inset);
+    border: 1px solid var(--line);
     border-radius: 12px;
-    color: #f8fafc;
+    color: var(--text);
     font-size: 14px;
     cursor: pointer;
 }
@@ -404,21 +488,21 @@
 }
 
 .btnSuccess {
-    background: #22c55e;
-    color: white;
+    background: var(--accent);
+    color: var(--bg-page);
 }
 
 .btnSuccess:hover {
-    background: #16a34a;
+    background: var(--accent-dim);
 }
 
 .btnDanger {
-    background: #ef4444;
-    color: white;
+    background: var(--danger);
+    color: var(--text);
 }
 
 .btnDanger:hover {
-    background: #dc2626;
+    background: var(--danger-dim);
 }
 
 /* Persona Grid */
@@ -429,17 +513,17 @@
 }
 
 .personaCard {
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 24px;
     transition: all 0.3s;
 }
 
 .personaCard:hover {
-    border-color: rgba(139, 92, 246, 0.4);
+    border-color: var(--accent-line);
     transform: translateY(-4px);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 24px var(--shadow-drop);
 }
 
 .personaCard.inactive {
@@ -464,7 +548,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(139, 92, 246, 0.2);
+    background: var(--accent-soft);
     border-radius: 50%;
     overflow: hidden;
     position: relative;
@@ -504,7 +588,7 @@
 
 .alias {
     font-size: 14px;
-    color: #8b5cf6;
+    color: var(--accent);
 }
 
 .personaDetails {
@@ -516,12 +600,12 @@
 
 .personaDetails p {
     font-size: 13px;
-    color: #94a3b8;
+    color: var(--text-dim);
 }
 
 .personaBio {
     font-size: 14px;
-    color: #94a3b8;
+    color: var(--text-dim);
     margin-bottom: 16px;
     line-height: 1.5;
 }
@@ -532,8 +616,8 @@
 }
 
 .voiceTag {
-    background: rgba(139, 92, 246, 0.2);
-    color: #8b5cf6;
+    background: var(--accent-soft);
+    color: var(--accent);
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 12px;
@@ -562,7 +646,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: #64748b;
+    background: var(--text-muted);
     transition: 0.3s;
     border-radius: 26px;
 }
@@ -574,13 +658,13 @@
     width: 20px;
     left: 3px;
     bottom: 3px;
-    background: white;
+    background: var(--text);
     transition: 0.3s;
     border-radius: 50%;
 }
 
 .toggleSwitch input:checked+.slider {
-    background: #22c55e;
+    background: var(--accent);
 }
 
 .toggleSwitch input:checked+.slider:before {
@@ -602,7 +686,7 @@
 .settingsView h3,
 .statsView h3 {
     font-size: 16px;
-    color: #94a3b8;
+    color: var(--text-dim);
     margin-bottom: 16px;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -623,22 +707,22 @@
     flex-direction: column;
     align-items: center;
     padding: 24px 16px;
-    background: rgba(26, 26, 46, 0.8);
-    border: 2px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border: 2px solid var(--line);
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s;
-    color: #f8fafc;
+    color: var(--text);
 }
 
 .actionBtn:hover {
-    border-color: #8b5cf6;
+    border-color: var(--accent);
     transform: translateY(-4px);
 }
 
 .actionBtn.featured {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(34, 197, 94, 0.2));
-    border-color: #8b5cf6;
+    background: linear-gradient(135deg, var(--accent-soft), var(--info-soft));
+    border-color: var(--accent);
 }
 
 .actionBtn .icon {
@@ -653,7 +737,7 @@
 
 .actionBtn .desc {
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--text-dim);
     margin-top: 4px;
 }
 
@@ -669,8 +753,8 @@
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border: 1px solid var(--line);
     border-radius: 12px;
     font-size: 14px;
 }
@@ -684,11 +768,11 @@
 .runsTable td {
     padding: 14px;
     text-align: left;
-    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    border-bottom: 1px solid var(--line);
 }
 
 .runsTable th {
-    color: #94a3b8;
+    color: var(--text-dim);
     font-weight: 500;
     font-size: 12px;
     text-transform: uppercase;
@@ -705,27 +789,27 @@
 }
 
 .test {
-    background: rgba(251, 191, 36, 0.2);
-    color: #fbbf24;
+    background: var(--warn-soft);
+    color: var(--warn);
 }
 
 .daily {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
+    background: var(--accent-soft);
+    color: var(--accent);
 }
 
 .cycle {
-    background: rgba(139, 92, 246, 0.2);
-    color: #8b5cf6;
+    background: var(--accent-soft);
+    color: var(--accent-dim);
 }
 
 .publish {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
+    background: var(--info-soft);
+    color: var(--info);
 }
 
 .noData {
-    color: #94a3b8;
+    color: var(--text-dim);
     font-style: italic;
     padding: 24px 0;
 }
@@ -741,8 +825,8 @@
 }
 
 .settingCard {
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 24px;
 }
@@ -758,7 +842,7 @@
 .settingItem label {
     display: block;
     font-size: 14px;
-    color: #94a3b8;
+    color: var(--text-dim);
     margin-bottom: 8px;
 }
 
@@ -766,10 +850,10 @@
 .settingItem select {
     width: 100%;
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-inset);
+    border: 1px solid var(--line);
     border-radius: 12px;
-    color: #f8fafc;
+    color: var(--text);
     font-size: 14px;
 }
 
@@ -778,7 +862,7 @@
     -webkit-appearance: none;
     height: 6px;
     border-radius: 3px;
-    background: rgba(139, 92, 246, 0.2);
+    background: var(--accent-soft);
 }
 
 .settingItem input[type="range"]::-webkit-slider-thumb {
@@ -786,7 +870,7 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: #8b5cf6;
+    background: var(--accent);
     cursor: pointer;
 }
 
@@ -809,7 +893,7 @@
 .loadingSpinner {
     text-align: center;
     padding: 60px 20px;
-    color: #94a3b8;
+    color: var(--text-dim);
     font-size: 16px;
     font-style: italic;
     animation: pulse 1.5s ease-in-out infinite;
@@ -828,8 +912,8 @@
 }
 
 .statCardLarge {
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 32px;
     text-align: center;
@@ -839,7 +923,7 @@
     display: block;
     font-size: 48px;
     font-weight: 700;
-    background: linear-gradient(135deg, #8b5cf6, #22c55e);
+    background: linear-gradient(135deg, var(--accent), var(--info));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -847,14 +931,14 @@
 
 .statCardLarge .statLabel {
     font-size: 14px;
-    color: #94a3b8;
+    color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
 .contentBreakdown {
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 24px;
 }
@@ -901,18 +985,18 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    background: #8b5cf6;
-    color: white;
+    background: var(--accent);
+    color: var(--bg-page);
     display: flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 .btnCreate:hover {
-    background: #7c3aed;
+    background: var(--accent-dim);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(139, 92, 246, 0.6);
+    box-shadow: 0 6px 16px var(--accent-glow);
 }
 
 .deleteBtn {
@@ -938,7 +1022,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(15, 15, 26, 0.8);
+    background: var(--bg-page-80);
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
@@ -949,15 +1033,15 @@
 }
 
 .modalContent {
-    background: #1a1a2e;
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-elevated);
+    border: 1px solid var(--line);
     border-radius: 16px;
     width: 100%;
     max-width: 600px;
     padding: 32px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 50px var(--shadow-drop-strong);
     animation: scaleIn 0.3s ease;
-    color: #f8fafc;
+    color: var(--text);
 }
 
 @keyframes fadeIn {
@@ -992,20 +1076,20 @@
 .modalHeader h2 {
     font-size: 24px;
     margin: 0;
-    color: #f8fafc;
+    color: var(--text);
 }
 
 .closeBtn {
     background: transparent;
     border: none;
-    color: #94a3b8;
+    color: var(--text-dim);
     font-size: 24px;
     cursor: pointer;
     transition: color 0.2s;
 }
 
 .closeBtn:hover {
-    color: #f8fafc;
+    color: var(--text);
 }
 
 .formGroup {
@@ -1015,7 +1099,7 @@
 .formGroup label {
     display: block;
     margin-bottom: 8px;
-    color: #94a3b8;
+    color: var(--text-dim);
     font-size: 14px;
     font-weight: 500;
 }
@@ -1025,10 +1109,10 @@
 .formGroup textarea {
     width: 100%;
     padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-inset);
+    border: 1px solid var(--line);
     border-radius: 12px;
-    color: #f8fafc;
+    color: var(--text);
     font-size: 16px;
     font-family: inherit;
 }
@@ -1037,8 +1121,8 @@
 .formGroup select:focus,
 .formGroup textarea:focus {
     outline: none;
-    border-color: #8b5cf6;
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .formRow {
@@ -1057,9 +1141,9 @@
 .btnCancel {
     padding: 12px 24px;
     background: transparent;
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    border: 1px solid var(--line);
     border-radius: 12px;
-    color: #94a3b8;
+    color: var(--text-dim);
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
@@ -1067,17 +1151,17 @@
 
 .btnSubmit {
     padding: 12px 24px;
-    background: #8b5cf6;
+    background: var(--accent);
     border: none;
     border-radius: 12px;
-    color: white;
+    color: var(--bg-page);
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
 }
 
 .btnSubmit:hover {
-    background: #7c3aed;
+    background: var(--accent-dim);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1129,7 +1213,7 @@
 }
 
 .grinderSubtitle {
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 14px;
     margin-bottom: 32px;
 }
@@ -1146,8 +1230,8 @@
 }
 
 .grinderControls {
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 24px;
     margin-bottom: 24px;
@@ -1155,7 +1239,7 @@
 
 .grinderControls h3 {
     font-size: 16px;
-    color: #94a3b8;
+    color: var(--text-dim);
     margin-bottom: 16px;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1168,8 +1252,8 @@
 }
 
 .grinderSettings {
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 24px;
     margin-bottom: 24px;
@@ -1177,7 +1261,7 @@
 
 .grinderSettings h3 {
     font-size: 16px;
-    color: #94a3b8;
+    color: var(--text-dim);
     margin-bottom: 16px;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1190,8 +1274,8 @@
 }
 
 .grinderTable {
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 24px;
     margin-bottom: 24px;
@@ -1199,7 +1283,7 @@
 
 .grinderTable h3 {
     font-size: 16px;
-    color: #94a3b8;
+    color: var(--text-dim);
     margin-bottom: 16px;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1226,17 +1310,17 @@
 
 .horseCell small {
     font-size: 12px;
-    color: #8b5cf6;
+    color: var(--accent);
 }
 
 .profitCell {
     font-weight: 600;
-    color: #22c55e;
+    color: var(--positive);
 }
 
 .statusIdle {
-    background: rgba(100, 116, 139, 0.2);
-    color: #64748b;
+    background: var(--muted-soft);
+    color: var(--text-muted);
     padding: 4px 10px;
     border-radius: 6px;
     font-size: 12px;
@@ -1244,8 +1328,8 @@
 }
 
 .statusPlaying {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
+    background: var(--accent-soft);
+    color: var(--accent);
     padding: 4px 10px;
     border-radius: 6px;
     font-size: 12px;
@@ -1253,7 +1337,7 @@
 }
 
 .moreHorses {
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 14px;
     text-align: center;
     margin-top: 16px;
@@ -1261,15 +1345,15 @@
 }
 
 .schedulePreview {
-    background: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--bg-panel-80);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 24px;
 }
 
 .schedulePreview h3 {
     font-size: 16px;
-    color: #94a3b8;
+    color: var(--text-dim);
     margin-bottom: 16px;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1282,8 +1366,8 @@
 }
 
 .shift {
-    background: rgba(139, 92, 246, 0.1);
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
     border-radius: 12px;
     padding: 20px;
     text-align: center;
@@ -1296,13 +1380,13 @@
 }
 
 .shift p {
-    color: #94a3b8;
+    color: var(--text-dim);
     font-size: 14px;
     margin-bottom: 8px;
 }
 
 .shift span {
-    color: #8b5cf6;
+    color: var(--accent);
     font-weight: 500;
     font-size: 14px;
 }
@@ -1318,5 +1402,372 @@
 
     .clubActions {
         flex-direction: column;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MISSING CLASSES — added 2026-08-26 during the /horses deep audit.
+
+   Every selector in this block was already referenced from pages/horses/index.js
+   and did NOT exist in this file. A CSS-module lookup that misses returns
+   `undefined`, and `className={undefined}` renders a completely unstyled
+   element — so the Bug Reports filter bar and its table, the Social Horses
+   container, the Pipeline RSS/recent-run panels and the "Playing" status pill
+   have all been shipping raw and unstyled. Verified by grepping every
+   `styles.X` in index.js against the selectors defined here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.stableView,
+.grinderView,
+.pipelineView,
+.settingsView,
+.statsView {
+    display: block;
+    width: 100%;
+}
+
+/* ─── Filter pill bar (Bug Reports, and now the Club Arena sub-sections) ─── */
+.filterBar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.filterBtn {
+    background: var(--bg-surface);
+    color: var(--text-dim);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.filterBtn:hover {
+    color: var(--text);
+    border-color: var(--line-strong);
+}
+
+.filterBtn.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent-line);
+}
+
+.filterBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ─── Generic scrolling table shell ───
+   Wide content must scroll inside its own container, never the page body. */
+.tableWrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg-panel);
+    -webkit-overflow-scrolling: touch;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 620px;
+}
+
+.table th {
+    text-align: left;
+    padding: 12px 14px;
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--bg-hairline);
+    color: var(--text);
+    vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.table tbody tr:hover {
+    background: var(--bg-hairline);
+}
+
+/* ─── Status pills ─── */
+.statusActive {
+    color: var(--positive);
+    font-weight: 700;
+}
+
+/* ─── Pipeline panels ─── */
+.rssSources,
+.recentRuns {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 24px;
+}
+
+.rssSources h3,
+.recentRuns h3 {
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NEW: shared admin primitives (Club Arena sections, pagination, states)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sectionTitle {
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 700;
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.countPill {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--accent-line);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.countPill.warnPill {
+    background: var(--warn-soft);
+    color: var(--warn);
+    border-color: rgba(255, 215, 0, 0.3);
+}
+
+.countPill.dangerPill {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border-color: var(--danger-line);
+}
+
+.card {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+}
+
+.cardGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+}
+
+.clickableCard {
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.clickableCard:hover {
+    border-color: var(--accent-line);
+    background: var(--bg-surface);
+}
+
+.kpiGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.kpi {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+
+.kpiValue {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.1;
+}
+
+.kpiLabel {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+/* ─── Empty / error / loading states ─── */
+.emptyState {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.errorState {
+    text-align: center;
+    padding: 32px 20px;
+    background: var(--danger-soft);
+    border: 1px solid var(--danger-line);
+    border-radius: 12px;
+    color: var(--danger);
+    font-size: 14px;
+}
+
+.errorState button {
+    margin-top: 12px;
+}
+
+/* A degraded-but-usable banner: some sources failed, the rest is real. */
+.warnBanner {
+    background: var(--warn-soft);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-left: 3px solid var(--warn);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--warn);
+    font-size: 12px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+/* ─── Pagination ───
+   The stable holds 593 horses. Rendering all of them at once was the single
+   heaviest thing this page did. */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.pagination button {
+    background: var(--bg-surface);
+    color: var(--text-dim);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.pagination button:hover:not(:disabled) {
+    color: var(--accent);
+    border-color: var(--accent-line);
+}
+
+.pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pageInfo {
+    color: var(--text-dim);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ─── Inline edit button on a persona card ─── */
+.editBtn {
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    margin-right: 6px;
+}
+
+.editBtn:hover {
+    color: var(--accent);
+    border-color: var(--accent-line);
+}
+
+/* ─── Sub-navigation inside a tab ─── */
+.subNav {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    background: var(--bg-hairline);
+    border-radius: 10px;
+    padding: 4px;
+}
+
+.subNav button {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    transition: background 0.15s, color 0.15s;
+}
+
+.subNav button:hover {
+    color: var(--text);
+}
+
+.subNav button.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+@media (max-width: 768px) {
+
+    .kpiGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .cardGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .subNav {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .subNav button {
+        white-space: nowrap;
     }
 }

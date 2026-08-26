@@ -15,21 +15,37 @@ import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { useRouter } from 'next/router';
 
-const BG = '#09090b';
-const PANEL = '#18181b';
-const BORDER = '#27272a';
-const TEXT = '#e4e4e7';
-const MUTED = '#a1a1aa';
-const GREEN = '#10b981';
+/* smarter.poker palette. Mirrors pages/horses/horses.module.css and the Club
+   Arena design tokens (~/Documents/club-arena/src/styles/design-tokens.css).
+   Dan 2026-08-26: no purples, no greens - cyan is the accent AND the
+   positive/win colour. This page used the zinc scale plus #10b981 for wins,
+   which matched nothing else on the platform. POSITIVE is deliberately an
+   alias of ACCENT so a later edit cannot reintroduce green by reaching for a
+   plausible "success" name. */
+const BG = '#0a0e17';
+const PANEL = '#111827';
+const SURFACE = '#1a2234';
+const INSET = '#0d1520';
+const BORDER = 'rgba(255,255,255,0.08)';
+const TEXT = '#f3f4f6';
+const MUTED = '#6b7280';
+const ACCENT = '#00d4ff';
+const ACCENT_SOFT = 'rgba(0,212,255,0.12)';
+const ACCENT_LINE = 'rgba(0,212,255,0.30)';
+const POSITIVE = ACCENT;
 const RED = '#ef4444';
-const AMBER = '#f59e0b';
+const RED_SOFT = 'rgba(239,68,68,0.12)';
+const AMBER = '#ffd700';
 
 const VARIANTS = ['', 'nlh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_deck', 'pineapple'];
 const FORMATS = ['', 'cash', 'hu_cash', 'tournament'];
 const PAGE_SIZE = 50;
 
 const SUIT_GLYPH = { hearts: 'h', diamonds: 'd', clubs: 'c', spades: 's' };
-const SUIT_COLOR = { hearts: RED, diamonds: '#3b82f6', clubs: GREEN, spades: TEXT };
+// Club Arena's canonical deck is two-colour (src/styles/club-engine.css:52-55).
+// The suit letter renders beside the rank, so hearts and diamonds stay
+// distinguishable without a third and fourth hue.
+const SUIT_COLOR = { hearts: RED, diamonds: RED, clubs: TEXT, spades: TEXT };
 
 function CardChip({ card }) {
   if (!card) return null;
@@ -46,7 +62,7 @@ function CardChip({ card }) {
     <span
       style={{
         display: 'inline-block',
-        background: '#0f0f11',
+        background: INSET,
         border: `1px solid ${BORDER}`,
         borderRadius: 4,
         padding: '2px 6px',
@@ -69,8 +85,9 @@ function TagChip({ tag }) {
     <span
       style={{
         display: 'inline-block',
-        background: '#7f1d1d',
-        color: '#fecaca',
+        background: RED_SOFT,
+        color: RED,
+        border: '1px solid rgba(239,68,68,0.3)',
         borderRadius: 4,
         padding: '2px 8px',
         marginRight: 4,
@@ -87,7 +104,7 @@ function HandDetail({ row }) {
   const actions = Array.isArray(row.actions) ? row.actions : [];
   const stages = ['preflop', 'flop', 'turn', 'river'];
   return (
-    <div style={{ background: '#0f0f11', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '0.75rem 1rem', margin: '0.5rem 0' }}>
+    <div style={{ background: INSET, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '0.75rem 1rem', margin: '0.5rem 0' }}>
       <div style={{ marginBottom: 8 }}>
         <span style={{ color: MUTED, marginRight: 8 }}>Hole Cards:</span>
         {(row.hole_cards || []).map((c, i) => (
@@ -148,7 +165,7 @@ export default function HorseHandReviews() {
     const verify = async () => {
       const user = getAuthUser();
       if (!user?.id) {
-        router.push('/login');
+        router.push('/auth/login?redirect=/horses/hand-reviews');
         return;
       }
       const { data: profile } = await supabase
@@ -226,7 +243,7 @@ export default function HorseHandReviews() {
   };
 
   const inputStyle = {
-    background: '#0f0f11',
+    background: INSET,
     color: TEXT,
     border: `1px solid ${BORDER}`,
     borderRadius: 4,
@@ -237,12 +254,13 @@ export default function HorseHandReviews() {
   return (
     <div style={{ background: BG, minHeight: '100vh', color: TEXT, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <Head>
-        <title>Horse Hand Reviews</title>
+        <title>Horse Hand Reviews | Smarter.Poker</title>
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '2rem' }}>
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: `1px solid ${BORDER}`, paddingBottom: '1rem' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: '#f4f4f5' }}>Horse Hand Reviews</h1>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: TEXT }}>Horse Hand Reviews</h1>
             <p style={{ margin: '0.5rem 0 0 0', color: MUTED, fontSize: '0.875rem' }}>
               Every hand where a horse won or lost 20bb+, flagged at settlement with leak tags. Raw hands kept 30 days; rollups permanent.
             </p>
@@ -254,7 +272,7 @@ export default function HorseHandReviews() {
                 loadSummary();
                 loadRows();
               }}
-              style={{ background: '#064e3b', color: TEXT, border: 'none', padding: '0.5rem 1rem', borderRadius: 4, cursor: 'pointer' }}
+              style={{ background: SURFACE, color: TEXT, border: `1px solid ${BORDER}`, padding: '0.5rem 1rem', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
             >
               Refresh
             </button>
@@ -291,12 +309,12 @@ export default function HorseHandReviews() {
                   style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '0.5rem 0.25rem', cursor: 'pointer' }}
                 >
                   <span style={{ fontWeight: 700, minWidth: 100 }}>{a.day}</span>
-                  <span style={{ color: crit > 0 ? RED : GREEN, fontWeight: 600 }}>{crit} Critical</span>
+                  <span style={{ color: crit > 0 ? RED : POSITIVE, fontWeight: 600 }}>{crit} Critical</span>
                   <span style={{ color: warn > 0 ? AMBER : MUTED }}>{warn} Warn</span>
                   <span style={{ color: MUTED, fontSize: '0.8rem' }}>
                     {a.stats?.flagged_hands ?? 0} flagged hands / net {a.stats?.net_bb_sum ?? 0} bb
                   </span>
-                  <span style={{ marginLeft: 'auto', color: a.agent_analysis ? GREEN : MUTED, fontSize: '0.8rem' }}>
+                  <span style={{ marginLeft: 'auto', color: a.agent_analysis ? POSITIVE : MUTED, fontSize: '0.8rem' }}>
                     {a.agent_analysis ? 'Claude Analysis Ready' : 'Awaiting Claude Analysis'}
                   </span>
                 </div>
@@ -304,22 +322,22 @@ export default function HorseHandReviews() {
                   <div style={{ padding: '0.25rem 0.25rem 0.75rem' }}>
                     {findings.length === 0 && <div style={{ color: MUTED, fontSize: '0.85rem' }}>No findings. A clean day.</div>}
                     {findings.map((f, i) => (
-                      <div key={i} style={{ background: '#0f0f11', border: `1px solid ${BORDER}`, borderLeft: `3px solid ${f.severity === 'critical' ? RED : f.severity === 'warn' ? AMBER : BORDER}`, borderRadius: 6, padding: '0.6rem 0.8rem', marginBottom: 6 }}>
+                      <div key={i} style={{ background: INSET, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${f.severity === 'critical' ? RED : f.severity === 'warn' ? AMBER : BORDER}`, borderRadius: 6, padding: '0.6rem 0.8rem', marginBottom: 6 }}>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
                           <span style={{ fontWeight: 700 }}>{f.title}</span>
                           <span style={{ color: MUTED, fontSize: '0.75rem', textTransform: 'uppercase' }}>{f.category} / {f.code}</span>
                         </div>
                         <div style={{ color: MUTED, fontSize: '0.8rem', marginTop: 4 }}>{f.recommendation}</div>
                         {f.evidence && (
-                          <pre style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#71717a', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                          <pre style={{ margin: '6px 0 0', fontSize: '0.72rem', color: MUTED, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                             {JSON.stringify(f.evidence)}
                           </pre>
                         )}
                       </div>
                     ))}
                     {a.agent_analysis && (
-                      <div style={{ background: '#052e16', border: '1px solid #14532d', borderRadius: 6, padding: '0.75rem 1rem', marginTop: 8 }}>
-                        <div style={{ fontWeight: 700, marginBottom: 6, color: GREEN }}>
+                      <div style={{ background: ACCENT_SOFT, border: `1px solid ${ACCENT_LINE}`, borderRadius: 6, padding: '0.75rem 1rem', marginTop: 8 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 6, color: POSITIVE }}>
                           Claude Daily Analysis
                           {a.agent_analyzed_at ? ` (${new Date(a.agent_analyzed_at).toLocaleString()})` : ''}
                         </div>
@@ -332,7 +350,7 @@ export default function HorseHandReviews() {
                               <span style={{ color: fl.severity === 'critical' ? RED : AMBER, fontWeight: 600, marginRight: 6 }}>[{fl.severity || 'note'}]</span>
                               <span style={{ fontWeight: 600 }}>{fl.title}: </span>
                               <span style={{ color: TEXT }}>{fl.detail}</span>
-                              {fl.action && <span style={{ color: GREEN }}> Action: {fl.action}</span>}
+                              {fl.action && <span style={{ color: POSITIVE }}> Action: {fl.action}</span>}
                             </div>
                           ))}
                         {Array.isArray(a.agent_analysis?.shipped) && a.agent_analysis.shipped.length > 0 && (
@@ -366,7 +384,7 @@ export default function HorseHandReviews() {
             {Object.entries(fleetLeaks)
               .sort((a, b) => b[1] - a[1])
               .map(([k, v]) => (
-                <button key={k} onClick={() => setFilter('tag', filters.tag === k ? '' : k)} style={{ background: filters.tag === k ? '#7f1d1d' : '#0f0f11', color: TEXT, border: `1px solid ${filters.tag === k ? RED : BORDER}`, borderRadius: 4, padding: '2px 8px', marginRight: 6, marginBottom: 4, cursor: 'pointer', fontSize: '0.78rem' }}>
+                <button key={k} onClick={() => setFilter('tag', filters.tag === k ? '' : k)} style={{ background: filters.tag === k ? RED_SOFT : INSET, color: TEXT, border: `1px solid ${filters.tag === k ? RED : BORDER}`, borderRadius: 4, padding: '2px 8px', marginRight: 6, marginBottom: 4, cursor: 'pointer', fontSize: '0.78rem' }}>
                   {k}: {v}
                 </button>
               ))}
@@ -387,12 +405,12 @@ export default function HorseHandReviews() {
                   <tr
                     key={hRow.horse_user_id}
                     onClick={() => setFilter('horse', filters.horse === hRow.horse_user_id ? '' : hRow.horse_user_id)}
-                    style={{ borderTop: `1px solid ${BORDER}`, cursor: 'pointer', background: filters.horse === hRow.horse_user_id ? '#1e293b' : 'transparent' }}
+                    style={{ borderTop: `1px solid ${BORDER}`, cursor: 'pointer', background: filters.horse === hRow.horse_user_id ? ACCENT_SOFT : 'transparent' }}
                   >
-                    <td style={{ padding: '0.4rem', fontWeight: 600 }}>{hRow.alias || hRow.horse_user_id.slice(0, 8)}</td>
-                    <td style={{ padding: '0.4rem', color: GREEN }}>{hRow.big_wins}</td>
+                    <td style={{ padding: '0.4rem', fontWeight: 600 }}>{hRow.alias || (hRow.horse_user_id ? String(hRow.horse_user_id).slice(0, 8) : 'unknown')}</td>
+                    <td style={{ padding: '0.4rem', color: POSITIVE }}>{hRow.big_wins}</td>
                     <td style={{ padding: '0.4rem', color: RED }}>{hRow.big_losses}</td>
-                    <td style={{ padding: '0.4rem', color: Number(hRow.sum_net_bb) >= 0 ? GREEN : RED }}>{hRow.sum_net_bb}</td>
+                    <td style={{ padding: '0.4rem', color: Number(hRow.sum_net_bb) >= 0 ? POSITIVE : RED }}>{hRow.sum_net_bb}</td>
                     <td style={{ padding: '0.4rem' }}>
                       {Object.entries(hRow.leak_counts || {})
                         .sort((a, b) => b[1] - a[1])
@@ -468,7 +486,7 @@ export default function HorseHandReviews() {
                       <td style={{ padding: '0.4rem', whiteSpace: 'nowrap' }}>{new Date(r.played_at).toLocaleString()}</td>
                       <td style={{ padding: '0.4rem' }}>{r.game_variant}</td>
                       <td style={{ padding: '0.4rem' }}>{r.format}</td>
-                      <td style={{ padding: '0.4rem', fontWeight: 700, color: r.net_bb >= 0 ? GREEN : RED }}>
+                      <td style={{ padding: '0.4rem', fontWeight: 700, color: r.net_bb >= 0 ? POSITIVE : RED }}>
                         {r.net_bb >= 0 ? '+' : ''}
                         {r.net_bb}
                       </td>
