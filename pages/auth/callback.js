@@ -49,11 +49,22 @@ export default function AuthCallback() {
         if (ranRef.current) return;
         ranRef.current = true;
 
+        // CARRY THE REASON BACK WITH THE USER (Dan 2026-08-25: "the facebook
+        // login isn't working"). This used to bounce to a CLEAN /auth/login,
+        // so whatever the provider actually said flashed for 1.5s on a screen
+        // nobody reads and was then thrown away — every distinct failure
+        // (app not live, redirect URI mismatch, email permission not granted,
+        // user cancelled) looked identical from the outside: click the button,
+        // round-trip, land back on sign-in with nothing to go on. The message
+        // now rides in ?authError= and login.js renders it in its error banner.
         const goLogin = (msg) => {
             setError(msg);
             // 1500ms: still long enough to read the error; was 2500ms which caused
             // the e2e/07-auth.spec.ts 8000ms timeout to expire in CI.
-            setTimeout(() => router.replace('/auth/login'), 1500);
+            setTimeout(
+                () => router.replace(`/auth/login?authError=${encodeURIComponent(msg || '')}`),
+                1500
+            );
         };
 
         // [2026-08-04] Server-side error capture — client Sentry is disabled,
@@ -87,10 +98,39 @@ export default function AuthCallback() {
                 const hash = typeof window !== 'undefined' ? window.location.hash : '';
 
                 // ── 1. Surface OAuth/email-link server errors first ──
-                if (qError) {
-                    const desc = (Array.isArray(error_description) ? error_description[0] : error_description) || qError;
-                    console.warn('[auth-callback] provider error:', qError, desc);
-                    return goLogin(typeof desc === 'string' ? desc : 'Sign-in failed. Please try again.');
+                //
+                // BOTH PLACES, NOT JUST THE QUERY STRING (Dan 2026-08-25).
+                // GoTrue reports a PKCE failure in the query, but an external
+                // provider handshake that dies inside /auth/v1/callback comes
+                // back in the URL FRAGMENT instead:
+                //   #error=server_error&error_code=...&error_description=...
+                // which is precisely the shape a mis-registered Meta app
+                // produces ("Unable to exchange external code"). Reading only
+                // router.query meant that case fell all the way through to
+                // step 5 and reported "No active session found. Please sign in
+                // again." — a message that describes the symptom and hides the
+                // cause, on the one provider that is failing.
+                const hashParams = new URLSearchParams(
+                    (hash || '').replace(/^#/, '')
+                );
+                const hError = hashParams.get('error') || hashParams.get('error_code');
+                const hDesc = hashParams.get('error_description');
+                const providerError = qError || hError;
+                if (providerError) {
+                    const rawDesc =
+                        (Array.isArray(error_description) ? error_description[0] : error_description) ||
+                        hDesc ||
+                        providerError;
+                    const desc = typeof rawDesc === 'string' ? rawDesc.replace(/\+/g, ' ') : '';
+                    console.warn('[auth-callback] provider error:', providerError, desc);
+                    // Client Sentry is off in prod, so console.warn is invisible.
+                    // This branch was the ONLY failure path with no server-side
+                    // capture at all — the exact one we needed a record of.
+                    reportAuthError('oauth_provider_error', {
+                        message: desc || String(providerError),
+                        code: String(providerError),
+                    });
+                    return goLogin(desc || 'Sign-in failed. Please try again.');
                 }
 
                 // ── 2. PKCE OAuth code exchange (Google, etc.) ──
