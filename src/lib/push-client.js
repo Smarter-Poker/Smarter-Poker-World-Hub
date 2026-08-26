@@ -178,46 +178,48 @@ function waitForActiveWorker(reg, ms) {
 }
 
 async function getRegistration() {
-    // Dan, 2026-08-25: "Service worker startup timed out after 10s" when
-    // turning push on, on iPhone, on one bar of signal.
+    // Dan, 2026-08-25: "Working..." for 10-15s, then "Service worker startup
+    // timed out after 30s".
     //
-    // The old implementation awaited navigator.serviceWorker.ready with a 10s
-    // budget. Two things made that hang:
-    //   1. `ready` waits for the page to be CONTROLLED. A PWA opened for the
-    //      first time from the Home Screen is not controlled yet, so the
-    //      promise waits on the activate+claim round trip.
-    //   2. The worker had no skipWaiting, so a NEW version installed behind an
-    //      old one sat in `waiting` and never activated while a tab was open.
-    // Ten seconds to fetch a 76KB worker, install, activate and claim on a
-    // weak mobile connection is simply not enough time.
+    // It was never slow. It was FAILING. Push used to enrol through /sw.js,
+    // the next-pwa worker, whose install step precaches 818 URLs. A worker is
+    // not `activated` until install RESOLVES, so all 818 downloads have to
+    // finish first — and if a SINGLE one 404s or times out, install rejects,
+    // the worker goes redundant, and it never activates at all. Enrolling in
+    // push therefore waited on the app's entire cache layer, which has nothing
+    // to do with push. Raising 10s to 30s could not fix that.
     //
-    // We now hold the registration itself and wait for IT to go active, which
-    // is the only condition pushManager actually requires.
+    // /push/sw.js does push and nothing else: no precache, no fetch handler,
+    // nothing that can fail. It registers at scope /push/ ON PURPOSE — two
+    // registrations cannot share a scope, and taking / would REPLACE the app's
+    // caching worker. A push subscription works from any scope.
     let reg = null;
     try {
         reg = await withTimeout(
-            navigator.serviceWorker.register('/sw.js'),
+            navigator.serviceWorker.register('/push/sw.js', {
+                scope: '/push/',
+                // Never let an HTTP-cached copy of the worker script decide
+                // whether an update is seen. This file is tiny; always refetch.
+                updateViaCache: 'none',
+            }),
             T.register,
             'Service worker registration'
         );
     } catch {
-        // Already registered by next-pwa, or the call raced. Fall through.
-    }
-
-    if (!reg) {
-        try { reg = await navigator.serviceWorker.getRegistration('/'); } catch { /* ignore */ }
+        try { reg = await navigator.serviceWorker.getRegistration('/push/'); } catch { /* ignore */ }
     }
 
     if (reg) {
         await waitForActiveWorker(reg, T.ready);
-        // An active worker is all subscribe() needs. Control is irrelevant.
         if (reg.active && reg.pushManager) return reg;
+        // pushManager exists on a registration before it activates; if the
+        // wait timed out but we can still subscribe, do not fail the user.
+        if (reg.pushManager) return reg;
     }
 
-    // Nothing usable yet: fall back to the original gate, which will also pick
-    // up a registration made elsewhere (next-pwa's own call).
-    return withTimeout(navigator.serviceWorker.ready, T.ready, 'Service worker startup');
+    throw new Error('Could not start the notification service on this device.');
 }
+
 
 async function persistSubscription(subscription, replacedEndpoint) {
     const json = subscription.toJSON();
@@ -374,7 +376,7 @@ export async function disablePush() {
     setOptOut();
     if (!isWebPushSupported()) return { ok: true };
     try {
-        const registration = await withTimeout(navigator.serviceWorker.ready, T.ready, 'Service worker startup');
+        const registration = await getRegistration();
         const subscription = await withTimeout(
             registration.pushManager.getSubscription(),
             T.getSubscription,
@@ -424,7 +426,7 @@ export async function sendTestPush() {
 export async function hasLocalSubscription() {
     if (!isWebPushSupported()) return false;
     try {
-        const registration = await withTimeout(navigator.serviceWorker.ready, T.ready, 'Service worker startup');
+        const registration = await getRegistration();
         const sub = await withTimeout(registration.pushManager.getSubscription(), T.getSubscription, 'Reading subscription');
         return Boolean(sub);
     } catch {
