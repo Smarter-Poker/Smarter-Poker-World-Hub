@@ -24,7 +24,6 @@ import { validatePassword } from '../../src/lib/passwordStrength';
 // and the shared server-side error reporter. See src/lib/authErrors.js for why
 // the URL carries a code and never prose.
 import {
-  AUTH_BOUNCE_KEY,
   AUTH_ORIGIN_KEY,
   OAUTH_PROVIDERS,
   authErrorMessage,
@@ -112,23 +111,16 @@ export default function LoginPage() {
       });
     }
 
-    // RESUMING OAUTH AFTER THE www -> apex BOUNCE, and ONLY that.
-    // This used to fire on any ?provider= in the URL, which meant a link to
-    // /auth/login?provider=facebook silently threw whoever opened it at Meta's
-    // consent dialog - a drive-by OAuth initiation, and /auth/signin forwards
-    // the param here for free. The bounce now leaves a one-shot marker in
-    // sessionStorage (same origin, survives the redirect, unreachable from a
-    // link) and only a matching marker resumes the flow.
-    if (provider) {
-      let armed = false;
-      try {
-        armed = sessionStorage.getItem(AUTH_BOUNCE_KEY) === provider;
-        if (armed) sessionStorage.removeItem(AUTH_BOUNCE_KEY);
-      } catch (_e) {
-        /* storage disabled - do not auto-launch on an unverifiable hint */
-      }
-      if (armed) handleOAuthSignIn(provider);
-    }
+    // ?provider= IS STRIPPED, NEVER ACTED ON.
+    // It used to auto-launch the flow, on the theory that it was always this
+    // page bouncing itself off www. It was not: /auth/signin forwards
+    // arbitrary query params here, so any link to
+    // /auth/login?provider=facebook threw whoever opened it straight at Meta's
+    // consent dialog. The bounce that param existed for is middleware's job
+    // now (see handleOAuthSignIn), so nothing legitimate arrives with it and
+    // the only thing left to do with it is remove it from the URL - which the
+    // block above already did.
+    void provider;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 
@@ -398,36 +390,28 @@ export default function LoginPage() {
     } catch (_e) {
       /* storage disabled - the callback falls back to /auth/login anyway */
     }
-    try {
-      // Apex-domain hardening (same as signup.js). middleware.ts already 301s
-      // every non-API route off www, so in production this should be dead -
-      // but PKCE stores its code_verifier per ORIGIN, so if a www hostname
-      // ever does reach the client, starting the flow here would strand the
-      // verifier on a domain the callback never returns to.
-      const host = (typeof window !== 'undefined' && window.location.hostname) || '';
-      if (host.startsWith('www.')) {
-        const apex = host.replace(/^www\./, '');
-        // Arm the one-shot resume marker. The ?provider= in the URL is only a
-        // hint now: without this same-origin marker the resume effect ignores
-        // it, so a link to /auth/login?provider=facebook can no longer throw
-        // whoever opens it straight at Meta's consent dialog.
-        try {
-          sessionStorage.setItem(AUTH_BOUNCE_KEY, provider);
-        } catch (_e) {
-          /* storage disabled - the user will have to click again on the apex */
-        }
-        // Carry the whole query string, not just the provider. A user bounced
-        // here from a protected page arrives with ?redirect=, and rebuilding
-        // the URL from one hard-coded param silently dropped their
-        // destination.
-        const params = new URLSearchParams(window.location.search);
-        params.set('provider', provider);
-        window.location.replace(`https://${apex}/auth/login?${params.toString()}`);
-        return;
-      }
-    } catch (_originErr) {
-      /* SSR — skip */
-    }
+    // ── www -> apex / PKCE code_verifier scope ────────────────────────────
+    // PKCE stores its code_verifier in localStorage on the ORIGIN that called
+    // signInWithOAuth, and www.smarter.poker is a different origin from
+    // smarter.poker — start the flow on www and the callback lands on apex
+    // where the verifier is unreadable ("code verifier not found").
+    //
+    // This used to be handled HERE, by bouncing the browser to the apex with
+    // ?provider= and resuming from that param on load. Both halves were wrong:
+    //
+    //   1. It was already dead. middleware.ts 301s every non-API route off www
+    //      (matcher '/((?!api|_next/static|_next/image|favicon.ico).*)'), so
+    //      the client can never observe a www hostname to begin with.
+    //   2. Resuming from ?provider= meant ANY link to
+    //      /auth/login?provider=facebook threw whoever opened it straight at
+    //      Meta's consent dialog — and /auth/signin forwards arbitrary query
+    //      params here for free. A one-shot sessionStorage marker cannot fix
+    //      that, because sessionStorage is per-origin too: a marker written on
+    //      www is unreadable on the apex, which is the only hop it existed to
+    //      survive.
+    //
+    // So the redirect is middleware's job, exclusively, and this handler no
+    // longer auto-launches anything it was not clicked for.
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({

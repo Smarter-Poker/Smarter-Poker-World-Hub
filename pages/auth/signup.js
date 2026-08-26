@@ -23,7 +23,6 @@ import {
 // callback indexes into, the provider allowlist, and the server-side error
 // reporter this page previously did not have at all.
 import {
-  AUTH_BOUNCE_KEY,
   AUTH_ORIGIN_KEY,
   OAUTH_PROVIDERS,
   authErrorMessage,
@@ -479,37 +478,31 @@ export default function SignUpPage() {
   // strips the user to apex, where the verifier is unreadable, and
   // exchangeCodeForSession fails with "code verifier not found".
   const handleOAuthSignIn = async (provider) => {
+    /* ── www -> apex, and the PKCE code_verifier scope ─────────────────────
+       PKCE stores its code_verifier in localStorage on the ORIGIN that called
+       signInWithOAuth, and www.smarter.poker is a different origin from
+       smarter.poker: start the flow on www and the callback lands on the apex
+       where the verifier is unreadable ("code verifier not found").
+
+       Handled by middleware.ts, not here. It 301s every non-API route off www
+       (matcher '/((?!api|_next/static|_next/image|favicon.ico).*)'), so the
+       client never observes a www hostname and the client-side pre-bounce that
+       used to sit in this function was unreachable. It was also harmful: it
+       resumed the flow from ?provider= on page load, so any link to
+       /auth/signup?provider=facebook auto-launched Meta's consent dialog for
+       whoever opened it. A one-shot sessionStorage marker cannot rescue that
+       either - sessionStorage is per-origin too, so a marker written on www is
+       unreadable on the apex, which is the single hop it existed to survive. */
     setError('');
     setOauthLoading(provider);
-    // Remember which page started the flow. /auth/callback always bounces a
-    // failure to /auth/login, so without this a user who clicked Facebook HERE
-    // was teleported to a different page to read the reason - which reads as
-    // "the button logged me out", not "here is what went wrong".
+    /* Remember which page started the flow. /auth/callback always bounced a
+       failure to /auth/login, so a user who clicked Facebook HERE was
+       teleported to a different page to read the reason - which reads as "the
+       button logged me out", not "here is what went wrong". */
     try {
       sessionStorage.setItem(AUTH_ORIGIN_KEY, '/auth/signup');
     } catch (_e) {
       /* storage disabled - the error still lands, just on /auth/login */
-    }
-    try {
-      const host = (typeof window !== 'undefined' && window.location.hostname) || '';
-      if (host.startsWith('www.')) {
-        const apex = host.replace(/^www\./, '');
-        // One-shot marker: the resume effect below ignores a bare ?provider=
-        // in the URL now, so a link cannot auto-launch someone into Meta's
-        // consent dialog. Carry the rest of the query string too rather than
-        // rebuilding the URL from one hard-coded param.
-        try {
-          sessionStorage.setItem(AUTH_BOUNCE_KEY, provider);
-        } catch (_e) {
-          /* storage disabled - the user clicks again on the apex */
-        }
-        const params = new URLSearchParams(window.location.search);
-        params.set('provider', provider);
-        window.location.replace(`https://${apex}/auth/signup?${params.toString()}`);
-        return;
-      }
-    } catch (_originErr) {
-      /* SSR — skip */
     }
 
     try {
@@ -567,16 +560,11 @@ export default function SignUpPage() {
       });
     }
 
-    if (provider) {
-      let armed = false;
-      try {
-        armed = sessionStorage.getItem(AUTH_BOUNCE_KEY) === provider;
-        if (armed) sessionStorage.removeItem(AUTH_BOUNCE_KEY);
-      } catch (_e) {
-        /* storage disabled - never auto-launch on an unverifiable hint */
-      }
-      if (armed) handleOAuthSignIn(provider);
-    }
+    // ?provider= is stripped, never acted on - see handleOAuthSignIn above.
+    // Auto-launching OAuth from a URL param is a drive-by consent dialog for
+    // anyone who clicks a link, and the bounce it was written for is
+    // middleware's job now.
+    void provider;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 

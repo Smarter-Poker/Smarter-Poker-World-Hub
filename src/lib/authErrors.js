@@ -29,8 +29,18 @@
 export const AUTH_DETAIL_KEY = 'auth_error_detail';
 /** Which page started an OAuth flow, so a failure returns to it. */
 export const AUTH_ORIGIN_KEY = 'oauth_origin';
-/** One-shot arm for the www -> apex resume; a bare ?provider= is only a hint. */
-export const AUTH_BOUNCE_KEY = 'oauth_bounce';
+/**
+ * There is deliberately no bounce/resume key here.
+ *
+ * The auth pages used to bounce www -> apex themselves and resume the OAuth
+ * flow from ?provider= on the next page load. Both halves are gone: the
+ * redirect is middleware's (it 301s every non-API route off www, so the client
+ * never sees a www hostname), and resuming from a URL param meant any link to
+ * /auth/login?provider=facebook auto-launched Meta's consent dialog for
+ * whoever opened it. A one-shot sessionStorage marker cannot rescue that
+ * either — sessionStorage is per-origin, so a marker written on www is
+ * unreadable on the apex, the single hop it existed to survive.
+ */
 
 /**
  * The only providers the sign-in pages offer, and therefore the only ones the
