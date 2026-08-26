@@ -23,7 +23,12 @@
    THE FIX
      1. The body-supplied `userId` is now IGNORED, always. The only identity
         this route will act on comes from a verified `Authorization: Bearer
-        <jwt>` resolved through supabase.auth.getUser().
+        <jwt>` resolved through supabase.auth.getUser(token) — the
+        argument-ful, server-side form. (Written here without the token
+        argument until 2026-08-25, which is a lie about what line 97 does
+        AND trips CHECK C in the pre-commit hook: that guard greps file
+        CONTENT, so a comment spelling the forbidden call made every future
+        edit to this file uncommittable.)
      2. A token that is present but invalid/expired is a hard 401 — no silent
         downgrade to the anonymous path.
      3. NO token at all is still allowed, but ONLY for pure code verification.
@@ -286,6 +291,32 @@ export default async function handler(req, res) {
           // phone / phone_verified itself on the profile it creates.
           // ═══════════════════════════════════════════════════════════════
           if (!authedUserId) {
+              // ...BUT LEAVE A RECEIPT (2026-08-25).
+              // "Zero profile writes" was right — there is no row yet. The
+              // problem was that it left NO server-side record of any kind, so
+              // the only witness that this handset had ever been verified was
+              // the browser, and ensure-profile trusted the browser: it read
+              // `phone_verified` straight out of user_metadata, which the
+              // account holder can set for themselves with
+              // supabase.auth.updateUser({ data: { phone_verified: true } }).
+              // One handset, unlimited accounts, unlimited welcome diamonds —
+              // around the control the block above calls the single strongest
+              // anti-farming measure we have.
+              //
+              // A receipt keyed on the number is a fact the client cannot
+              // invent. ensure-profile confirms against it and fails closed.
+              // Not fatal if it fails: refusing a verification we just proved
+              // is worse than a signup that has to re-verify.
+              const { error: receiptError } = await supabase
+                  .from('phone_verification_receipts')
+                  .upsert(
+                      { phone: cleanPhone, verified_at: new Date().toISOString() },
+                      { onConflict: 'phone' }
+                  );
+              if (receiptError) {
+                  console.warn('[verify-otp] receipt write failed:', receiptError.message);
+              }
+
               return res.status(200).json({
                   success: true,
                   message: 'Phone number verified successfully',

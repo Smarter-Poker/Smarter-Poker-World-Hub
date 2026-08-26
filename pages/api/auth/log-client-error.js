@@ -78,6 +78,16 @@ const ALLOWED_FLOWS = new Set([
     'email_confirmation',
     'mfa_challenge',
     'profile_provision',
+    // 2026-08-25: the external provider itself refusing the handshake -
+    // Facebook/Google answering /auth/v1/callback with ?error= or #error=.
+    // Added the same day the callback started reporting it: without the tag
+    // here every one of those lands in the 'unknown' bucket next to malformed
+    // payloads, which is precisely the pile we added the report to escape.
+    'oauth_provider_error',
+    // The OAuth provider completed but handed back no email address, so the
+    // account cannot be provisioned. Distinct from a refusal: the handshake
+    // worked, the scope did not.
+    'oauth_no_email',
     'unknown',
 ]);
 
