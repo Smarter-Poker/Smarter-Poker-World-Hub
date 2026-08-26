@@ -146,6 +146,26 @@ export const TAB_META = {
 };
 
 /**
+ * Enter/Space activation for the image-map hotspots.
+ *
+ * Those hotspots are `<div role="button" tabIndex={0} onKeyDown={activateOnKey}>` painted over a picture.
+ * `tabIndex={0}` puts all twenty in the tab order and `role="button"` promises
+ * a screen reader they behave like buttons -- but they carried only onClick, so
+ * a keyboard user could focus every one of them and activate none. Focusable
+ * and inert is worse than not focusable at all: it is a trap you tab through
+ * with nothing happening.
+ *
+ * Delegating to `.click()` keeps one behaviour for both input methods instead
+ * of a second copy of each handler that can drift out of step.
+ */
+function activateOnKey(e) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    e.currentTarget.click();
+  }
+}
+
+/**
  * Opens a store tab in its own browser tab.
  *
  * `currentTab` is not optional politeness — without it, clicking "Diamonds"
@@ -255,6 +275,16 @@ export default function DiamondStorePage({ initialTab }) {
   const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVip, setIsVip] = useState(false);
+  // `is_vip` alone cannot render an honest membership card: it says THAT you
+  // are a member, not which tier or until when. Both are read below.
+  const [vipTier, setVipTier] = useState(null);
+  const [vipExpiresAt, setVipExpiresAt] = useState(null);
+  const [diamondBalance, setDiamondBalance] = useState(null);
+  // Replaces window.confirm() on the two paths that spend diamonds. A native
+  // confirm blocks the whole tab, cannot be styled, and on iOS standalone PWAs
+  // is easy to miss entirely. `pending` also carries the idempotency key so a
+  // double-tap on Confirm reuses one key instead of minting a second purchase.
+  const [pendingSpend, setPendingSpend] = useState(null);
   const [diamondMultiplier, setDiamondMultiplier] = useState(1.0);
 
   const [user, setUser] = useState(null);
@@ -331,11 +361,14 @@ export default function DiamondStorePage({ initialTab }) {
         setUser(authUser);
         const { data: profile } = await supabase
           .from('profiles')
-          .select('is_vip, diamond_multiplier')
+          .select('is_vip, vip_tier, vip_expires_at, diamonds, diamond_multiplier')
           .eq('id', authUser.id)
           .maybeSingle();
         if (cancelled) return;
         setIsVip(!!profile?.is_vip);
+        setVipTier(profile?.vip_tier || null);
+        setVipExpiresAt(profile?.vip_expires_at || null);
+        if (profile?.diamonds != null) setDiamondBalance(Number(profile.diamonds));
         if (profile?.diamond_multiplier) setDiamondMultiplier(Number(profile.diamond_multiplier));
       }
     })();
@@ -565,41 +598,124 @@ export default function DiamondStorePage({ initialTab }) {
         showStoreToast('error', 'Please sign in to purchase VIP.');
         return;
       }
-      if (confirm(`Purchase 1-Day VIP Access for ${plan.price} Diamonds?`)) {
-        setIsProcessing(true);
-        try {
-          const res = await fetch('/api/store/purchase-daily-vip', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          });
-          // Parse the body FIRST — the API returns meaningful errors
-          // ('Insufficient diamonds' + required/current) with a 400.
-          const data = await res.json().catch(() => null);
-          if (!res.ok) {
-            const detail =
-              data?.required != null && data?.current != null
-                ? ` (need ${Number(data.required).toLocaleString()}, you have ${Number(data.current).toLocaleString()})`
-                : '';
-            throw new Error(`${data?.error || `Request failed (${res.status})`}${detail}`);
-          }
-          if (data?.success) {
-            showStoreToast('success', 'VIP Daily Pass Activated! Enjoy your premium features.');
-            setIsVip(true);
-            broadcastSync('smarter_poker_vip_sync', 'refresh_vip');
-            broadcastSync('smarter_poker_diamond_sync', 'refresh');
-          } else {
-            showStoreToast('error', `VIP purchase failed: ${data?.error || 'Unknown error'}`);
-          }
-        } catch (e) {
-          showStoreToast('error', 'Error purchasing VIP pass: ' + e.message);
-        } finally {
-          setIsProcessing(false);
-        }
-      }
+      // Ask in the page, not in a native dialog. runDailyPassPurchase is what
+      // the modal's Confirm calls.
+      setPendingSpend({
+        kind: 'daily',
+        title: 'Activate The 1-Day VIP Pass',
+        cost: plan.price,
+        detail: 'Twenty-Four Hours Of Full VIP Access. If You Already Have VIP, This Adds A Day To The End Of It Rather Than Replacing It.',
+      });
       return;
     }
+    await startStripeCheckout(plan);
+  };
 
-    // Paid tiers (monthly / annual) — Stripe Checkout in subscription mode.
+  /** The daily pass, once the in-page confirmation has been accepted. */
+  const runDailyPassPurchase = async () => {
+    const plan = VIP_MEMBERSHIP.daily;
+    const token = getAccessToken();
+    if (!token || !user?.id) {
+      showStoreToast('error', 'Please sign in to purchase VIP.');
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const res = await fetch('/api/store/purchase-daily-vip', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      // Parse the body FIRST — the API returns meaningful errors
+      // ('Insufficient diamonds' + required/current) with a 400.
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const detail =
+          data?.required != null && data?.current != null
+            ? ` You Need ${Number(data.required).toLocaleString()} And Have ${Number(data.current).toLocaleString()}.`
+            : '';
+        throw new Error(`${data?.error || `Request Failed (${res.status})`}.${detail}`);
+      }
+      if (data?.success) {
+        showStoreToast('success', 'VIP Daily Pass Activated. Enjoy Your Premium Features.');
+        setIsVip(true);
+        // Keep the membership card honest without a page reload.
+        if (data.expiresAt) setVipExpiresAt(data.expiresAt);
+        if (data.tier) setVipTier(data.tier);
+        if (data.newBalance != null) setDiamondBalance(Number(data.newBalance));
+        broadcastSync('smarter_poker_vip_sync', 'refresh_vip');
+        broadcastSync('smarter_poker_diamond_sync', 'refresh');
+      } else {
+        showStoreToast('error', data?.error || 'VIP Purchase Failed.');
+      }
+    } catch (e) {
+      showStoreToast('error', e.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  /**
+   * Buy a MONTHLY or ANNUAL membership entirely in diamonds.
+   *
+   * This path already existed end to end — pages/api/store/purchase-vip-with-
+   * diamonds.js derives the cost server-side from the USD price at 100
+   * diamonds per dollar ($19.99 -> 1,999), is idempotent, and refuses the
+   * daily plan because that has its own endpoint. Nothing on the VIP page ever
+   * called it, so a member holding 2,000 diamonds had no way to spend them on
+   * a membership. The FAQ said they could. Now they can.
+   */
+  const runDiamondPlanPurchase = async (planKey, idempotencyKey) => {
+    const token = getAccessToken();
+    if (!token || !user?.id) {
+      showStoreToast('error', 'Please sign in to purchase VIP.');
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const res = await fetch('/api/store/purchase-vip-with-diamonds', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'x-idempotency-key': idempotencyKey,
+        },
+        body: JSON.stringify({ plan: planKey }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        // The API returns required/current on a shortfall — say the number
+        // rather than a bare failure the member cannot act on.
+        const short =
+          data?.required != null && data?.current != null
+            ? ` You Need ${Number(data.required).toLocaleString()} And Have ${Number(data.current).toLocaleString()}.`
+            : '';
+        throw new Error(`${data?.error || `Request Failed (${res.status})`}.${short}`);
+      }
+      if (data?.success) {
+        showStoreToast(
+          'success',
+          data.duplicate
+            ? 'That Purchase Was Already Applied. Your Membership Is Active.'
+            : `VIP Active. ${Number(data.daysAdded || 0).toLocaleString()} Days Added.`
+        );
+        setIsVip(true);
+        if (data.tier) setVipTier(data.tier);
+        if (data.expiresAt) setVipExpiresAt(data.expiresAt);
+        if (data.newBalance != null) setDiamondBalance(Number(data.newBalance));
+        broadcastSync('smarter_poker_vip_sync', 'refresh_vip');
+        broadcastSync('smarter_poker_diamond_sync', 'refresh');
+      } else {
+        showStoreToast('error', data?.error || 'VIP Purchase Failed.');
+      }
+    } catch (e) {
+      showStoreToast('error', e.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  /** Stripe Checkout, subscription mode, for the cash plans. */
+  const startStripeCheckout = async (plan) => {
     // Only the plan key is sent; the server resolves the Stripe price ID from
     // its own env config, so the price is never client-controlled.
     const token = getAccessToken();
@@ -982,6 +1098,14 @@ export default function DiamondStorePage({ initialTab }) {
           <meta name="viewport" content="width=device-width, initial-scale=1" />
 
           <style>{`
+                    /* <details> in the VIP FAQ: Safari/WebKit paints its OWN
+                       disclosure triangle in addition to our chevron unless the
+                       marker is removed, so the question rendered with two
+                       arrows. list-style:none alone does not do it. */
+                    .diamond-store-page summary::-webkit-details-marker { display: none; }
+                    .diamond-store-page summary::marker { content: ''; }
+                    .diamond-store-page details > summary .faq-chevron { transition: transform 0.2s ease; }
+                    .diamond-store-page details[open] > summary .faq-chevron { transform: rotate(180deg); }
                     /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
                     .diamond-store-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
                     @keyframes fadeIn {
@@ -1012,7 +1136,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('diamonds', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1025,7 +1149,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('merch', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1038,7 +1162,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('rewards', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1051,7 +1175,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('club-shop', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1074,7 +1198,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('diamonds', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1087,7 +1211,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('vip', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1100,7 +1224,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('rewards', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1113,7 +1237,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('club-shop', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1136,7 +1260,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('diamonds', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1149,7 +1273,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('vip', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1162,7 +1286,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('merch', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1175,7 +1299,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('club-shop', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1198,7 +1322,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('diamonds', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1211,7 +1335,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('vip', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1224,7 +1348,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('merch', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1237,7 +1361,7 @@ export default function DiamondStorePage({ initialTab }) {
                   />
                   <div
                     role="button"
-                    tabIndex={0}
+                    tabIndex={0} onKeyDown={activateOnKey}
                     onClick={() => openTab('rewards', activeTab)}
                     style={{
                       position: 'absolute',
@@ -1266,7 +1390,7 @@ export default function DiamondStorePage({ initialTab }) {
               {/* ── New Image Tab Clickable Zones ── */}
               <div
                 role="button"
-                tabIndex={0}
+                tabIndex={0} onKeyDown={activateOnKey}
                 onClick={() => openTab('vip', activeTab)}
                 style={{
                   position: 'absolute',
@@ -1279,7 +1403,7 @@ export default function DiamondStorePage({ initialTab }) {
               />
               <div
                 role="button"
-                tabIndex={0}
+                tabIndex={0} onKeyDown={activateOnKey}
                 onClick={() => openTab('merch', activeTab)}
                 style={{
                   position: 'absolute',
@@ -1292,7 +1416,7 @@ export default function DiamondStorePage({ initialTab }) {
               />
               <div
                 role="button"
-                tabIndex={0}
+                tabIndex={0} onKeyDown={activateOnKey}
                 onClick={() => openTab('rewards', activeTab)}
                 style={{
                   position: 'absolute',
@@ -1305,7 +1429,7 @@ export default function DiamondStorePage({ initialTab }) {
               />
               <div
                 role="button"
-                tabIndex={0}
+                tabIndex={0} onKeyDown={activateOnKey}
                 onClick={() => (window.location.href = '/hub')}
                 style={{
                   position: 'absolute',
@@ -1335,6 +1459,7 @@ export default function DiamondStorePage({ initialTab }) {
                     tabIndex={0}
                     aria-label={`Buy ${pkg.name}`}
                     onClick={() => handleDirectCheckout(pkg)}
+                    onKeyDown={activateOnKey}
                     style={{
                       position: 'absolute',
                       left,
@@ -1363,6 +1488,282 @@ export default function DiamondStorePage({ initialTab }) {
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {activeTab === 'vip' && (
               <>
+                {/* ═══════════════════════════════════════════════════════════
+                    VIP PURCHASE BLOCK
+
+                    Restored 2026-08-26. `VIPCard` was imported and never
+                    rendered, `handleVIPSubscribe` was defined and never called,
+                    and `vipSubscribeLabel` was computed and never read — so the
+                    VIP page listed 23 benefits and 11 FAQs and then offered no
+                    way whatsoever to become a member. Verified against the
+                    deployed bundle before touching anything: "subscribe-button
+                    .png" and "Subscribe —" both returned 0 occurrences in
+                    production.
+                   ═══════════════════════════════════════════════════════════ */}
+
+                {/* Current membership, when there is one. Without this the page
+                    invites an existing member to "Subscribe" as though they had
+                    nothing — the single most likely way to take a second
+                    payment from someone who already paid. */}
+                {isVip && (
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,215,0,0.04))',
+                      border: '1px solid rgba(255,215,0,0.35)',
+                      borderRadius: 14,
+                      padding: '14px 18px',
+                      marginBottom: 18,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <Crown size={22} color="#FFD700" style={{ flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 15 }}>
+                        You Are Already A VIP Member{vipTier ? ` — ${String(vipTier).replace(/^./, (c) => c.toUpperCase())}` : ''}
+                      </div>
+                      <div style={{ color: '#B0B3B8', fontSize: 13, marginTop: 2 }}>
+                        {vipExpiresAt
+                          ? `Your Access Runs Until ${new Date(vipExpiresAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}. Anything You Buy Below Is Added To The End Of That, Never Instead Of It.`
+                          : 'Anything You Buy Below Extends Your Membership Rather Than Replacing It.'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Plan selection */}
+                <div style={styles.vipPlansRow}>
+                  <VIPCard
+                    plan={VIP_MEMBERSHIP.daily}
+                    isSelected={selectedVIP === 'vip-daily'}
+                    onSelect={setSelectedVIP}
+                  />
+                  <VIPCard
+                    plan={VIP_MEMBERSHIP.monthly}
+                    isSelected={selectedVIP === 'vip-monthly'}
+                    onSelect={setSelectedVIP}
+                  />
+                  <VIPCard
+                    plan={VIP_MEMBERSHIP.annual}
+                    isSelected={selectedVIP === 'vip-annual'}
+                    onSelect={setSelectedVIP}
+                  />
+                </div>
+
+                {/* Annual saving, stated in money rather than implied by a badge */}
+                {selectedVIP === 'vip-annual' && VIP_MEMBERSHIP.annual.savings > 0 && (
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      marginTop: 10,
+                      fontSize: 13,
+                      color: '#4ADE80',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Saves ${Number(VIP_MEMBERSHIP.annual.savings).toFixed(2)} A Year Against Paying Monthly — About Two Months Free
+                  </div>
+                )}
+
+                {/* Primary call to action */}
+                <div style={styles.vipSubscribeSection}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-label={isProcessing ? 'Processing' : vipSubscribeLabel}
+                    aria-disabled={isProcessing}
+                    onClick={handleVIPSubscribe}
+                    onKeyDown={activateOnKey}
+                    style={{
+                      cursor: isProcessing ? 'wait' : 'pointer',
+                      opacity: isProcessing ? 0.6 : 1,
+                      transition: 'transform 0.15s ease, filter 0.15s ease',
+                      display: 'inline-block',
+                    }}
+                  >
+                    <img
+                      src="/images/subscribe-button.png"
+                      alt=""
+                      style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
+                      draggable={false}
+                      loading="lazy"
+                    />
+                    {/* The button artwork is a static $19.99/month image, so the
+                        live plan is stated in text beneath it. Without this the
+                        picture contradicts the selected plan. */}
+                    <div
+                      style={{
+                        textAlign: 'center',
+                        marginTop: 8,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: '#FFD700',
+                      }}
+                    >
+                      {isProcessing ? 'Processing...' : vipSubscribeLabel}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pay in diamonds — monthly and annual only. The daily plan is
+                    already priced in diamonds and has its own endpoint. */}
+                {selectedVIPPlan && !selectedVIPPlan.isDiamondCost && (
+                  <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 8 }}>
+                    {(() => {
+                      const planKey = selectedVIP === 'vip-annual' ? 'annual' : 'monthly';
+                      // Mirrors the server: 100 diamonds per dollar, derived
+                      // from the same catalog price rather than a second copy.
+                      const cost = Math.round(Number(selectedVIPPlan.price) * 100);
+                      const known = diamondBalance != null;
+                      const short = known ? cost - diamondBalance : 0;
+                      const canAfford = !known || short <= 0;
+                      return (
+                        <>
+                          <button
+                            type="button"
+                            disabled={isProcessing || !canAfford}
+                            onClick={() =>
+                              setPendingSpend({
+                                kind: 'plan',
+                                planKey,
+                                title: `Pay For ${selectedVIPPlan.name} With Diamonds`,
+                                cost,
+                                detail: `${Number(cost).toLocaleString()} Diamonds For ${planKey === 'annual' ? '365' : '30'} Days Of VIP. This Extends Any Membership You Already Have Rather Than Replacing It.`,
+                                idempotencyKey: `vip-${planKey}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+                              })
+                            }
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              padding: '11px 22px',
+                              borderRadius: 12,
+                              background: canAfford ? 'rgba(0,180,255,0.12)' : 'rgba(255,255,255,0.04)',
+                              border: `1px solid ${canAfford ? 'rgba(0,180,255,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                              color: canAfford ? '#00D4FF' : 'rgba(255,255,255,0.4)',
+                              fontSize: 15,
+                              fontWeight: 600,
+                              cursor: isProcessing || !canAfford ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            <Gem size={16} />
+                            Pay With Diamonds Instead — {Number(cost).toLocaleString()}
+                          </button>
+                          <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 8 }}>
+                            {!known
+                              ? 'Sign In To Pay With Diamonds.'
+                              : canAfford
+                                ? `You Have ${Number(diamondBalance).toLocaleString()} Diamonds.`
+                                : `You Have ${Number(diamondBalance).toLocaleString()} And Need ${Number(short).toLocaleString()} More.`}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Diamond-spend confirmation. Replaces window.confirm(), which
+                    blocks the tab, cannot be styled, and is easy to miss inside
+                    an installed PWA. Nothing is spent until Confirm is pressed,
+                    and the idempotency key is minted when the modal OPENS so a
+                    double-tap cannot mint a second purchase. */}
+                {pendingSpend && (
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={pendingSpend.title}
+                    onClick={() => !isProcessing && setPendingSpend(null)}
+                    style={{
+                      position: 'fixed',
+                      inset: 0,
+                      background: 'rgba(0,0,0,0.72)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 20,
+                      zIndex: 9999,
+                    }}
+                  >
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        background: '#16181C',
+                        border: '1px solid rgba(255,215,0,0.3)',
+                        borderRadius: 16,
+                        padding: '22px 20px',
+                        maxWidth: 420,
+                        width: '100%',
+                      }}
+                    >
+                      <h4 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#FFD700' }}>
+                        {pendingSpend.title}
+                      </h4>
+                      <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.6, color: '#B0B3B8' }}>
+                        {pendingSpend.detail}
+                      </p>
+                      <div
+                        style={{
+                          margin: '14px 0 18px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          fontSize: 20,
+                          fontWeight: 700,
+                          color: '#00D4FF',
+                        }}
+                      >
+                        <Gem size={20} />
+                        {Number(pendingSpend.cost).toLocaleString()} Diamonds
+                      </div>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <button
+                          type="button"
+                          disabled={isProcessing}
+                          onClick={() => setPendingSpend(null)}
+                          style={{
+                            flex: 1,
+                            padding: '11px 0',
+                            borderRadius: 10,
+                            background: 'transparent',
+                            border: '1px solid rgba(255,255,255,0.18)',
+                            color: '#E4E6EB',
+                            fontSize: 15,
+                            fontWeight: 600,
+                            cursor: isProcessing ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isProcessing}
+                          onClick={async () => {
+                            const spend = pendingSpend;
+                            setPendingSpend(null);
+                            if (spend.kind === 'daily') await runDailyPassPurchase();
+                            else await runDiamondPlanPurchase(spend.planKey, spend.idempotencyKey);
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '11px 0',
+                            borderRadius: 10,
+                            background: 'rgba(255,215,0,0.15)',
+                            border: '1px solid rgba(255,215,0,0.45)',
+                            color: '#FFD700',
+                            fontSize: 15,
+                            fontWeight: 700,
+                            cursor: isProcessing ? 'wait' : 'pointer',
+                          }}
+                        >
+                          {isProcessing ? 'Processing...' : 'Confirm'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* VIP Benefits Table */}
                 <div style={styles.benefitsSection}>
                   <h3 style={styles.benefitsTitle}>Everything Included With VIP</h3>
@@ -1485,6 +1886,7 @@ export default function DiamondStorePage({ initialTab }) {
                       >
                         {faq.q}
                         <span
+                          className="faq-chevron"
                           style={{ color: '#B0B3B8', fontSize: 18, marginLeft: 12, flexShrink: 0 }}
                         >
                           ▾
