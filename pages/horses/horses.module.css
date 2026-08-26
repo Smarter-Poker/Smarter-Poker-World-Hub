@@ -752,44 +752,6 @@
     margin-top: 4px;
 }
 
-.sourceList {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 32px;
-}
-
-.sourceItem {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: var(--bg-panel-80);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    font-size: 14px;
-}
-
-.runsTable {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.runsTable th,
-.runsTable td {
-    padding: 14px;
-    text-align: left;
-    border-bottom: 1px solid var(--line);
-}
-
-.runsTable th {
-    color: var(--text-dim);
-    font-weight: 500;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
 .runType {
     display: inline-block;
     padding: 4px 10px;
@@ -1324,11 +1286,6 @@
     color: var(--accent);
 }
 
-.profitCell {
-    font-weight: 600;
-    color: var(--positive);
-}
-
 .statusIdle {
     background: var(--muted-soft);
     color: var(--text-muted);
@@ -1338,77 +1295,9 @@
     font-weight: 500;
 }
 
-.statusPlaying {
-    background: var(--accent-soft);
-    color: var(--accent);
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.moreHorses {
-    color: var(--text-muted);
-    font-size: 14px;
-    text-align: center;
-    margin-top: 16px;
-    font-style: italic;
-}
-
-.schedulePreview {
-    background: var(--bg-panel-80);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 24px;
-}
-
-.schedulePreview h3 {
-    font-size: 16px;
-    color: var(--text-dim);
-    margin-bottom: 16px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.scheduleGrid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-}
-
-.shift {
-    background: var(--accent-soft);
-    border: 1px solid var(--accent-line);
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-}
-
-.shift h4 {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-
-.shift p {
-    color: var(--text-dim);
-    font-size: 14px;
-    margin-bottom: 8px;
-}
-
-.shift span {
-    color: var(--accent);
-    font-weight: 500;
-    font-size: 14px;
-}
-
 @media (max-width: 768px) {
     .grinderStats {
         flex-direction: column;
-    }
-
-    .scheduleGrid {
-        grid-template-columns: 1fr;
     }
 
     .clubActions {
@@ -1526,8 +1415,9 @@
     font-weight: 700;
 }
 
-/* ─── Pipeline panels ─── */
-.rssSources,
+/* ─── Pipeline panel ───
+   Was `.rssSources, .recentRuns`. The RSS source list was five hardcoded
+   names each with a green dot, wired to nothing, and it is gone. */
 .recentRuns {
     background: var(--bg-panel);
     border: 1px solid var(--line);
@@ -1536,7 +1426,6 @@
     margin-top: 24px;
 }
 
-.rssSources h3,
 .recentRuns h3 {
     color: var(--text);
     font-size: 15px;
@@ -1593,16 +1482,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
     gap: 14px;
-}
-
-.clickableCard {
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-}
-
-.clickableCard:hover {
-    border-color: var(--accent-line);
-    background: var(--bg-surface);
 }
 
 .kpiGrid {
@@ -2224,3 +2103,19 @@
         flex: 1 1 100%;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Removed 2026-08-26: eleven rule blocks whose classes no longer had a single
+   reference in pages/horses/index.js.
+
+   Most were the hardcoded fiction round one deleted -- the fake RSS source
+   list (.rssSources/.sourceList/.sourceItem) and the fake shift schedule
+   (.schedulePreview/.scheduleGrid/.shift) -- plus classes superseded during
+   the rewrite: .runsTable by .table, .statusPlaying by .statusActive,
+   .clickableCard by .cardTitleBtn, and .moreHorses/.profitCell by real
+   pagination and an inline sign colour.
+
+   Verified by cross-referencing every `styles.X` in index.js against every
+   selector here, allowing for the nine looked up dynamically
+   (styles[notification.type] and styles[run.run_type]).
+   ═══════════════════════════════════════════════════════════════════════════ */
