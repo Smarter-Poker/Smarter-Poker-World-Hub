@@ -150,6 +150,9 @@ export default function HorseHandReviews() {
   const [auditsError, setAuditsError] = useState(null);
   const [auditOpen, setAuditOpen] = useState(null);
 
+  const [telemetry, setTelemetry] = useState([]);
+  const [telemetryOpen, setTelemetryOpen] = useState(false);
+
   const [filters, setFilters] = useState({ horse: '', variant: '', format: '', tag: '', win: '' });
   const [rows, setRows] = useState([]);
   const [rowsError, setRowsError] = useState(null);
@@ -196,6 +199,8 @@ export default function HorseHandReviews() {
     const { data, error } = await supabase.rpc('ca_horse_daily_audit', { p_days: 14 });
     if (error) setAuditsError(error.message);
     else setAudits(data || []);
+    const { data: tData } = await supabase.rpc('ca_brain_telemetry', { p_days: 3 });
+    setTelemetry(tData || []);
   }, []);
 
   const loadRows = useCallback(async () => {
@@ -297,6 +302,53 @@ export default function HorseHandReviews() {
           {audits.length === 0 && !auditsError && (
             <div style={{ color: MUTED, fontSize: '0.85rem' }}>No audit rows yet. The first row appears after the next 06:00 UTC engine run.</div>
           )}
+          {/* ── Brain Layer Fires: proof the deployed logic executes ── */}
+          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
+            <div
+              onClick={() => setTelemetryOpen(!telemetryOpen)}
+              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center' }}
+            >
+              <span style={{ fontWeight: 700 }}>Brain Layer Fires</span>
+              <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+                Live-Table Execution Counts Per Layer. A Deployed Layer At Zero Is A Wiring Regression.
+              </span>
+              <span style={{ marginLeft: 'auto', color: POSITIVE, fontSize: '0.8rem' }}>
+                {telemetry.length > 0 ? `${telemetry.length} rows` : 'No Data Yet'}
+              </span>
+            </div>
+            {telemetryOpen && (
+              <div style={{ overflowX: 'auto', marginTop: 6 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ color: MUTED, textAlign: 'left' }}>
+                      <th style={{ padding: '0.3rem' }}>Day</th>
+                      <th style={{ padding: '0.3rem' }}>Layer</th>
+                      <th style={{ padding: '0.3rem' }}>Fires</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {telemetry.map((t) => (
+                      <tr key={`${t.day}-${t.feature}`} style={{ borderTop: `1px solid ${BORDER}` }}>
+                        <td style={{ padding: '0.3rem', whiteSpace: 'nowrap' }}>{t.day}</td>
+                        <td style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{t.feature}</td>
+                        <td style={{ padding: '0.3rem', color: Number(t.fires) > 0 ? POSITIVE : RED, fontWeight: 600 }}>
+                          {Number(t.fires).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                    {telemetry.length === 0 && (
+                      <tr>
+                        <td colSpan={3} style={{ padding: '0.4rem', color: MUTED }}>
+                          Counters appear after the telemetry engine deploy. A telemetry_dark finding above means this is expected.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           {audits.map((a) => {
             const findings = Array.isArray(a.findings) ? a.findings : [];
             const crit = findings.filter((f) => f.severity === 'critical').length;
