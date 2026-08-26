@@ -1,6 +1,6 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
- * 🛡️ ANTI-ABUSE ADMIN API
+ * ANTI-ABUSE ADMIN API
  * GET /api/horses/anti-abuse — Returns abuse log, audit log, alerts, and economy data
  * Used by the /horses Anti-Abuse dashboard tab
  */
@@ -142,10 +142,17 @@ export default async function handler(req, res) {
                   else totalSpent += Math.abs(tx.amount);
               });
 
-              // Top diamond holders
+              // Top diamond holders.
+              //
+              // `email` is NOT selected. This is a top-20 leaderboard on an
+              // admin dashboard; it needs to identify an account, which
+              // username and id already do. Shipping twenty real email
+              // addresses in every poll of this endpoint is bulk PII the
+              // surface has no use for. `phone_verified` stays — it is the
+              // abuse signal the tab exists to show.
               const { data: topHolders } = await getSupabase()
                   .from('profiles')
-                  .select('id, username, email, diamonds, is_vip, vip_tier, phone_verified')
+                  .select('id, username, diamonds, is_vip, vip_tier, phone_verified')
                   .order('diamonds', { ascending: false })
                   .limit(20);
 
@@ -156,6 +163,10 @@ export default async function handler(req, res) {
                   topHolders: topHolders || [],
                   windowDays: ECONOMY_WINDOW_DAYS,
                   windowSince: economySince,
+                  // Printable verbatim next to Total Granted / Total Spent.
+                  // Those are WINDOWED figures, not lifetime totals, and the
+                  // UI had no label saying so.
+                  windowLabel: `last ${ECONOMY_WINDOW_DAYS} days`,
                   truncated: (transactions || []).length >= 5000,
               };
           }
@@ -169,12 +180,17 @@ export default async function handler(req, res) {
               let alertSource = sourceData;
 
               if (sourceData.length === 0) {
-                  // Only query DB if abuse section wasn't already fetched
+                  // Only query DB if abuse section wasn't already fetched.
+                  // Bounded: this was the one unbounded read left in the
+                  // route, and a bad 24 hours would have returned the whole
+                  // signup_abuse_log to the browser.
+                  const ALERT_CAP = 200;
                   const { data: recentAbuse } = await getSupabase()
                       .from('signup_abuse_log')
                       .select('*')
                       .gt('last_signup_at', new Date(twentyFourHoursAgo).toISOString())
-                      .order('last_signup_at', { ascending: false });
+                      .order('last_signup_at', { ascending: false })
+                      .limit(ALERT_CAP);
                   alertSource = recentAbuse || [];
               } else {
                   // Filter already-fetched data by 24h window

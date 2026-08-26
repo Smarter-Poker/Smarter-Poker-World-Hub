@@ -1,14 +1,20 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
- * ⭐ ADMIN REVIEWS API
+ * ADMIN REVIEWS API
  * GET  /api/horses/admin-reviews — List all venue reviews with filters
  * DELETE /api/horses/admin-reviews — Admin-delete any review by id
  * PATCH  /api/horses/admin-reviews — Flag/unflag a review as inappropriate
  *
  * All endpoints require admin/superadmin/god role via JWT.
+ *
+ * PAGING (GET) is by query string: ?offset=<n>&limit=<n>. offset defaults to
+ * 0, limit defaults to 100 and is clamped to 1..500. The response echoes what
+ * was actually applied as `page: { offset, limit, returned }`, and
+ * `stats.total` is the whole-table row count to page against.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { logAdminAction } = require('../../../src/lib/antiAbuse');
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 let _supabase = null;
@@ -123,6 +129,16 @@ export default async function handler(req, res) {
             // Whole-table stats. These were previously computed over the
             // CURRENT PAGE only, so the dashboard's "Total Reviews" was really
             // just the page size (100 by default).
+            //
+            // The average is still computed from a capped sample rather than
+            // a server-side avg(): PostgREST aggregate functions are DISABLED
+            // on this project (`rating.avg()` returns PGRST123 "Use of
+            // aggregate functions is not allowed", verified against
+            // production 2026-08-26) and there is no review-stats RPC to call
+            // instead. So the cap stays, and `avg_rating_sampled` /
+            // `avg_rating_sample_size` say exactly what the number was built
+            // from. venue_reviews holds 0 rows in production today, so the
+            // cap is not currently reached.
             const AVG_SAMPLE_CAP = 10000;
             const [totalRes, flaggedRes, ratingsRes] = await Promise.all([
                 getSupabase().from('venue_reviews').select('id', { count: 'exact', head: true }),
@@ -155,8 +171,11 @@ export default async function handler(req, res) {
                     avg_rating: avgRating,
                     // True when the average was computed from a capped sample
                     // rather than every row, so the number is not presented as
-                    // something it is not.
+                    // something it is not. False here means every rated row on
+                    // the table went into the average.
                     avg_rating_sampled: ratingRows.length >= AVG_SAMPLE_CAP,
+                    avg_rating_sample_size: ratingRows.length,
+                    avg_rating_sample_cap: AVG_SAMPLE_CAP,
                 },
             });
         }
@@ -253,6 +272,7 @@ export default async function handler(req, res) {
             const { error: auditErr } = await getSupabase().from('admin_audit_log').insert([{
                 admin_user_id: user.id,
                 action: 'delete_venue_review',
+                target_type: 'venue_review',
                 target_id: review_id,
                 details: { reviewer_name: existing?.reviewer_name, venue_id: existing?.venue_id },
                 created_at: new Date().toISOString(),
@@ -264,10 +284,18 @@ export default async function handler(req, res) {
 
         // ─── PATCH — Flag or unflag a review ────────────────────────────────────
         if (req.method === 'PATCH') {
-            const { review_id, action, reason } = req.body;
+            const { review_id, action, reason } = req.body || {};
             if (!review_id || !['flag', 'unflag'].includes(action)) {
                 return res.status(400).json({ success: false, error: 'review_id and action (flag|unflag) required' });
             }
+
+            // Capture the prior state before writing, so the audit row can say
+            // what actually changed.
+            const { data: priorReview } = await getSupabase()
+                .from('venue_reviews')
+                .select('venue_id, user_id, reviewer_name, is_flagged, flag_reason')
+                .eq('id', review_id)
+                .maybeSingle();
 
             // NOTE: venue_reviews has NO updated_at column in production.
             // Sending one made PostgREST reject every flag/unflag with
@@ -285,6 +313,30 @@ export default async function handler(req, res) {
                 console.warn('[Admin Reviews PATCH] Error:', error);
                 return res.status(500).json({ success: false, error: 'Internal server error' });
             }
+
+            // Audit log. DELETE has written one since it was built; flag/unflag
+            // never did, even though flagging SUPPRESSES a business's public
+            // review — a moderation act with commercial consequences that left
+            // no record of who did it or why. Routed through logAdminAction so
+            // it lands in admin_audit_log with the same columns DELETE uses
+            // (admin_user_id, action, target_type, target_id, details,
+            // ip_address, created_at) plus before/after state.
+            await logAdminAction(getSupabase(), {
+                admin_user_id: user.id,
+                action: action === 'flag' ? 'flag_venue_review' : 'unflag_venue_review',
+                target_type: 'venue_review',
+                target_id: review_id,
+                details: {
+                    reviewer_name: priorReview?.reviewer_name,
+                    venue_id: priorReview?.venue_id,
+                    reason: action === 'flag' ? (reason || 'Admin flagged') : null,
+                },
+                before: priorReview
+                    ? { is_flagged: priorReview.is_flagged, flag_reason: priorReview.flag_reason }
+                    : null,
+                after: updatePayload,
+                req,
+            });
 
             return res.status(200).json({ success: true, action, review_id });
         }

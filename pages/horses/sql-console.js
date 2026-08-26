@@ -28,6 +28,12 @@ const C = {
 
 const MAX_HISTORY = 20;
 
+// Minimum height for anything the operator taps. 44px is the WCAG 2.5.5 /
+// Apple HIG floor. Applied unconditionally rather than behind a
+// pointer:coarse query because this file is inline-styled and a taller
+// button costs a desktop user nothing.
+const TAP = 44;
+
 /** Renders a scalar cell value from a pg result row. */
 function formatCell(v) {
     if (v === null || v === undefined) return 'NULL';
@@ -37,7 +43,8 @@ function formatCell(v) {
 }
 
 /**
- * /api/admin/execute-sql responds with { success, command, rowCount, rows, ms }.
+ * /api/admin/execute-sql responds with
+ * { success, mutating, dryRun, committed, command, rowCount, rows, ms, notice }.
  * `rows` is the tabular payload — render it as a real table when it is an array
  * of objects, and keep the raw JSON behind a details toggle either way.
  */
@@ -56,11 +63,14 @@ function ResultTable({ rows }) {
 
     return (
         <div style={{ overflowX: 'auto', border: `1px solid ${C.line}`, borderRadius: '4px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', fontFamily: 'monospace' }}>
+            {/* minWidth forces the container above to actually scroll. Without
+                it the table shrinks to fit and every cell shreds into a
+                one-character column. */}
+            <table style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse', fontSize: '13px', fontFamily: 'monospace' }}>
                 <thead>
                     <tr>
                         {columns.map(col => (
-                            <th key={col} style={{
+                            <th key={col} scope="col" style={{
                                 textAlign: 'left', padding: '8px 12px', color: C.accent,
                                 background: C.surface, borderBottom: `1px solid ${C.line}`,
                                 whiteSpace: 'nowrap', fontWeight: 700
@@ -95,11 +105,25 @@ export default function OmnichannelSQLConsole() {
 
     const [sqlQuery, setSqlQuery] = useState('-- Write your raw PostgreSQL query here\nSELECT * FROM profiles LIMIT 5;');
     const [isRunning, setIsRunning] = useState(false);
-    const [allowDestructive, setAllowDestructive] = useState(false);
     const [result, setResult] = useState(null);
     // Session-local only. Deliberately NOT localStorage — this is a god-mode
     // console and its query text must not outlive the tab.
     const [history, setHistory] = useState([]);
+
+    // ─── COMMIT GATE ──────────────────────────────────────────────────
+    // The old UI had a checkbox labelled "Allow Destructive Operations
+    // (DROP, DELETE, TRUNCATE)". It was decoration: the value was posted as
+    // `allowDestructive` and /api/admin/execute-sql never read the field. The
+    // operator ticked it, the label turned red, they ran their DELETE, and
+    // the server returned 403 anyway.
+    //
+    // What replaces it is the server's real model. A mutating statement runs
+    // inside BEGIN and is ROLLED BACK, so the operator first sees the row
+    // count it WOULD have touched. To actually commit it they must send the
+    // statement back verbatim in `confirm`. `pendingSql` is the exact string
+    // that was dry-run; `confirmText` is what the operator typed back.
+    const [pendingSql, setPendingSql] = useState(null);
+    const [confirmText, setConfirmText] = useState('');
 
     // Auth & Bus Verification
     useEffect(() => {
@@ -147,7 +171,20 @@ export default function OmnichannelSQLConsole() {
         setHistory(prev => [trimmed, ...prev.filter(item => item !== trimmed)].slice(0, MAX_HISTORY));
     };
 
-    const handleExecute = async () => {
+    // Editing the query invalidates any commit that was armed for the old
+    // one. Nothing may commit text the operator has not seen dry-run.
+    const updateSql = (next) => {
+        setSqlQuery(next);
+        if (pendingSql !== null) {
+            setPendingSql(null);
+            setConfirmText('');
+        }
+    };
+
+    /**
+     * @param {string|null} confirmValue  null = dry run, string = commit attempt
+     */
+    const runQuery = async (confirmValue) => {
         if (!sqlQuery.trim() || isRunning) return;
         setIsRunning(true);
         setResult(null);
@@ -159,13 +196,14 @@ export default function OmnichannelSQLConsole() {
                 setResult({ status: 401, data: { success: false, error: 'Session expired. Please refresh the page or log in again.' } });
                 return;
             }
+            const body = confirmValue === null ? { sql: sqlQuery } : { sql: sqlQuery, confirm: confirmValue };
             const res = await fetch('/api/admin/execute-sql', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ sql: sqlQuery, allowDestructive })
+                body: JSON.stringify(body)
             });
 
             const data = await res.json();
@@ -176,8 +214,19 @@ export default function OmnichannelSQLConsole() {
             }
             setResult({ status: res.status, data });
 
-            // [HARDENING] Real-time Sync — Broadcast mutation globally
-            if (data.success && data.command && /(INSERT|UPDATE|DELETE|TRUNCATE|ALTER|DROP|CREATE)/i.test(data.command)) {
+            if (data.dryRun) {
+                // Arm the commit control against the exact text that was run.
+                setPendingSql(sqlQuery.trim());
+                setConfirmText('');
+            } else {
+                setPendingSql(null);
+                setConfirmText('');
+            }
+
+            // [HARDENING] Real-time Sync — Broadcast mutation globally.
+            // Only for a mutation that actually COMMITTED. A dry run changed
+            // nothing and must not make the rest of the app refetch.
+            if (data.success && data.committed && data.mutating) {
                 try {
                     eventBus.emit(EventType.DATA_MUTATED, { source: 'sql-console-execution' }, 'SQLConsole');
                 } catch (e) {
@@ -191,7 +240,11 @@ export default function OmnichannelSQLConsole() {
         }
     };
 
-    // Cmd/Ctrl + Enter runs the query from inside the editor.
+    const handleExecute = () => runQuery(null);
+    const handleCommit = () => runQuery(confirmText);
+
+    // Cmd/Ctrl + Enter runs the query from inside the editor. It can only ever
+    // start a dry run — committing is never one keystroke away.
     const handleEditorKeyDown = (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
             e.preventDefault();
@@ -207,12 +260,44 @@ export default function OmnichannelSQLConsole() {
     const rows = Array.isArray(result?.data?.rows) ? result.data.rows : null;
     const isTabular = !!rows && rows.length > 0 && rows.every(r => r && typeof r === 'object' && !Array.isArray(r));
 
+    // Exactly the comparison the server makes, so the button never lies about
+    // whether the commit will be accepted.
+    const confirmMatches = pendingSql !== null && confirmText.trim() === pendingSql;
+
+    let statusLabel = 'ERROR';
+    let statusColor = C.danger;
+    if (result?.data?.success) {
+        if (result.data.dryRun) {
+            statusLabel = 'ROLLED BACK (DRY RUN)';
+            statusColor = C.danger;
+        } else if (result.data.mutating) {
+            statusLabel = 'COMMITTED';
+            statusColor = C.accent;
+        } else {
+            statusLabel = 'SUCCESS (READ ONLY)';
+            statusColor = C.accent;
+        }
+    }
+
     return (
         <div style={{ background: C.page, minHeight: '100vh', color: C.text, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
             <Head>
                 <title>Omnichannel SQL Console | Antigravity</title>
                 <meta name="robots" content="noindex, nofollow" />
             </Head>
+
+            {/* Inline styles cannot express :focus-visible, and every control
+                here previously set outline:none with nothing in its place —
+                a keyboard operator had no idea where focus was. */}
+            <style>{`
+                #sql-editor:focus-visible,
+                #queryHistory:focus-visible,
+                #commit-confirm:focus-visible,
+                .sqlc-focusable:focus-visible {
+                    outline: 2px solid ${C.accent};
+                    outline-offset: 2px;
+                }
+            `}</style>
 
             <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1rem' }}>
                 <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '2rem', borderBottom: `1px solid ${C.line}`, paddingBottom: '1rem' }}>
@@ -221,8 +306,9 @@ export default function OmnichannelSQLConsole() {
                         <p style={{ margin: '0.5rem 0 0 0', color: C.textDim, fontSize: '0.875rem' }}>Browser Interface for live Supabase PostgreSQL execution.</p>
                     </div>
                     <button
+                        className="sqlc-focusable"
                         onClick={() => router.push('/horses')}
-                        style={{ background: 'transparent', color: C.textDim, border: `1px solid ${C.lineStrong}`, padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>
+                        style={{ background: 'transparent', color: C.textDim, border: `1px solid ${C.lineStrong}`, padding: '0.5rem 1rem', minHeight: TAP, borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>
                         &larr; Back to Horses
                     </button>
                 </header>
@@ -231,16 +317,19 @@ export default function OmnichannelSQLConsole() {
                     {/* Editor Box */}
                     <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: '8px', padding: '1rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.05em' }}>SQL Query</div>
+                            <h2 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                <label htmlFor="sql-editor">SQL Query</label>
+                            </h2>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                                 <span style={{ fontSize: '0.75rem', color: C.textMuted, whiteSpace: 'nowrap' }}>Cmd/Ctrl + Enter to run</span>
                                 <button
+                                    className="sqlc-focusable"
                                     onClick={handleExecute}
                                     disabled={isRunning}
                                     style={{
                                         background: isRunning ? C.elevated : C.accent,
                                         color: isRunning ? C.textDim : C.page,
-                                        border: 'none', padding: '0.5rem 1.5rem', borderRadius: '4px', cursor: isRunning ? 'not-allowed' : 'pointer',
+                                        border: 'none', padding: '0.5rem 1.5rem', minHeight: TAP, borderRadius: '4px', cursor: isRunning ? 'not-allowed' : 'pointer',
                                         fontWeight: 700, transition: 'background 0.2s'
                                     }}>
                                     {isRunning ? 'Executing...' : 'Run Query'}
@@ -256,17 +345,17 @@ export default function OmnichannelSQLConsole() {
                                 <select
                                     id="queryHistory"
                                     value=""
-                                    onChange={(e) => { if (e.target.value !== '') setSqlQuery(history[Number(e.target.value)]); }}
+                                    onChange={(e) => { if (e.target.value !== '') updateSql(history[Number(e.target.value)]); }}
                                     style={{
-                                        flex: 1, minWidth: '180px', maxWidth: '100%',
+                                        flex: 1, minWidth: '180px', maxWidth: '100%', minHeight: TAP,
                                         background: C.inset, color: C.text, border: `1px solid ${C.lineStrong}`,
                                         borderRadius: '4px', padding: '0.4rem 0.5rem', fontSize: '0.75rem',
-                                        fontFamily: 'monospace', outline: 'none', cursor: 'pointer'
+                                        fontFamily: 'monospace', cursor: 'pointer'
                                     }}>
                                     <option value="">Reload a previous query ({history.length} this session)</option>
                                     {history.map((q, i) => (
                                         <option key={`${i}-${q.slice(0, 24)}`} value={i}>
-                                            {q.replace(/\s+/g, ' ').slice(0, 90)}{q.length > 90 ? '…' : ''}
+                                            {q.replace(/\s+/g, ' ').slice(0, 90)}{q.length > 90 ? '...' : ''}
                                         </option>
                                     ))}
                                 </select>
@@ -274,8 +363,9 @@ export default function OmnichannelSQLConsole() {
                         )}
 
                         <textarea
+                            id="sql-editor"
                             value={sqlQuery}
-                            onChange={(e) => setSqlQuery(e.target.value)}
+                            onChange={(e) => updateSql(e.target.value)}
                             onKeyDown={handleEditorKeyDown}
                             style={{
                                 width: '100%',
@@ -288,56 +378,118 @@ export default function OmnichannelSQLConsole() {
                                 padding: '1rem',
                                 fontFamily: 'monospace',
                                 fontSize: '14px',
-                                resize: 'vertical',
-                                outline: 'none'
+                                resize: 'vertical'
                             }}
                             spellCheck="false"
                         />
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', marginBottom: '0.5rem' }}>
-                            <input
-                                type="checkbox"
-                                id="allowDestructive"
-                                checked={allowDestructive}
-                                onChange={(e) => setAllowDestructive(e.target.checked)}
-                                style={{ accentColor: C.danger, width: '16px', height: '16px' }}
-                            />
-                            <label htmlFor="allowDestructive" style={{ fontSize: '0.875rem', color: allowDestructive ? C.danger : C.textDim, fontWeight: 600, cursor: 'pointer' }}>
-                                Allow Destructive Operations (DROP, DELETE, TRUNCATE)
-                            </label>
-                        </div>
-
-                        <p style={{ fontSize: '0.75rem', color: C.textMuted, margin: 0 }}>
-                            <strong>Caution:</strong> Executions are strictly wrapped in a 10s timeout `BEGIN`/`COMMIT` block with Immutable Forensics Logging.
+                        <p style={{ fontSize: '0.75rem', color: C.textMuted, margin: '1rem 0 0 0', lineHeight: 1.6 }}>
+                            <strong style={{ color: C.textDim }}>How this runs:</strong> reads execute and return normally.
+                            Anything that changes state — INSERT, UPDATE, DELETE, TRUNCATE, DROP, ALTER, GRANT, CREATE —
+                            runs inside a transaction that is <strong>rolled back</strong>, so you see the row count it
+                            would have affected and nothing is written. To commit it, confirm below. Every committed
+                            mutation is written to <code>admin_audit_log</code>. Hard 10 second statement timeout.
                         </p>
                     </div>
 
+                    {/* Commit Gate — only appears after a dry run that changed nothing */}
+                    {pendingSql !== null && (
+                        <div style={{ background: C.panel, border: `1px solid ${C.danger}`, borderRadius: '8px', padding: '1rem' }}>
+                            <h2 style={{ margin: '0 0 0.75rem 0', fontSize: '0.875rem', fontWeight: 600, color: C.danger, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Commit This Mutation
+                            </h2>
+                            <p style={{ fontSize: '0.8125rem', color: C.textDim, margin: '0 0 0.75rem 0', lineHeight: 1.6 }}>
+                                The statement below was executed and rolled back. It affected{' '}
+                                <strong style={{ color: C.text }}>{result?.data?.rowCount ?? 0}</strong> row(s) and wrote nothing.
+                                To run it for real, type or paste the statement back exactly as written:
+                            </p>
+                            <pre style={{
+                                margin: '0 0 0.75rem 0', padding: '0.75rem', background: C.inset,
+                                border: `1px solid ${C.line}`, borderRadius: '4px', color: C.text,
+                                fontFamily: 'monospace', fontSize: '12px', overflowX: 'auto', whiteSpace: 'pre-wrap'
+                            }}>{pendingSql}</pre>
+                            <label htmlFor="commit-confirm" style={{ display: 'block', fontSize: '0.75rem', color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.4rem' }}>
+                                Confirmation
+                            </label>
+                            <textarea
+                                id="commit-confirm"
+                                value={confirmText}
+                                onChange={(e) => setConfirmText(e.target.value)}
+                                placeholder="Retype the statement above to enable Commit"
+                                style={{
+                                    width: '100%', boxSizing: 'border-box', minHeight: 88,
+                                    background: C.inset, color: C.text,
+                                    border: `1px solid ${confirmMatches ? C.accentLine : C.lineStrong}`,
+                                    borderRadius: '4px', padding: '0.75rem',
+                                    fontFamily: 'monospace', fontSize: '13px', resize: 'vertical'
+                                }}
+                                spellCheck="false"
+                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                                <button
+                                    className="sqlc-focusable"
+                                    onClick={handleCommit}
+                                    disabled={!confirmMatches || isRunning}
+                                    style={{
+                                        background: confirmMatches && !isRunning ? C.danger : C.elevated,
+                                        color: confirmMatches && !isRunning ? C.text : C.textMuted,
+                                        border: 'none', padding: '0.5rem 1.5rem', minHeight: TAP, borderRadius: '4px',
+                                        cursor: confirmMatches && !isRunning ? 'pointer' : 'not-allowed', fontWeight: 700
+                                    }}>
+                                    {isRunning ? 'Committing...' : 'Commit For Real'}
+                                </button>
+                                <button
+                                    className="sqlc-focusable"
+                                    onClick={() => { setPendingSql(null); setConfirmText(''); }}
+                                    disabled={isRunning}
+                                    style={{
+                                        background: 'transparent', color: C.textDim, border: `1px solid ${C.lineStrong}`,
+                                        padding: '0.5rem 1rem', minHeight: TAP, borderRadius: '4px',
+                                        cursor: isRunning ? 'not-allowed' : 'pointer', fontWeight: 600
+                                    }}>
+                                    Cancel
+                                </button>
+                                <span style={{ fontSize: '0.75rem', color: confirmMatches ? C.accent : C.textMuted }}>
+                                    {confirmMatches ? 'Confirmation matches.' : 'Confirmation does not match yet.'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Output Box */}
                     <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: '8px', padding: '1rem', minHeight: '300px' }}>
-                        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>Execution Output</div>
+                        <h2 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 600, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Execution Output</h2>
 
                         {result ? (
-                            <div style={{ background: C.inset, borderRadius: '4px', padding: '1rem', border: `1px solid ${result.data.success ? C.accentLine : C.danger}` }}>
+                            <div style={{ background: C.inset, borderRadius: '4px', padding: '1rem', border: `1px solid ${result.data.success && !result.data.dryRun ? C.accentLine : C.danger}` }}>
                                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: `1px solid ${C.line}` }}>
-                                    <span style={{ color: result.data.success ? C.accent : C.danger, fontWeight: 700, letterSpacing: '0.05em' }}>
-                                        {result.data.success ? 'SUCCESS' : 'ERROR'}
+                                    <span style={{ color: statusColor, fontWeight: 700, letterSpacing: '0.05em' }}>
+                                        {statusLabel}
                                     </span>
                                     {result.data.ms !== undefined && (
                                         <span style={{ color: C.textDim }}>Time: {result.data.ms}ms</span>
                                     )}
                                     {result.data.rowCount !== undefined && (
-                                        <span style={{ color: C.textDim }}>Rows: {result.data.rowCount}</span>
+                                        <span style={{ color: C.textDim }}>
+                                            {result.data.dryRun ? 'Rows that would be affected: ' : 'Rows: '}{result.data.rowCount}
+                                        </span>
                                     )}
                                     {result.data.command && (
                                         <span style={{ color: C.textDim }}>Command: {result.data.command}</span>
                                     )}
                                 </div>
 
+                                {result.data.notice && (
+                                    <p style={{ margin: '0 0 1rem 0', padding: '0.6rem 0.75rem', background: C.dangerSoft, border: `1px solid ${C.danger}`, borderRadius: '4px', color: C.text, fontSize: '0.8125rem', lineHeight: 1.6 }}>
+                                        {result.data.notice}
+                                    </p>
+                                )}
+
                                 {isTabular ? (
                                     <>
                                         <ResultTable rows={rows} />
                                         <details style={{ marginTop: '1rem' }}>
-                                            <summary style={{ cursor: 'pointer', color: C.textDim, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                                            <summary style={{ cursor: 'pointer', color: C.textDim, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, minHeight: TAP, display: 'flex', alignItems: 'center' }}>
                                                 Raw JSON
                                             </summary>
                                             <pre style={{ margin: '0.75rem 0 0 0', color: C.text, fontFamily: 'monospace', fontSize: '13px', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>

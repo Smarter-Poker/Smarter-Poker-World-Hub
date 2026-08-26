@@ -50,12 +50,27 @@ export default async function handler(req, res) {
               // is NULL for every row, and table_seats.player_id matches no
               // content_authors.id, so neither can be used.
               const SEAT_SCAN_CAP = 5000;
+              // player_stats is one row per (user_id, club_id) — 1,732 rows
+              // in production, 1,641 of them belonging to horses. The whole
+              // table is pulled and grouped in JS because PostgREST aggregate
+              // functions are DISABLED on this project (`hands_played.sum()`
+              // returns PGRST123 "Use of aggregate functions is not allowed",
+              // verified against production 2026-08-26), so a server-side
+              // GROUP BY is not reachable from PostgREST at all.
+              const PLAYER_STATS_CAP = 5000;
 
-              const [personasRes, seatsRes, activeTablesRes] = await Promise.all([
+              const [personasRes, totalHorsesRes, seatsRes, activeTablesRes, playerStatsRes] = await Promise.all([
                   getSupabase()
                       .from('content_authors')
                       .select('id, name, profile_id, is_active')
                       .eq('is_active', true),
+
+                  // Every horse, active or not, so the UI can label the two
+                  // populations honestly instead of calling the active subset
+                  // "total".
+                  getSupabase()
+                      .from('content_authors')
+                      .select('id', { count: 'exact', head: true }),
 
                   // An occupied seat is one that has not been left.
                   getSupabase()
@@ -69,17 +84,40 @@ export default async function handler(req, res) {
                       .from('tables')
                       .select('id', { count: 'exact', head: true })
                       .in('status', ['running', 'active']),
+
+                  // Per-player lifetime hands and money, keyed on the same
+                  // user_id the roster already resolves (content_authors
+                  // .profile_id). Summed across clubs below.
+                  getSupabase()
+                      .from('player_stats')
+                      .select('user_id, hands_played, total_winnings, total_losses')
+                      .limit(PLAYER_STATS_CAP),
               ]);
 
               if (personasRes.error) {
                   console.warn('Grinder Stats: content_authors error:', personasRes.error.message || personasRes.error);
                   return res.status(500).json({ success: false, error: 'Failed to fetch grinder stats' });
               }
+              if (totalHorsesRes.error) console.warn('Grinder Stats: content_authors count error:', totalHorsesRes.error.message || totalHorsesRes.error);
               if (seatsRes.error) console.warn('Grinder Stats: table_seats error:', seatsRes.error.message || seatsRes.error);
               if (activeTablesRes.error) console.warn('Grinder Stats: tables error:', activeTablesRes.error.message || activeTablesRes.error);
+              if (playerStatsRes.error) console.warn('Grinder Stats: player_stats error:', playerStatsRes.error.message || playerStatsRes.error);
 
               const personas = personasRes.data || [];
               const seats = seatsRes.data || [];
+              const playerStatRows = playerStatsRes.data || [];
+              const playerStatsAvailable = !playerStatsRes.error;
+
+              // Lifetime hands + profit per user, summed over that user's
+              // rows (one per club they have played in).
+              const perfByUser = new Map();
+              playerStatRows.forEach(row => {
+                  if (!row?.user_id) return;
+                  const agg = perfByUser.get(row.user_id) || { hands: 0, profit: 0 };
+                  agg.hands += Number(row.hands_played) || 0;
+                  agg.profit += (Number(row.total_winnings) || 0) - (Number(row.total_losses) || 0);
+                  perfByUser.set(row.user_id, agg);
+              });
 
               // seats currently held, per horse profile id
               const seatsByProfile = new Map();
@@ -92,44 +130,53 @@ export default async function handler(req, res) {
 
               const roster = personas.map(p => {
                   const heldTables = p.profile_id ? (seatsByProfile.get(p.profile_id)?.size || 0) : 0;
+                  // Measured, not fabricated. A horse with no player_stats row
+                  // has genuinely never been recorded playing a hand, so 0 is
+                  // the true answer; null is reserved for the case where the
+                  // player_stats read itself failed.
+                  const perf = p.profile_id ? perfByUser.get(p.profile_id) : null;
                   return {
                       horse_id: p.id,
                       name: p.name,
                       tables: heldTables,
-                      // NOT DERIVABLE from existing columns: hand_history
-                      // records participants inside a `players` jsonb array
-                      // with no per-user column or index, and carries ~484k
-                      // rows per day, so a per-horse count cannot be computed
-                      // here without a dedicated aggregate RPC. Reported as
-                      // null rather than as a fabricated 0.
-                      hands: null,
-                      // NOT DERIVABLE: table_seats stores a current `stack`
-                      // but no buy-in baseline, so session profit has no
-                      // reference point to subtract from.
-                      profit: null,
+                      hands: playerStatsAvailable ? (perf?.hands || 0) : null,
+                      profit: playerStatsAvailable ? Math.round((perf?.profit || 0) * 100) / 100 : null,
                       status: heldTables > 0 ? 'playing' : 'idle',
                   };
               });
 
+              const measuredRoster = roster.filter(r => r.hands != null);
+              const totalHands = measuredRoster.reduce((sum, r) => sum + r.hands, 0);
+              const totalProfit = Math.round(
+                  measuredRoster.reduce((sum, r) => sum + (r.profit || 0), 0) * 100
+              ) / 100;
+
               const stats = {
+                  // Active horses only — the roster below is the same set.
                   totalGrinders: personas.length,
+                  // Every content_authors row, active or not.
+                  totalHorses: totalHorsesRes.count ?? null,
                   currentlyPlaying: roster.filter(r => r.tables > 0).length,
                   activeTables: activeTablesRes.count ?? null,
+                  totalHands: playerStatsAvailable ? totalHands : null,
+                  totalProfit: playerStatsAvailable ? totalProfit : null,
                   roster,
+                  // True if player_stats was cut off by its row cap, in which
+                  // case some horses' hands/profit are understated.
+                  performanceTruncated: playerStatRows.length >= PLAYER_STATS_CAP,
+                  // One human-readable sentence, INSIDE stats, because the
+                  // frontend reads data.stats and renders this value directly.
+                  // It was previously an object returned as a sibling of
+                  // stats, so it never reached the UI at all — and would have
+                  // thrown "Objects are not valid as a React child" if it had.
+                  derivationNote: playerStatsAvailable
+                      ? `All figures are measured. Hands and profit are lifetime totals from player_stats, summed across every club a horse has played in (profit = total_winnings - total_losses). Currently Playing counts horses holding an unvacated table_seats row. Active Tables counts tables with status running or active. Total Grinders is active horses; Total Horses is every horse on file.${seats.length >= SEAT_SCAN_CAP ? ' Seat scan hit its row cap, so Currently Playing may undercount.' : ''}`
+                      : `Hands and profit are unavailable: the player_stats read failed, so they are reported as null rather than as zero. Currently Playing counts horses holding an unvacated table_seats row. Active Tables counts tables with status running or active. Total Grinders is active horses; Total Horses is every horse on file.${seats.length >= SEAT_SCAN_CAP ? ' Seat scan also hit its row cap, so Currently Playing may undercount.' : ''}`,
               };
 
               return res.status(200).json({
                   success: true,
                   stats,
-                  // Say plainly which numbers are measured and which are not
-                  // available, so the dashboard cannot present a null as a zero.
-                  derivation: {
-                      currentlyPlaying: 'Distinct active horses holding an unvacated table_seats row (content_authors.profile_id = table_seats.user_id).',
-                      activeTables: 'Count of tables with status running or active.',
-                      hands: 'Not available: hand_history stores participants in a jsonb array with no per-user column, so per-horse hand counts need an aggregate RPC that does not exist yet.',
-                      profit: 'Not available: no buy-in baseline is stored against a seat, so profit cannot be computed.',
-                      seatScanTruncated: seats.length >= SEAT_SCAN_CAP,
-                  },
               });
           } catch (error) {
               console.warn('Grinder Stats GET Error:', error);

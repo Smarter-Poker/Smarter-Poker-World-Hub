@@ -1,19 +1,39 @@
 /**
  * /api/admin/scraper-health.js
  *
- * Returns live health data for all 9 Smarter.Poker scraping daemons.
+ * Returns health data for the Smarter.Poker scraping daemons, and is careful
+ * to distinguish "broken" from "we have no telemetry for this".
  *
  * HEARTBEAT SOURCE (fixed 2026-08-26): heartbeats are read from the
  * `scraper_metrics` table in Supabase, NOT from the filesystem. The previous
  * implementation read JSON files under a hardcoded macOS path
  * (/Users/smarter.poker/Documents/...) which never exists on Vercel, so
- * readHeartbeat() always returned null, every daemon reported status
- * 'unknown', and the healthy/warning/dead counts were permanently 0.
+ * readHeartbeat() always returned null and the healthy/warning/dead counts
+ * were permanently 0.
  *
- * `scraper_metrics` carries one row per scrape cycle per source with
- * cycle_start, records_saved, venues_with_data, errors and duration_seconds —
- * the same fields the heartbeat JSON carried. A daemon with no row in that
- * table reports status 'unknown', which is honest: we have no signal for it.
+ * HONEST STATUSES (fixed 2026-08-26, round two). Only ONE source publishes
+ * into scraper_metrics in production: `pokeratlas` (1,156 rows, last cycle
+ * 2026-08-23). Nothing writes `bravo`, and the seven non-live daemons were
+ * never instrumented at all. The route nevertheless scored all nine on the
+ * same scale, so seven sat permanently at 'unknown', bravo sat permanently at
+ * 'unknown', and the /horses nav carried a permanent red alarm for daemons
+ * that were never reporting in the first place.
+ *
+ * The instrumented set is now DISCOVERED from the distinct `source` values in
+ * scraper_metrics rather than hardcoded, and each daemon lands in exactly one
+ * of five states:
+ *
+ *   healthy | warning | dead   — instrumented, scored on heartbeat staleness.
+ *                                 Only these can be 'dead'.
+ *   not_instrumented           — publishes no scraper_metrics row. Not a
+ *                                 fault: there is simply no signal. Never
+ *                                 counts toward deadCount.
+ *   disabled                   — deliberately switched off. Bravo is the only
+ *                                 one: the live Bravo scraper is INTENTIONALLY
+ *                                 off per .agent/workflows/live-cash-games-policy.md,
+ *                                 and Cash Games Running is published from
+ *                                 modelled history instead. Reporting that as
+ *                                 a failure is reporting a decision as a bug.
  *
  * Uses the shared src/lib/supabaseServerClient (project rule: never import
  * @supabase/supabase-js raw in an API route).
@@ -34,8 +54,26 @@ function getSupabase() {
   return _supabase;
 }
 
-// Sources that publish a per-cycle heartbeat row into scraper_metrics.
-const HEARTBEAT_SOURCES = { bravo: 'bravo', pokeratlas: 'pokeratlas' };
+// Upper bound on the scraper_metrics scan used to discover which sources are
+// instrumented. The table holds ~1.2k rows in production.
+const SOURCE_SCAN_CAP = 5000;
+
+// Daemons that are OFF ON PURPOSE, with the reason a human needs to read.
+// These are never scored and never counted as a fault.
+const DISABLED_DAEMONS = {
+  bravo: 'Intentionally disabled. The Bravo live scraper is switched off by policy (.agent/workflows/live-cash-games-policy.md); Cash Games Running is published from modelled history, not a live Bravo scrape. Absence of Bravo heartbeats is the expected state, not a fault.',
+};
+
+// hasOwnProperty, not a bare lookup: daemon ids partly come from a DB column,
+// and a source literally named "constructor" would otherwise resolve to a
+// truthy inherited property and be reported as deliberately disabled.
+function disabledReason(id) {
+  return Object.prototype.hasOwnProperty.call(DISABLED_DAEMONS, id) ? DISABLED_DAEMONS[id] : null;
+}
+
+// Explanation attached to any daemon that simply does not report telemetry.
+const NOT_INSTRUMENTED_REASON =
+  'Not instrumented. This daemon writes no rows into scraper_metrics, so there is no heartbeat to score. Its status is unknown-by-design rather than unhealthy, and it is excluded from the dead count. Add a scraper_metrics write to its cycle loop to bring it under monitoring.';
 
 // Daemon display metadata
 const DAEMON_META = [
@@ -112,6 +150,32 @@ async function readLastSave(source) {
   }
 }
 
+/**
+ * Which sources actually publish telemetry. PostgREST cannot express
+ * SELECT DISTINCT and this project has aggregate functions disabled
+ * (`source.count()` returns PGRST123), so the source column is pulled and
+ * de-duplicated here. Returns null — not an empty set — when the read fails,
+ * so a broken query is never mistaken for "nothing is instrumented".
+ */
+async function readInstrumentedSources() {
+  try {
+    const { data, error } = await getSupabase()
+      .from('scraper_metrics')
+      .select('source')
+      .not('source', 'is', null)
+      .limit(SOURCE_SCAN_CAP);
+
+    if (error) {
+      console.warn('[scraper-health] scraper_metrics source scan failed:', error.message || error);
+      return null;
+    }
+    return new Set((data || []).map(r => r.source).filter(Boolean));
+  } catch (err) {
+    console.warn('[scraper-health] source scan threw:', err?.message || err);
+    return null;
+  }
+}
+
 function staleness(isoTimestamp) {
   if (!isoTimestamp) return null;
   const diff = (Date.now() - new Date(isoTimestamp).getTime()) / 1000 / 60;
@@ -152,38 +216,69 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Admin access required' });
   }
 
-  // Read heartbeats + data freshness from Supabase
-  const [bravoHb, paHb, bravoLastSave, paLastSave] = await Promise.all([
-    readHeartbeat(HEARTBEAT_SOURCES.bravo),
-    readHeartbeat(HEARTBEAT_SOURCES.pokeratlas),
-    readLastSave('bravo'),
-    readLastSave('pokeratlas'),
-  ]);
+  // Which daemons actually report telemetry, discovered rather than assumed.
+  const instrumented = await readInstrumentedSources();
+  const scanFailed = instrumented === null;
+  const instrumentedSet = instrumented || new Set();
 
-  // Build per-daemon health records
-  const bravoStaleMin = staleness(bravoHb?.timestamp);
-  const paStaleMin = staleness(paHb?.timestamp);
-  const bravoDbStaleMin = staleness(bravoLastSave);
-  const paDbStaleMin = staleness(paLastSave);
+  // Anything writing scraper_metrics that has no DAEMON_META entry is still
+  // shown, so a newly instrumented scraper appears without a code change.
+  const knownIds = new Set(DAEMON_META.map(d => d.id));
+  const meta = [
+    ...DAEMON_META,
+    ...[...instrumentedSet]
+      .filter(id => !knownIds.has(id))
+      .map(id => ({ id, label: id, type: 'unclassified', interval: 'unknown' })),
+  ];
 
-  const daemons = DAEMON_META.map((d) => {
-    let heartbeat = null;
-    let dbStaleMin = null;
+  // Score only what can be scored. A disabled daemon is never read, and an
+  // uninstrumented one has nothing to read.
+  const scored = meta.filter(d => !disabledReason(d.id) && instrumentedSet.has(d.id));
 
-    if (d.id === 'bravo')      { heartbeat = bravoHb; dbStaleMin = bravoDbStaleMin; }
-    if (d.id === 'pokeratlas') { heartbeat = paHb;    dbStaleMin = paDbStaleMin;   }
+  const readings = await Promise.all(scored.map(async (d) => {
+    const [heartbeat, lastSave] = await Promise.all([readHeartbeat(d.id), readLastSave(d.id)]);
+    return [d.id, { heartbeat, lastSave }];
+  }));
+  const byId = new Map(readings);
 
+  const daemons = meta.map((d) => {
+    const reading = byId.get(d.id) || { heartbeat: null, lastSave: null };
+    const heartbeat = reading.heartbeat;
     const hbStaleMin = staleness(heartbeat?.timestamp);
+    const dbStaleMin = staleness(reading.lastSave);
 
-    // HEALTHY  = heartbeat < 25min (one 15min cycle + 10min buffer)
-    // WARNING  = 25-45min (missed one cycle)
-    // DEAD     = >45min
-    // UNKNOWN  = no heartbeat row exists for this daemon (no signal either way)
-    let status = 'unknown';
-    if (heartbeat && hbStaleMin !== null) {
+    // DISABLED         = off on purpose. Not a fault, never scored.
+    // NOT_INSTRUMENTED = writes no scraper_metrics row. No signal, so no
+    //                    verdict. Never counts as dead.
+    // HEALTHY          = heartbeat < 25min (one 15min cycle + 10min buffer)
+    // WARNING          = 25-45min (missed one cycle)
+    // DEAD             = >45min. Reachable ONLY when the daemon is genuinely
+    //                    instrumented and its heartbeat is genuinely stale.
+    // UNKNOWN          = instrumented, but the heartbeat read came back empty
+    //                    or the source scan itself failed.
+    let status;
+    let statusReason = null;
+
+    const offByPolicy = disabledReason(d.id);
+    if (offByPolicy) {
+      status = 'disabled';
+      statusReason = offByPolicy;
+    } else if (scanFailed) {
+      status = 'unknown';
+      statusReason = 'The scraper_metrics source scan failed, so no daemon could be classified on this request.';
+    } else if (!instrumentedSet.has(d.id)) {
+      status = 'not_instrumented';
+      statusReason = NOT_INSTRUMENTED_REASON;
+    } else if (heartbeat && hbStaleMin !== null) {
       if (hbStaleMin <= 25) status = 'healthy';
       else if (hbStaleMin <= 45) status = 'warning';
-      else status = 'dead';
+      else {
+        status = 'dead';
+        statusReason = `Instrumented but stale: last scraper_metrics cycle was ${hbStaleMin} minutes ago.`;
+      }
+    } else {
+      status = 'unknown';
+      statusReason = 'This source appears in scraper_metrics but its latest cycle row could not be read.';
     }
 
     return {
@@ -192,6 +287,9 @@ export default async function handler(req, res) {
       type: d.type,
       interval: d.interval,
       status,
+      statusReason,
+      instrumented: !offByPolicy && instrumentedSet.has(d.id),
+      disabled: Boolean(offByPolicy),
       heartbeat: heartbeat ? {
         daemonStatus: heartbeat.status,
         pid: heartbeat.pid,
@@ -206,32 +304,60 @@ export default async function handler(req, res) {
         staleMinutes: hbStaleMin,
       } : null,
       database: {
-        lastSaveTimestamp: d.id === 'bravo' ? bravoLastSave : (d.id === 'pokeratlas' ? paLastSave : null),
+        lastSaveTimestamp: reading.lastSave,
         staleMinutes: dbStaleMin,
       },
     };
   });
 
-  const unknownCount = daemons.filter(d => d.status === 'unknown').length;
+  const countOf = (s) => daemons.filter(d => d.status === s).length;
+  const notInstrumentedCount = countOf('not_instrumented');
+  const disabledCount = countOf('disabled');
+  const unknownCount = countOf('unknown');
+  const deadCount = countOf('dead');
+
+  const paDaemon = daemons.find(d => d.id === 'pokeratlas');
+  const paStaleMin = paDaemon?.heartbeat?.staleMinutes ?? null;
+  const paDbStaleMin = paDaemon?.database?.staleMinutes ?? null;
 
   const summary = {
-    healthyCount: daemons.filter(d => d.status === 'healthy').length,
-    warningCount: daemons.filter(d => d.status === 'warning').length,
-    deadCount:    daemons.filter(d => d.status === 'dead').length,
+    healthyCount: countOf('healthy'),
+    warningCount: countOf('warning'),
+    // Only genuinely instrumented-and-stale daemons land here. Disabled and
+    // uninstrumented daemons cannot inflate this number, which is what the
+    // /horses nav badge counts.
+    deadCount,
+    notInstrumentedCount,
+    disabledCount,
     unknownCount,
-    bravoFresh:      bravoStaleMin !== null && bravoStaleMin <= 25,
-    pokeratlasFresh: paStaleMin    !== null && paStaleMin    <= 25,
-    dataFresh: (bravoDbStaleMin !== null && bravoDbStaleMin <= 25) ||
-               (paDbStaleMin   !== null && paDbStaleMin   <= 25),
+    instrumentedCount: daemons.filter(d => d.instrumented).length,
+    totalCount: daemons.length,
+    // Bravo is off by policy, so it has no freshness to report.
+    bravoFresh: null,
+    pokeratlasFresh: paStaleMin !== null && paStaleMin <= 25,
+    dataFresh: paDbStaleMin !== null && paDbStaleMin <= 25,
   };
+
+  const noticeParts = [];
+  if (scanFailed) {
+    noticeParts.push('The scraper_metrics source scan failed on this request, so no daemon could be classified.');
+  }
+  if (disabledCount > 0) {
+    noticeParts.push(`${disabledCount} daemon(s) are switched off on purpose and are not scored.`);
+  }
+  if (notInstrumentedCount > 0) {
+    noticeParts.push(`${notInstrumentedCount} of ${daemons.length} daemons publish no heartbeat into scraper_metrics, so they are reported as not instrumented rather than as failing. They are excluded from the dead count.`);
+  }
+  if (deadCount > 0) {
+    noticeParts.push(`${deadCount} instrumented daemon(s) are stale and need attention.`);
+  }
 
   return res.status(200).json({
     success: true,
     timestamp: new Date().toISOString(),
     heartbeatSource: 'scraper_metrics',
-    notice: unknownCount > 0
-      ? `${unknownCount} of ${daemons.length} daemons publish no heartbeat into scraper_metrics, so their status is reported as unknown rather than guessed. Only sources that write scraper_metrics rows can be scored healthy, warning or dead.`
-      : null,
+    instrumentedSources: [...instrumentedSet].sort(),
+    notice: noticeParts.length > 0 ? noticeParts.join(' ') : null,
     summary,
     daemons,
   });

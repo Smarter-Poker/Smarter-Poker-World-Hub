@@ -28,7 +28,10 @@ const SURFACE = '#1a2234';
 const INSET = '#0d1520';
 const BORDER = 'rgba(255,255,255,0.08)';
 const TEXT = '#f3f4f6';
-const MUTED = '#6b7280';
+// #6b7280 measured 3.67:1 on the #111827 panel and failed WCAG AA for body
+// text, which is what it is used for throughout this file. #8b93a1 is 5.15:1
+// and matches the shared token in horses.module.css.
+const MUTED = '#8b93a1';
 const ACCENT = '#00d4ff';
 const ACCENT_SOFT = 'rgba(0,212,255,0.12)';
 const ACCENT_LINE = 'rgba(0,212,255,0.30)';
@@ -36,6 +39,49 @@ const POSITIVE = ACCENT;
 const RED = '#ef4444';
 const RED_SOFT = 'rgba(239,68,68,0.12)';
 const AMBER = '#ffd700';
+
+// Screen-reader-only, for table captions and any label that must exist in the
+// accessibility tree without occupying layout.
+const SR_ONLY = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: 'hidden',
+  clip: 'rect(0,0,0,0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+};
+
+// This page is inline-styled, and inline styles cannot express a media query
+// or :focus-visible. One small stylesheet covers the responsive padding and
+// the "push to the right on desktop only" behaviour that was breaking the
+// layout at 375px.
+const PAGE_CSS = `
+.hr-page { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+.hr-push { margin-left: auto; }
+.hr-row-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.hr-root button:focus-visible,
+.hr-root select:focus-visible,
+.hr-root input:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .hr-page { padding: 1rem 0.75rem 2.5rem; }
+  .hr-push { margin-left: 0; }
+}
+`;
 
 const VARIANTS = ['', 'nlh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_deck', 'pineapple'];
 const FORMATS = ['', 'cash', 'hu_cash', 'tournament'];
@@ -242,6 +288,9 @@ export default function HorseHandReviews() {
     setFilters((f) => ({ ...f, [k]: v }));
   };
 
+  // minHeight 44 keeps every one of these at the minimum comfortable touch
+  // target. It is applied to the four filter selects, the Clear Filter button
+  // and the Newer/Older pagination buttons, all of which shared ~31px.
   const inputStyle = {
     background: INSET,
     color: TEXT,
@@ -249,36 +298,40 @@ export default function HorseHandReviews() {
     borderRadius: 4,
     padding: '0.4rem 0.6rem',
     fontSize: '0.85rem',
+    minHeight: 44,
   };
 
   return (
-    <div style={{ background: BG, minHeight: '100vh', color: TEXT, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div className="hr-root" style={{ background: BG, minHeight: '100vh', color: TEXT, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <Head>
         <title>Horse Hand Reviews | Smarter.Poker</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '2rem' }}>
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: `1px solid ${BORDER}`, paddingBottom: '1rem' }}>
+      <style>{PAGE_CSS}</style>
+      <div className="hr-page">
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem', borderBottom: `1px solid ${BORDER}`, paddingBottom: '1rem' }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: TEXT }}>Horse Hand Reviews</h1>
             <p style={{ margin: '0.5rem 0 0 0', color: MUTED, fontSize: '0.875rem' }}>
               Every hand where a horse won or lost 20bb+, flagged at settlement with leak tags. Raw hands kept 30 days; rollups permanent.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
+              type="button"
               onClick={() => {
                 loadAudits();
                 loadSummary();
                 loadRows();
               }}
-              style={{ background: SURFACE, color: TEXT, border: `1px solid ${BORDER}`, padding: '0.5rem 1rem', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
+              style={{ background: SURFACE, color: TEXT, border: `1px solid ${BORDER}`, padding: '0.5rem 1rem', minHeight: 44, borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
             >
               Refresh
             </button>
             <button
+              type="button"
               onClick={() => router.push('/horses')}
-              style={{ background: BORDER, color: TEXT, border: 'none', padding: '0.5rem 1rem', borderRadius: 4, cursor: 'pointer' }}
+              style={{ background: BORDER, color: TEXT, border: 'none', padding: '0.5rem 1rem', minHeight: 44, borderRadius: 4, cursor: 'pointer' }}
             >
               Back To Stable
             </button>
@@ -287,7 +340,7 @@ export default function HorseHandReviews() {
 
         {/* ── Daily Audit ── */}
         <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Daily Audit</h2>
             <span style={{ color: MUTED, fontSize: '0.8rem' }}>
               Machine Findings Nightly (06:00 UTC) Plus The Daily Claude Analysis
@@ -304,22 +357,30 @@ export default function HorseHandReviews() {
             const open = auditOpen === a.day;
             return (
               <div key={a.day} style={{ borderTop: `1px solid ${BORDER}` }}>
-                <div
+                {/* A real <button> so the expander answers to Enter AND Space,
+                    and reports its state. A div with onClick answered to
+                    neither. */}
+                <button
+                  type="button"
+                  className="hr-row-btn"
+                  aria-expanded={open}
+                  aria-controls={`audit-panel-${a.day}`}
                   onClick={() => setAuditOpen(open ? null : a.day)}
-                  style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '0.5rem 0.25rem', cursor: 'pointer' }}
+                  style={{ display: 'flex', gap: '0.5rem 1rem', alignItems: 'center', flexWrap: 'wrap', padding: '0.5rem 0.25rem', width: '100%', minHeight: 44 }}
                 >
+                  <span aria-hidden="true" style={{ color: MUTED, width: '0.8rem' }}>{open ? '-' : '+'}</span>
                   <span style={{ fontWeight: 700, minWidth: 100 }}>{a.day}</span>
                   <span style={{ color: crit > 0 ? RED : POSITIVE, fontWeight: 600 }}>{crit} Critical</span>
                   <span style={{ color: warn > 0 ? AMBER : MUTED }}>{warn} Warn</span>
                   <span style={{ color: MUTED, fontSize: '0.8rem' }}>
                     {a.stats?.flagged_hands ?? 0} flagged hands / net {a.stats?.net_bb_sum ?? 0} bb
                   </span>
-                  <span style={{ marginLeft: 'auto', color: a.agent_analysis ? POSITIVE : MUTED, fontSize: '0.8rem' }}>
+                  <span className="hr-push" style={{ color: a.agent_analysis ? POSITIVE : MUTED, fontSize: '0.8rem' }}>
                     {a.agent_analysis ? 'Claude Analysis Ready' : 'Awaiting Claude Analysis'}
                   </span>
-                </div>
+                </button>
                 {open && (
-                  <div style={{ padding: '0.25rem 0.25rem 0.75rem' }}>
+                  <div id={`audit-panel-${a.day}`} style={{ padding: '0.25rem 0.25rem 0.75rem' }}>
                     {findings.length === 0 && <div style={{ color: MUTED, fontSize: '0.85rem' }}>No findings. A clean day.</div>}
                     {findings.map((f, i) => (
                       <div key={i} style={{ background: INSET, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${f.severity === 'critical' ? RED : f.severity === 'warn' ? AMBER : BORDER}`, borderRadius: 6, padding: '0.6rem 0.8rem', marginBottom: 6 }}>
@@ -369,9 +430,9 @@ export default function HorseHandReviews() {
 
         {/* ── Fleet summary ── */}
         <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Fleet Summary</h2>
-            <select value={days} onChange={(e) => setDays(Number(e.target.value))} style={inputStyle}>
+            <select value={days} onChange={(e) => setDays(Number(e.target.value))} style={inputStyle} aria-label="Fleet summary time window">
               <option value={1}>Last 24h</option>
               <option value={7}>Last 7 Days</option>
               <option value={30}>Last 30 Days</option>
@@ -384,30 +445,50 @@ export default function HorseHandReviews() {
             {Object.entries(fleetLeaks)
               .sort((a, b) => b[1] - a[1])
               .map(([k, v]) => (
-                <button key={k} onClick={() => setFilter('tag', filters.tag === k ? '' : k)} style={{ background: filters.tag === k ? RED_SOFT : INSET, color: TEXT, border: `1px solid ${filters.tag === k ? RED : BORDER}`, borderRadius: 4, padding: '2px 8px', marginRight: 6, marginBottom: 4, cursor: 'pointer', fontSize: '0.78rem' }}>
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={filters.tag === k}
+                  onClick={() => setFilter('tag', filters.tag === k ? '' : k)}
+                  style={{ background: filters.tag === k ? RED_SOFT : INSET, color: TEXT, border: `1px solid ${filters.tag === k ? RED : BORDER}`, borderRadius: 4, padding: '2px 10px', minHeight: 44, marginRight: 6, marginBottom: 4, cursor: 'pointer', fontSize: '0.78rem' }}
+                >
                   {k}: {v}
                 </button>
               ))}
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <caption style={SR_ONLY}>
+                Per-horse totals for the selected window. The horse name in each row is a button that filters the flagged hands table below.
+              </caption>
               <thead>
                 <tr style={{ color: MUTED, textAlign: 'left' }}>
-                  <th style={{ padding: '0.4rem' }}>Horse</th>
-                  <th style={{ padding: '0.4rem' }}>Big Wins</th>
-                  <th style={{ padding: '0.4rem' }}>Big Losses</th>
-                  <th style={{ padding: '0.4rem' }}>Net BB (20bb+ Pots)</th>
-                  <th style={{ padding: '0.4rem' }}>Leak Tags</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>Horse</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>Big Wins</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>Big Losses</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>Net BB (20bb+ Pots)</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>Leak Tags</th>
                 </tr>
               </thead>
               <tbody>
                 {horses.slice(0, 40).map((hRow) => (
+                  // The <tr> is inert: the activation lives on a real button in
+                  // the first cell so it is reachable by keyboard.
                   <tr
                     key={hRow.horse_user_id}
-                    onClick={() => setFilter('horse', filters.horse === hRow.horse_user_id ? '' : hRow.horse_user_id)}
-                    style={{ borderTop: `1px solid ${BORDER}`, cursor: 'pointer', background: filters.horse === hRow.horse_user_id ? ACCENT_SOFT : 'transparent' }}
+                    style={{ borderTop: `1px solid ${BORDER}`, background: filters.horse === hRow.horse_user_id ? ACCENT_SOFT : 'transparent' }}
                   >
-                    <td style={{ padding: '0.4rem', fontWeight: 600 }}>{hRow.alias || (hRow.horse_user_id ? String(hRow.horse_user_id).slice(0, 8) : 'unknown')}</td>
+                    <td style={{ padding: '0.4rem', fontWeight: 600 }}>
+                      <button
+                        type="button"
+                        className="hr-row-btn"
+                        aria-pressed={filters.horse === hRow.horse_user_id}
+                        onClick={() => setFilter('horse', filters.horse === hRow.horse_user_id ? '' : hRow.horse_user_id)}
+                        style={{ fontWeight: 600, minHeight: 44, width: '100%' }}
+                      >
+                        {hRow.alias || (hRow.horse_user_id ? String(hRow.horse_user_id).slice(0, 8) : 'unknown')}
+                      </button>
+                    </td>
                     <td style={{ padding: '0.4rem', color: POSITIVE }}>{hRow.big_wins}</td>
                     <td style={{ padding: '0.4rem', color: RED }}>{hRow.big_losses}</td>
                     <td style={{ padding: '0.4rem', color: Number(hRow.sum_net_bb) >= 0 ? POSITIVE : RED }}>{hRow.sum_net_bb}</td>
@@ -436,54 +517,68 @@ export default function HorseHandReviews() {
         <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '1rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.75rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.05rem', marginRight: 8 }}>Flagged Hands</h2>
-            <select value={filters.variant} onChange={(e) => setFilter('variant', e.target.value)} style={inputStyle}>
+            <select value={filters.variant} onChange={(e) => setFilter('variant', e.target.value)} style={inputStyle} aria-label="Filter flagged hands by game variant">
               {VARIANTS.map((v) => (
                 <option key={v} value={v}>
                   {v || 'All Variants'}
                 </option>
               ))}
             </select>
-            <select value={filters.format} onChange={(e) => setFilter('format', e.target.value)} style={inputStyle}>
+            <select value={filters.format} onChange={(e) => setFilter('format', e.target.value)} style={inputStyle} aria-label="Filter flagged hands by table format">
               {FORMATS.map((v) => (
                 <option key={v} value={v}>
                   {v || 'All Formats'}
                 </option>
               ))}
             </select>
-            <select value={filters.win} onChange={(e) => setFilter('win', e.target.value)} style={inputStyle}>
+            <select value={filters.win} onChange={(e) => setFilter('win', e.target.value)} style={inputStyle} aria-label="Filter flagged hands by result">
               <option value="">Wins And Losses</option>
               <option value="win">Wins Only</option>
               <option value="loss">Losses Only</option>
             </select>
             {(filters.horse || filters.tag) && (
-              <button onClick={() => setFilters({ horse: '', variant: filters.variant, format: filters.format, tag: '', win: filters.win })} style={{ ...inputStyle, cursor: 'pointer', color: AMBER }}>
+              <button type="button" onClick={() => setFilters({ horse: '', variant: filters.variant, format: filters.format, tag: '', win: filters.win })} style={{ ...inputStyle, cursor: 'pointer', color: AMBER }}>
                 Clear Horse/Tag Filter
               </button>
             )}
-            <span style={{ color: MUTED, fontSize: '0.8rem', marginLeft: 'auto' }}>{busy ? 'Loading...' : `${rows.length} rows`}</span>
+            <span className="hr-push" aria-live="polite" style={{ color: MUTED, fontSize: '0.8rem' }}>{busy ? 'Loading...' : `${rows.length} rows`}</span>
           </div>
           {rowsError && <div style={{ color: RED, fontSize: '0.85rem', marginBottom: 8 }}>{rowsError}</div>}
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <caption style={SR_ONLY}>
+                Hands where a horse won or lost twenty big blinds or more. The timestamp in each row is a button that expands the full hand detail.
+              </caption>
               <thead>
                 <tr style={{ color: MUTED, textAlign: 'left' }}>
-                  <th style={{ padding: '0.4rem' }}>When</th>
-                  <th style={{ padding: '0.4rem' }}>Variant</th>
-                  <th style={{ padding: '0.4rem' }}>Format</th>
-                  <th style={{ padding: '0.4rem' }}>Net BB</th>
-                  <th style={{ padding: '0.4rem' }}>Hole Cards</th>
-                  <th style={{ padding: '0.4rem' }}>Board</th>
-                  <th style={{ padding: '0.4rem' }}>Leak Tags</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>When</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>Variant</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>Format</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>Net BB</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>Hole Cards</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>Board</th>
+                  <th scope="col" style={{ padding: '0.4rem' }}>Leak Tags</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
                   <React.Fragment key={r.id}>
-                    <tr
-                      onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                      style={{ borderTop: `1px solid ${BORDER}`, cursor: 'pointer' }}
-                    >
-                      <td style={{ padding: '0.4rem', whiteSpace: 'nowrap' }}>{new Date(r.played_at).toLocaleString()}</td>
+                    {/* The <tr> is inert: the disclosure lives on a real button
+                        in the first cell, so Enter and Space both work. */}
+                    <tr style={{ borderTop: `1px solid ${BORDER}` }}>
+                      <td style={{ padding: '0.4rem', whiteSpace: 'nowrap' }}>
+                        <button
+                          type="button"
+                          className="hr-row-btn"
+                          aria-expanded={expanded === r.id}
+                          aria-controls={`hand-detail-${r.id}`}
+                          onClick={() => setExpanded(expanded === r.id ? null : r.id)}
+                          style={{ minHeight: 44, whiteSpace: 'nowrap' }}
+                        >
+                          <span aria-hidden="true" style={{ color: MUTED, marginRight: 6 }}>{expanded === r.id ? '-' : '+'}</span>
+                          {new Date(r.played_at).toLocaleString()}
+                        </button>
+                      </td>
                       <td style={{ padding: '0.4rem' }}>{r.game_variant}</td>
                       <td style={{ padding: '0.4rem' }}>{r.format}</td>
                       <td style={{ padding: '0.4rem', fontWeight: 700, color: r.net_bb >= 0 ? POSITIVE : RED }}>
@@ -507,7 +602,7 @@ export default function HorseHandReviews() {
                       </td>
                     </tr>
                     {expanded === r.id && (
-                      <tr>
+                      <tr id={`hand-detail-${r.id}`}>
                         <td colSpan={7}>
                           <HandDetail row={r} />
                         </td>
@@ -525,11 +620,11 @@ export default function HorseHandReviews() {
               </tbody>
             </table>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-            <button disabled={page === 0} onClick={() => setPage(page - 1)} style={{ ...inputStyle, cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.5 : 1 }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+            <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} style={{ ...inputStyle, cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.5 : 1 }}>
               Newer
             </button>
-            <button disabled={rows.length < PAGE_SIZE} onClick={() => setPage(page + 1)} style={{ ...inputStyle, cursor: rows.length < PAGE_SIZE ? 'default' : 'pointer', opacity: rows.length < PAGE_SIZE ? 0.5 : 1 }}>
+            <button type="button" disabled={rows.length < PAGE_SIZE} onClick={() => setPage(page + 1)} style={{ ...inputStyle, cursor: rows.length < PAGE_SIZE ? 'default' : 'pointer', opacity: rows.length < PAGE_SIZE ? 0.5 : 1 }}>
               Older
             </button>
             <span style={{ color: MUTED, fontSize: '0.8rem', alignSelf: 'center' }}>Page {page + 1}</span>

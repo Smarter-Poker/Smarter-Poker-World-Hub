@@ -4,6 +4,10 @@
  * GET  /api/horses/club-arena-admin?section=club&clubId=<uuid>
  * GET  /api/horses/club-arena-admin?section=user_search&q=<text>
  * GET  /api/horses/club-arena-admin?section=user&userId=<uuid>
+ * GET  /api/horses/club-arena-admin?section=ledger
+ * GET  /api/horses/club-arena-admin?section=revenue
+ * GET  /api/horses/club-arena-admin?section=badges
+ * GET  /api/horses/club-arena-admin?section=platform
  * POST /api/horses/club-arena-admin  { action: 'set_club_status', clubId, status }
  *
  * WHY THIS ROUTE EXISTS (added 2026-08-26 during the /horses deep audit).
@@ -323,6 +327,282 @@ async function sectionUser(userId) {
   };
 }
 
+// ── SECTION: LEDGER RECONCILIATION ───────────────────────────────────────────
+/**
+ * `reconcile_ledger_nightly` has been filing drift into `ledger_reconcile_log`
+ * every morning and NOTHING has ever read it. As this was written the table
+ * held 20,206 rows at severity `critical` for `player_wallet`, summing to
+ * 3,118,287,619 chips of drift between the ledger and the stored balances.
+ *
+ * CLAUDE.md section 11.5 describes the machinery that files these -- the
+ * `ca_seat_stack_exits` trigger, `fn_unaccounted_seat_exits()`,
+ * `fn_club_chip_circulation()` -- and says in as many words that it exists to
+ * make chip loss LOUD. It has been silent because the only surface that could
+ * have shown it did not query it.
+ */
+async function sectionLedger() {
+  const db = getSupabase();
+  const failed = [];
+  const check = (label, r) => { if (r?.error) failed.push(`${label}: ${r.error.message}`); };
+
+  const [latestRunRes, criticalRes, warnRes, exitsRes, circulationRes] = await Promise.all([
+    db.from('ledger_reconcile_log')
+      .select('run_date, run_ts').order('run_ts', { ascending: false }).limit(1).maybeSingle(),
+    db.from('ledger_reconcile_log')
+      .select('id, run_date, run_ts, entity_type, entity_id, ledger_balance, stored_balance, drift, severity, notes')
+      .eq('severity', 'critical').order('run_ts', { ascending: false }).limit(200),
+    db.from('ledger_reconcile_log')
+      .select('id, run_date, entity_type, entity_id, drift, severity')
+      .eq('severity', 'warn').order('run_ts', { ascending: false }).limit(200),
+    // fn_unaccounted_seat_exits() is the meaningful signal, not the raw table:
+    // it returns only the exits of a non-zero stack that have NO matching
+    // wallet credit. Both arguments default (7 days, 10 minute grace).
+    db.rpc('fn_unaccounted_seat_exits'),
+    // p_club_id defaults to NULL, which reports every club.
+    db.rpc('fn_club_chip_circulation'),
+  ]);
+
+  check('latest_run', latestRunRes); check('critical', criticalRes);
+  check('warn', warnRes); check('unaccounted_seat_exits', exitsRes); check('circulation', circulationRes);
+
+  const critical = criticalRes.data || [];
+  const warn = warnRes.data || [];
+  const exits = exitsRes.data || [];
+
+  // Counts must be exact -- the lists above are capped, and a capped list
+  // rendered as a total is the exact failure this whole audit is about.
+  const [criticalCount, warnCount, exitCount] = await Promise.all([
+    db.from('ledger_reconcile_log').select('id', { count: 'exact', head: true }).eq('severity', 'critical'),
+    db.from('ledger_reconcile_log').select('id', { count: 'exact', head: true }).eq('severity', 'warn'),
+    db.from('ca_seat_stack_exits').select('id', { count: 'exact', head: true }),
+  ]);
+
+  const profileMap = await resolveProfiles([
+    ...critical.filter((r) => r.entity_type === 'player_wallet').map((r) => r.entity_id),
+    ...exits.map((e) => e.user_id),
+  ]);
+
+  const sortedCritical = [...critical]
+    .sort((a, b) => Math.abs(Number(b.drift || 0)) - Math.abs(Number(a.drift || 0)))
+    .map((r) => ({
+      ...r,
+      entity_name: r.entity_type === 'player_wallet'
+        ? nameOf(profileMap[r.entity_id], r.entity_id)
+        : null,
+    }));
+
+  return {
+    lastRun: latestRunRes.data || null,
+    counts: {
+      critical: criticalCount.count ?? null,
+      warn: warnCount.count ?? null,
+      seatExitsTotal: exitCount.count ?? null,
+      unaccountedSeatExits: exits.length,
+    },
+    // Sum of the sampled rows only, and labelled as such at the call site.
+    sampledCriticalDrift: sortedCritical.reduce((s, r) => s + Math.abs(Number(r.drift || 0)), 0),
+    sampleSize: sortedCritical.length,
+    critical: sortedCritical,
+    warn,
+    // Every one of these is a non-zero stack that left a seat with no wallet
+    // credit to match it. CLAUDE.md section 11.5: this is the loud failure.
+    unaccountedSeatExits: exits.map((e) => ({ ...e, player_name: nameOf(profileMap[e.user_id], e.user_id) })),
+    circulation: circulationRes.data ?? null,
+    failedSources: failed.length ? failed : undefined,
+  };
+}
+
+// ── SECTION: REVENUE ─────────────────────────────────────────────────────────
+/**
+ * The Finance section used to headline "Chips Minted (24h)", which is 0, while
+ * `rake_records` moved 196,636 chips in that same window and 4,028,434 all
+ * time. Rake is how this platform earns; it had no surface at all.
+ *
+ * PostgREST aggregate functions are DISABLED on this project (PGRST123), so
+ * every total here is summed in JS over a capped page and the cap is reported
+ * alongside it. Do not present a truncated sum as a total at the call site.
+ */
+const REVENUE_PAGE = 5000;
+
+async function sectionRevenue() {
+  const db = getSupabase();
+  const failed = [];
+  const check = (label, r) => { if (r?.error) failed.push(`${label}: ${r.error.message}`); };
+
+  const now = Date.now();
+  const since24h = new Date(now - 86400000).toISOString();
+  const since7d = new Date(now - 7 * 86400000).toISOString();
+
+  const [rake24Res, rake7dRes, unsettledRes, clubsRes, rakeCountRes, commissionCountRes] = await Promise.all([
+    db.from('rake_records').select('rake_amount, bbj_contribution, club_id, created_at, is_tournament')
+      .gte('created_at', since24h).limit(REVENUE_PAGE),
+    db.from('rake_records').select('rake_amount, bbj_contribution, club_id, created_at')
+      .gte('created_at', since7d).limit(REVENUE_PAGE),
+    db.from('agent_commissions').select('id, club_id, user_id, amount, commission_rate, source_type, created_at')
+      .is('settled_at', null).order('created_at', { ascending: false }).limit(REVENUE_PAGE),
+    db.from('clubs').select('id, name, club_id').limit(200),
+    db.from('rake_records').select('id', { count: 'exact', head: true }).gte('created_at', since24h),
+    db.from('agent_commissions').select('id', { count: 'exact', head: true }).is('settled_at', null),
+  ]);
+
+  check('rake_24h', rake24Res); check('rake_7d', rake7dRes);
+  check('unsettled_commissions', unsettledRes); check('clubs', clubsRes);
+
+  const clubNames = {};
+  for (const c of clubsRes.data || []) clubNames[c.id] = c.name;
+
+  const rake24 = rake24Res.data || [];
+  const rake7d = rake7dRes.data || [];
+  const unsettled = unsettledRes.data || [];
+
+  const sum = (rows, key) => rows.reduce((s, r) => s + Number(r[key] || 0), 0);
+
+  // Per-club rake over the 24h page.
+  const byClub = {};
+  for (const r of rake24) {
+    const id = r.club_id || 'unattributed';
+    if (!byClub[id]) byClub[id] = { club_id: id, club_name: clubNames[id] || null, rake: 0, bbj: 0, hands: 0 };
+    byClub[id].rake += Number(r.rake_amount || 0);
+    byClub[id].bbj += Number(r.bbj_contribution || 0);
+    byClub[id].hands += 1;
+  }
+
+  const byAgent = {};
+  for (const c of unsettled) {
+    const key = c.user_id || 'unassigned';
+    if (!byAgent[key]) byAgent[key] = { user_id: c.user_id, club_id: c.club_id, club_name: clubNames[c.club_id] || null, amount: 0, rows: 0 };
+    byAgent[key].amount += Number(c.amount || 0);
+    byAgent[key].rows += 1;
+  }
+  const agentProfiles = await resolveProfiles(Object.keys(byAgent));
+  const agentRows = Object.values(byAgent)
+    .map((a) => ({ ...a, agent_name: nameOf(agentProfiles[a.user_id], a.user_id) }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 50);
+
+  return {
+    rake24h: {
+      total: sum(rake24, 'rake_amount'),
+      bbj: sum(rake24, 'bbj_contribution'),
+      hands: rake24.length,
+      handCount: rakeCountRes.count ?? null,
+      truncated: rake24.length >= REVENUE_PAGE,
+    },
+    rake7d: {
+      total: sum(rake7d, 'rake_amount'),
+      bbj: sum(rake7d, 'bbj_contribution'),
+      hands: rake7d.length,
+      truncated: rake7d.length >= REVENUE_PAGE,
+    },
+    byClub: Object.values(byClub).sort((a, b) => b.rake - a.rake),
+    unsettledCommissions: {
+      total: sum(unsettled, 'amount'),
+      rows: unsettled.length,
+      rowCount: commissionCountRes.count ?? null,
+      truncated: unsettled.length >= REVENUE_PAGE,
+      byAgent: agentRows,
+    },
+    pageSize: REVENUE_PAGE,
+    failedSources: failed.length ? failed : undefined,
+  };
+}
+
+// ── SECTION: PLATFORM PULSE ──────────────────────────────────────────────────
+/**
+ * What is happening on the platform RIGHT NOW.
+ *
+ * None of this was visible anywhere in the console. As this was written
+ * production had 137 live tables, 680 occupied seats and 19,563 hands dealt in
+ * the previous hour, and the only tab called "Statistics" showed four numbers
+ * about the blog-post engine. An operator could not answer "is the platform
+ * up and busy" without writing SQL.
+ *
+ * Every figure here is a `count exact, head` -- no rows cross the wire.
+ */
+async function sectionPlatform() {
+  const db = getSupabase();
+  const now = Date.now();
+  const h1 = new Date(now - 3600000).toISOString();
+  const h24 = new Date(now - 86400000).toISOString();
+  const d7 = new Date(now - 7 * 86400000).toISOString();
+
+  const failed = [];
+  const check = (label, r) => { if (r?.error) failed.push(`${label}: ${r.error.message}`); };
+  const c = (r) => (r?.error ? null : (r.count ?? null));
+
+  const [
+    liveTables, waitingTables, seatedNow, hands1h, hands24h,
+    signups24h, signups7d, activeUsers24h, liveTournaments,
+    handsPrev24h, openTickets,
+  ] = await Promise.all([
+    db.from('tables').select('id', { count: 'exact', head: true }).in('status', ['running', 'active']),
+    db.from('tables').select('id', { count: 'exact', head: true }).eq('status', 'waiting'),
+    db.from('table_seats').select('id', { count: 'exact', head: true }).is('left_at', null),
+    db.from('hand_history').select('id', { count: 'exact', head: true }).gte('created_at', h1),
+    db.from('hand_history').select('id', { count: 'exact', head: true }).gte('created_at', h24),
+    db.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', h24),
+    db.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', d7),
+    db.from('profiles').select('id', { count: 'exact', head: true }).gte('last_active', h24),
+    db.from('tournaments').select('id', { count: 'exact', head: true })
+      .in('status', ['running', 'registering', 'announced']),
+    // The previous 24h window, so the headline number carries a direction
+    // rather than sitting there with nothing to compare against.
+    db.from('hand_history').select('id', { count: 'exact', head: true })
+      .gte('created_at', new Date(now - 2 * 86400000).toISOString()).lt('created_at', h24),
+    db.from('live_help_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+  ]);
+
+  check('live_tables', liveTables); check('seated', seatedNow);
+  check('hands_1h', hands1h); check('hands_24h', hands24h);
+  check('signups', signups24h); check('tournaments', liveTournaments);
+
+  const h24n = c(hands24h);
+  const hPrev = c(handsPrev24h);
+
+  return {
+    platform: {
+      liveTables: c(liveTables),
+      waitingTables: c(waitingTables),
+      seatedNow: c(seatedNow),
+      hands1h: c(hands1h),
+      hands24h: h24n,
+      handsPrev24h: hPrev,
+      // null rather than a fabricated 0% when there is nothing to compare to.
+      handsTrendPct: (h24n !== null && hPrev !== null && hPrev > 0)
+        ? Math.round(((h24n - hPrev) / hPrev) * 100)
+        : null,
+      signups24h: c(signups24h),
+      signups7d: c(signups7d),
+      activeUsers24h: c(activeUsers24h),
+      liveTournaments: c(liveTournaments),
+      openTickets: c(openTickets),
+    },
+    failedSources: failed.length ? failed : undefined,
+  };
+}
+
+// ── SECTION: BADGES ──────────────────────────────────────────────────────────
+/**
+ * Counts only, cheap, fetched once on mount. The nav badges used to read state
+ * that is only populated by visiting the very tab the badge points at, so they
+ * were structurally incapable of telling an operator there was work waiting.
+ */
+async function sectionBadges() {
+  const db = getSupabase();
+  const [cashouts, ledgerCritical, tickets] = await Promise.all([
+    db.from('cashout_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    db.from('ledger_reconcile_log').select('id', { count: 'exact', head: true }).eq('severity', 'critical'),
+    db.from('live_help_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+  ]);
+  return {
+    badges: {
+      pendingCashouts: cashouts.count ?? 0,
+      ledgerCritical: ledgerCritical.count ?? 0,
+      openTickets: tickets.count ?? 0,
+    },
+  };
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method !== 'GET' && req.method !== 'POST') {
@@ -377,6 +657,18 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'A valid clubId is required' });
       }
       return res.status(200).json({ success: true, ...(await sectionClub(clubId)) });
+    }
+    if (section === 'ledger') {
+      return res.status(200).json({ success: true, ...(await sectionLedger()) });
+    }
+    if (section === 'revenue') {
+      return res.status(200).json({ success: true, ...(await sectionRevenue()) });
+    }
+    if (section === 'badges') {
+      return res.status(200).json({ success: true, ...(await sectionBadges()) });
+    }
+    if (section === 'platform') {
+      return res.status(200).json({ success: true, ...(await sectionPlatform()) });
     }
     if (section === 'user_search') {
       return res.status(200).json({ success: true, ...(await sectionUserSearch(req.query.q)) });

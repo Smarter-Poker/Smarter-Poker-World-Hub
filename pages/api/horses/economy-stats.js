@@ -1,9 +1,10 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
- * 💎 ECONOMY STATS API — Admin Dashboard
+ * ECONOMY STATS API — Admin Dashboard
  * ═══════════════════════════════════════════════════════════════════════════
  * Aggregates diamond economy data for the /horses admin Economy tab.
- * Returns: transactions log, totals in/out, purchases, VIP subs, user counts.
+ * Returns: transactions log, totals in/out, purchases (revenue in USD),
+ * VIP subscriptions, live VIP points, and user counts.
  * Auth-gated: requires valid session.
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -15,6 +16,10 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 // Upper bound on any unbounded row pull in this route.
 const ROW_CAP = 500;
 const TX_CAP = 20000;
+// vip_points holds one row per VIP holder (585 in production). The cap is an
+// order of magnitude above that so the totals are whole-table today, and
+// `vipPoints.truncated` says so honestly if it ever is not.
+const VIP_POINTS_CAP = 5000;
 
 let _supabase = null;
 function getSupabase() {
@@ -80,6 +85,8 @@ export default async function handler(req, res) {
               totalUsersResult,
               newUsersResult,
               recentUsersResult,
+              vipPointsResult,
+              vipLedgerCountResult,
           ] = await Promise.all([
               // 1. Recent diamond transactions (last 100)
               getSupabase()
@@ -123,7 +130,12 @@ export default async function handler(req, res) {
                   .order('created_at', { ascending: false })
                   .limit(ROW_CAP),
 
-              // 4. VIP subscriptions
+              // 4. VIP subscriptions.
+              //
+              // KEPT, but it is empty: vip_subscriptions has ZERO rows in
+              // production. The live VIP system is vip_points /
+              // vip_points_ledger, read separately below, so the tab has a
+              // true number to show instead of a permanent 0 / 0.
               getSupabase()
                   .from('vip_subscriptions')
                   .select('*')
@@ -147,6 +159,22 @@ export default async function handler(req, res) {
                   .select('id, username, full_name, email, created_at')
                   .order('created_at', { ascending: false })
                   .limit(10),
+
+              // 8. LIVE VIP system — vip_points holds one row per holder
+              // (585 in production) with current_points / lifetime_points.
+              // Summed here in JS rather than with a PostgREST aggregate
+              // because aggregate functions are DISABLED on this project
+              // (`select=points.sum()` returns PGRST123, verified
+              // 2026-08-26), so `.sum()` cannot be used anywhere in this repo.
+              getSupabase()
+                  .from('vip_points')
+                  .select('user_id, current_points, lifetime_points')
+                  .limit(VIP_POINTS_CAP),
+
+              // 9. Size of the VIP points ledger (3.4M rows) — head count only.
+              getSupabase()
+                  .from('vip_points_ledger')
+                  .select('id', { count: 'exact', head: true }),
           ]);
 
           // Every result is checked. None of these were checked before, so a
@@ -160,6 +188,8 @@ export default async function handler(req, res) {
               ['profiles total count', totalUsersResult],
               ['profiles new-user count', newUsersResult],
               ['profiles recent users', recentUsersResult],
+              ['vip_points', vipPointsResult],
+              ['vip_points_ledger count', vipLedgerCountResult],
           ];
           const failed = named.filter(([, r]) => r?.error);
           if (failed.length > 0) {
@@ -190,12 +220,39 @@ export default async function handler(req, res) {
               .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
 
           const purchases = diamondPurchasesResult.data || [];
-          const totalPurchaseRevenue = purchases.reduce((sum, p) => sum + (p.amount_paid || p.price || 0), 0);
+
+          // REVENUE.
+          //
+          // This summed `p.amount_paid || p.price`. diamond_purchases has
+          // NEITHER column, so every row contributed 0 and "Purchase Revenue"
+          // was permanently $0.00. The real column is `price_usd numeric`,
+          // and it is ALREADY DENOMINATED IN DOLLARS (2.00 means two dollars,
+          // not two cents) — so it must NOT be divided by 100 anywhere.
+          //
+          // Only money that actually settled counts: status 'completed' and
+          // not refunded. Pending checkouts and refunds are revenue that
+          // never arrived or went back out.
+          const settledPurchases = purchases.filter(
+              p => p.status === 'completed' && !p.refunded_at
+          );
+          const totalPurchaseRevenueUsd = Math.round(
+              settledPurchases.reduce((sum, p) => sum + (Number(p.price_usd) || 0), 0) * 100
+          ) / 100;
+          const totalDiamondsSold = settledPurchases.reduce(
+              (sum, p) => sum + (p.diamonds_amount || 0) + (p.bonus_diamonds || 0), 0
+          );
 
           const vipSubs = vipSubsResult.data || [];
           const activeVipCount = vipSubs.filter(s =>
               s.status === 'active' || s.status === 'trialing'
           ).length;
+
+          // LIVE VIP system. vip_subscriptions is empty in production; these
+          // are the numbers the Economy tab can truthfully show.
+          const vipPointRows = vipPointsResult.data || [];
+          const vipPointsHolders = vipPointRows.length;
+          const vipPointsOutstanding = vipPointRows.reduce((sum, r) => sum + (Number(r.current_points) || 0), 0);
+          const vipPointsLifetime = vipPointRows.reduce((sum, r) => sum + (Number(r.lifetime_points) || 0), 0);
 
           return res.status(200).json({
               success: true,
@@ -219,18 +276,47 @@ export default async function handler(req, res) {
                   totalDiamondsSpent,
                   totalRewardClaims: rewardClaims.length,
                   diamondPurchaseCount: purchases.length,
-                  diamondPurchaseRevenue: totalPurchaseRevenue,
+                  diamondPurchaseCompletedCount: settledPurchases.length,
+                  // UNIT: US DOLLARS, already. Render as-is with a $ sign.
+                  // Do NOT divide by 100 — price_usd is dollars, not cents.
+                  diamondPurchaseRevenue: totalPurchaseRevenueUsd,
+                  diamondPurchaseRevenueUsd: totalPurchaseRevenueUsd,
+                  diamondPurchaseRevenueUnit: 'usd',
+                  diamondsSold: totalDiamondsSold,
+                  // Revenue is summed over the most recent ROW_CAP purchase
+                  // rows, not the whole table. Three rows exist in production
+                  // so it is currently every one of them; this flag says so
+                  // rather than letting a capped figure pass as lifetime.
+                  diamondPurchaseTruncated: purchases.length >= ROW_CAP,
                   vipSubscriptionCount: vipSubs.length,
                   activeVipCount,
               },
 
+              // LIVE VIP system (vip_subscriptions is empty in production).
+              vipPoints: {
+                  holders: vipPointsHolders,
+                  pointsOutstanding: vipPointsOutstanding,
+                  pointsLifetime: vipPointsLifetime,
+                  ledgerEntries: vipLedgerCountResult.count ?? null,
+                  truncated: vipPointRows.length >= VIP_POINTS_CAP,
+                  note: 'Live VIP system. vip_subscriptions carries no rows in production; VIP standing is tracked in vip_points and vip_points_ledger.',
+              },
+
               // Detail lists
+              // Real diamond_purchases columns. The previous shape read
+              // amount_paid / price / diamonds_received / diamonds, none of
+              // which exist, so every field here was undefined.
               recentPurchases: purchases.slice(0, 20).map(p => ({
                   id: p.id,
                   user_id: p.user_id,
-                  amount_paid: p.amount_paid || p.price,
-                  diamonds_received: p.diamonds_received || p.diamonds,
+                  package_name: p.package_name,
+                  // Dollars. Do not divide by 100.
+                  price_usd: Number(p.price_usd) || 0,
+                  diamonds_amount: p.diamonds_amount || 0,
+                  bonus_diamonds: p.bonus_diamonds || 0,
                   created_at: p.created_at,
+                  completed_at: p.completed_at,
+                  refunded_at: p.refunded_at,
                   status: p.status,
               })),
 
