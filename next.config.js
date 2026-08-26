@@ -788,6 +788,13 @@ const nextConfig = {
       { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
       // Club Arena — /hub/club-arena IS the lobby (the SPA). The native lobby.js was removed.
       { source: '/hub/club-arena/lobby', destination: '/hub/club-arena', permanent: true },
+      // Redirect legacy/broken Club Arena share links to the correct SPA mount point
+      { source: '/clubs/:slug*', destination: '/hub/club-arena/clubs/:slug*', permanent: true },
+      { source: '/tournaments/:id*', destination: '/hub/club-arena/tournaments/:id*', permanent: true },
+      { source: '/invite/:id*', destination: '/hub/club-arena/invite/:id*', permanent: true },
+      { source: '/profile/:id*', destination: '/hub/club-arena/profile/:id*', permanent: true },
+      { source: '/replay/:id*', destination: '/hub/club-arena/replay/:id*', permanent: true },
+      { source: '/share/hand/:id*', destination: '/hub/club-arena/share/hand/:id*', permanent: true },
       // Legacy avatar page names (Club Arena's ProfilePage/AvatarService still
       // link to /hub/avatars-complete, which no longer exists as a page)
       { source: '/hub/avatars-complete', destination: '/hub/avatars', permanent: true },
