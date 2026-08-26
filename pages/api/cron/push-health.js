@@ -309,6 +309,66 @@ async function handler(req, res) {
         if ((count || 0) > 250) problems.push(`${count} pushes are backed up in the outbox`);
     } catch { /* ignore */ }
 
+    // ---- Platform-level delivery signal -------------------------------------
+    //
+    // 2026-08-26. Push was broken on every phone for months and this cron ran
+    // the entire time without a word, because every check above inspects an
+    // INDIVIDUAL user — zombie endpoints, staff with no device. With nobody
+    // subscribed at all there was no user to complain about, so silence looked
+    // like health. Meanwhile push_outbox had reached 1,376 rows skipped with
+    // failure_reason='no_subscription'.
+    //
+    // These two ask about the PLATFORM instead: is anyone reachable, and are
+    // we throwing notifications away because nobody is?
+    try {
+        const [{ count: activeSubs }, { count: skipped24h }] = await Promise.all([
+            supabase
+                .from('push_subscriptions')
+                .select('id', { count: 'exact', head: true })
+                .eq('is_active', true),
+            supabase
+                .from('push_outbox')
+                .select('id', { count: 'exact', head: true })
+                .eq('status', 'skipped')
+                .eq('failure_reason', 'no_subscription')
+                .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+        ]);
+
+        report.activeSubscriptions = activeSubs || 0;
+        report.skippedNoSubscription24h = skipped24h || 0;
+
+        // Nobody on the whole platform can receive a push. This is the exact
+        // state that persisted unnoticed, and it is never normal once a single
+        // user has enrolled.
+        if ((activeSubs || 0) === 0) {
+            problems.push('no active push subscriptions exist platform-wide - nobody can receive a notification');
+        }
+
+        // NOT a raw skipped count. I nearly shipped `skipped24h > 200`, then
+        // checked it against production: it is 999 in the last 24h WITH push
+        // working, because the userbase is large and almost nobody has
+        // enrolled yet. That alarm would have fired every single day, and an
+        // alarm that always fires is one nobody reads — the same silence this
+        // is meant to end, just louder.
+        //
+        // The precise signal is: we HAVE subscribers and still delivered
+        // nothing. That is a delivery failure. High skipped counts alongside
+        // healthy sends are just low adoption.
+        const { count: sent24h } = await supabase
+            .from('push_outbox')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'sent')
+            .gte('sent_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+        report.sent24h = sent24h || 0;
+
+        if ((activeSubs || 0) > 0 && (sent24h || 0) === 0 && (skipped24h || 0) > 0) {
+            problems.push(
+                `${activeSubs} device(s) are subscribed but nothing was delivered in 24h ` +
+                `(${skipped24h} discarded) - delivery is failing, not adoption`
+            );
+        }
+    } catch { /* a failed diagnostic must never fail the cron */ }
+
     // ---- Report ------------------------------------------------------------
     if (problems.length > 0) {
         await notifyAdmins(supabase, {
