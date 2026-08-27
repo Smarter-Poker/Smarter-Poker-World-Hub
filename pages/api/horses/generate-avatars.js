@@ -282,12 +282,19 @@ export default async function handler(req, res) {
               // sit at a table.
               let mirrored = false;
               if (horse.profile_id) {
-                const { error: profErr } = await getSupabase()
+                // .select() so a zero-row match is distinguishable from a
+                // successful write. Without it mirroredToProfile reported true
+                // whenever no error came back, including when profile_id
+                // pointed at a row that no longer exists.
+                const { data: mirrorRows, error: profErr } = await getSupabase()
                   .from('profiles')
                   .update({ avatar_url: permanentUrl })
-                  .eq('id', horse.profile_id);
+                  .eq('id', horse.profile_id)
+                  .select('id');
                 if (profErr) console.warn('[generate-avatars] profiles mirror failed for', horse.name, profErr.message);
-                else mirrored = true;
+                else if (!mirrorRows || mirrorRows.length === 0) {
+                  console.warn('[generate-avatars] profiles mirror matched 0 rows for', horse.name, '- profile_id is stale');
+                } else mirrored = true;
               }
 
               results.push({ horse: horse.name, success: true, url: permanentUrl, mirroredToProfile: mirrored });
@@ -344,10 +351,17 @@ export default async function handler(req, res) {
 }
 
 async function getRemainingCount() {
-    const { count } = await getSupabase()
+    // Returns null, not 0, when the count cannot be read. `count || 0` made a
+    // failed query indistinguishable from "every horse already has an avatar",
+    // which is the answer that stops an operator running the batch at all.
+    // The trailing .limit() was also a no-op on a head:true count query.
+    const { count, error } = await getSupabase()
         .from('content_authors')
         .select('*', { count: 'exact', head: true })
-        .is('avatar_url', null)
-            .limit(100);
-    return count || 0;
+        .is('avatar_url', null);
+    if (error) {
+        console.warn('[generate-avatars] remaining count failed:', error.message || error);
+        return null;
+    }
+    return count ?? null;
 }

@@ -1901,7 +1901,15 @@ export default function HorsesAdmin() {
               {avatarResult && !avatarBusy && (
                 <div className={styles.warnBanner} role="status">
                   {num(avatarResult.generated, '0')} generated
-                  {avatarResult.remaining !== undefined && <>, {num(avatarResult.remaining)} still without an avatar</>}
+                  {/* null now means "the count could not be read", which is a
+                      different thing from zero. Rendering it as a dash would
+                      read as "none left" and stop the operator running the
+                      batch again; say plainly that the number is unknown. */}
+                  {avatarResult.remaining === null
+                    ? <>, remaining count unavailable</>
+                    : avatarResult.remaining !== undefined
+                      ? <>, {num(avatarResult.remaining)} still without an avatar</>
+                      : null}
                   {(avatarResult.results || []).some((r) => !r.success) && (
                     <> — failures: {(avatarResult.results || []).filter((r) => !r.success)
                       .map((r) => `${r.horse}: ${r.error}`).join('; ')}</>
@@ -3045,6 +3053,19 @@ export default function HorsesAdmin() {
                 <div className={styles.emptyState}>No data available.</div>
               ) : (
                 <>
+                  {/* A failed read on THIS tab is a false negative -- an empty
+                      abuse log reads as "no abuse", which is the one wrong
+                      answer this surface must never give. The route now names
+                      what it could not read; say so loudly. */}
+                  {abuseData.failedSources?.length > 0 && (
+                    <div className={styles.warnBanner} role="alert">
+                      This view is incomplete. These sources could not be read, so an
+                      empty panel below does NOT mean nothing was found:{' '}
+                      {abuseData.failedSources
+                        .map((f) => (typeof f === 'string' ? f : `${f.source} (${f.error})`))
+                        .join('; ')}
+                    </div>
+                  )}
                   {abuseData.abuse?.disposableScope && (
                     <div className={styles.warnBanner}>
                       Disposable-email count is scoped to {abuseData.abuse.disposableScope}.

@@ -7,6 +7,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { logAdminAction } from '../../../src/lib/antiAbuse';
 
 const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 
@@ -99,8 +100,30 @@ export default async function handler(req, res) {
     });
     if (error) {
       console.warn('[hg-gdpr-erase POST]', error);
+      // The RPC raises UNAUTHORIZED with errcode 42501 for an authorization
+      // failure. Collapsing that into "Erasure request failed" left the
+      // operator unable to tell "you are not allowed to do this" from "the
+      // tool is broken".
+      if (error.code === '42501' || /unauthorized|forbidden/i.test(error.message || '')) {
+        return res.status(403).json({ success: false, error: 'You are not authorized to erase this user.' });
+      }
       return res.status(500).json({ success: false, error: 'Erasure request failed' });
     }
+
+    // AUDIT. This route had none, and the RPC's own logging writes into
+    // commander_home_audit_log scoped to the groups the target belongs to --
+    // so erasing a user who is in NO Home Games group inserted zero audit rows
+    // and the most irreversible action on the platform left no record
+    // anywhere. It does now, whether or not the target has a group.
+    await logAdminAction(getSB(), {
+      admin_user_id: user.id,
+      action: 'hg.gdpr_erase',
+      target_type: 'user',
+      target_id: userId,
+      details: { counts: data ?? null, confirmed: true },
+      req,
+    });
+
     return res.status(200).json({ success: true, counts: data });
   } catch (err) {
     console.warn('[hg-gdpr-erase] Unhandled error:', err?.message || err);

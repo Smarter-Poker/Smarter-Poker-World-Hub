@@ -192,14 +192,27 @@ export default async function handler(req, res) {
                 .eq('id', review_id)
                 .maybeSingle();
 
-            const { error } = await getSupabase()
+            // .select() so the affected row count is knowable. Without it a stale
+            // or already-deleted id came back { error: null }, the UI removed the
+            // row and decremented the total, and admin_audit_log recorded a
+            // deletion that never happened -- a false entry in the one table that
+            // is supposed to be the record of truth.
+            const { data: deletedRows, error } = await getSupabase()
                 .from('venue_reviews')
                 .delete()
-                .eq('id', review_id);
+                .eq('id', review_id)
+                .select('id');
 
             if (error) {
                 console.warn('[Admin Reviews DELETE] Error:', error);
                 return res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+
+            // Stop here on a zero-row delete. Everything below -- the trust-score
+            // recalc, the reviewer punishment, the push notification and the audit
+            // write -- is a consequence of a deletion that did not occur.
+            if (!deletedRows || deletedRows.length === 0) {
+                return res.status(404).json({ success: false, error: 'That review no longer exists.' });
             }
 
             // Recalculate trust score after deletion. RPC errors don't throw —
@@ -304,14 +317,22 @@ export default async function handler(req, res) {
                 ? { is_flagged: true, flag_reason: reason || 'Admin flagged' }
                 : { is_flagged: false, flag_reason: null };
 
-            const { error } = await getSupabase()
+            // Same zero-row problem as DELETE. Flagging suppresses a business's
+            // public review; reporting success without having written one is not a
+            // cosmetic bug.
+            const { data: updatedRows, error } = await getSupabase()
                 .from('venue_reviews')
                 .update(updatePayload)
-                .eq('id', review_id);
+                .eq('id', review_id)
+                .select('id');
 
             if (error) {
                 console.warn('[Admin Reviews PATCH] Error:', error);
                 return res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+
+            if (!updatedRows || updatedRows.length === 0) {
+                return res.status(404).json({ success: false, error: 'That review no longer exists.' });
             }
 
             // Audit log. DELETE has written one since it was built; flag/unflag

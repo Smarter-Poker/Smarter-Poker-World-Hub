@@ -39,17 +39,39 @@ export default async function handler(req, res) {
       }
 
       const section = req.query.section || 'all';
+      // ?section=bogus used to fall through every branch and return
+      // { success: true } with no keys, so every panel rendered empty and the
+      // operator had no way to tell a typo from a quiet platform.
+      const VALID_SECTIONS = ['all', 'abuse', 'audit', 'economy', 'alerts'];
+      if (!VALID_SECTIONS.includes(section)) {
+        return res.status(400).json({
+          success: false,
+          error: `Unknown section '${section}'. Valid: ${VALID_SECTIONS.join(', ')}`,
+        });
+      }
 
       try {
+          // A DISCARDED ERROR ON THIS TAB IS A FALSE NEGATIVE. The three main
+          // reads below destructured `data` only, so a permission failure or a
+          // query error rendered as "no abuse detected", "no audit history",
+          // "no holders" -- the exact wrong answer for a dashboard whose entire
+          // job is to surface abuse. Each failure is now named here and shipped
+          // to the UI, which already knows how to render a failedSources banner
+          // (the economy tab does the same).
           const result = {};
+          const failedSources = [];
 
           // ── ABUSE LOG ──
           if (section === 'all' || section === 'abuse') {
-              const { data: abuseLog } = await getSupabase()
+              const { data: abuseLog, error: abuseErr } = await getSupabase()
                   .from('signup_abuse_log')
                   .select('*')
                   .order('last_signup_at', { ascending: false })
                   .limit(100);
+              if (abuseErr) {
+                  console.warn('[anti-abuse] signup_abuse_log read failed:', abuseErr);
+                  failedSources.push({ source: 'signup_abuse_log', error: abuseErr.message });
+              }
 
               // Stats over the WHOLE table, not just the 100-row page above.
               // These were previously derived from `abuseLog` alone, so
@@ -105,11 +127,15 @@ export default async function handler(req, res) {
 
           // ── ADMIN AUDIT LOG ──
           if (section === 'all' || section === 'audit') {
-              const { data: auditLog } = await getSupabase()
+              const { data: auditLog, error: auditErr } = await getSupabase()
                   .from('admin_audit_log')
                   .select('*')
                   .order('created_at', { ascending: false })
                   .limit(50);
+              if (auditErr) {
+                  console.warn('[anti-abuse] admin_audit_log read failed:', auditErr);
+                  failedSources.push({ source: 'admin_audit_log', error: auditErr.message });
+              }
 
               result.audit = auditLog || [];
           }
@@ -150,11 +176,15 @@ export default async function handler(req, res) {
               // addresses in every poll of this endpoint is bulk PII the
               // surface has no use for. `phone_verified` stays — it is the
               // abuse signal the tab exists to show.
-              const { data: topHolders } = await getSupabase()
+              const { data: topHolders, error: holdersErr } = await getSupabase()
                   .from('profiles')
                   .select('id, username, diamonds, is_vip, vip_tier, phone_verified')
                   .order('diamonds', { ascending: false })
                   .limit(20);
+              if (holdersErr) {
+                  console.warn('[anti-abuse] top holders read failed:', holdersErr);
+                  failedSources.push({ source: 'profiles.top_holders', error: holdersErr.message });
+              }
 
               result.economy = {
                   sourceBreakdown,
@@ -213,7 +243,9 @@ export default async function handler(req, res) {
               result.alerts = alerts;
           }
 
-          return res.status(200).json({ success: true, ...result });
+          // failedSources ships even when empty, so the UI can distinguish
+          // "nothing failed" from "this route predates the field".
+          return res.status(200).json({ success: true, ...result, failedSources });
       } catch (err) {
           console.warn('[Anti-Abuse API] Error:', err);
           return res.status(500).json({ error: 'Server error' });

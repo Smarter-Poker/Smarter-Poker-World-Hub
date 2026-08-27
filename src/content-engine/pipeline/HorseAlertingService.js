@@ -248,8 +248,13 @@ class HorseAlertingService {
                 horseStats[a.horse_id] = { posts: 0, likes: 0, comments: 0 };
             }
             horseStats[a.horse_id][key] += Number(a.metric_value) || 0;
-            horseStats[a.author_id].likes += a.likes_received || 0;
-            horseStats[a.author_id].comments += a.comments_received || 0;
+            // The two lines that were here threw on EVERY row, so ?type=top-horses
+            // was a guaranteed 500. They indexed horseStats[a.author_id], but the
+            // select above fetches horse_id / metric_type / metric_value -- there is
+            // no author_id on the row, so this was horseStats[undefined].likes on an
+            // undefined object. They were also redundant: likes and comments are
+            // already accumulated by the METRIC_KEYS line directly above, from the
+            // likes_received and comments_received metric_types.
         });
 
         // Sort by total engagement
