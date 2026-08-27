@@ -846,6 +846,20 @@ export default function VideoLibraryPage() {
         return Math.min(100, (progress.watchedSeconds / totalSeconds) * 100);
     }, [watchProgress]);
 
+    // Resolve history records once so the continuity rail never renders empty
+    // shells when a video has since left the active catalog.
+    const continueWatchingVideos = useMemo(() => recentlyWatched
+        .map(item => {
+            const video = allVideos.find(candidate => candidate.id === item.video_id);
+            if (!video) return null;
+            return {
+                item,
+                video,
+                progress: getProgressPercent(video.id, video.duration),
+            };
+        })
+        .filter(Boolean), [recentlyWatched, allVideos, getProgressPercent]);
+
     // ── P3: Related Videos — same source first, then tag overlap, max 8 ──────
     // useMemo: only recomputes when selectedVideo or allVideos changes.
     // CRITICAL: IIFE would score all 345 videos on every render (HUD show/hide,
@@ -941,12 +955,59 @@ export default function VideoLibraryPage() {
     ].filter(Boolean);
     const hasActiveFilters = activeFilterLabels.length > 0;
 
+    const emptyState = searchQuery
+        ? {
+            eyebrow: 'Search complete',
+            title: 'No Match In The Library',
+            copy: `Nothing matches “${searchQuery}”. Clear the search to return to the full table.`,
+            action: 'Clear Search',
+        }
+        : libraryFilter === 'favorites'
+            ? {
+                eyebrow: 'Favorites',
+                title: 'No Favorites Yet',
+                copy: 'Favorite a video in the viewer and it will be waiting here for your next study session.',
+                action: 'Browse All Videos',
+            }
+            : libraryFilter === 'watchlater'
+                ? {
+                    eyebrow: 'Watch Later',
+                    title: 'Your Queue Is Clear',
+                    copy: 'Save a video from the viewer to build a focused study queue.',
+                    action: 'Browse All Videos',
+                }
+                : libraryFilter === 'history'
+                    ? {
+                        eyebrow: 'Watch History',
+                        title: 'No Watch History Yet',
+                        copy: 'Start a video and your recent sessions will appear here automatically.',
+                        action: 'Browse All Videos',
+                    }
+                    : {
+                        eyebrow: 'Filter complete',
+                        title: 'No Videos In This View',
+                        copy: 'This combination is too narrow. Reset the view to reopen the full library.',
+                        action: 'Reset View',
+                    };
+
     const clearAllFilters = () => {
         setSearchQuery('');
         setSelectedSource('ALL');
         setSelectedType('ALL');
         setSortMode('default');
         setLibraryFilter('ALL');
+    };
+
+    const handleEmptyStateAction = () => {
+        const returningFromSearch = Boolean(searchQuery);
+        clearAllFilters();
+        requestAnimationFrame(() => {
+            if (returningFromSearch) {
+                searchInputRef.current?.focus();
+                return;
+            }
+            document.querySelector('.vl-card-open-button')?.focus();
+        });
     };
 
     return (
@@ -1369,22 +1430,27 @@ export default function VideoLibraryPage() {
                 {/* Watch Stats moved to hamburger menu - removed from main page */}
 
                 {/* Continue Watching / Recently Watched Section */}
-                {recentlyWatched.length > 0 && (
+                {continueWatchingVideos.length > 0 && (
                     <div className="vl-continue-watching" style={{
                         maxWidth: 1400,
                         margin: '0 auto 30px',
                     }}>
-                        <h2 style={{
-                            color: C.text,
-                            fontSize: 18,
-                            fontWeight: 600,
-                            marginBottom: 16,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                        }}>
-                            <span style={{ color: '#00D4FF' }}>▶</span> Continue Watching
-                        </h2>
+                        <div className="vl-continuity-header">
+                            <div>
+                                <span className="vl-continuity-kicker">Session continuity</span>
+                                <h2><span aria-hidden="true">▶</span> Continue Watching</h2>
+                            </div>
+                            <div className="vl-continuity-actions">
+                                <span>{continueWatchingVideos.length} {continueWatchingVideos.length === 1 ? 'session' : 'sessions'} ready</span>
+                                <button
+                                    type="button"
+                                    onClick={() => handleOpenVideo(continueWatchingVideos[0].video)}
+                                    aria-label={`Resume latest video: ${continueWatchingVideos[0].video.title}`}
+                                >
+                                    Resume Latest <span aria-hidden="true">→</span>
+                                </button>
+                            </div>
+                        </div>
                         <div className="vl-cw-scroll" style={{
                             display: 'flex',
                             gap: 16,
@@ -1392,10 +1458,8 @@ export default function VideoLibraryPage() {
                             paddingBottom: 8,
                             scrollbarWidth: 'thin',
                         }}>
-                            {recentlyWatched.map(item => {
-                                const video = allVideos.find(v => v.id === item.video_id);
-                                if (!video) return null;
-                                const progress = getProgressPercent(video.id, video.duration);
+                            {continueWatchingVideos.map(({ item, video, progress }) => {
+                                const roundedProgress = Math.round(progress);
                                 return (
                                     <div
                                         key={item.video_id}
@@ -1403,8 +1467,8 @@ export default function VideoLibraryPage() {
                                         onKeyDown={(event) => handleVideoCardKeyDown(event, video)}
                                         role="button"
                                         tabIndex={0}
-                                        aria-label={`Resume ${video.title}`}
-                                        className="metal-frame video-card-metal"
+                                        aria-label={`Resume ${video.title}, ${roundedProgress}% complete`}
+                                        className="metal-frame video-card-metal vl-continuity-card"
                                         style={{
                                             minWidth: 240,
                                             cursor: 'pointer',
@@ -1417,7 +1481,7 @@ export default function VideoLibraryPage() {
                                                 alt={video.title}
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />
                                             {/* Resume play button */}
-                                            <div style={{
+                                            <div className="vl-continuity-play" style={{
                                                 position: 'absolute',
                                                 top: '50%',
                                                 left: '50%',
@@ -1433,7 +1497,14 @@ export default function VideoLibraryPage() {
                                                 <span style={{ fontSize: 20, marginLeft: 2 }}>▶</span>
                                             </div>
                                             {/* Progress bar */}
-                                            <div style={{
+                                            <div
+                                                className="vl-continuity-progress"
+                                                role="progressbar"
+                                                aria-label={`${video.title} watch progress`}
+                                                aria-valuemin="0"
+                                                aria-valuemax="100"
+                                                aria-valuenow={roundedProgress}
+                                                style={{
                                                 position: 'absolute',
                                                 bottom: 0,
                                                 left: 0,
@@ -1464,7 +1535,7 @@ export default function VideoLibraryPage() {
                                                 fontSize: 11,
                                                 marginTop: 4,
                                             }}>
-                                                {formatTime(item.watch_duration_seconds || 0)} watched
+                                                {roundedProgress}% complete · {formatTime(item.watch_duration_seconds || 0)} watched
                                             </div>
                                         </div>
                                     </div>
@@ -1516,7 +1587,15 @@ export default function VideoLibraryPage() {
                 )}
 
                 {/* Video Grid */}
-                <div id="video-library-grid" className="vl-video-grid" aria-label="Poker videos" style={{
+                <span className="vl-sr-only" role="status" aria-live="polite">
+                    {!dbLoaded ? 'Loading poker videos' : `${videos.length} videos available`}
+                </span>
+                <div
+                    id="video-library-grid"
+                    className="vl-video-grid"
+                    aria-label="Poker videos"
+                    aria-busy={!dbLoaded}
+                    style={{
                     maxWidth: 1400,
                     margin: '0 auto',
                     display: 'grid',
@@ -1525,7 +1604,7 @@ export default function VideoLibraryPage() {
                 }}>
                     {/* Skeleton loading cards while DB fetch runs */}
                     {!dbLoaded && Array.from({ length: 12 }).map((_, i) => (
-                        <div key={`sk-${i}`} className="metal-frame video-card-metal vl-video-card vl-skeleton-card" style={{ cursor: 'default' }}>
+                        <div key={`sk-${i}`} aria-hidden="true" className="metal-frame video-card-metal vl-video-card vl-skeleton-card" style={{ cursor: 'default' }}>
                             <div className="vl-video-thumb vl-skeleton-thumb" style={{ aspectRatio: '16/9', background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite' }} />
                             <div style={{ padding: 16 }}>
                                 <div style={{ height: 14, width: '85%', borderRadius: 6, background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite', marginBottom: 8 }} />
@@ -1533,7 +1612,11 @@ export default function VideoLibraryPage() {
                             </div>
                         </div>
                     ))}
-                    {dbLoaded && videos.slice(0, Math.min(displayedCount, videos.length)).map((video, index) => (
+                    {dbLoaded && videos.slice(0, Math.min(displayedCount, videos.length)).map((video, index) => {
+                        const progress = getProgressPercent(video.id, video.duration);
+                        const roundedProgress = Math.round(progress);
+                        const openLabel = progress > 0 && progress < 95 ? 'Resume' : 'Play';
+                        return (
                         <div
                             key={video.id}
                             className="metal-frame video-card-metal vl-video-card"
@@ -1544,7 +1627,7 @@ export default function VideoLibraryPage() {
                             <button
                                 type="button"
                                 className="vl-card-open-button"
-                                aria-label={`Play ${video.title}`}
+                                aria-label={`${openLabel} ${video.title}${progress > 0 ? `, ${roundedProgress}% complete` : ''}`}
                                 onClick={() => handleOpenVideo(video)}
                             />
                             {/* Thumbnail */}
@@ -1623,8 +1706,15 @@ export default function VideoLibraryPage() {
                                 )}
                                 {/* AI badge removed per user request */}
                                 {/* Progress bar */}
-                                {getProgressPercent(video.id, video.duration) > 0 && (
-                                    <div className="vl-progress-track" style={{
+                                {progress > 0 && (
+                                    <div
+                                        className="vl-progress-track"
+                                        role="progressbar"
+                                        aria-label={`${video.title} watch progress`}
+                                        aria-valuemin="0"
+                                        aria-valuemax="100"
+                                        aria-valuenow={roundedProgress}
+                                        style={{
                                         position: 'absolute',
                                         bottom: 0,
                                         left: 0,
@@ -1633,7 +1723,7 @@ export default function VideoLibraryPage() {
                                         background: 'rgba(255,255,255,0.3)',
                                     }}>
                                         <div className="vl-progress-fill" style={{
-                                            width: `${getProgressPercent(video.id, video.duration)}%`,
+                                            width: `${progress}%`,
                                             height: '100%',
                                             background: '#00D4FF',
                                             transition: 'width 0.3s ease',
@@ -1678,6 +1768,13 @@ export default function VideoLibraryPage() {
                                 }}>
                                     {video.title}
                                 </h3>
+
+                                {progress > 0 && (
+                                    <div className="vl-watch-signal" aria-hidden="true">
+                                        <span>{progress >= 95 ? 'Watched' : 'Resume'}</span>
+                                        <strong>{roundedProgress}%</strong>
+                                    </div>
+                                )}
 
                                 <div className="vl-card-meta" style={{
                                     display: 'flex',
@@ -1748,7 +1845,8 @@ export default function VideoLibraryPage() {
                                 </div>
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {/* Infinite Scroll Sentinel */}
@@ -1758,31 +1856,16 @@ export default function VideoLibraryPage() {
 
                 {/* No results */}
                 {dbLoaded && videos.length === 0 && (
-                    <div style={{
-                        textAlign: 'center',
-                        padding: '80px 20px',
-                        color: C.textSec,
-                    }}>
-                        <div style={{ fontSize: 64, marginBottom: 16 }}>🎬</div>
-                        <h3 style={{ color: C.text, marginBottom: 8 }}>No Videos Found</h3>
-                        <p style={{ marginBottom: 20 }}>
-                            {searchQuery ? `No results for "${searchQuery}"` : 'Try Adjusting Your Filters'}
-                        </p>
+                    <div className="vl-empty-state" role="status">
+                        <div className="vl-empty-signal" aria-hidden="true"><span /></div>
+                        <span className="vl-empty-kicker">{emptyState.eyebrow}</span>
+                        <h3>{emptyState.title}</h3>
+                        <p>{emptyState.copy}</p>
                         <button
                             type="button"
-                            onClick={clearAllFilters}
-                            style={{
-                                padding: '10px 24px',
-                                background: 'rgba(0,212,255,0.15)',
-                                border: '1px solid rgba(0,212,255,0.4)',
-                                borderRadius: 10,
-                                color: '#00D4FF',
-                                fontSize: 14,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                            }}
+                            onClick={handleEmptyStateAction}
                         >
-                            Clear All Filters
+                            {emptyState.action} <span aria-hidden="true">→</span>
                         </button>
                     </div>
                 )}
