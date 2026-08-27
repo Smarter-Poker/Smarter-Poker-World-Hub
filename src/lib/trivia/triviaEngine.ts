@@ -228,7 +228,8 @@ export const TRIVIA_MODES = {
         name: 'Time Attack',
         description: 'As Many As You Can Before The Clock Runs Out',
         questionsCount: 0,
-        timeLimit: 120,
+        // Must match TimeAttackGame and the server session deadline.
+        timeLimit: 30,
         diamondCost: 10, // restored 20f63684 - time-attack pays via award_trivia_run now
         diamondReward: 1,
         perfectBonus: 0,

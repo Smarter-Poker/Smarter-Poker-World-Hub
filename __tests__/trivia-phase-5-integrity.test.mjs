@@ -17,6 +17,7 @@ const wheel = read('src/components/trivia/PrizeWheel.jsx');
 const answerLock = read('supabase/migrations/20260827190000_trivia_answer_key_lockdown.sql');
 const atomicEntry = read('supabase/migrations/20260827190500_trivia_atomic_session_entry.sql');
 const verifiedScores = read('supabase/migrations/20260827191000_trivia_verified_scores.sql');
+const replaySettlement = read('supabase/migrations/20260827231000_trivia_phase6_settlement_replay.sql');
 
 test('lobby exposes every public game and uses recoverable, prefetched routes', () => {
     assert.match(lobby, /id: 'time-attack'/);
@@ -73,7 +74,7 @@ test('session start owns canonical run sizes and atomic entry charging', () => {
 test('settlement persists a verified score atomically and closes wheel forgery paths', () => {
     assert.match(submit, /rpc\('award_trivia_run_v2'/);
     assert.match(submit, /scoreId: award\?\.score_id/);
-    assert.match(submit, /byId\.size >= total/);
+    assert.match(replaySettlement, /COALESCE\(p_answered,0\)>=p_total/);
     assert.match(verifiedScores, /REVOKE INSERT, UPDATE, DELETE ON public\.trivia_scores FROM anon, authenticated/);
     assert.match(verifiedScores, /server_verified IS NOT TRUE OR v_score\.session_id IS NULL/);
     assert.match(verifiedScores, /pg_advisory_xact_lock/);

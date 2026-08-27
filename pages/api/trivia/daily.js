@@ -83,9 +83,9 @@ const FALLBACK_QUESTIONS = [
         category: 'famous_hands',
         difficulty: 'medium',
         question: 'What hand did Chris Moneymaker hold when he won the 2003 WSOP Main Event?',
-        options: ['5-4 suited', 'A-K suited', 'Pocket Fives', '7-2 offsuit'],
-        correct_index: 2,
-        explanation: 'Chris Moneymaker held pocket fives and made a full house to beat Sam Farha\'s top pair, sparking the "poker boom."'
+        options: ['5-4 offsuit', 'A-K suited', 'Pocket Fives', '7-2 offsuit'],
+        correct_index: 0,
+        explanation: 'Chris Moneymaker held 5♦4♠ offsuit. He made two pair on the final board to beat Sam Farha\'s J♥T♦ top pair and win the 2003 Main Event.'
     },
     {
         id: 'fb3',
@@ -100,19 +100,19 @@ const FALLBACK_QUESTIONS = [
         id: 'fb4',
         category: 'player_profiles',
         difficulty: 'easy',
-        question: 'Which player holds the record for most WSOP bracelets?',
+        question: 'Which player won a record-setting 17th WSOP bracelet in 2023?',
         options: ['Phil Ivey', 'Doyle Brunson', 'Phil Hellmuth', 'Johnny Chan'],
         correct_index: 2,
-        explanation: 'Phil Hellmuth holds the record with 17 WSOP bracelets, more than any other player in history.'
+        explanation: 'Phil Hellmuth won his 17th WSOP bracelet in 2023. Anchoring the question to that event keeps the fact stable if the record later changes.'
     },
     {
         id: 'fb5',
         category: 'tournament_facts',
         difficulty: 'medium',
-        question: 'What is the largest first-place prize ever awarded in a poker tournament?',
+        question: 'Which amount did Antonio Esfandiari win in the 2012 Big One for One Drop?',
         options: ['$8.5 million', '$10 million', '$12 million', '$18.3 million'],
         correct_index: 3,
-        explanation: 'Antonio Esfandiari won $18.3 million in the 2012 Big One for One Drop, the largest first-place prize in poker history.'
+        explanation: 'Antonio Esfandiari won $18.3 million in the 2012 Big One for One Drop. The event and year make this a fixed historical fact rather than a changing record claim.'
     },
     {
         id: 'fb6',
@@ -613,6 +613,7 @@ export default async function handler(req, res) {
               .select('username, score')
               .eq('play_date', today)
               .eq('mode', 'daily')
+              .eq('server_verified', true)
               .order('score', { ascending: false })
               .limit(50);
 

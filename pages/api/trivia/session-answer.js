@@ -80,6 +80,7 @@ export default async function handler(req, res) {
         if (!recorded || recorded.success === false) {
             const code = recorded?.error === 'session_not_found' ? 404
                 : recorded?.error === 'session_closed' ? 409
+                : recorded?.error === 'session_expired' ? 410
                 : 400;
             return res.status(code).json({ success: false, error: recorded?.error || 'record_rejected' });
         }
@@ -92,7 +93,7 @@ export default async function handler(req, res) {
                 .eq('id', sessionId)
                 .maybeSingle(),
             sb.from('trivia_questions')
-                .select('id, correct_index, options, explanation')
+                .select('id, correct_index, options, explanation, engine_metadata')
                 .eq('id', questionId)
                 .maybeSingle(),
         ]);
@@ -117,6 +118,16 @@ export default async function handler(req, res) {
         const key = Number.isInteger(keyRow.correct_index) ? keyRow.correct_index : -1;
         const wasCorrect = key >= 0 && originalIndex === key;
         const correctDisplayIndex = order && key >= 0 ? order.indexOf(key) : -1;
+        const rawMeta = keyRow.engine_metadata && typeof keyRow.engine_metadata === 'object'
+            ? keyRow.engine_metadata
+            : {};
+        // Metadata can contain audit answer indexes and original answer text.
+        // Return only solver-analysis fields, and only after the first answer
+        // has been irreversibly bound above.
+        const solverMetadata = {
+            gtoFrequencies: rawMeta.gtoFrequencies ?? rawMeta.gto_frequencies ?? null,
+            evData: rawMeta.evData ?? rawMeta.ev_data ?? rawMeta.ev ?? null,
+        };
 
         // The answer is locked, so revealing the explanation now leaks
         // nothing the verdict does not already imply.
@@ -130,6 +141,7 @@ export default async function handler(req, res) {
             storedDisplayIndex,
             fresh: recorded.fresh !== false,
             explanation: typeof keyRow.explanation === 'string' ? keyRow.explanation : null,
+            solverMetadata,
         });
     } catch (e) {
         console.warn('[trivia session-answer] unexpected:', e);

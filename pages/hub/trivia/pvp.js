@@ -270,55 +270,6 @@ export default function PvPPage() {
         }
     }
 
-    /**
-     * Persist PvP stats after each match.
-     *
-     * Phase 80: this used to be a client-side read-modify-write of
-     * trivia_pvp_stats. Two problems, both now closed by
-     * fn_trivia_pvp_record_result (migration 120300):
-     *   1. RLS no longer permits a direct client write to trivia_pvp_stats, so
-     *      the old upsert simply fails.
-     *   2. Even when it worked, the client chose the absolute values — a
-     *      tampered client could post wins: 9999 — and two matches finishing
-     *      concurrently lost each other's update.
-     * The RPC applies a single bounded INCREMENT for one reported outcome,
-     * always for auth.uid(), and returns the resulting row.
-     */
-    async function updatePvpStats(outcome, diamondsDelta) {
-        if (!userId) return;
-        if (!['win', 'loss', 'tie'].includes(outcome)) {
-            console.warn('[PVP] Ignoring unknown outcome:', outcome);
-            return;
-        }
-
-        try {
-            const { data, error: rpcErr } = await supabase.rpc('fn_trivia_pvp_record_result', {
-                p_outcome: outcome,
-                p_diamonds: Math.max(0, Math.floor(Number(diamondsDelta) || 0))
-            });
-            if (rpcErr) {
-                console.warn('[PVP] fn_trivia_pvp_record_result failed:', rpcErr.message);
-                return;
-            }
-            if (!data || data.success === false) {
-                console.warn('[PVP] PvP stat record rejected:', data?.error || 'unknown');
-                return;
-            }
-
-            // The RPC returns the authoritative post-increment row — mirror it
-            // instead of the locally-guessed values the old code displayed.
-            setStats({
-                wins: Number(data.wins) || 0,
-                losses: Number(data.losses) || 0,
-                ties: Number(data.ties) || 0,
-                winStreak: Number(data.win_streak) || 0,
-                bestStreak: Number(data.best_streak) || 0
-            });
-        } catch (e) {
-            console.warn('[PVP] Failed to update stats:', e);
-        }
-    }
-
     async function handleFindMatch(stake) {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
@@ -886,15 +837,10 @@ export default function PvPPage() {
             console.warn('[PVP] balance refresh failed:', e);
         }
 
-        // Persistent W/L record via the bounded-increment RPC (display stats,
-        // not money). A swept refund counts as a tie.
-        if (won) {
-            await updatePvpStats('win', Math.max(0, (s.winnings || 0) - stake));
-        } else if (tied) {
-            await updatePvpStats('tie', 0);
-        } else {
-            await updatePvpStats('loss', stake);
-        }
+        // Persistent W/L stats are recorded by the same server settlement that
+        // decided and paid this result. Refresh the authoritative row instead
+        // of reporting an outcome from the browser.
+        await loadUserData();
 
         // No client-side question-history writes here: session-start already
         // records the roster into the 60-day no-repeat window server-side.

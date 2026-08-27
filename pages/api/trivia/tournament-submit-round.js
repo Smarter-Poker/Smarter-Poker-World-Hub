@@ -85,7 +85,10 @@ const MIN_SEC_PER_Q = 2;
 const MAX_SEC_PER_Q = 40;
 const HARD_TIME_CAP = 1800;
 
-const STRICT_GRADING = process.env.TRIVIA_TOURNAMENT_STRICT_GRADING === '1';
+// The live client has submitted display_index since phase 5. Keeping the
+// legacy selected-index branch behind an unset environment flag left a
+// self-grading bypass enabled in every deployment.
+const STRICT_GRADING = true;
 
 /**
  * Build question_id -> correct_index from the SERVER-ONLY source.

@@ -442,7 +442,10 @@ export default function EndlessModePage() {
             return false;
         }
         try {
-            const charge = await DiamondEngine.deduct(cost, source);
+            const charge = await DiamondEngine.deduct(cost, source, {
+                description: 'Endless Trivia skip lifeline',
+                referenceId: `trivia_lifeline:${serverRun.sessionId}:${currentQuestion?.id}:skip`,
+            });
             if (!charge.success) {
                 setShowOutOfDiamonds(true);
                 return false;

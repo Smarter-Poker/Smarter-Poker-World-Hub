@@ -121,6 +121,7 @@ export default async function handler(req, res) {
       const adminSecret = req.headers['x-admin-secret'];
       const envSecret = process.env.ADMIN_ROUTE_SECRET;
       const hasAdminAuth = envSecret && adminSecret === envSecret;
+      let authenticatedUserId = null;
 
       if (!hasAdminAuth) {
           const token = req.headers.authorization?.replace('Bearer ', '');
@@ -129,6 +130,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
           const user = authData?.user;
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+          authenticatedUserId = user.id;
       }
 
       try {
@@ -136,6 +138,31 @@ export default async function handler(req, res) {
           const questionId = req.body?.question_id ?? req.body?.questionId;
           if (typeof questionId !== 'string' || !UUID_RE.test(questionId)) {
               return res.status(400).json({ success: false, error: 'question_id (uuid) required' });
+          }
+
+          // A panel reveals the solver-preferred play. End users may generate
+          // it only after this question's first answer is bound in an owned
+          // session (or after that session is submitted). This closes the
+          // pre-answer answer-key oracle while preserving post-answer coaching.
+          if (!hasAdminAuth) {
+              const sessionId = req.body?.session_id ?? req.body?.sessionId;
+              if (typeof sessionId !== 'string' || !UUID_RE.test(sessionId)) {
+                  return res.status(400).json({ success: false, error: 'session_id_required' });
+              }
+              const { data: session, error: sessionErr } = await getSupabase()
+                  .from('trivia_sessions')
+                  .select('user_id, status, question_ids, answers')
+                  .eq('id', sessionId)
+                  .maybeSingle();
+              if (sessionErr || !session || session.user_id !== authenticatedUserId) {
+                  return res.status(403).json({ success: false, error: 'session_not_owned' });
+              }
+              const inRoster = Array.isArray(session.question_ids) && session.question_ids.includes(questionId);
+              const answerBound = session.answers && typeof session.answers === 'object'
+                  && Object.prototype.hasOwnProperty.call(session.answers, questionId);
+              if (!inRoster || (session.status !== 'submitted' && !answerBound)) {
+                  return res.status(409).json({ success: false, error: 'answer_not_locked' });
+              }
           }
 
           const { data: row, error: qErr } = await getSupabase()

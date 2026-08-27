@@ -148,6 +148,7 @@ export default function useServerGradedRun(mode, opts = {}) {
                 entryState: json.entryState || 'free',
                 newBalance: json.newBalance == null ? null : Number(json.newBalance),
                 resumed: json.resumed === true,
+                expiresAt: json.expiresAt || null,
             };
         } catch (e) {
             setError(e.message || 'start_failed');

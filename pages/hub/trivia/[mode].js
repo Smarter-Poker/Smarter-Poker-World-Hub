@@ -1035,41 +1035,12 @@ export default function TriviaModePage() {
                         });
                         if (err_daily_trivia_plays_ccqx1) console.warn('[Supabase] Silent mutation failed in daily_trivia_plays:', err_daily_trivia_plays_ccqx1.message);
 
-                        // Update streak via the hardened RPC (migration 120400).
-                        // The old .upsert() omitted onConflict, so PostgREST
-                        // targeted the `id` primary key the payload never
-                        // supplied — every write was an INSERT that either
-                        // violated the user_id unique constraint or created a
-                        // duplicate streak row. The RPC also locks the row (no
-                        // lost update between two tabs) and derives the streak
-                        // from last_play_date server-side, so a tampered client
-                        // cannot set current_streak to whatever it likes.
-                        const { data: streakRes, error: streakErr } = await supabase.rpc('update_trivia_streak', {
-                            p_user_id: userId,
-                            p_score: correctCount * 100 + (timeRemaining || 0) * 2,
-                            p_correct_count: correctCount,
-                            // XP was retired; the RPC keeps the parameter for
-                            // signature compatibility and ignores it.
-                            p_xp_earned: 0
-                        });
-                        if (streakErr) {
-                            console.warn('[Supabase] update_trivia_streak failed:', streakErr.message);
-                        }
-                        // Prefer the server's numbers — it, not us, owns the streak.
-                        const serverStreak = streakRes && typeof streakRes === 'object' && streakRes.success !== false
-                            ? Number(streakRes.current_streak)
-                            : NaN;
-                        const serverBest = streakRes && typeof streakRes === 'object'
-                            ? Number(streakRes.best_streak)
-                            : NaN;
-                        const appliedStreak = Number.isFinite(serverStreak) ? serverStreak : newStreak;
-                        newStreak = appliedStreak;
-                        // Keep local streak state in sync
-                        setUserStreak(appliedStreak);
+                        // award_trivia_run_v2 already updated the streak from
+                        // durably bound, server-graded answers. Keep the local
+                        // display optimistic until the normal data refresh.
+                        setUserStreak(newStreak);
                         setLastPlayDate(today);
-                        const appliedBest = Number.isFinite(serverBest)
-                            ? serverBest
-                            : Math.max(appliedStreak, bestStreak);
+                        const appliedBest = Math.max(newStreak, bestStreak);
                         if (appliedBest > bestStreak) setBestStreak(appliedBest);
                     }
                     savePhaseRef.current = 5;

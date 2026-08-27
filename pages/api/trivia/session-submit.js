@@ -27,9 +27,10 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * -- SERVER-RECORDED ANSWERS TAKE PRECEDENCE ------------------------------
  * When a run went through /api/trivia/session-answer (per-answer verdicts),
  * every revealed answer is already stored on the session row. Those stored
- * answers are BINDING here: the client's copy is only consulted for
- * questions that never went through session-answer. Otherwise "see the
- * verdict, then submit a corrected answer" would defeat the whole flow.
+ * answers are BINDING here; questions that never went through session-answer
+ * are unanswered. Otherwise
+ * a replay could settle from browser-only answers that were never durably
+ * bound and could not be reconstructed from the transaction record.
  * Arcade's stake pot is likewise recomputed from the stored answer SEQUENCE
  * (ordinal 'n'), never taken from the client.
  *
@@ -49,7 +50,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { serviceClient, deterministicOptionOrder, optionOrderSeed } from './tournament-lifecycle';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
-import { getTodayStartCST, getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import { calculateDiamonds, DAILY_DIAMOND_CAPS, getModeConfig } from '../../../src/lib/trivia/triviaEngine';
 import { computeStakePot, ARCADE_MAX_RUN_PAYOUT, CASH_OUT_MIN_ANSWERED } from '../../../src/lib/trivia/arcadeStakes';
 
@@ -133,7 +134,7 @@ export default async function handler(req, res) {
         // --- LOAD THE SESSION (service role; RLS blocks client writes) ----
         const { data: session, error: loadErr } = await sb
             .from('trivia_sessions')
-            .select('id, user_id, mode, question_ids, permutations, status, created_at, answers')
+            .select('id, user_id, mode, question_ids, permutations, status, created_at, expires_at, answers, settlement_result')
             .eq('id', sessionId)
             .maybeSingle();
         if (loadErr) {
@@ -148,23 +149,18 @@ export default async function handler(req, res) {
         if (session.user_id !== userId) {
             return res.status(403).json({ success: false, error: 'not_your_session' });
         }
-        if (session.status !== 'open') {
-            return res.status(409).json({ success: false, error: 'already_submitted' });
+        const replaying = session.status === 'submitted';
+        if (session.status !== 'open' && !replaying) {
+            return res.status(409).json({ success: false, error: 'session_closed' });
         }
 
         const createdMs = session.created_at ? new Date(session.created_at).getTime() : NaN;
         const ageMs = Number.isFinite(createdMs) ? Date.now() - createdMs : Number.POSITIVE_INFINITY;
-        if (ageMs > SESSION_TTL_MS) {
-            // Expire it rather than grade it - an open session is a standing
-            // claim on a diamond payout, and one held for days is a stockpile.
-            // Conditional on status='open' so it cannot race a real submit.
-            await sb
-                .from('trivia_sessions')
-                .update({ status: 'expired', submitted_at: new Date().toISOString() })
-                .eq('id', sessionId)
-                .eq('status', 'open');
-            return res.status(410).json({ success: false, error: 'session_expired' });
-        }
+        const expiresMs = session.expires_at ? new Date(session.expires_at).getTime() : NaN;
+        const deadlinePassed = !replaying && (
+            (Number.isFinite(expiresMs) && Date.now() > expiresMs)
+            || (!Number.isFinite(expiresMs) && ageMs > SESSION_TTL_MS)
+        );
 
         const mode = session.mode;
         const rosterIds = (Array.isArray(session.question_ids) ? session.question_ids : [])
@@ -172,16 +168,15 @@ export default async function handler(req, res) {
         if (rosterIds.length === 0) {
             return res.status(400).json({ success: false, error: 'empty_session' });
         }
-        const rosterSet = new Set(rosterIds);
-
         // --- COLLECT ANSWERS, DROPPING ANYTHING OFF-ROSTER ---------------
         // submit.js grades whatever ids the client sends, so a client could
         // hand it a hand-picked list of questions it already knew. Here an id
         // that was not served in THIS session is simply not gradeable.
         //
-        // Precedence: answers recorded through /api/trivia/session-answer are
-        // BINDING (their verdicts were already revealed); the client-sent
-        // array only fills in questions that never went through that route.
+        // Only answers recorded through /api/trivia/session-answer count.
+        // The submit body's array is accepted for wire compatibility but is
+        // never a source of truth: every paid answer must have a durable,
+        // timestamped first-answer-wins record before settlement.
         const serverAnswers = (session.answers && typeof session.answers === 'object')
             ? session.answers
             : {};
@@ -190,13 +185,7 @@ export default async function handler(req, res) {
             const rec = serverAnswers[qid];
             if (rec && Number.isInteger(rec.d)) byId.set(qid, rec.d);
         }
-        for (const a of answers) {
-            const qid = a?.questionId ?? a?.question_id ?? a?.id;
-            const idx = a?.displayIndex ?? a?.display_index ?? a?.index;
-            if (typeof qid !== 'string' || !rosterSet.has(qid)) continue;
-            if (byId.has(qid)) continue; // server-recorded or first answer wins
-            byId.set(qid, Number.isInteger(idx) ? idx : -1);
-        }
+        // `answers` deliberately remains unread beyond shape validation.
 
         // --- THE ANSWER KEY, FETCHED SERVER-SIDE ONLY --------------------
         const { data: keyRows, error: keyErr } = await sb
@@ -328,57 +317,29 @@ export default async function handler(req, res) {
             return res.status(code).json({ success: false, error: award.error || 'award_rejected' });
         }
 
-        // --- DAILY COMPLETION BONUS (server-paid) ------------------------
-        // Finishing the whole daily roster has always paid +10 on top of the
-        // run reward, once per CST day. The client used to credit it and no
-        // longer can (the browser credit RPC lost authenticated EXECUTE on
-        // 2026-08-03), so it is paid here. Idempotent by construction: the
-        // reference id embeds the CST date and add_diamonds_to_balance
-        // dedups on reference ids, so a retry, a resubmit race, or a second
-        // run today all collapse to the one credit. Paid on top of the
-        // mode's daily cap on purpose - that is the historic behavior
-        // (capped run reward + flat completion bonus).
-        let dailyBonusAwarded = 0;
-        let bonusBalance = null;
-        // Completion means the whole served roster was answered. The old
-        // check looked only at roster length, so `answers: []` still received
-        // the +10 completion bonus as long as the server had dealt 10 rows.
-        if (mode === 'daily' && total >= 10 && byId.size >= total) {
-            try {
-                const { data: bonusRes, error: bonusErr } = await sb.rpc('add_diamonds_to_balance', {
-                    p_user_id: userId,
-                    p_amount: 10,
-                    p_type: 'trivia_daily_bonus',
-                    p_description: 'Daily trivia completion bonus',
-                    p_reference_id: `trivia_daily_bonus_${userId}_${getTodayCST()}`,
-                });
-                if (bonusErr) {
-                    console.warn('[trivia session-submit] daily bonus credit failed:', bonusErr.message || bonusErr);
-                } else if (bonusRes && bonusRes.success !== false) {
-                    // success:false is the dedup answer - the bonus was
-                    // already paid today, so this run reports 0 extra.
-                    dailyBonusAwarded = 10;
-                    bonusBalance = bonusRes.new_balance ?? null;
-                }
-            } catch (e) {
-                console.warn('[trivia session-submit] daily bonus credit threw:', e?.message || e);
-            }
-        }
+        const settledCorrect = Number.isFinite(Number(award?.correct_count))
+            ? Number(award.correct_count)
+            : correct;
+        const settledScore = Number.isFinite(Number(award?.score))
+            ? Number(award.score)
+            : score;
 
         res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
         return res.status(200).json({
             success: true,
             sessionId,
             mode,
-            correct,
+            correct: settledCorrect,
             total,
-            score,
+            score: settledScore,
             scoreId: award?.score_id ?? null,
             diamondsAwarded: Number.isFinite(Number(award?.diamonds_awarded))
                 ? Number(award.diamonds_awarded)
                 : diamonds,
-            dailyBonusAwarded,
-            newBalance: bonusBalance ?? award?.new_balance ?? null,
+            dailyBonusAwarded: Number(award?.daily_bonus_awarded) || 0,
+            newBalance: award?.new_balance ?? null,
+            replayed: award?.replayed === true,
+            deadlinePassed,
             perQuestion,
         });
     } catch (e) {
