@@ -49,7 +49,7 @@ class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        this.cameras.main.setBackgroundColor('#080810');
+        this.cameras.main.setBackgroundColor('#0a0e17');
         const cx = this.cameras.main.width / 2;
         const cy = this.cameras.main.height / 2;
         this.add.text(cx, cy, 'Loading...', { fontSize: '20px', color: '#ff8800' }).setOrigin(0.5);
@@ -140,9 +140,20 @@ class GameTableScene extends Phaser.Scene {
         g.lineStyle(20, 0xffffff, 0.35);
         g.strokeRoundedRect(cx - (w + 14) / 2, cy - (h + 14) / 2, w + 14, h + 14, r + 7);
 
-        // 7. FELT (pure black)
-        g.fillStyle(0x0a0a0a, 1);
+        // 7. FELT — Club Arena green.
+        //
+        // This was pure black (0x0a0a0a), which read as a hole in the middle of
+        // the gold rail rather than as a table. The rails above are already
+        // Club Arena gold; the felt is the one thing that was not. Phaser has no
+        // gradient fill for a rounded rect, so the depth comes from three
+        // stacked fills going lighter toward the centre -- the same direction
+        // the Club Arena artwork lights its felt (brightest around 44% height).
+        g.fillStyle(0x08301e, 1);
         g.fillRoundedRect(cx - w / 2, cy - h / 2, w, h, r);
+        g.fillStyle(0x0d4a2e, 1);
+        g.fillRoundedRect(cx - (w - 26) / 2, cy - (h - 26) / 2, w - 26, h - 26, r - 13);
+        g.fillStyle(0x12603c, 1);
+        g.fillRoundedRect(cx - (w - 70) / 2, cy - (h - 70) / 2, w - 70, h - 70, r - 35);
     }
 
     createSeats() {
@@ -269,7 +280,7 @@ const PokerGame: React.FC<PokerGameProps> = ({
             parent: 'poker-game-container',
             width: CANVAS_WIDTH,
             height: CANVAS_HEIGHT,
-            backgroundColor: '#080810',
+            backgroundColor: '#0a0e17',
             scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
             scene: [BootScene, GameTableScene]
         };
@@ -290,9 +301,9 @@ const PokerGame: React.FC<PokerGameProps> = ({
     }, [isLoading, timer]);
 
     return (
-        <div className="relative w-full h-screen flex flex-col" style={{ backgroundColor: '#080810' }}>
+        <div className="relative w-full h-screen flex flex-col" style={{ backgroundColor: '#0a0e17' }}>
             {/* HEADER */}
-            <div className="flex justify-between items-center px-4 py-2" style={{ backgroundColor: '#080810' }}>
+            <div className="flex justify-between items-center px-4 py-2" style={{ backgroundColor: '#0a0e17' }}>
                 <button className="text-white text-xs font-bold px-4 py-2 rounded-full" style={{ backgroundColor: '#0891b2' }}>
                     ← Back to Training
                 </button>
@@ -333,7 +344,7 @@ const PokerGame: React.FC<PokerGameProps> = ({
             </div>
 
             {/* ACTION BUTTONS */}
-            <div className="grid grid-cols-2 gap-3 p-4" style={{ backgroundColor: '#080810' }}>
+            <div className="grid grid-cols-2 gap-3 p-4" style={{ backgroundColor: '#0a0e17' }}>
                 <button onClick={onFold} className="font-bold py-4 rounded-xl text-white text-lg" style={{ backgroundColor: '#1d4ed8' }}>Fold</button>
                 <button onClick={onCall} className="font-bold py-4 rounded-xl text-white text-lg" style={{ backgroundColor: '#2563eb' }}>Call</button>
                 <button onClick={onRaise} className="font-bold py-4 rounded-xl text-white text-lg" style={{ backgroundColor: '#2563eb' }}>Raise To 8BB</button>

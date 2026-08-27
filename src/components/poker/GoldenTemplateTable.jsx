@@ -282,7 +282,7 @@ export default function GoldenTemplateTable({
                     right: '8%',
                     bottom: '12%',
                     borderRadius: '50% / 38%',
-                    background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 50%, #050505 100%)',
+                    background: 'linear-gradient(180deg, #0a0e17 0%, #111827 40%, #080d15 100%)',
                     boxShadow: `
                         0 25px 80px rgba(0,0,0,0.95),
                         0 8px 30px rgba(0,0,0,0.8),
@@ -340,13 +340,20 @@ export default function GoldenTemplateTable({
                                             position: 'absolute',
                                             inset: 0,
                                             borderRadius: '50% / 33%',
+                                            /* Club Arena green. This was a near-black
+                                               ramp (#181818 -> #050505), which inside
+                                               gold rails reads as a hole rather than a
+                                               table. Same five stops, same 50%/35%
+                                               origin -- only the colours move, so the
+                                               depth and the highlight stay where they
+                                               were. */
                                             background: `radial-gradient(
                                                 ellipse at 50% 35%,
-                                                #181818 0%,
-                                                #121212 25%,
-                                                #0d0d0d 50%,
-                                                #080808 75%,
-                                                #050505 100%
+                                                #1d7a4f 0%,
+                                                #176a45 25%,
+                                                #12603c 50%,
+                                                #0d4a2e 75%,
+                                                #08301e 100%
                                             )`,
                                             boxShadow: `
                                                 inset 0 0 120px rgba(0,0,0,0.9),

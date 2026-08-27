@@ -687,7 +687,12 @@ function WinFlyUp({ amount, isVisible }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const FELT_OPTIONS = [
-  { id: 'classic-green', label: 'Classic Green', color: '#0d5a2e', gradient: 'radial-gradient(ellipse, #1a7a42 0%, #0d5a2e 60%, #064020 100%)' },
+  // Club Arena's exact felt. This is FELT_OPTIONS[0] and therefore the default
+  // every table falls back to, so matching it here is what makes an
+  // un-customised live table look like the Club Arena one. The other five
+  // options are deliberately untouched: felt colour is a player setting synced
+  // to Supabase, and overriding someone's saved choice is not a reskin.
+  { id: 'classic-green', label: 'Classic Green', color: '#12603c', gradient: 'radial-gradient(ellipse, #1d7a4f 0%, #12603c 38%, #0d4a2e 68%, #08301e 100%)' },
   { id: 'royal-blue', label: 'Royal Blue', color: '#0a3d6e', gradient: 'radial-gradient(ellipse, #1565c0 0%, #0a3d6e 60%, #062a4e 100%)' },
   { id: 'wine-red', label: 'Wine Red', color: '#6d1b2a', gradient: 'radial-gradient(ellipse, #9c2340 0%, #6d1b2a 60%, #461220 100%)' },
   { id: 'midnight', label: 'Midnight', color: '#1a1a2e', gradient: 'radial-gradient(ellipse, #2a2a4e 0%, #1a1a2e 60%, #0f0f1e 100%)' },
