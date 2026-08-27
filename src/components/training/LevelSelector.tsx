@@ -99,23 +99,23 @@ const LevelCard: React.FC<{
     const getCardStyle = () => {
         if (isCompleted) {
             return {
-                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.1))',
-                border: '2px solid #FFD700',
-                boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)',
+                background: 'linear-gradient(145deg, rgba(38, 65, 78, 0.98), rgba(4, 16, 24, 0.98) 48%, rgba(14, 37, 49, 0.98))',
+                border: '1px solid rgba(139, 234, 255, 0.72)',
+                boxShadow: '0 20px 45px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.28), inset 0 -2px 0 rgba(0,0,0,.84), 0 0 24px rgba(35,215,255,.12)',
             };
         }
         if (isUnlocked) {
             return {
-                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 100, 200, 0.08))',
-                border: '2px solid rgba(0, 212, 255, 0.5)',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+                background: 'linear-gradient(145deg, rgba(28, 52, 67, 0.98), rgba(3, 13, 22, 0.98) 48%, rgba(10, 29, 41, 0.98))',
+                border: '1px solid rgba(139, 234, 255, 0.45)',
+                boxShadow: '0 18px 38px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.2), inset 0 -2px 0 rgba(0,0,0,.8)',
             };
         }
         return {
-            background: 'rgba(30, 30, 50, 0.5)',
-            border: '2px solid rgba(100, 100, 120, 0.3)',
-            boxShadow: 'none',
-            opacity: 0.6,
+            background: 'linear-gradient(145deg, rgba(20, 31, 40, 0.9), rgba(3, 9, 14, 0.96))',
+            border: '1px solid rgba(107, 133, 147, 0.28)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08), inset 0 -2px 0 rgba(0,0,0,.75)',
+            opacity: 0.72,
         };
     };
 
@@ -123,6 +123,7 @@ const LevelCard: React.FC<{
 
     return (
         <motion.div
+            className={`sp-level-card ${isCompleted ? 'is-complete' : isUnlocked ? 'is-open' : 'is-locked'}`}
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.08, duration: 0.4 }}
@@ -135,11 +136,11 @@ const LevelCard: React.FC<{
             <div style={{
                 ...styles.levelBadge,
                 background: isCompleted
-                    ? 'linear-gradient(135deg, #FFD700, #FFA500)'
+                    ? 'linear-gradient(145deg, #f5fdff, #6ac6e1 45%, #17394d)'
                     : isUnlocked
-                        ? 'linear-gradient(135deg, #00D4FF, #0099CC)'
-                        : 'rgba(100, 100, 120, 0.5)',
-                color: isCompleted ? '#000' : '#fff',
+                        ? 'linear-gradient(145deg, #a9f2ff, #159fd2 45%, #063c58)'
+                        : 'linear-gradient(145deg, #607583, #1a2a34)',
+                color: '#03101a',
             }}>
                 {isCompleted ? '✓' : level}
             </div>
@@ -197,15 +198,16 @@ const LevelCard: React.FC<{
 
                         {/* Play Button */}
                         <motion.button
+                            className="sp-level-play"
                             onClick={() => onPlay(level)}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             style={{
                                 ...styles.playButton,
                                 background: isCompleted
-                                    ? 'linear-gradient(135deg, #FFD700, #FFA500)'
-                                    : 'linear-gradient(135deg, #00D4FF, #0099CC)',
-                                color: isCompleted ? '#000' : '#fff',
+                                    ? 'linear-gradient(180deg, #d9f8ff, #2786a7 48%, #0b3448)'
+                                    : 'linear-gradient(180deg, #7be9ff, #078cc0 48%, #043a54)',
+                                color: '#f5fdff',
                             }}
                         >
                             {isCompleted ? '▶ REPLAY' : highScore !== null ? '▶ RETRY' : '▶ PLAY'}
@@ -442,14 +444,14 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
     const totalProgress = (completedLevels / 10) * 100;
 
     return (
-        <div style={styles.container}>
+        <div className="sp-level-selector" style={styles.container}>
             {/* Header */}
-            <header style={styles.header}>
-                <button onClick={handleBack} style={styles.backButton}>
+            <header className="sp-level-header" style={styles.header}>
+                <button className="sp-level-back" onClick={handleBack} style={styles.backButton}>
                     ← Back
                 </button>
 
-                <div style={styles.gameInfo}>
+                <div className="sp-level-game-info" style={styles.gameInfo}>
                     <h1 style={styles.gameTitle}>{gameData?.title || 'Loading...'}</h1>
                     <div style={styles.progressSummary}>
                         <span style={styles.progressText}>
@@ -466,13 +468,13 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                     </div>
                 </div>
 
-                <div style={styles.categoryBadge}>
+                <div className="sp-level-category" style={styles.categoryBadge}>
                     {gameData?.category || '...'}
                 </div>
             </header>
 
             {/* Level Map */}
-            <main style={styles.levelMap}>
+            <main className="sp-level-map" style={styles.levelMap}>
                 {loading ? (
                     <div style={styles.loading}>
                         <motion.div
@@ -480,7 +482,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                             style={styles.spinner}
                         >
-
+                            ◇
                         </motion.div>
                         <p>Loading Levels...</p>
                     </div>
@@ -521,7 +523,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                                 transition={{ duration: 1, repeat: Infinity }}
                                 style={styles.loadingIcon}
                             >
-
+                                ◇
                             </motion.div>
                             <p>Starting Level {startingLevel}...</p>
                         </div>
@@ -538,244 +540,89 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
 const styles: { [key: string]: React.CSSProperties } = {
     container: {
-        minHeight: '100vh',
-        background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
-        color: '#fff',
-        fontFamily: 'Inter, -apple-system, sans-serif',
+        minHeight: 'calc(100dvh - 59px)',
+        background: 'radial-gradient(circle at 50% 0%, rgba(13,112,174,.22), transparent 38%), linear-gradient(180deg, rgba(2,10,18,.9), rgba(1,6,11,.98))',
+        color: '#eefbff',
+        fontFamily: "var(--font-rajdhani, 'Rajdhani'), sans-serif",
     },
-
     header: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '16px 24px',
-        background: 'rgba(0, 0, 0, 0.3)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18,
+        padding: '18px clamp(16px, 4vw, 56px)',
+        background: 'linear-gradient(180deg, rgba(35,57,71,.98), rgba(5,16,24,.98) 48%, rgba(13,32,43,.98))',
+        borderTop: '1px solid rgba(217,248,255,.35)', borderBottom: '2px solid rgba(35,215,255,.66)',
+        boxShadow: '0 14px 32px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.16)',
     },
-
     backButton: {
-        padding: '8px 16px',
-        background: 'rgba(255, 255, 255, 0.1)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        borderRadius: 8,
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: 'pointer',
+        padding: '8px 16px', background: 'linear-gradient(180deg, #294858, #0a1c28 52%, #020b12)',
+        border: '1px solid rgba(159,229,255,.55)', borderRadius: 0, color: '#eefbff',
+        fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
     },
-
-    gameInfo: {
-        textAlign: 'center' as const,
-        flex: 1,
-    },
-
+    gameInfo: { textAlign: 'center' as const, flex: 1, minWidth: 0 },
     gameTitle: {
-        margin: 0,
-        fontSize: 24,
-        fontWeight: 800,
-        color: '#fff',
-        letterSpacing: 0.5,
+        margin: 0, fontSize: 24, fontWeight: 800, color: '#f5fdff', letterSpacing: 1.2,
+        fontFamily: "var(--font-orbitron, 'Orbitron'), sans-serif",
     },
-
-    progressSummary: {
-        marginTop: 8,
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center',
-        gap: 6,
-    },
-
-    progressText: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.6)',
-    },
-
+    progressSummary: { marginTop: 8, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 6 },
+    progressText: { fontSize: 12, color: '#9eb8c6', letterSpacing: 0.8 },
     progressTrack: {
-        width: 200,
-        height: 6,
-        background: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 3,
-        overflow: 'hidden',
+        width: 220, maxWidth: '100%', height: 6, background: 'rgba(0,0,0,.72)',
+        border: '1px solid rgba(139,234,255,.2)', borderRadius: 0, overflow: 'hidden',
     },
-
     progressFill: {
-        height: '100%',
-        background: 'linear-gradient(90deg, #FFD700, #FFA500)',
-        borderRadius: 3,
+        height: '100%', background: 'linear-gradient(90deg, #087faf, #70e8ff, #d9f8ff)',
+        borderRadius: 0, boxShadow: '0 0 12px rgba(35,215,255,.5)',
     },
-
     categoryBadge: {
-        padding: '6px 12px',
-        background: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 12,
-        fontSize: 12,
-        fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.8)',
+        padding: '7px 12px', background: 'linear-gradient(180deg, rgba(43,73,89,.95), rgba(4,16,24,.96))',
+        border: '1px solid rgba(139,234,255,.4)', borderRadius: 0, fontSize: 11, fontWeight: 700,
+        color: '#cceef8', letterSpacing: 1.2, whiteSpace: 'nowrap',
     },
-
-    levelMap: {
-        padding: '24px',
-        maxWidth: 600,
-        margin: '0 auto',
-    },
-
-    loading: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 400,
-        gap: 16,
-    },
-
-    spinner: {
-        fontSize: 48,
-    },
-
-    levelList: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        gap: 0,
-    },
-
+    levelMap: { padding: '28px clamp(14px, 4vw, 40px)', maxWidth: 980, margin: '0 auto' },
+    loading: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', height: 400, gap: 16 },
+    spinner: { fontSize: 48, color: '#7be9ff', textShadow: '0 0 24px rgba(35,215,255,.7)' },
+    levelList: { display: 'flex', flexDirection: 'column' as const, gap: 0 },
     levelCard: {
-        position: 'relative' as const,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '16px 20px',
-        borderRadius: 12,
-        marginBottom: 16,
-        transition: 'all 0.2s ease',
+        position: 'relative' as const, display: 'flex', alignItems: 'center', padding: '18px 20px',
+        borderRadius: 0, marginBottom: 14, transition: 'transform .2s ease, border-color .2s ease, box-shadow .2s ease',
     },
-
     levelBadge: {
-        width: 44,
-        height: 44,
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 18,
-        fontWeight: 800,
-        flexShrink: 0,
+        width: 48, height: 48, borderRadius: 0, border: '1px solid rgba(221,249,255,.72)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5), 0 0 18px rgba(35,215,255,.25)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800,
+        flexShrink: 0, fontFamily: "var(--font-orbitron, 'Orbitron'), sans-serif",
     },
-
-    levelInfo: {
-        flex: 1,
-        marginLeft: 16,
-    },
-
-    levelTitle: {
-        margin: 0,
-        fontSize: 16,
-        fontWeight: 700,
-    },
-
-    levelDesc: {
-        margin: '4px 0 0 0',
-        fontSize: 12,
-    },
-
-    requirement: {
-        marginTop: 6,
-        display: 'flex',
-        alignItems: 'center',
-    },
-
-    scoreSection: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'flex-end',
-        gap: 8,
-        minWidth: 100,
-    },
-
-    highScore: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'flex-end',
-    },
-
-    highScoreLabel: {
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.5)',
-    },
-
-    highScoreValue: {
-        fontSize: 20,
-        fontWeight: 800,
-    },
-
-    notAttempted: {
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.4)',
-    },
-
+    levelInfo: { flex: 1, marginLeft: 18, minWidth: 0 },
+    levelTitle: { margin: 0, fontSize: 17, fontWeight: 700, letterSpacing: 0.4 },
+    levelDesc: { margin: '4px 0 0 0', fontSize: 13, lineHeight: 1.45 },
+    requirement: { marginTop: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' as const, rowGap: 4 },
+    scoreSection: { display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 8, minWidth: 112 },
+    highScore: { display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end' },
+    highScoreLabel: { fontSize: 10, color: '#829cab', letterSpacing: 1 },
+    highScoreValue: { fontSize: 22, fontWeight: 800, fontFamily: "var(--font-orbitron, 'Orbitron'), sans-serif" },
+    notAttempted: { fontSize: 11, color: '#829cab' },
     playButton: {
-        padding: '8px 16px',
-        border: 'none',
-        borderRadius: 16,
-        fontSize: 12,
-        fontWeight: 700,
-        cursor: 'pointer',
-        letterSpacing: 0.5,
+        padding: '9px 18px', border: '1px solid rgba(217,248,255,.7)', borderRadius: 0,
+        fontSize: 12, fontWeight: 800, cursor: 'pointer', letterSpacing: 0.8,
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.42), inset 0 -2px 0 rgba(0,0,0,.72), 0 8px 18px rgba(0,0,0,.34)',
     },
-
-    lockedSection: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center',
-        gap: 4,
-    },
-
-    lockIcon: {
-        fontSize: 20,
-    },
-
-    lockText: {
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.4)',
-        textAlign: 'center' as const,
-    },
-
+    lockedSection: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 4 },
+    lockIcon: { fontSize: 16, color: '#607583' },
+    lockText: { fontSize: 10, color: '#78909e', textAlign: 'center' as const },
     connectionLine: {
-        position: 'absolute' as const,
-        bottom: -16,
-        left: 38,
-        width: 4,
-        height: 16,
-        borderRadius: 2,
+        position: 'absolute' as const, bottom: -14, left: 42, width: 2, height: 14,
+        borderRadius: 0, boxShadow: '0 0 8px rgba(35,215,255,.25)',
     },
-
     footer: {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 12,
-        padding: '16px 24px',
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.4)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, padding: '18px 24px',
+        fontSize: 12, color: '#829cab', borderTop: '1px solid rgba(139,234,255,.18)', letterSpacing: 0.5,
     },
-
     loadingOverlay: {
-        position: 'fixed' as const,
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.9)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
+        position: 'fixed' as const, inset: 0,
+        background: 'radial-gradient(circle, rgba(9,49,71,.96), rgba(1,6,10,.98) 60%)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
     },
-
-    loadingContent: {
-        textAlign: 'center' as const,
-    },
-
-    loadingIcon: {
-        fontSize: 64,
-        marginBottom: 16,
-    },
+    loadingContent: { textAlign: 'center' as const },
+    loadingIcon: { fontSize: 64, color: '#7be9ff', textShadow: '0 0 24px rgba(35,215,255,.7)', marginBottom: 16 },
 };
 
 export default LevelSelector;
