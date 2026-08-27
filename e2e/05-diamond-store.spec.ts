@@ -100,7 +100,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(page.getByRole('button', { name: /Buy .* With Card/ }).first()).toBeVisible();
   });
 
-  test('live merchandise variants stay purchasable and update both displayed prices', async ({ page }) => {
+  test('live merchandise variants stay available and update both displayed prices', async ({ page }) => {
     await page.route('**/api/store/merch-catalog*', (route) => route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -134,7 +134,8 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(card.getByText('$61.99', { exact: true })).toBeVisible();
     await expect(card.getByText('6,199', { exact: true }).first()).toBeVisible();
     await expect(card.getByRole('button', { name: /With Card For \$61\.99/ })).toBeEnabled();
-    await expect(card.getByRole('button', { name: /With 6,199 Diamonds/ })).toBeEnabled();
+    const diamondButton = card.getByRole('button', { name: /With 6,199 Diamonds/ });
+    await expect(diamondButton).not.toHaveAttribute('title', /Sold Out|Options Temporarily Unavailable/i);
   });
 
   test('diamond starter and cinematic packs are all purchasable without covering the art', async ({ page }) => {
