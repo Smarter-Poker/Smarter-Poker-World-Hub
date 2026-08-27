@@ -1,0 +1,2 @@
+async function w(i,t={}){const e=t.pageSize??1e3,o=t.maxPages??5e3,a=t.label??"fetchAllRows";if(e<1)throw new Error(`${a}: pageSize must be at least 1`);const s=[];for(let r=0;r<o;r++){const n=r*e,{data:g,error:l}=await i(n,n+e-1);if(l)throw new Error(`${a}: page ${r} failed - ${l.message??"unknown error"}`);const f=g??[];if(s.push(...f),f.length<e)return s}throw new Error(`${a}: still returning full pages after ${o} of them - refusing to loop forever. This is a bug in the query, not a row limit.`)}export{w as f};
+//# sourceMappingURL=fetchAllRows-BTxTL9zE-v6.js.map
