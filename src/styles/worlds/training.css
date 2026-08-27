@@ -284,6 +284,562 @@ body.world-training {
     }
 }
 
+/* =========================================================================
+   PHASE 6 — SECONDARY TRAINING SURFACES
+   =========================================================================
+   One command-deck language for the shared game campaign, setup, and review
+   templates. These selectors never target UniversalHeader.
+   ========================================================================= */
+
+body.world-training .sp-level-header {
+    width: min(1180px, calc(100% - 32px));
+    min-height: 330px;
+    margin: 24px auto 0;
+    padding: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr) !important;
+    gap: 0 !important;
+    overflow: hidden;
+    border: 1px solid rgba(147, 228, 255, .62) !important;
+    background: linear-gradient(145deg, rgba(29, 54, 69, .98), rgba(3, 13, 22, .99) 46%, rgba(10, 30, 42, .98)) !important;
+    box-shadow: 0 30px 75px rgba(0, 0, 0, .62), inset 0 1px 0 rgba(236, 252, 255, .26), inset 0 -2px 0 rgba(0, 0, 0, .9) !important;
+}
+
+body.world-training .sp-level-command-copy {
+    position: relative;
+    z-index: 2;
+    padding: clamp(22px, 4vw, 48px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background:
+        linear-gradient(90deg, rgba(3, 13, 22, .98), rgba(3, 13, 22, .88) 78%, transparent),
+        repeating-linear-gradient(90deg, rgba(139, 234, 255, .022) 0 1px, transparent 1px 5px);
+}
+
+body.world-training .sp-level-command-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: clamp(22px, 4vw, 42px);
+}
+
+body.world-training .sp-level-game-info {
+    text-align: left !important;
+}
+
+body.world-training .sp-level-eyebrow {
+    margin-bottom: 8px;
+    color: #78dfff;
+    font: 700 10px/1.2 var(--font-jetbrains-mono, monospace);
+    letter-spacing: .2em;
+    text-transform: uppercase !important;
+}
+
+body.world-training .sp-level-game-info h1 {
+    font-size: clamp(30px, 4.2vw, 58px) !important;
+    line-height: .98 !important;
+    letter-spacing: .015em !important;
+}
+
+body.world-training .sp-level-focus {
+    max-width: 620px;
+    margin: 14px 0 20px;
+    color: #b9d8e6 !important;
+    font-size: clamp(14px, 1.5vw, 18px);
+    line-height: 1.45;
+}
+
+body.world-training .sp-level-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid rgba(139, 234, 255, .18);
+    border-bottom: 1px solid rgba(139, 234, 255, .18);
+    margin-bottom: 16px;
+}
+
+body.world-training .sp-level-stats > div {
+    padding: 12px 12px 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+body.world-training .sp-level-stats > div + div {
+    padding-left: 14px;
+    border-left: 1px solid rgba(139, 234, 255, .14);
+}
+
+body.world-training .sp-level-stats strong {
+    color: #f1fbff;
+    font: 800 clamp(18px, 2.4vw, 28px)/1 var(--font-orbitron, sans-serif);
+}
+
+body.world-training .sp-level-stats span {
+    color: #7f9eae;
+    font: 700 9px/1.2 var(--font-jetbrains-mono, monospace);
+    letter-spacing: .09em;
+    text-transform: uppercase !important;
+}
+
+body.world-training .sp-level-game-info > div:last-child {
+    width: 100%;
+    align-items: flex-start !important;
+}
+
+body.world-training .sp-level-game-info > div:last-child > div {
+    width: 100% !important;
+}
+
+body.world-training .sp-level-command-art {
+    position: relative;
+    min-height: 330px;
+    overflow: hidden;
+    border-left: 1px solid rgba(139, 234, 255, .34);
+    background: #06131e;
+}
+
+body.world-training .sp-level-command-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: saturate(1.15) contrast(1.08);
+    transform: scale(1.035);
+}
+
+body.world-training .sp-level-command-art-shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(3, 13, 22, .78), transparent 35%), linear-gradient(0deg, rgba(1, 7, 12, .9), transparent 48%);
+    box-shadow: inset 18px 0 36px rgba(0, 0, 0, .42), inset 0 0 45px rgba(0, 172, 255, .1);
+}
+
+body.world-training .sp-level-command-art-label {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 12px;
+    color: #cdefff;
+    font: 700 9px/1.2 var(--font-jetbrains-mono, monospace);
+    letter-spacing: .12em;
+    text-transform: uppercase !important;
+}
+
+body.world-training .sp-level-command-art-label strong {
+    color: #7fe7ff;
+    text-align: right;
+}
+
+body.world-training .sp-level-map {
+    max-width: 1180px !important;
+}
+
+body.world-training .sp-level-list,
+body.world-training .sp-level-card {
+    isolation: isolate;
+}
+
+body.world-training .sp-level-card {
+    overflow: hidden;
+}
+
+body.world-training .sp-level-card::after {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: linear-gradient(180deg, #dffaff, #20cfff 45%, #075f83);
+    box-shadow: 0 0 18px rgba(35, 215, 255, .48);
+}
+
+body.world-training .sp-level-card.is-locked::after {
+    background: #3f5663;
+    box-shadow: none;
+}
+
+/* Mission configuration: one wide control deck on desktop, one deliberate
+   vertical flow on mobile. */
+body.world-training .sp-setup-console {
+    padding: 0 !important;
+    border-radius: 0 !important;
+    overflow-x: hidden !important;
+}
+
+body.world-training .sp-setup-close {
+    z-index: 8;
+    background: linear-gradient(180deg, rgba(38, 67, 83, .96), rgba(3, 13, 21, .98)) !important;
+}
+
+body.world-training .sp-setup-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    min-height: min(760px, 88dvh);
+}
+
+body.world-training .sp-setup-identity {
+    position: relative;
+    padding: 0 22px 24px;
+    border-right: 1px solid rgba(139, 234, 255, .28);
+    background: linear-gradient(180deg, rgba(17, 42, 58, .96), rgba(2, 10, 17, .99) 58%);
+}
+
+body.world-training .sp-setup-art {
+    position: relative;
+    height: 260px;
+    margin: 0 -22px 24px;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(139, 234, 255, .48);
+    background: #05101a;
+}
+
+body.world-training .sp-setup-art img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+body.world-training .sp-setup-art-shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, #071722 0%, transparent 62%), radial-gradient(circle at 50% 42%, transparent, rgba(0, 0, 0, .38));
+}
+
+body.world-training .sp-setup-live {
+    position: absolute;
+    left: 18px;
+    bottom: 14px;
+    color: #c8f3ff;
+    font: 700 9px/1 var(--font-jetbrains-mono, monospace);
+    letter-spacing: .14em;
+    text-transform: uppercase !important;
+}
+
+body.world-training .sp-setup-live span {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 7px;
+    border-radius: 50%;
+    background: #4ee9ff;
+    box-shadow: 0 0 14px #2cddff;
+}
+
+body.world-training .sp-setup-title {
+    text-align: left;
+    margin-bottom: 18px;
+}
+
+body.world-training .sp-setup-title .sp-h2 {
+    font-size: clamp(22px, 2.8vw, 34px) !important;
+    line-height: 1.08 !important;
+}
+
+body.world-training .sp-setup-goal,
+body.world-training .sp-setup-performance {
+    margin-top: 12px;
+}
+
+body.world-training .sp-setup-config {
+    min-width: 0;
+    padding: 30px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    background: repeating-linear-gradient(90deg, rgba(139, 234, 255, .018) 0 1px, transparent 1px 5px), rgba(1, 8, 14, .64);
+}
+
+body.world-training .sp-setup-config-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: end;
+    padding: 0 0 16px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid rgba(139, 234, 255, .24);
+}
+
+body.world-training .sp-setup-config-heading > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+body.world-training .sp-setup-config-heading span {
+    color: #7e9cab;
+    font: 700 9px/1.2 var(--font-jetbrains-mono, monospace);
+    letter-spacing: .11em;
+    text-transform: uppercase !important;
+}
+
+body.world-training .sp-setup-config-heading strong {
+    color: #ecfaff;
+    font: 700 18px/1.2 var(--font-orbitron, sans-serif);
+}
+
+body.world-training .sp-setup-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+body.world-training .sp-setup-field {
+    min-width: 0;
+    margin: 0 !important;
+    padding: 13px !important;
+    border: 1px solid rgba(139, 234, 255, .3) !important;
+}
+
+body.world-training .sp-setup-field.is-wide {
+    grid-column: 1 / -1;
+}
+
+body.world-training .sp-setup-field legend {
+    padding: 0 5px;
+    margin: 0 0 6px;
+}
+
+body.world-training .sp-setup-field [role='radiogroup'] {
+    flex-wrap: wrap;
+}
+
+body.world-training .sp-setup-field [role='radio'] {
+    min-width: 60px !important;
+    min-height: 52px;
+}
+
+body.world-training .sp-setup-launch {
+    position: sticky;
+    bottom: -1px;
+    z-index: 4;
+    margin: 16px -28px -24px;
+    padding: 14px 28px calc(14px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    border-top: 1px solid rgba(139, 234, 255, .45);
+    background: linear-gradient(180deg, rgba(22, 48, 63, .98), rgba(2, 10, 17, .995));
+    box-shadow: 0 -14px 30px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .14);
+}
+
+body.world-training .sp-setup-launch > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+body.world-training .sp-setup-launch span {
+    color: #7897a8;
+    font: 700 9px/1.2 var(--font-jetbrains-mono, monospace);
+    letter-spacing: .1em;
+    text-transform: uppercase !important;
+}
+
+body.world-training .sp-setup-launch strong {
+    color: #6ce6ff;
+    font-size: 12px;
+}
+
+body.world-training .sp-setup-launch button {
+    min-width: 220px;
+    padding: 14px 22px;
+}
+
+/* Club Arena review bay: the final page now feels like the same product as
+   the table instead of a generic analytics sheet. */
+body.world-training .sp-arena-review {
+    background:
+        radial-gradient(circle at 50% 12%, rgba(0, 155, 229, .24), transparent 30%),
+        repeating-linear-gradient(90deg, rgba(139, 234, 255, .018) 0 1px, transparent 1px 5px),
+        linear-gradient(180deg, #071722, #01070c) !important;
+}
+
+body.world-training .sp-arena-review__header {
+    min-height: 58px;
+    padding-inline: clamp(12px, 4vw, 38px) !important;
+    border-bottom: 2px solid rgba(35, 215, 255, .55) !important;
+}
+
+body.world-training .sp-arena-review__title {
+    font-family: var(--font-orbitron, sans-serif) !important;
+    letter-spacing: .08em !important;
+}
+
+body.world-training .sp-arena-review__scroll {
+    width: min(1040px, 100%);
+    margin: 0 auto;
+    padding: clamp(14px, 3vw, 30px) !important;
+}
+
+body.world-training .sp-arena-review__score {
+    position: relative;
+    padding: 34px 20px 26px !important;
+    margin-bottom: 12px;
+    border: 1px solid rgba(139, 234, 255, .38);
+    background: radial-gradient(circle at 50% 35%, rgba(16, 172, 224, .22), transparent 42%), linear-gradient(145deg, rgba(27, 51, 66, .92), rgba(2, 10, 17, .98));
+    box-shadow: 0 22px 48px rgba(0, 0, 0, .48), inset 0 1px 0 rgba(255, 255, 255, .2);
+}
+
+body.world-training .sp-arena-review__reward {
+    border-radius: 0 !important;
+    padding: 16px 18px !important;
+    border-color: rgba(255, 211, 92, .48) !important;
+    background: linear-gradient(145deg, rgba(73, 58, 16, .54), rgba(8, 13, 17, .98) 56%, rgba(43, 35, 9, .55)) !important;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, .38), inset 0 1px 0 rgba(255, 238, 176, .2);
+}
+
+body.world-training .sp-arena-review__summary {
+    padding: 14px !important;
+    border: 1px solid rgba(139, 234, 255, .34) !important;
+    background: linear-gradient(180deg, rgba(24, 47, 61, .85), rgba(3, 12, 20, .96));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 12px 28px rgba(0, 0, 0, .32);
+}
+
+body.world-training .sp-arena-review__classification {
+    padding: 16px;
+    border: 1px solid rgba(139, 234, 255, .26);
+    background: rgba(3, 13, 21, .72);
+}
+
+@media (max-width: 760px) {
+    body.world-training .sp-level-header {
+        width: calc(100% - 16px);
+        margin-top: 8px;
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    body.world-training .sp-level-command-copy {
+        padding: 16px 14px 20px;
+    }
+
+    body.world-training .sp-level-command-nav {
+        margin-bottom: 20px;
+    }
+
+    body.world-training .sp-level-command-nav .sp-level-back {
+        min-height: 40px;
+        padding: 8px 10px !important;
+        font-size: 11px !important;
+    }
+
+    body.world-training .sp-level-command-nav .sp-level-category {
+        width: auto;
+        max-width: 46%;
+        padding: 7px 8px !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    body.world-training .sp-level-game-info h1 {
+        font-size: clamp(25px, 8vw, 36px) !important;
+    }
+
+    body.world-training .sp-level-focus {
+        margin-block: 10px 16px;
+        font-size: 14px;
+    }
+
+    body.world-training .sp-level-stats > div {
+        padding: 10px 6px 10px 0;
+    }
+
+    body.world-training .sp-level-stats > div + div {
+        padding-left: 8px;
+    }
+
+    body.world-training .sp-level-stats span {
+        font-size: 8px;
+    }
+
+    body.world-training .sp-level-command-art {
+        min-height: 170px;
+        height: 170px;
+        border-left: 0;
+        border-top: 1px solid rgba(139, 234, 255, .34);
+    }
+
+    body.world-training .sp-setup-console {
+        max-height: 96dvh !important;
+    }
+
+    body.world-training .sp-setup-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    body.world-training .sp-setup-identity {
+        padding: 0 14px 16px;
+        border-right: 0;
+        border-bottom: 1px solid rgba(139, 234, 255, .28);
+    }
+
+    body.world-training .sp-setup-art {
+        height: 170px;
+        margin: 0 -14px 18px;
+    }
+
+    body.world-training .sp-setup-title {
+        padding-right: 42px;
+    }
+
+    body.world-training .sp-setup-config {
+        padding: 20px 12px 14px;
+    }
+
+    body.world-training .sp-setup-config-heading {
+        align-items: flex-start;
+    }
+
+    body.world-training .sp-setup-config-heading > span {
+        display: none;
+    }
+
+    body.world-training .sp-setup-field-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 9px;
+    }
+
+    body.world-training .sp-setup-field.is-wide {
+        grid-column: auto;
+    }
+
+    body.world-training .sp-setup-field [role='radio'] {
+        min-width: 92px !important;
+    }
+
+    body.world-training .sp-setup-launch {
+        margin: 14px -12px -14px;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.world-training .sp-setup-launch > div {
+        display: none;
+    }
+
+    body.world-training .sp-setup-launch button {
+        width: 100%;
+        min-width: 0;
+    }
+
+    body.world-training .sp-arena-review__scroll {
+        padding: 10px !important;
+    }
+
+    body.world-training .sp-arena-review__score {
+        padding: 25px 12px 20px !important;
+    }
+
+    body.world-training .sp-arena-review__summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px 4px !important;
+    }
+}
+
 
 /* ──────────────────────────────────────────────────────────────────────────
    3. :focus-visible RINGS (WCAG 2.4.7 — Focus Visible)
@@ -1203,5 +1759,68 @@ body.world-training .sp-training-route-shell[data-training-route='/hub/training/
 
     body.world-training .sp-level-play {
         min-width: 116px;
+    }
+}
+
+/* Phase 6 is intentionally the last word at the mobile breakpoint. The older
+   level-selector compatibility rules above target the former flat header. */
+@media (max-width: 768px) {
+    body.world-training .sp-level-header {
+        width: calc(100% - 16px);
+        min-height: 0;
+        margin: 8px auto 0;
+        padding: 0 !important;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 0 !important;
+        align-items: stretch !important;
+    }
+
+    body.world-training .sp-level-command-copy {
+        padding: 16px 14px 20px;
+    }
+
+    body.world-training .sp-level-command-nav {
+        margin-bottom: 20px;
+    }
+
+    body.world-training .sp-level-command-nav .sp-level-back,
+    body.world-training .sp-level-command-nav .sp-level-category,
+    body.world-training .sp-level-game-info {
+        grid-column: auto;
+        grid-row: auto;
+        order: initial;
+    }
+
+    body.world-training .sp-level-command-nav .sp-level-category {
+        width: auto;
+        max-width: 46%;
+        justify-self: auto;
+    }
+
+    body.world-training .sp-level-game-info h1 {
+        white-space: normal;
+        font-size: clamp(25px, 8vw, 36px) !important;
+        line-height: 1 !important;
+    }
+
+    body.world-training .sp-level-game-info > .sp-level-eyebrow {
+        margin: 0 0 8px !important;
+    }
+
+    body.world-training .sp-level-game-info > .sp-level-stats {
+        margin: 0 0 16px !important;
+        align-items: stretch !important;
+    }
+
+    body.world-training .sp-level-game-info > div:last-child {
+        margin-top: 0 !important;
+    }
+
+    body.world-training .sp-level-command-art {
+        min-height: 170px;
+        height: 170px;
+        border-left: 0;
+        border-top: 1px solid rgba(139, 234, 255, .34);
     }
 }
