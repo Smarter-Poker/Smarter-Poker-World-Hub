@@ -14,6 +14,7 @@ const atomicEconomy = read('supabase/migrations/20260827230500_trivia_phase6_ato
 const settlement = read('supabase/migrations/20260827231000_trivia_phase6_settlement_replay.sql');
 const retireBiasedV2 = read('supabase/migrations/20260827231500_trivia_phase6_retire_biased_v2.sql');
 const serverOwnedStats = read('supabase/migrations/20260827232000_trivia_phase6_server_owned_stats.sql');
+const tournamentInvoker = read('supabase/migrations/20260827232500_trivia_phase6_tournament_view_invoker.sql');
 const submit = read('pages/api/trivia/session-submit.js');
 const answer = read('pages/api/trivia/session-answer.js');
 const legacySubmit = read('pages/api/trivia/submit.js');
@@ -103,4 +104,11 @@ test('streak and PvP statistics are owned by verified server settlement', () => 
     assert.match(pvpSettlement, /settlement_kind: decision\.kind/);
     assert.doesNotMatch(pvpPage, /fn_trivia_pvp_record_result/);
     assert.doesNotMatch(modePage, /supabase\.rpc\('update_trivia_streak'/);
+});
+
+test('public tournament catalogue is invoker-safe and carries no question roster', () => {
+    assert.match(tournamentInvoker, /WITH \(security_invoker = true\)/);
+    assert.match(tournamentInvoker, /'\[\]'::jsonb AS questions/);
+    assert.match(tournamentInvoker, /REVOKE ALL PRIVILEGES ON public\.trivia_tournaments FROM anon, authenticated/);
+    assert.doesNotMatch(tournamentInvoker, /GRANT SELECT \([^)]*questions/s);
 });
