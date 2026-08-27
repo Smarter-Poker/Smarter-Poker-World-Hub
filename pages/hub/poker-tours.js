@@ -30,8 +30,10 @@ function safeHref(url) {
 }
 
 // ─── Menu Config ───
-
-}
+// getMenuConfig is imported from src/config/hamburgerMenus above. PR #854
+// replaced the local `function getMenuConfig() {` with that import and left
+// its closing brace behind, which made this file unparseable from line 34
+// down and froze production on the commit before it.
 
 // ─── Tour Colors (matching TourCard.js) ───
 const TOUR_COLORS = {
