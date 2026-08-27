@@ -47,7 +47,7 @@ test('uses the dedicated cinematic artwork and sharp-corner treatment', () => {
 test('keeps every redesign rule outside the locked global header', () => {
   assert.match(
     page,
-    /<UniversalHeader pageDepth=\{1\} \/>\s*<main className="store-redesign-content">/
+    /<UniversalHeader pageDepth=\{1\} \/>\s*<main className=\{`store-redesign-content \$\{shellStyles\.root\}`\}>/
   );
   assert.doesNotMatch(page, /\.diamond-store-page button/);
   assert.doesNotMatch(page, /\.diamond-store-page a,/);

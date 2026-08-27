@@ -58,6 +58,7 @@ const StoreToast = dynamic(() => import('../../src/components/store/StoreToast')
 import { VIPCard, MerchCard } from '../../src/components/store/StoreCards';
 import MerchStore from '../../src/components/store/MerchStore';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
+import shellStyles from '../../src/components/diamond-store/DiamondStoreShell.module.css';
 
 import {
   STANDARD_REWARDS,
@@ -180,6 +181,54 @@ function openTab(tabId, currentTab) {
   if (tabId === currentTab) return;
   const win = window.open(href, '_blank', 'noopener,noreferrer');
   if (!win) window.location.href = href;
+}
+
+function useDialogFocus(isOpen, dialogRef, onDismiss, isBusy) {
+  const returnFocusRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    returnFocusRef.current = document.activeElement;
+    const dialog = dialogRef.current;
+    dialog?.focus();
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !isBusy) {
+        event.preventDefault();
+        onDismiss();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialog) return;
+
+      const focusable = Array.from(
+        dialog.querySelectorAll(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (!focusable.length) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      returnFocusRef.current?.focus?.();
+    };
+  }, [dialogRef, isBusy, isOpen, onDismiss]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -316,6 +365,13 @@ export default function DiamondStorePage({ initialTab }) {
   const [clubShopLastCreate, setClubShopLastCreate] = useState(0);
   const clubShopLoadingRef = useRef(false);
   const clubShopSuccessTimerRef = useRef(null);
+  const pendingSpendDialogRef = useRef(null);
+  const clubShopDialogRef = useRef(null);
+  const dismissPendingSpend = useCallback(() => setPendingSpend(null), []);
+  const dismissClubShopDialog = useCallback(() => setClubShopBuyTarget(null), []);
+
+  useDialogFocus(!!pendingSpend, pendingSpendDialogRef, dismissPendingSpend, isProcessing);
+  useDialogFocus(!!clubShopBuyTarget, clubShopDialogRef, dismissClubShopDialog, clubShopProcessing);
 
   // LEGACY DEEP LINKS: /hub/diamond-store?tab=<tabId>
   //
@@ -1135,7 +1191,7 @@ export default function DiamondStorePage({ initialTab }) {
           {/* Header */}
           <UniversalHeader pageDepth={1} />
 
-          <main className="store-redesign-content">
+          <main className={`store-redesign-content ${shellStyles.root}`}>
           <SmarterStoreShowcase
             activeTab={activeTab}
             packages={DIAMOND_PACKAGES}
@@ -1498,6 +1554,7 @@ export default function DiamondStorePage({ initialTab }) {
 
           {/* Main Content (non-diamonds tabs) */}
           <div
+            className={shellStyles.contentShell}
             style={{
               ...styles.content,
               ...(activeTab === 'vip' ? { paddingTop: 8 } : {}),
@@ -1554,7 +1611,7 @@ export default function DiamondStorePage({ initialTab }) {
                 )}
 
                 {/* Plan selection */}
-                <div style={styles.vipPlansRow}>
+                <div className={shellStyles.planRail} style={styles.vipPlansRow}>
                   <VIPCard
                     plan={VIP_MEMBERSHIP.daily}
                     isSelected={selectedVIP === 'vip-daily'}
@@ -1589,18 +1646,21 @@ export default function DiamondStorePage({ initialTab }) {
 
                 {/* Primary call to action */}
                 <div style={styles.vipSubscribeSection}>
-                  <div
-                    role="button"
-                    tabIndex={0}
+                  <button
+                    type="button"
+                    disabled={isProcessing}
+                    aria-busy={isProcessing}
                     aria-label={isProcessing ? 'Processing' : vipSubscribeLabel}
-                    aria-disabled={isProcessing}
                     onClick={handleVIPSubscribe}
-                    onKeyDown={activateOnKey}
                     style={{
                       cursor: isProcessing ? 'wait' : 'pointer',
                       opacity: isProcessing ? 0.6 : 1,
                       transition: 'transform 0.15s ease, filter 0.15s ease',
                       display: 'inline-block',
+                      padding: 0,
+                      border: 0,
+                      background: 'transparent',
+                      color: 'inherit',
                     }}
                   >
                     <img
@@ -1624,7 +1684,7 @@ export default function DiamondStorePage({ initialTab }) {
                     >
                       {isProcessing ? 'Processing...' : vipSubscribeLabel}
                     </div>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Pay in diamonds — monthly and annual only. The daily plan is
@@ -1691,10 +1751,8 @@ export default function DiamondStorePage({ initialTab }) {
                     double-tap cannot mint a second purchase. */}
                 {pendingSpend && (
                   <div
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label={pendingSpend.title}
                     onClick={() => !isProcessing && setPendingSpend(null)}
+                    className={shellStyles.dialogBackdrop}
                     style={{
                       position: 'fixed',
                       inset: 0,
@@ -1707,7 +1765,14 @@ export default function DiamondStorePage({ initialTab }) {
                     }}
                   >
                     <div
+                      ref={pendingSpendDialogRef}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="vip-spend-dialog-title"
+                      aria-describedby="vip-spend-dialog-description"
+                      tabIndex={-1}
                       onClick={(e) => e.stopPropagation()}
+                      className={shellStyles.dialogPanel}
                       style={{
                         background: '#16181C',
                         border: '1px solid rgba(255,215,0,0.3)',
@@ -1717,10 +1782,10 @@ export default function DiamondStorePage({ initialTab }) {
                         width: '100%',
                       }}
                     >
-                      <h4 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#FFD700' }}>
+                      <h4 id="vip-spend-dialog-title" style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#FFD700' }}>
                         {pendingSpend.title}
                       </h4>
-                      <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.6, color: '#B0B3B8' }}>
+                      <p id="vip-spend-dialog-description" style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.6, color: '#B0B3B8' }}>
                         {pendingSpend.detail}
                       </p>
                       <div
@@ -1792,7 +1857,7 @@ export default function DiamondStorePage({ initialTab }) {
                   <div style={styles.benefitsCategoryHeader}>
                     <span style={styles.benefitsCategoryLabel}>Smarter.Poker Platform</span>
                   </div>
-                  <div style={styles.benefitsGrid}>
+                  <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
                     {VIP_BENEFITS.filter((b) => b.category === 'Smarter.Poker').map(
                       (benefit, idx) => (
                         <div key={idx} style={styles.benefitCard}>
@@ -1809,7 +1874,7 @@ export default function DiamondStorePage({ initialTab }) {
                   <div style={styles.benefitsCategoryHeader}>
                     <span style={styles.benefitsCategoryLabel}>Club & Diamond Arena Features</span>
                   </div>
-                  <div style={styles.benefitsGrid}>
+                  <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
                     {VIP_BENEFITS.filter((b) => b.category === 'Club & Diamond Arena').map(
                       (benefit, idx) => (
                         <div key={idx} style={styles.benefitCard}>
@@ -2033,8 +2098,13 @@ export default function DiamondStorePage({ initialTab }) {
                 </div>
 
                 {/* Sub-Tab Navigation */}
-                <div style={styles.rewardsSubNav}>
+                <div role="tablist" aria-label="Smarter Rewards Sections" style={styles.rewardsSubNav}>
                   <button
+                    type="button"
+                    role="tab"
+                    id="rewards-tab-overview"
+                    aria-selected={rewardsSubTab === 'overview'}
+                    aria-controls="rewards-panel-overview"
                     onClick={() => setRewardsSubTab('overview')}
                     style={{
                       ...styles.rewardsSubTab,
@@ -2044,6 +2114,11 @@ export default function DiamondStorePage({ initialTab }) {
                     Overview
                   </button>
                   <button
+                    type="button"
+                    role="tab"
+                    id="rewards-tab-diamonds"
+                    aria-selected={rewardsSubTab === 'diamonds'}
+                    aria-controls="rewards-panel-diamonds"
                     onClick={() => setRewardsSubTab('diamonds')}
                     style={{
                       ...styles.rewardsSubTab,
@@ -2054,6 +2129,11 @@ export default function DiamondStorePage({ initialTab }) {
                   </button>
 
                   <button
+                    type="button"
+                    role="tab"
+                    id="rewards-tab-eggs"
+                    aria-selected={rewardsSubTab === 'eggs'}
+                    aria-controls="rewards-panel-eggs"
                     onClick={() => setRewardsSubTab('eggs')}
                     style={{
                       ...styles.rewardsSubTab,
@@ -2066,14 +2146,21 @@ export default function DiamondStorePage({ initialTab }) {
 
                 {/* OVERVIEW SUB-TAB */}
                 {rewardsSubTab === 'overview' && (
-                  <div style={styles.rewardsOverview}>
+                  <div
+                    id="rewards-panel-overview"
+                    role="tabpanel"
+                    aria-labelledby="rewards-tab-overview"
+                    tabIndex={0}
+                    className={shellStyles.subPanel}
+                    style={styles.rewardsOverview}
+                  >
                     <h2 style={styles.earnTitle}>Smarter Rewards</h2>
                     <p style={styles.introText}>
                       Welcome To The Smarter Rewards System! Earn Diamonds By Playing, Training, And
                       Engaging With The Community.
                     </p>
 
-                    <div style={styles.overviewGrid}>
+                    <div className={shellStyles.responsiveGrid} style={styles.overviewGrid}>
                       <div style={styles.overviewCard}>
                         <div style={styles.overviewIcon}>
                           <Gem size={40} color="#00D4FF" />
@@ -2230,7 +2317,14 @@ export default function DiamondStorePage({ initialTab }) {
 
                 {/* DIAMOND REWARDS SUB-TAB */}
                 {rewardsSubTab === 'diamonds' && (
-                  <div style={styles.diamondRewardsSection}>
+                  <div
+                    id="rewards-panel-diamonds"
+                    role="tabpanel"
+                    aria-labelledby="rewards-tab-diamonds"
+                    tabIndex={0}
+                    className={shellStyles.subPanel}
+                    style={styles.diamondRewardsSection}
+                  >
                     <h2 style={styles.earnTitle}>Diamond Rewards</h2>
                     <p style={styles.introText}>
                       All {TOTAL_WAYS_TO_EARN} Ways You Can Earn Diamonds On Smarter.Poker —{' '}
@@ -2296,7 +2390,14 @@ export default function DiamondStorePage({ initialTab }) {
 
                 {/* EASTER EGGS SUB-TAB */}
                 {rewardsSubTab === 'eggs' && (
-                  <div style={styles.easterEggsSection}>
+                  <div
+                    id="rewards-panel-eggs"
+                    role="tabpanel"
+                    aria-labelledby="rewards-tab-eggs"
+                    tabIndex={0}
+                    className={shellStyles.subPanel}
+                    style={styles.easterEggsSection}
+                  >
                     <h2 style={styles.earnTitle}>
                       Easter Eggs - {TOTAL_EASTER_EGGS} Hidden Achievements
                     </h2>
@@ -2313,7 +2414,7 @@ export default function DiamondStorePage({ initialTab }) {
                         {EGG_CATEGORY_LABELS.performance} ({EASTER_EGG_COUNTS.performance}{' '}
                         Achievements)
                       </h3>
-                      <div style={styles.eggGrid}>
+                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                         {EASTER_EGGS.performance.map((egg) => (
                           <div key={egg.id} style={styles.eggCard}>
                             <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
@@ -2341,7 +2442,7 @@ export default function DiamondStorePage({ initialTab }) {
                         {EGG_CATEGORY_LABELS.timing_loyalty} ({EASTER_EGG_COUNTS.timing_loyalty}{' '}
                         Achievements)
                       </h3>
-                      <div style={styles.eggGrid}>
+                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                         {EASTER_EGGS.timing_loyalty.map((egg) => (
                           <div key={egg.id} style={styles.eggCard}>
                             <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
@@ -2369,7 +2470,7 @@ export default function DiamondStorePage({ initialTab }) {
                         {EGG_CATEGORY_LABELS.strategy_mastery} ({EASTER_EGG_COUNTS.strategy_mastery}{' '}
                         Achievements)
                       </h3>
-                      <div style={styles.eggGrid}>
+                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                         {EASTER_EGGS.strategy_mastery.map((egg) => (
                           <div key={egg.id} style={styles.eggCard}>
                             <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
@@ -2397,7 +2498,7 @@ export default function DiamondStorePage({ initialTab }) {
                         {EGG_CATEGORY_LABELS.social_viral} ({EASTER_EGG_COUNTS.social_viral}{' '}
                         Achievements)
                       </h3>
-                      <div style={styles.eggGrid}>
+                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                         {EASTER_EGGS.social_viral.map((egg) => (
                           <div key={egg.id} style={styles.eggCard}>
                             <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
@@ -2424,7 +2525,7 @@ export default function DiamondStorePage({ initialTab }) {
                       <h3 style={styles.eggCategoryTitle}>
                         {EGG_CATEGORY_LABELS.discovery} ({EASTER_EGG_COUNTS.discovery} Achievements)
                       </h3>
-                      <div style={styles.eggGrid}>
+                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                         {EASTER_EGGS.discovery.map((egg) => (
                           <div key={egg.id} style={styles.eggCard}>
                             <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
@@ -2452,7 +2553,7 @@ export default function DiamondStorePage({ initialTab }) {
                         {EGG_CATEGORY_LABELS.legacy_milestones} (
                         {EASTER_EGG_COUNTS.legacy_milestones} Achievements)
                       </h3>
-                      <div style={styles.eggGrid}>
+                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                         {EASTER_EGGS.legacy_milestones.map((egg) => (
                           <div key={egg.id} style={styles.eggCard}>
                             <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
@@ -2486,6 +2587,8 @@ export default function DiamondStorePage({ initialTab }) {
                 {/* Success Flash */}
                 {clubShopSuccess && (
                   <div
+                    role="status"
+                    aria-live="polite"
                     style={{
                       position: 'fixed',
                       top: 80,
@@ -2514,6 +2617,7 @@ export default function DiamondStorePage({ initialTab }) {
                 {clubShopBuyTarget && (
                   <div
                     onClick={() => !clubShopProcessing && setClubShopBuyTarget(null)}
+                    className={shellStyles.dialogBackdrop}
                     style={{
                       position: 'fixed',
                       top: 0,
@@ -2529,7 +2633,14 @@ export default function DiamondStorePage({ initialTab }) {
                     }}
                   >
                     <div
+                      ref={clubShopDialogRef}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="club-shop-dialog-title"
+                      aria-describedby="club-shop-dialog-description"
+                      tabIndex={-1}
                       onClick={(e) => e.stopPropagation()}
+                      className={shellStyles.dialogPanel}
                       style={{
                         background: '#1a1a2e',
                         border: '1px solid rgba(255,255,255,0.15)',
@@ -2541,6 +2652,7 @@ export default function DiamondStorePage({ initialTab }) {
                       }}
                     >
                       <h3
+                        id="club-shop-dialog-title"
                         style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 16 }}
                       >
                         Confirm Purchase
@@ -2574,7 +2686,7 @@ export default function DiamondStorePage({ initialTab }) {
                           <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>
                             {clubShopBuyTarget.name}
                           </div>
-                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
+                          <div id="club-shop-dialog-description" style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
                             {clubShopBuyTarget.description || ''}
                           </div>
                         </div>
@@ -2737,7 +2849,7 @@ export default function DiamondStorePage({ initialTab }) {
                 </div>
 
                 {clubShopLoading && !clubShopLoaded ? (
-                  <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}>
+                  <div role="status" aria-live="polite" style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}>
                     Loading club shop...
                   </div>
                 ) : !clubShopClubId ? (
@@ -2757,6 +2869,8 @@ export default function DiamondStorePage({ initialTab }) {
                     </div>
                   ) : (
                     <div
+                      role="status"
+                      aria-live="polite"
                       style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
                     >
                       Loading club shop...
@@ -2765,7 +2879,7 @@ export default function DiamondStorePage({ initialTab }) {
                 ) : (
                   <>
                     {/* Sub-tabs: Store / My Purchases / Manage (admin) */}
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                    <div role="group" aria-label="Club Shop Views" style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
                       {[
                         {
                           key: 'store',
@@ -2782,7 +2896,9 @@ export default function DiamondStorePage({ initialTab }) {
                           : []),
                       ].map((st) => (
                         <button
+                          type="button"
                           key={st.key}
+                          aria-pressed={clubShopSubTab === st.key}
                           onClick={() => {
                             setClubShopSubTab(st.key);
                             if (st.key === 'manage' && !clubShopAdminLoaded) loadClubShopAdmin();
@@ -2819,6 +2935,8 @@ export default function DiamondStorePage({ initialTab }) {
                       <>
                         {/* Category Filters */}
                         <div
+                          role="group"
+                          aria-label="Club Shop Categories"
                           style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}
                         >
                           {[
@@ -2831,7 +2949,9 @@ export default function DiamondStorePage({ initialTab }) {
                             'Exclusive',
                           ].map((cat) => (
                             <button
+                              type="button"
                               key={cat}
+                              aria-pressed={clubShopCategory === cat}
                               onClick={() => setClubShopCategory(cat)}
                               style={{
                                 padding: '6px 14px',
@@ -2858,9 +2978,10 @@ export default function DiamondStorePage({ initialTab }) {
                         </div>
 
                         {/* Search + Sort */}
-                        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                        <div className={shellStyles.controlRow} style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
                           <input
                             type="text"
+                            aria-label="Search Club Shop Items"
                             placeholder="Search items..."
                             value={clubShopSearch}
                             onChange={(e) => setClubShopSearch(e.target.value)}
@@ -2877,6 +2998,7 @@ export default function DiamondStorePage({ initialTab }) {
                             }}
                           />
                           <select
+                            aria-label="Sort Club Shop Items"
                             value={clubShopSortMode}
                             onChange={(e) => setClubShopSortMode(e.target.value)}
                             style={{
@@ -3368,8 +3490,9 @@ export default function DiamondStorePage({ initialTab }) {
                             />{' '}
                             Create Shop Item
                           </h3>
-                          <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                          <div className={shellStyles.controlRow} style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                             <input
+                              aria-label="Item Name"
                               value={clubShopNewName}
                               onChange={(e) => setClubShopNewName(e.target.value)}
                               placeholder="Item name"
@@ -3387,6 +3510,7 @@ export default function DiamondStorePage({ initialTab }) {
                             />
                             <input
                               type="number"
+                              aria-label="Price In Chips"
                               value={clubShopNewPrice}
                               onChange={(e) => setClubShopNewPrice(e.target.value)}
                               placeholder="Price (chips)"
@@ -3404,6 +3528,7 @@ export default function DiamondStorePage({ initialTab }) {
                             />
                           </div>
                           <input
+                            aria-label="Item Description"
                             value={clubShopNewDesc}
                             onChange={(e) => setClubShopNewDesc(e.target.value)}
                             placeholder="Description (optional)"
@@ -3421,8 +3546,9 @@ export default function DiamondStorePage({ initialTab }) {
                               boxSizing: 'border-box',
                             }}
                           />
-                          <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                          <div className={shellStyles.controlRow} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
                             <select
+                              aria-label="Item Category"
                               value={clubShopNewCategory}
                               onChange={(e) => setClubShopNewCategory(e.target.value)}
                               style={{
@@ -3451,6 +3577,7 @@ export default function DiamondStorePage({ initialTab }) {
                               ))}
                             </select>
                             <input
+                              aria-label="Item Image URL"
                               value={clubShopNewImage}
                               onChange={(e) => setClubShopNewImage(e.target.value)}
                               placeholder="Image URL (optional)"
@@ -3467,6 +3594,7 @@ export default function DiamondStorePage({ initialTab }) {
                             />
                           </div>
                           <button
+                            type="button"
                             disabled={
                               clubShopProcessing || !clubShopNewName.trim() || !clubShopNewPrice
                             }

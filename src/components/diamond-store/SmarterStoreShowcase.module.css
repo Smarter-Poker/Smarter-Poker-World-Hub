@@ -268,6 +268,16 @@
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 3px 1px #000);
 }
+.packageUnit {
+  display: block;
+  margin-top: 2px;
+  color: #c5d4dd;
+  font:
+    600 9px 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
 .packageValue p {
   min-height: 18px;
   margin: 6px 0 0;
