@@ -1,5 +1,5 @@
 /**
- * PA_DESIGN_SPEC v1 — "Neon Slate"
+ * PA_DESIGN_SPEC v2 — "Jarvis Command Deck"
  * ═══════════════════════════════════════════════════════════════════════════
  * Single source of truth for the Personal Assistant surfaces (Sandbox, Leak
  * Finder, hamburger menu). Mobile-first, 375x667 baseline.
@@ -9,44 +9,44 @@
 import React from 'react';
 
 export const T = {
-    // surfaces (darkest -> lightest)
-    bg: '#18191A',        // page background
-    surface: '#242526',   // cards, sheets, panels
-    surface2: '#3A3B3C',  // inputs, chips, nested rows, inactive tabs
-    surface3: '#4E4F50',  // hover/pressed of surface2, drag handles
-    border: '#3A3B3C',    // 1px hairline on surface
-    borderHi: '#4E4F50',  // 1px hairline on surface2 / focused-adjacent
+    // Smarter.Poker surfaces (darkest -> lightest)
+    bg: '#020609',        // obsidian page background
+    surface: '#07111B',   // primary instrument panels
+    surface2: '#10202B',  // controls, nested rows, inactive tabs
+    surface3: '#1B3342',  // hover/pressed controls and drag handles
+    border: '#35566A',    // steel hairline
+    borderHi: '#7898AA',  // chrome edge / focused-adjacent
     // text
-    text: '#E4E6EB',      // primary
-    textMuted: '#B0B3B8', // secondary / values
-    textDim: '#65676B',   // labels, captions, disabled, placeholders
+    text: '#EEF8FF',      // primary
+    textMuted: '#B7D0DD', // secondary / values
+    textDim: '#8295A2',   // labels, captions, disabled, placeholders
     // accent + status
-    accent: '#4599FF',      // primary blue (links, active, primary button)
-    accentPress: '#2374E1', // pressed / gradient end
-    accentSoft: 'rgba(69,153,255,0.15)',
-    success: '#22C55E',
-    successSoft: 'rgba(34,197,94,0.15)',
-    warn: '#FBBF24',
-    warnSoft: 'rgba(251,191,36,0.15)',
-    danger: '#EF4444',
-    dangerSoft: 'rgba(239,68,68,0.15)',
-    purple: '#A78BFA', // GTO / solver / "study" semantics
-    purpleSoft: 'rgba(167,139,250,0.15)',
+    accent: '#63E7FF',      // signal cyan
+    accentPress: '#078ED6', // electric blue
+    accentSoft: 'rgba(99,231,255,0.12)',
+    success: '#4DE0A5',
+    successSoft: 'rgba(77,224,165,0.12)',
+    warn: '#FFC66D',
+    warnSoft: 'rgba(255,198,109,0.12)',
+    danger: '#FF6B7A',
+    dangerSoft: 'rgba(255,107,122,0.12)',
+    purple: '#B9A7FF', // GTO / solver / "study" semantics
+    purpleSoft: 'rgba(185,167,255,0.12)',
     // scrims
-    scrim: 'rgba(0,0,0,0.6)',
-    glassEdge: 'rgba(255,255,255,0.08)',
+    scrim: 'rgba(0,3,6,0.78)',
+    glassEdge: 'rgba(216,251,255,0.16)',
 };
 
 export const F = { h1: 22, h2: 18, h3: 16, body: 15, bodySm: 14, label: 13, caption: 12, input: 16 };
 
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
 
-export const R = { sm: 8, md: 12, lg: 16, sheet: '20px 20px 0 0', pill: 999 };
+export const R = { sm: 2, md: 4, lg: 6, sheet: '8px 8px 0 0', pill: 999 };
 
 export const E = {
-    card: '0 1px 3px rgba(0,0,0,0.4)',
-    raised: '0 4px 16px rgba(0,0,0,0.5)',
-    sheet: '0 -8px 32px rgba(0,0,0,0.6)',
+    card: 'inset 0 1px 0 rgba(216,251,255,0.08), 0 10px 22px rgba(0,0,0,0.34)',
+    raised: 'inset 0 1px 0 rgba(216,251,255,0.14), 0 16px 34px rgba(0,0,0,0.52)',
+    sheet: 'inset 0 1px 0 rgba(216,251,255,0.18), 0 -12px 42px rgba(0,0,0,0.72), 0 0 28px rgba(0,142,214,0.12)',
 };
 
 export const Z = {
@@ -55,12 +55,14 @@ export const Z = {
 };
 
 export const FONT = "'Inter',-apple-system,BlinkMacSystemFont,sans-serif";
+export const DISPLAY_FONT = "'Rajdhani','Arial Narrow',sans-serif";
+export const DATA_FONT = "'IBM Plex Mono','SFMono-Regular',Consolas,monospace";
 
 /** Numeric readouts (EV, equity, pot) share this treatment. */
 export const numeric = { fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 };
 
 export const card = {
-    background: T.surface, border: `1px solid ${T.border}`, borderRadius: R.md,
+    background: `linear-gradient(180deg, rgba(23,41,56,0.96), ${T.surface} 24%, #03090E)`, border: `1px solid ${T.borderHi}`, borderRadius: R.md,
     padding: S.lg, boxShadow: E.card, boxSizing: 'border-box', width: '100%', maxWidth: '100%',
 };
 
@@ -70,17 +72,18 @@ export function btn(variant = 'primary', opts = {}) {
     const base = {
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: S.sm,
         minHeight: 44, minWidth: 44, padding: '0 18px', borderRadius: R.sm,
-        fontSize: F.bodySm, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1,
+        fontSize: F.bodySm, fontWeight: 700, fontFamily: DISPLAY_FONT, lineHeight: 1,
+        letterSpacing: '0.025em',
         cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
         transition: 'transform .12s ease, background .12s ease, opacity .12s ease',
         boxSizing: 'border-box', border: '1px solid transparent', width: opts.block ? '100%' : 'auto',
     };
     const v = {
-        primary: { background: `linear-gradient(135deg, ${T.accent}, ${T.accentPress})`, color: '#FFFFFF' },
-        secondary: { background: T.surface2, color: T.text, borderColor: T.borderHi },
+        primary: { background: `linear-gradient(180deg, #2A6D94 0%, #0A3856 18%, #061826 78%, #154C6C 100%)`, color: '#FFFFFF', borderColor: '#72DFFF', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 0 rgba(0,0,0,.65), 0 0 16px rgba(7,142,214,.2)' },
+        secondary: { background: `linear-gradient(180deg, #263946, #0A141C 22%, #050B10 78%, #17242D)`, color: T.text, borderColor: T.borderHi, boxShadow: 'inset 0 1px 0 rgba(255,255,255,.14), inset 0 -2px 0 rgba(0,0,0,.6)' },
         ghost: { background: 'transparent', color: T.textMuted, borderColor: 'transparent' },
-        danger: { background: T.dangerSoft, color: T.danger, borderColor: 'rgba(239,68,68,0.4)' },
-        success: { background: T.successSoft, color: T.success, borderColor: 'rgba(34,197,94,0.4)' },
+        danger: { background: T.dangerSoft, color: T.danger, borderColor: 'rgba(255,107,122,0.4)' },
+        success: { background: T.successSoft, color: T.success, borderColor: 'rgba(77,224,165,0.4)' },
     }[variant] || {};
     const dis = opts.disabled ? { opacity: 0.45, cursor: 'not-allowed', pointerEvents: 'none' } : null;
     return { ...base, ...v, ...dis };
@@ -106,13 +109,15 @@ export const sheetBackdrop = {
 };
 
 export const sheet = {
-    width: '100%', maxWidth: 520, background: T.surface, borderTop: `1px solid ${T.border}`,
+    width: '100%', maxWidth: 680,
+    background: `linear-gradient(180deg, #132633 0, ${T.surface} 52px, #03090E 100%)`,
+    border: `1px solid ${T.borderHi}`, borderBottom: 0,
     borderRadius: R.sheet, boxShadow: E.sheet, zIndex: Z.sheet,
     maxHeight: '85dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
     paddingBottom: 'env(safe-area-inset-bottom,0px)',
 };
 
-export const sheetGrip = { width: 40, height: 4, borderRadius: R.pill, background: T.surface3, margin: '10px auto 6px' };
+export const sheetGrip = { width: 54, height: 3, borderRadius: R.pill, background: T.accent, boxShadow: `0 0 12px ${T.accent}`, margin: '10px auto 6px' };
 
 export const sheetHeader = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm,
@@ -131,10 +136,10 @@ export const sheetFooter = {
 
 export function pill(tone = 'neutral') {
     const m = {
-        neutral: [T.textMuted, 'rgba(176,179,184,0.14)'], accent: [T.accent, T.accentSoft],
+        neutral: [T.textMuted, 'rgba(183,208,221,0.12)'], accent: [T.accent, T.accentSoft],
         success: [T.success, T.successSoft], warn: [T.warn, T.warnSoft],
         danger: [T.danger, T.dangerSoft], purple: [T.purple, T.purpleSoft],
-    }[tone] || [T.textMuted, 'rgba(176,179,184,0.14)'];
+    }[tone] || [T.textMuted, 'rgba(183,208,221,0.12)'];
     return {
         display: 'inline-flex', alignItems: 'center', gap: S.xs, padding: '5px 10px',
         borderRadius: R.pill, fontSize: F.caption, fontWeight: 700, lineHeight: 1.2,
@@ -149,7 +154,7 @@ export const sectionHeader = {
 
 export const sectionTitle = {
     fontSize: F.label, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6,
-    color: T.textDim, margin: 0,
+    color: T.textDim, margin: 0, fontFamily: DATA_FONT,
 };
 
 export const sectionAction = { ...btn('ghost'), minHeight: 44, padding: '0 10px', fontSize: F.caption, color: T.accent };
@@ -171,7 +176,7 @@ export const emptyBody = { fontSize: F.bodySm, color: T.textMuted, margin: 0, ma
 export const skeleton = (h = 14, w = '100%') => ({ height: h, width: w, borderRadius: R.sm, background: T.surface2 });
 
 export const errorWrap = {
-    ...card, borderColor: 'rgba(239,68,68,0.4)', background: T.dangerSoft,
+    ...card, borderColor: 'rgba(255,107,122,0.4)', background: T.dangerSoft,
     display: 'flex', flexDirection: 'column', gap: S.md, alignItems: 'flex-start',
 };
 

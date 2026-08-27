@@ -128,7 +128,7 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                 <div
                     aria-live="polite"
                     style={{
-                        background: T.surface2, border: `1px solid ${noMatches ? 'rgba(251,191,36,0.4)' : T.border}`,
+                        background: T.surface2, border: `1px solid ${noMatches ? 'rgba(255,198,109,0.4)' : T.border}`,
                         borderRadius: R.sm, padding: S.md, display: 'flex', flexDirection: 'column', gap: S.sm,
                     }}
                 >

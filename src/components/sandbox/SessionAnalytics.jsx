@@ -92,7 +92,7 @@ function AccuracyTrend({ data, avg }) {
                                     padding: '0 12px', fontSize: F.label,
                                     background: bucket === o.v ? T.accentSoft : T.surface2,
                                     color: bucket === o.v ? T.accent : T.textMuted,
-                                    borderColor: bucket === o.v ? 'rgba(69,153,255,0.45)' : T.border,
+                                    borderColor: bucket === o.v ? 'rgba(99,231,255,0.45)' : T.border,
                                 }}
                             >
                                 {o.l}
@@ -360,7 +360,7 @@ export default function SessionAnalytics({ userId }) {
                                             minWidth: 72, minHeight: 64, padding: `${S.sm}px ${S.md}px`,
                                             borderRadius: R.sm, cursor: 'pointer',
                                             background: isTop ? T.successSoft : isWeak ? T.dangerSoft : T.surface2,
-                                            border: `1px solid ${isTop ? 'rgba(34,197,94,0.4)' : isWeak ? 'rgba(239,68,68,0.4)' : T.border}`,
+                                            border: `1px solid ${isTop ? 'rgba(77,224,165,0.4)' : isWeak ? 'rgba(255,107,122,0.4)' : T.border}`,
                                             color: T.text,
                                         }}
                                     >
@@ -394,7 +394,7 @@ export default function SessionAnalytics({ userId }) {
                                             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
                                             padding: `${S.sm}px ${S.xs}px`, borderRadius: R.sm, cursor: 'pointer',
                                             background: weakest ? T.dangerSoft : T.surface2,
-                                            border: `1px solid ${weakest ? 'rgba(239,68,68,0.4)' : T.border}`,
+                                            border: `1px solid ${weakest ? 'rgba(255,107,122,0.4)' : T.border}`,
                                             color: T.text,
                                         }}
                                     >
@@ -424,7 +424,7 @@ export default function SessionAnalytics({ userId }) {
     }
 
     return (
-        <div style={{ ...card, marginBottom: S.md }}>
+        <div className="pa-chart-panel" style={{ ...card, marginBottom: S.md }}>
             <PAStyles />
             {header}
             {expanded && <div style={{ marginTop: S.md }}>{body}</div>}

@@ -175,7 +175,7 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
                             role="alert"
                             style={{
                                 fontSize: F.bodySm, fontWeight: 700, color: T.danger, background: T.dangerSoft,
-                                border: '1px solid rgba(239,68,68,0.4)', borderRadius: R.sm, padding: S.md,
+                                border: '1px solid rgba(255,107,122,0.4)', borderRadius: R.sm, padding: S.md,
                             }}
                         >
                             {error}
@@ -212,7 +212,7 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
                                                 ...btn('secondary'), padding: '0 14px', fontSize: F.label,
                                                 background: on ? T.accentSoft : T.surface2,
                                                 color: on ? T.accent : T.textMuted,
-                                                borderColor: on ? 'rgba(69,153,255,0.45)' : T.borderHi,
+                                                borderColor: on ? 'rgba(99,231,255,0.45)' : T.borderHi,
                                             }}
                                         >
                                             {f}

@@ -708,7 +708,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                             style={{
                                 display: 'flex', flexDirection: 'column', gap: S.xs,
                                 background: review.status === 'done' ? T.accentSoft : T.surface2,
-                                border: `1px solid ${review.status === 'done' ? 'rgba(69,153,255,0.45)' : T.border}`,
+                                border: `1px solid ${review.status === 'done' ? 'rgba(99,231,255,0.45)' : T.border}`,
                                 borderRadius: R.sm, padding: S.md,
                             }}
                         >
@@ -769,7 +769,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
 
                     {levelChange === 'up' && (
                         <div style={{
-                            background: T.successSoft, border: '1px solid rgba(34,197,94,0.4)', borderRadius: R.sm,
+                            background: T.successSoft, border: '1px solid rgba(77,224,165,0.4)', borderRadius: R.sm,
                             padding: S.md, fontSize: F.bodySm, fontWeight: 700, color: T.success, textAlign: 'center',
                         }}>
                             Level {level} unlocked
@@ -777,7 +777,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                     )}
                     {levelChange === 'down' && (
                         <div style={{
-                            background: T.warnSoft, border: '1px solid rgba(251,191,36,0.4)', borderRadius: R.sm,
+                            background: T.warnSoft, border: '1px solid rgba(255,198,109,0.4)', borderRadius: R.sm,
                             padding: S.md, fontSize: F.bodySm, fontWeight: 700, color: T.warn, textAlign: 'center',
                         }}>
                             Dropped to level {level} — easier spots next run.
@@ -890,8 +890,8 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                             let colour = T.text;
 
                             if (revealed) {
-                                if (isCorrectOpt) { background = T.successSoft; borderColor = 'rgba(34,197,94,0.5)'; colour = T.success; }
-                                else if (isUserPick) { background = T.dangerSoft; borderColor = 'rgba(239,68,68,0.5)'; colour = T.danger; }
+                                if (isCorrectOpt) { background = T.successSoft; borderColor = 'rgba(77,224,165,0.5)'; colour = T.success; }
+                                else if (isUserPick) { background = T.dangerSoft; borderColor = 'rgba(255,107,122,0.5)'; colour = T.danger; }
                                 else { colour = T.textDim; }
                             }
 

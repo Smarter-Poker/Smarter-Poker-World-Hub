@@ -316,7 +316,7 @@ async function handleCheckoutCompleted(session) {
                     recipient = normalizePrintfulRecipient(session);
                 } catch (addressError) {
                     const now = new Date().toISOString();
-                    const { error: addressUpdateError } = await getSupabase()
+                    const { data: blockedOrder, error: addressUpdateError } = await getSupabase()
                         .from('merchandise_orders')
                         .update({
                             status: 'paid',
@@ -332,8 +332,11 @@ async function handleCheckoutCompleted(session) {
                             },
                             updated_at: now,
                         })
-                        .eq('id', metadata.order_id);
-                    if (addressUpdateError) throw addressUpdateError;
+                        .eq('id', metadata.order_id)
+                        .select('id');
+                    if (addressUpdateError || !blockedOrder?.length) {
+                        throw addressUpdateError || new Error('Printful address exception matched zero orders');
+                    }
                     // Retrying cannot add an address to the immutable Checkout
                     // Session. Persist the paid exception for support instead
                     // of making Stripe redeliver it forever.
@@ -425,7 +428,7 @@ async function handleCheckoutCompleted(session) {
                     }
                 } catch (fulfillmentError) {
                     const failedAt = new Date().toISOString();
-                    const { error: failedUpdateError } = await getSupabase()
+                    const { data: failedOrder, error: failedUpdateError } = await getSupabase()
                         .from('merchandise_orders')
                         .update({
                             status: 'paid',
@@ -440,9 +443,10 @@ async function handleCheckoutCompleted(session) {
                             },
                             updated_at: failedAt,
                         })
-                        .eq('id', metadata.order_id);
-                    if (failedUpdateError) {
-                        console.error('[stripe-webhook] failed to flag Printful exception:', failedUpdateError.message);
+                        .eq('id', metadata.order_id)
+                        .select('id');
+                    if (failedUpdateError || !failedOrder?.length) {
+                        console.error('[stripe-webhook] failed to flag Printful exception:', failedUpdateError?.message || 'matched zero orders');
                     }
                     // A provider timeout/outage is retryable. Event claim release
                     // plus Printful external_id/update_existing makes the retry

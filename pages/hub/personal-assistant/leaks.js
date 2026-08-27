@@ -36,7 +36,7 @@ import { useLeaks, useAssistantStats, useLeakDetection, useLeakHandExamples } fr
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import {
-  T, F, S, R, Z, FONT, card, cardCompact, btn, iconBtn, pill, numeric,
+  T, F, S, R, Z, FONT, DISPLAY_FONT, DATA_FONT, card, cardCompact, btn, iconBtn, pill, numeric,
 } from '../../../src/components/sandbox/paTokens';
 import {
   PAStyles, BottomSheet, Skeleton, EmptyState, ErrorState, Segmented,
@@ -263,7 +263,7 @@ class LeakErrorBoundary extends React.Component {
 
 function PanelCrash({ label, error, onRetry }) {
   return (
-    <div style={{ ...card, borderColor: 'rgba(239,68,68,0.4)', background: T.dangerSoft }} role="alert">
+    <div style={{ ...card, borderColor: 'rgba(255,107,122,0.4)', background: T.dangerSoft }} role="alert">
       <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, marginBottom: S.sm }}>
         <AlertTriangle size={18} strokeWidth={2} color={T.danger} aria-hidden="true" />
         <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.danger }}>
@@ -687,7 +687,7 @@ function TrendChart({ data, optimal, current, status }) {
   const active = activeIdx !== null && points[activeIdx] ? points[activeIdx] : null;
 
   return (
-    <div>
+    <div className="pa-chart-panel" style={{ padding: S.md }}>
       {header}
 
       <svg
@@ -941,7 +941,7 @@ function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
           type="button"
           className="pa-btn"
           onClick={() => onPractice(leak)}
-          style={{ ...btn('secondary', { block: true }), color: T.accent, borderColor: 'rgba(69,153,255,0.45)' }}
+          style={{ ...btn('secondary', { block: true }), color: T.accent, borderColor: 'rgba(99,231,255,0.45)' }}
         >
           <Target size={18} strokeWidth={2} aria-hidden="true" />
           Practise this leak
@@ -1290,7 +1290,7 @@ function LeakDetail({
             <button
               type="button"
               className="pa-btn"
-              style={{ ...btn('secondary', { block: true }), color: T.warn, borderColor: 'rgba(251,191,36,0.45)' }}
+              style={{ ...btn('secondary', { block: true }), color: T.warn, borderColor: 'rgba(255,198,109,0.45)' }}
               onClick={() => onTrainDrills(leak)}
             >
               {drill ? 'Train with Focused Drills' : 'Open Training Arena'}
@@ -2090,7 +2090,7 @@ export default function LeakFinderPage() {
           )}
 
           {/* ── Stats ── */}
-          <section style={styles.statGrid} aria-label="Summary statistics">
+          <section className="leak-stat-grid" style={styles.statGrid} aria-label="Summary statistics">
             <StatCell
               label="Sessions reviewed"
               value={statsLoading ? null : (statsAreDemo ? '—' : String(stats.sessionsReviewed))}
@@ -2184,8 +2184,8 @@ export default function LeakFinderPage() {
                     style={{
                       ...styles.detectionBanner,
                       borderColor: detectionSummary.type === 'error'
-                        ? 'rgba(239,68,68,0.5)'
-                        : detectionSummary.type === 'success' ? 'rgba(34,197,94,0.5)' : 'rgba(251,191,36,0.5)',
+                        ? 'rgba(255,107,122,0.5)'
+                        : detectionSummary.type === 'success' ? 'rgba(77,224,165,0.5)' : 'rgba(255,198,109,0.5)',
                       color: detectionSummary.type === 'error'
                         ? T.danger
                         : detectionSummary.type === 'success' ? T.success : T.warn,
@@ -2238,7 +2238,7 @@ export default function LeakFinderPage() {
                   {(onboardingLeaks || []).length > 0 && (
                     <div>
                       <h2 style={styles.sectionHeading}>Example leaks (not yours)</h2>
-                      <ul style={styles.leakList} role="list">
+                      <ul className="leak-list-grid" style={styles.leakList} role="list">
                         {onboardingLeaks.slice(0, 3).map(leak => (
                           <LeakCard
                             key={`demo-${leak.id}`}
@@ -2330,7 +2330,7 @@ export default function LeakFinderPage() {
                     />
                   ) : (
                     <>
-                      <ul style={styles.leakList} role="list">
+                      <ul className="leak-list-grid" style={styles.leakList} role="list">
                         {shownLeaks.map(leak => (
                           <LeakCard
                             key={leak.id}
@@ -2374,7 +2374,7 @@ export default function LeakFinderPage() {
                           : <ChevronRight size={18} strokeWidth={2} aria-hidden="true" />}
                       </button>
                       {pastOpen && (
-                        <ul style={{ ...styles.leakList, marginTop: S.md }} role="list">
+                        <ul className="leak-list-grid" style={{ ...styles.leakList, marginTop: S.md }} role="list">
                           {pastLeaks.map(leak => (
                             <li key={leak.id} role="listitem" style={{ ...styles.leakCard, opacity: 0.86 }}>
                               <button
@@ -2413,7 +2413,7 @@ export default function LeakFinderPage() {
                 Session analytics
               </h2>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+              <div className="leak-insights-grid" style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
                 <LeakErrorBoundary label="Session analytics">
                   <SessionAnalytics userId={userId} />
                 </LeakErrorBoundary>
@@ -2552,6 +2552,12 @@ export default function LeakFinderPage() {
             outline: 2px solid ${T.accent};
             outline-offset: 2px;
           }
+          .leaks-page {
+            background-image:
+              linear-gradient(rgba(99,231,255,.025) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(99,231,255,.02) 1px, transparent 1px);
+            background-size: 28px 28px;
+          }
           .leak-skeleton {
             animation: leakSkeletonPulse 1.4s ease-in-out infinite;
           }
@@ -2598,6 +2604,11 @@ export default function LeakFinderPage() {
               padding-left: max(24px, env(safe-area-inset-left, 0px)) !important;
               padding-right: max(24px, env(safe-area-inset-right, 0px)) !important;
             }
+            .leak-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+            .leak-list-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px !important; }
+            .leak-insights-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+            .leak-insights-grid > :first-child,
+            .leak-insights-grid > :last-child { grid-column: 1 / -1; }
           }
         ` }} />
       </div>
@@ -2667,7 +2678,7 @@ const styles = {
   },
   shell: {
     width: '100%',
-    maxWidth: 760,
+    maxWidth: 1180,
     margin: '0 auto',
     boxSizing: 'border-box',
     padding: `${S.lg}px max(${S.lg}px, env(safe-area-inset-left, 0px))`,
@@ -2681,8 +2692,10 @@ const styles = {
     marginBottom: S.lg,
   },
   pageTitle: {
-    fontSize: F.h1,
-    fontWeight: 800,
+    fontSize: 'clamp(32px, 5vw, 48px)',
+    fontWeight: 600,
+    fontFamily: DISPLAY_FONT,
+    letterSpacing: '-0.02em',
     color: T.text,
     margin: 0,
     lineHeight: 1.2,
@@ -2808,7 +2821,7 @@ const styles = {
     padding: S.sm,
     borderRadius: R.sm,
     background: T.warnSoft,
-    border: '1px solid rgba(251,191,36,0.4)',
+    border: '1px solid rgba(255,198,109,0.4)',
     fontSize: F.caption,
     color: T.warn,
     lineHeight: 1.45,
@@ -2843,7 +2856,7 @@ const styles = {
   demoBanner: {
     ...card,
     background: T.warnSoft,
-    borderColor: 'rgba(251,191,36,0.45)',
+    borderColor: 'rgba(255,198,109,0.45)',
     marginBottom: S.md,
     display: 'flex',
     flexDirection: 'column',
@@ -2916,11 +2929,13 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     color: T.textMuted,
+    fontFamily: DATA_FONT,
     margin: `0 0 ${S.md}px`,
   },
   cardHeading: {
-    fontSize: F.h3,
+    fontSize: F.h2,
     fontWeight: 700,
+    fontFamily: DISPLAY_FONT,
     color: T.text,
     margin: `0 0 ${S.md}px`,
   },
@@ -3069,7 +3084,7 @@ const styles = {
   },
   leakCardDemo: {
     borderStyle: 'dashed',
-    borderColor: 'rgba(251,191,36,0.45)',
+    borderColor: 'rgba(255,198,109,0.45)',
   },
   leakCardHeader: {
     display: 'flex',
@@ -3083,6 +3098,7 @@ const styles = {
     minWidth: 0,
     fontSize: F.h3,
     fontWeight: 700,
+    fontFamily: DISPLAY_FONT,
     color: T.text,
     lineHeight: 1.3,
   },
@@ -3254,8 +3270,9 @@ const styles = {
     marginBottom: S.lg,
   },
   detailSectionTitle: {
-    fontSize: F.h3,
+    fontSize: F.h2,
     fontWeight: 700,
+    fontFamily: DISPLAY_FONT,
     color: T.text,
     margin: `0 0 ${S.sm}px`,
   },
