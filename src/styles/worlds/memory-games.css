@@ -913,6 +913,110 @@ body.world-preflop-charts .scenario-filter-apply:hover {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 0 24px rgba(32, 168, 255, 0.3);
 }
 
+/* Phase 3 — live circuit telemetry connects filters, mastery, and the active
+   level into one poker-specific progression readout. */
+body.world-preflop-charts .preflop-circuit-status {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(190px, 1.15fr) repeat(3, minmax(150px, 1fr));
+    align-items: stretch;
+    margin-bottom: 9px;
+    overflow: hidden;
+    border: 1px solid rgba(100, 151, 187, 0.28);
+    border-radius: 2px;
+    background:
+        linear-gradient(90deg, rgba(30, 131, 192, 0.09), transparent 30%),
+        linear-gradient(180deg, rgba(8, 20, 32, 0.98), rgba(3, 10, 18, 0.99));
+    box-shadow: inset 0 0 24px rgba(54, 161, 226, 0.04), 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+body.world-preflop-charts .preflop-circuit-status::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--pc-cyan), var(--pc-cobalt));
+    box-shadow: 0 0 14px rgba(32, 168, 255, 0.72);
+}
+
+body.world-preflop-charts .preflop-circuit-label,
+body.world-preflop-charts .preflop-circuit-stat {
+    min-width: 0;
+    min-height: 66px;
+    display: flex;
+    align-items: center;
+}
+
+body.world-preflop-charts .preflop-circuit-label {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 11px 15px 11px 18px;
+}
+
+body.world-preflop-charts .preflop-circuit-label span,
+body.world-preflop-charts .preflop-circuit-stat small {
+    color: #6f8395;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+body.world-preflop-charts .preflop-circuit-label strong {
+    margin-top: 4px;
+    color: #dce8ef;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+body.world-preflop-charts .preflop-circuit-stat {
+    gap: 10px;
+    padding: 10px 13px;
+    border-left: 1px solid rgba(114, 151, 179, 0.16);
+    color: var(--pc-cyan);
+}
+
+body.world-preflop-charts .preflop-circuit-stat > svg {
+    flex: 0 0 auto;
+    filter: drop-shadow(0 0 6px rgba(102, 217, 255, 0.38));
+}
+
+body.world-preflop-charts .preflop-circuit-stat > span {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+body.world-preflop-charts .preflop-circuit-stat strong {
+    overflow: hidden;
+    color: #edf5f9;
+    font-size: 13px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.world-preflop-charts .preflop-circuit-stat strong em {
+    color: #788c9f;
+    font-size: 9px;
+    font-style: normal;
+    font-weight: 600;
+}
+
+body.world-preflop-charts .preflop-circuit-stat.is-mastery {
+    color: #6ee7b7;
+}
+
+body.world-preflop-charts .preflop-circuit-stat.is-pool.has-filters {
+    color: #c8a8ff;
+    background: rgba(128, 77, 212, 0.055);
+}
+
 body.world-preflop-charts .preflop-level-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -946,7 +1050,7 @@ body.world-preflop-charts .preflop-level-card::after {
     pointer-events: none;
 }
 
-body.world-preflop-charts .preflop-level-card:hover:not(.is-locked),
+body.world-preflop-charts .preflop-level-card:hover:not(.is-locked):not(.is-no-match),
 body.world-preflop-charts .preflop-level-card:focus-visible {
     transform: translateY(-3px);
     border-color: var(--pc-cyan);
@@ -959,10 +1063,23 @@ body.world-preflop-charts .preflop-level-card.is-current {
     box-shadow: inset 0 0 28px rgba(35, 159, 239, 0.11), 0 0 22px rgba(31, 147, 226, 0.2);
 }
 
+body.world-preflop-charts .preflop-level-card.is-mastered {
+    border-color: rgba(78, 213, 166, 0.5);
+    box-shadow: inset 0 0 26px rgba(61, 207, 155, 0.07);
+}
+
 body.world-preflop-charts .preflop-level-card.is-locked {
     cursor: not-allowed;
     opacity: 0.56;
     filter: saturate(0.55);
+}
+
+body.world-preflop-charts .preflop-level-card.is-no-match {
+    cursor: not-allowed;
+    opacity: 0.62;
+    border-style: dashed;
+    border-color: rgba(155, 108, 255, 0.42);
+    filter: saturate(0.7);
 }
 
 body.world-preflop-charts .preflop-level-node {
@@ -990,14 +1107,52 @@ body.world-preflop-charts .preflop-level-copy {
     min-width: 0;
 }
 
-body.world-preflop-charts .preflop-level-number {
+body.world-preflop-charts .preflop-level-heading {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
     margin-bottom: 5px;
+}
+
+body.world-preflop-charts .preflop-level-number {
     font-family: var(--font-orbitron), Orbitron, sans-serif;
     color: var(--pc-cyan);
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.13em;
     text-transform: uppercase;
+}
+
+body.world-preflop-charts .preflop-level-state {
+    min-height: 20px;
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    padding: 2px 5px;
+    border: 1px solid rgba(111, 148, 178, 0.23);
+    background: rgba(5, 13, 22, 0.9);
+    color: #7e91a3;
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+body.world-preflop-charts .preflop-level-state.is-current {
+    border-color: rgba(102, 217, 255, 0.54);
+    color: var(--pc-cyan);
+}
+
+body.world-preflop-charts .preflop-level-state.is-mastered {
+    border-color: rgba(78, 213, 166, 0.5);
+    color: #6ee7b7;
+}
+
+body.world-preflop-charts .preflop-level-state.is-no-match {
+    border-color: rgba(155, 108, 255, 0.46);
+    color: #c4a6ff;
 }
 
 body.world-preflop-charts .preflop-level-copy h3 {
@@ -1041,6 +1196,11 @@ body.world-preflop-charts .preflop-level-meta > span:nth-child(3) {
     grid-column: 1 / -1;
 }
 
+body.world-preflop-charts .preflop-level-meta .is-filtered-count {
+    color: #c8a8ff;
+    font-weight: 800;
+}
+
 body.world-preflop-charts .preflop-level-locks {
     position: absolute;
     top: 13px;
@@ -1065,6 +1225,42 @@ body.world-preflop-charts .preflop-level-vip {
 
 body.world-preflop-charts .preflop-level-progress {
     margin-top: 9px;
+}
+
+body.world-preflop-charts .preflop-level-progress-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 10px;
+}
+
+body.world-preflop-charts .preflop-level-mastered-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: #6ee7b7;
+    font-weight: 700;
+}
+
+body.world-preflop-charts .preflop-level-progress-track {
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+body.world-preflop-charts .preflop-level-progress-fill {
+    width: var(--level-progress, 0%);
+    height: 100%;
+    background: linear-gradient(90deg, #00d4ff, #a855f7);
+    transition: width 0.4s ease;
+}
+
+body.world-preflop-charts .preflop-level-progress-fill.is-mastered {
+    background: linear-gradient(90deg, #22c55e, #00d4ff);
 }
 
 body.world-preflop-charts .preflop-mastery-gate {
@@ -1201,6 +1397,19 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
     body.world-preflop-charts .preflop-mode-card {
         flex: 0 0 118px;
         scroll-snap-align: start;
+    }
+
+    body.world-preflop-charts .preflop-circuit-status {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    body.world-preflop-charts .preflop-circuit-label {
+        min-height: 48px;
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(114, 151, 179, 0.16);
     }
 
     body.world-preflop-charts .preflop-level-grid {
@@ -1484,6 +1693,44 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
         min-width: 0;
         min-height: 50px;
         padding-inline: 10px;
+    }
+
+    body.world-preflop-charts .preflop-circuit-label {
+        padding: 10px 11px 10px 15px;
+    }
+
+    body.world-preflop-charts .preflop-circuit-label strong {
+        margin: 0;
+        font-size: 11px;
+    }
+
+    body.world-preflop-charts .preflop-circuit-stat {
+        min-height: 72px;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 10px 8px;
+    }
+
+    body.world-preflop-charts .preflop-circuit-stat > svg {
+        width: 13px;
+        height: 13px;
+        margin-top: 1px;
+    }
+
+    body.world-preflop-charts .preflop-circuit-stat small {
+        font-size: 7px;
+        line-height: 1.35;
+    }
+
+    body.world-preflop-charts .preflop-circuit-stat strong {
+        font-size: 11px;
+        white-space: normal;
+    }
+
+    body.world-preflop-charts .preflop-circuit-stat strong em {
+        display: block;
+        margin-top: 3px;
+        font-size: 8px;
     }
 
     body.world-preflop-charts .preflop-level-card {
