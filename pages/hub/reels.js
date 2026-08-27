@@ -24,6 +24,7 @@ import { saveAppSetting } from '../../src/lib/appSettingsSync';
 import { busEmit, eventBus, EventType } from '../../src/engine/EventBus';
 import GiphyPicker from '../../src/components/shared/GiphyPicker';
 import { getAccessToken } from '../../src/lib/authUtils';
+import { getYouTubeVideoId } from '../../src/lib/socialHelpers';
 import {
   findBestGames,
   buildSandboxUrl,
@@ -45,36 +46,17 @@ function timeAgo(d) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-function getYouTubeVideoId(url) {
-  if (!url) return null;
-  const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
-  if (shortsMatch) return shortsMatch[1];
-  const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
-  if (watchMatch) return watchMatch[1];
-  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-  if (shortMatch) return shortMatch[1];
-  const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
-  if (embedMatch) return embedMatch[1];
-  return null;
-}
-
 export default function ReelsPage() {
   const [reels, setReels] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [muted, setMuted] = useState(() => {
-    // BUG FIX (2026-05-12 autoplay-final): muted is now bound to React state
-    // (JSX uses muted={muted}, not muted={true}). Initialize from localStorage
-    // so the user's unmute decision STICKS across reloads — same pattern
-    // TikTok / Facebook use. First load defaults to muted=true (cold autoplay
-    // is allowed without gesture); after the first gesture the preference
-    // flips and persists indefinitely.
-    if (typeof window === 'undefined') return true;
-    try { return localStorage.getItem('sp:reels:muted') !== '0'; }
-    catch (_) { return true; }
-  });
-  // Persist muted preference across reloads — see useState initializer above.
+  // Every navigation starts muted so browser autoplay is deterministic. Sound
+  // can be restored only inside a fresh user gesture; carrying an unmuted value
+  // across reloads causes Chrome/Safari to leave the first reel paused.
+  const [muted, setMuted] = useState(true);
+  // Persist the in-session control state for diagnostics and UI continuity,
+  // but never use it to bypass the cold-start autoplay requirement above.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try { localStorage.setItem('sp:reels:muted', muted ? '1' : '0'); }
@@ -290,25 +272,45 @@ export default function ReelsPage() {
     dataSaver: false,
     showCaptions: true,
   });
+  // Preferences are read from localStorage after hydration. Media must not
+  // start before that read completes or a saved "autoplay off" choice can be
+  // ignored for the first reel.
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  const preferencesRef = useRef(preferences);
+  preferencesRef.current = preferences;
 
   // Sound is ALWAYS on by default — user requirement: never muted on load.
   // Users can manually mute during a session, but next visit starts fresh with sound on.
 
   // Load user and preferences
   useEffect(() => {
+    let cancelled = false;
     const loadUserData = async () => {
       const authUser = getAuthUser();
-      setUser(authUser);
+      if (!cancelled) setUser(authUser);
+
+      // Reels preferences are local-first and apply to guests as well as
+      // signed-in players. Load them before allowing any media autoplay.
+      try {
+        const prefs = await reelsPreferences.get(authUser?.id);
+        if (!cancelled) setPreferences(prefs);
+      } catch (error) {
+        console.warn('[Reels] Could not load preferences:', error?.message || error);
+      } finally {
+        if (!cancelled) setPreferencesLoaded(true);
+      }
 
       if (authUser) {
-        // Load preferences
-        const prefs = await reelsPreferences.get(authUser.id);
-        setPreferences(prefs);
-
         // Load saved reels
-        const saved = await savedReelsService.getSavedReels(authUser.id);
-        const savedIds = new Set(saved.map((item) => item.reel_id));
-        setSavedReels(savedIds);
+        try {
+          const saved = await savedReelsService.getSavedReels(authUser.id);
+          if (!cancelled) {
+            const savedIds = new Set(saved.map((item) => item.reel_id));
+            setSavedReels(savedIds);
+          }
+        } catch (error) {
+          console.warn('[Reels] Could not load saved reels:', error?.message || error);
+        }
 
         // Pre-fetch existing likes (filter by reaction_type='like')
         const { data: likeData } = await supabase
@@ -316,7 +318,7 @@ export default function ReelsPage() {
           .select('post_id')
           .eq('user_id', authUser.id)
           .eq('reaction_type', 'like');
-        if (likeData) {
+        if (!cancelled && likeData) {
           const likeMap = {};
           likeData.forEach((l) => {
             likeMap[l.post_id] = true;
@@ -330,7 +332,7 @@ export default function ReelsPage() {
           .select('post_id')
           .eq('user_id', authUser.id)
           .eq('reaction_type', 'dislike');
-        if (dislikeData) {
+        if (!cancelled && dislikeData) {
           const dislikeMap = {};
           dislikeData.forEach((d) => {
             dislikeMap[d.post_id] = true;
@@ -343,7 +345,7 @@ export default function ReelsPage() {
           .from('social_follows')
           .select('following_id')
           .eq('follower_id', authUser.id);
-        if (followData) {
+        if (!cancelled && followData) {
           const followMap = {};
           followData.forEach((f) => {
             followMap[f.following_id] = true;
@@ -353,6 +355,9 @@ export default function ReelsPage() {
       }
     };
     loadUserData();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // YouTube API: Send command to iframe via postMessage
@@ -375,7 +380,7 @@ export default function ReelsPage() {
   // On every reel change: load the new YouTube video into the persistent iframe
   // (no remount — use loadVideoById postMessage) and retry playVideo.
   useEffect(() => {
-    if (loading || reels.length === 0) return;
+    if (!preferencesLoaded || loading || reels.length === 0) return;
     const reel = reels[currentIndex];
     if (!reel) return;
     const ytId = getYouTubeVideoId(reel.video_url);
@@ -395,7 +400,7 @@ export default function ReelsPage() {
       // rejected by YT. The gesture-handler path keeps the unMute inside
       // the activation window, which Chrome honors.
       const alreadyLoadedInGesture = lastLoadedVideoIdRef.current === ytId;
-      const wantsSoundAtSwipe = userWantsSoundRef.current;
+      const wantsSoundAtSwipe = preferences.soundOnScroll && userWantsSoundRef.current;
 
       if (!alreadyLoadedInGesture) {
         // No-gesture path (auto-advance: YT video-ended, ytError 3s skip,
@@ -405,7 +410,9 @@ export default function ReelsPage() {
         // if the document has high Media Engagement Index, otherwise
         // YT keeps it muted but at least the video plays.
         if (wantsSoundAtSwipe) sendYouTubeCommand('mute');
-        sendYouTubeCommand('loadVideoById', [{ videoId: ytId, startSeconds: 0 }]);
+        sendYouTubeCommand(preferences.autoplay ? 'loadVideoById' : 'cueVideoById', [
+          { videoId: ytId, startSeconds: 0 },
+        ]);
       } else {
         // Gesture-handler already issued loadVideoById + unMute. Don't
         // re-mute. Clear the marker so a subsequent same-video re-render
@@ -417,16 +424,20 @@ export default function ReelsPage() {
       // The unMute fires AFTER playVideo so Chrome sees an already-playing video.
       // For the gesture path, these retries reinforce the unMute YT already
       // accepted; for the non-gesture path, they're a best-effort attempt.
-      playVideoOnLoadTimersRef.current = [200, 500, 1000, 2000].map((delay) =>
-        setTimeout(() => {
-          sendYouTubeCommand('playVideo');
-          if (wantsSoundAtSwipe) {
-            sendYouTubeCommand('unMute');
-            sendYouTubeCommand('setVolume', [100]);
-          }
-          autoUnmute();
-        }, delay)
-      );
+      if (preferences.autoplay) {
+        playVideoOnLoadTimersRef.current = [200, 500, 1000, 2000].map((delay) =>
+          setTimeout(() => {
+            sendYouTubeCommand('playVideo');
+            if (wantsSoundAtSwipe) {
+              sendYouTubeCommand('unMute');
+              sendYouTubeCommand('setVolume', [100]);
+            }
+            autoUnmute();
+          }, delay)
+        );
+      } else {
+        sendYouTubeCommand('pauseVideo');
+      }
       // Pause native video if it was playing (switching FROM native TO YouTube)
       if (videoRef.current && !videoRef.current.paused) {
         videoRef.current.pause();
@@ -447,7 +458,7 @@ export default function ReelsPage() {
       autoUnmuteRetryTimersRef.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, loading, reels.length]);
+  }, [currentIndex, loading, preferences.autoplay, preferences.soundOnScroll, preferencesLoaded, reels.length]);
 
   const handleUnmute = () => {
     sendYouTubeCommand('unMute');
@@ -478,7 +489,10 @@ export default function ReelsPage() {
   // for every slot transition.
   const autoUnmute = () => {
     if (!userWantsSoundRef.current) return;
-    if (!userInteractedRef.current) return;
+    // A session flag survives navigation, but browser media activation does
+    // not. Only unmute after a gesture in this document or Chrome/Safari can
+    // pause an otherwise valid muted autoplay during cold start.
+    if (!userGesturedThisLoadRef.current) return;
     sendYouTubeCommand('unMute');
     sendYouTubeCommand('setVolume', [100]);
     // Only flip React state if a gesture happened on THIS page load.
@@ -589,10 +603,12 @@ export default function ReelsPage() {
       playVideoOnLoadTimersRef.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady]);
+  }, [router.isReady, router.query.feed]);
 
   const loadReels = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
+    setHasMore(true);
     try {
       const initialId = router.query.id;
 
@@ -635,6 +651,9 @@ export default function ReelsPage() {
           .limit(60),
       ]);
 
+      const initialQueryError = userResult.error || libraryResult.error || horseResult.error;
+      if (initialQueryError) throw initialQueryError;
+
       const userReels = (userResult.data || []).map((r) => ({ ...r, source: 'reels' }));
       const libReels = (libraryResult.data || []).map((r) => ({ ...r, source: 'reels' }));
       const horseReels = (horseResult.data || []).map((r) => ({ ...r, source: 'reels' }));
@@ -672,13 +691,33 @@ export default function ReelsPage() {
       // different row ID but the same physical video — id-only dedup lets it render twice.
       const seenIds = new Set();
       const seenUrls = new Set();
-      const deduped = allVideos.filter((v) => {
+      let deduped = allVideos.filter((v) => {
         if (seenIds.has(v.id)) return false;
         if (v.video_url && seenUrls.has(v.video_url)) return false;
         seenIds.add(v.id);
         if (v.video_url) seenUrls.add(v.video_url);
         return true;
       });
+
+      const feedMode = ['following', 'trending'].includes(String(router.query.feed))
+        ? String(router.query.feed)
+        : 'foryou';
+      if (feedMode === 'trending') {
+        deduped = [...deduped].sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+      } else if (feedMode === 'following') {
+        const authUser = getAuthUser();
+        if (!authUser) {
+          deduped = [];
+        } else {
+          const { data: followRows, error: followError } = await supabase
+            .from('social_follows')
+            .select('following_id')
+            .eq('follower_id', authUser.id);
+          if (followError) throw followError;
+          const followedIds = new Set((followRows || []).map(row => row.following_id));
+          deduped = deduped.filter(reel => followedIds.has(reel.author_id));
+        }
+      }
 
       if (deduped.length > 0) {
         // Get all unique author IDs
@@ -796,6 +835,7 @@ export default function ReelsPage() {
           broken.size > 0 ? stale.filter((r) => !broken.has(r.video_url)) : stale;
         const finalReels = [...filteredFresh, ...filteredStale];
         setReels(finalReels);
+        if (feedMode !== 'foryou') setHasMore(false);
 
         // Initialize like/comment/view counts from the FINAL displayed array
         // (not shuffled - fresh/stale order may differ, and Not Interested IDs may be excluded)
@@ -812,6 +852,9 @@ export default function ReelsPage() {
         setLikeCounts((prev) => ({ ...lc, ...prev }));
         setCommentCounts((prev) => ({ ...cc, ...prev }));
         setViewCounts((prev) => ({ ...vc, ...prev }));
+      } else {
+        setReels([]);
+        setCurrentIndex(0);
       }
     } catch (e) {
       console.warn('Load reels error:', e);
@@ -819,7 +862,7 @@ export default function ReelsPage() {
     }
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notInterestedIds]);
+  }, [notInterestedIds, router.query.feed]);
 
   // Helper to atomically increment/decrement counts for reels OR posts
   // Uses SECURITY DEFINER RPCs - no race condition, no read-then-write
@@ -1009,7 +1052,10 @@ export default function ReelsPage() {
       // BUG FIX (Bug 19): initial load fetches 60 per source, so offset must use 60-row pages
       // to avoid overlap. Old code used 50-row pages causing 10-row overlap on page 2.
       // Also: missing source_type split - library reels could re-monopolize load-more batches.
-      const offset = nextPage * 60;
+      // Initial load consumes 60 rows/source. Subsequent pages consume 30 user,
+      // 30 library and 20 horse rows, so each stream needs its own cursor.
+      const standardOffset = 60 + (nextPage - 1) * 30;
+      const horseOffset = 60 + (nextPage - 1) * 20;
       const allNewVideos = [];
 
       const REEL_SELECT =
@@ -1024,14 +1070,14 @@ export default function ReelsPage() {
           .eq('is_public', true)
           .eq('source_type', 'user')
           .order('created_at', { ascending: false })
-          .range(offset, offset + 29),
+          .range(standardOffset, standardOffset + 29),
         supabase
           .from('social_reels')
           .select(REEL_SELECT)
           .eq('is_public', true)
           .eq('source_type', 'video_library')
           .order('created_at', { ascending: false })
-          .range(offset, offset + 29),
+          .range(standardOffset, standardOffset + 29),
         supabase
           .from('social_reels')
           .select(REEL_SELECT)
@@ -1039,8 +1085,11 @@ export default function ReelsPage() {
           .in('source_type', ['youtube', 'native'])
           .not('source_post_id', 'is', null)
           .order('created_at', { ascending: false })
-          .range(offset, offset + 19),
+          .range(horseOffset, horseOffset + 19),
       ]);
+
+      const loadMoreError = userResult.error || libraryResult.error || horseRes.error;
+      if (loadMoreError) throw loadMoreError;
 
       // Interleave 2:2:1 - user reels : library reels : horse reels
       const userReels = (userResult.data || []).map((r) => ({ ...r, source: 'reels' }));
@@ -1876,11 +1925,23 @@ export default function ReelsPage() {
     setMenuOpen(false);
   };
 
+  // `/hub/reels?upload=1` is the public upload CTA used by the My Reels page.
+  // Keep the deep-link functional instead of silently landing on the feed.
+  useEffect(() => {
+    if (!router.isReady || router.query.upload !== '1') return;
+    setShowUploadModal(true);
+  }, [router.isReady, router.query.upload]);
+
   const updatePreference = async (key, value) => {
     const newPrefs = { ...preferences, [key]: value };
     setPreferences(newPrefs);
-    if (user) {
-      await reelsPreferences.update(user.id, newPrefs);
+    try {
+      // Storage is local-first, so guest choices must persist too.
+      await reelsPreferences.update(user?.id, newPrefs);
+    } catch (error) {
+      setPreferences(preferences);
+      showErrorToast('Preference could not be saved');
+      console.warn('[Reels] Preference update failed:', error?.message || error);
     }
   };
 
@@ -1925,7 +1986,11 @@ export default function ReelsPage() {
         const nextIdx = currentIndexRef.current + direction;
         const nextReel = reelsRef?.current?.[nextIdx] || reels[nextIdx];
         const nextYtId = nextReel ? getYouTubeVideoId(nextReel.video_url) : null;
-        if (userWantsSoundRef.current) {
+        if (
+          preferencesRef.current.autoplay &&
+          preferencesRef.current.soundOnScroll &&
+          userWantsSoundRef.current
+        ) {
           sendYouTubeCommand('unMute');
           sendYouTubeCommand('setVolume', [100]);
           setMuted(false);
@@ -2101,7 +2166,11 @@ export default function ReelsPage() {
         const nextIdx = currentIndexRef.current + direction;
         const nextReel = reelsRef?.current?.[nextIdx] || reels[nextIdx];
         const nextYtId = nextReel ? getYouTubeVideoId(nextReel.video_url) : null;
-        if (userWantsSoundRef.current) {
+        if (
+          preferencesRef.current.autoplay &&
+          preferencesRef.current.soundOnScroll &&
+          userWantsSoundRef.current
+        ) {
           // First unMute the current iframe (visible during the slide animation)
           sendYouTubeCommand('unMute');
           sendYouTubeCommand('setVolume', [100]);
@@ -2146,7 +2215,11 @@ export default function ReelsPage() {
         const nextIdx = currentIndexRef.current + direction;
         const nextReel = reelsRef?.current?.[nextIdx] || reels[nextIdx];
         const nextYtId = nextReel ? getYouTubeVideoId(nextReel.video_url) : null;
-        if (userWantsSoundRef.current) {
+        if (
+          preferencesRef.current.autoplay &&
+          preferencesRef.current.soundOnScroll &&
+          userWantsSoundRef.current
+        ) {
           sendYouTubeCommand('unMute');
           sendYouTubeCommand('setVolume', [100]);
           setMuted(false);
@@ -2192,7 +2265,11 @@ export default function ReelsPage() {
             // Cancel previous retry batch before scheduling new one
             // so reel changes don't accumulate stale timers on the wrong iframe.
             autoUnmuteRetryTimersRef.current.forEach((t) => clearTimeout(t));
-            if (userWantsSoundRef.current) {
+            if (
+              preferencesRef.current.autoplay &&
+              preferencesRef.current.soundOnScroll &&
+              userWantsSoundRef.current
+            ) {
               autoUnmute();
               // Retry: iframe API sometimes isn't ready for unMute on first call
               autoUnmuteRetryTimersRef.current = [100, 300, 600].map((d) =>
@@ -2567,6 +2644,21 @@ export default function ReelsPage() {
   }
 
   const videoId = getYouTubeVideoId(currentReel?.video_url);
+  const handleNativeVideoMetadata = (event) => {
+    const duration = Number(event.currentTarget?.duration);
+    // Some synthetic health checks announce metadata before their final
+    // duration. Validate on both metadata and duration changes so a 64ms test
+    // fragment cannot pin a paused/autoplay-off feed at 0:00.
+    if (Number.isFinite(duration) && duration > 0 && duration < 1) {
+      if (currentReel?.video_url) brokenUrlsRef.current.add(currentReel.video_url);
+      goNext();
+      return;
+    }
+    if (Number.isFinite(duration) && duration >= 1 && videoStallTimerRef.current) {
+      clearTimeout(videoStallTimerRef.current);
+      videoStallTimerRef.current = null;
+    }
+  };
 
   return (
     <>
@@ -2578,7 +2670,7 @@ export default function ReelsPage() {
         </title>
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+          content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
         {/* Dynamic OpenGraph for shared reel links */}
         <meta
@@ -2652,29 +2744,6 @@ export default function ReelsPage() {
           overflow: 'hidden',
         }}
       >
-        {/* Back button */}
-        <Link
-          href="/hub/social-media"
-          style={{
-            position: 'absolute',
-            top: 16,
-            left: 16,
-            zIndex: 100,
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: 20,
-            textDecoration: 'none',
-          }}
-        >
-          ←
-        </Link>
-
         {/* Title — fades with overlay so it doesn't block video content */}
         <div
           style={{
@@ -2726,7 +2795,7 @@ export default function ReelsPage() {
             <iframe
               ref={iframeRef}
               key="yt-player-persistent"
-              src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
+              src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${preferencesLoaded && preferences.autoplay ? 1 : 0}&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=${preferences.showCaptions ? 1 : 0}`}
               title="Poker Reel"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen
@@ -2738,9 +2807,8 @@ export default function ReelsPage() {
                 const iframeWindow = e.target.contentWindow;
                 try {
                   iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                  iframeWindow.postMessage(
-                    JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
-                    '*'
+                  if (preferencesLoaded && preferences.autoplay) iframeWindow.postMessage(
+                    JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*'
                   );
                   // Retry playVideo — YT API inside the iframe may not be ready yet.
                   playVideoOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
@@ -2748,7 +2816,7 @@ export default function ReelsPage() {
                     setTimeout(() => {
                       try {
                         iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                        iframeWindow.postMessage(
+                        if (preferencesLoaded && preferences.autoplay) iframeWindow.postMessage(
                           JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
                           '*'
                         );
@@ -2787,8 +2855,8 @@ export default function ReelsPage() {
                 // swipe feels identical to YouTube-iframe reels (which
                 // always show YouTube's poster underneath the player).
                 poster={currentReel?.thumbnail_url || undefined}
-                autoPlay
-                loop
+                autoPlay={preferencesLoaded && preferences.autoplay}
+                preload={preferences.dataSaver ? 'metadata' : 'auto'}
                 playsInline
                 // Always render muted=true — guarantees autoplay regardless
                 // of browser policy. The new onPlaying handler flips
@@ -2810,7 +2878,7 @@ export default function ReelsPage() {
                   // the browser hasn't seen a fresh gesture this load. The
                   // muted=false write may be silently ignored. Only flip React
                   // state after the DOM accepted it — never lie.
-                  if (userInteractedRef.current && userWantsSoundRef.current) {
+                  if (userGesturedThisLoadRef.current && userWantsSoundRef.current) {
                     try {
                       e.target.muted = false;
                       if (!e.target.muted) {
@@ -2831,15 +2899,8 @@ export default function ReelsPage() {
                   const v = e.currentTarget;
                   if (v.duration) setVideoProgress((v.currentTime / v.duration) * 100);
                 }}
-                onLoadedMetadata={() => {
-                  // Metadata reached → video IS decodable. Clear stall
-                  // watchdog so we don't auto-skip a healthy reel that
-                  // simply took >6s to download metadata over a slow link.
-                  if (videoStallTimerRef.current) {
-                    clearTimeout(videoStallTimerRef.current);
-                    videoStallTimerRef.current = null;
-                  }
-                }}
+                onLoadedMetadata={handleNativeVideoMetadata}
+                onDurationChange={handleNativeVideoMetadata}
                 // Surface decode failures (most commonly HEVC on Chrome
                 // desktop — Chrome doesn't license H.265). Without this,
                 // users saw a black box with the play button forever.
@@ -3232,7 +3293,7 @@ export default function ReelsPage() {
             </button>
           )}
 
-          {currentReel?.caption && (
+          {preferences.showCaptions && currentReel?.caption && (
             <div style={{ maxWidth: '80%' }}>
               <p
                 style={{

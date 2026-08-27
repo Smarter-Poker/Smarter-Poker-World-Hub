@@ -85,7 +85,7 @@ export default async function handler(req, res) {
 
           // Transform data to include author info and extract title from caption
           // (\u{1F3AC} = clapper-board emoji prefix some captions carry)
-          let result = data.map(reel => {
+          let result = data.filter(reel => typeof reel.video_url === 'string' && reel.video_url.trim()).map(reel => {
               const profile = profilesMap[reel.author_id];
               return {
                   id: reel.id,

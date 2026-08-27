@@ -22,6 +22,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
+import { getYouTubeVideoId } from '../../src/lib/socialHelpers';
 import useSWR from 'swr';
 import { supabase } from '../../src/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -107,18 +108,6 @@ function formatEventDate(dateStr) {
     if (isNaN(date.getTime())) return '';
     // Date-only strings parse as UTC midnight — format in UTC so the day never shifts
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-}
-
-// Extract a YouTube video id from watch/shorts/short-link URLs (mirrors ReelCard.js)
-function getYouTubeVideoId(url) {
-    if (!url) return null;
-    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
-    if (shortsMatch) return shortsMatch[1];
-    const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
-    if (watchMatch) return watchMatch[1];
-    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-    if (shortMatch) return shortMatch[1];
-    return null;
 }
 
 function formatViews(num) {
@@ -265,7 +254,9 @@ export default function NewsHub() {
     });
 
     const activeTab = filters.activeTab;
-    const activeSection = filters.activeSection;
+    const activeSection = [...NAV_SECTION_TABS, 'bookmarks'].includes(filters.activeSection)
+        ? filters.activeSection
+        : 'news';
     // Bookmarks is a filtered News view, not a sixth rail destination.
     const navActiveSection = NAV_SECTION_TABS.includes(activeSection) ? activeSection : 'news';
     const setActiveTab = (val) => setFilter('activeTab', val);
@@ -334,11 +325,11 @@ export default function NewsHub() {
     const { data: leaderboardData } = useSWR('/api/news/leaderboard?limit=5', fetchNewsJson);
     const leaderboard = (leaderboardData?.success && leaderboardData.data?.length) ? leaderboardData.data : (typeof FALLBACK_POY !== 'undefined' ? FALLBACK_POY : []);
 
-    const { data: eventsData, error: eventsError, isLoading: eventsLoading, mutate: refreshEvents } = useSWR('/api/news/events?limit=3', fetchNewsJson);
+    const { data: eventsData, error: eventsError, isLoading: eventsLoading, mutate: refreshEvents } = useSWR('/api/news/events?limit=25', fetchNewsJson);
     const events = (eventsData?.success && eventsData.data?.length) ? eventsData.data : [];
     // The sidebar keeps the established, explicitly labelled sample preview when
     // there are no scheduled rows. The dedicated Events section stays truthful.
-    const sidebarEvents = events.length > 0 ? events : FALLBACK_EVENTS;
+    const sidebarEvents = events.length > 0 ? events.slice(0, 3) : FALLBACK_EVENTS;
 
     const { data: msptData } = useSWR('/api/news/articles?search=MSPT&limit=10', fetchNewsJson);
     const msptNews = (msptData?.success && msptData.data?.length)
@@ -560,6 +551,9 @@ export default function NewsHub() {
     const [reelViewerIndex, setReelViewerIndex] = useState(0);
     const openReelViewer = (index) => { setReelViewerIndex(index); setReelViewerOpen(true); };
     const reelViewerRef = useRef(null);
+    const reelYouTubeRef = useRef(null);
+    const reelReturnFocusRef = useRef(null);
+    const reelSwipeStartRef = useRef(null);
 
     // Clamp the viewer index to the live data — SWR revalidation can shrink `reels`
     const safeReelIndex = Math.max(0, Math.min(reelViewerIndex, reels.length - 1));
@@ -580,6 +574,12 @@ export default function NewsHub() {
         active: reelViewerOpen,
         videoId: reelViewerOpen && reels[safeReelIndex] ? getYouTubeVideoId(reels[safeReelIndex]?.video_url) : null,
         surface: 'NewsReelsViewer',
+        iframeRef: reelYouTubeRef,
+        onStateChange: (state) => {
+            if (state !== 0) return;
+            if (safeReelIndex < reels.length - 1) setReelViewerIndex(safeReelIndex + 1);
+            else setReelViewerOpen(false);
+        },
         autoActionDelay: 3000,
         onError: () => {
             if (safeReelIndex < reels.length - 1) {
@@ -627,6 +627,7 @@ export default function NewsHub() {
         const { filter: _omit, ...restQuery } = router.query;
         router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
         setFeedFilter(null);
+        if (activeSection === 'bookmarks') setFilter('activeSection', 'news');
     };
     const [email, setEmail] = useState('');
     const [subscribed, setSubscribed] = useState(false);
@@ -694,7 +695,7 @@ export default function NewsHub() {
     // that opened the dialog when it closes.
     useEffect(() => {
         if (!shareArticle) return;
-        shareReturnFocusRef.current = document.activeElement;
+        if (!shareReturnFocusRef.current) shareReturnFocusRef.current = document.activeElement;
         const trapFocus = (event) => {
             if (event.key !== 'Tab' || !shareModalRef.current) return;
             const focusable = [...shareModalRef.current.querySelectorAll('button:not([disabled]), a[href]')];
@@ -714,12 +715,34 @@ export default function NewsHub() {
             document.removeEventListener('keydown', trapFocus);
             const returnTarget = shareReturnFocusRef.current;
             if (returnTarget?.isConnected) requestAnimationFrame(() => returnTarget.focus());
+            shareReturnFocusRef.current = null;
         };
     }, [shareArticle]);
 
     // Focus the reel viewer container once when it opens (not on every render)
     useEffect(() => {
-        if (reelViewerOpen) reelViewerRef.current?.focus();
+        if (reelViewerOpen) {
+            reelReturnFocusRef.current = document.activeElement;
+            reelViewerRef.current?.focus();
+            return;
+        }
+        const returnTarget = reelReturnFocusRef.current;
+        if (returnTarget?.isConnected) requestAnimationFrame(() => returnTarget.focus());
+    }, [reelViewerOpen]);
+
+    useEffect(() => {
+        if (!reelViewerOpen) return;
+        const trapReelFocus = (event) => {
+            if (event.key !== 'Tab' || !reelViewerRef.current) return;
+            const focusable = [...reelViewerRef.current.querySelectorAll('button:not([disabled]), a[href], video[controls]')];
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        };
+        document.addEventListener('keydown', trapReelFocus);
+        return () => document.removeEventListener('keydown', trapReelFocus);
     }, [reelViewerOpen]);
 
 
@@ -976,6 +999,8 @@ export default function NewsHub() {
 
     // Share functions (Phase 4: Web Share API with fallback)
     const handleShare = useCallback(async (article) => {
+        // Capture before native share or modal autofocus can move focus.
+        shareReturnFocusRef.current = document.activeElement;
         const url = `https://smarter.poker/hub/article?id=${article.id}`;
         // Try native Web Share API first (mobile Safari/Chrome)
         if (typeof navigator !== 'undefined' && navigator.share) {
@@ -1938,7 +1963,11 @@ export default function NewsHub() {
                                     ) : (
                                         <div className="videos-grid">
                                             {videos.map(video => (
-                                                <VideoCard key={video.id || video.youtube_id} video={video} />
+                                                <VideoCard
+                                                    key={video.id || video.youtube_id}
+                                                    video={video}
+                                                    onClick={() => router.push(`/hub/reels?id=${encodeURIComponent(video.id)}`)}
+                                                />
                                             ))}
                                         </div>
                                     )}
@@ -1963,7 +1992,7 @@ export default function NewsHub() {
                                                 <button type="button" onClick={() => refreshEvents()}>Retry</button>
                                             </div>
                                         ) : events.map(event => (
-                                            <div key={event.id} className="event-row" style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px' }}>
+                                            <div key={event.id} className="event-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: 'rgba(6,16,24,.96)', border: '1px solid rgba(95,132,152,.55)', padding: '16px', borderRadius: '4px' }}>
                                                 <div className="event-date" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '8px 16px', borderRadius: '8px', textAlign: 'center', minWidth: '80px' }}>
                                                     <div className="month" style={{ fontSize: '12px', textTransform: 'uppercase', fontWeight: 'bold' }}>{new Date(event.event_date).toLocaleString('default', { month: 'short', timeZone: 'UTC' })}</div>
                                                     <div className="day" style={{ fontSize: '24px', fontWeight: 'bold' }}>{new Date(event.event_date).getUTCDate()}</div>
@@ -1977,6 +2006,15 @@ export default function NewsHub() {
                                                         {event.buy_in && <div className="buy-in" style={{ color: '#22c55e', fontWeight: 'bold' }}>{event.buy_in}</div>}
                                                         {event.guarantee && <div className="guarantee" style={{ color: '#fbbf24', fontSize: '12px' }}>{event.guarantee}</div>}
                                                     </div>
+                                                )}
+                                                {event.registration_url && (
+                                                    <a
+                                                        href={event.registration_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="event-register"
+                                                        style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center', padding: '0 14px', border: '1px solid #31c2ff', color: '#dff7ff', textDecoration: 'none', font: '700 11px monospace', letterSpacing: '.08em' }}
+                                                    >REGISTER <ExternalLink size={13} /></a>
                                                 )}
                                             </div>
                                         ))}
@@ -4084,9 +4122,18 @@ export default function NewsHub() {
                         aria-label="Reel viewer"
                         style={{
                             position: 'fixed', inset: 0, background: '#000', zIndex: 99999,
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+                            height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                         }}
                         onClick={(e) => { if (e.target === e.currentTarget) setReelViewerOpen(false); }}
+                        onTouchStart={(e) => { reelSwipeStartRef.current = e.changedTouches[0]?.clientY ?? null; }}
+                        onTouchEnd={(e) => {
+                            const start = reelSwipeStartRef.current;
+                            const end = e.changedTouches[0]?.clientY;
+                            reelSwipeStartRef.current = null;
+                            if (start == null || end == null || Math.abs(start - end) < 48) return;
+                            if (start > end && safeReelIndex < reels.length - 1) setReelViewerIndex(safeReelIndex + 1);
+                            if (start < end && safeReelIndex > 0) setReelViewerIndex(safeReelIndex - 1);
+                        }}
                         tabIndex={-1}
                         ref={reelViewerRef}
                     >
@@ -4096,7 +4143,7 @@ export default function NewsHub() {
                             aria-label="Close reel viewer"
                             style={{
                                 position: 'absolute', top: 16, left: 16, zIndex: 10,
-                                width: 40, height: 40, borderRadius: '50%',
+                                width: 44, height: 44, borderRadius: '50%',
                                 background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
                                 border: 'none', color: 'white', fontSize: 18, cursor: 'pointer',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -4144,16 +4191,24 @@ export default function NewsHub() {
 
                         {/* Video container — sized to the 9:16 reel so the letterbox areas
                             stay part of the backdrop and click-to-close keeps working */}
-                        <div style={{ position: 'relative', height: '100%', maxHeight: '100vh', aspectRatio: '9 / 16', maxWidth: '100vw' }}>
+                        <div style={{ position: 'relative', height: '100%', maxHeight: '100dvh', aspectRatio: '9 / 16', maxWidth: '100vw' }}>
                             {videoId ? (
                                 <>
                                 <iframe
                                     key={currentReel.id}
+                                    ref={reelYouTubeRef}
                                     title={displayTitle}
-                                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&controls=1&showinfo=0&iv_load_policy=3&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
+                                    src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=1&iv_load_policy=3&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
                                     style={{ width: '100%', height: '100%', border: 'none' }}
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
+                                    onLoad={() => {
+                                        const player = reelYouTubeRef.current?.contentWindow;
+                                        if (!player) return;
+                                        player.postMessage(JSON.stringify({ event: 'listening', id: currentReel.id, channel: 'news-reels' }), 'https://www.youtube-nocookie.com');
+                                        player.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), 'https://www.youtube-nocookie.com');
+                                        player.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onError'] }), 'https://www.youtube-nocookie.com');
+                                    }}
                                 />
                                 {/* YouTube Error Overlay */}
                                 {newsYtManaged && (
@@ -4169,11 +4224,15 @@ export default function NewsHub() {
                                     key={currentReel.id}
                                     src={currentReel.video_url}
                                     autoPlay
+                                    muted
                                     controls
                                     playsInline
                                     style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
                                     onClick={(e) => e.stopPropagation()}
                                     onEnded={() => {
+                                        if (safeReelIndex < reels.length - 1) setReelViewerIndex(safeReelIndex + 1);
+                                    }}
+                                    onError={() => {
                                         if (safeReelIndex < reels.length - 1) setReelViewerIndex(safeReelIndex + 1);
                                     }}
                                 />

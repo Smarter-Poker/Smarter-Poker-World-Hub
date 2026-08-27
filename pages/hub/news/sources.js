@@ -115,7 +115,8 @@ export default function NewsSources() {
         };
     }, [userId]);
 
-    const toggleSource = (name) => {
+    const toggleSource = async (name) => {
+        const previous = new Set(muted);
         const next = new Set(muted);
         if (next.has(name)) {
             next.delete(name);
@@ -126,9 +127,14 @@ export default function NewsSources() {
         const arr = [...next];
         writeLocalMuted(arr);
         if (userId) {
-            updateNewsPreferences(userId, { mutedSources: arr }).catch((e) =>
-                console.warn('[sources.js] Failed to save source preference:', e?.message || e)
-            );
+            try {
+                await updateNewsPreferences(userId, { mutedSources: arr });
+            } catch (e) {
+                console.warn('[sources.js] Failed to save source preference:', e?.message || e);
+                setMuted(previous);
+                writeLocalMuted([...previous]);
+                setError('Your source preference could not be saved. Please try again.');
+            }
         }
     };
 
@@ -141,12 +147,12 @@ export default function NewsSources() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0e1a' }}>
+                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#000407' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '800px', margin: '0 auto' }}>
 
-                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '12px' }}>
+                        <h1 style={{ fontFamily: 'Arial Narrow, Arial, sans-serif', textTransform: 'uppercase', letterSpacing: '-0.02em', fontSize: 'clamp(36px, 8vw, 58px)', fontWeight: 'bold', color: '#e4edf1', marginBottom: '12px' }}>
                             News Sources
                         </h1>
                         <p style={{ color: '#9ca3af', marginBottom: '40px' }}>
@@ -228,9 +234,9 @@ export default function NewsSources() {
                                         <div
                                             key={source.id}
                                             style={{
-                                                background: 'rgba(255,255,255,0.03)',
-                                                border: '1px solid rgba(255,255,255,0.1)',
-                                                borderRadius: '12px',
+                                                background: '#061018',
+                                                border: '1px solid #345468',
+                                                borderRadius: '4px',
                                                 padding: '20px',
                                                 display: 'flex',
                                                 justifyContent: 'space-between',
@@ -264,13 +270,13 @@ export default function NewsSources() {
                                                 )}
                                             </div>
 
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flexShrink: 0 }}>
+                                            <label style={{ minHeight: 44, padding: '4px 0', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flexShrink: 0 }}>
                                                 <input
                                                     type="checkbox"
                                                     checked={enabled}
                                                     onChange={() => toggleSource(source.name)}
                                                     aria-label={`${enabled ? 'Disable' : 'Enable'} ${source.name} in your feed`}
-                                                    style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                                                    style={{ width: '24px', height: '24px', cursor: 'pointer', accentColor: '#31c2ff' }}
                                                 />
                                                 <span style={{ color: enabled ? '#10b981' : '#9ca3af', minWidth: '64px' }}>
                                                     {enabled ? 'Enabled' : 'Disabled'}

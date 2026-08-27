@@ -103,7 +103,7 @@ export default async function handler(req, res) {
                   youtube_id: youtubeId,
                   video_url: reel.video_url,
                   thumbnail_url: thumbnailUrl,
-                  duration: reel.duration || '',
+                  duration: '',
                   views: reel.view_count || 0,
                   channel: profile?.full_name || profile?.username || 'PokerNews',
                   published_at: reel.created_at,

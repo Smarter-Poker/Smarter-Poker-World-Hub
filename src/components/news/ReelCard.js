@@ -2,17 +2,7 @@ import React from 'react';
 import { Play } from 'lucide-react';
 import SPImage from '../common/SPImage';
 import { formatViews, FALLBACK_IMAGES, safeText, CardErrorBoundary } from './NewsBox';
-
-function getYouTubeVideoId(url) {
-    if (!url || typeof url !== 'string') return null;
-    // Handles youtube.com/shorts/ID, /embed/ID, /live/ID, watch?v=ID (v= in any
-    // position), youtu.be/ID, and m.youtube.com variants of all of the above.
-    const pathMatch = url.match(/(?:youtube\.com\/(?:shorts|embed|live)\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    if (pathMatch) return pathMatch[1];
-    const watchMatch = url.match(/youtube\.com\/watch\?(?:[^#]*&)?v=([a-zA-Z0-9_-]{11})/);
-    if (watchMatch) return watchMatch[1];
-    return null;
-}
+import { getYouTubeVideoId } from '../../lib/socialHelpers';
 
 function getReelThumbnail(reel) {
     if (typeof reel.thumbnail_url === 'string' && reel.thumbnail_url) return reel.thumbnail_url;
@@ -240,6 +230,9 @@ const COMPARED_REEL_FIELDS = [
 
 export function areReelCardPropsEqual(prev, next) {
     if (prev === next) return true;
+    // The parent callback identifies the reel's current position. SWR can reorder
+    // a visually identical row, so retaining the old closure opens the wrong item.
+    if (prev.onClick !== next.onClick) return false;
     const a = prev.reel;
     const b = next.reel;
     if (a === b) return true;
