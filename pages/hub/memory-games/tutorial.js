@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Keyboard, Layers3, MousePointer2, ScanSearch } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Keyboard, Layers3, MousePointer2 as PointerIcon, ScanSearch } from 'lucide-react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import PreflopSubpageShell from '../../../src/components/memory-games/PreflopSubpageShell';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -7,7 +7,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 const STEPS = [
   { icon: ScanSearch, title: 'Read the situation', description: 'Confirm your position, effective stack, format, and the action you are facing. Those details determine the target range.' },
   { icon: Layers3, title: 'Choose an action', description: 'Select Fold, Call, Raise, Raise Small, Raise Big, or All In. The active action stays available in the mobile command strip.' },
-  { icon: MousePointer2, title: 'Build the range', description: 'Tap individual hands or apply the active action to every pair, suited hand, or offsuit hand. Undo and redo are available before submission.' },
+  { icon: PointerIcon, title: 'Build the range', description: 'Tap individual hands or apply the active action to every pair, suited hand, or offsuit hand. Undo and redo are available before submission.' },
   { icon: CheckCircle2, title: 'Submit and compare', description: 'Your score measures exact overlap with the solver range. Missing hands, extra hands, and correct hands with the wrong action all reduce accuracy.' },
 ];
 
