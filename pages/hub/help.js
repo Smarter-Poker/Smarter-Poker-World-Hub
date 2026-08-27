@@ -85,8 +85,13 @@ export default function HelpPage() {
                     a: 'Go to Settings → Account → Account Security, then click "Change Password". You\'ll receive a password reset email.'
                 },
                 {
+                    /* 2026-08-27: this said 2FA was "coming soon". It has shipped —
+                       pages/auth/mfa.js, six /api/auth/mfa/* routes, and a toggle in
+                       Settings. The help centre was talking users out of enabling a
+                       security control that already exists, which is the one kind of
+                       stale copy that makes accounts less safe. */
                     q: 'Is two-factor authentication available?',
-                    a: 'Two-factor authentication (2FA) is coming soon! This will add an extra layer of security to your account.'
+                    a: 'Yes. Go to Settings → Account → Account Security and choose "Turn On Two-Factor Authentication". Codes are sent by text message to your verified phone number, and a device you trust is remembered for 30 days so you are not asked on every sign-in.'
                 },
                 {
                     q: 'How do I delete my account?',

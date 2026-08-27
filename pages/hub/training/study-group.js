@@ -212,7 +212,18 @@ export default function StudyGroupRoom() {
                     ) : null}
                   </div>
                 ))}
-                <button type="button" aria-label="Generate invite link" style={styles.inviteBtn}>+ Invite Link</button>
+                {/* 2026-08-27: had no onClick, and it is the ONLY way to add someone
+                    to a study group - so the group feature was unusable in its
+                    central action while looking complete. */}
+                <button
+                  type="button"
+                  disabled
+                  aria-label="Invite links are not available yet"
+                  title="Invite Links Are Not Available Yet"
+                  style={{ ...styles.inviteBtn, opacity: 0.5, cursor: 'not-allowed' }}
+                >
+                  Invite Link Coming Soon
+                </button>
               </div>
 
               <div style={styles.handViewer}>

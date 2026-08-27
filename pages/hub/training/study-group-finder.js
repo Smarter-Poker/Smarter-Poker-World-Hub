@@ -322,8 +322,11 @@ export default function StudyGroupFinderPage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Study Group Finder</div>
+              {/* Says "example groups", not "groups". MOCK_GROUPS is a hardcoded
+                  array; rendering its length beside a live "applied" count read as
+                  a real population of study groups a player could join. */}
               <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-                {MOCK_GROUPS.length} groups · {applied.length} applied
+                {MOCK_GROUPS.length} example groups · {applied.length} applied
               </div>
             </div>
           </div>
@@ -428,21 +431,27 @@ export default function StudyGroupFinderPage() {
                       }}
                     />
                   </div>
+                  {/* 2026-08-27: had no onClick. A user could fill in every field of
+                      this form, press Create Group, and lose the lot with no error
+                      and no group. Disabled until there is somewhere to persist it. */}
                   <button
+                    type="button"
+                    disabled
+                    title="Creating Groups Is Not Available Yet"
                     style={{
                       marginTop: 12,
                       padding: '10px 20px',
                       borderRadius: 8,
-                      background: 'var(--sp-accent-blue)',
-                      border: 'none',
-                      color: '#fff',
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      color: 'var(--sp-fg-dim)',
                       fontSize: 12,
                       fontWeight: 700,
-                      cursor: 'pointer',
+                      cursor: 'not-allowed',
                       width: '100%',
                     }}
                   >
-                    Create Group
+                    Creating Groups Coming Soon
                   </button>
                 </div>
               </motion.div>
