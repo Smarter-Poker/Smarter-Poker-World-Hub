@@ -26,6 +26,8 @@
     0 8px 20px #000;
 }
 .tab {
+  display: grid;
+  place-items: center;
   min-height: 54px;
   border: 0;
   border-right: 1px solid #293c49;
@@ -33,6 +35,8 @@
   color: #aebdc7;
   font-weight: 700;
   cursor: pointer;
+  text-align: center;
+  text-decoration: none;
   text-transform: capitalize;
 }
 .tab:last-child {
