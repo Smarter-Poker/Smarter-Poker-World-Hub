@@ -1663,6 +1663,69 @@ body.world-training .sp-training-route-shell[data-training-route='/hub/training/
     min-height: calc(100dvh - 59px) !important;
 }
 
+/* =========================================================================
+   PHASE 7 — specialty training tools
+   Reusable dimensional chrome for calculators, builders, reports and live
+   training utilities. Individual pages opt in while retaining their logic.
+   ========================================================================= */
+body.world-training .sp-training-tool {
+    position: relative;
+    isolation: isolate;
+}
+
+body.world-training .sp-training-tool::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, rgba(139, 234, 255, 0.05) 1px, transparent 1px) 0 0 / 44px 44px,
+        linear-gradient(rgba(139, 234, 255, 0.035) 1px, transparent 1px) 0 0 / 44px 44px;
+    mask-image: linear-gradient(180deg, #000, transparent 78%);
+}
+
+body.world-training .sp-training-tool-header {
+    border-bottom: 1px solid rgba(139, 234, 255, 0.3) !important;
+    background:
+        linear-gradient(180deg, rgba(25, 52, 68, 0.9), rgba(3, 13, 21, 0.96)),
+        repeating-linear-gradient(90deg, transparent 0 3px, rgba(255,255,255,0.025) 3px 4px) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 14px 30px rgba(0,0,0,0.3);
+}
+
+body.world-training .sp-range-builder-layout {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+body.world-training .sp-range-builder-matrix {
+    min-width: 0;
+    max-width: 100%;
+}
+
+body.world-training .sp-range-builder-sidebar {
+    border: 1px solid rgba(139, 234, 255, 0.22);
+    background: linear-gradient(145deg, rgba(18, 42, 57, 0.82), rgba(2, 10, 17, 0.94));
+    box-shadow: var(--sp-console-shadow);
+}
+
+body.world-training .sp-training-tool--tournaments {
+    border-inline: 1px solid rgba(139, 234, 255, 0.2);
+    background: linear-gradient(180deg, rgba(9, 28, 41, 0.74), rgba(1, 7, 12, 0.9));
+    box-shadow: 0 24px 70px rgba(0,0,0,0.52), inset 0 1px 0 rgba(224,248,255,0.12);
+}
+
+body.world-training .sp-training-tool--tournaments [role='tab'],
+body.world-training .sp-training-tool--tournaments button[aria-pressed] {
+    border: 1px solid rgba(139, 234, 255, 0.34) !important;
+}
+
+body.world-training .sp-training-tool--tournaments button[aria-pressed='true'] {
+    color: #03101a !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.48) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.72), inset 0 -3px 0 rgba(0,45,72,0.72), 0 0 24px rgba(35,215,255,0.22) !important;
+}
+
 @media (max-width: 768px) {
     body.world-training .sp-training-page-stage {
         min-height: calc(100dvh - 35px);
@@ -1675,6 +1738,30 @@ body.world-training .sp-training-route-shell[data-training-route='/hub/training/
     body.world-training .sp-training-page-stage :where(h1):not(.universal-header *) {
         font-size: clamp(24px, 8vw, 38px) !important;
         line-height: 1.05 !important;
+    }
+
+    body.world-training .sp-range-builder-layout {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        overflow: visible !important;
+        padding: 16px 12px 28px !important;
+    }
+
+    body.world-training .sp-range-builder-matrix {
+        width: 100%;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(139,234,255,0.45) rgba(1,7,12,0.8);
+    }
+
+    body.world-training .sp-range-builder-sidebar {
+        width: 100% !important;
+        margin-top: 4px;
+        box-sizing: border-box;
+    }
+
+    body.world-training .sp-training-tool--tournaments {
+        padding: 34px 14px 40px !important;
     }
 
     body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='height: 100vh'] {

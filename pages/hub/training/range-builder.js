@@ -329,6 +329,7 @@ export default function RangeBuilder() {
       </Head>
 
       <div
+        className="sp-training-tool sp-training-tool--range-builder"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
@@ -338,6 +339,7 @@ export default function RangeBuilder() {
       >
         {/* ─── Header ─────────────────────────────────────────────── */}
         <div
+          className="sp-training-tool-header"
           style={{
             padding: '20px 24px 16px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -442,7 +444,8 @@ export default function RangeBuilder() {
         </div>
 
         {/* ─── Main Content ───────────────────────────────────────── */}
-        <div data-pills-row
+        <div
+          className="sp-range-builder-layout"
           style={{
             padding: '20px 24px',
             display: 'flex',
@@ -453,7 +456,7 @@ export default function RangeBuilder() {
           }}
         >
           {/* Grid */}
-          <div>
+          <div className="sp-range-builder-matrix">
             <div
               style={{
                 fontSize: 11,
@@ -513,7 +516,7 @@ export default function RangeBuilder() {
           </div>
 
           {/* Sidebar */}
-          <div style={{ width: 240, flexShrink: 0 }}>
+          <div className="sp-range-builder-sidebar" style={{ width: 240, flexShrink: 0 }}>
             <AnimatePresence mode="wait">
               {result ? (
                 /* ─── Grade Results ─────────────────── */
