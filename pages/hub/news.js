@@ -174,6 +174,23 @@ function isRealArticle(article) {
     return !!article && !article.is_fallback && !article._isEmpty && !article._isError;
 }
 
+async function fetchNewsJson(url) {
+    const response = await fetch(url);
+    let payload = null;
+    try {
+        payload = await response.json();
+    } catch (_error) {
+        // Preserve the HTTP status in the error below when an upstream sends HTML
+        // or an otherwise malformed body.
+    }
+    if (!response.ok || payload?.success === false) {
+        const error = new Error(payload?.error || `News feed request failed (${response.status})`);
+        error.status = response.status;
+        throw error;
+    }
+    return payload;
+}
+
 export default function NewsHub() {
     const router = useRouter();
     const { user } = useAvatar();
@@ -294,12 +311,11 @@ export default function NewsHub() {
     }, [activeTab]);
 
     // SWR-backed static data — cached 60s, survive navigation
-    const jsonFetch = (url) => fetch(url).then(r => r.json());
-    const { data: sourceBoxesData } = useSWR('/api/news/source-boxes', jsonFetch);
+    const { data: sourceBoxesData, error: sourceBoxesError } = useSWR('/api/news/source-boxes', fetchNewsJson);
     const rawSourceBoxes = (sourceBoxesData?.success && sourceBoxesData.data?.length) ? sourceBoxesData.data : [];
-    const sourceBoxesUnavailable = !!sourceBoxesData && (
+    const sourceBoxesUnavailable = !!sourceBoxesError || (!!sourceBoxesData && (
         sourceBoxesData.success !== true || !Array.isArray(sourceBoxesData.data) || sourceBoxesData.data.length === 0
-    );
+    ));
     const sourceBoxes = React.useMemo(() => {
         return rawSourceBoxes.map(a => ({
             ...a,
@@ -309,19 +325,22 @@ export default function NewsHub() {
 
     // Videos feed — backs the ?tab=videos section. Real data only; an empty list
     // renders the section's own empty state rather than fabricated placeholders.
-    const { data: videosData } = useSWR('/api/news/videos?limit=20', jsonFetch);
+    const { data: videosData, error: videosError, isLoading: videosLoading, mutate: refreshVideos } = useSWR('/api/news/videos?limit=20', fetchNewsJson);
     const videos = (videosData?.success && Array.isArray(videosData.data)) ? videosData.data : [];
 
-    const { data: reelsData, error: reelsError, isLoading: reelsLoading, mutate: refreshReels } = useSWR('/api/news/reels?limit=20&sort=recent', jsonFetch);
+    const { data: reelsData, error: reelsError, isLoading: reelsLoading, mutate: refreshReels } = useSWR('/api/news/reels?limit=20&sort=recent', fetchNewsJson);
     const reels = (reelsData?.success && reelsData.data?.length) ? reelsData.data : [];
 
-    const { data: leaderboardData } = useSWR('/api/news/leaderboard?limit=5', jsonFetch);
+    const { data: leaderboardData } = useSWR('/api/news/leaderboard?limit=5', fetchNewsJson);
     const leaderboard = (leaderboardData?.success && leaderboardData.data?.length) ? leaderboardData.data : (typeof FALLBACK_POY !== 'undefined' ? FALLBACK_POY : []);
 
-    const { data: eventsData } = useSWR('/api/news/events?limit=3', jsonFetch);
-    const events = (eventsData?.success && eventsData.data?.length) ? eventsData.data : (typeof FALLBACK_EVENTS !== 'undefined' ? FALLBACK_EVENTS : []);
+    const { data: eventsData, error: eventsError, isLoading: eventsLoading, mutate: refreshEvents } = useSWR('/api/news/events?limit=3', fetchNewsJson);
+    const events = (eventsData?.success && eventsData.data?.length) ? eventsData.data : [];
+    // The sidebar keeps the established, explicitly labelled sample preview when
+    // there are no scheduled rows. The dedicated Events section stays truthful.
+    const sidebarEvents = events.length > 0 ? events : FALLBACK_EVENTS;
 
-    const { data: msptData } = useSWR('/api/news/articles?search=MSPT&limit=10', jsonFetch);
+    const { data: msptData } = useSWR('/api/news/articles?search=MSPT&limit=10', fetchNewsJson);
     const msptNews = (msptData?.success && msptData.data?.length)
         ? msptData.data.map(a => ({ id: a.id, title: a.title, source_url: a.source_url || null, published_at: a.published_at, prize_pool: a.prize_pool || null }))
         : FALLBACK_MSPT;
@@ -387,7 +406,7 @@ export default function NewsHub() {
         ));
         newsParams.set('source', serverSources.join(','));
     }
-    const { data: newsData, error: newsError, isLoading: loading, mutate: refreshNews } = useSWR(`/api/news/articles?${newsParams}`, jsonFetch);
+    const { data: newsData, error: newsError, isLoading: loading, mutate: refreshNews } = useSWR(`/api/news/articles?${newsParams}`, fetchNewsJson);
 
     // Merge the arriving page into the accumulated list: de-duped by id and kept in
     // published_at order, so revalidating page 0 (realtime INSERT / Refresh) can't
@@ -627,6 +646,8 @@ export default function NewsHub() {
     const [readLaterRows, setReadLaterRows] = useState([]);
     const [readArticles, setReadArticles] = useState([]);
     const [shareArticle, setShareArticle] = useState(null);
+    const shareModalRef = useRef(null);
+    const shareReturnFocusRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
 
     // Hamburger menu preferences — keys mirror the service + menu config
@@ -668,6 +689,33 @@ export default function NewsHub() {
         document.addEventListener('keydown', onKeyDown);
         return () => document.removeEventListener('keydown', onKeyDown);
     }, [reelViewerOpen, shareArticle, reels.length]);
+
+    // Keep keyboard focus inside the share dialog and return it to the control
+    // that opened the dialog when it closes.
+    useEffect(() => {
+        if (!shareArticle) return;
+        shareReturnFocusRef.current = document.activeElement;
+        const trapFocus = (event) => {
+            if (event.key !== 'Tab' || !shareModalRef.current) return;
+            const focusable = [...shareModalRef.current.querySelectorAll('button:not([disabled]), a[href]')];
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener('keydown', trapFocus);
+        return () => {
+            document.removeEventListener('keydown', trapFocus);
+            const returnTarget = shareReturnFocusRef.current;
+            if (returnTarget?.isConnected) requestAnimationFrame(() => returnTarget.focus());
+        };
+    }, [shareArticle]);
 
     // Focus the reel viewer container once when it opens (not on every render)
     useEffect(() => {
@@ -1282,6 +1330,7 @@ export default function NewsHub() {
                                 onClick={() => setShareArticle(null)}
                             >
                                 <motion.div
+                                    ref={shareModalRef}
                                     className="share-modal"
                                     role="dialog"
                                     aria-modal="true"
@@ -1832,7 +1881,18 @@ export default function NewsHub() {
                                         Short-form poker content from top YouTube channels - updated daily
                                     </p>
 
-                                    {reels.length === 0 ? (
+                                    {reelsLoading ? (
+                                        <div className="no-results" role="status">
+                                            <div className="loading-spinner" />
+                                            <p>Loading reels...</p>
+                                        </div>
+                                    ) : reelsError ? (
+                                        <div className="no-results" role="alert">
+                                            <Film size={48} />
+                                            <p>Reels are temporarily unavailable.</p>
+                                            <button type="button" onClick={() => refreshReels()}>Retry</button>
+                                        </div>
+                                    ) : reels.length === 0 ? (
                                         <div className="no-results">
                                             <Film size={48} />
                                             <p>No Reels Available Yet. Check Back Soon!</p>
@@ -1859,7 +1919,18 @@ export default function NewsHub() {
                                     <p className="section-desc">
                                         The latest video content from top poker channels.
                                     </p>
-                                    {videos.length === 0 ? (
+                                    {videosLoading ? (
+                                        <div className="no-results" role="status">
+                                            <div className="loading-spinner" />
+                                            <p>Loading videos...</p>
+                                        </div>
+                                    ) : videosError ? (
+                                        <div className="no-results" role="alert">
+                                            <PlayCircle size={48} />
+                                            <p>Videos are temporarily unavailable.</p>
+                                            <button type="button" onClick={() => refreshVideos()}>Retry</button>
+                                        </div>
+                                    ) : videos.length === 0 ? (
                                         <div className="no-results">
                                             <PlayCircle size={48} />
                                             <p>No Videos Available Yet.</p>
@@ -1880,11 +1951,22 @@ export default function NewsHub() {
                                         <Calendar size={18} /> Upcoming Events
                                     </h2>
                                     <div className="events-list-full" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        {events.map(event => (
+                                        {eventsLoading ? (
+                                            <div className="no-results" role="status">
+                                                <div className="loading-spinner" />
+                                                <p>Loading events...</p>
+                                            </div>
+                                        ) : eventsError ? (
+                                            <div className="no-results" role="alert">
+                                                <Calendar size={48} />
+                                                <p>Events are temporarily unavailable.</p>
+                                                <button type="button" onClick={() => refreshEvents()}>Retry</button>
+                                            </div>
+                                        ) : events.map(event => (
                                             <div key={event.id} className="event-row" style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px' }}>
                                                 <div className="event-date" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '8px 16px', borderRadius: '8px', textAlign: 'center', minWidth: '80px' }}>
-                                                    <div className="month" style={{ fontSize: '12px', textTransform: 'uppercase', fontWeight: 'bold' }}>{new Date(event.event_date || new Date()).toLocaleString('default', { month: 'short' })}</div>
-                                                    <div className="day" style={{ fontSize: '24px', fontWeight: 'bold' }}>{new Date(event.event_date || new Date()).getDate()}</div>
+                                                    <div className="month" style={{ fontSize: '12px', textTransform: 'uppercase', fontWeight: 'bold' }}>{new Date(event.event_date).toLocaleString('default', { month: 'short', timeZone: 'UTC' })}</div>
+                                                    <div className="day" style={{ fontSize: '24px', fontWeight: 'bold' }}>{new Date(event.event_date).getUTCDate()}</div>
                                                 </div>
                                                 <div className="event-details" style={{ flex: 1 }}>
                                                     <h4 style={{ margin: '0 0 4px', fontSize: '16px' }}>{event.name || 'Event'}</h4>
@@ -1898,7 +1980,7 @@ export default function NewsHub() {
                                                 )}
                                             </div>
                                         ))}
-                                        {events.length === 0 && (
+                                        {!eventsLoading && !eventsError && events.length === 0 && (
                                             <div className="no-results">
                                                 <Calendar size={48} />
                                                 <p>No Events Available Yet.</p>
@@ -2054,7 +2136,7 @@ export default function NewsHub() {
                                 <div className="widget events">
                                     <h4><MapPin size={14} /> Poker Near Me{!(eventsData?.success && eventsData.data?.length) && <span className="sample-tag">Sample</span>}</h4>
                                     <ul className="events-list">
-                                        {events.map(event => (
+                                        {sidebarEvents.map(event => (
                                             <li key={event.id}>
                                                 <span>{event.name}</span>
                                                 <span className="date">{formatEventDate(event.event_date)}</span>

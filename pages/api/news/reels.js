@@ -38,7 +38,10 @@ export default async function handler(req, res) {
           // First fetch reels without join to avoid schema cache issues
           let query = getSupabase()
               .from('social_reels')
-              .select('*')
+              // Public feed contract only. This route uses a service-role client,
+              // so select('*') could silently expose future internal/moderation
+              // columns when the table schema grows.
+              .select('id, author_id, caption, thumbnail_url, video_url, view_count, created_at')
               .eq('is_public', true);
 
           // Sorting options ('random' fetches recent, then shuffles below)
@@ -52,11 +55,13 @@ export default async function handler(req, res) {
 
           const { data, error } = await query;
 
-          if (error || !data?.length) {
-              // No fake sample reels: return an empty list and let the
-              // frontend render its own empty state.
-              if (error) console.warn('Reels API error:', error.message);
-              return res.status(200).json({ success: true, data: [], fallback: true });
+          if (error) {
+              throw error;
+          }
+          res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+          if (!data?.length) {
+              // A real empty feed is not an outage.
+              return res.status(200).json({ success: true, data: [] });
           }
 
           // Fetch profiles separately to avoid schema cache join errors
@@ -83,11 +88,19 @@ export default async function handler(req, res) {
           let result = data.map(reel => {
               const profile = profilesMap[reel.author_id];
               return {
-                  ...reel,
+                  id: reel.id,
+                  caption: reel.caption || '',
+                  thumbnail_url: reel.thumbnail_url || null,
+                  video_url: reel.video_url || null,
+                  view_count: reel.view_count || 0,
+                  created_at: reel.created_at,
                   title: reel.caption?.split('\n')[0]?.replace(/^\u{1F3AC}\s*/u, '') || 'Poker Reel',
                   channel_name: profile?.full_name || profile?.username || 'Smarter.Poker',
-                  profiles: profile,
-                  author: profile
+                  profiles: profile ? {
+                      username: profile.username || null,
+                      full_name: profile.full_name || null,
+                      avatar_url: profile.avatar_url || null
+                  } : null
               };
           });
 
@@ -101,12 +114,11 @@ export default async function handler(req, res) {
               }
           }
 
-          res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
           return res.status(200).json({ success: true, data: result });
       } catch (error) {
           try { reportApiError(error, req); } catch (_e) { /* noop */ }
           console.warn('Reels API exception:', error?.message || error);
-          return res.status(200).json({ success: true, data: [], fallback: true });
+          return res.status(500).json({ success: false, error: 'Reels feed unavailable' });
       }
 
   } catch (err) {
