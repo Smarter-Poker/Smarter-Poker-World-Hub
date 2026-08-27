@@ -82,13 +82,12 @@ test('no native confirm() on a path that spends diamonds', () => {
   assert.match(STORE, /role="dialog"[\s\S]{0,200}aria-modal="true"/, 'the replacement dialog must exist');
 });
 
-test('every image-map hotspot can be activated from a keyboard', () => {
-  const hotspots = STORE.match(/<div[\s\S]{0,200}?role="button"[\s\S]{0,900}?\/>/g) || [];
-  assert.ok(hotspots.length > 0, 'no hotspots found — did the markup change shape?');
-  const inert = hotspots.filter((h) => !h.includes('onKeyDown'));
-  assert.equal(
-    inert.length,
-    0,
-    `${inert.length} of ${hotspots.length} hotspots are tabbable but not keyboard-activatable`
+test('the obsolete image maps are gone and store actions use native buttons', () => {
+  assert.doesNotMatch(
+    STORE,
+    /legacy-store-header|legacy-diamond-store|activateOnKey|new-diamond-store\.jpg|store-header-vip\.png/,
+    'hidden image-map markup adds dead downloads and recreates fake-button accessibility debt'
   );
+  assert.match(STORE, /<SmarterStoreShowcase[\s\S]*?onBuy=\{handleDirectCheckout\}/);
+  assert.match(STORE, /<button[\s\S]*?onClick=\{handleVIPSubscribe\}/);
 });

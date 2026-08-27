@@ -38,7 +38,14 @@ const SECTION_COPY = {
   },
 };
 
-export default function SmarterStoreShowcase({ activeTab, packages = [], onNavigate, onBuy }) {
+export default function SmarterStoreShowcase({
+  activeTab,
+  packages = [],
+  isProcessing = false,
+  busyPackageId = null,
+  onNavigate,
+  onBuy,
+}) {
   const copy = SECTION_COPY[activeTab] || SECTION_COPY.diamonds;
   const isDiamonds = activeTab === 'diamonds';
   const activeTabRef = useRef(null);
@@ -109,9 +116,15 @@ export default function SmarterStoreShowcase({ activeTab, packages = [], onNavig
                   <button
                     type="button"
                     onClick={() => onBuy(pkg)}
-                    aria-label={`Buy ${pkg.name}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`}
+                    disabled={isProcessing}
+                    aria-busy={busyPackageId === pkg.id}
+                    aria-label={
+                      busyPackageId === pkg.id
+                        ? `Opening Checkout For ${pkg.name}`
+                        : `Buy ${pkg.name}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`
+                    }
                   >
-                    Buy Now
+                    {busyPackageId === pkg.id ? 'Opening Checkout...' : 'Buy Now'}
                   </button>
                 </footer>
               </article>
