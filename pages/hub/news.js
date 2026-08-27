@@ -1678,7 +1678,7 @@ export default function NewsHub() {
                                             </h2>
                                             <button
                                                 className="see-all-btn"
-                                                onClick={() => setActiveSection('reels')}
+                                                onClick={() => selectSection('reels')}
                                             >
                                                 See All <ChevronRight size={13} style={{ verticalAlign: '-2px' }} />
                                             </button>
