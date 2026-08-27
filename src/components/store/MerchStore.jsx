@@ -36,6 +36,7 @@ import useDiamondBalance from '../../hooks/useDiamondBalance';
 import { broadcastSync } from '../../lib/broadcastSync';
 import { busEmit } from '../../engine/EventBus';
 import { captureStoreEvent, createCheckoutRequestId } from '../../lib/store/storeAnalytics';
+import MerchPurchaseDialog from './MerchPurchaseDialog';
 
 // ── Economy constants (mirror of the server) ──────────────────────────────
 // 1 diamond = $0.01 → 100 diamonds per USD. purchase-with-diamonds.js uses the
@@ -487,6 +488,7 @@ export default function MerchStore({ user = null }) {
     const [usingFallback, setUsingFallback] = useState(true);
     const [loadError, setLoadError] = useState(null);
     const [busyKey, setBusyKey] = useState(null);
+    const [pendingDiamondPurchase, setPendingDiamondPurchase] = useState(null);
     const [reloadToken, setReloadToken] = useState(0);
     const mountedRef = useRef(true);
     const catalogSourceRef = useRef(null);
@@ -501,11 +503,15 @@ export default function MerchStore({ user = null }) {
     // ── Load catalog, fall back to the static lineup ──────────────────────
     useEffect(() => {
         let cancelled = false;
+        const controller = new AbortController();
         (async () => {
             let rows = [];
             let failure = null;
             try {
-                const res = await fetch(CATALOG_URL, { headers: { Accept: 'application/json' } });
+                const res = await fetch(CATALOG_URL, {
+                    headers: { Accept: 'application/json' },
+                    signal: controller.signal,
+                });
                 // A not-yet-deployed API route answers 404 with an HTML page —
                 // guard the content type before parsing.
                 const contentType = res.headers.get('content-type') || '';
@@ -521,6 +527,7 @@ export default function MerchStore({ user = null }) {
                     if (rows.length === 0) failure = 'Live catalog returned no items';
                 }
             } catch (err) {
+                if (err?.name === 'AbortError') return;
                 failure = 'Could not reach the live catalog';
                 console.warn('[MerchStore] Catalog fetch failed:', err?.message || err);
             }
@@ -539,7 +546,10 @@ export default function MerchStore({ user = null }) {
             }
             setLoading(false);
         })();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+            controller.abort();
+        };
     }, [reloadToken]);
 
     useEffect(() => {
@@ -677,7 +687,7 @@ export default function MerchStore({ user = null }) {
     }, [busyKey, requireSignedIn, buildLineItem]);
 
     // ── Diamond checkout ──────────────────────────────────────────────────
-    const handleBuyDiamonds = useCallback(async (product, variant, quantity) => {
+    const handleBuyDiamonds = useCallback((product, variant, quantity) => {
         if (busyKey) return;
         const token = requireSignedIn();
         if (!token) return;
@@ -691,13 +701,32 @@ export default function MerchStore({ user = null }) {
             showStoreToast('error', `Not enough diamonds — ${fmt(cost)} needed, you have ${fmt(balance)}.`);
             return;
         }
-        const label = variant ? `${product.name} (${variant.label})` : product.name;
-        if (typeof window !== 'undefined'
-            && !window.confirm(`Buy ${quantity} × ${label} for ${fmt(cost)} diamonds?`)) {
+        setPendingDiamondPurchase({ product, variant, quantity, cost });
+        captureStoreEvent('diamond_purchase_reviewed', {
+            route: 'merch',
+            product: product.catalogId || product.key,
+            quantity,
+            diamonds: cost,
+        });
+    }, [busyKey, balance, requireSignedIn]);
+
+    const confirmDiamondPurchase = useCallback(async () => {
+        if (!pendingDiamondPurchase || busyKey) return;
+        const token = requireSignedIn();
+        if (!token) {
+            setPendingDiamondPurchase(null);
             return;
         }
 
+        const { product, variant, quantity, cost } = pendingDiamondPurchase;
+
         setBusyKey(product.key);
+        captureStoreEvent('diamond_purchase_started', {
+            route: 'merch',
+            product: product.catalogId || product.key,
+            quantity,
+            diamonds: cost,
+        });
         try {
             const res = await fetch('/api/store/purchase-with-diamonds', {
                 method: 'POST',
@@ -738,6 +767,7 @@ export default function MerchStore({ user = null }) {
             broadcastSync('smarter_poker_diamond_sync', 'refresh');
             broadcastSync('smarter_poker_chips_sync', 'refresh');
             refreshBalance();
+            if (mountedRef.current) setPendingDiamondPurchase(null);
             // Stock may have moved — pull the catalog again.
             if (mountedRef.current) setReloadToken(t => t + 1);
         } catch (err) {
@@ -746,7 +776,7 @@ export default function MerchStore({ user = null }) {
         } finally {
             if (mountedRef.current) setBusyKey(null);
         }
-    }, [busyKey, balance, requireSignedIn, buildLineItem, refreshBalance]);
+    }, [pendingDiamondPurchase, busyKey, requireSignedIn, buildLineItem, refreshBalance]);
 
     // ── Render ────────────────────────────────────────────────────────────
     return (
@@ -844,6 +874,16 @@ export default function MerchStore({ user = null }) {
                     Diamond orders are fulfilled from the address on your profile — contact support if it needs updating.
                 </p>
             )}
+
+            <MerchPurchaseDialog
+                purchase={pendingDiamondPurchase}
+                balance={balance}
+                busy={Boolean(busyKey)}
+                onCancel={() => {
+                    if (!busyKey) setPendingDiamondPurchase(null);
+                }}
+                onConfirm={confirmDiamondPurchase}
+            />
         </>
     );
 }
