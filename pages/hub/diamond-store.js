@@ -114,6 +114,7 @@ const GEM = '\uD83D\uDC8E';
 // five addresses into it. The old `?tab=` deep links still work.
 export const STORE_TABS = ['diamonds', 'vip', 'merch', 'rewards', 'club-shop'];
 const REWARD_TABS = ['overview', 'diamonds', 'eggs'];
+const CHECKOUT_STATUS_RETRY_DELAYS = [0, 1200, 2400, 4800];
 
 export const TAB_ROUTES = {
   diamonds: '/hub/diamond-store',
@@ -470,46 +471,88 @@ export default function DiamondStorePage({ initialTab }) {
     if (rawSuccess !== 'true' || typeof rawSession !== 'string') return undefined;
 
     let cancelled = false;
+    let retryTimer = null;
+    const controller = new AbortController();
     setCheckoutReturn({ status: 'verifying' });
+    // Remove the transport parameters before any network work so a Stripe
+    // session reference never lingers in copied URLs, analytics, or referrers.
+    clearCheckoutTransport();
     const token = getAccessToken();
     if (!token) {
       setCheckoutReturn({
         status: 'failed',
         message: 'Sign In To Verify This Checkout And View Its Receipt.',
       });
-      clearCheckoutTransport();
       return undefined;
     }
 
     (async () => {
       try {
-        const response = await fetch(
-          `/api/store/checkout-status?session_id=${encodeURIComponent(rawSession)}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const body = await response.json().catch(() => null);
-        if (!response.ok || !body?.success) {
-          throw new Error(body?.error || 'Could Not Verify Checkout Status.');
+        let pendingWasReported = false;
+
+        for (let attempt = 0; attempt < CHECKOUT_STATUS_RETRY_DELAYS.length; attempt += 1) {
+          const delay = CHECKOUT_STATUS_RETRY_DELAYS[attempt];
+          if (delay > 0) {
+            await new Promise((resolve) => {
+              retryTimer = window.setTimeout(resolve, delay);
+              controller.signal.addEventListener('abort', resolve, { once: true });
+            });
+          }
+          if (cancelled || controller.signal.aborted) return;
+
+          let response;
+          try {
+            response = await fetch(
+              `/api/store/checkout-status?session_id=${encodeURIComponent(rawSession)}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+                signal: controller.signal,
+              }
+            );
+          } catch (error) {
+            if (error?.name === 'AbortError' || cancelled) return;
+            if (attempt < CHECKOUT_STATUS_RETRY_DELAYS.length - 1) continue;
+            throw error;
+          }
+
+          const body = await response.json().catch(() => null);
+          if (!response.ok || !body?.success) {
+            throw new Error(body?.error || 'Could Not Verify Checkout Status.');
+          }
+          if (cancelled) return;
+
+          const status = body.data?.status === 'complete' ? 'complete' : 'pending';
+          setCheckoutReturn({ status, receipt: body.data });
+          if (status === 'complete') {
+            captureStoreEvent('checkout_complete', {
+              route: activeTab,
+              type: body.data?.type || 'unknown',
+              payment_status: body.data?.paymentStatus || 'unknown',
+              verification_attempts: attempt + 1,
+            });
+            return;
+          }
+
+          if (!pendingWasReported) {
+            pendingWasReported = true;
+            captureStoreEvent('checkout_pending', {
+              route: activeTab,
+              type: body.data?.type || 'unknown',
+              payment_status: body.data?.paymentStatus || 'unknown',
+            });
+          }
         }
-        if (cancelled) return;
-        const status = body.data?.status === 'complete' ? 'complete' : 'pending';
-        setCheckoutReturn({ status, receipt: body.data });
-        captureStoreEvent(`checkout_${status}`, {
-          route: activeTab,
-          type: body.data?.type || 'unknown',
-          payment_status: body.data?.paymentStatus || 'unknown',
-        });
       } catch (error) {
         if (cancelled) return;
         setCheckoutReturn({ status: 'failed', message: error.message });
         captureStoreEvent('checkout_verification_failed', { route: activeTab });
-      } finally {
-        if (!cancelled) clearCheckoutTransport();
       }
     })();
 
     return () => {
       cancelled = true;
+      controller.abort();
+      if (retryTimer) window.clearTimeout(retryTimer);
     };
   }, [activeTab, router.isReady, router.query.canceled, router.query.session_id, router.query.success]);
 
@@ -1256,16 +1299,16 @@ export default function DiamondStorePage({ initialTab }) {
           <UniversalHeader pageDepth={1} />
 
           <main className={`store-redesign-content ${shellStyles.root}`}>
+          <CheckoutStatusPanel
+            state={checkoutReturn}
+            onDismiss={() => setCheckoutReturn(null)}
+          />
           <SmarterStoreShowcase
             activeTab={activeTab}
             packages={DIAMOND_PACKAGES}
             isProcessing={isProcessing}
             busyPackageId={busyPackageId}
             onBuy={handleDirectCheckout}
-          />
-          <CheckoutStatusPanel
-            state={checkoutReturn}
-            onDismiss={() => setCheckoutReturn(null)}
           />
 
           {/* Main Content (non-diamonds tabs) */}
@@ -1328,7 +1371,13 @@ export default function DiamondStorePage({ initialTab }) {
                 )}
 
                 {/* Plan selection */}
-                <div className={shellStyles.planRail} style={styles.vipPlansRow}>
+                <div
+                  className={shellStyles.planRail}
+                  style={styles.vipPlansRow}
+                  role="region"
+                  aria-label="VIP Membership Plans"
+                  tabIndex={0}
+                >
                   <VIPCard
                     plan={VIP_MEMBERSHIP.daily}
                     isSelected={selectedVIP === 'vip-daily'}
@@ -1568,7 +1617,7 @@ export default function DiamondStorePage({ initialTab }) {
 
                 {/* VIP Benefits Table */}
                 <div style={styles.benefitsSection}>
-                  <h3 style={styles.benefitsTitle}>Everything Included With VIP</h3>
+                  <h2 style={styles.benefitsTitle}>Everything Included With VIP</h2>
 
                   {/* Smarter.Poker Platform */}
                   <div style={styles.benefitsCategoryHeader}>
@@ -1650,7 +1699,7 @@ export default function DiamondStorePage({ initialTab }) {
                     border: '1px solid rgba(255, 255, 255, 0.06)',
                   }}
                 >
-                  <h3
+                  <h2
                     style={{
                       fontSize: 20,
                       fontWeight: 700,
@@ -1660,7 +1709,7 @@ export default function DiamondStorePage({ initialTab }) {
                     }}
                   >
                     Frequently Asked Questions
-                  </h3>
+                  </h2>
 
                   {VIP_FAQ.map((faq, idx) => (
                     <details
