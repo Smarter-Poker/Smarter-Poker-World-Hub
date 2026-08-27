@@ -268,7 +268,7 @@ export default function TournamentsPage() {
       <div style={styles.container}>
         <UniversalHeader pageDepth={2} />
 
-        <div style={styles.content}>
+        <div className="sp-training-tool sp-training-tool--tournaments" style={styles.content}>
           {/* Header */}
           <div style={styles.header}>
             <h1 style={styles.title}>
@@ -294,7 +294,13 @@ export default function TournamentsPage() {
                   ...(activeTab === tab ? styles.tabActive : {}),
                 }}
               >
-                tab === 'live' ? (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LiveDotIcon size={8} /> Live</span>) : tab === 'upcoming' ? (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ClockIcon size={12} /> Upcoming</span>) : (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckIcon size={12} /> Past</span>)
+                {tab === 'live' ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LiveDotIcon size={8} /> Live</span>
+                ) : tab === 'upcoming' ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ClockIcon size={12} /> Upcoming</span>
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckIcon size={12} /> Past</span>
+                )}
               </button>
             ))}
           </div>
@@ -415,7 +421,7 @@ export default function TournamentsPage() {
 const styles = {
   container: {
     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-    background: '#0a0a0a',
+    background: 'linear-gradient(180deg, #07141f 0%, #020910 44%, #01060b 100%)',
     color: '#FFFFFF',
   },
   content: {
@@ -440,7 +446,7 @@ const styles = {
     display: 'flex',
     gap: '8px',
     marginBottom: '24px',
-    background: '#1a1a1a',
+    background: 'linear-gradient(180deg, rgba(20,45,61,0.96), rgba(3,13,22,0.98))',
     padding: '6px',
     borderRadius: '12px',
   },
@@ -457,8 +463,8 @@ const styles = {
     transition: 'all 0.2s',
   },
   tabActive: {
-    background: 'linear-gradient(135deg, #FF6B35, #FF4444)',
-    color: '#fff',
+    background: 'linear-gradient(180deg, #8beaff 0%, #23aee8 48%, #07557f 100%)',
+    color: '#03101a',
   },
   loading: {
     textAlign: 'center',
@@ -485,10 +491,11 @@ const styles = {
     gap: '16px',
   },
   tournamentCard: {
-    background: '#1a1a1a',
-    borderRadius: '16px',
+    background: 'linear-gradient(145deg, rgba(24,48,63,0.96), rgba(3,13,21,0.98) 42%, rgba(12,31,43,0.96))',
+    borderRadius: 0,
     padding: '20px',
-    border: '1px solid rgba(255,255,255,0.1)',
+    border: '1px solid rgba(139,234,255,0.45)',
+    boxShadow: '0 22px 60px rgba(0,0,0,0.58), inset 0 1px 0 rgba(224,248,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.88)',
   },
   cardHeader: {
     display: 'flex',
