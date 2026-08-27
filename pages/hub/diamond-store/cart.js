@@ -23,6 +23,7 @@ import useCartStore from '../../../src/stores/cartStore';
 // Legacy standalone key used by earlier versions of this page. It is folded
 // into the shared zustand cart once and then removed.
 const LEGACY_CART_KEY = 'diamond-store-cart';
+const PRINT_ON_DEMAND_ITEM_IDS = new Set(['hoodie-neural', 'tshirt-gto', 'hat-diamond']);
 
 export default function ShoppingCart() {
     const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/cart');
@@ -260,7 +261,8 @@ export default function ShoppingCart() {
     // deducts diamonds (no grant happens outside the Stripe webhook), so this
     // path would charge the user and deliver nothing.
     const hasDiamondItems = diamondItems.length > 0;
-    const usingDiamonds = payWithDiamonds && !hasDiamondItems;
+    const hasPrintOnDemandMerch = merchItems.some(item => PRINT_ON_DEMAND_ITEM_IDS.has(item?.id));
+    const usingDiamonds = payWithDiamonds && !hasDiamondItems && !hasPrintOnDemandMerch;
 
     // Integer-cent subtotal avoids IEEE-754 drift (e.g. 7 x $0.01 -> 0.07000000000000001)
     const subtotalCentsOf = (list) => (list || []).reduce((sum, item) =>
@@ -369,6 +371,11 @@ export default function ShoppingCart() {
         if (checkingOut) return;
         if (hasDiamondItems) {
             toast.error('Diamond Packages Cannot Be Purchased With Diamonds. Please Pay With Card.');
+            return;
+        }
+        if (hasPrintOnDemandMerch) {
+            toast.error('Card Checkout Is Required So We Can Collect A Shipping Address.');
+            setPayWithDiamonds(false);
             return;
         }
         if (merchItems.length === 0) {
@@ -538,7 +545,7 @@ export default function ShoppingCart() {
                                     <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Method</p>
 
                                     {/* Pay with Diamonds Option — hidden when the cart holds diamond packages */}
-                                    {!hasDiamondItems && (
+                                    {!hasDiamondItems && !hasPrintOnDemandMerch && (
                                     <button
                                         onClick={() => setPayWithDiamonds(true)}
                                         style={{

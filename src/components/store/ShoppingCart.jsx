@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // pages/api/store/create-checkout-session.js. The store clamps the value;
 // this constant only drives the disabled state so the cap is visible.
 const MAX_DIAMOND_QUANTITY_PER_PACKAGE = 10;
+const PRINT_ON_DEMAND_ITEM_IDS = new Set(['hoodie-neural', 'tshirt-gto', 'hat-diamond']);
 
 const atQuantityCap = (item) =>
     item?.type === 'diamonds' && (item.quantity || 1) >= MAX_DIAMOND_QUANTITY_PER_PACKAGE;
@@ -381,7 +382,11 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                                         endpoint, so /api/store/purchase-with-diamonds rejects both.
                                         Keep this in sync with handlePayWithDiamonds in
                                         pages/hub/diamond-store.js. */}
-                                    {onPayWithDiamonds && items.every(i => i?.type !== 'diamonds' && i?.type !== 'vip') && (
+                                    {onPayWithDiamonds && items.every(i => (
+                                        i?.type !== 'diamonds'
+                                        && i?.type !== 'vip'
+                                        && !PRINT_ON_DEMAND_ITEM_IDS.has(i?.id)
+                                    )) && (
                                         <button
                                             disabled={isProcessing}
                                             aria-busy={isProcessing}
