@@ -24,7 +24,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-    Gem, Shirt, Package, CreditCard, ShoppingBag,
+    Gem, Shirt, Package, CreditCard,
     AlertTriangle, Minus, Plus, RefreshCw,
 } from 'lucide-react';
 
@@ -135,12 +135,34 @@ function normalizeVariant(raw, index) {
     if (typeof raw === 'string' || typeof raw === 'number') {
         return { key: `v${index}-${raw}`, id: null, label: String(raw), stock: null, inStock: true };
     }
+    const size = firstString([raw.size]);
+    const color = firstString([raw.color, raw.colour]);
+    const composedLabel = [color, size].filter(Boolean).join(' / ');
     const label = firstString([
-        raw.label, raw.name, raw.size, raw.value, raw.variant, raw.option, raw.title,
+        raw.label, raw.name, raw.value, raw.variant, raw.option, raw.title, composedLabel,
     ]) || `Option ${index + 1}`;
     const id = firstString([raw.id, raw.variant_id, raw.sku]);
     const { stock, inStock } = stockOf(raw);
-    return { key: id || `v${index}-${label}`, id, label, stock, inStock };
+    const priceUsd = firstFiniteNumber([raw.price_usd, raw.priceUsd, raw.price, raw.usd_price]);
+    const explicitDiamonds = firstFiniteNumber([
+        raw.price_diamonds, raw.priceDiamonds, raw.diamond_price,
+    ]);
+    const priceDiamonds = explicitDiamonds !== null && explicitDiamonds > 0
+        ? Math.round(explicitDiamonds)
+        : (priceUsd !== null && priceUsd > 0
+            ? Math.ceil(priceUsd * DIAMONDS_PER_DOLLAR)
+            : null);
+    return {
+        key: id || `v${index}-${label}`,
+        id,
+        label,
+        size,
+        color,
+        priceUsd,
+        priceDiamonds,
+        stock,
+        inStock,
+    };
 }
 
 function normalizeProduct(raw, index, source) {
@@ -163,6 +185,7 @@ function normalizeProduct(raw, index, source) {
         : Array.isArray(raw.sizes) ? raw.sizes
         : [];
     const variants = rawVariants.map(normalizeVariant).filter(Boolean);
+    const hasVariants = firstBoolean([raw.has_variants, raw.hasVariants]) ?? variants.length > 0;
 
     const own = stockOf(raw);
     // With variants, the product is sellable while ANY variant has stock.
@@ -187,6 +210,7 @@ function normalizeProduct(raw, index, source) {
         priceDiamonds,
         stock: own.stock,
         inStock,
+        hasVariants,
         variants,
     };
 }
@@ -244,10 +268,17 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
     const [qty, setQty] = useState(1);
     const [imageFailed, setImageFailed] = useState(false);
 
-    const variant = product.variants.find(v => v.key === variantKey) || null;
+    // Cards are keyed by product id, so their local selection survives the
+    // static-to-live catalog refresh. Static rows do not have variants; when
+    // live variants arrive, fall back to the first available option instead
+    // of leaving `variantKey === null` and falsely marking the product sold out.
+    const defaultVariant = product.variants.find(v => v.inStock) || product.variants[0] || null;
+    const variant = product.variants.find(v => v.key === variantKey) || defaultVariant;
     const needsVariant = product.variants.length > 0;
+    const liveAvailabilityRequired = product.source !== 'catalog';
+    const optionsUnavailable = product.hasVariants && !needsVariant;
     const variantOutOfStock = needsVariant && (!variant || !variant.inStock);
-    const soldOut = !product.inStock || variantOutOfStock;
+    const soldOut = !product.inStock || variantOutOfStock || optionsUnavailable || liveAvailabilityRequired;
 
     // Respect a known per-variant / per-product stock level as well as the
     // server's hard 1..10 clamp.
@@ -255,8 +286,13 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
     const maxQty = Math.max(1, Math.min(MAX_QTY, stockCeiling === null ? MAX_QTY : stockCeiling));
     const clampedQty = Math.min(qty, maxQty);
 
-    const diamondCost = product.priceDiamonds * clampedQty;
-    const usdCost = product.priceUsd * clampedQty;
+    const unitPriceUsd = firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0;
+    const unitPriceDiamonds = firstFiniteNumber([
+        variant?.priceDiamonds,
+        product.priceDiamonds,
+    ]) || Math.ceil(unitPriceUsd * DIAMONDS_PER_DOLLAR);
+    const diamondCost = unitPriceDiamonds * clampedQty;
+    const usdCost = unitPriceUsd * clampedQty;
 
     const busy = busyKey !== null;
     const thisBusy = busyKey === product.key;
@@ -266,7 +302,11 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
 
     const diamondDisabled = soldOut || busy || cannotAfford;
     const diamondReason = soldOut
-        ? 'Sold out'
+        ? (liveAvailabilityRequired
+            ? 'Live availability required'
+            : optionsUnavailable
+                ? 'Options temporarily unavailable'
+                : 'Sold out')
         : cannotAfford
             ? `You need ${fmt(shortBy)} more diamonds`
             : null;
@@ -294,6 +334,8 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                     <img
                         src={product.image}
                         alt={product.name}
+                        loading="lazy"
+                        decoding="async"
                         onError={() => setImageFailed(true)}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
@@ -306,7 +348,11 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         background: 'rgba(255, 95, 109, 0.9)', color: '#12151c',
                         fontSize: 10, fontWeight: 800, letterSpacing: '0.6px',
                         padding: '4px 9px', borderRadius: 8, textTransform: 'uppercase',
-                    }}>Sold Out</div>
+                    }}>{liveAvailabilityRequired
+                        ? 'Live Availability Required'
+                        : optionsUnavailable
+                            ? 'Options Temporarily Unavailable'
+                            : 'Sold Out'}</div>
                 )}
                 {!soldOut && product.stock !== null && product.stock <= 5 && (
                     <div style={{
@@ -330,10 +376,10 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
 
                 {/* Dual price — USD and diamonds */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: CYAN }}>{usd(product.priceUsd)}</span>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: CYAN }}>{usd(unitPriceUsd)}</span>
                     <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>or</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, color: TEXT }}>
-                        <Gem size={14} color={CYAN} /> {fmt(product.priceDiamonds)}
+                        <Gem size={14} color={CYAN} /> {fmt(unitPriceDiamonds)}
                     </span>
                 </div>
 
@@ -345,7 +391,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         </div>
                         <div role="group" aria-label={`Choose ${product.name} Size Or Option`} style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                             {product.variants.map(v => {
-                                const active = v.key === variantKey;
+                                const active = v.key === variant?.key;
                                 return (
                                     <button
                                         key={v.key}
@@ -424,7 +470,13 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         type="button"
                         onClick={() => onBuyCard(product, variant, clampedQty)}
                         disabled={soldOut || busy}
-                        title={soldOut ? 'Sold out' : 'Pay by card via Stripe Checkout'}
+                        title={liveAvailabilityRequired
+                            ? 'Live availability required'
+                            : optionsUnavailable
+                                ? 'Options temporarily unavailable'
+                                : soldOut
+                                    ? 'Sold out'
+                                    : 'Pay by card via Stripe Checkout'}
                         aria-label={`Buy ${product.name} With Card For ${usd(usdCost)}`}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -484,14 +536,23 @@ export default function MerchStore({ user = null }) {
     // catalog refresh. The database remains the checkout price oracle, but a
     // slow catalog request no longer leaves the whole page as a loading panel.
     const [products, setProducts] = useState(() => STATIC_PRODUCTS);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [usingFallback, setUsingFallback] = useState(true);
     const [loadError, setLoadError] = useState(null);
     const [busyKey, setBusyKey] = useState(null);
     const [pendingDiamondPurchase, setPendingDiamondPurchase] = useState(null);
     const [reloadToken, setReloadToken] = useState(0);
     const mountedRef = useRef(true);
+    // Close the event-loop gap before React can render disabled controls. This
+    // prevents a fast double click from starting two Stripe sessions or two
+    // diamond requests with different server idempotency windows.
+    const busyRef = useRef(false);
     const catalogSourceRef = useRef(null);
+
+    const setStoreBusy = useCallback((key) => {
+        busyRef.current = key !== null;
+        setBusyKey(key);
+    }, []);
 
     const { balance, refreshBalance } = useDiamondBalance(user?.id || null);
 
@@ -504,11 +565,18 @@ export default function MerchStore({ user = null }) {
     useEffect(() => {
         let cancelled = false;
         const controller = new AbortController();
+        setLoading(true);
         (async () => {
             let rows = [];
             let failure = null;
             try {
-                const res = await fetch(CATALOG_URL, {
+                // A retry or post-purchase refresh gets its own cache key so a
+                // five-minute edge response cannot immediately restore stale
+                // stock. The endpoint ignores this read-only query parameter.
+                const catalogUrl = reloadToken
+                    ? `${CATALOG_URL}?refresh=${encodeURIComponent(reloadToken)}`
+                    : CATALOG_URL;
+                const res = await fetch(catalogUrl, {
                     headers: { Accept: 'application/json' },
                     signal: controller.signal,
                 });
@@ -584,7 +652,9 @@ export default function MerchStore({ user = null }) {
         const item = { name: product.name, quantity };
         if (product.catalogId) {
             item.id = product.catalogId;
-            if (includePrice) item.price = product.priceUsd;
+            if (includePrice) {
+                item.price = firstFiniteNumber([variant?.priceUsd, product.priceUsd]);
+            }
         } else {
             // No database row → the server prices this from the request within
             // its $0.50–$500 sanity band.
@@ -621,7 +691,7 @@ export default function MerchStore({ user = null }) {
 
     // ── Card checkout → Stripe ────────────────────────────────────────────
     const handleBuyCard = useCallback(async (product, variant, quantity) => {
-        if (busyKey) return;
+        if (busyRef.current) return;
         const token = requireSignedIn();
         if (!token) return;
         if (product.variants.length > 0 && !variant) {
@@ -629,14 +699,15 @@ export default function MerchStore({ user = null }) {
             return;
         }
 
-        setBusyKey(product.key);
+        setStoreBusy(product.key);
         const checkoutRequestId = createCheckoutRequestId(`merch-${product.catalogId || product.key}`);
+        const unitPriceUsd = firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0;
         captureStoreEvent('checkout_started', {
             route: 'merch',
             type: 'merchandise',
             product: product.catalogId || product.key,
             quantity,
-            value_usd: Number(product.priceUsd || 0) * quantity,
+            value_usd: unitPriceUsd * quantity,
         });
         const post = (includePrice) => fetch('/api/store/create-checkout-session', {
             method: 'POST',
@@ -682,13 +753,13 @@ export default function MerchStore({ user = null }) {
             console.warn('[MerchStore] Card checkout failed:', err?.message || err);
             captureStoreEvent('checkout_failed', { route: 'merch', type: 'merchandise' });
             showStoreToast('error', err?.message || 'Could not start checkout. Please try again.');
-            if (mountedRef.current) setBusyKey(null);
+            if (mountedRef.current) setStoreBusy(null);
         }
-    }, [busyKey, requireSignedIn, buildLineItem]);
+    }, [requireSignedIn, buildLineItem, setStoreBusy]);
 
     // ── Diamond checkout ──────────────────────────────────────────────────
     const handleBuyDiamonds = useCallback((product, variant, quantity) => {
-        if (busyKey) return;
+        if (busyRef.current) return;
         const token = requireSignedIn();
         if (!token) return;
         if (product.variants.length > 0 && !variant) {
@@ -696,7 +767,12 @@ export default function MerchStore({ user = null }) {
             return;
         }
 
-        const cost = product.priceDiamonds * quantity;
+        const unitPriceUsd = firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0;
+        const unitPriceDiamonds = firstFiniteNumber([
+            variant?.priceDiamonds,
+            product.priceDiamonds,
+        ]) || Math.ceil(unitPriceUsd * DIAMONDS_PER_DOLLAR);
+        const cost = unitPriceDiamonds * quantity;
         if (Number(balance || 0) < cost) {
             showStoreToast('error', `Not enough diamonds — ${fmt(cost)} needed, you have ${fmt(balance)}.`);
             return;
@@ -708,10 +784,10 @@ export default function MerchStore({ user = null }) {
             quantity,
             diamonds: cost,
         });
-    }, [busyKey, balance, requireSignedIn]);
+    }, [balance, requireSignedIn]);
 
     const confirmDiamondPurchase = useCallback(async () => {
-        if (!pendingDiamondPurchase || busyKey) return;
+        if (!pendingDiamondPurchase || busyRef.current) return;
         const token = requireSignedIn();
         if (!token) {
             setPendingDiamondPurchase(null);
@@ -720,7 +796,7 @@ export default function MerchStore({ user = null }) {
 
         const { product, variant, quantity, cost } = pendingDiamondPurchase;
 
-        setBusyKey(product.key);
+        setStoreBusy(product.key);
         captureStoreEvent('diamond_purchase_started', {
             route: 'merch',
             product: product.catalogId || product.key,
@@ -774,9 +850,9 @@ export default function MerchStore({ user = null }) {
             console.warn('[MerchStore] Diamond purchase failed:', err?.message || err);
             showStoreToast('error', err?.message || 'Diamond purchase failed. Please try again.');
         } finally {
-            if (mountedRef.current) setBusyKey(null);
+            if (mountedRef.current) setStoreBusy(null);
         }
-    }, [pendingDiamondPurchase, busyKey, requireSignedIn, buildLineItem, refreshBalance]);
+    }, [pendingDiamondPurchase, requireSignedIn, buildLineItem, refreshBalance, setStoreBusy]);
 
     // ── Render ────────────────────────────────────────────────────────────
     return (
@@ -818,6 +894,7 @@ export default function MerchStore({ user = null }) {
                     <button
                         type="button"
                         onClick={() => setReloadToken(t => t + 1)}
+                        disabled={loading}
                         style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             minHeight: 46,
@@ -826,15 +903,15 @@ export default function MerchStore({ user = null }) {
                             fontSize: 11, fontWeight: 700, cursor: 'pointer',
                         }}
                     >
-                        <RefreshCw size={12} /> Retry
+                        <RefreshCw size={12} /> {loading ? 'Retrying...' : 'Retry'}
                     </button>
                 </div>
             )}
 
             {loading && (
-                <div role="status" aria-live="polite" style={{ textAlign: 'center', padding: '48px 0', color: MUTED, fontSize: 14 }}>
-                    <ShoppingBag size={28} color="#a8b2d1" />
-                    <div style={{ marginTop: 10 }}>Loading The Merch Lineup...</div>
+                <div role="status" aria-live="polite" style={{ textAlign: 'center', padding: '10px 0 18px', color: MUTED, fontSize: 13 }}>
+                    <RefreshCw size={15} color="#a8b2d1" style={{ verticalAlign: 'middle', marginRight: 7 }} />
+                    Verifying Live Prices, Options, And Stock...
                 </div>
             )}
 
@@ -850,7 +927,7 @@ export default function MerchStore({ user = null }) {
                 </div>
             )}
 
-            {!loading && sections.map(section => (
+            {sections.map(section => (
                 <div key={section.key} style={styles.merchSection}>
                     <h3 style={styles.merchCategoryTitle}>{section.label}</h3>
                     <div style={styles.merchGrid}>
@@ -869,7 +946,7 @@ export default function MerchStore({ user = null }) {
                 </div>
             ))}
 
-            {!loading && products.length > 0 && (
+            {products.length > 0 && (
                 <p style={{ ...styles.introText, fontSize: 12, marginTop: 8, textAlign: 'center' }}>
                     Card orders ship to the US and Canada and collect your address at checkout.
                     Diamond orders are fulfilled from the address on your profile — contact support if it needs updating.

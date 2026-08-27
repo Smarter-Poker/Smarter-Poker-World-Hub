@@ -9,15 +9,38 @@ const ROUTES = [
 ] as const;
 
 test.describe('5. Storefront Routes And Design Contract', () => {
+  test('raw HTML owns route metadata and primary content before hydration', async ({ request }) => {
+    for (const route of ROUTES) {
+      const response = await request.get(route.path);
+      expect(response.status()).toBeLessThan(400);
+      const html = await response.text();
+      // Next.js annotates page-owned head tags with data-next-head in exported
+      // HTML, so assert the title content without requiring a tag with no
+      // framework attributes.
+      expect(html).toContain(`${route.title}</title>`);
+      expect(html).toContain(`rel="canonical" href="https://smarter.poker${route.path}"`);
+      expect(html).toContain(route.heading);
+      expect(html).toContain(route.hero);
+    }
+  });
+
   for (const route of ROUTES) {
     test(`${route.path} owns its route, metadata, hero, and responsive canvas`, async ({ page }) => {
       const consoleErrors: string[] = [];
       page.on('console', (message) => {
+        const text = message.text();
         // Chromium reports expected anonymous 400/401 resource responses as
         // console errors without a URL. Keep this assertion focused on
         // actionable JavaScript errors; HTTP behavior has separate checks.
-        if (message.type() === 'error' && !message.text().startsWith('Failed to load resource:')) {
-          consoleErrors.push(message.text());
+        // Local optimized builds also run without production Supabase secrets;
+        // Vercel supplies them for preview and production deployments.
+        const isLocalMissingEnv = text.startsWith('[ANTIGRAVITY] Required env vars are NOT set:');
+        if (
+          message.type() === 'error' &&
+          !text.startsWith('Failed to load resource:') &&
+          !isLocalMissingEnv
+        ) {
+          consoleErrors.push(text);
         }
       });
 
@@ -26,7 +49,12 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       await expect(page).toHaveTitle(route.title);
       await expect(page.getByRole('heading', { level: 1, name: route.heading })).toHaveCount(1);
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://smarter.poker${route.path}`);
-      await expect(page.locator('meta[property="og:title"]').last()).toHaveAttribute('content', route.title);
+      // _document carries a site-wide fallback OG title for pages that do not
+      // provide one. Verify this route's exact tag instead of relying on DOM
+      // order between the page head and that shared fallback.
+      await expect(
+        page.locator(`meta[property="og:title"][content="${route.title}"]`),
+      ).toHaveCount(1);
       await expect(page.locator(`link[rel="preload"][as="image"][href$="${route.hero}"]`)).toHaveCount(1);
 
       const widths = await page.evaluate(() => ({
@@ -70,6 +98,43 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(page.getByRole('heading', { name: 'Official Merch' })).toBeVisible();
     await expect(page.getByText('Loading Merch Store...', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Buy .* With Card/ }).first()).toBeVisible();
+  });
+
+  test('live merchandise variants stay purchasable and update both displayed prices', async ({ page }) => {
+    await page.route('**/api/store/merch-catalog*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          items: [{
+            id: 'hoodie-neural',
+            name: 'Neural Network Hoodie',
+            description: 'Premium Hoodie With Neural Poker Design',
+            category: 'apparel',
+            price_usd: 59.99,
+            price_diamonds: 5999,
+            has_variants: true,
+            in_stock: true,
+            stock: 60,
+            variants: [
+              { id: 'small', size: 'S', color: 'Black', price_usd: 59.99, price_diamonds: 5999, stock: 40, in_stock: true },
+              { id: '2xl', size: '2XL', color: 'Black', price_usd: 61.99, price_diamonds: 6199, stock: 20, in_stock: true },
+            ],
+          }],
+        },
+      }),
+    }));
+
+    await page.goto('/hub/merch-store', { waitUntil: 'domcontentloaded' });
+    const card = page.getByRole('article', { name: 'Neural Network Hoodie' });
+    await expect(card).toBeVisible();
+    await expect(card.getByText('Sold Out', { exact: true })).toHaveCount(0);
+    await card.getByRole('button', { name: 'Black / 2XL' }).click();
+    await expect(card.getByText('$61.99', { exact: true })).toBeVisible();
+    await expect(card.getByText('6,199', { exact: true }).first()).toBeVisible();
+    await expect(card.getByRole('button', { name: /With Card For \$61\.99/ })).toBeEnabled();
+    await expect(card.getByRole('button', { name: /With 6,199 Diamonds/ })).toBeEnabled();
   });
 
   test('diamond starter and cinematic packs are all purchasable without covering the art', async ({ page }) => {

@@ -21,14 +21,12 @@ import { EARNABLE_EGG_COUNT } from '../../src/lib/rewards/eggCoverage';
 import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
-import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
+import { ensureAuthReady, getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import { acquireScrollLock } from '../../src/lib/scrollLock';
 import { showStoreToast } from '../../src/components/store/StoreToast';
 import { captureStoreEvent, createCheckoutRequestId } from '../../src/lib/store/storeAnalytics';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
-const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), {
-  ssr: false,
-});
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), {
   ssr: false,
 });
@@ -39,7 +37,6 @@ import {
   ShoppingBag,
   Trophy,
   Gamepad2,
-  Coins,
   Home,
   Package,
   Wrench,
@@ -149,7 +146,7 @@ export const TAB_META = {
   },
   'club-shop': {
     title: 'Club Shop — Smarter.Poker',
-    description: 'Spend Club Chips On Time Banks, Cosmetics And Items Your Club Owner Stocks.',
+    description: 'Spend Diamonds On Time Banks, Cosmetics And Items Your Club Owner Stocks.',
   },
 };
 
@@ -215,7 +212,10 @@ function useDialogFocus(isOpen, dialogRef, onDismiss, isBusy) {
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
+      if (
+        event.shiftKey &&
+        (document.activeElement === first || document.activeElement === dialog)
+      ) {
         event.preventDefault();
         last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
@@ -238,17 +238,15 @@ function useDialogFocus(isOpen, dialogRef, onDismiss, isBusy) {
 // ═══════════════════════════════════════════════════════════════════════════
 // Rewritten 2026-08-25. Every answer was checked against the code that runs it.
 // Two answers changed materially:
-//   • "Switch plans anytime, prorated credit" was fiction. There is no
-//     change-plan route in this repo and no use of proration_behavior anywhere;
-//     the only stripe.subscriptions.update call is the cancellation. Promising
-//     a prorated credit we cannot issue is a chargeback waiting to happen, so
-//     the answer now says what actually happens.
+//   • Plan switching is not yet exposed on this page. The billing API exists,
+//     but storefront copy cannot promise self-service until a verified control
+//     is actually wired to it.
 //   • "Select crypto options" was removed. No crypto processor is wired.
 // House style: first letter of every word is capitalized, per Dan.
 const VIP_FAQ = [
   {
     q: 'Can I Cancel Anytime?',
-    a: 'Yes. Cancel From The Store At Any Time And Your VIP Benefits Stay Active Through The End Of The Period You Have Already Paid For. There Is No Cancellation Fee, And No Partial Refund For The Days Remaining.',
+    a: 'Yes. Cancel From Account Settings At Any Time And Your VIP Benefits Stay Active Through The End Of The Period You Have Already Paid For. There Is No Cancellation Fee, And No Partial Refund For The Days Remaining.',
   },
   {
     q: 'What Are My Options For Getting VIP?',
@@ -284,13 +282,7 @@ const VIP_FAQ = [
   },
   {
     q: 'Can I Switch Between Monthly And Annual?',
-    /* Was "Not Automatically Yet ... We Do Not Auto-Prorate Between Plans
-       Today", which was honest and is now out of date: switching shipped
-       2026-08-27 (issue #771 item 6, POST /api/store/switch-vip-plan). The
-       credit lands on the NEXT invoice rather than as an immediate charge or
-       refund - see that route's header for why `create_prorations` was chosen
-       over `always_invoice`. */
-    a: 'Yes. Switch Either Way And We Prorate It. The Unused Part Of Your Current Plan Is Credited Against The New One On Your Next Invoice, And Your Renewal Date Does Not Move. Nothing Is Charged To You On The Day You Switch.',
+    a: 'Not Automatically From This Page Yet. Cancel Your Current Plan, Keep Every Benefit Through The End Of The Paid Period, Then Choose The Other Plan. We Do Not Promise Self-Service Proration Until A Verified Switch Control Is Available Here.',
   },
   {
     q: 'What Payment Methods Are Accepted?',
@@ -377,11 +369,12 @@ export default function DiamondStorePage({ initialTab }) {
   // ═══ Club Shop State ═══
   const [clubShopItems, setClubShopItems] = useState([]);
   const [clubShopPurchases, setClubShopPurchases] = useState([]);
-  const [clubChipBalance, setClubChipBalance] = useState(0);
+  const [clubDiamondBalance, setClubDiamondBalance] = useState(0);
   const [clubShopLoading, setClubShopLoading] = useState(false);
   const [clubShopLoaded, setClubShopLoaded] = useState(false);
   const [clubShopBuyTarget, setClubShopBuyTarget] = useState(null);
   const [clubShopProcessing, setClubShopProcessing] = useState(false);
+  const [clubShopError, setClubShopError] = useState(null);
   const [clubShopCategory, setClubShopCategory] = useState('All');
   const [clubShopSearch, setClubShopSearch] = useState('');
   const [clubShopSubTab, setClubShopSubTab] = useState('store');
@@ -399,11 +392,16 @@ export default function DiamondStorePage({ initialTab }) {
   const [clubShopNewImage, setClubShopNewImage] = useState('');
   const [clubShopLastCreate, setClubShopLastCreate] = useState(0);
   const clubShopLoadingRef = useRef(false);
+  const clubShopProcessingRef = useRef(false);
   const clubShopSuccessTimerRef = useRef(null);
   const pendingSpendDialogRef = useRef(null);
   const clubShopDialogRef = useRef(null);
   const dismissPendingSpend = useCallback(() => setPendingSpend(null), []);
   const dismissClubShopDialog = useCallback(() => setClubShopBuyTarget(null), []);
+  const setClubProcessing = useCallback((nextValue) => {
+    clubShopProcessingRef.current = nextValue;
+    setClubShopProcessing(nextValue);
+  }, []);
 
   useDialogFocus(!!pendingSpend, pendingSpendDialogRef, dismissPendingSpend, isProcessing);
   useDialogFocus(!!clubShopBuyTarget, clubShopDialogRef, dismissClubShopDialog, clubShopProcessing);
@@ -573,7 +571,11 @@ export default function DiamondStorePage({ initialTab }) {
     let cancelled = false;
 
     (async () => {
-      const authUser = getAuthUser();
+      // Supabase may still be hydrating its persisted session on a cold load.
+      // Wait for the supported readiness chain before deciding this is a
+      // signed-out storefront for the rest of the page session.
+      const authUser = getAuthUser() || (await ensureAuthReady(supabase));
+      if (cancelled) return;
       if (authUser?.id) {
         setUser(authUser);
         const { data: profile } = await supabase
@@ -608,6 +610,15 @@ export default function DiamondStorePage({ initialTab }) {
           if (payload.new?.diamond_multiplier !== undefined) {
             setDiamondMultiplier(Number(payload.new.diamond_multiplier));
           }
+          if (payload.new?.vip_tier !== undefined) {
+            setVipTier(payload.new.vip_tier || null);
+          }
+          if (payload.new?.vip_expires_at !== undefined) {
+            setVipExpiresAt(payload.new.vip_expires_at || null);
+          }
+          if (payload.new?.diamonds !== undefined) {
+            setDiamondBalance(Number(payload.new.diamonds));
+          }
         }
       )
       .subscribe();
@@ -620,11 +631,13 @@ export default function DiamondStorePage({ initialTab }) {
   useEffect(() => {
     let cancelled = false;
     const cleanup = listenBroadcast('smarter_poker_diamond_sync', () => {
-      // Another tab purchased diamonds — refresh VIP status
+      // Another tab changed the shared wallet or membership. Refresh every
+      // field this page renders so its balance and entitlement card cannot
+      // drift independently.
       if (user?.id) {
         supabase
           .from('profiles')
-          .select('is_vip')
+          .select('is_vip, vip_tier, vip_expires_at, diamonds, diamond_multiplier')
           .eq('id', user.id)
           .maybeSingle()
           .then(({ data, error }) => {
@@ -632,7 +645,15 @@ export default function DiamondStorePage({ initialTab }) {
               console.warn('[Diamond Store] VIP refresh failed:', error.message || error);
               return;
             }
-            if (!cancelled && data) setIsVip(!!data.is_vip);
+            if (!cancelled && data) {
+              setIsVip(!!data.is_vip);
+              setVipTier(data.vip_tier || null);
+              setVipExpiresAt(data.vip_expires_at || null);
+              if (data.diamonds != null) setDiamondBalance(Number(data.diamonds));
+              if (data.diamond_multiplier != null) {
+                setDiamondMultiplier(Number(data.diamond_multiplier));
+              }
+            }
           });
       }
     });
@@ -641,27 +662,6 @@ export default function DiamondStorePage({ initialTab }) {
       cleanup();
     };
   }, [user?.id]);
-
-  // INTRO VIDEO STATE - Video plays while page loads in background
-  // Only show once per session (not on every reload)
-  // NOTE: Always initialize to false (server-safe) to prevent hydration mismatch.
-  // Read sessionStorage in useEffect after client mount.
-
-  // After mount: check if user has seen the intro already
-  useEffect(() => {
-    try {
-      if (!sessionStorage.getItem('marketplace-intro-seen')) {
-      }
-    } catch (_) {}
-  }, []);
-
-  // Mark intro as seen when it ends
-  // NOTE: dismiss FIRST — sessionStorage.setItem can throw (Safari private
-  // browsing) and must never block hiding the full-screen overlay.
-
-  // Attempt to unmute video after it starts playing.
-  // Autoplay policies may pause an autoplaying video that is unmuted without
-  // a user gesture — if that happens, re-mute and resume playback.
 
   const handleDirectCheckout = async (pkg) => {
     if (processingRef.current) return;
@@ -744,6 +744,7 @@ export default function DiamondStorePage({ initialTab }) {
         title: 'Activate The 1-Day VIP Pass',
         cost: plan.price,
         detail: 'Twenty-Four Hours Of Full VIP Access. If You Already Have VIP, This Adds A Day To The End Of It Rather Than Replacing It.',
+        idempotencyKey: createCheckoutRequestId('vip-daily'),
       });
       return;
     }
@@ -751,7 +752,7 @@ export default function DiamondStorePage({ initialTab }) {
   };
 
   /** The daily pass, once the in-page confirmation has been accepted. */
-  const runDailyPassPurchase = async () => {
+  const runDailyPassPurchase = async (idempotencyKey) => {
     if (processingRef.current) return;
     const plan = VIP_MEMBERSHIP.daily;
     const token = getAccessToken();
@@ -768,7 +769,11 @@ export default function DiamondStorePage({ initialTab }) {
       });
       const res = await fetch('/api/store/purchase-daily-vip', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': idempotencyKey,
+        },
       });
       // Parse the body FIRST — the API returns meaningful errors
       // ('Insufficient diamonds' + required/current) with a 400.
@@ -942,6 +947,7 @@ export default function DiamondStorePage({ initialTab }) {
       if (clubShopLoadingRef.current) return;
       clubShopLoadingRef.current = true;
       if (!silent) setClubShopLoading(true);
+      if (!silent) setClubShopError(null);
       try {
         const token = getAccessToken();
         if (!token) {
@@ -982,6 +988,7 @@ export default function DiamondStorePage({ initialTab }) {
         });
         if (!response.ok) throw new Error(`Failed to load club shop (${response.status})`);
         const data = await response.json();
+        if (!data?.success) throw new Error(data?.error || 'Failed to load club shop');
 
         setClubShopItems(
           (data.items || []).map((i) => ({
@@ -993,12 +1000,16 @@ export default function DiamondStorePage({ initialTab }) {
           }))
         );
         setClubShopPurchases(data.purchases || []);
-        setClubChipBalance(data.balance || 0);
+        setClubDiamondBalance(data.balance || 0);
         if (data.role) setClubShopRole(data.role);
         setClubShopLoaded(true);
       } catch (err) {
         console.warn('[Club Shop]', err);
-        if (!silent) showStoreToast('error', 'Failed to load the club shop. Please try again.');
+        if (!silent) {
+          setClubShopError('The Club Shop Could Not Be Loaded. Please Try Again.');
+          setClubShopLoaded(true);
+          showStoreToast('error', 'Failed to load the club shop. Please try again.');
+        }
       } finally {
         clubShopLoadingRef.current = false;
         setClubShopLoading(false);
@@ -1009,21 +1020,19 @@ export default function DiamondStorePage({ initialTab }) {
 
   // ═══ Club Shop: Purchase handler ═══
   const handleClubPurchase = async () => {
-    if (!clubShopBuyTarget || !clubShopClubId) return;
-    setClubShopProcessing(true);
+    if (!clubShopBuyTarget || !clubShopClubId || clubShopProcessingRef.current) return;
+    setClubProcessing(true);
     try {
       captureStoreEvent('club_purchase_started', {
         route: 'club-shop',
         product: clubShopBuyTarget.id,
-        chips_spent: Number(clubShopBuyTarget.price || 0),
+        diamonds_spent: Number(clubShopBuyTarget.price || 0),
+        currency: 'diamonds',
       });
       const token = getAccessToken();
       if (!token) throw new Error('Not authenticated');
 
-      const idempotencyKey =
-        typeof crypto !== 'undefined' && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const idempotencyKey = clubShopBuyTarget.purchaseRequestId;
       const response = await fetch('/api/club-arena/marketplace-purchase', {
         method: 'POST',
         headers: {
@@ -1038,17 +1047,22 @@ export default function DiamondStorePage({ initialTab }) {
         .catch(() => ({ success: false, error: `HTTP ${response.status}` }));
       if (!responseData.success) throw new Error(responseData.error || 'Purchase failed');
 
+      const pricePaid = Number(responseData.pricePaid ?? clubShopBuyTarget.price) || 0;
       captureStoreEvent('club_purchase_complete', {
         route: 'club-shop',
         product: clubShopBuyTarget.id,
-        chips_spent: Number(clubShopBuyTarget.price || 0),
+        diamonds_spent: pricePaid,
+        currency: responseData.currency || 'diamonds',
       });
-      setClubShopSuccess(`Purchased ${clubShopBuyTarget.name}!`);
+      setClubShopSuccess(
+        `Purchased ${clubShopBuyTarget.name} For ${pricePaid.toLocaleString()} Diamonds!`
+      );
       if (clubShopSuccessTimerRef.current) clearTimeout(clubShopSuccessTimerRef.current);
       clubShopSuccessTimerRef.current = setTimeout(() => setClubShopSuccess(null), 2500);
-      setClubChipBalance(responseData.newBalance ?? clubChipBalance - clubShopBuyTarget.price);
-      // Emit bus event so other components (cashier, etc.) update
-      broadcastSync('BALANCE_UPDATED', { source: 'club_shop_purchase', clubId: clubShopClubId });
+      setClubDiamondBalance(responseData.newBalance ?? clubDiamondBalance - pricePaid);
+      // The Club Shop spends the platform diamond wallet, so notify the same
+      // cross-tab channel as every other diamond purchase.
+      broadcastSync('smarter_poker_diamond_sync', 'refresh');
       setClubShopBuyTarget(null);
       clubShopLoadingRef.current = false;
       loadClubShop(true);
@@ -1056,7 +1070,7 @@ export default function DiamondStorePage({ initialTab }) {
       captureStoreEvent('club_purchase_failed', { route: 'club-shop' });
       showStoreToast('error', err.message || 'Purchase failed');
     } finally {
-      setClubShopProcessing(false);
+      setClubProcessing(false);
     }
   };
 
@@ -1100,10 +1114,15 @@ export default function DiamondStorePage({ initialTab }) {
   // activeTab is persisted, so a user can land directly on 'club-shop'
   // without ever clicking the tab button (which is the only other trigger).
   useEffect(() => {
-    if (activeTab === 'club-shop' && !clubShopLoaded && !clubShopLoadingRef.current) {
+    if (
+      activeTab === 'club-shop' &&
+      user?.id &&
+      !clubShopLoaded &&
+      !clubShopLoadingRef.current
+    ) {
       loadClubShop();
     }
-  }, [activeTab, clubShopLoaded, loadClubShop]);
+  }, [activeTab, clubShopLoaded, loadClubShop, user?.id]);
 
   // ═══ Club Shop: 5-second loading timeout safety ═══
   useEffect(() => {
@@ -1156,7 +1175,7 @@ export default function DiamondStorePage({ initialTab }) {
     };
   }, [clubShopClubId, loadClubShop, clubShopAdminLoaded, loadClubShopAdmin]);
 
-  // ═══ Club Shop: Bus listeners for cross-component balance sync ═══
+  // ═══ Club Shop: Bus listeners for cross-component diamond sync ═══
   useEffect(() => {
     if (!clubShopClubId) return;
     const refresh = () => {
@@ -1165,8 +1184,7 @@ export default function DiamondStorePage({ initialTab }) {
     };
     const unsubs = [
       listenBroadcast('BALANCE_UPDATED', refresh),
-      listenBroadcast('CHIPS_DISTRIBUTED', refresh),
-      listenBroadcast('CASHIER_BALANCE_CHANGED', refresh),
+      listenBroadcast('smarter_poker_diamond_sync', refresh),
     ];
     return () => unsubs.forEach((u) => u());
   }, [clubShopClubId, loadClubShop]);
@@ -1196,11 +1214,7 @@ export default function DiamondStorePage({ initialTab }) {
 
   return (
     <>
-      <StoreToast />
-      <PageTransition>
-        {/* INTRO VIDEO OVERLAY - Plays while page loads behind it */}
-
-        <Head>
+      <Head>
           <title>{TAB_META[activeTab]?.title || TAB_META.diamonds.title}</title>
           <meta
             name="description"
@@ -1249,7 +1263,6 @@ export default function DiamondStorePage({ initialTab }) {
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(storeStructuredData(activeTab)) }}
           />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
           <link
             rel="preload"
             as="image"
@@ -1288,7 +1301,10 @@ export default function DiamondStorePage({ initialTab }) {
                         to { opacity: 1; transform: translate(-50%, 0); }
                     }
                 `}</style>
-        </Head>
+      </Head>
+
+      <StoreToast />
+      <PageTransition disableInitialAnimation>
 
         <div className="diamond-store-page" style={styles.container}>
           {/* Background */}
@@ -1367,6 +1383,23 @@ export default function DiamondStorePage({ initialTab }) {
                           : 'Anything You Buy Below Extends Your Membership Rather Than Replacing It.'}
                       </div>
                     </div>
+                    <a
+                      href="/hub/settings?section=billing"
+                      style={{
+                        minHeight: 44,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '10px 16px',
+                        border: '1px solid rgba(255,215,0,0.55)',
+                        background: 'linear-gradient(180deg, #3A3214, #0D0B04)',
+                        color: '#FFF1A6',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Manage VIP In Account Settings
+                    </a>
                   </div>
                 )}
 
@@ -1430,7 +1463,9 @@ export default function DiamondStorePage({ initialTab }) {
                     }}
                   >
                     <img
-                      src="/images/subscribe-button.png"
+                      src="/images/subscribe-button.webp"
+                      width={1249}
+                      height={258}
                       alt=""
                       style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
                       draggable={false}
@@ -1593,7 +1628,9 @@ export default function DiamondStorePage({ initialTab }) {
                           onClick={async () => {
                             const spend = pendingSpend;
                             setPendingSpend(null);
-                            if (spend.kind === 'daily') await runDailyPassPurchase();
+                            if (spend.kind === 'daily') {
+                              await runDailyPassPurchase(spend.idempotencyKey);
+                            }
                             else await runDiamondPlanPurchase(spend.planKey, spend.idempotencyKey);
                           }}
                           style={{
@@ -1964,7 +2001,9 @@ export default function DiamondStorePage({ initialTab }) {
                         <h3 style={styles.overviewCardTitle}>VIP Membership</h3>
                         <div style={{ marginTop: 12, marginBottom: 12 }}>
                           <img
-                            src="/images/vip-card.png"
+                            src="/images/vip-card.webp"
+                            width={1024}
+                            height={1024}
                             alt="VIP Membership Card"
                             style={{
                               width: '100%',
@@ -2363,7 +2402,7 @@ export default function DiamondStorePage({ initialTab }) {
             )}
 
             {/* ═══════════════════════════════════════════════════════════════════ */}
-            {/* CLUB SHOP TAB — Chip-based marketplace items from user's club */}
+            {/* CLUB SHOP TAB — Diamond-funded marketplace items from user's club */}
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {activeTab === 'club-shop' && (
               <>
@@ -2534,11 +2573,11 @@ export default function DiamondStorePage({ initialTab }) {
                               marginTop: 4,
                             }}
                           >
-                            {clubChipBalance.toLocaleString()}
+                            {clubDiamondBalance.toLocaleString()}
                           </div>
                         </div>
                       </div>
-                      {clubChipBalance < clubShopBuyTarget.price && (
+                      {clubDiamondBalance < clubShopBuyTarget.price && (
                         <div
                           style={{
                             color: '#ff6b6b',
@@ -2552,8 +2591,8 @@ export default function DiamondStorePage({ initialTab }) {
                             size={14}
                             style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
                           />{' '}
-                          Insufficient chips. You need{' '}
-                          {(clubShopBuyTarget.price - clubChipBalance).toLocaleString()} more.
+                          Insufficient Diamonds. You Need{' '}
+                          {(clubShopBuyTarget.price - clubDiamondBalance).toLocaleString()} More.
                         </div>
                       )}
                       <div style={{ display: 'flex', gap: 12 }}>
@@ -2576,12 +2615,12 @@ export default function DiamondStorePage({ initialTab }) {
                         </button>
                         <button
                           onClick={handleClubPurchase}
-                          disabled={clubShopProcessing || clubChipBalance < clubShopBuyTarget.price}
+                          disabled={clubShopProcessing || clubDiamondBalance < clubShopBuyTarget.price}
                           style={{
                             flex: 1,
                             padding: '12px',
                             background:
-                              clubShopProcessing || clubChipBalance < clubShopBuyTarget.price
+                              clubShopProcessing || clubDiamondBalance < clubShopBuyTarget.price
                                 ? 'rgba(255,255,255,0.1)'
                                 : 'linear-gradient(135deg, #1877F2, #4285F4)',
                             border: 'none',
@@ -2618,20 +2657,65 @@ export default function DiamondStorePage({ initialTab }) {
                         borderRadius: 20,
                       }}
                     >
-                      <Coins
+                      <Gem
                         size={14}
                         style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
                       />{' '}
-                      {clubChipBalance.toLocaleString()} Chips
+                      {clubDiamondBalance.toLocaleString()} Diamonds
                     </span>
                   </h2>
                   <p style={styles.introText}>
-                    Purchase In-Game Items For Your Club With Chips — Time Banks, Table Skins,
+                    Purchase In-Game Items For Your Club With Diamonds — Time Banks, Table Skins,
                     Throwables, Emotes & More.
                   </p>
                 </div>
 
-                {clubShopLoading && !clubShopLoaded ? (
+                {!user?.id ? (
+                  <div style={{ textAlign: 'center', padding: 40 }}>
+                    <Home size={48} color="rgba(255,255,255,0.3)" />
+                    <div
+                      style={{
+                        marginTop: 12,
+                        fontSize: 16,
+                        color: 'rgba(255,255,255,0.7)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Sign In To Access Your Club Shop
+                    </div>
+                  </div>
+                ) : clubShopError ? (
+                  <div
+                    role="alert"
+                    style={{
+                      display: 'grid',
+                      justifyItems: 'center',
+                      gap: 14,
+                      padding: 40,
+                      color: '#FFD7D7',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <AlertTriangle size={30} color="#FF6B6B" />
+                    <div>{clubShopError}</div>
+                    <button
+                      type="button"
+                      onClick={() => loadClubShop(false)}
+                      disabled={clubShopLoading}
+                      style={{
+                        minHeight: 44,
+                        padding: '10px 22px',
+                        border: '1px solid #7BDCF2',
+                        background: 'linear-gradient(180deg, #314A5A, #07121B)',
+                        color: '#E9FBFF',
+                        fontWeight: 700,
+                        cursor: clubShopLoading ? 'wait' : 'pointer',
+                      }}
+                    >
+                      {clubShopLoading ? 'Retrying...' : 'Retry Club Shop'}
+                    </button>
+                  </div>
+                ) : clubShopLoading && !clubShopLoaded ? (
                   <div role="status" aria-live="polite" style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}>
                     Loading Club Shop...
                   </div>
@@ -2804,7 +2888,11 @@ export default function DiamondStorePage({ initialTab }) {
 
                         {/* Item Grid */}
                         {(() => {
-                          const purchasedIds = new Set(clubShopPurchases.map((p) => p.item_id));
+                          const activePurchasedIds = new Set(
+                            clubShopPurchases
+                              .filter((purchase) => !purchase.refunded_at)
+                              .map((purchase) => purchase.item_id)
+                          );
                           let filtered = [...clubShopItems];
                           if (clubShopCategory !== 'All') {
                             filtered = filtered.filter(
@@ -2868,7 +2956,12 @@ export default function DiamondStorePage({ initialTab }) {
                               }}
                             >
                               {filtered.map((item) => {
-                                const owned = purchasedIds.has(item.id);
+                                const purchaseLimit = Number(item.per_user_limit) || 0;
+                                const purchasedCount = Number(item.my_purchase_count) || 0;
+                                const blocked = item.stackable
+                                  ? purchaseLimit > 0 && purchasedCount >= purchaseLimit
+                                  : activePurchasedIds.has(item.id);
+                                const blockedLabel = item.stackable ? 'Limit Reached' : 'Owned';
                                 return (
                                   <div
                                     key={item.id}
@@ -2903,6 +2996,8 @@ export default function DiamondStorePage({ initialTab }) {
                                         <img
                                           src={item.image_url}
                                           alt={item.name}
+                                          loading="lazy"
+                                          decoding="async"
                                           style={{
                                             width: '100%',
                                             height: '100%',
@@ -2969,7 +3064,7 @@ export default function DiamondStorePage({ initialTab }) {
                                               gap: 4,
                                             }}
                                           >
-                                            <Coins size={14} /> {item.price.toLocaleString()}
+                                            <Gem size={14} /> {item.price.toLocaleString()}
                                           </span>
                                           {(item.purchase_count || 0) > 0 && (
                                             <div
@@ -2984,24 +3079,32 @@ export default function DiamondStorePage({ initialTab }) {
                                           )}
                                         </div>
                                         <button
-                                          onClick={() => !owned && setClubShopBuyTarget(item)}
-                                          disabled={owned}
+                                          onClick={() => {
+                                            if (blocked) return;
+                                            setClubShopBuyTarget({
+                                              ...item,
+                                              purchaseRequestId: createCheckoutRequestId(
+                                                `club-${item.id}`
+                                              ),
+                                            });
+                                          }}
+                                          disabled={blocked}
                                           style={{
                                             padding: '7px 16px',
                                             borderRadius: 20,
                                             fontSize: 12,
                                             fontWeight: 700,
-                                            cursor: owned ? 'default' : 'pointer',
-                                            background: owned
+                                            cursor: blocked ? 'default' : 'pointer',
+                                            background: blocked
                                               ? 'rgba(0,255,136,0.15)'
                                               : 'linear-gradient(135deg, #1877F2, #4285F4)',
-                                            border: owned
+                                            border: blocked
                                               ? '1px solid rgba(0,255,136,0.3)'
                                               : 'none',
-                                            color: owned ? '#00ff88' : '#fff',
+                                            color: blocked ? '#00ff88' : '#fff',
                                           }}
                                         >
-                                          {owned ? (
+                                          {blocked ? (
                                             <>
                                               <CheckCircle
                                                 size={12}
@@ -3011,7 +3114,7 @@ export default function DiamondStorePage({ initialTab }) {
                                                   marginRight: 3,
                                                 }}
                                               />{' '}
-                                              Owned
+                                              {blockedLabel}
                                             </>
                                           ) : (
                                             'Buy'
@@ -3063,7 +3166,12 @@ export default function DiamondStorePage({ initialTab }) {
                             </button>
                           </div>
                         ) : (
-                          <div style={{ overflowX: 'auto' }}>
+                          <div
+                            role="region"
+                            aria-label="Club Shop Purchase History"
+                            tabIndex={0}
+                            style={{ overflowX: 'auto' }}
+                          >
                             <table
                               style={{
                                 width: '100%',
@@ -3080,7 +3188,7 @@ export default function DiamondStorePage({ initialTab }) {
                                       textAlign: 'left',
                                       fontSize: 12,
                                       fontWeight: 600,
-                                      color: 'rgba(255,255,255,0.4)',
+                                      color: 'rgba(255,255,255,0.65)',
                                       textTransform: 'uppercase',
                                     }}
                                   >
@@ -3092,7 +3200,7 @@ export default function DiamondStorePage({ initialTab }) {
                                       textAlign: 'left',
                                       fontSize: 12,
                                       fontWeight: 600,
-                                      color: 'rgba(255,255,255,0.4)',
+                                      color: 'rgba(255,255,255,0.65)',
                                       textTransform: 'uppercase',
                                     }}
                                   >
@@ -3104,7 +3212,7 @@ export default function DiamondStorePage({ initialTab }) {
                                       textAlign: 'left',
                                       fontSize: 12,
                                       fontWeight: 600,
-                                      color: 'rgba(255,255,255,0.4)',
+                                      color: 'rgba(255,255,255,0.65)',
                                       textTransform: 'uppercase',
                                     }}
                                   >
@@ -3116,7 +3224,7 @@ export default function DiamondStorePage({ initialTab }) {
                                       textAlign: 'left',
                                       fontSize: 12,
                                       fontWeight: 600,
-                                      color: 'rgba(255,255,255,0.4)',
+                                      color: 'rgba(255,255,255,0.65)',
                                       textTransform: 'uppercase',
                                     }}
                                   >
@@ -3169,7 +3277,21 @@ export default function DiamondStorePage({ initialTab }) {
                                           color: '#FFD700',
                                         }}
                                       >
-                                        {(p.price_paid || 0).toLocaleString()}
+                                        {(p.price_paid || 0).toLocaleString()}{' '}
+                                        {p.currency === 'chips' ? 'Chips' : 'Diamonds'}
+                                        {p.refunded_at && (
+                                          <span
+                                            style={{
+                                              display: 'block',
+                                              marginTop: 2,
+                                              color: '#FF9B9B',
+                                              fontSize: 10,
+                                              fontWeight: 700,
+                                            }}
+                                          >
+                                            Refunded
+                                          </span>
+                                        )}
                                       </td>
                                       <td
                                         style={{
@@ -3218,7 +3340,7 @@ export default function DiamondStorePage({ initialTab }) {
                                 { label: 'Total Items', val: total },
                                 { label: 'Active', val: active },
                                 { label: 'Total Sold', val: totalSold },
-                                { label: 'Revenue', val: totalRev.toLocaleString() + ' chips' },
+                                { label: 'Revenue', val: totalRev.toLocaleString() + ' Diamonds' },
                               ].map((s) => (
                                 <div
                                   key={s.label}
@@ -3293,10 +3415,10 @@ export default function DiamondStorePage({ initialTab }) {
                             />
                             <input
                               type="number"
-                              aria-label="Price In Chips"
+                              aria-label="Price In Diamonds"
                               value={clubShopNewPrice}
                               onChange={(e) => setClubShopNewPrice(e.target.value)}
-                              placeholder="Price (chips)"
+                              placeholder="Price (Diamonds)"
                               min="1"
                               style={{
                                 flex: 1,
@@ -3382,6 +3504,7 @@ export default function DiamondStorePage({ initialTab }) {
                               clubShopProcessing || !clubShopNewName.trim() || !clubShopNewPrice
                             }
                             onClick={async () => {
+                              if (clubShopProcessingRef.current) return;
                               const now = Date.now();
                               if (now - clubShopLastCreate < 3000) {
                                 showStoreToast(
@@ -3399,7 +3522,7 @@ export default function DiamondStorePage({ initialTab }) {
                                 showStoreToast('error', 'Price exceeds maximum');
                                 return;
                               }
-                              setClubShopProcessing(true);
+                              setClubProcessing(true);
                               try {
                                 // Server-side admin CRUD (post-Phase-37 RLS lockdown — anon
                                 // writes to club_shop_items now blocked by design).
@@ -3436,7 +3559,7 @@ export default function DiamondStorePage({ initialTab }) {
                               } catch (err) {
                                 showStoreToast('error', err.message);
                               } finally {
-                                setClubShopProcessing(false);
+                                setClubProcessing(false);
                               }
                             }}
                             style={{
@@ -3497,7 +3620,7 @@ export default function DiamondStorePage({ initialTab }) {
                                     {item.name}
                                   </div>
                                   <div style={{ fontSize: 12, color: '#8b8d91', marginTop: 2 }}>
-                                    {item.price.toLocaleString()} chips •{' '}
+                                    {item.price.toLocaleString()} Diamonds •{' '}
                                     <span
                                       style={{
                                         padding: '2px 6px',

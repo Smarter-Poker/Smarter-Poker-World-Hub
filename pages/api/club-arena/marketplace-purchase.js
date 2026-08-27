@@ -161,11 +161,17 @@ export default async function handler(req, res) {
               });
           }
 
+          // fn_claim_shop_purchase has already decremented limited stock by
+          // this point. Arm rollback immediately so every later early return —
+          // including insufficient balance — gives that unit back.
+          stockClaimed = avail.stock_claimed === true;
+
           // Sale-aware, server-decided. The client never sends a price.
           const price = Number(avail.price) || 0;
           const balance = Number(profileRow.diamonds) || 0;
 
           if (balance < price) {
+              await releaseStock();
               return res.status(400).json({
                   success: false, error: `Insufficient diamonds. Have ${balance}, need ${price}`,
                   available: balance,
@@ -176,8 +182,8 @@ export default async function handler(req, res) {
           // Limited-quantity items: take a unit BEFORE money moves, so two
           // concurrent buyers cannot both get the last one. Every failure path
           // below releases it again.
-          // The unit (if any) was already taken inside fn_claim_shop_purchase.
-          stockClaimed = avail.stock_claimed === true;
+          // The unit (if any) was already taken inside fn_claim_shop_purchase
+          // and rollback was armed above before balance validation.
 
           // Deduct DIAMONDS atomically from the buyer's global wallet.
           //
