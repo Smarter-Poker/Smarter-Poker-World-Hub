@@ -19,6 +19,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import styles from '../../../src/styles/trivia/TriviaHub.module.css';
 
 // The 'Timer' hamburger toggle is not part of the original trivia preferences
 // payload, so it is mirrored to this namespaced key for durable local persistence.
@@ -214,8 +215,8 @@ export default function TriviaHubPage() {
 
             </SEOHead>
 
-            <div className="trivia-page">
-                <div className="bg-overlay" />
+            <div className={styles.page}>
+                <div className={styles.backgroundOverlay} />
 
                 <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
@@ -231,9 +232,9 @@ export default function TriviaHubPage() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
-                <div className="content">
+                <div className={styles.content}>
                     {isLoading ? (
-                        <div className="loading">
+                        <div className={styles.loading}>
                             <TriviaSkeleton />
                         </div>
                     ) : (
@@ -248,77 +249,6 @@ export default function TriviaHubPage() {
                 </div>
             </div>
 
-            <style>{`
-                .trivia-page {
-                    min-height: 100vh; padding-bottom: 70px;
-                    background:
-                        radial-gradient(circle at 50% -12%, rgba(0, 148, 218, 0.18), transparent 34%),
-                        radial-gradient(circle at 8% 32%, rgba(20, 85, 120, 0.12), transparent 28%),
-                        linear-gradient(180deg, #02070a 0%, #010407 52%, #03040b 100%);
-                    font-family: 'Inter', -apple-system, sans-serif;
-                    position: relative;
-                    width: 100%;
-                    max-width: 100%;
-                    margin: 0 auto;
-                    overflow-x: hidden;
-                }
-
-                
-                
-                
-                
-                
-
-                .bg-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background:
-                        linear-gradient(rgba(59, 146, 183, 0.025) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(59, 146, 183, 0.025) 1px, transparent 1px),
-                        radial-gradient(ellipse at 50% 15%, rgba(14, 165, 233, 0.08), transparent 48%),
-                        radial-gradient(ellipse at 74% 78%, rgba(78, 49, 141, 0.055), transparent 42%);
-                    background-size: 34px 34px, 34px 34px, auto, auto;
-                    opacity: 0.76;
-                    pointer-events: none;
-                }
-
-                .content {
-                    position: relative;
-                    padding: 15px 0 40px;
-                }
-
-                @media (max-width: 680px) {
-                    .content {
-                        padding: 8px 0 24px;
-                    }
-                }
-
-                .loading {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 60vh;
-                    color: rgba(255, 255, 255, 0.6);
-                }
-
-                .spinner {
-                    width: 40px;
-                    height: 40px;
-                    border: 3px solid rgba(255, 255, 255, 0.1);
-                    border-top-color: #0ea5e9;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                    margin-bottom: 16px;
-                }
-
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
               <BottomNavBar />
     </PageTransition>
     );

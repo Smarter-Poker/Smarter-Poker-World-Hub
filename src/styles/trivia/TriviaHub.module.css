@@ -1,0 +1,47 @@
+.page {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    margin: 0 auto;
+    padding-bottom: 70px;
+    overflow-x: hidden;
+    background:
+        radial-gradient(circle at 50% -12%, rgba(0, 148, 218, 0.18), transparent 34%),
+        radial-gradient(circle at 8% 32%, rgba(20, 85, 120, 0.12), transparent 28%),
+        linear-gradient(180deg, #02070a 0%, #010407 52%, #03040b 100%);
+    font-family: Inter, -apple-system, sans-serif;
+}
+
+.backgroundOverlay {
+    position: fixed;
+    inset: 0;
+    background:
+        linear-gradient(rgba(59, 146, 183, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59, 146, 183, 0.025) 1px, transparent 1px),
+        radial-gradient(ellipse at 50% 15%, rgba(14, 165, 233, 0.08), transparent 48%),
+        radial-gradient(ellipse at 74% 78%, rgba(78, 49, 141, 0.055), transparent 42%);
+    background-size: 34px 34px, 34px 34px, auto, auto;
+    opacity: 0.76;
+    pointer-events: none;
+}
+
+.content {
+    position: relative;
+    padding: 15px 0 40px;
+}
+
+.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 680px) {
+    .content {
+        padding: 8px 0 24px;
+    }
+}

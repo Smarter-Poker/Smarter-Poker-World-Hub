@@ -234,6 +234,8 @@ const MODE_FILTER_COUNTS = Object.fromEntries(
 export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyCompleted = false, currentStreak = 0, onDiamondsChange }) {
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState('all');
+    const filterRailRef = useRef(null);
+    const filterButtonRefs = useRef([]);
 
     useEffect(() => {
         // Clear any legacy 'already paid' flags left in this session by an
@@ -257,6 +259,57 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
     const filteredModes = activeFilter === 'all'
         ? MODE_CARDS
         : MODE_CARDS.filter(mode => mode.category === activeFilter);
+
+    const revealFilter = (filterIndex, { focus = false } = {}) => {
+        // Wait for React to apply the active state before measuring. Scrolling
+        // the rail directly keeps the page's vertical position untouched.
+        requestAnimationFrame(() => {
+            const rail = filterRailRef.current;
+            const button = filterButtonRefs.current[filterIndex];
+            if (!rail || !button) return;
+
+            if (focus) button.focus();
+
+            const maxLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
+            if (maxLeft === 0) return;
+
+            const targetLeft = button.offsetLeft - ((rail.clientWidth - button.offsetWidth) / 2);
+            const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+            rail.scrollTo({
+                left: Math.min(maxLeft, Math.max(0, targetLeft)),
+                behavior: reduceMotion ? 'auto' : 'smooth',
+            });
+        });
+    };
+
+    const selectFilter = (filterId, filterIndex, options) => {
+        setActiveFilter(filterId);
+        revealFilter(filterIndex, options);
+    };
+
+    const handleFilterKeyDown = (event, currentIndex) => {
+        let nextIndex;
+
+        switch (event.key) {
+            case 'ArrowRight':
+                nextIndex = (currentIndex + 1) % MODE_FILTERS.length;
+                break;
+            case 'ArrowLeft':
+                nextIndex = (currentIndex - 1 + MODE_FILTERS.length) % MODE_FILTERS.length;
+                break;
+            case 'Home':
+                nextIndex = 0;
+                break;
+            case 'End':
+                nextIndex = MODE_FILTERS.length - 1;
+                break;
+            default:
+                return;
+        }
+
+        event.preventDefault();
+        selectFilter(MODE_FILTERS[nextIndex].id, nextIndex, { focus: true });
+    };
 
     // Route to the correct page for a mode
     const routeToMode = (modeId) => {
@@ -393,13 +446,22 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     </span>
                 </div>
 
-                <div className="mode-filters" role="group" aria-label="Filter trivia modes">
-                    {MODE_FILTERS.map(filter => (
+                <div
+                    ref={filterRailRef}
+                    className="mode-filters"
+                    role="group"
+                    aria-label="Filter trivia modes"
+                    aria-orientation="horizontal"
+                >
+                    {MODE_FILTERS.map((filter, filterIndex) => (
                         <button
                             key={filter.id}
+                            ref={node => { filterButtonRefs.current[filterIndex] = node; }}
                             type="button"
                             className={`mode-filter${activeFilter === filter.id ? ' mode-filter--active' : ''}`}
-                            onClick={() => setActiveFilter(filter.id)}
+                            onClick={() => selectFilter(filter.id, filterIndex)}
+                            onKeyDown={event => handleFilterKeyDown(event, filterIndex)}
+                            tabIndex={activeFilter === filter.id ? 0 : -1}
                             aria-pressed={activeFilter === filter.id}
                             aria-controls="trivia-mode-grid"
                             aria-label={`${filter.label}, ${MODE_FILTER_COUNTS[filter.id]} modes`}
