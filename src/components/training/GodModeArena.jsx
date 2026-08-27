@@ -14098,7 +14098,7 @@ const styles = {
     width: '100%',
     maxWidth: 900,
     height: '100vh',
-    background: '#121212',
+    background: 'radial-gradient(circle at 50% 42%, rgba(0, 111, 177, 0.22), transparent 42%), linear-gradient(180deg, #06111d 0%, #02070d 100%)',
     overflow: 'hidden',
     marginLeft: 'auto',
     marginRight: 'auto',
@@ -14112,7 +14112,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#121212',
+    background: 'radial-gradient(circle at 50% 45%, rgba(0, 157, 229, 0.2), transparent 38%), linear-gradient(180deg, #071522 0%, #02070d 100%)',
     zIndex: 999,
   },
   splashContent: {
@@ -14150,15 +14150,18 @@ const styles = {
 
   container: {
     width: '100%',
-    maxWidth: 900,
+    maxWidth: 1180,
     height: '100vh',
-    background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
+    background: 'radial-gradient(circle at 50% 44%, rgba(0, 119, 184, 0.24), transparent 44%), linear-gradient(180deg, #06111d 0%, #02070d 100%)',
     display: 'flex',
     flexDirection: 'column',
     fontFamily: "'Inter', -apple-system, sans-serif",
     overflow: 'hidden',
     marginLeft: 'auto',
     marginRight: 'auto',
+    borderLeft: '1px solid rgba(127, 220, 255, 0.28)',
+    borderRight: '1px solid rgba(127, 220, 255, 0.28)',
+    boxShadow: 'inset 0 0 54px rgba(0, 136, 214, 0.1)',
   },
 
   header: {
@@ -14166,16 +14169,17 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 20px',
-    background: 'rgba(0,0,0,0.4)',
-    borderBottom: '1px solid #1e293b',
+    background: 'linear-gradient(180deg, rgba(215, 246, 255, 0.18) 0%, rgba(17, 41, 57, 0.92) 12%, rgba(2, 10, 17, 0.98) 100%)',
+    borderBottom: '1px solid rgba(125, 220, 255, 0.46)',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.42), 0 10px 26px rgba(0,0,0,0.36)',
   },
 
   backButton: {
-    background: 'linear-gradient(135deg, #0891b2, #0e7490)',
-    border: 'none',
-    borderRadius: 8,
+    background: 'linear-gradient(180deg, #d8faff 0%, #43d8f7 15%, #087ba4 100%)',
+    border: '1px solid #bff5ff',
+    borderRadius: 0,
     padding: '8px 16px',
-    color: 'white',
+    color: '#00131d',
     fontSize: 14,
     fontWeight: 'bold',
     cursor: 'pointer',
@@ -14184,9 +14188,10 @@ const styles = {
   gameTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#00d4ff',
+    color: '#dff8ff',
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
+    textShadow: '0 0 14px rgba(56, 210, 255, 0.42)',
   },
 
   stats: {
@@ -14200,6 +14205,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '20px',
+    background: 'linear-gradient(180deg, rgba(6, 19, 31, 0.2), rgba(1, 7, 13, 0.4))',
     minHeight: 0,
   },
 
@@ -14216,8 +14222,9 @@ const styles = {
     justifyContent: 'space-around',
     alignItems: 'center',
     padding: '12px 20px',
-    background: 'rgba(0,0,0,0.4)',
-    borderTop: '1px solid #1e293b',
+    background: 'linear-gradient(0deg, rgba(206, 244, 255, 0.14) 0%, rgba(14, 34, 48, 0.94) 12%, rgba(2, 9, 16, 0.98) 100%)',
+    borderTop: '1px solid rgba(125, 220, 255, 0.42)',
+    boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.24), 0 -10px 28px rgba(0,0,0,0.32)',
   },
 
   footerStat: { fontSize: 13 },
@@ -14226,7 +14233,7 @@ const styles = {
   reviewContainer: {
     width: '100%',
     height: '100vh',
-    background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
+    background: 'radial-gradient(circle at 50% 26%, rgba(0, 133, 205, 0.2), transparent 38%), linear-gradient(180deg, #06111d 0%, #02070d 100%)',
     display: 'flex',
     flexDirection: 'column',
     fontFamily: "'Inter', sans-serif",
@@ -14238,15 +14245,16 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 16px',
-    background: 'rgba(0,0,0,0.5)',
-    borderBottom: '1px solid #1e293b',
+    background: 'linear-gradient(180deg, rgba(215, 246, 255, 0.17), rgba(9, 25, 37, 0.96) 16%, rgba(2, 9, 16, 0.98))',
+    borderBottom: '1px solid rgba(125, 220, 255, 0.42)',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35)',
     flexShrink: 0,
   },
 
   reviewBackBtn: {
     background: 'none',
     border: '1px solid rgba(255,255,255,0.2)',
-    borderRadius: 8,
+    borderRadius: 0,
     padding: '6px 14px',
     color: '#94a3b8',
     fontSize: 13,
@@ -14258,7 +14266,7 @@ const styles = {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#e2e8f0',
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
     letterSpacing: 1,
   },
 
