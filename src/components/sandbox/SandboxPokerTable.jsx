@@ -201,7 +201,7 @@ function DeleteBadge({ size, onRemove, label }) {
             style={{
                 position: 'absolute', top: -8, right: -8, zIndex: 2,
                 width: Math.max(22, size), height: Math.max(22, size), borderRadius: '50%',
-                background: T.danger, border: '2px solid #18191A', color: '#fff',
+                background: T.danger, border: '2px solid #020609', color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', padding: 0, touchAction: 'manipulation',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
@@ -508,7 +508,7 @@ export default function SandboxPokerTable({
                 <div style={{
                     position: 'absolute', top: '13%', left: '50%', transform: 'translateX(-50%)',
                     padding: '3px 8px', borderRadius: R.sm, fontSize: 12, fontWeight: 700, zIndex: Z.felt,
-                    background: boardTexture.color || 'rgba(69,153,255,0.2)',
+                    background: boardTexture.color || 'rgba(99,231,255,0.2)',
                     color: boardTexture.textColor || T.accent,
                     border: `1px solid ${boardTexture.textColor || T.accentPress}44`,
                     whiteSpace: 'nowrap', maxWidth: '86%', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -649,7 +649,7 @@ export default function SandboxPokerTable({
                             background: 'rgba(36,37,38,0.95)',
                             borderRadius: R.sm,
                             padding: compact ? 2 : '3px 6px 3px 3px',
-                            border: `2px solid ${seat.isHero ? 'rgba(69,153,255,0.7)' : T.border}`,
+                            border: `2px solid ${seat.isHero ? 'rgba(99,231,255,0.7)' : T.border}`,
                             WebkitBackdropFilter: 'blur(6px)', backdropFilter: 'blur(6px)',
                             maxWidth: Math.round(tw * 0.52),
                         }}>
@@ -755,10 +755,10 @@ export default function SandboxPokerTable({
                     {[0, 1].map(i => (
                         <span key={i} style={{
                             display: 'flex', width: heroW, height: heroH, borderRadius: R.sm,
-                            border: `2px dashed rgba(69,153,255,0.45)`,
-                            background: 'rgba(69,153,255,0.06)',
+                            border: `2px dashed rgba(99,231,255,0.45)`,
+                            background: 'rgba(99,231,255,0.06)',
                             alignItems: 'center', justifyContent: 'center',
-                            fontSize: 12, color: 'rgba(69,153,255,0.7)', fontWeight: 800,
+                            fontSize: 12, color: 'rgba(99,231,255,0.7)', fontWeight: 800,
                         }}>
                             ?
                         </span>

@@ -17,56 +17,59 @@ import {
 } from 'lucide-react';
 import { SocialService } from '../../services/SocialService';
 import { supabase } from '../../lib/supabase';
-import { getAuthUser } from '../../lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 // react-hot-toast matches the <Toaster> host the sandbox page mounts. The old
 // `../../stores/toastStore` import rendered nowhere on this page.
 import toast from 'react-hot-toast';
 import { claimReward } from '../../lib/claimReward';
+import { BottomSheet as CommandBottomSheet } from './paKit';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PA_DESIGN_SPEC v1 — "Neon Slate" tokens.
+// PA_DESIGN_SPEC v2 — "Jarvis Command Deck" tokens.
 // Kept in this module (rather than a separate file) so the Sandbox surface has
 // zero cross-file import risk; values are byte-identical to the shared spec.
 // ═══════════════════════════════════════════════════════════════════════════
 export const T = {
-    bg: '#18191A',
-    surface: '#242526',
-    surface2: '#3A3B3C',
-    surface3: '#4E4F50',
-    border: '#3A3B3C',
-    borderHi: '#4E4F50',
-    text: '#E4E6EB',
-    textMuted: '#B0B3B8',
-    textDim: '#65676B',
-    accent: '#4599FF',
-    accentPress: '#2374E1',
-    accentSoft: 'rgba(69,153,255,0.15)',
-    success: '#22C55E',
-    successSoft: 'rgba(34,197,94,0.15)',
-    warn: '#FBBF24',
-    warnSoft: 'rgba(251,191,36,0.15)',
-    danger: '#EF4444',
-    dangerSoft: 'rgba(239,68,68,0.15)',
-    purple: '#A78BFA',
-    purpleSoft: 'rgba(167,139,250,0.15)',
-    scrim: 'rgba(0,0,0,0.6)',
-    glassEdge: 'rgba(255,255,255,0.08)',
+    bg: '#020609',
+    surface: '#07111B',
+    surface2: '#10202B',
+    surface3: '#1B3342',
+    border: '#35566A',
+    borderHi: '#7898AA',
+    text: '#EEF8FF',
+    textMuted: '#B7D0DD',
+    textDim: '#8295A2',
+    accent: '#63E7FF',
+    accentPress: '#078ED6',
+    accentSoft: 'rgba(99,231,255,0.12)',
+    success: '#4DE0A5',
+    successSoft: 'rgba(77,224,165,0.12)',
+    warn: '#FFC66D',
+    warnSoft: 'rgba(255,198,109,0.12)',
+    danger: '#FF6B7A',
+    dangerSoft: 'rgba(255,107,122,0.12)',
+    purple: '#B9A7FF',
+    purpleSoft: 'rgba(185,167,255,0.12)',
+    scrim: 'rgba(0,3,6,0.78)',
+    glassEdge: 'rgba(216,251,255,0.16)',
 };
 
 export const F = { h1: 22, h2: 18, h3: 16, body: 15, bodySm: 14, label: 13, caption: 12, input: 16 };
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
-export const R = { sm: 8, md: 12, lg: 16, sheet: '20px 20px 0 0', pill: 999 };
+export const R = { sm: 2, md: 4, lg: 6, sheet: '8px 8px 0 0', pill: 999 };
 export const E = {
-    card: '0 1px 3px rgba(0,0,0,0.4)',
-    raised: '0 4px 16px rgba(0,0,0,0.5)',
-    sheet: '0 -8px 32px rgba(0,0,0,0.6)',
+    card: 'inset 0 1px 0 rgba(216,251,255,0.08), 0 10px 22px rgba(0,0,0,0.34)',
+    raised: 'inset 0 1px 0 rgba(216,251,255,0.14), 0 16px 34px rgba(0,0,0,0.52)',
+    sheet: 'inset 0 1px 0 rgba(216,251,255,0.18), 0 -12px 42px rgba(0,0,0,0.72), 0 0 28px rgba(0,142,214,0.12)',
 };
 export const Z = { base: 1, felt: 10, feltCards: 20, sticky: 50, bottomNav: 100, backdrop: 900, sheet: 901, popover: 950, toast: 1000 };
 export const FONT_STACK = "'Inter',-apple-system,BlinkMacSystemFont,sans-serif";
+export const DISPLAY_FONT = "'Rajdhani','Arial Narrow',sans-serif";
+export const DATA_FONT = "'IBM Plex Mono','SFMono-Regular',Consolas,monospace";
 export const NUM = { fontVariantNumeric: 'tabular-nums' };
 
 export const card = {
-    background: T.surface, border: `1px solid ${T.border}`, borderRadius: R.md,
+    background: `linear-gradient(180deg, rgba(23,41,56,0.96), ${T.surface} 24%, #03090E)`, border: `1px solid ${T.borderHi}`, borderRadius: R.md,
     padding: S.lg, boxShadow: E.card, boxSizing: 'border-box', width: '100%', maxWidth: '100%',
 };
 export const cardCompact = { ...card, padding: S.md, borderRadius: R.sm };
@@ -75,17 +78,18 @@ export function btn(variant = 'primary', opts = {}) {
     const base = {
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: S.sm,
         minHeight: 44, minWidth: 44, padding: '0 18px', borderRadius: R.sm,
-        fontSize: F.bodySm, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1,
+        fontSize: F.bodySm, fontWeight: 700, fontFamily: DISPLAY_FONT, lineHeight: 1,
+        letterSpacing: '0.025em',
         cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
         transition: 'transform .12s ease, background .12s ease, opacity .12s ease',
         boxSizing: 'border-box', border: '1px solid transparent', width: opts.block ? '100%' : 'auto',
     };
     const v = {
-        primary: { background: `linear-gradient(135deg, ${T.accent}, ${T.accentPress})`, color: '#FFFFFF' },
-        secondary: { background: T.surface2, color: T.text, borderColor: T.borderHi },
+        primary: { background: `linear-gradient(180deg, #2A6D94 0%, #0A3856 18%, #061826 78%, #154C6C 100%)`, color: '#FFFFFF', borderColor: '#72DFFF', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 0 rgba(0,0,0,.65), 0 0 16px rgba(7,142,214,.2)' },
+        secondary: { background: `linear-gradient(180deg, #263946, #0A141C 22%, #050B10 78%, #17242D)`, color: T.text, borderColor: T.borderHi, boxShadow: 'inset 0 1px 0 rgba(255,255,255,.14), inset 0 -2px 0 rgba(0,0,0,.6)' },
         ghost: { background: 'transparent', color: T.textMuted, borderColor: 'transparent' },
-        danger: { background: T.dangerSoft, color: T.danger, borderColor: 'rgba(239,68,68,0.4)' },
-        success: { background: T.successSoft, color: T.success, borderColor: 'rgba(34,197,94,0.4)' },
+        danger: { background: T.dangerSoft, color: T.danger, borderColor: 'rgba(255,107,122,0.4)' },
+        success: { background: T.successSoft, color: T.success, borderColor: 'rgba(77,224,165,0.4)' },
         purple: { background: T.purpleSoft, color: T.purple, borderColor: 'rgba(167,139,250,0.4)' },
     }[variant] || {};
     const dis = opts.disabled ? { opacity: 0.45, cursor: 'not-allowed', pointerEvents: 'none' } : null;
@@ -105,10 +109,10 @@ export function iconBtn(opts = {}) {
 
 export function pill(tone = 'neutral') {
     const m = {
-        neutral: [T.textMuted, 'rgba(176,179,184,0.14)'], accent: [T.accent, T.accentSoft],
+        neutral: [T.textMuted, 'rgba(183,208,221,0.12)'], accent: [T.accent, T.accentSoft],
         success: [T.success, T.successSoft], warn: [T.warn, T.warnSoft],
         danger: [T.danger, T.dangerSoft], purple: [T.purple, T.purpleSoft],
-    }[tone] || [T.textMuted, 'rgba(176,179,184,0.14)'];
+    }[tone] || [T.textMuted, 'rgba(183,208,221,0.12)'];
     return {
         display: 'inline-flex', alignItems: 'center', gap: S.xs, padding: '5px 10px',
         borderRadius: R.pill, fontSize: F.caption, fontWeight: 700, lineHeight: 1.2,
@@ -122,25 +126,27 @@ export const sheetBackdrop = {
     WebkitBackdropFilter: 'blur(2px)', backdropFilter: 'blur(2px)',
 };
 export const sheetStyle = {
-    width: '100%', maxWidth: 520, background: T.surface, borderTop: `1px solid ${T.border}`,
+    width: '100%', maxWidth: 680,
+    background: `linear-gradient(180deg, #132633 0, ${T.surface} 52px, #03090E 100%)`,
+    border: `1px solid ${T.borderHi}`, borderBottom: 0,
     borderRadius: R.sheet, boxShadow: E.sheet, zIndex: Z.sheet,
     maxHeight: '85dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
     paddingBottom: 'env(safe-area-inset-bottom,0px)',
 };
-export const sheetGrip = { width: 40, height: 4, borderRadius: R.pill, background: T.surface3, margin: '10px auto 6px', flexShrink: 0 };
+export const sheetGrip = { width: 54, height: 3, borderRadius: R.pill, background: T.accent, boxShadow: `0 0 12px ${T.accent}`, margin: '10px auto 6px', flexShrink: 0 };
 export const sheetHeader = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm, padding: `0 ${S.lg}px ${S.md}px`, borderBottom: `1px solid ${T.border}`, flexShrink: 0 };
 export const sheetBody = { padding: S.lg, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', flex: 1, minHeight: 0 };
 export const sheetFooter = { padding: S.lg, borderTop: `1px solid ${T.border}`, display: 'flex', gap: S.sm, flexShrink: 0, background: T.surface };
 
 export const sectionHeader = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm, marginBottom: S.md, minHeight: 28 };
-export const sectionTitle = { fontSize: F.label, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: T.textDim, margin: 0 };
+export const sectionTitle = { fontSize: F.label, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: T.textDim, margin: 0, fontFamily: DATA_FONT };
 
 export const emptyWrap = { ...card, textAlign: 'center', padding: `${S.xl}px ${S.lg}px`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: S.md };
 export const emptyIcon = { width: 56, height: 56, borderRadius: '50%', background: T.surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textDim, flexShrink: 0 };
 export const emptyTitle = { fontSize: F.h3, fontWeight: 700, color: T.text, margin: 0 };
 export const emptyBody = { fontSize: F.bodySm, color: T.textMuted, margin: 0, maxWidth: 280, lineHeight: 1.45 };
 
-export const errorWrap = { ...card, borderColor: 'rgba(239,68,68,0.4)', background: T.dangerSoft, display: 'flex', flexDirection: 'column', gap: S.md, alignItems: 'flex-start' };
+export const errorWrap = { ...card, borderColor: 'rgba(255,107,122,0.4)', background: T.dangerSoft, display: 'flex', flexDirection: 'column', gap: S.md, alignItems: 'flex-start' };
 export const errorTitle = { fontSize: F.bodySm, fontWeight: 700, color: T.danger, display: 'flex', alignItems: 'center', gap: S.sm, margin: 0 };
 export const errorBody = { fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 };
 
@@ -186,51 +192,22 @@ export function useEscapeKey(active, onEscape) {
 // ═══════════════════════════════════════════════════════════════════════════
 export function BottomSheet({
     isOpen, onClose, title, subtitle, children, footer,
-    maxWidth = 520, headerRight = null, bodyStyle = null, labelledBy,
+    maxWidth = 680, headerRight = null, bodyStyle = null, labelledBy,
 }) {
-    const reduce = usePrefersReducedMotion();
-    useBodyScrollLock(isOpen);
-    useEscapeKey(isOpen, onClose);
-    const titleId = labelledBy || 'pa-sheet-title';
-
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <motion.div
-                    key="pa-sheet-backdrop"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    transition={reduce ? { duration: 0 } : { duration: 0.18 }}
-                    style={sheetBackdrop}
-                    onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
-                >
-                    <motion.div
-                        role="dialog" aria-modal="true" aria-labelledby={titleId}
-                        initial={reduce ? { opacity: 0 } : { y: '100%' }}
-                        animate={reduce ? { opacity: 1 } : { y: 0 }}
-                        exit={reduce ? { opacity: 0 } : { y: '100%' }}
-                        transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 34 }}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ ...sheetStyle, maxWidth }}
-                    >
-                        <div style={sheetGrip} aria-hidden="true" />
-                        <div style={sheetHeader}>
-                            <div style={{ minWidth: 0 }}>
-                                <h3 id={titleId} style={{ margin: 0, fontSize: F.h3, fontWeight: 700, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</h3>
-                                {subtitle && <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: 2 }}>{subtitle}</div>}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, flexShrink: 0 }}>
-                                {headerRight}
-                                <button type="button" className="pa-btn" onClick={onClose} aria-label="Close" style={iconBtn()}>
-                                    <XIcon size={18} strokeWidth={2} aria-hidden="true" />
-                                </button>
-                            </div>
-                        </div>
-                        <div style={{ ...sheetBody, ...(bodyStyle || {}) }}>{children}</div>
-                        {footer && <div style={sheetFooter}>{footer}</div>}
-                    </motion.div>
-                </motion.div>
-            )}
-        </AnimatePresence>
+        <CommandBottomSheet
+            open={isOpen}
+            onClose={onClose}
+            title={title}
+            subtitle={subtitle}
+            footer={footer}
+            maxWidth={maxWidth}
+            headerRight={headerRight}
+            bodyStyle={bodyStyle}
+            ariaLabel={labelledBy ? undefined : title}
+        >
+            {children}
+        </CommandBottomSheet>
     );
 }
 
@@ -581,9 +558,9 @@ function getMatrixHandKey(row, col) {
 
 function getMatrixColor(freq) {
     if (freq == null) return 'rgba(255,255,255,0.03)';
-    if (freq >= 90) return '#22c55e'; if (freq >= 70) return '#4ade80';
-    if (freq >= 50) return '#86efac'; if (freq >= 30) return '#fbbf24';
-    if (freq >= 15) return '#f97316'; if (freq > 0) return '#ef4444';
+    if (freq >= 90) return '#4DE0A5'; if (freq >= 70) return '#2FBF91';
+    if (freq >= 50) return '#63E7FF'; if (freq >= 30) return '#FFC66D';
+    if (freq >= 15) return '#F08B5A'; if (freq > 0) return '#FF6B7A';
     return 'rgba(255,255,255,0.03)';
 }
 
@@ -630,7 +607,7 @@ export function RangeMatrix({ rangeHeatmap, selectedAction, onPickHand }) {
     const detail = pinned ? rangeHeatmap.data[pinned] : null;
 
     const grid = (fontSize) => (
-        <div style={{
+        <div className="pa-range-grid" style={{
             display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1,
             background: T.surface2, borderRadius: R.sm, overflow: 'hidden', padding: 1, width: '100%',
         }}>
@@ -676,7 +653,7 @@ export function RangeMatrix({ rangeHeatmap, selectedAction, onPickHand }) {
     );
 
     return (
-        <div>
+        <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
             <div style={{ ...sectionHeader, marginBottom: S.sm }}>
                 <p style={sectionTitle}>Hand grid</p>
                 <button type="button" className="pa-btn" onClick={() => setExpanded(true)} aria-label="Expand range grid to full screen"
@@ -760,10 +737,10 @@ export function classifyBoardTexture(board) {
 
     let label, color, textColor, strategy;
     if (isTrips) { label = '3-OF-A-KIND BOARD'; color = 'rgba(236,72,153,0.2)'; textColor = '#f472b6'; strategy = 'Very dry — high c-bet frequency, small sizing'; }
-    else if (isMonotone) { label = 'MONOTONE'; color = 'rgba(239,68,68,0.2)'; textColor = '#fca5a5'; strategy = 'Flush-heavy board — reduce c-bet freq, check more with non-flush hands'; }
-    else if (flushPossible) { label = 'FLUSH POSSIBLE'; color = 'rgba(239,68,68,0.15)'; textColor = '#fca5a5'; strategy = 'Three to a flush on board — size down and check back marginal made hands'; }
-    else if (isWet) { label = 'WET / CONNECTED'; color = 'rgba(251,191,36,0.2)'; textColor = '#fde68a'; strategy = 'Many draws possible — polarize bet sizing, protect strong hands'; }
-    else if (isDry) { label = 'DRY'; color = 'rgba(34,197,94,0.2)'; textColor = '#86efac'; strategy = 'Few draws — high c-bet frequency, use small sizing (25-33%)'; }
+    else if (isMonotone) { label = 'MONOTONE'; color = 'rgba(255,107,122,0.2)'; textColor = '#fca5a5'; strategy = 'Flush-heavy board — reduce c-bet freq, check more with non-flush hands'; }
+    else if (flushPossible) { label = 'FLUSH POSSIBLE'; color = 'rgba(255,107,122,0.15)'; textColor = '#fca5a5'; strategy = 'Three to a flush on board — size down and check back marginal made hands'; }
+    else if (isWet) { label = 'WET / CONNECTED'; color = 'rgba(255,198,109,0.2)'; textColor = '#fde68a'; strategy = 'Many draws possible — polarize bet sizing, protect strong hands'; }
+    else if (isDry) { label = 'DRY'; color = 'rgba(77,224,165,0.2)'; textColor = '#86efac'; strategy = 'Few draws — high c-bet frequency, use small sizing (25-33%)'; }
     else if (isPaired) { label = 'PAIRED'; color = 'rgba(139,92,246,0.2)'; textColor = '#c4b5fd'; strategy = 'Paired boards favor preflop raiser — c-bet with high frequency'; }
     else if (isHighBoard) { label = 'HIGH CARDS'; color = 'rgba(59,130,246,0.2)'; textColor = '#93c5fd'; strategy = 'Favors the in-position or preflop aggressor range'; }
     else { label = isTwoTone ? 'TWO-TONE' : 'RAINBOW'; color = 'rgba(100,116,139,0.2)'; textColor = '#94a3b8'; strategy = 'Standard texture — play position and range advantage'; }
@@ -981,7 +958,7 @@ export function SizingSensitivity({ results }) {
     if (betActions.length === 0) return null;
 
     return (
-        <div style={{ ...cardCompact, background: T.surface2, marginBottom: S.md }}>
+        <div className="pa-chart-panel" style={{ ...cardCompact, background: T.surface2, marginBottom: S.md }}>
             <div style={sectionHeader}><p style={sectionTitle}>Sizing sensitivity</p></div>
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${SIZING_COLUMNS.length}, minmax(0,1fr))`, gap: S.xs }}>
                 {SIZING_COLUMNS.map(({ label: size, pct }) => {
@@ -1074,7 +1051,7 @@ export function TreeVisualization({ actions, archetypeId = 'gto_neutral', potSiz
     const pot = Number(potSize) || 0;
 
     return (
-        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+        <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
             <div style={sectionHeader}>
                 <p style={sectionTitle}>Decision tree</p>
                 <span style={{ fontSize: F.caption, color: T.textDim }}>vs {archetypeId.replace(/_/g, ' ')}</span>
@@ -1263,7 +1240,7 @@ export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
                                 width: rect.width + 12, height: rect.height + 12,
                                 borderRadius: R.md, pointerEvents: 'none',
                                 border: `2px solid ${T.accent}`,
-                                boxShadow: '0 0 24px rgba(69,153,255,0.55)',
+                                boxShadow: '0 0 24px rgba(99,231,255,0.55)',
                             }}
                         />
                     )}
@@ -1499,13 +1476,13 @@ export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercen
     // 'check' is emitted for BB RFI (the BB is never first-in — an unopened pot
     // is checked through), so it needs its own swatch or every cell renders as
     // undifferentiated grey with an `undefined44` border.
-    const actionColors = { raise: '#22c55e', '3bet': '#ef4444', call: '#3b82f6', check: '#6b7280', fold: 'transparent' };
-    const CELL_FALLBACK = '#3A3B3C';
+    const actionColors = { raise: T.success, '3bet': T.danger, call: T.accentPress, check: T.textDim, fold: 'transparent' };
+    const CELL_FALLBACK = T.surface2;
     const cellColor = (action) => actionColors[action] || CELL_FALLBACK;
     const cells = rangeGrid.flat();
     const hasCheck = cells.some(c => c && c.action === 'check');
     return (
-        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+        <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
             <div style={sectionHeader}>
                 <p style={sectionTitle}>
                     {position} range — {rangePercent}%{hasCheck ? ' (checked through)' : ''}
@@ -1519,7 +1496,7 @@ export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercen
                     ))}
                 </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, fontSize: F.caption }}>
+            <div className="pa-range-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, fontSize: F.caption }}>
                 {cells.map((cell, i) => {
                     // getRangeGrid can emit sparse rows — a null cell used to crash
                     // the whole preflop panel on `cell.inRange`.
@@ -1572,7 +1549,7 @@ export function RunoutChart({ runoutData }) {
         </div>
     );
     return (
-        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+        <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
             <div style={sectionHeader}><p style={sectionTitle}>Runout simulator</p></div>
             <div style={{ display: 'flex', gap: S.md, marginBottom: S.md }}>
                 {stat(runoutData.improveRate, 'Improve', T.success)}
@@ -1654,7 +1631,7 @@ export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score, 
                 style={{
                     padding: S.md, borderRadius: R.md, marginBottom: S.md,
                     background: isCorrect ? T.successSoft : T.dangerSoft,
-                    border: `1px solid ${isCorrect ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,
+                    border: `1px solid ${isCorrect ? 'rgba(77,224,165,0.4)' : 'rgba(255,107,122,0.4)'}`,
                 }}>
                 <div style={{ fontSize: F.h3, fontWeight: 800, color: isCorrect ? T.success : T.danger, marginBottom: S.xs, display: 'flex', alignItems: 'center', gap: S.sm }}>
                     {isCorrect ? <Check size={18} strokeWidth={3} aria-hidden="true" /> : <XIcon size={18} strokeWidth={3} aria-hidden="true" />}
@@ -1673,7 +1650,7 @@ export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score, 
     }
 
     return (
-        <div style={{ padding: S.md, borderRadius: R.md, marginBottom: S.md, background: T.accentSoft, border: `1px solid rgba(69,153,255,0.35)` }}>
+        <div style={{ padding: S.md, borderRadius: R.md, marginBottom: S.md, background: T.accentSoft, border: `1px solid rgba(99,231,255,0.35)` }}>
             <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.accent, marginBottom: S.sm }}>What would you do?</div>
             {prompt && <p style={{ fontSize: F.bodySm, color: T.text, margin: `0 0 ${S.md}px`, lineHeight: 1.45 }}>{prompt}</p>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: S.sm }}>
@@ -1699,7 +1676,7 @@ export function StudyReplayCard({ session, index, total, onNext, onPrev }) {
     if (!session) return null;
 
     return (
-        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+        <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
             <div style={sectionHeader}>
                 <p style={sectionTitle}>Study card {index + 1} of {total}</p>
                 <div style={{ display: 'flex', gap: S.sm }}>
@@ -1854,10 +1831,10 @@ export function EquityGraph({ streetHistory, currentEquity, currentStreet, onSel
     const lineD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${PAD + i * xStep},${yScale(p.equity)}`).join(' ');
     const areaD = lineD + ` L${PAD + (points.length - 1) * xStep},${H - PAD} L${PAD},${H - PAD} Z`;
     const lastEquity = points[points.length - 1]?.equity || 50;
-    const color = lastEquity >= 50 ? '#22c55e' : '#ef4444';
+    const color = lastEquity >= 50 ? T.success : T.danger;
 
     return (
-        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+        <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
             <div style={sectionHeader}><p style={sectionTitle}>Equity progression</p></div>
             <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img"
                 aria-label={`Equity by street: ${points.map(p => `${p.street} ${Math.round(p.equity)} percent`).join(', ')}`}
@@ -2142,7 +2119,7 @@ export function CoachVerdict({ userPick, gtoAction, evDelta, evDeltaEstimated = 
             style={{
                 padding: S.lg, borderRadius: R.md, marginBottom: S.md,
                 background: isCorrect ? T.successSoft : T.dangerSoft,
-                border: `1px solid ${isCorrect ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'}`,
+                border: `1px solid ${isCorrect ? 'rgba(77,224,165,0.35)' : 'rgba(255,107,122,0.35)'}`,
             }}
             role="status"
         >
@@ -2346,10 +2323,11 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
         try {
             const user = getAuthUser();
             if (!user) { toast.error('Log in to post'); setIsPosting(false); return; }
-            // Fetch session token for auth header — the server derives identity
-            // from this JWT. We deliberately do NOT send a client user_id.
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.access_token) { toast.error('Session expired. Please log in again.'); setIsPosting(false); return; }
+            // Read the canonical cached token without invoking the Supabase SDK's
+            // navigator-lock session path. The server still derives identity from
+            // the JWT; we deliberately do NOT send a client user_id.
+            const accessToken = getAccessToken();
+            if (!accessToken) { toast.error('Session expired. Please log in again.'); setIsPosting(false); return; }
             const hand = heroHand?.card1 ? `${heroHand.card1}${heroHand.card2 || ''}` : '??';
             const boardStr = shareBoardStr;
             const content = `Just analyzed a hand in the GTO Sandbox!\n\n**Hand:** ${hand} — ${scenario?.position || 'BTN'}\n**Board:** ${boardStr}\n**GTO Line:** ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n\nTry this hand at smarter.poker/hub/personal-assistant/sandbox`;
@@ -2361,7 +2339,7 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`,
+                    'Authorization': `Bearer ${accessToken}`,
                 },
                 body: JSON.stringify({
                     content,
@@ -2408,7 +2386,7 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
     };
 
     const actions = [
-        { Icon: Camera, label: 'Download Image', sub: 'Save PNG to device', onClick: handleDownload, color: '#4599FF' },
+        { Icon: Camera, label: 'Download Image', sub: 'Save PNG to device', onClick: handleDownload, color: '#63E7FF' },
         { Icon: Spade, label: isPosting ? 'Posting...' : 'Post to My Profile', sub: 'Share to your Smarter.Poker feed', onClick: handlePostToProfile, color: '#22c55e', primary: true },
         { Icon: Share2, label: 'Share Link', sub: 'Copy link or open share sheet', onClick: handleNativeShare, color: '#a78bfa' },
     ];
@@ -2473,7 +2451,7 @@ export function VillainReadCard({ villain }) {
     // VPIP is unknown until the user picks an archetype/position — do not paint
     // "unknown" green as if it were a confirmed nit.
     const vpipValue = villain.vpip != null && Number.isFinite(Number(villain.vpip)) ? Number(villain.vpip) : null;
-    const color = vpipValue == null ? '#B0B3B8' : vpipValue > 40 ? '#f97316' : vpipValue > 25 ? '#fbbf24' : '#4ade80';
+    const color = vpipValue == null ? '#B7D0DD' : vpipValue > 40 ? '#f97316' : vpipValue > 25 ? '#fbbf24' : '#4ade80';
 
     return (
         <div style={{ margin: '12px 0', borderRadius: 10, border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(139,92,246,0.06)', overflow: 'hidden' }}>

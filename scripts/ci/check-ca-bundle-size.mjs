@@ -31,11 +31,16 @@
  *             budget exists to stop it growing further.
  *
  * BUDGETS ARE RATCHETS, NOT ASPIRATIONS
- * Each is set ~25% above the 2026-08-17 measurement, to catch a step change —
- * a stray dependency, an uncompressed asset pack — not to force an
- * optimisation project. When one is legitimately exceeded, lower the real
- * number or raise the constant deliberately with a note saying what grew.
- * Never delete a budget to make CI green.
+ * The initial and payload budgets remain set from the 2026-08-17 measurement.
+ * The code budget was re-ratcheted on 2026-08-27 after shipped Club Arena
+ * customization, table, replay, notification, and house-ad work took the
+ * referenced JS/CSS graph from 6.9969 MB to 7.1390 MB. All 321 chunks were
+ * scanned; zero were orphans. Only CODE moved, from 7.0 to 9.0 MB, preserving
+ * about 25% headroom while the mobile-critical initial-load budget stays put.
+ * These gates catch a step change — a stray dependency, an uncompressed asset
+ * pack — rather than forcing an optimisation project. When one is legitimately
+ * exceeded, lower the real number or raise the constant deliberately with a
+ * note saying what grew. Never delete a budget to make CI green.
  *
  * A NOTE FOR WHOEVER LOOKS AT THE DUPLICATE CHUNK NAMES
  * assets/ holds 75 logical chunks with more than one hashed copy — three
@@ -67,9 +72,10 @@ const AS_JSON = process.argv.includes('--json');
 const MB = 1024 * 1024;
 
 // Measured 2026-08-17: initial 0.81, code 5.47, payload 88.00.
+// Code re-measured 2026-08-27: 7.1390 MB, 321 referenced chunks, 0 orphans.
 const BUDGETS = {
   initial: 1.5,
-  code: 7.0,
+  code: 9.0,
   payload: 110.0,
 };
 

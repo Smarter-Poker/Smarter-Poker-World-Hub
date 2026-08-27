@@ -105,3 +105,33 @@ test('sandbox inline CSS cannot hydrate as escaped raw style text', () => {
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
   assert.doesNotMatch(sandbox, /<style>\{`[\s\S]*@import url\(/);
 });
+
+test('secondary surfaces share the Smarter.Poker command-deck visual system', () => {
+  const tokens = read('src/components/sandbox/paTokens.js');
+  const kit = read('src/components/sandbox/paKit.jsx');
+  const components = read('src/components/sandbox/SandboxComponents.jsx');
+
+  assert.match(tokens, /PA_DESIGN_SPEC v2 — "Jarvis Command Deck"/);
+  assert.match(tokens, /accent: '#63E7FF'/);
+  assert.match(tokens, /DISPLAY_FONT/);
+  assert.match(tokens, /DATA_FONT/);
+  assert.match(kit, /pa-sheet-telemetry/);
+  assert.match(kit, /pa-chart-panel/);
+  assert.match(components, /BottomSheet as CommandBottomSheet/);
+  assert.match(components, /<CommandBottomSheet/);
+});
+
+test('secondary charts and desktop workspaces own responsive layouts', () => {
+  const sandbox = read('pages/hub/personal-assistant/sandbox.js');
+  const leaks = read('pages/hub/personal-assistant/leaks.js');
+  const components = read('src/components/sandbox/SandboxComponents.jsx');
+
+  assert.match(sandbox, /className="sandbox-workspace"/);
+  assert.match(sandbox, /className="sandbox-command-bar"/);
+  assert.match(sandbox, /\.sandbox-table-wrap \{ width: min\(100%, 720px\)/);
+  assert.match(leaks, /className="leak-insights-grid"/);
+  assert.match(leaks, /className="leak-list-grid"/);
+  assert.match(leaks, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.ok((components.match(/className="pa-chart-panel"/g) || []).length >= 6);
+  assert.match(components, /className="pa-range-grid"/);
+});

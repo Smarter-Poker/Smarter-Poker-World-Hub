@@ -99,6 +99,7 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { findBestGames } from '../../../src/utils/videoToTrainingMapper';
+import { PAStyles as SharedPAStyles } from '../../../src/components/sandbox/paKit';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -106,10 +107,10 @@ import { findBestGames } from '../../../src/utils/videoToTrainingMapper';
 const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = [
-  { code: 's', symbol: '♠', label: 'Spades', color: '#E4E6EB' },
-  { code: 'h', symbol: '♥', label: 'Hearts', color: '#EF4444' },
-  { code: 'd', symbol: '♦', label: 'Diamonds', color: '#4599FF' },
-  { code: 'c', symbol: '♣', label: 'Clubs', color: '#22C55E' },
+  { code: 's', symbol: '♠', label: 'Spades', color: '#EEF8FF' },
+  { code: 'h', symbol: '♥', label: 'Hearts', color: '#FF6B7A' },
+  { code: 'd', symbol: '♦', label: 'Diamonds', color: '#63E7FF' },
+  { code: 'c', symbol: '♣', label: 'Clubs', color: '#4DE0A5' },
 ];
 const GAME_TYPES = [
   { id: 'cash', label: 'Cash Game' },
@@ -129,7 +130,7 @@ function makeEquityAbort() {
 }
 
 const FELT_COLORS = [
-  { id: 'default', label: 'Black', filter: 'none', swatch: '#18191A' },
+  { id: 'default', label: 'Black', filter: 'none', swatch: '#020609' },
   { id: 'green', label: 'Green', filter: 'hue-rotate(100deg) saturate(1.5)', swatch: '#166534' },
   { id: 'blue', label: 'Blue', filter: 'hue-rotate(200deg) saturate(1.3)', swatch: '#1E3A5F' },
   { id: 'red', label: 'Red', filter: 'hue-rotate(340deg) saturate(1.5)', swatch: '#7F1D1D' },
@@ -407,7 +408,7 @@ function CardSlot({ card, onTap, onRemove, label, w = 52, h = 72 }) {
             aria-label={`Remove ${card}`}
             style={{
               position: 'absolute', top: -8, right: -8, width: 24, height: 24,
-              borderRadius: '50%', background: T.danger, border: '2px solid #18191A',
+              borderRadius: '50%', background: T.danger, border: '2px solid #020609',
               color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', padding: 0, touchAction: 'manipulation',
             }}
@@ -424,7 +425,7 @@ function CardSlot({ card, onTap, onRemove, label, w = 52, h = 72 }) {
       aria-label={label ? `Add ${label} card` : 'Add board card'}
       style={{
         width: w, height: h, borderRadius: R.sm, cursor: 'pointer', flexShrink: 0,
-        background: T.accentSoft, border: `2px dashed rgba(69,153,255,0.35)`,
+        background: T.accentSoft, border: `2px dashed rgba(99,231,255,0.35)`,
         color: T.accent, fontSize: F.caption, fontWeight: 700,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         touchAction: 'manipulation', boxSizing: 'border-box',
@@ -2847,6 +2848,7 @@ export default function VirtualSandbox() {
       <h1 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
         Virtual Sandbox Poker Scenario Solver
       </h1>
+      <SharedPAStyles />
       {UpgradePopup}
       {/* top-right collides with the header on a 375px screen */}
       <Toaster position="top-center" containerStyle={{ top: 'calc(8px + env(safe-area-inset-top, 0px))' }} />
@@ -2922,8 +2924,8 @@ export default function VirtualSandbox() {
         })}
       />
 
-      <main style={{
-        width: '100%', maxWidth: 560, margin: '0 auto', boxSizing: 'border-box',
+      <main className="sandbox-workspace" style={{
+        width: '100%', maxWidth: 920, margin: '0 auto', boxSizing: 'border-box',
         paddingTop: S.md,
         paddingRight: 'max(16px, env(safe-area-inset-right, 0px))',
         paddingLeft: 'max(16px, env(safe-area-inset-left, 0px))',
@@ -2933,7 +2935,7 @@ export default function VirtualSandbox() {
         {/* ── Leak practice hand-off from the Leak Finder ── */}
         {practiceFocus && (
           <div style={{
-            ...cardCompact, background: T.warnSoft, border: `1px solid rgba(251,191,36,0.3)`,
+            ...cardCompact, background: T.warnSoft, border: `1px solid rgba(255,198,109,0.3)`,
             display: 'flex', alignItems: 'center', gap: S.md, marginTop: S.md,
           }}>
             <div style={{ minWidth: 0, flex: 1 }}>
@@ -3080,7 +3082,7 @@ export default function VirtualSandbox() {
           <div style={{
             ...cardCompact,
             background: handResult.heroWon ? T.successSoft : handResult.heroWon === false ? T.dangerSoft : T.warnSoft,
-            border: `1px solid ${handResult.heroWon ? 'rgba(34,197,94,0.4)' : handResult.heroWon === false ? 'rgba(239,68,68,0.4)' : 'rgba(251,191,36,0.4)'}`,
+            border: `1px solid ${handResult.heroWon ? 'rgba(77,224,165,0.4)' : handResult.heroWon === false ? 'rgba(255,107,122,0.4)' : 'rgba(255,198,109,0.4)'}`,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, marginBottom: S.xs }}>
               {handResult.heroWon
@@ -3246,6 +3248,7 @@ export default function VirtualSandbox() {
       {/* ═══ STICKY THUMB BAR — the whole tool is one-handed from here ═══ */}
       <div
         id="run-analysis"
+        className="sandbox-command-bar"
         style={{
           position: 'fixed', left: 0, right: 0,
           bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
@@ -3682,7 +3685,7 @@ export default function VirtualSandbox() {
 
                 {displayResults.optimalAction && (
                   <div style={{
-                    background: T.successSoft, border: `1px solid rgba(34,197,94,0.3)`,
+                    background: T.successSoft, border: `1px solid rgba(77,224,165,0.3)`,
                     borderRadius: R.md, padding: S.lg, textAlign: 'center',
                   }}>
                     <div style={{ ...sectionTitle, marginBottom: S.xs }}>
@@ -3699,7 +3702,7 @@ export default function VirtualSandbox() {
 
                 {getResultsSummary(displayResults) && (
                   <p style={{
-                    ...cardCompact, background: T.accentSoft, border: `1px solid rgba(69,153,255,0.25)`,
+                    ...cardCompact, background: T.accentSoft, border: `1px solid rgba(99,231,255,0.25)`,
                     fontSize: F.bodySm, lineHeight: 1.45, color: T.text, margin: 0, textTransform: 'none',
                   }}>
                     {getResultsSummary(displayResults)}
@@ -3722,7 +3725,7 @@ export default function VirtualSandbox() {
                 )}
 
                 {gameType === 'tournament' && displayResults.icmAdjusted && displayResults.icmEV && (
-                  <div style={{ ...cardCompact, background: T.warnSoft, border: `1px solid rgba(251,191,36,0.25)`, display: 'flex', alignItems: 'center', gap: S.sm }}>
+                  <div style={{ ...cardCompact, background: T.warnSoft, border: `1px solid rgba(255,198,109,0.25)`, display: 'flex', alignItems: 'center', gap: S.sm }}>
                     <span style={{ fontSize: F.caption, color: T.warn, fontWeight: 700, textTransform: 'uppercase' }}>
                       ICM EV ({Number(displayResults.bubbleFactor || bubbleFactor).toFixed(1)}x)
                     </span>
@@ -3738,7 +3741,7 @@ export default function VirtualSandbox() {
                 </div>
 
                 {displayResults.explanation && (
-                  <div style={{ ...cardCompact, background: T.accentSoft, border: `1px solid rgba(69,153,255,0.2)` }}>
+                  <div style={{ ...cardCompact, background: T.accentSoft, border: `1px solid rgba(99,231,255,0.2)` }}>
                     <h4 style={{ ...sectionTitle, marginBottom: S.xs }}>Analysis</h4>
                     <p style={{ color: T.text, fontSize: F.bodySm, lineHeight: 1.45, margin: 0, textTransform: 'none' }}>
                       {displayResults.explanation}
@@ -4031,13 +4034,13 @@ export default function VirtualSandbox() {
                   display: 'flex', alignItems: 'center', gap: S.md, width: '100%', minHeight: 60,
                   padding: S.md, marginBottom: S.sm, borderRadius: R.sm, textAlign: 'left', cursor: 'pointer',
                   background: idx === 0 ? T.successSoft : T.surface2,
-                  border: `1px solid ${idx === 0 ? 'rgba(34,197,94,0.35)' : T.borderHi}`,
+                  border: `1px solid ${idx === 0 ? 'rgba(77,224,165,0.35)' : T.borderHi}`,
                 }}
               >
                 <span style={{
                   width: 40, height: 40, borderRadius: R.sm, flexShrink: 0, display: 'flex',
                   alignItems: 'center', justifyContent: 'center',
-                  background: idx === 0 ? 'rgba(34,197,94,0.18)' : T.surface,
+                  background: idx === 0 ? 'rgba(77,224,165,0.18)' : T.surface,
                   color: idx === 0 ? T.success : T.textMuted,
                 }}>
                   <Target size={20} strokeWidth={2} aria-hidden="true" />
@@ -4065,6 +4068,12 @@ export default function VirtualSandbox() {
 
       <style>{`
         .sandbox-page { min-height: 100vh; min-height: 100dvh; }
+        .sandbox-page {
+          background-image:
+            linear-gradient(rgba(99,231,255,.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(99,231,255,.02) 1px, transparent 1px);
+          background-size: 28px 28px;
+        }
 
         /* Touch feedback is mandatory and must not rely on hover */
         .pa-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -4086,6 +4095,14 @@ export default function VirtualSandbox() {
         @media (min-width: 769px) {
           .deck-grid-only { display: block; }
           .deck-steps-only { display: none; }
+          .sandbox-workspace { padding-top: 24px !important; gap: 18px !important; }
+          .sandbox-table-wrap { width: min(100%, 720px) !important; margin-inline: auto; }
+          .sandbox-command-bar {
+            left: 50% !important; right: auto !important; width: min(860px, calc(100% - 48px));
+            transform: translateX(-50%); bottom: 72px !important;
+            border: 1px solid ${T.borderHi}; border-radius: 4px;
+            box-shadow: inset 0 1px 0 rgba(216,251,255,.14), 0 14px 30px rgba(0,0,0,.56);
+          }
         }
 
         @media (prefers-reduced-motion: reduce) {

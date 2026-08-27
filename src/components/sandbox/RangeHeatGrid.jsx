@@ -144,7 +144,7 @@ export default function RangeHeatGrid({
                                 scrollSnapAlign: 'start', fontSize: F.bodySm, ...numeric,
                                 background: on ? T.accentSoft : T.surface2,
                                 color: on ? T.accent : T.text,
-                                borderColor: on ? 'rgba(69,153,255,0.45)' : T.border,
+                                borderColor: on ? 'rgba(99,231,255,0.45)' : T.border,
                             }}
                         >
                             {r}

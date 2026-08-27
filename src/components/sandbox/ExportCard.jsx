@@ -14,9 +14,9 @@ import { PAStyles, BottomSheet, Skeleton } from './paKit';
 import { exportCanvas, createHiDPICanvas, roundRect, wrapText, drawPlayingCard, canvasPreviewUrl } from '../../lib/sandbox/exportCanvas';
 
 const C = {
-    bgTop: '#18191A', bgBottom: '#242526',
-    text: '#E4E6EB', sub: '#B0B3B8', dim: '#65676B',
-    accent: '#4599FF', success: '#22C55E', danger: '#EF4444', warn: '#FBBF24',
+    bgTop: '#020609', bgBottom: '#07111B',
+    text: '#EEF8FF', sub: '#B7D0DD', dim: '#8295A2',
+    accent: '#63E7FF', success: '#4DE0A5', danger: '#FF6B7A', warn: '#FFC66D',
 };
 
 const CARD_RE = /^[2-9TJQKA][cdhs]$/i;
@@ -110,10 +110,10 @@ function drawCard(results, scenario, equity, villainRange) {
     }
 
     // ── Optimal action ────────────────────────────────────────
-    ctx.fillStyle = 'rgba(34,197,94,0.10)';
+    ctx.fillStyle = 'rgba(77,224,165,0.10)';
     roundRect(ctx, 40, 260, W - 80, 108, 12);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(34,197,94,0.35)';
+    ctx.strokeStyle = 'rgba(77,224,165,0.35)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
@@ -275,7 +275,7 @@ export function ExportCard({ results, scenario, equity = null, villainRange = nu
                 {!building && error && (
                     <div style={{
                         padding: S.md, borderRadius: R.sm, background: T.dangerSoft,
-                        border: '1px solid rgba(239,68,68,0.4)', color: T.danger,
+                        border: '1px solid rgba(255,107,122,0.4)', color: T.danger,
                         fontSize: F.bodySm, lineHeight: 1.45,
                     }}>
                         {error}

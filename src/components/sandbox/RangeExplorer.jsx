@@ -510,7 +510,7 @@ export default function RangeExplorer({
                         ...btn('secondary'), padding: '0 14px', fontSize: F.label,
                         background: paintMode ? T.accentSoft : T.surface2,
                         color: paintMode ? T.accent : T.textMuted,
-                        borderColor: paintMode ? 'rgba(69,153,255,0.45)' : T.borderHi,
+                        borderColor: paintMode ? 'rgba(99,231,255,0.45)' : T.borderHi,
                     }}
                 >
                     {paintMode ? <Brush size={18} strokeWidth={2} /> : <Hand size={18} strokeWidth={2} />}

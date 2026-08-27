@@ -222,7 +222,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
             const QRCode = mod?.default || mod;
             const dataUrl = await QRCode.toDataURL(shareUrl, {
                 width: 320, margin: 1,
-                color: { dark: '#18191A', light: '#FFFFFF' },
+                color: { dark: '#020609', light: '#FFFFFF' },
             });
             setQrUrl(dataUrl);
             setQrState('ready');
@@ -303,7 +303,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                                 style={{
                                     display: 'flex', gap: S.sm, alignItems: 'flex-start',
                                     background: revokeResult === 'revoked' ? T.successSoft : T.surface2,
-                                    border: `1px solid ${revokeResult === 'revoked' ? 'rgba(34,197,94,0.4)' : T.border}`,
+                                    border: `1px solid ${revokeResult === 'revoked' ? 'rgba(77,224,165,0.4)' : T.border}`,
                                     borderRadius: R.sm, padding: S.md,
                                 }}
                             >
@@ -405,7 +405,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                                         aria-label="Confirm revoking the share link"
                                         style={{
                                             display: 'flex', flexDirection: 'column', gap: S.md,
-                                            background: T.dangerSoft, border: '1px solid rgba(239,68,68,0.4)',
+                                            background: T.dangerSoft, border: '1px solid rgba(255,107,122,0.4)',
                                             borderRadius: R.sm, padding: S.md,
                                         }}
                                     >

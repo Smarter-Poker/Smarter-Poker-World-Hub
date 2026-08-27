@@ -28,10 +28,19 @@ test('leak analysis and keyboard wiring clean up and avoid native-control double
 test('mobile Range Lab has a sticky editing command strip with recoverable clear', () => {
     assert.match(PAGE, /className="preflop-lab-command-strip"/);
     assert.match(PAGE, /onClick=\{handleUndo\}/);
+    assert.match(PAGE, /onClick=\{handleRedo\}/);
     assert.match(PAGE, /onClick=\{handleClearRange\}/);
+    assert.match(PAGE, /className="preflop-lab-command-actions"/);
     assert.match(PAGE, /className="preflop-lab-live" aria-live="polite"/);
     assert.match(CSS, /\.preflop-lab-command-strip\s*\{[\s\S]*position:\s*sticky;[\s\S]*env\(safe-area-inset-top/);
     assert.match(CSS, /@media \(min-width: 768px\)[\s\S]*\.preflop-lab-command-strip\s*\{[\s\S]*position:\s*relative/);
+});
+
+test('matrix focus keeps undo, redo, and action-number shortcuts wired', () => {
+  assert.match(PAGE, /const isTextEntry = target\?\.closest/);
+  assert.match(PAGE, /if \(isTextEntry\) return;[\s\S]*handleRedo\(\);[\s\S]*handleUndo\(\);/);
+  assert.match(PAGE, /const found = actions\.find[\s\S]*if \(isTextEntry\) return;[\s\S]*handleActionSelect/);
+  assert.match(PAGE, /if \(isInteractiveTarget\) return;[\s\S]*if \(key === 'Enter' \|\| key === ' '\)/);
 });
 
 test('empty filter results use branded status and never charge or block with an alert', () => {
