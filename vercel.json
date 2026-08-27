@@ -192,6 +192,15 @@
       ]
     },
     {
+      "source": "/_next/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
       "source": "/hub/:orb*/assets/(.*)",
       "headers": [
         {
@@ -259,7 +268,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
+          "value": "no-cache, must-revalidate"
         },
         {
           "key": "Pragma",
@@ -272,7 +281,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
+          "value": "no-cache, must-revalidate"
         },
         {
           "key": "Pragma",
