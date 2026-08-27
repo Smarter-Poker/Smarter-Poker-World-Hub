@@ -159,7 +159,10 @@ function rangeToSolution(range) {
     const out = {};
     for (const [hand, freqs] of Object.entries(range)) {
         const entry = freqsToSolutionEntry(freqs);
-        if (entry) out[hand] = entry;
+        // Range-memory solutions contain only hands the player should mark.
+        // Including solver-fold hands makes an untouched fold cell grade as
+        // "missed" and turns a valid range into an impossible 169-cell task.
+        if (entry && !entry.startsWith('fold')) out[hand] = entry;
     }
     return out;
 }

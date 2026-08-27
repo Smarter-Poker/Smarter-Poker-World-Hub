@@ -512,9 +512,10 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
         }
     };
 
-    const handlePowerUp = (pu) => {
-        if (!purchasePowerUp(pu, DiamondEngine)) return;
-        onScoreUpdate?.(DiamondEngine.getBalance());
+    const handlePowerUp = async (pu) => {
+        const purchase = await purchasePowerUp(pu, DiamondEngine);
+        if (!purchase.success) return;
+        if (Number.isFinite(purchase.balance)) onScoreUpdate?.(purchase.balance);
         setUsedPowerUps(prev => new Set([...prev, pu.id]));
         if (pu.id === 'STREAK_FREEZE') { setStreakFreezeAvailable(true); setActivePowerUp('STREAK_FREEZE'); }
         else if (pu.id === 'HINT_REVEAL' && currentStreet) {
@@ -552,8 +553,9 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
             // Award diamonds based on performance
             const diamondsEarned = accuracy >= 70 ? Math.round(accuracy / 10) : 0;
             if (diamondsEarned > 0 && DiamondEngine) {
-                DiamondEngine.award(diamondsEarned);
-                onScoreUpdate?.(DiamondEngine.getBalance());
+                void DiamondEngine.award(diamondsEarned).then(newBalance => {
+                    if (Number.isFinite(newBalance)) onScoreUpdate?.(newBalance);
+                });
             }
 
             // ═══════════════════════════════════════════════════════════════════════════
@@ -597,7 +599,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                     accuracy,
                     timeTaken: 0,
                     diamondsSpent: 0,
-                    diamondsEarned,
+                    diamondsEarned: 0,
                     completed: true
                 }).then(sessionResult => {
                     console.debug('[SpotTrainer] Session recorded:', sessionResult);
@@ -612,7 +614,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                     timeTaken: 0,
                     level: 1,
                     gameMode,
-                    totalDiamonds: DiamondEngine?.getBalance() || 0,
+                    totalDiamonds: 0,
                     aiScenariosCompleted: 0,
                     currentStreak: streakCount,
                     modesPlayed: [gameMode]

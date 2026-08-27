@@ -142,10 +142,14 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
             { const acc = maxRounds > 0 ? Math.round((closeCount / maxRounds) * 100) : 0; const g = acc >= 90 ? 'S' : acc >= 80 ? 'A' : acc >= 60 ? 'B' : acc >= 40 ? 'C' : 'D'; savePersonalBest('mixed-strategy', score, g); SoundEngine.play(acc >= 60 ? 'levelUp' : 'gameOver'); if (g === 'S' || g === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
             recordSessionWeakness('mixed-strategy', mistakesRef.current, maxRounds);
             const diamondReward = Math.floor(score / 500) + (score >= 4000 ? 20 : 0);
-            if (DiamondEngine && diamondReward > 0) { const newBalance = DiamondEngine.award(diamondReward); onScoreUpdate?.(newBalance); }
+            if (DiamondEngine && diamondReward > 0) {
+                void DiamondEngine.award(diamondReward).then(newBalance => {
+                    if (Number.isFinite(newBalance)) onScoreUpdate?.(newBalance);
+                });
+            }
             if (userId) {
                 const accuracy = Math.round((score / (roundsPlayed * 500)) * 100);
-                gameSessionService.recordSession(userId, { gameMode: 'mixed_strategy', level, scenarioId: currentScenario?.title, score, accuracy, timeTaken: 0, diamondsSpent: 0, diamondsEarned: diamondReward, completed: true }).catch(e => console.warn('[MixedStrategy] Session failed:', e));
+                gameSessionService.recordSession(userId, { gameMode: 'mixed_strategy', level, scenarioId: currentScenario?.title, score, accuracy, timeTaken: 0, diamondsSpent: 0, diamondsEarned: 0, completed: true }).catch(e => console.warn('[MixedStrategy] Session failed:', e));
                 achievementService.checkAndUnlock(userId, { gamesPlayed: 1, accuracy, level, gameMode: 'mixed_strategy', currentStreak: streak, modesPlayed: ['mixed_strategy'] }).catch(e => console.warn('[MixedStrategy] Achievement check failed:', e));
             }
             return;
@@ -173,9 +177,10 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         setTimeout(nextRound, 2000);
     };
 
-    const handlePowerUp = useCallback((pu) => {
-        if (!purchasePowerUp(pu, DiamondEngine)) return;
-        onScoreUpdate?.(DiamondEngine.getBalance());
+    const handlePowerUp = useCallback(async (pu) => {
+        const purchase = await purchasePowerUp(pu, DiamondEngine);
+        if (!purchase.success) return;
+        if (Number.isFinite(purchase.balance)) onScoreUpdate?.(purchase.balance);
         setUsedPowerUps(prev => new Set([...prev, pu.id]));
         if (pu.id === 'DOUBLE_POINTS') { setDoublePointsActive(true); setActivePowerUp('DOUBLE_POINTS'); }
         else if (pu.id === 'HINT_REVEAL' && currentScenario) {
