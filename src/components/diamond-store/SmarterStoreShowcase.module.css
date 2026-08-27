@@ -375,7 +375,7 @@
   font-family: 'IBM Plex Mono', monospace;
 }
 .packageCard button {
-  min-height: 44px;
+  min-height: 46px;
   padding: 0 20px;
   border: 1px solid #d8f6ff;
   border-radius: 0;

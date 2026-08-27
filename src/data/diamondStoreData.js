@@ -362,8 +362,12 @@ export const VIP_MEMBERSHIP = {
 //   A LINE ONLY APPEARS HERE IF A CODE PATH ENFORCES IT.
 //
 // Removed, with the reason (do not re-add without shipping the feature first):
-//   • "Ad-Free Experience"            — there is no ad system in either repo.
-//                                       Zero hits for adsbygoogle/AdSlot/hideAds.
+//   • "Ad-Free Experience"            — removed 2026-08-25 because no ad system
+//                                       existed. DO NOT RE-ADD: a house-ad
+//                                       system is being built (2026-08-27) and
+//                                       Dan ruled explicitly that VIP members
+//                                       DO see ads. Ad-free is not a VIP
+//                                       benefit and is not planned as one.
 //   • "Priority Support"              — no ticket priority field keyed on is_vip.
 //   • "Early Access / Beta Programs"  — no feature-flag or beta cohort exists.
 //   • "3 Exclusive Table Themes"      — VIP_GOLD_LIMITS.themes is display-only;
