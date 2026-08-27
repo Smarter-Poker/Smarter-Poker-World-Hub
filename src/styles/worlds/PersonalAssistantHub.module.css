@@ -172,7 +172,18 @@
   box-shadow: 0 0 10px #4de0a5;
 }
 
-.section { margin-top: 42px; }
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.section {
+  margin-top: 42px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}
 
 .sectionBar {
   display: flex;
@@ -309,6 +320,12 @@
   box-shadow: inset 0 1px 0 #fff, inset 0 -3px 6px #001529, 0 4px 9px #000, 0 0 18px #00bfff;
 }
 
+.primaryButton:active,
+.secondaryButton:active,
+.statCard:active,
+.activityCard:active,
+.sessionRow:active { transform: translateY(1px); }
+
 .demoNote {
   margin: -2px 0 14px;
   padding: 10px 14px;
@@ -426,6 +443,103 @@
 }
 
 .activityChevron { align-self: center; color: #4dd4ff; }
+
+.sessionRail {
+  margin-top: 15px;
+  padding: 6px;
+  border: 1px solid #718b9e;
+  background: #020609;
+  box-shadow: inset 0 1px 0 #ecfbff45, 0 14px 28px #000;
+}
+
+.sessionRailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid #294d63;
+  border-bottom: 0;
+  background: linear-gradient(180deg, rgba(32, 64, 82, 0.62), rgba(3, 10, 15, 0.9));
+  color: #eaf8ff;
+  font: 600 12px Rajdhani, 'Arial Narrow', sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sessionRailHeader small {
+  color: #77909f;
+  font: 600 8px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.08em;
+}
+
+.sessionList {
+  display: grid;
+  border: 1px solid #294d63;
+}
+
+.sessionRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 120px 92px auto;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid rgba(70, 119, 145, 0.35);
+  border-radius: 0;
+  background: linear-gradient(90deg, rgba(13, 63, 91, 0.18), transparent 56%);
+  color: #c7d5dc;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sessionRow:last-child { border-bottom: 0; }
+.sessionRow:hover { background-color: rgba(23, 116, 165, 0.14); }
+
+.sessionMarker {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #3f7692;
+  background: #081722;
+  color: #4bd4ff;
+}
+
+.sessionIdentity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sessionIdentity strong {
+  overflow: hidden;
+  color: #f0f7fa;
+  font: 500 17px Rajdhani, 'Arial Narrow', sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sessionIdentity small,
+.sessionDate {
+  color: #718690;
+  font: 600 8px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.sessionEv {
+  color: #55e5ae;
+  font: 700 10px 'IBM Plex Mono', monospace;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.negativeEv { color: #ffb15c; }
+
+.sessionRow > svg { color: #48d2ff; }
 
 .dailyFrame { padding: 7px; }
 
@@ -549,6 +663,8 @@
   .heroCopy p { font-size: 12px; line-height: 1.55; }
   .eyebrow { font-size: 8px; }
   .statusBadge { width: 100%; justify-content: center; margin-top: 18px; padding: 10px; font-size: 8px; }
+  .heroActions { display: grid; grid-template-columns: 1fr; width: 100%; }
+  .heroActions :is(.primaryButton, .secondaryButton) { width: 100%; }
 
   .section { margin-top: 30px; }
   .sectionBar { min-height: 58px; margin-bottom: 13px; padding: 12px 15px; }
@@ -578,6 +694,20 @@
   .activityContent strong { margin: 0 0 7px; font-size: 18px; }
   .activityContent > span { white-space: normal; line-height: 1.35; }
   .activityChevron { position: absolute; right: 10px; bottom: 10px; }
+
+  .sessionRail { padding: 4px; }
+  .sessionRailHeader { padding-inline: 10px; }
+  .sessionRow {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 9px;
+    min-height: 68px;
+    padding: 9px;
+  }
+  .sessionMarker { width: 34px; height: 34px; }
+  .sessionIdentity strong { font-size: 15px; }
+  .sessionDate { display: none; }
+  .sessionEv { grid-column: 2; text-align: left; }
+  .sessionRow > svg { grid-column: 3; grid-row: 1 / span 2; }
 
   .dailyInner { grid-template-columns: auto minmax(0, 1fr); gap: 12px; min-height: 0; padding: 16px; }
   .playingCard { width: 34px; height: 48px; font-size: 13px; }

@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import {
   Activity,
@@ -159,6 +160,10 @@ export default function PersonalAssistantPage() {
     typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(2)} BB` : 'EV —'
   );
 
+  const sessionTypeLabel = (session) => (
+    session?.type === 'leak' ? 'Leak Review' : 'Sandbox Session'
+  );
+
   const lastRealSession = (recentSessions || []).find(
     (session) => session && !session.isDemo && session.type === 'sandbox',
   ) || null;
@@ -232,6 +237,14 @@ export default function PersonalAssistantPage() {
         description="Get Personalized Poker Coaching, Hand Analysis, And Strategy Advice From Jarvis, Your AI Poker Assistant."
         canonical="/hub/personal-assistant"
       />
+      <Head>
+        <link
+          rel="preload"
+          as="image"
+          href="/images/personal-assistant-v2/jarvis-hero.webp"
+          type="image/webp"
+        />
+      </Head>
 
       <div className={styles.page}>
         <UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />
@@ -262,6 +275,24 @@ export default function PersonalAssistantPage() {
                 <div className={styles.statusBadge}>
                   <span className={styles.statusDot} aria-hidden="true" />
                   Jarvis Online · Solver Connected
+                </div>
+                <div className={styles.heroActions}>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => openGuardedRoute('/hub/personal-assistant/sandbox')}
+                  >
+                    <Play size={15} fill="currentColor" aria-hidden="true" />Start New Scenario
+                  </button>
+                  {lastRealSession && (
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => openSession(lastRealSession)}
+                    >
+                      <History size={15} aria-hidden="true" />Continue Last Session
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -309,7 +340,7 @@ export default function PersonalAssistantPage() {
             {(statsDemo || stats?.isDemo) && (
               <p className={styles.demoNote}>Sample View — Sign In To See Your Own Sessions, Hands, And Leaks.</p>
             )}
-            <div className={styles.statGrid}>
+            <div className={styles.statGrid} aria-busy={statsLoading} aria-live="polite">
               {statCards.map(({ title, value, label, Icon, route }) => (
                 <button
                   type="button"
@@ -346,6 +377,38 @@ export default function PersonalAssistantPage() {
                 </button>
               ))}
             </div>
+            {!sessionsLoading && (recentSessions || []).length > 0 && (
+              <div className={styles.sessionRail} aria-label="Recent session history">
+                <div className={styles.sessionRailHeader}>
+                  <span>Continue A Session</span>
+                  <small>Most Recent First</small>
+                </div>
+                <div className={styles.sessionList}>
+                  {recentSessions.slice(0, 3).map((session) => (
+                    <button
+                      type="button"
+                      className={styles.sessionRow}
+                      key={`${session.type}-${session.id}`}
+                      onClick={() => openSession(session)}
+                      aria-label={`Open ${session.title}. ${sessionTypeLabel(session)}. ${formatEv(session.evLoss)}.`}
+                    >
+                      <span className={styles.sessionMarker} aria-hidden="true">
+                        {session.type === 'leak' ? <ScanSearch size={17} /> : <FlaskConical size={17} />}
+                      </span>
+                      <span className={styles.sessionIdentity}>
+                        <strong>{session.title}</strong>
+                        <small>{sessionTypeLabel(session)}{session.isDemo ? ' · Sample' : ''}</small>
+                      </span>
+                      <span className={styles.sessionDate}>{formatSessionDate(session.date) || 'Recent'}</span>
+                      <span className={`${styles.sessionEv} ${typeof session.evLoss === 'number' && session.evLoss < 0 ? styles.negativeEv : ''}`}>
+                        {formatEv(session.evLoss)}
+                      </span>
+                      <ChevronRight size={17} aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
           {dailyHand && (
