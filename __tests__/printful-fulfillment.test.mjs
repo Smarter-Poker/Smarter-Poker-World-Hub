@@ -132,6 +132,7 @@ test('checkout, webhooks, catalog, and Diamond restrictions stay wired together'
     assert.match(checkout, /resolvePrintfulMapping/);
     assert.match(stripeWebhook, /createPrintfulOrder/);
     assert.match(stripeWebhook, /update_existing/);
+    assert.match(stripeWebhook, /if \(releaseError\) throw releaseError/);
     assert.match(printfulWebhook, /timingSafeEqual/);
     assert.match(printfulWebhook, /package_shipped/);
     assert.match(catalog, /print_on_demand_available/);

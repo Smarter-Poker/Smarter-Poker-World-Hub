@@ -17,6 +17,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
+import { getGameImage } from '../../data/GAME_IMAGES';
 import useVIPGate from '../../hooks/useVIPGate';
 import VIPGateModal from '../ui/VIPGateModal';
 import { getAuthUser, getSessionToken } from '../../lib/authUtils';
@@ -46,6 +47,8 @@ interface GameData {
     slug: string;
     category: string;
     engineType: string;
+    focus?: string;
+    difficulty?: number;
 }
 
 interface LevelSelectorProps {
@@ -284,6 +287,8 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                         category: libraryGame.category,
                         engine_type: libraryGame.tags?.includes('gto') ? 'PIO' :
                             libraryGame.category === 'PSYCHOLOGY' ? 'SCENARIO' : 'PIO',
+                        focus: libraryGame.focus,
+                        difficulty: libraryGame.difficulty,
                     };
                     console.log(`[LevelSelector] Using TRAINING_LIBRARY fallback for: ${gameId}`);
                 } else {
@@ -299,6 +304,8 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                 slug: gameInfo.slug || gameInfo.id,
                 category: gameInfo.category,
                 engineType: gameInfo.engine_type,
+                focus: gameInfo.focus || gameInfo.description,
+                difficulty: Number(gameInfo.difficulty) || undefined,
             });
 
             // Fetch user progress for this game
@@ -446,34 +453,52 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
     const categoryLabel = (gameData?.category || 'Training')
         .toLowerCase()
         .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    const gameArt = getGameImage(gameId);
 
     return (
         <div className="sp-level-selector" style={styles.container}>
-            {/* Header */}
+            {/* Game-specific command deck shared by all catalog games. */}
             <header className="sp-level-header" style={styles.header}>
-                <button className="sp-level-back" onClick={handleBack} style={styles.backButton}>
-                    ← Back
-                </button>
+                <div className="sp-level-command-copy">
+                    <div className="sp-level-command-nav">
+                        <button className="sp-level-back" onClick={handleBack} style={styles.backButton}>
+                            ← Back To Training
+                        </button>
+                        <div className="sp-level-category" style={styles.categoryBadge}>
+                            {categoryLabel} Campaign
+                        </div>
+                    </div>
 
-                <div className="sp-level-game-info" style={styles.gameInfo}>
-                    <h1 style={styles.gameTitle}>{gameData?.title || 'Loading...'}</h1>
-                    <div style={styles.progressSummary}>
-                        <span style={styles.progressText}>
-                            {completedLevels}/{levels.length || 12} Levels Completed
-                        </span>
-                        <div style={styles.progressTrack}>
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${totalProgress}%` }}
-                                transition={{ duration: 0.5 }}
-                                style={styles.progressFill}
-                            />
+                    <div className="sp-level-game-info" style={styles.gameInfo}>
+                        <div className="sp-level-eyebrow">Training Campaign / {categoryLabel}</div>
+                        <h1 style={styles.gameTitle}>{gameData?.title || 'Loading...'}</h1>
+                        <p className="sp-level-focus">{gameData?.focus || 'Build table-ready instincts through progressively harder decisions.'}</p>
+                        <div className="sp-level-stats">
+                            <div><strong>{completedLevels}</strong><span>Levels Cleared</span></div>
+                            <div><strong>{levels.length || 12}</strong><span>Total Levels</span></div>
+                            <div><strong>{Math.round(totalProgress)}%</strong><span>Campaign Mastery</span></div>
+                        </div>
+                        <div style={styles.progressSummary}>
+                            <span style={styles.progressText}>Campaign Progress</span>
+                            <div style={styles.progressTrack}>
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${totalProgress}%` }}
+                                    transition={{ duration: 0.5 }}
+                                    style={styles.progressFill}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="sp-level-category" style={styles.categoryBadge}>
-                    {categoryLabel}
+                <div className="sp-level-command-art" aria-hidden="true">
+                    <img src={gameArt} alt="" />
+                    <div className="sp-level-command-art-shade" />
+                    <div className="sp-level-command-art-label">
+                        <span>Live Training System</span>
+                        <strong>{gameData?.difficulty ? `Difficulty ${gameData.difficulty} / 5` : 'Adaptive Difficulty'}</strong>
+                    </div>
                 </div>
             </header>
 
@@ -554,14 +579,6 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                         linear-gradient(115deg, transparent 20%, rgba(93, 211, 255, .035) 48%, transparent 72%);
                 }
 
-                .sp-level-card::before {
-                    content: '';
-                    position: absolute;
-                    inset: 5px;
-                    pointer-events: none;
-                    border: 1px solid rgba(195, 241, 255, .075);
-                }
-
                 .sp-level-card.is-open:hover,
                 .sp-level-card.is-complete:hover {
                     transform: translateY(-2px);
@@ -575,52 +592,6 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                 }
 
                 @media (max-width: 700px) {
-                    .sp-level-header {
-                        display: grid !important;
-                        grid-template-columns: auto minmax(0, 1fr);
-                        gap: 10px 12px !important;
-                        padding: 12px 12px 14px !important;
-                        align-items: center !important;
-                    }
-
-                    .sp-level-back {
-                        grid-column: 1;
-                        grid-row: 1;
-                        min-height: 40px;
-                        padding: 8px 12px !important;
-                    }
-
-                    .sp-level-game-info {
-                        grid-column: 2;
-                        grid-row: 1;
-                        text-align: left !important;
-                    }
-
-                    .sp-level-game-info h1 {
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                        white-space: nowrap;
-                        font-size: clamp(16px, 5vw, 21px) !important;
-                        letter-spacing: .45px !important;
-                    }
-
-                    .sp-level-game-info > div {
-                        align-items: flex-start !important;
-                        margin-top: 5px !important;
-                    }
-
-                    .sp-level-game-info > div > div {
-                        width: 100% !important;
-                    }
-
-                    .sp-level-category {
-                        grid-column: 1 / -1;
-                        grid-row: 2;
-                        justify-self: stretch;
-                        text-align: center;
-                        padding: 6px 10px !important;
-                    }
-
                     .sp-level-map {
                         padding: 16px 10px 24px !important;
                     }
@@ -632,10 +603,6 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                         align-items: center !important;
                         padding: 15px 14px !important;
                         margin-bottom: 10px !important;
-                    }
-
-                    .sp-level-card::before {
-                        inset: 4px;
                     }
 
                     .sp-level-badge {
