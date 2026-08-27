@@ -39,3 +39,58 @@ test('God Mode provenance survives the page adapter and cannot score quizzes', (
   assert.match(sandbox, /if \(displayed\?\.forcedMode\)/);
   assert.match(sandbox, /Forced result — drill score not recorded/);
 });
+
+test('assistant data waits for the canonical auth identity before loading', () => {
+  const hooks = read('src/hooks/useAssistant.js');
+  const hub = read('pages/hub/personal-assistant/index.js');
+  const leaks = read('pages/hub/personal-assistant/leaks.js');
+  const sandbox = read('pages/hub/personal-assistant/sandbox.js');
+
+  assert.match(hooks, /authState\?\.ready !== false/);
+  assert.match(hooks, /authUserId \? \{ id: authUserId \} : null/);
+  assert.match(hub, /ready: !authInitializing/);
+  assert.match(leaks, /useAvatar\(\)/);
+  assert.match(leaks, /useLeaks\(null, \{ userId, ready: !authInitializing \}\)/);
+  assert.match(sandbox, /useStudyDeck\(20, assistantAuth\)/);
+});
+
+test('sandbox analysis is latest-request-wins and stale solves have no side effects', () => {
+  const hooks = read('src/hooks/useAssistant.js');
+  const sandbox = read('pages/hub/personal-assistant/sandbox.js');
+
+  assert.match(hooks, /activeAbortRef\.current\?\.abort\(\)/);
+  assert.match(hooks, /requestId !== requestIdRef\.current/);
+  assert.match(hooks, /superseded: true/);
+  assert.match(hooks, /skipCoachGrade: options\.skipCoachGrade === true/);
+  assert.match(sandbox, /if \(data\?\.superseded\) return/);
+  assert.match(sandbox, /if \(results\.skipCoachGrade\) return/);
+  assert.doesNotMatch(sandbox, /suppressCoachEffectRef/);
+});
+
+test('sandbox history failures render a retryable error instead of an empty state', () => {
+  const hooks = read('src/hooks/useAssistant.js');
+  const sandbox = read('pages/hub/personal-assistant/sandbox.js');
+
+  assert.match(hooks, /return \{ bookmarks, isLoading, error, refetch: fetchBookmarks \}/);
+  assert.match(sandbox, /const loadError = tab === 'sessions' \? sessionsError : bookmarksError/);
+  assert.match(sandbox, /filter\(session => session\?\.type === 'sandbox'\)/);
+  assert.match(sandbox, /<ErrorState title=\{`Could not load \$\{tab\}`\}/);
+});
+
+test('every Personal Assistant destination owns a canonical page title', () => {
+  for (const file of [
+    'pages/hub/personal-assistant/index.js',
+    'pages/hub/personal-assistant/leaks.js',
+    'pages/hub/personal-assistant/sandbox.js',
+  ]) {
+    const source = read(file);
+    assert.match(source, /<SEOHead/);
+    assert.match(source, /canonical=/);
+    assert.match(source, /<h1/);
+  }
+});
+
+test('sandbox inline CSS cannot hydrate as escaped raw style text', () => {
+  const sandbox = read('pages/hub/personal-assistant/sandbox.js');
+  assert.doesNotMatch(sandbox, /<style>\{`[\s\S]*@import url\(/);
+});
