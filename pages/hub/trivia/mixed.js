@@ -28,8 +28,7 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned } from '../../../src/lib/trivia/diamondCap';
-import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
-import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
+import { calculateDiamonds, DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 
@@ -296,6 +295,7 @@ export default function MixedModePage() {
             served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
         } catch (e) {
             console.warn('[Mixed] Server session start failed:', e?.message || e);
+            if (e?.status === 402) setShowOutOfDiamonds(true);
             setLoadError('Could not start the game. Please try again in a moment.');
             setGameState('error');
             return;
@@ -311,50 +311,9 @@ export default function MixedModePage() {
         // panels keep working against the server's db-level category names.
         served.questions.forEach(q => { q.displayCategory = displayCategoryFor(q.category); });
 
-        // NOTE: the `sessionStorage.trivia_paid` short-circuit is gone. Nothing
-        // writes that flag any more, so all it could still do was let a stale
-        // flag from an earlier session buy a free entry. Always charge.
-
-        // Per-game diamond gate (VIP bypass). Charged only AFTER the session
-        // opened; every failure path abandons the session via serverRun.reset()
-        // (it expires server-side and pays nothing).
-        if (!isVip && userId) {
-            // Fresh balance check from DB to avoid stale-state false negatives
-            let freshBalance = userDiamonds;
-            try {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .maybeSingle();
-                if (profile) {
-                    freshBalance = profile.diamonds || 0;
-                    setUserDiamonds(freshBalance);
-                }
-
-                if (freshBalance < GAME_ENTRY_COST) {
-                    serverRun.reset();
-                    setShowOutOfDiamonds(true);
-                    setGameState('ready');
-                    return;
-                }
-
-                const result = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_mixed');
-                if (!result.success) {
-                    serverRun.reset();
-                    setShowOutOfDiamonds(true);
-                    setGameState('ready');
-                    return;
-                }
-                if (result.balance !== undefined) setUserDiamonds(result.balance);
-                // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
-            } catch (e) {
-                console.warn('[Mixed] Diamond deduction failed:', e);
-                serverRun.reset();
-                setShowOutOfDiamonds(true);
-                setGameState('ready');
-                return;
-            }
+        if (Number.isFinite(served.newBalance)) setUserDiamonds(served.newBalance);
+        if (served.entryState === 'charged' && served.entryCost > 0) {
+            busEmit.diamondsSpent(served.entryCost, 'Mixed entry');
         }
         setQuestions(served.questions);
         setCurrentQuestionIndex(0);
@@ -442,7 +401,6 @@ export default function MixedModePage() {
             const awarded = Number.isFinite(settled.diamondsAwarded) ? settled.diamondsAwarded : 0;
             const serverCorrect = Number.isFinite(settled.correct) ? settled.correct : provisionalCorrect;
             const serverTotal = Number.isFinite(settled.total) ? settled.total : questions.length;
-            const serverScore = Number.isFinite(settled.score) ? settled.score : serverCorrect * 100;
 
             // questionId -> wasCorrect from the server's per-question verdicts,
             // for the mastery and history phases below.
@@ -556,23 +514,9 @@ export default function MixedModePage() {
                 savePhaseRef.current = 3;
             }
 
-            // Phase 4: Save score with the SERVER numbers (only if not already
-            // saved). Capture insert error — supabase-js does NOT throw on DB
-            // errors.
+            // Phase 4: session-submit already persisted the verified score in
+            // the payout transaction. Browsers cannot insert score rows.
             if (savePhaseRef.current < 4) {
-                const { error: scoreErr } = await supabase.from('trivia_scores').insert({
-                    user_id: userId,
-                    username: avatarUser?.username || avatarUser?.display_name || null,
-                    mode: 'mixed',
-                    score: serverScore,
-                    correct_count: serverCorrect,
-                    total_questions: serverTotal,
-                    diamonds_earned: awarded,
-                    // Phase 73: CST-anchored play_date so leaderboard.js (which
-                    // queries by CST today) finds same-day rows.
-                    play_date: getTodayCST()
-                });
-                if (scoreErr) throw scoreErr;
                 savePhaseRef.current = 4;
             }
 
@@ -582,7 +526,7 @@ export default function MixedModePage() {
             // difference.
             setTotalCorrect(serverCorrect);
             setDiamondsEarned(awarded);
-            setCapReached(awarded < serverCorrect);
+            setCapReached(awarded < calculateDiamonds('mixed', serverCorrect, serverTotal));
             setEarnedTodayCap(prev => Math.min(DAILY_DIAMOND_CAP, prev + awarded));
 
             // Game saved — reset phase for next game

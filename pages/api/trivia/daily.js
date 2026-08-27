@@ -381,7 +381,13 @@ function seededShuffle(array, seed) {
     return arr;
 }
 
-const PUBLIC_QUESTION_COLUMNS = 'id, category, difficulty, question, options, correct_index, explanation';
+const PUBLIC_QUESTION_COLUMNS = 'id, category, difficulty, question, options';
+
+function toPublicQuestion(question) {
+    if (!question || typeof question !== 'object') return question;
+    const { correct_index: _correctIndex, explanation: _explanation, ...safe } = question;
+    return safe;
+}
 
 /**
  * Build (and persist) today's roster from the live pool.
@@ -517,7 +523,7 @@ export default async function handler(req, res) {
           // order_index asc + id asc means slice(0, 10) = slot 0 across
           // all 10 categories → a balanced 1-per-category daily roster
           // (matches the "10 Questions Fresh Every Day" banner).
-          questions = questions.slice(0, ROSTER_SIZE);
+          questions = questions.slice(0, ROSTER_SIZE).map(toPublicQuestion);
 
           // Real user stats if Bearer JWT present.
           let userStats = { totalPlayed: 0, bestScore: 0, currentStreak: 0 };
@@ -647,7 +653,7 @@ export default async function handler(req, res) {
               degraded: true,
               date: today,
               rosterSource: 'fallback',
-              questions: seededShuffle(FALLBACK_QUESTIONS, today).slice(0, ROSTER_SIZE),
+              questions: seededShuffle(FALLBACK_QUESTIONS, today).slice(0, ROSTER_SIZE).map(toPublicQuestion),
               hasPlayedToday: false,
               todayScore: null,
               leaderboard: [],

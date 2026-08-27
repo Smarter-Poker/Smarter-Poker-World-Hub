@@ -30,11 +30,9 @@ import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
-import { getTodayCST, getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
+import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
-
-const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 
 // Roster size requested from /api/trivia/session-start. The 30-second clock
 // realistically allows well under 30 answers, so 60 is generous headroom;
@@ -207,6 +205,7 @@ export default function TimeAttackPage() {
             served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
         } catch (e) {
             console.warn('[TimeAttack] Server session start failed:', e?.message || e);
+            if (e?.status === 402) setShowOutOfDiamonds(true);
             setStartError('We could not load any questions right now. Please check your connection and try again.');
             return;
         }
@@ -217,36 +216,8 @@ export default function TimeAttackPage() {
             return;
         }
 
-        // Per-game diamond gate (VIP bypass). Charged only AFTER the session
-        // opened; every failure path abandons the session via serverRun.reset()
-        // (it expires server-side and pays nothing).
-        if (!isVip && userId) {
-            // Fresh balance check from DB to avoid stale-state false negatives
-            try {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .maybeSingle();
-                if (profile && (profile.diamonds || 0) < GAME_ENTRY_COST) {
-                    serverRun.reset();
-                    setShowOutOfDiamonds(true);
-                    return;
-                }
-
-                const charge = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_timeattack');
-                if (!charge.success) {
-                    serverRun.reset();
-                    setShowOutOfDiamonds(true);
-                    return;
-                }
-                // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
-            } catch (e) {
-                console.warn('[TimeAttack] Diamond deduction failed:', e);
-                serverRun.reset();
-                setShowOutOfDiamonds(true);
-                return;
-            }
+        if (served.entryState === 'charged' && served.entryCost > 0) {
+            busEmit.diamondsSpent(served.entryCost, 'Time Attack entry');
         }
         setQuestions(served.questions);
         setStartError(null);
@@ -281,12 +252,6 @@ export default function TimeAttackPage() {
         setGameState('saving');
 
         if (userId) {
-            // Phase 73: play_date is anchored to CST so leaderboard.js
-            // (which queries play_date with CST today) finds rows from
-            // games played in the same CST day. Was UTC date — score
-            // rows from 6pm-midnight CST were attributed to next day.
-            const today = getTodayCST();
-
             try {
                 // Phase 1: settle the run server-side (only if not already
                 // settled). The server grades from the answers it stored at
@@ -310,29 +275,11 @@ export default function TimeAttackPage() {
                 }
                 const settled = serverResultRef.current || {};
                 const awarded = Number.isFinite(settled.diamondsAwarded) ? settled.diamondsAwarded : 0;
-                // The server's `total` is the FULL served roster (padded far
-                // beyond what 30 seconds allows), so "X of Y" stats use the
-                // count actually reached. `correct` is safe to take verbatim:
-                // unanswered questions grade wrong, never correct.
-                const reached = (gameResult.correctCount || 0) + (gameResult.wrongCount || 0);
                 const serverCorrect = Number.isFinite(settled.correct) ? settled.correct : (gameResult.correctCount || 0);
-                const serverScore = Number.isFinite(settled.score) ? settled.score : serverCorrect * 100;
 
-                // Phase 2: Save score with the SERVER numbers (only if not
-                // already saved). Capture insert error — supabase-js does NOT
-                // throw on DB errors.
+                // Phase 2: session-submit persisted the verified score in the
+                // same transaction as the payout.
                 if (savePhaseRef.current < 2) {
-                    const { error: scoreErr } = await supabase.from('trivia_scores').insert({
-                        user_id: userId,
-                        username: avatarUser?.username || avatarUser?.display_name || null,
-                        mode: 'time-attack',
-                        score: serverScore,
-                        correct_count: serverCorrect,
-                        total_questions: reached,
-                        diamonds_earned: awarded,
-                        play_date: today
-                    });
-                    if (scoreErr) throw scoreErr;
                     savePhaseRef.current = 2;
                 }
 
