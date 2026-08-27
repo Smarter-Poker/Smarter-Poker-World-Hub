@@ -718,6 +718,13 @@ export default function AvatarGallery({ onSelect }) {
             transition: all 0.3s ease;
         }
 
+        /* THE THREE FREE FRAMES (Dan 2026-08-27): a solid ring only — no glow,
+           no inset bloom. Mirrors club-arena's AvatarCosmetics.css; the two
+           files must agree or a player's frame changes when they cross between
+           the Hub and the felt. */
+        .frame-slate { border: 3px solid #8b97a8; }
+        .frame-ivory { border: 3px solid #e8e2d4; }
+        .frame-copper { border: 3px solid #b87333; }
         .frame-diamond { box-shadow: inset 0 0 30px rgba(0, 245, 255, 0.8), 0 0 15px rgba(0, 245, 255, 0.4); border: 3px solid #00f5ff; }
         .frame-gold { box-shadow: inset 0 0 30px rgba(255, 215, 0, 0.8), 0 0 15px rgba(255, 215, 0, 0.4); border: 3px solid #ffd700; }
         .frame-cyber { box-shadow: inset 0 0 30px rgba(255, 0, 255, 0.8), 0 0 15px rgba(255, 0, 255, 0.4); border: 3px solid #ff00ff; }
@@ -730,6 +737,12 @@ export default function AvatarGallery({ onSelect }) {
             z-index: 1; 
             border-radius: 20px;
         }
+
+        /* THE THREE FREE AURAS (Dan 2026-08-27): one static halo each, no
+           keyframes — nothing to reduce for prefers-reduced-motion. */
+        .aura-mist { box-shadow: inset 0 0 24px rgba(190, 205, 220, 0.4); }
+        .aura-dusk { box-shadow: inset 0 0 24px rgba(120, 110, 170, 0.45); }
+        .aura-moss { box-shadow: inset 0 0 24px rgba(110, 160, 120, 0.45); }
 
         @keyframes auraFire {
             0%, 100% { box-shadow: inset 0 -50px 50px -20px rgba(255, 68, 0, 0.6); }

@@ -30,10 +30,14 @@ export const PERSONALITY_TYPES = {
     WILD: 'wild',          // Crazy, loose
 };
 
-// Complete 75-avatar library (100% ORIGINAL CHARACTERS)
+// Complete avatar library (100% ORIGINAL CHARACTERS).
+// 97 avatars: 25 FREE, 72 VIP-locked (Dan 2026-08-27: "25 FREE REST GATED").
 export const AVATAR_LIBRARY = [
     // ═══════════════════════════════════════════════════════════════════════
-    // FREE AVATARS (25) - Mix across all categories
+    // FREE AVATARS (25) - Mix across all categories.
+    // The header said 25 while the list held 23; Dan's 2026-08-27 ruling set the
+    // number at 25, so the two sports avatars below were promoted to close the
+    // gap - `sports` was the only category with NO free option at all.
     // ═══════════════════════════════════════════════════════════════════════
 
     // FREE - People & Professions (8)
@@ -380,7 +384,7 @@ export const AVATAR_LIBRARY = [
         name: 'Pro Wrestler',
         description: 'Smackdown Specialist',
         category: 'sports',
-        tier: 'VIP',
+        tier: 'FREE',
         personality: 'intimidating',
         image: '/avatars/vip/wrestler.png',
         tags: ['strong', 'entertaining', 'fierce']
@@ -390,7 +394,7 @@ export const AVATAR_LIBRARY = [
         name: 'Football Pro',
         description: 'Game-winning Drive',
         category: 'sports',
-        tier: 'VIP',
+        tier: 'FREE',
         personality: 'shark',
         image: '/avatars/vip/football.png',
         tags: ['athletic', 'competitive', 'focused']

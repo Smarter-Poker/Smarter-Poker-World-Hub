@@ -257,7 +257,13 @@ const VIP_FAQ = [
   },
   {
     q: 'Can I Switch Between Monthly And Annual?',
-    a: 'Not Automatically Yet. Cancel Your Current Plan And Start The Other One When The Paid Period Ends, Or Contact Support And We Will Move You Across By Hand. We Do Not Auto-Prorate Between Plans Today.',
+    /* Was "Not Automatically Yet ... We Do Not Auto-Prorate Between Plans
+       Today", which was honest and is now out of date: switching shipped
+       2026-08-27 (issue #771 item 6, POST /api/store/switch-vip-plan). The
+       credit lands on the NEXT invoice rather than as an immediate charge or
+       refund - see that route's header for why `create_prorations` was chosen
+       over `always_invoice`. */
+    a: 'Yes. Switch Either Way And We Prorate It. The Unused Part Of Your Current Plan Is Credited Against The New One On Your Next Invoice, And Your Renewal Date Does Not Move. Nothing Is Charged To You On The Day You Switch.',
   },
   {
     q: 'What Payment Methods Are Accepted?',
