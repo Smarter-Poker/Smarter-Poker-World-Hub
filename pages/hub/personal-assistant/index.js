@@ -20,8 +20,10 @@ import {
   History,
   Layers,
   Play,
+  Route,
   ScanSearch,
   Sparkles,
+  Target,
 } from 'lucide-react';
 
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -168,6 +170,106 @@ export default function PersonalAssistantPage() {
     (session) => session && !session.isDemo && session.type === 'sandbox',
   ) || null;
 
+  const activeLeakCount = Number(stats?.leaksFound) || 0;
+  const sandboxSessionCount = Number(stats?.sandboxSessions) || 0;
+  const handsAnalyzedCount = Number(stats?.handsAnalyzed) || 0;
+
+  const nextMission = (() => {
+    if (statsLoading || sessionsLoading) {
+      return {
+        mode: 'loading',
+        badge: 'Calibrating',
+        title: 'Reading Your Latest Poker Data',
+        description: 'Jarvis Is Checking Your Sessions, Analysis History, And Active Leaks.',
+        action: 'Syncing Data',
+        signal: 'Live Data Link',
+      };
+    }
+
+    if (activeLeakCount > 0) {
+      return {
+        mode: 'leaks',
+        badge: 'Highest Priority',
+        title: `Review ${activeLeakCount} Active Leak${activeLeakCount === 1 ? '' : 's'}`,
+        description: 'Resolve The Repeated Decisions Costing You EV Before Adding More Volume.',
+        action: 'Open Leak Finder',
+        signal: `${Number(stats?.resolvedLeaks || 0).toLocaleString()} Already Resolved`,
+      };
+    }
+
+    if (lastRealSession) {
+      return {
+        mode: 'resume',
+        badge: 'Continue Analysis',
+        title: lastRealSession.title,
+        description: 'Return To Your Latest Sandbox Spot With The Hand, Position, Board, Pot, And Stack Restored.',
+        action: 'Resume Session',
+        signal: formatSessionDate(lastRealSession.date) || 'Most Recent Session',
+      };
+    }
+
+    if (dailyHand) {
+      return {
+        mode: 'daily',
+        badge: 'Daily Decision',
+        title: dailyHand.title || 'Solve Today’s Featured Spot',
+        description: 'Load Today’s Hand Into The Sandbox And Compare Your Decision With The Recommended Line.',
+        action: 'Run Daily Hand',
+        signal: dailyHand.position || 'Daily Scenario',
+      };
+    }
+
+    return {
+      mode: 'start',
+      badge: 'Recommended Start',
+      title: 'Build Your First Decision Spot',
+      description: 'Choose A Hand, Position, Board, And Opponent Type To Start Your Personal Strategy Record.',
+      action: 'Start In Sandbox',
+      signal: 'No Session Required',
+    };
+  })();
+
+  const runNextMission = () => {
+    if (nextMission.mode === 'loading') return;
+    if (nextMission.mode === 'leaks') {
+      openGuardedRoute('/hub/personal-assistant/leaks');
+      return;
+    }
+    if (nextMission.mode === 'resume') {
+      openSession(lastRealSession);
+      return;
+    }
+    if (nextMission.mode === 'daily') {
+      loadHandInSandbox(dailyHand);
+      return;
+    }
+    openGuardedRoute('/hub/personal-assistant/sandbox');
+  };
+
+  const decisionLoop = [
+    {
+      step: '01',
+      title: 'Analyze',
+      detail: `${sandboxSessionCount.toLocaleString()} Sandbox Session${sandboxSessionCount === 1 ? '' : 's'}`,
+      Icon: FlaskConical,
+      route: '/hub/personal-assistant/sandbox',
+    },
+    {
+      step: '02',
+      title: 'Diagnose',
+      detail: `${activeLeakCount.toLocaleString()} Active Leak${activeLeakCount === 1 ? '' : 's'}`,
+      Icon: ScanSearch,
+      route: '/hub/personal-assistant/leaks',
+    },
+    {
+      step: '03',
+      title: 'Train',
+      detail: `${handsAnalyzedCount.toLocaleString()} Hand${handsAnalyzedCount === 1 ? '' : 's'} Analyzed`,
+      Icon: BrainCircuit,
+      route: '/hub/training',
+    },
+  ];
+
   const statCards = [
     { title: 'Sessions Reviewed', value: stats?.sessionsReviewed || 0, label: 'Total Reviewed', Icon: History, route: '/hub/personal-assistant/sandbox' },
     { title: 'Hands Analyzed', value: stats?.handsAnalyzed || 0, label: 'GTO Checked', Icon: Layers, route: '/hub/personal-assistant/leaks' },
@@ -298,7 +400,51 @@ export default function PersonalAssistantPage() {
             </div>
           </section>
 
-          <section aria-labelledby="systems-title">
+          <section className={`${styles.section} ${styles.missionSection}`} aria-labelledby="mission-title">
+            <SectionBar
+              id="mission-title"
+              title="Jarvis Priority Queue"
+              meta={(statsDemo || stats?.isDemo) ? 'Sample Recommendation' : 'Personalized Next Move'}
+            />
+            <div className={styles.missionFrame} aria-live="polite" aria-busy={nextMission.mode === 'loading'}>
+              <div className={styles.missionPrimary}>
+                <span className={styles.missionTarget} aria-hidden="true"><Target size={25} /></span>
+                <div className={styles.missionCopy}>
+                  <span className={styles.missionBadge}>{nextMission.badge}</span>
+                  <h3>{nextMission.title}</h3>
+                  <p>{nextMission.description}</p>
+                  <span className={styles.missionSignal}><Activity size={13} aria-hidden="true" />{nextMission.signal}</span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={runNextMission}
+                  disabled={nextMission.mode === 'loading'}
+                >
+                  {nextMission.action}<ChevronRight size={16} aria-hidden="true" />
+                </button>
+              </div>
+              <div className={styles.decisionLoop} aria-label="Jarvis improvement path">
+                <span className={styles.loopLabel}><Route size={15} aria-hidden="true" />Decision Loop</span>
+                {decisionLoop.map(({ step, title, detail, Icon, route }) => (
+                  <button
+                    type="button"
+                    className={styles.loopStep}
+                    key={step}
+                    onClick={() => openGuardedRoute(route)}
+                    aria-label={`${step}. ${title}. ${detail}.`}
+                  >
+                    <span className={styles.loopNumber}>{step}</span>
+                    <Icon size={17} aria-hidden="true" />
+                    <span><strong>{title}</strong><small>{statsLoading ? 'Syncing Live Data' : detail}</small></span>
+                    <ChevronRight size={14} aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.section} aria-labelledby="systems-title">
             <SectionBar id="systems-title" title="Choose Your Tool" meta="2 Systems Available" />
             <div className={styles.systemGrid}>
               {SYSTEMS.map((system) => (
