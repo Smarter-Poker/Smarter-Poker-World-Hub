@@ -141,7 +141,7 @@ function NotificationsPage() {
             const token = await getAccessToken();
 
             // ── Single unified API call: social + poker + actor profiles server-side ──
-            const res = await fetch('/api/notifications/feed?limit=50', {
+            const res = await fetch('/api/notifications/feed?limit=200', {
                 headers: { Authorization: 'Bearer ' + token },
                 signal,
             });
