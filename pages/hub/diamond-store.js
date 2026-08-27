@@ -2660,7 +2660,7 @@ export default function DiamondStorePage({ initialTab }) {
                     </div>
                   )
                 ) : (
-                  <>
+                  <div className={shellStyles.clubShopSurface}>
                     {/* Sub-tabs: Store / My Purchases / Manage (admin) */}
                     <div role="group" aria-label="Club Shop Views" style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
                       {[
@@ -3627,7 +3627,7 @@ export default function DiamondStorePage({ initialTab }) {
                         )}
                       </>
                     )}
-                  </>
+                  </div>
                 )}
               </>
             )}
