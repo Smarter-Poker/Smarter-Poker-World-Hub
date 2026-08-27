@@ -14,7 +14,16 @@ export default class MyDocument extends Document {
                     {/* Supabase: DB + storage requests start pre-connecting immediately */}
                     <link rel="preconnect" href="https://auth.smarter.poker" crossOrigin="anonymous" />
                     <link rel="dns-prefetch" href="https://auth.smarter.poker" />
+                    {/* Supabase project API — every page's first DB/auth call goes here */}
+                    <link rel="preconnect" href="https://kuklfnapbkmacvwxktbh.supabase.co" crossOrigin="anonymous" />
+                    <link rel="dns-prefetch" href="https://kuklfnapbkmacvwxktbh.supabase.co" />
+                    {/* Google Fonts — loaded by many hub pages; preconnect cuts TLS latency */}
+                    <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                    {/* OneSignal push SDK — loaded on every page */}
+                    <link rel="dns-prefetch" href="https://cdn.onesignal.com" />
                     {/* iOS PWA support */}
+
                     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
                     <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
                     <meta name="apple-mobile-web-app-capable" content="yes" />
