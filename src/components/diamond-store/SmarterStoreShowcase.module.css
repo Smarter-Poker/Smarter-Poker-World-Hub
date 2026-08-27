@@ -100,24 +100,20 @@
   background-position: center;
 }
 .sectionHero:before {
-  background-image: url('/images/store-v3/store-section-heroes.png');
-  background-image: image-set(
-    url('/images/store-v3/store-section-heroes.webp') type('image/webp'),
-    url('/images/store-v3/store-section-heroes.png') type('image/png')
-  );
-  background-size: 200% 200%;
+  background-size: 100% 100%;
+  background-position: center;
 }
 .vip .sectionHero:before {
-  background-position: 0 0;
+  background-image: url('/images/store-v3/vip-hero.webp');
 }
 .merch .sectionHero:before {
-  background-position: 100% 0;
+  background-image: url('/images/store-v3/merch-hero.webp');
 }
 .rewards .sectionHero:before {
-  background-position: 0 100%;
+  background-image: url('/images/store-v3/rewards-hero.webp');
 }
 .club-shop .sectionHero:before {
-  background-position: 100% 100%;
+  background-image: url('/images/store-v3/club-shop-hero.webp');
 }
 .heroCopy {
   position: relative;
@@ -194,6 +190,70 @@
 }
 .mobileHint {
   display: none;
+}
+.starterRail {
+  display: grid;
+  grid-template-columns: auto repeat(2, minmax(210px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+  margin: 0 0 16px;
+}
+.starterLabel {
+  display: grid;
+  place-items: center;
+  min-width: 150px;
+  padding: 0 18px;
+  border: 1px solid #506b7c;
+  background: linear-gradient(180deg, #22343f, #050a0f 28%, #121f27);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), inset 0 -3px 5px #000;
+  color: #afc2ce;
+  font: 600 10px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.starterPack {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 76px;
+  padding: 12px 14px 12px 18px;
+  border: 1px solid #6e8899;
+  background:
+    linear-gradient(90deg, rgba(79, 217, 255, 0.08), transparent 42%),
+    linear-gradient(180deg, #2b3d49, #071019 24%, #02060a 76%, #172630);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.52),
+    inset 0 -4px 7px #000,
+    0 7px 14px #000;
+}
+.starterPack > div {
+  display: grid;
+  gap: 4px;
+}
+.starterPack span {
+  color: #9fb2bf;
+  font: 600 9px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.starterPack strong {
+  color: #f2fbff;
+  font: 500 15px Michroma, Rajdhani, sans-serif;
+}
+.starterPack button {
+  min-width: 96px;
+  min-height: 46px;
+  border: 1px solid #a9eaf7;
+  background: linear-gradient(180deg, #728d9e, #122635 14%, #06111a 78%, #5f7e91);
+  box-shadow: inset 0 1px 0 #fff, inset 0 -3px 5px #000, 0 0 10px #00aaff3d;
+  color: #fff;
+  font: 800 12px 'IBM Plex Mono', monospace;
+  cursor: pointer;
+}
+.starterPack button:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 .packageGrid {
   display: grid;
@@ -291,7 +351,7 @@
   margin-top: 2px;
   color: #c5d4dd;
   font:
-    600 9px 'IBM Plex Mono',
+    600 11px 'IBM Plex Mono',
     monospace;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -336,6 +396,10 @@
     0 0 9px #009dff55;
   font-weight: 800;
   cursor: pointer;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
 }
 .packageCard button:hover:not(:disabled) {
   background: linear-gradient(
@@ -358,10 +422,17 @@
   opacity: 0.68;
   filter: saturate(0.72);
 }
+.packageCard button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 3px 7px #000,
+    inset 0 -1px 0 #9cefff,
+    0 1px 3px #000;
+}
 .legal {
   text-align: center;
-  color: #768894;
-  font-size: 11px;
+  color: #a8b8c2;
+  font-size: 12px;
   margin: 28px 0 10px;
 }
 .showcase * {
@@ -443,7 +514,7 @@
     filter: brightness(1.13) saturate(1.1);
   }
   .sectionHero:before {
-    background-size: 200% 200%;
+    background-size: 100% 100%;
   }
   .hero:after {
     inset: 6px;
@@ -460,7 +531,7 @@
     padding: 322px 20px 24px;
   }
   .heroCopy span {
-    font-size: 9px;
+    font-size: 11px;
     letter-spacing: 0.18em;
   }
   .heroCopy h1 {
@@ -493,6 +564,24 @@
     scrollbar-width: none;
     touch-action: pan-x;
     -webkit-overflow-scrolling: touch;
+  }
+  .starterRail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 14px;
+  }
+  .starterLabel {
+    grid-column: 1 / -1;
+    min-height: 34px;
+  }
+  .starterPack {
+    min-height: 110px;
+    padding: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .starterPack button {
+    width: 100%;
   }
   .packageCard {
     flex: 0 0 min(86vw, 360px);
@@ -551,7 +640,7 @@
   }
   .legal {
     margin: 4px 16px 0;
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.55;
   }
 }
@@ -578,5 +667,8 @@
   .tabs,
   .packageGrid {
     scroll-behavior: auto;
+  }
+  .packageCard button {
+    transition: none;
   }
 }

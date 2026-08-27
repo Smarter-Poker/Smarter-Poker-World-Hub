@@ -125,6 +125,10 @@ export default async function handler(req, res) {
                   await handleCheckoutCompleted(event.data.object);
                   break;
 
+              case 'checkout.session.expired':
+                  await handleCheckoutExpired(event.data.object);
+                  break;
+
               case 'customer.subscription.created':
               case 'customer.subscription.updated':
                   await handleSubscriptionUpdate(event.data.object);
@@ -416,6 +420,38 @@ async function handleCheckoutCompleted(session) {
             // Rethrow so the webhook returns 500 and Stripe retries the event —
             // a paid subscription that failed to activate must not be dropped.
             throw subErr;
+        }
+    }
+}
+
+async function handleCheckoutExpired(session) {
+    const metadata = session?.metadata || {};
+
+    if (metadata.type === 'diamonds' && metadata.purchase_id) {
+        const { error } = await getSupabase()
+            .from('diamond_purchases')
+            .update({ status: 'failed', stripe_checkout_session_id: session.id })
+            .eq('id', metadata.purchase_id)
+            .eq('status', 'pending');
+        if (error) {
+            console.warn('[stripe-webhook] expired diamond checkout cleanup failed:', error.message);
+            throw error;
+        }
+    }
+
+    if (metadata.type === 'merchandise' && metadata.order_id) {
+        const { error } = await getSupabase()
+            .from('merchandise_orders')
+            .update({
+                status: 'canceled',
+                stripe_checkout_session_id: session.id,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', metadata.order_id)
+            .eq('status', 'pending');
+        if (error) {
+            console.warn('[stripe-webhook] expired merchandise checkout cleanup failed:', error.message);
+            throw error;
         }
     }
 }

@@ -22,7 +22,6 @@ const CHECKOUT = readFileSync(
 test('cinematic artwork ships in high-quality WebP with PNG fallbacks', () => {
   const assets = [
     'diamond-vault-hero',
-    'store-section-heroes',
     'diamond-packages-sheet',
   ];
   let pngBytes = 0;
@@ -37,6 +36,13 @@ test('cinematic artwork ships in high-quality WebP with PNG fallbacks', () => {
 
   assert.match(SHOWCASE_CSS, /image-set\(/);
   assert.ok(webpBytes < pngBytes * 0.2, 'optimized artwork must stay below 20% of PNG payload');
+
+  const routeHeroes = ['vip-hero', 'merch-hero', 'rewards-hero', 'club-shop-hero'];
+  for (const asset of routeHeroes) {
+    const bytes = statSync(join(ROOT, `public/images/store-v3/${asset}.webp`)).size;
+    assert.match(SHOWCASE_CSS, new RegExp(`${asset}\\.webp`));
+    assert.ok(bytes < 100 * 1024, `${asset} must stay below 100 KiB`);
+  }
 });
 
 test('hidden legacy image maps and their stale assets stay removed', () => {

@@ -1,18 +1,110 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('5. Diamond Store Mechanics', () => {
-  test('Store renders pricing tiers and bundle modals correctly', async ({ page }) => {
-    await page.goto('/hub/diamond-store', { waitUntil: 'commit' });
+const ROUTES = [
+  { path: '/hub/diamond-store', title: 'Diamond Store — Smarter.Poker', heading: 'Play At Your Own Altitude.', hero: 'diamond-vault-hero.webp' },
+  { path: '/hub/vip-membership', title: 'VIP Membership — Smarter.Poker', heading: 'Your Edge, Compounded.', hero: 'vip-hero.webp' },
+  { path: '/hub/merch-store', title: 'Merch Store — Smarter.Poker', heading: 'Built For The Long Session.', hero: 'merch-hero.webp' },
+  { path: '/hub/smarter-rewards', title: 'Smarter Rewards — Smarter.Poker', heading: 'Make Every Hand Count.', hero: 'rewards-hero.webp' },
+  { path: '/hub/club-shop', title: 'Club Shop — Smarter.Poker', heading: 'Your Game. Your Rules.', hero: 'club-shop-hero.webp' },
+] as const;
 
-    // 1. Verify Diamond balance UI component is present
-    const balanceHeader = page.locator('text=Diamonds').or(page.getByRole('heading', { level: 2 }));
-    await expect(balanceHeader.first()).toBeVisible();
+test.describe('5. Storefront Routes And Design Contract', () => {
+  for (const route of ROUTES) {
+    test(`${route.path} owns its route, metadata, hero, and responsive canvas`, async ({ page }) => {
+      const consoleErrors: string[] = [];
+      page.on('console', (message) => {
+        if (message.type() === 'error') consoleErrors.push(message.text());
+      });
 
-    // 2. Validate generic bundle cards 
-    // Usually these are buttons calling out price points
-    const buyButton = page.locator('button', { hasText: '$' }).first();
-    
-    // 3. Ensuring no SSR/Hydration crash during checkout visualization
-    await expect(page.getByText('Application Error', { exact: true })).toHaveCount(0);
+      const response = await page.goto(route.path, { waitUntil: 'domcontentloaded' });
+      expect(response?.status()).toBeLessThan(400);
+      await expect(page).toHaveTitle(route.title);
+      await expect(page.getByRole('heading', { level: 1, name: route.heading })).toHaveCount(1);
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://smarter.poker${route.path}`);
+      await expect(page.locator('meta[property="og:title"]').last()).toHaveAttribute('content', route.title);
+      await expect(page.locator(`link[rel="preload"][as="image"][href$="${route.hero}"]`)).toHaveCount(1);
+
+      const widths = await page.evaluate(() => ({
+        viewport: document.documentElement.clientWidth,
+        document: document.documentElement.scrollWidth,
+        body: document.body.scrollWidth,
+        main: document.querySelector('main')?.scrollWidth || 0,
+      }));
+      expect(widths.document).toBeLessThanOrEqual(widths.viewport);
+      expect(widths.body).toBeLessThanOrEqual(widths.viewport);
+      expect(widths.main).toBeLessThanOrEqual(widths.viewport);
+
+      const storeNav = page.getByRole('navigation', { name: 'Store Sections' });
+      await expect(storeNav.getByRole('link')).toHaveCount(5);
+      await expect(storeNav.getByRole('link', { name: /Current Page/ })).toHaveAttribute('aria-current', 'page');
+      for (const link of await storeNav.getByRole('link').all()) {
+        const current = await link.getAttribute('aria-current');
+        if (!current) await expect(link).toHaveAttribute('target', '_blank');
+      }
+      expect(consoleErrors).toEqual([]);
+    });
+  }
+
+  test('global header markup is identical across all five storefront routes', async ({ page }) => {
+    const headerMarkup: string[] = [];
+    for (const route of ROUTES) {
+      await page.goto(route.path, { waitUntil: 'domcontentloaded' });
+      const header = page.locator('header').first();
+      await expect(header).toBeVisible();
+      headerMarkup.push(await header.evaluate((element) => {
+        const clone = element.cloneNode(true) as HTMLElement;
+        clone.querySelectorAll('[style]').forEach((node) => node.removeAttribute('style'));
+        return clone.outerHTML.replace(/\s+/g, ' ').trim();
+      }));
+    }
+    expect(new Set(headerMarkup).size).toBe(1);
+  });
+
+  test('merchandise renders immediately and refreshes without blanking the catalog', async ({ page }) => {
+    await page.goto('/hub/merch-store', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Official Merch' })).toBeVisible();
+    await expect(page.getByText('Loading Merch Store...', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Buy With Card' }).first()).toBeVisible();
+  });
+
+  test('diamond starter and cinematic packs are all purchasable without covering the art', async ({ page }) => {
+    await page.goto('/hub/diamond-store', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByLabel('Starter Diamond Packs').locator('article')).toHaveCount(2);
+    await expect(page.locator('main article')).toHaveCount(8);
+    const centered = await page.locator('main article').nth(2).locator('h3').evaluate((element) => {
+      const style = getComputedStyle(element.parentElement as Element);
+      return { align: style.textAlign, position: style.position };
+    });
+    expect(centered).toEqual({ align: 'center', position: 'relative' });
+  });
+
+  test('canceled checkout return is explained and the transport query is removed', async ({ page }) => {
+    await page.goto('/hub/diamond-store?canceled=true', { waitUntil: 'domcontentloaded' });
+    const status = page.locator('[data-checkout-status="canceled"]');
+    await expect(status).toBeVisible();
+    await expect(status).toContainText('No Payment Was Made');
+    await expect(page).toHaveURL(/\/hub\/diamond-store$/);
+  });
+
+  test('store controls meet the 44-pixel target and legal text remains readable', async ({ page }) => {
+    for (const route of ROUTES) {
+      await page.goto(route.path, { waitUntil: 'domcontentloaded' });
+      const undersized = await page.locator('main button, main nav a').evaluateAll((elements) =>
+        elements.map((element) => {
+          const rect = element.getBoundingClientRect();
+          return { text: (element.textContent || '').trim(), width: rect.width, height: rect.height };
+        }).filter((item) => item.width > 0 && item.height > 0 && (item.width < 44 || item.height < 44))
+      );
+      expect(undersized).toEqual([]);
+    }
+
+    await page.goto('/hub/diamond-store', { waitUntil: 'domcontentloaded' });
+    const legal = page.locator('main').getByText(/Diamonds Are Virtual Currency/).last();
+    const legalStyle = await legal.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { size: Number.parseFloat(style.fontSize), color: style.color };
+    });
+    expect(legalStyle.size).toBeGreaterThanOrEqual(12);
+    expect(legalStyle.color).not.toBe('rgba(255, 255, 255, 0.4)');
   });
 });

@@ -24,6 +24,7 @@ import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import { acquireScrollLock } from '../../src/lib/scrollLock';
 import { showStoreToast } from '../../src/components/store/StoreToast';
+import { captureStoreEvent, createCheckoutRequestId } from '../../src/lib/store/storeAnalytics';
 
 const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), {
   ssr: false,
@@ -52,10 +53,10 @@ import {
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 import { VIPCard } from '../../src/components/store/StoreCards';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
+import CheckoutStatusPanel from '../../src/components/diamond-store/CheckoutStatusPanel';
 import shellStyles from '../../src/components/diamond-store/DiamondStoreShell.module.css';
 
 const MerchStore = dynamic(() => import('../../src/components/store/MerchStore'), {
-  ssr: false,
   loading: () => (
     <div className={shellStyles.loadingPanel} role="status" aria-live="polite">
       Loading Merch Store...
@@ -150,6 +151,31 @@ export const TAB_META = {
     description: 'Spend Club Chips On Time Banks, Cosmetics And Items Your Club Owner Stocks.',
   },
 };
+
+const TAB_SOCIAL_IMAGE = {
+  diamonds: '/images/store-v3/diamond-vault-hero.webp',
+  vip: '/images/store-v3/vip-hero.webp',
+  merch: '/images/store-v3/merch-hero.webp',
+  rewards: '/images/store-v3/rewards-hero.webp',
+  'club-shop': '/images/store-v3/club-shop-hero.webp',
+};
+
+function storeStructuredData(activeTab) {
+  const meta = TAB_META[activeTab] || TAB_META.diamonds;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: meta.title,
+    description: meta.description,
+    url: `https://smarter.poker${TAB_ROUTES[activeTab]}`,
+    image: `https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'Smarter.Poker',
+      url: 'https://smarter.poker/',
+    },
+  };
+}
 
 function useDialogFocus(isOpen, dialogRef, onDismiss, isBusy) {
   const returnFocusRef = useRef(null);
@@ -337,6 +363,7 @@ export default function DiamondStorePage({ initialTab }) {
   // double-tap on Confirm reuses one key instead of minting a second purchase.
   const [pendingSpend, setPendingSpend] = useState(null);
   const [diamondMultiplier, setDiamondMultiplier] = useState(1.0);
+  const [checkoutReturn, setCheckoutReturn] = useState(null);
 
   const [user, setUser] = useState(null);
 
@@ -400,6 +427,89 @@ export default function DiamondStorePage({ initialTab }) {
     router.replace(TAB_ROUTES[tab]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, initialTab, router.query.tab]);
+
+  // A Stripe return URL is only a transport signal. `success=true` is never
+  // trusted on its own: the server retrieves the session from Stripe, verifies
+  // ownership, and compares the backing store record before this page claims
+  // a completed purchase.
+  useEffect(() => {
+    if (!router.isReady) return undefined;
+
+    const clearCheckoutTransport = () => {
+      const cleanPath = TAB_ROUTES[activeTab];
+      window.history.replaceState(
+        { ...window.history.state, as: cleanPath, url: cleanPath },
+        '',
+        cleanPath
+      );
+    };
+
+    const rawCanceled = Array.isArray(router.query.canceled)
+      ? router.query.canceled[0]
+      : router.query.canceled;
+    const rawSuccess = Array.isArray(router.query.success)
+      ? router.query.success[0]
+      : router.query.success;
+    const rawSession = Array.isArray(router.query.session_id)
+      ? router.query.session_id[0]
+      : router.query.session_id;
+
+    if (rawCanceled === 'true') {
+      setCheckoutReturn({ status: 'canceled' });
+      captureStoreEvent('checkout_canceled', { route: activeTab });
+      clearCheckoutTransport();
+      return undefined;
+    }
+
+    if (rawSuccess !== 'true' || typeof rawSession !== 'string') return undefined;
+
+    let cancelled = false;
+    setCheckoutReturn({ status: 'verifying' });
+    const token = getAccessToken();
+    if (!token) {
+      setCheckoutReturn({
+        status: 'failed',
+        message: 'Sign In To Verify This Checkout And View Its Receipt.',
+      });
+      clearCheckoutTransport();
+      return undefined;
+    }
+
+    (async () => {
+      try {
+        const response = await fetch(
+          `/api/store/checkout-status?session_id=${encodeURIComponent(rawSession)}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body?.success) {
+          throw new Error(body?.error || 'Could Not Verify Checkout Status.');
+        }
+        if (cancelled) return;
+        const status = body.data?.status === 'complete' ? 'complete' : 'pending';
+        setCheckoutReturn({ status, receipt: body.data });
+        captureStoreEvent(`checkout_${status}`, {
+          route: activeTab,
+          type: body.data?.type || 'unknown',
+          payment_status: body.data?.paymentStatus || 'unknown',
+        });
+      } catch (error) {
+        if (cancelled) return;
+        setCheckoutReturn({ status: 'failed', message: error.message });
+        captureStoreEvent('checkout_verification_failed', { route: activeTab });
+      } finally {
+        if (!cancelled) clearCheckoutTransport();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, router.isReady, router.query.canceled, router.query.session_id, router.query.success]);
+
+  useEffect(() => {
+    captureStoreEvent('viewed', { route: activeTab });
+  }, [activeTab]);
 
   // Clear any pending club-shop success-toast timer on unmount
   useEffect(
@@ -515,10 +625,21 @@ export default function DiamondStorePage({ initialTab }) {
         setStoreProcessing(false);
         return;
       }
+      const checkoutRequestId = createCheckoutRequestId(`diamonds-${pkg.id}`);
+      captureStoreEvent('checkout_started', {
+        route: 'diamonds',
+        type: 'diamonds',
+        product: pkg.id,
+        value_usd: Number(pkg.price || 0),
+      });
       showStoreToast('success', 'Redirecting to secure checkout...');
       const response = await fetch('/api/store/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'X-Checkout-Request-ID': checkoutRequestId,
+        },
         body: JSON.stringify({
           type: 'diamonds',
           items: [{ packageId: String(pkg.id || '').replace(/^diamond-/, ''), quantity: 1 }],
@@ -532,8 +653,14 @@ export default function DiamondStorePage({ initialTab }) {
       if (!data.success)
         throw new Error(data.error?.message || 'Failed to create checkout session');
       if (!data.data?.url) throw new Error('Checkout session missing redirect URL');
+      captureStoreEvent('checkout_session_created', {
+        route: 'diamonds',
+        type: 'diamonds',
+        product: pkg.id,
+      });
       window.location.href = data.data.url;
     } catch (err) {
+      captureStoreEvent('checkout_failed', { route: 'diamonds', type: 'diamonds' });
       showStoreToast('error', err.message || 'Purchase failed');
       setStoreProcessing(false);
     }
@@ -585,6 +712,11 @@ export default function DiamondStorePage({ initialTab }) {
     }
     setStoreProcessing(true);
     try {
+      captureStoreEvent('diamond_purchase_started', {
+        route: 'vip',
+        product: 'vip-daily',
+        diamonds_spent: Number(plan.price || 0),
+      });
       const res = await fetch('/api/store/purchase-daily-vip', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -600,6 +732,11 @@ export default function DiamondStorePage({ initialTab }) {
         throw new Error(`${data?.error || `Request Failed (${res.status})`}.${detail}`);
       }
       if (data?.success) {
+        captureStoreEvent('diamond_purchase_complete', {
+          route: 'vip',
+          product: 'vip-daily',
+          diamonds_spent: Number(plan.price || 0),
+        });
         showStoreToast('success', 'VIP Daily Pass Activated. Enjoy Your Premium Features.');
         setIsVip(true);
         // Keep the membership card honest without a page reload.
@@ -612,6 +749,7 @@ export default function DiamondStorePage({ initialTab }) {
         showStoreToast('error', data?.error || 'VIP Purchase Failed.');
       }
     } catch (e) {
+      captureStoreEvent('diamond_purchase_failed', { route: 'vip', product: 'vip-daily' });
       showStoreToast('error', e.message);
     } finally {
       setStoreProcessing(false);
@@ -637,6 +775,10 @@ export default function DiamondStorePage({ initialTab }) {
     }
     setStoreProcessing(true);
     try {
+      captureStoreEvent('diamond_purchase_started', {
+        route: 'vip',
+        product: planKey,
+      });
       const res = await fetch('/api/store/purchase-vip-with-diamonds', {
         method: 'POST',
         headers: {
@@ -657,6 +799,11 @@ export default function DiamondStorePage({ initialTab }) {
         throw new Error(`${data?.error || `Request Failed (${res.status})`}.${short}`);
       }
       if (data?.success) {
+        captureStoreEvent('diamond_purchase_complete', {
+          route: 'vip',
+          product: planKey,
+          diamonds_spent: Number(data.cost || 0),
+        });
         showStoreToast(
           'success',
           data.duplicate
@@ -673,6 +820,7 @@ export default function DiamondStorePage({ initialTab }) {
         showStoreToast('error', data?.error || 'VIP Purchase Failed.');
       }
     } catch (e) {
+      captureStoreEvent('diamond_purchase_failed', { route: 'vip', product: planKey });
       showStoreToast('error', e.message);
     } finally {
       setStoreProcessing(false);
@@ -692,11 +840,19 @@ export default function DiamondStorePage({ initialTab }) {
 
     setStoreProcessing(true);
     try {
+      const checkoutRequestId = createCheckoutRequestId(`vip-${plan.id}`);
+      captureStoreEvent('checkout_started', {
+        route: 'vip',
+        type: 'subscription',
+        product: plan.id,
+        value_usd: Number(plan.price || 0),
+      });
       const response = await fetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
+          'X-Checkout-Request-ID': checkoutRequestId,
         },
         body: JSON.stringify({
           type: 'subscription',
@@ -712,10 +868,16 @@ export default function DiamondStorePage({ initialTab }) {
         throw new Error('Checkout session missing redirect URL');
       }
 
+      captureStoreEvent('checkout_session_created', {
+        route: 'vip',
+        type: 'subscription',
+        product: plan.id,
+      });
       // Redirect to Stripe Checkout (isProcessing stays true through nav)
       window.location.href = data.data.url;
     } catch (error) {
       console.warn('VIP subscription error:', error);
+      captureStoreEvent('checkout_failed', { route: 'vip', type: 'subscription' });
       showStoreToast('error', error.message || 'Failed to start VIP checkout. Please try again.');
       setStoreProcessing(false);
     }
@@ -801,6 +963,11 @@ export default function DiamondStorePage({ initialTab }) {
     if (!clubShopBuyTarget || !clubShopClubId) return;
     setClubShopProcessing(true);
     try {
+      captureStoreEvent('club_purchase_started', {
+        route: 'club-shop',
+        product: clubShopBuyTarget.id,
+        chips_spent: Number(clubShopBuyTarget.price || 0),
+      });
       const token = getAccessToken();
       if (!token) throw new Error('Not authenticated');
 
@@ -822,6 +989,11 @@ export default function DiamondStorePage({ initialTab }) {
         .catch(() => ({ success: false, error: `HTTP ${response.status}` }));
       if (!responseData.success) throw new Error(responseData.error || 'Purchase failed');
 
+      captureStoreEvent('club_purchase_complete', {
+        route: 'club-shop',
+        product: clubShopBuyTarget.id,
+        chips_spent: Number(clubShopBuyTarget.price || 0),
+      });
       setClubShopSuccess(`Purchased ${clubShopBuyTarget.name}!`);
       if (clubShopSuccessTimerRef.current) clearTimeout(clubShopSuccessTimerRef.current);
       clubShopSuccessTimerRef.current = setTimeout(() => setClubShopSuccess(null), 2500);
@@ -832,6 +1004,7 @@ export default function DiamondStorePage({ initialTab }) {
       clubShopLoadingRef.current = false;
       loadClubShop(true);
     } catch (err) {
+      captureStoreEvent('club_purchase_failed', { route: 'club-shop' });
       showStoreToast('error', err.message || 'Purchase failed');
     } finally {
       setClubShopProcessing(false);
@@ -984,6 +1157,49 @@ export default function DiamondStorePage({ initialTab }) {
             name="description"
             content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
           />
+          <link rel="canonical" href={`https://smarter.poker${TAB_ROUTES[activeTab]}`} />
+          <meta
+            key="store-og-title"
+            property="og:title"
+            content={TAB_META[activeTab]?.title || TAB_META.diamonds.title}
+          />
+          <meta
+            key="store-og-description"
+            property="og:description"
+            content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
+          />
+          <meta key="store-og-type" property="og:type" content="website" />
+          <meta
+            key="store-og-url"
+            property="og:url"
+            content={`https://smarter.poker${TAB_ROUTES[activeTab]}`}
+          />
+          <meta
+            key="store-og-image"
+            property="og:image"
+            content={`https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`}
+          />
+          <meta key="store-twitter-card" name="twitter:card" content="summary_large_image" />
+          <meta
+            key="store-twitter-title"
+            name="twitter:title"
+            content={TAB_META[activeTab]?.title || TAB_META.diamonds.title}
+          />
+          <meta
+            key="store-twitter-description"
+            name="twitter:description"
+            content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
+          />
+          <meta
+            key="store-twitter-image"
+            name="twitter:image"
+            content={`https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`}
+          />
+          <script
+            key="store-structured-data"
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(storeStructuredData(activeTab)) }}
+          />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <link
             rel="preload"
@@ -991,7 +1207,7 @@ export default function DiamondStorePage({ initialTab }) {
             href={
               activeTab === 'diamonds'
                 ? '/images/store-v3/diamond-vault-hero.webp'
-                : '/images/store-v3/store-section-heroes.webp'
+                : TAB_SOCIAL_IMAGE[activeTab]
             }
             type="image/webp"
             fetchPriority="high"
@@ -1040,6 +1256,10 @@ export default function DiamondStorePage({ initialTab }) {
             isProcessing={isProcessing}
             busyPackageId={busyPackageId}
             onBuy={handleDirectCheckout}
+          />
+          <CheckoutStatusPanel
+            state={checkoutReturn}
+            onDismiss={() => setCheckoutReturn(null)}
           />
 
           {/* Main Content (non-diamonds tabs) */}

@@ -15,7 +15,7 @@ export default defineConfig({
   ],
   timeout: 30000,
   use: {
-    baseURL: 'https://smarter.poker',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 
+import { captureStoreEvent } from '../../lib/store/storeAnalytics';
 import styles from './SmarterStoreShowcase.module.css';
 
 const TAB_LABELS = [
@@ -56,6 +57,7 @@ export default function SmarterStoreShowcase({
   const copy = SECTION_COPY[activeTab] || SECTION_COPY.diamonds;
   const isDiamonds = activeTab === 'diamonds';
   const activeTabRef = useRef(null);
+  const diamondImpressionRef = useRef(false);
 
   useEffect(() => {
     if (!activeTabRef.current || !window.matchMedia('(max-width: 640px)').matches) return;
@@ -66,6 +68,12 @@ export default function SmarterStoreShowcase({
       inline: 'center',
     });
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!isDiamonds || diamondImpressionRef.current || packages.length === 0) return;
+    diamondImpressionRef.current = true;
+    captureStoreEvent('catalog_viewed', { route: 'diamonds', items: packages.length });
+  }, [isDiamonds, packages.length]);
 
   return (
     <section className={`${styles.showcase} ${styles[activeTab] || ''}`}>
@@ -80,6 +88,7 @@ export default function SmarterStoreShowcase({
             className={`${styles.tab} ${id === activeTab ? styles.activeTab : ''}`}
             aria-current={id === activeTab ? 'page' : undefined}
             aria-label={id === activeTab ? `${label}, Current Page` : `${label}, Opens In New Tab`}
+            onClick={() => captureStoreEvent('section_opened', { from: activeTab, to: id })}
           >
             {label}
           </a>
@@ -101,6 +110,26 @@ export default function SmarterStoreShowcase({
             <h2>Choose Your Stack</h2>
             <span className={styles.exchangeRate}>1 Diamond = $0.01</span>
             <span className={styles.mobileHint}>Swipe To Compare Packages</span>
+          </div>
+          <div className={styles.starterRail} aria-label="Starter Diamond Packs">
+            <span className={styles.starterLabel}>Starter Access</span>
+            {packages.slice(0, 2).map((pkg) => (
+              <article key={pkg.id} className={styles.starterPack}>
+                <div>
+                  <span>{pkg.name}</span>
+                  <strong>{Number(pkg.diamonds || 0).toLocaleString('en-US')} Diamonds</strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onBuy(pkg)}
+                  disabled={isProcessing}
+                  aria-busy={busyPackageId === pkg.id}
+                  aria-label={`Buy ${pkg.name}, ${Number(pkg.diamonds || 0).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`}
+                >
+                  {busyPackageId === pkg.id ? 'Opening...' : `$${Number(pkg.price || 0).toFixed(2)}`}
+                </button>
+              </article>
+            ))}
           </div>
           <div className={styles.packageGrid}>
             {packages.slice(-6).map((pkg, index) => (

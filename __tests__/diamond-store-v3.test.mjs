@@ -20,7 +20,8 @@ test('connects all five store destinations to the shared showcase', () => {
     assert.match(component, new RegExp(`['\"]${id}['\"]`));
   }
   assert.match(page, /<SmarterStoreShowcase/);
-  assert.match(page, /onNavigate=\{\(tabId\) => openTab\(tabId, activeTab\)\}/);
+  assert.match(component, /href=\{TAB_ROUTES\[id\]\}/);
+  assert.match(component, /target=\{id === activeTab \? undefined : '_blank'\}/);
 });
 
 test('keeps diamond values centered below art and buys through the existing checkout', () => {
@@ -35,8 +36,10 @@ test('uses the dedicated cinematic artwork and sharp-corner treatment', () => {
   for (const asset of [
     'diamond-vault-hero.png',
     'diamond-packages-sheet.png',
-    'store-section-heroes.png',
   ]) {
+    assert.equal(fs.existsSync(path.join(root, 'public/images/store-v3', asset)), true);
+  }
+  for (const asset of ['vip-hero.webp', 'merch-hero.webp', 'rewards-hero.webp', 'club-shop-hero.webp']) {
     assert.equal(fs.existsSync(path.join(root, 'public/images/store-v3', asset)), true);
   }
   const radii = [...styles.matchAll(/border-radius:\s*([^;]+);/g)].map((match) => match[1].trim());
