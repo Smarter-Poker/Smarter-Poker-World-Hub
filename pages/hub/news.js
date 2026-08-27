@@ -40,6 +40,7 @@ import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
+import LiveWireStyles from '../../src/components/news/LiveWireStyles';
 import {
     getReadLater,
     addToReadLater,
@@ -1170,7 +1171,8 @@ export default function NewsHub() {
                     canonical="/hub/news"
                 />
 
-                <div className="news-hub">
+                <div className="news-hub live-wire">
+                    <LiveWireStyles />
                     {/* Scroll Progress Bar */}
                     <div className="scroll-progress" style={{ width: `${scrollProgress}%` }} />
                     <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
@@ -1253,23 +1255,26 @@ export default function NewsHub() {
                     <div className="layout">
                         {/* Left Column - News Boxes */}
                         <main className="main-content">
-                            {/* SMARTER.POKER NEWS Title */}
-                            <h1 style={{ textAlign: 'center', margin: '0 0 6px 0', padding: 0, fontSize: '1.6rem', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase', color: '#5ef5f0', textShadow: '0 0 8px rgba(94,245,240,0.6), 0 0 20px rgba(94,245,240,0.3)', fontFamily: "'Inter', 'Segoe UI', sans-serif", position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', gap: '8px' }}>
-                                SMARTER.POKER <span style={{ color: '#fff', textShadow: '0 0 8px rgba(255,255,255,0.4)' }}>NEWS</span>
-                                {newArticleCount > 0 && (
-                                    <span className="new-article-dot">{newArticleCount} new</span>
-                                )}
-                            </h1>
-
-                            {/* Auto-refresh indicator */}
-                            {lastRefreshed && (
-                                <div style={{ textAlign: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.55)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                                    <span>Updated {timeAgo(lastRefreshed)}</span>
-                                    <button onClick={() => refreshNewsFeed()} style={{ background: 'none', border: 'none', color: '#5ef5f0', cursor: 'pointer', fontSize: '11px', padding: 0, textDecoration: 'underline' }}>Refresh</button>
+                            <div className="news-desk-masthead">
+                                <div className="news-desk-title-group">
+                                    <span className="live-pulse" aria-hidden="true" />
+                                    <div>
+                                        <div className="news-desk-kicker">
+                                            Live desk · {filteredNews.length} stories moving
+                                            {newArticleCount > 0 ? ` · ${newArticleCount} new` : ''}
+                                        </div>
+                                        <h1 className="news-desk-title">Live Intelligence Wire</h1>
+                                    </div>
                                 </div>
-                            )}
+                                {lastRefreshed && (
+                                    <div className="news-desk-freshness">
+                                        <span>Updated {timeAgo(lastRefreshed)}</span>
+                                        <button type="button" onClick={() => refreshNewsFeed()}>Refresh</button>
+                                    </div>
+                                )}
+                            </div>
 
-                            {/* Section Tabs — News / Reels (also the way BACK from the reels view) */}
+                            {/* Existing sections, surfaced in the approved Live Wire tab rail. */}
                             <div className="section-tabs" role="tablist" aria-label="News sections">
                                 <button
                                     role="tab"
@@ -1286,6 +1291,30 @@ export default function NewsHub() {
                                     onClick={() => setActiveSection('reels')}
                                 >
                                     <Film size={14} /> Reels
+                                </button>
+                                <button
+                                    role="tab"
+                                    aria-selected={activeSection === 'videos'}
+                                    className={`section-tab ${activeSection === 'videos' ? 'active' : ''}`}
+                                    onClick={() => setActiveSection('videos')}
+                                >
+                                    <PlayCircle size={14} /> Videos
+                                </button>
+                                <button
+                                    role="tab"
+                                    aria-selected={activeSection === 'events'}
+                                    className={`section-tab ${activeSection === 'events' ? 'active' : ''}`}
+                                    onClick={() => setActiveSection('events')}
+                                >
+                                    <Calendar size={14} /> Events
+                                </button>
+                                <button
+                                    role="tab"
+                                    aria-selected={activeSection === 'later'}
+                                    className={`section-tab ${activeSection === 'later' ? 'active' : ''}`}
+                                    onClick={() => setActiveSection('later')}
+                                >
+                                    <Clock size={14} /> Read Later
                                 </button>
                             </div>
 

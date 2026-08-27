@@ -888,12 +888,69 @@ export default function UniversalHeader({
 
                 .header-nav-btn {
                     width: auto;
-                    height: 32px; /* 4x visual size of old un-trimmed hub arrow */
-                    overflow: visible;
+                    min-width: 72px;
+                    height: 32px;
+                    padding: 0 16px;
+                    border: 1px solid transparent;
+                    border-radius: 999px;
+                    background:
+                        linear-gradient(#111315, #111315) padding-box,
+                        repeating-linear-gradient(
+                            90deg,
+                            #777d82 0,
+                            #c9ced1 1px,
+                            #8d9398 2px,
+                            #d4d8da 4px,
+                            #7f858a 5px
+                        ) border-box;
+                    box-shadow:
+                        inset 0 1px 0 rgba(255,255,255,0.1),
+                        inset 0 -1px 0 rgba(0,0,0,0.72),
+                        0 1px 2px rgba(0,0,0,0.55);
+                    color: #c9ced1;
+                    font-family: 'Orbitron', 'Rajdhani', system-ui, sans-serif;
+                    font-size: 11px;
+                    font-weight: 800;
+                    line-height: 1;
+                    letter-spacing: 1.45px;
+                    text-transform: uppercase;
+                    overflow: hidden;
+                    white-space: nowrap;
                 }
 
-                .header-nav-btn img {
-                    /* no filter - images are pre-processed */
+                .header-nav-btn > span {
+                    background: repeating-linear-gradient(
+                        90deg,
+                        #8c9297 0,
+                        #d9dddf 1px,
+                        #a1a7ab 2px,
+                        #e0e3e5 4px,
+                        #8f959a 5px
+                    );
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    color: transparent;
+                    text-shadow: 0 1px 0 rgba(0,0,0,0.75);
+                }
+
+                .header-nav-btn:hover {
+                    opacity: 1;
+                    border-color: transparent;
+                    background:
+                        linear-gradient(#171a1d, #171a1d) padding-box,
+                        repeating-linear-gradient(
+                            90deg,
+                            #858b90 0,
+                            #d8dcde 1px,
+                            #999fa4 2px,
+                            #e0e3e5 4px,
+                            #898f94 5px
+                        ) border-box;
+                }
+
+                .header-nav-btn:focus-visible {
+                    outline: 2px solid #00d4ff;
+                    outline-offset: 3px;
                 }
 
                 .hamburger-btn {
@@ -1080,12 +1137,15 @@ export default function UniversalHeader({
                         padding: 2px;
                     }
 
-                    /* CRITICAL: Cap BACK/HUB nav button width on mobile */
+                    /* The shared navigation control remains a true pill on mobile. */
                     .header-nav-btn {
                         height: 24px;
                         width: auto;
-                        max-width: 50px;
-                        padding: 4px;
+                        min-width: 58px;
+                        max-width: none;
+                        padding: 0 10px;
+                        font-size: 9px;
+                        letter-spacing: 1.05px;
                     }
                     
                     .hamburger-btn {
@@ -1165,11 +1225,7 @@ export default function UniversalHeader({
               className="header-img-btn header-nav-btn"
               aria-label={pageDepth >= 2 ? 'Go back' : 'Return to Hub'}
             >
-              <img
-                src={pageDepth >= 2 ? '/images/btn-back.png' : '/images/btn-hub-v4.png'}
-                alt={pageDepth >= 2 ? 'Back' : 'Hub'}
-                style={{ height: '100%', width: '100%', objectFit: 'contain' }}
-              />
+              <span aria-hidden="true">{pageDepth >= 2 ? 'Back' : 'Hub'}</span>
             </button>
           )}
         </div>
