@@ -18,6 +18,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { getAuthUser } from '../../src/lib/authUtils';
+import { supabase } from '../../src/lib/supabase';
 
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 // 2026-05-07 — UI-UX-Pro-Max icons (Lucide for tab icons + states)
@@ -323,6 +324,12 @@ export default function LeaderboardsPage() {
     useEffect(() => {
         const user = getAuthUser();
         if (user) setCurrentUser(user);
+        
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            setCurrentUser(session?.user || null);
+        });
+        
+        return () => subscription?.unsubscribe();
     }, []);
     const { filters, setFilter } = usePersistedFilters('leaderboards', { activeTab: 'overall', period: 'all' });
     const activeTab = filters.activeTab;

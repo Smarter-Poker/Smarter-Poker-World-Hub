@@ -24,12 +24,18 @@ const WorldHub = dynamic(
         console.warn('[HubPage] WorldHub module failed to load:', err);
         // Return a safe fallback module when the import itself throws
         return {
-            default: () => (
-                <div style={{ minHeight: '100vh', paddingBottom: BOTTOM_NAV_CLEARANCE, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', flexDirection: 'column', gap: 16 }}>
-                    <div style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 18 }}>World Hub — Reloading...</div>
-                    <button onClick={() => window.location.reload()} style={{ background: '#1877f2', color: '#fff', border: 'none', borderRadius: 20, padding: '10px 24px', cursor: 'pointer', fontFamily: 'inherit' }}>Refresh</button>
-                </div>
-            )
+            default: () => {
+                useEffect(() => {
+                    const timer = setTimeout(() => window.location.reload(), 3000);
+                    return () => clearTimeout(timer);
+                }, []);
+                return (
+                    <div style={{ minHeight: '100vh', paddingBottom: BOTTOM_NAV_CLEARANCE, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', flexDirection: 'column', gap: 16 }}>
+                        <div style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 18 }}>World Hub — Reloading...</div>
+                        <button onClick={() => window.location.reload()} style={{ background: '#1877f2', color: '#fff', border: 'none', borderRadius: 20, padding: '10px 24px', cursor: 'pointer', fontFamily: 'inherit' }}>Refresh</button>
+                    </div>
+                );
+            }
         };
     }),
     {
