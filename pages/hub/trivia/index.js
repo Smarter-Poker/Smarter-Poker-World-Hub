@@ -251,8 +251,10 @@ export default function TriviaHubPage() {
             <style>{`
                 .trivia-page {
                     min-height: 100vh; padding-bottom: 70px;
-                    background: url('/images/trivia/trivia-bg.webp?v=v5') center center / cover no-repeat fixed;
-                    background-color: #0a1628;
+                    background:
+                        radial-gradient(circle at 50% -12%, rgba(0, 148, 218, 0.18), transparent 34%),
+                        radial-gradient(circle at 8% 32%, rgba(20, 85, 120, 0.12), transparent 28%),
+                        linear-gradient(180deg, #02070a 0%, #010407 52%, #03040b 100%);
                     font-family: 'Inter', -apple-system, sans-serif;
                     position: relative;
                     width: 100%;
@@ -274,8 +276,12 @@ export default function TriviaHubPage() {
                     right: 0;
                     bottom: 0;
                     background:
-                        radial-gradient(ellipse at 30% 20%, rgba(14, 165, 233, 0.08), transparent 50%),
-                        radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.06), transparent 50%);
+                        linear-gradient(rgba(59, 146, 183, 0.025) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(59, 146, 183, 0.025) 1px, transparent 1px),
+                        radial-gradient(ellipse at 50% 15%, rgba(14, 165, 233, 0.08), transparent 48%),
+                        radial-gradient(ellipse at 74% 78%, rgba(78, 49, 141, 0.055), transparent 42%);
+                    background-size: 34px 34px, 34px 34px, auto, auto;
+                    opacity: 0.76;
                     pointer-events: none;
                 }
 
