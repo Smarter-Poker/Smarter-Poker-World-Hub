@@ -143,6 +143,7 @@ const VALID_SOURCES = ['PokerNews', 'MSPT', 'Card Player', 'WSOP', 'Poker.org', 
 // Sections reachable via ?tab= (hamburger menu deep links). 'bookmarks' and 'later'
 // are reached via ?filter= instead and are handled separately.
 const SECTION_TABS = ['news', 'reels', 'videos', 'events'];
+const NAV_SECTION_TABS = [...SECTION_TABS, 'later'];
 
 // Source accent colors for color-coded borders
 const SOURCE_COLORS = {
@@ -213,8 +214,41 @@ export default function NewsHub() {
 
     const activeTab = filters.activeTab;
     const activeSection = filters.activeSection;
+    // Bookmarks is a filtered News view, not a sixth rail destination.
+    const navActiveSection = NAV_SECTION_TABS.includes(activeSection) ? activeSection : 'news';
     const setActiveTab = (val) => setFilter('activeTab', val);
-    const setActiveSection = (val) => setFilter('activeSection', val);
+    const sectionTabRefs = useRef({});
+
+    // Keep the visible section, persisted preference, and address bar in sync.
+    // A selected section is therefore reload-safe, shareable, and compatible
+    // with the existing hamburger-menu deep-link contract.
+    const selectSection = (section) => {
+        if (!NAV_SECTION_TABS.includes(section)) return;
+        setFilter('activeSection', section);
+
+        const { tab: _tab, filter: _filter, ...restQuery } = router.query;
+        const query = { ...restQuery };
+        if (section === 'later') query.filter = 'later';
+        else if (section !== 'news') query.tab = section;
+
+        router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+    };
+
+    const handleSectionKeyDown = (event, section) => {
+        const currentIndex = NAV_SECTION_TABS.indexOf(section);
+        let nextIndex = currentIndex;
+
+        if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % NAV_SECTION_TABS.length;
+        else if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + NAV_SECTION_TABS.length) % NAV_SECTION_TABS.length;
+        else if (event.key === 'Home') nextIndex = 0;
+        else if (event.key === 'End') nextIndex = NAV_SECTION_TABS.length - 1;
+        else return;
+
+        event.preventDefault();
+        const nextSection = NAV_SECTION_TABS[nextIndex];
+        selectSection(nextSection);
+        requestAnimationFrame(() => sectionTabRefs.current[nextSection]?.focus());
+    };
 
     // The category-tab UI no longer exists, so a stale persisted category would
     // silently filter the feed with no visible control — snap it back to 'all'
@@ -442,6 +476,11 @@ export default function NewsHub() {
         const { source: _omit, ...restQuery } = router.query;
         const query = active.length === 1 ? { ...restQuery, source: active[0] } : restQuery;
         router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+    };
+    const clearSourceFilters = () => {
+        setSourceFilters({});
+        const { source: _source, ...restQuery } = router.query;
+        router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
     };
     const activeSourceFilters = Object.keys(sourceFilters || {}).filter(k => sourceFilters[k]);
 
@@ -1278,41 +1317,56 @@ export default function NewsHub() {
                             <div className="section-tabs" role="tablist" aria-label="News sections">
                                 <button
                                     role="tab"
-                                    aria-selected={activeSection === 'news'}
-                                    className={`section-tab ${activeSection === 'news' ? 'active' : ''}`}
-                                    onClick={() => setActiveSection('news')}
+                                    ref={(node) => { sectionTabRefs.current.news = node; }}
+                                    aria-selected={navActiveSection === 'news'}
+                                    tabIndex={navActiveSection === 'news' ? 0 : -1}
+                                    className={`section-tab ${navActiveSection === 'news' ? 'active' : ''}`}
+                                    onClick={() => selectSection('news')}
+                                    onKeyDown={(event) => handleSectionKeyDown(event, 'news')}
                                 >
                                     <Newspaper size={14} /> News
                                 </button>
                                 <button
                                     role="tab"
-                                    aria-selected={activeSection === 'reels'}
-                                    className={`section-tab ${activeSection === 'reels' ? 'active' : ''}`}
-                                    onClick={() => setActiveSection('reels')}
+                                    ref={(node) => { sectionTabRefs.current.reels = node; }}
+                                    aria-selected={navActiveSection === 'reels'}
+                                    tabIndex={navActiveSection === 'reels' ? 0 : -1}
+                                    className={`section-tab ${navActiveSection === 'reels' ? 'active' : ''}`}
+                                    onClick={() => selectSection('reels')}
+                                    onKeyDown={(event) => handleSectionKeyDown(event, 'reels')}
                                 >
                                     <Film size={14} /> Reels
                                 </button>
                                 <button
                                     role="tab"
-                                    aria-selected={activeSection === 'videos'}
-                                    className={`section-tab ${activeSection === 'videos' ? 'active' : ''}`}
-                                    onClick={() => setActiveSection('videos')}
+                                    ref={(node) => { sectionTabRefs.current.videos = node; }}
+                                    aria-selected={navActiveSection === 'videos'}
+                                    tabIndex={navActiveSection === 'videos' ? 0 : -1}
+                                    className={`section-tab ${navActiveSection === 'videos' ? 'active' : ''}`}
+                                    onClick={() => selectSection('videos')}
+                                    onKeyDown={(event) => handleSectionKeyDown(event, 'videos')}
                                 >
                                     <PlayCircle size={14} /> Videos
                                 </button>
                                 <button
                                     role="tab"
-                                    aria-selected={activeSection === 'events'}
-                                    className={`section-tab ${activeSection === 'events' ? 'active' : ''}`}
-                                    onClick={() => setActiveSection('events')}
+                                    ref={(node) => { sectionTabRefs.current.events = node; }}
+                                    aria-selected={navActiveSection === 'events'}
+                                    tabIndex={navActiveSection === 'events' ? 0 : -1}
+                                    className={`section-tab ${navActiveSection === 'events' ? 'active' : ''}`}
+                                    onClick={() => selectSection('events')}
+                                    onKeyDown={(event) => handleSectionKeyDown(event, 'events')}
                                 >
                                     <Calendar size={14} /> Events
                                 </button>
                                 <button
                                     role="tab"
-                                    aria-selected={activeSection === 'later'}
-                                    className={`section-tab ${activeSection === 'later' ? 'active' : ''}`}
-                                    onClick={() => setActiveSection('later')}
+                                    ref={(node) => { sectionTabRefs.current.later = node; }}
+                                    aria-selected={navActiveSection === 'later'}
+                                    tabIndex={navActiveSection === 'later' ? 0 : -1}
+                                    className={`section-tab ${navActiveSection === 'later' ? 'active' : ''}`}
+                                    onClick={() => selectSection('later')}
+                                    onKeyDown={(event) => handleSectionKeyDown(event, 'later')}
                                 >
                                     <Clock size={14} /> Read Later
                                 </button>
@@ -1360,10 +1414,16 @@ export default function NewsHub() {
                                     </button>
                                 ))}
                                 {activeSourceFilters.length > 0 && (
-                                    <button className="source-chip clear" onClick={() => setSourceFilters({})}>
+                                    <button className="source-chip clear" onClick={clearSourceFilters}>
                                         Clear
                                     </button>
                                 )}
+                            </div>
+
+                            <div className="wire-sr-only" role="status" aria-live="polite" aria-atomic="true">
+                                {activeSection === 'news'
+                                    ? `${filteredNews.length} news ${filteredNews.length === 1 ? 'story' : 'stories'} shown${activeSourceFilters.length ? ` from ${activeSourceFilters.join(', ')}` : ''}${searchQuery ? ` matching ${searchQuery}` : ''}.`
+                                    : `${activeSection === 'later' ? 'Read later' : activeSection} section selected.`}
                             </div>
 
                             {/* Phase 3: Search Bar + View Toggle Row */}
@@ -1422,10 +1482,10 @@ export default function NewsHub() {
                                     )}
                                 </div>
                                 <div className="view-toggle">
-                                    <button className={viewMode === 'grid' ? 'active' : ''} onClick={() => handleViewModeChange('grid')} title="Grid View">
+                                    <button className={viewMode === 'grid' ? 'active' : ''} onClick={() => handleViewModeChange('grid')} title="Grid View" aria-label="Show grid view" aria-pressed={viewMode === 'grid'}>
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
                                     </button>
-                                    <button className={viewMode === 'list' ? 'active' : ''} onClick={() => handleViewModeChange('list')} title="List View">
+                                    <button className={viewMode === 'list' ? 'active' : ''} onClick={() => handleViewModeChange('list')} title="List View" aria-label="Show list view" aria-pressed={viewMode === 'list'}>
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="1" y="12" width="14" height="2" rx="1"/></svg>
                                     </button>
                                     {bookmarks.length > 0 && (
@@ -1477,6 +1537,7 @@ export default function NewsHub() {
                                                         <NewsBox
                                                             article={article}
                                                             index={index}
+                                                            priority={index === 0}
                                                             onOpen={openArticle}
                                                             isBookmarked={bookmarks.includes(article.id)}
                                                             onBookmark={toggleBookmark}
@@ -1617,7 +1678,7 @@ export default function NewsHub() {
                                             </h2>
                                             <button
                                                 className="see-all-btn"
-                                                onClick={() => setActiveSection('reels')}
+                                                onClick={() => selectSection('reels')}
                                             >
                                                 See All <ChevronRight size={13} style={{ verticalAlign: '-2px' }} />
                                             </button>

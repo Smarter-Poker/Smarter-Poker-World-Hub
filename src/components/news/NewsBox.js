@@ -183,7 +183,7 @@ function NewsBoxFallback({ article }) {
     );
 }
 
-function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead }) {
+function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead, priority = false }) {
     // Read time: trust any positive stored value; otherwise estimate from real
     // content at ~200 wpm. When there is nothing to estimate, show no badge
     // rather than a fabricated number.
@@ -306,7 +306,8 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
                 <img
                     src={imageUrl}
                     alt={title || 'Poker news article'}
-                    loading="lazy"
+                    loading={priority ? 'eager' : 'lazy'}
+                    fetchPriority={priority ? 'high' : 'auto'}
                     decoding="async"
                     onError={(e) => {
                         // Try category fallback before giving up
@@ -727,6 +728,7 @@ export function areNewsBoxPropsEqual(prev, next) {
     if (prev.isBookmarked !== next.isBookmarked) return false;
     if (prev.isRead !== next.isRead) return false;
     if (prev.index !== next.index) return false;
+    if (prev.priority !== next.priority) return false;
 
     const a = prev.article;
     const b = next.article;
