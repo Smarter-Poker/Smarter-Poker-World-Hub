@@ -180,7 +180,11 @@ export default function PrizeWheel({
             // Errors are still surfaced rather than swallowed: a failed write
             // used to still call onComplete(), so the user saw a "+1 streak
             // shield" toast for an item that never persisted.
-            if (result.reward.type !== 'diamonds') {
+            // A server-resolved non-diamond prize was already inserted by
+            // fn_trivia_prize_wheel_spin in the same transaction as the roll.
+            // Granting it again here doubled every shield/ticket award.
+            // The client RPC remains only for the legacy local-roll fallback.
+            if (result.reward.type !== 'diamonds' && result.reward.serverResolved !== true) {
                 let _persistFailed = false;
                 try {
                     const { data: grant, error: rpcErr } = await supabase.rpc('fn_trivia_grant_item', {
