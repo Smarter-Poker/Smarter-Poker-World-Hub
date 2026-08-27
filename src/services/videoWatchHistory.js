@@ -95,25 +95,89 @@ export async function clearWatchHistory(userId) {
 }
 
 /**
+ * Remove one video from watch history.
+ * Used by the library's "Mark as unwatched" control so the change survives
+ * refreshes and stays consistent across devices.
+ */
+export async function removeFromWatchHistory(userId, videoId, aliases = []) {
+    const videoIds = [...new Set([videoId, ...aliases].filter(Boolean))];
+    const { data, error } = await supabase
+        .from('video_watch_history')
+        .delete()
+        .eq('user_id', userId)
+        .in('video_id', videoIds)
+        .select('id');
+
+    if (error) {
+        console.warn('Error removing video from watch history:', error);
+        throw error;
+    }
+
+    if (!data?.length) {
+        throw new Error('No matching watch-history record was removed.');
+    }
+
+    return true;
+}
+
+/**
  * Update watch duration for a video
  * Adds the new duration to the existing duration (cumulative)
  */
 export async function updateWatchDuration(userId, videoId, additionalSeconds, videoData = {}) {
+    const durationSeconds = Number(videoData.durationSeconds) || null;
+    const { data: rpcData, error: rpcError } = await supabase.rpc('record_video_watch_session', {
+        p_video_id: videoId,
+        p_additional_seconds: additionalSeconds,
+        p_video_title: videoData.title || null,
+        p_thumbnail_url: videoData.thumbnail || null,
+        p_duration_seconds: durationSeconds
+    });
+
+    if (!rpcError) {
+        const result = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+        const previousDuration = result?.previous_watch_duration_seconds || 0;
+        const newDuration = result?.watch_duration_seconds || previousDuration + additionalSeconds;
+        if (previousDuration < 300 && newDuration >= 300 && !rewardedVideoIds.has(videoId) && userId) {
+            rewardedVideoIds.add(videoId);
+            claimReward('/api/rewards/video-watch', { userId, videoId }, 'Watched a Video (5+ min)').catch(console.warn);
+        }
+        return result || null;
+    }
+
+    // Deployment-order fallback: older environments may not have the Phase 5
+    // RPC yet. Keep the existing path only for a genuinely missing function.
+    if (rpcError.code !== 'PGRST202' && rpcError.code !== '42883') {
+        console.warn('Error recording watch session:', rpcError);
+        throw rpcError;
+    }
+
     // Check if already exists
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupError } = await supabase
         .from('video_watch_history')
-        .select('id, watch_duration_seconds')
+        .select('id, watch_duration_seconds, progress_seconds, duration_seconds')
         .eq('user_id', userId)
         .eq('video_id', videoId)
         .maybeSingle();
 
+    if (lookupError) {
+        console.warn('Error checking watch history:', lookupError);
+        throw lookupError;
+    }
+
     if (existing) {
         // Update with additional duration
         const newDuration = (existing.watch_duration_seconds || 0) + additionalSeconds;
+        const videoDuration = Number(durationSeconds || existing.duration_seconds || 0);
+        const newProgress = videoDuration > 0
+            ? Math.min(videoDuration, (existing.progress_seconds || 0) + additionalSeconds)
+            : (existing.progress_seconds || 0) + additionalSeconds;
         const { data, error } = await supabase
             .from('video_watch_history')
             .update({
                 watch_duration_seconds: newDuration,
+                progress_seconds: newProgress,
+                duration_seconds: videoDuration || null,
                 watched_at: new Date().toISOString()
             })
             .eq('id', existing.id)
@@ -142,7 +206,11 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
             video_id: videoId,
             video_title: videoData.title || null,
             thumbnail_url: videoData.thumbnail || null,
-            watch_duration_seconds: additionalSeconds
+            watch_duration_seconds: additionalSeconds,
+            progress_seconds: videoData.durationSeconds
+                ? Math.min(Number(videoData.durationSeconds), additionalSeconds)
+                : additionalSeconds,
+            duration_seconds: Number(videoData.durationSeconds) || null
         })
         .select()
         .maybeSingle();
@@ -150,6 +218,11 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
     if (error) {
         console.warn('Error adding watch duration:', error);
         throw error;
+    }
+
+    if (additionalSeconds >= 300 && !rewardedVideoIds.has(videoId) && userId) {
+        rewardedVideoIds.add(videoId);
+        claimReward('/api/rewards/video-watch', { userId, videoId }, 'Watched a Video (5+ min)').catch(console.warn);
     }
 
     return data || null;
@@ -168,7 +241,7 @@ export async function getWatchedVideos(userId, minDuration = 60) {
 
     if (error) {
         console.warn('Error fetching watched videos:', error);
-        return new Set();
+        throw error;
     }
 
     return new Set((data || []).map(v => v.video_id));
@@ -181,19 +254,21 @@ export async function getWatchedVideos(userId, minDuration = 60) {
 export async function getWatchProgress(userId) {
     const { data, error } = await supabase
         .from('video_watch_history')
-        .select('video_id, watch_duration_seconds, watched_at')
+        .select('video_id, watch_duration_seconds, progress_seconds, duration_seconds, watched_at')
         .eq('user_id', userId)
         .order('watched_at', { ascending: false });
 
     if (error) {
         console.warn('Error fetching watch progress:', error);
-        return new Map();
+        throw error;
     }
 
     const progressMap = new Map();
     (data || []).forEach(v => {
         progressMap.set(v.video_id, {
-            watchedSeconds: v.watch_duration_seconds || 0,
+            watchedSeconds: v.progress_seconds || v.watch_duration_seconds || 0,
+            totalWatchedSeconds: v.watch_duration_seconds || 0,
+            durationSeconds: v.duration_seconds || 0,
             watchedAt: v.watched_at
         });
     });
@@ -215,7 +290,7 @@ export async function getRecentlyWatched(userId, limit = 10) {
 
     if (error) {
         console.warn('Error fetching recently watched:', error);
-        return [];
+        throw error;
     }
 
     return data || [];
@@ -256,4 +331,3 @@ export async function getWatchStats(userId) {
         averageWatchTimeSeconds
     };
 }
-

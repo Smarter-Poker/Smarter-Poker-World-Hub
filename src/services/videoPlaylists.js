@@ -9,7 +9,7 @@ export async function getVideoPlaylists(userId) {
     
     if (error) {
         console.warn('Error fetching playlists:', error);
-        return [];
+        throw error;
     }
     return data || [];
 }

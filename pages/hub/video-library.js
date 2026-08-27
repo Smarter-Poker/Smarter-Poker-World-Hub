@@ -19,12 +19,11 @@ const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMen
 import { getVideoLibraryPreferences, updateVideoLibraryPreferences } from '../../src/services/videoLibraryPreferences';
 import { getVideoFavorites, addVideoFavorite, removeVideoFavorite } from '../../src/services/videoFavorites';
 import { getWatchLater, addToWatchLater, removeFromWatchLater } from '../../src/services/videoWatchLater';
-import { updateWatchDuration, getWatchedVideos, getWatchProgress, getRecentlyWatched, getWatchStats } from '../../src/services/videoWatchHistory';
+import { updateWatchDuration, getWatchedVideos, getWatchProgress, getRecentlyWatched, removeFromWatchHistory } from '../../src/services/videoWatchHistory';
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { DiamondEngine } from '../../src/services/DiamondEngine';
 
 const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
 const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
@@ -64,10 +63,22 @@ function normaliseDbVideo(row) {
         publishedAt: row.published_at,
         scrapedAt: row.scraped_at,
         tags: Array.isArray(row.tags) ? row.tags : (row.tags || []),
+        legacyId: STATIC_VIDEO_CANONICAL_ALIASES.get(row.youtube_video_id) || null,
         // Sort key: prefer published_at when it's a real date (not today), else use scraped_at
         _sortKey: row.published_at,
     };
 }
+
+// Persistence uses YouTube's video ID as the canonical key. The legacy static
+// catalog used display-only aliases (hcl1, lodge1, ...), which orphaned saved
+// state whenever the database hydrated. Invalid FAKE placeholders are excluded
+// from the playable fallback catalog instead of producing guaranteed dead embeds.
+const STATIC_VIDEO_ALIASES = new Map(STATIC_VIDEOS.map(video => [video.id, video.videoId]));
+const STATIC_VIDEO_CANONICAL_ALIASES = new Map(STATIC_VIDEOS.map(video => [video.videoId, video.id]));
+const canonicalStoredVideoId = videoId => STATIC_VIDEO_ALIASES.get(videoId) || videoId;
+const STATIC_CATALOG = STATIC_VIDEOS
+    .filter(video => video.videoId && !String(video.videoId).startsWith('FAKE'))
+    .map(video => ({ ...video, legacyId: video.id, id: video.videoId, videoId: video.videoId }));
 
 const C = {
     bg: '#0a0a0a',
@@ -122,6 +133,60 @@ function keepRailButtonInView(button) {
     });
 }
 
+/** Copy text with a legacy fallback for browsers where Clipboard API is unavailable. */
+async function copyTextToClipboard(text) {
+    if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        return document.execCommand('copy');
+    } finally {
+        textarea.remove();
+    }
+}
+
+function getFocusableElements(container) {
+    if (!container) return [];
+    return [...container.querySelectorAll(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])'
+    )].filter(element => element.getClientRects().length > 0 && !element.closest('[aria-hidden="true"]'));
+}
+
+function containDialogFocus(event, container) {
+    if (event.key !== 'Tab') return;
+    const focusable = getFocusableElements(container);
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+    }
+}
+
+function recoverYouTubeThumbnail(event, videoId) {
+    const image = event.currentTarget;
+    if (event.type !== 'error' && image.naturalWidth > 120) return;
+    if (image.src.includes('maxresdefault')) {
+        image.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    } else if (image.src.includes('hqdefault')) {
+        image.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+    }
+}
+
 export default function VideoLibraryPage() {
     const router = useRouter();
     const { user } = useAvatar();
@@ -146,10 +211,10 @@ export default function VideoLibraryPage() {
     const setSelectedType = (val) => setFilter('selectedType', val);
 
     // Local state — initialise with static data instantly, then hydrate from DB
-    const [videos, setVideos] = useState(STATIC_VIDEOS);
+    const [videos, setVideos] = useState(STATIC_CATALOG);
     const [displayedCount, setDisplayedCount] = useState(30);
-    const [allVideos, setAllVideos] = useState(STATIC_VIDEOS); // unfiltered master list
-    const [dbLoaded, setDbLoaded] = useState(false);
+    const [allVideos, setAllVideos] = useState(STATIC_CATALOG); // unfiltered master list
+    const [catalogRefreshFailed, setCatalogRefreshFailed] = useState(false);
 
     // Fetch live videos from Supabase (replaces / extends static list)
     useEffect(() => {
@@ -158,6 +223,7 @@ export default function VideoLibraryPage() {
         let allDbVideos = [];
 
         async function fetchAllPages() {
+            setCatalogRefreshFailed(false);
             let from = 0;
             while (true) {
                 const { data, error } = await supabase
@@ -165,7 +231,9 @@ export default function VideoLibraryPage() {
                     .select('youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at, tags')
                     .order('scraped_at', { ascending: false })
                     .range(from, from + PAGE_SIZE - 1);
-                if (cancelled || error || !data || data.length === 0) break;
+                if (cancelled) return;
+                if (error) throw error;
+                if (!data || data.length === 0) break;
                 allDbVideos = allDbVideos.concat(data.map(normaliseDbVideo));
                 if (data.length < PAGE_SIZE) break; // last page
                 from += PAGE_SIZE;
@@ -179,14 +247,16 @@ export default function VideoLibraryPage() {
             }
             const dbIds = seen;
             // Include any static-only videos not yet in DB (safety net fallback)
-            const staticOnly = STATIC_VIDEOS.filter(v => !dbIds.has(v.videoId));
+            const staticOnly = STATIC_CATALOG.filter(v => !dbIds.has(v.videoId));
             const merged = [...deduped, ...staticOnly];
             setAllVideos(merged);
             setVideos(merged);
-            setDbLoaded(true);
         }
 
-        fetchAllPages();
+        fetchAllPages().catch(error => {
+            console.warn('Video catalog refresh failed; using static fallback:', error);
+            if (!cancelled) setCatalogRefreshFailed(true);
+        });
         return () => { cancelled = true; };
     }, []);
 
@@ -196,36 +266,68 @@ export default function VideoLibraryPage() {
     // Stable ref so the early query-param useEffect can call handleOpenVideo
     // without putting it in the dependency array (avoids TDZ in minified output)
     const handleOpenVideoRef = useRef(null);
+    const handleCloseVideoRef = useRef(null);
+    const saveWatchSessionRef = useRef(null);
+    const openedQueryVideoRef = useRef(null);
+    const hadNavigationQueryRef = useRef(false);
     useEffect(() => {
+        if (!router.isReady) return;
+
+        const hasNavigationQuery = Boolean(router.query.type || router.query.source || router.query.filter);
+        if (!hasNavigationQuery && hadNavigationQueryRef.current) {
+            setSelectedType('ALL');
+            setSelectedSource('ALL');
+            setLibraryFilter('ALL');
+            setSearchQuery('');
+        }
+        hadNavigationQueryRef.current = hasNavigationQuery;
+
         if (router.query.type) {
             // 2026-08-15: was .toUpperCase(), which produced 'CASH'/'TOURNAMENT'
             // and never matched v.type — the DB CHECK constraint stores these
             // lowercase. Every ?type= deep link (two hamburger-menu entries and
             // the sitemap links) landed on an empty "No Videos Found" page.
-            setSelectedType(router.query.type.toLowerCase());
+            const requestedType = String(router.query.type).toLowerCase();
+            if (['all', 'cash', 'tournament'].includes(requestedType)) {
+                setSelectedType(requestedType === 'all' ? 'ALL' : requestedType);
+            }
         }
         if (router.query.source) {
-            setSelectedSource(router.query.source.toUpperCase());
+            const requestedSource = String(router.query.source).toUpperCase();
+            if (requestedSource === 'ALL' || SOURCES.some(source => source?.id === requestedSource)) {
+                setSelectedSource(requestedSource);
+            }
         }
         if (router.query.filter) {
-            const f = String(router.query.filter).toLowerCase();
+            const requestedFilter = Array.isArray(router.query.filter) ? router.query.filter[0] : router.query.filter;
+            const f = String(requestedFilter).toLowerCase();
             if (f === 'favorites' || f === 'history' || f === 'watchlater') {
                 setLibraryFilter(f);
             } else {
-                setSearchQuery(router.query.filter);
+                setSearchQuery(String(requestedFilter));
             }
         }
         // ?v=VIDEO_ID — auto-open a specific video
         if (router.query.v && allVideos.length > 0) {
-            const target = allVideos.find(v => v.videoId === router.query.v);
-            if (target && handleOpenVideoRef.current) handleOpenVideoRef.current(target);
+            const requestedVideoId = String(router.query.v);
+            const target = allVideos.find(v => v.videoId === requestedVideoId);
+            if (target && openedQueryVideoRef.current !== requestedVideoId && handleOpenVideoRef.current) {
+                openedQueryVideoRef.current = requestedVideoId;
+                handleOpenVideoRef.current(target);
+            }
+        } else {
+            openedQueryVideoRef.current = null;
         }
-    }, [router.query, allVideos]);
+    }, [router.isReady, router.query, allVideos]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showReelsModal, setShowReelsModal] = useState(false);
     const searchInputRef = useRef(null);
+    const reelsDialogRef = useRef(null);
+    const reelsTriggerRef = useRef(null);
     const modalOverlayRef = useRef(null); // ref for native fullscreen
+    const playerIframeRef = useRef(null);
     const modalCloseButtonRef = useRef(null);
+    const viewerFocusInitializedRef = useRef(false);
     const videoTriggerRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
     const [iframeKey, setIframeKey] = useState(0); // bump to force iframe remount (guarantees autoplay)
@@ -251,6 +353,10 @@ export default function VideoLibraryPage() {
     const [newPlaylistName, setNewPlaylistName] = useState('');
     const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false); // loading state for playlist creation
     const [playlistActionError, setPlaylistActionError] = useState(null); // error feedback
+    const createPlaylistButtonRef = useRef(null);
+    const playlistDialogRef = useRef(null);
+    const playlistNameInputRef = useRef(null);
+    const playlistTriggerRef = useRef(null);
     const [watchLater, setWatchLater] = useState(new Set());
     // 2026-08-15: the three "My Library" hamburger entries
     // (?filter=favorites|history|watchlater) previously fell into a handler
@@ -261,9 +367,8 @@ export default function VideoLibraryPage() {
     const [libraryFilter, setLibraryFilter] = useState('ALL');
     const [watchedVideos, setWatchedVideos] = useState(new Set()); // Videos watched 60+ seconds
     const [watchProgress, setWatchProgress] = useState(new Map()); // video_id → { watchedSeconds, watchedAt }
+    const watchProgressRef = useRef(new Map());
     const [recentlyWatched, setRecentlyWatched] = useState([]); // Recently watched videos
-    const [watchStats, setWatchStats] = useState(null); // User's watch statistics
-    const [showStats, setShowStats] = useState(false); // Stats modal visibility
 
     // ── P3: Sort mode — 'default' | 'trending' | 'top_rated' ─────────────────
     const [sortMode, setSortMode] = useState('default');
@@ -287,10 +392,23 @@ export default function VideoLibraryPage() {
     }, [allVideos]); // ← stable dep: only recomputes when the video list changes
 
 
-    // Share toast (copy-to-clipboard feedback)
-    const [shareToast, setShareToast] = useState(null); // { message, videoId }
+    // Command-status notice for copy, save, favorite, and history feedback.
+    const [shareToast, setShareToast] = useState(null); // { message, videoId, tone, kind }
     const [ttsOverlay, setTtsOverlay] = useState(null); // Train This Spot in-place overlay { ctx, games }
+    const ttsDialogRef = useRef(null);
+    const ttsCloseButtonRef = useRef(null);
+    const ttsTriggerRef = useRef(null);
     const shareToastTimer = useRef(null);
+    const pendingVideoActionsRef = useRef(new Set());
+    const showActionNotice = useCallback((message, { videoId = null, tone = 'success', kind = 'action' } = {}) => {
+        if (shareToastTimer.current) clearTimeout(shareToastTimer.current);
+        setShareToast({ message, videoId, tone, kind });
+        shareToastTimer.current = setTimeout(() => setShareToast(null), 2800);
+    }, []);
+
+    useEffect(() => {
+        watchProgressRef.current = watchProgress;
+    }, [watchProgress]);
 
     // Video modal HUD (heart/comment/share/save) — tap to show, auto-hides
     const [vlHudVisible, setVlHudVisible] = useState(false);
@@ -304,36 +422,36 @@ export default function VideoLibraryPage() {
     // "New This Week" rail dismiss state
     const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
 
+    const isPlayerPlayingRef = useRef(false);
+    const handlePlayerStateChange = useCallback((state) => {
+        if (state === 1) {
+            isPlayerPlayingRef.current = true;
+            watchSessionUserIdRef.current = userId || null;
+            if (currentWatchingVideoRef.current && !watchStartTimeRef.current) watchStartTimeRef.current = Date.now();
+            return;
+        }
+        if (state === 0 || state === 2) {
+            isPlayerPlayingRef.current = false;
+            const startTime = watchStartTimeRef.current;
+            const video = currentWatchingVideoRef.current;
+            watchStartTimeRef.current = null;
+            if (startTime && video) void saveWatchSessionRef.current?.(startTime, video, { quiet: true });
+        }
+    }, [userId]);
+
+    const handleManagedPlayerError = useCallback(() => {
+        handleCloseVideoRef.current?.();
+    }, []);
+
     // Centralized YouTube error management for video library player
     const { ytError: vlYtManaged, thumbnailUrl: vlThumbnailUrl } = useYouTubeErrorManager({
         active: !!selectedVideo,
         videoId: selectedVideo?.videoId || null,
         surface: 'VideoLibrary',
         autoActionDelay: 3000,
-        onError: () => {
-            // BUG-19 FIX: flush watch time + restore scroll on YT error close
-            // (previously only closed modal, leaving scroll locked at video position)
-            if (watchStartTimeRef.current && currentWatchingVideoRef.current && userId) {
-                const watchedSeconds = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
-                const video = currentWatchingVideoRef.current;
-                watchStartTimeRef.current = null;
-                currentWatchingVideoRef.current = null;
-                if (watchedSeconds > 0) {
-                    updateWatchDuration(userId, video.id, watchedSeconds, {
-                        title: video.title,
-                        url: `https://youtube.com/watch?v=${video.videoId}`,
-                        thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
-                    }).catch(() => {});
-                }
-            } else {
-                watchStartTimeRef.current = null;
-                currentWatchingVideoRef.current = null;
-            }
-            setSelectedVideo(null);
-            if (typeof window !== 'undefined' && savedScrollY.current > 0) {
-                requestAnimationFrame(() => window.scrollTo({ top: savedScrollY.current, behavior: 'instant' }));
-            }
-        },
+        onStateChange: handlePlayerStateChange,
+        iframeRef: playerIframeRef,
+        onError: handleManagedPlayerError,
     });
 
 
@@ -342,7 +460,7 @@ export default function VideoLibraryPage() {
     // Infinite scroll observer — created once, uses functional updater so no dep on videos.length
     const loadMoreRef = useRef(null);
     useEffect(() => {
-        if (!loadMoreRef.current) return;
+        if (displayedCount >= videos.length || !loadMoreRef.current) return;
         const sentinel = loadMoreRef.current;
         const observer = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting) {
@@ -352,19 +470,18 @@ export default function VideoLibraryPage() {
         }, { rootMargin: '400px' });
         observer.observe(sentinel);
         return () => observer.disconnect();
-    }, []); // [] — sentinel DOM node never changes, functional updater avoids stale closure
+    }, [displayedCount, videos.length]);
 
     // Reset displayed count when filters OR sort mode changes
     useEffect(() => {
         setDisplayedCount(30);
     // BUG-18 FIX: sortMode added — switching Trending/Top-Rated/Latest now resets pagination
-    }, [selectedSource, selectedType, searchQuery, sortMode]);
-
-    const timeTrackingInterval = useRef(null); // keep for watch-time ticking
+    }, [selectedSource, selectedType, searchQuery, sortMode, libraryFilter]);
 
     // Watch time tracking
     const watchStartTimeRef = useRef(null);
     const currentWatchingVideoRef = useRef(null);
+    const watchSessionUserIdRef = useRef(null);
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
@@ -379,83 +496,106 @@ export default function VideoLibraryPage() {
 
     // Attempt to unmute video after it starts playing
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // TIER 3 REALTIME: Video Library Updates (P3: also syncs watchProgress Map)
-    // ═══════════════════════════════════════════════════════════════════════════
+    // Load user-owned state on sign-in and refresh it when the page regains focus.
+    // The relevant tables are intentionally not in the production Realtime
+    // publication, so focus refresh is the reliable cross-device sync point.
     useEffect(() => {
-        if (!userId) return;
+        let cancelled = false;
+        let refreshInFlight = false;
+        let lastRefreshAt = 0;
 
-        const videoLibraryChannel = supabase
-            .channel(`video-library:${userId}`)
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                // FIX: was 'user_video_watch_history' — actual table is 'video_watch_history'
-                // (confirmed in src/services/videoWatchHistory.js). Wrong name = RT never fires.
-                table: 'video_watch_history',
-                filter: `user_id=eq.${userId}`
-            }, () => {
-                // Reload watch stats, recently watched, AND watch progress map (cross-device sync)
-                getWatchStats(userId).then(stats => setWatchStats(stats));
-                getRecentlyWatched(userId, 10).then(recent => setRecentlyWatched(recent));
-                getWatchProgress(userId).then(progressMap => setWatchProgress(progressMap)).catch(() => {});
-            })
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'video_favorites',
-                filter: `user_id=eq.${userId}`
-            }, () => {
-                getVideoPlaylists(userId).then(setPlaylists).catch(err => console.warn('Playlists error:', err));
-                getVideoFavorites(userId).then(data => {
-                    setFavorites(new Set((data || []).map(v => v.video_id)));
-                });
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(videoLibraryChannel);
+        const clearUserLibrary = () => {
+            setFavorites(new Set());
+            setWatchLater(new Set());
+            setWatchedVideos(new Set());
+            setWatchProgress(new Map());
+            watchProgressRef.current = new Map();
+            setRecentlyWatched([]);
+            setPlaylists([]);
         };
-    }, [userId]);
 
-    // Load preferences from Supabase on mount
-    useEffect(() => {
-        if (userId) {
-            getVideoLibraryPreferences(userId).then(setPreferences);
-
-            // Load favorites and watch later lists
-            getVideoFavorites(userId).then(data => {
-                setFavorites(new Set(data.map(v => v.video_id)));
-            }).catch(err => console.warn('Error loading favorites:', err));
-
-            getWatchLater(userId).then(data => {
-                setWatchLater(new Set(data.map(v => v.video_id)));
-            }).catch(err => console.warn('Error loading watch later:', err));
-
-            // Load watched videos (30+ second threshold - lowered for better feedback)
-            getWatchedVideos(userId, 30).then(watchedSet => {
-                setWatchedVideos(watchedSet);
-            }).catch(err => console.warn('Error loading watched videos:', err));
-
-            // Load watch progress for progress bars
-            getWatchProgress(userId).then(progressMap => {
-                setWatchProgress(progressMap);
-            }).catch(err => console.warn('Error loading watch progress:', err));
-
-            // Load recently watched for carousel
-            getRecentlyWatched(userId, 10).then(recent => {
-                setRecentlyWatched(recent);
-            }).catch(err => console.warn('Error loading recently watched:', err));
-
-            // Load watch stats
-            getWatchStats(userId).then(stats => {
-                setWatchStats(stats);
-            }).catch(err => console.warn('Error loading watch stats:', err));
+        if (!userId) {
+            setPreferences({ autoplay: true, hdQuality: true, captions: false });
+            clearUserLibrary();
+            return undefined;
         }
-    }, [userId]);
+
+        clearUserLibrary();
+
+        const refreshUserLibrary = async () => {
+            const now = Date.now();
+            if (refreshInFlight || now - lastRefreshAt < 500) return;
+            refreshInFlight = true;
+            lastRefreshAt = now;
+            const results = await Promise.allSettled([
+                getVideoLibraryPreferences(userId),
+                getVideoFavorites(userId),
+                getWatchLater(userId),
+                getWatchedVideos(userId, 30),
+                getWatchProgress(userId),
+                getRecentlyWatched(userId, 10),
+                getVideoPlaylists(userId),
+            ]);
+            refreshInFlight = false;
+            if (cancelled) return;
+
+            const [preferenceResult, favoriteResult, laterResult, watchedResult, progressResult, recentResult, playlistResult] = results;
+            if (preferenceResult.status === 'fulfilled') setPreferences(preferenceResult.value);
+            if (favoriteResult.status === 'fulfilled') setFavorites(new Set(favoriteResult.value.map(item => canonicalStoredVideoId(item.video_id))));
+            if (laterResult.status === 'fulfilled') setWatchLater(new Set(laterResult.value.map(item => canonicalStoredVideoId(item.video_id))));
+            if (watchedResult.status === 'fulfilled') setWatchedVideos(new Set([...watchedResult.value].map(canonicalStoredVideoId)));
+            if (progressResult.status === 'fulfilled') {
+                const canonicalProgress = new Map();
+                progressResult.value.forEach((progress, videoId) => {
+                    const canonicalId = canonicalStoredVideoId(videoId);
+                    const existing = canonicalProgress.get(canonicalId);
+                    if (!existing || progress.watchedSeconds > existing.watchedSeconds) canonicalProgress.set(canonicalId, progress);
+                });
+                setWatchProgress(canonicalProgress);
+                watchProgressRef.current = canonicalProgress;
+            }
+            if (recentResult.status === 'fulfilled') {
+                const seenRecent = new Set();
+                setRecentlyWatched(recentResult.value.map(item => ({ ...item, video_id: canonicalStoredVideoId(item.video_id) })).filter(item => {
+                    if (seenRecent.has(item.video_id)) return false;
+                    seenRecent.add(item.video_id);
+                    return true;
+                }));
+            }
+            if (playlistResult.status === 'fulfilled') setPlaylists(playlistResult.value);
+            if (results.some(result => result.status === 'rejected')) {
+                showActionNotice('Some saved library data could not be refreshed. Try again.', { tone: 'error' });
+            }
+        };
+
+        void refreshUserLibrary();
+        const refreshOnVisible = () => {
+            if (document.visibilityState === 'visible') void refreshUserLibrary();
+        };
+        window.addEventListener('focus', refreshUserLibrary);
+        document.addEventListener('visibilitychange', refreshOnVisible);
+        return () => {
+            cancelled = true;
+            if (watchSessionUserIdRef.current === userId) {
+                const startTime = watchStartTimeRef.current;
+                const video = currentWatchingVideoRef.current;
+                watchStartTimeRef.current = null;
+                currentWatchingVideoRef.current = null;
+                watchSessionUserIdRef.current = null;
+                isPlayerPlayingRef.current = false;
+                if (startTime && video) {
+                    void saveWatchSessionRef.current?.(startTime, video, { quiet: true, sessionUserId: userId });
+                }
+                setSelectedVideo(null);
+            }
+            window.removeEventListener('focus', refreshUserLibrary);
+            document.removeEventListener('visibilitychange', refreshOnVisible);
+        };
+    }, [userId, setSelectedVideo, showActionNotice]);
 
     // Hamburger menu handlers - save to Supabase
     const updatePreference = useCallback(async (key, value) => {
+        const previousValue = preferences[key];
         // BUG-C FIX: use functional setState so rapid toggles never read stale preferences
         setPreferences(prev => ({ ...prev, [key]: value }));
 
@@ -464,73 +604,196 @@ export default function VideoLibraryPage() {
                 await updateVideoLibraryPreferences(userId, { [key]: value });
             } catch (error) {
                 console.warn('Failed to save preference:', error);
+                setPreferences(prev => ({ ...prev, [key]: previousValue }));
+                showActionNotice('Player setting was not saved. Try again.', { tone: 'error' });
             }
         }
-    }, [userId]);
+    }, [userId, preferences, showActionNotice]);
 
     const menuConfig = getMenuConfig('video-library', user, preferences, {
         setAutoplay: (val) => updatePreference('autoplay', val),
-        setHdQuality: (val) => updatePreference('hdQuality', val),
         setCaptions: (val) => updatePreference('captions', val)
     });
 
     // Content tracking handlers
     const toggleFavorite = useCallback(async (video) => {
-        if (!userId) return;
+        if (!userId) {
+            showActionNotice('Sign in to favorite videos.', { videoId: video.videoId, tone: 'info' });
+            return false;
+        }
 
         const videoId = video.id;
-        if (favorites.has(videoId)) {
-            await removeVideoFavorite(userId, videoId);
+        const actionKey = `favorite:${videoId}`;
+        if (pendingVideoActionsRef.current.has(actionKey)) return false;
+        pendingVideoActionsRef.current.add(actionKey);
+        const wasFavorite = favorites.has(videoId);
+
+        setFavorites(prev => {
+            const next = new Set(prev);
+            if (wasFavorite) next.delete(videoId); else next.add(videoId);
+            return next;
+        });
+
+        try {
+            if (wasFavorite) {
+                await removeVideoFavorite(userId, videoId, video.legacyId ? [video.legacyId] : []);
+            } else {
+                await addVideoFavorite(userId, videoId, {
+                    title: video.title,
+                    source: video.source,
+                    video_url: `https://youtube.com/watch?v=${video.videoId}`
+                });
+            }
+            showActionNotice(wasFavorite ? 'Removed from favorites.' : 'Added to favorites.', { videoId: video.videoId });
+            return true;
+        } catch (error) {
             setFavorites(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(videoId);
-                return newSet;
+                const next = new Set(prev);
+                if (wasFavorite) next.add(videoId); else next.delete(videoId);
+                return next;
             });
-        } else {
-            await addVideoFavorite(userId, videoId, {
-                title: video.title,
-                source: video.source,
-                video_url: `https://youtube.com/watch?v=${video.videoId}`
-            });
-            setFavorites(prev => new Set(prev).add(videoId));
+            showActionNotice('Favorite was not saved. Try again.', { videoId: video.videoId, tone: 'error' });
+            return false;
+        } finally {
+            pendingVideoActionsRef.current.delete(actionKey);
         }
-    }, [userId, favorites]);
+    }, [userId, favorites, showActionNotice]);
 
     const toggleWatchLater = useCallback(async (video) => {
-        if (!userId) return;
+        if (!userId) {
+            showActionNotice('Sign in to save videos.', { videoId: video.videoId, tone: 'info' });
+            return false;
+        }
 
         const videoId = video.id;
-        if (watchLater.has(videoId)) {
-            await removeFromWatchLater(userId, videoId);
+        const actionKey = `watch-later:${videoId}`;
+        if (pendingVideoActionsRef.current.has(actionKey)) return false;
+        pendingVideoActionsRef.current.add(actionKey);
+        const wasSaved = watchLater.has(videoId);
+
+        setWatchLater(prev => {
+            const next = new Set(prev);
+            if (wasSaved) next.delete(videoId); else next.add(videoId);
+            return next;
+        });
+
+        try {
+            if (wasSaved) {
+                await removeFromWatchLater(userId, videoId, video.legacyId ? [video.legacyId] : []);
+            } else {
+                await addToWatchLater(userId, videoId, {
+                    title: video.title,
+                    source: video.source,
+                    video_url: `https://youtube.com/watch?v=${video.videoId}`
+                });
+            }
+            showActionNotice(wasSaved ? 'Removed from Watch Later.' : 'Saved to Watch Later.', { videoId: video.videoId });
+            return true;
+        } catch (error) {
             setWatchLater(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(videoId);
-                return newSet;
+                const next = new Set(prev);
+                if (wasSaved) next.add(videoId); else next.delete(videoId);
+                return next;
             });
-        } else {
-            await addToWatchLater(userId, videoId, {
-                title: video.title,
-                source: video.source,
-                video_url: `https://youtube.com/watch?v=${video.videoId}`
-            });
-            setWatchLater(prev => new Set(prev).add(videoId));
+            showActionNotice('Watch Later was not updated. Try again.', { videoId: video.videoId, tone: 'error' });
+            return false;
+        } finally {
+            pendingVideoActionsRef.current.delete(actionKey);
         }
-    }, [userId, watchLater]);
+    }, [userId, watchLater, showActionNotice]);
+
+    const saveWatchSession = useCallback(async (startTime, video, { quiet = false, sessionUserId = watchSessionUserIdRef.current } = {}) => {
+        const effectiveUserId = sessionUserId || userId;
+        if (!startTime || !video || !effectiveUserId) return false;
+        const watchedSeconds = Math.floor((Date.now() - startTime) / 1000);
+        if (watchedSeconds <= 0) return false;
+
+        const previousWatched = watchProgressRef.current.get(video.id)?.watchedSeconds || 0;
+        const totalWatched = previousWatched + watchedSeconds;
+
+        try {
+            const savedSession = await updateWatchDuration(effectiveUserId, video.id, watchedSeconds, {
+                title: video.title,
+                url: `https://youtube.com/watch?v=${video.videoId}`,
+                thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`,
+                durationSeconds: parseDuration(video.duration)
+            });
+            const persistedProgress = Number(savedSession?.progress_seconds);
+            const persistedTotal = Number(savedSession?.watch_duration_seconds);
+            const nextProgress = Number.isFinite(persistedProgress)
+                ? persistedProgress
+                : totalWatched;
+
+            setWatchProgress(prev => {
+                const next = new Map(prev);
+                const current = next.get(video.id) || {};
+                next.set(video.id, {
+                    ...current,
+                    watchedSeconds: Math.max(current.watchedSeconds || 0, nextProgress),
+                    totalWatchedSeconds: Math.max(current.totalWatchedSeconds || 0, Number.isFinite(persistedTotal) ? persistedTotal : totalWatched),
+                    durationSeconds: parseDuration(video.duration) || current.durationSeconds || 0,
+                    watchedAt: new Date().toISOString()
+                });
+                watchProgressRef.current = next;
+                return next;
+            });
+            const confirmedTotal = Math.max(totalWatched, Number.isFinite(persistedTotal) ? persistedTotal : 0);
+            if (confirmedTotal >= 30) setWatchedVideos(prev => new Set(prev).add(video.id));
+            getRecentlyWatched(effectiveUserId, 10)
+                .then(recent => setRecentlyWatched(recent))
+                .catch(() => {
+                    setRecentlyWatched(prev => [{
+                        video_id: video.id,
+                        video_title: video.title,
+                        watch_duration_seconds: confirmedTotal,
+                        watched_at: new Date().toISOString()
+                    }, ...prev.filter(item => item.video_id !== video.id)].slice(0, 10));
+                });
+
+            return true;
+        } catch (error) {
+            console.warn('Error saving watch duration:', error);
+            if (!quiet) showActionNotice('Watch progress was not saved. Try again.', { videoId: video.videoId, tone: 'error' });
+            return false;
+        }
+    }, [userId, showActionNotice]);
 
     // Navigate to a specific video in the current filtered list
     const handleOpenVideo = useCallback(async (video) => {
-        if (!currentWatchingVideoRef.current && typeof document !== 'undefined') {
+        const hadActiveSession = Boolean(currentWatchingVideoRef.current);
+        if (currentWatchingVideoRef.current?.id === video.id) return;
+        if (hadActiveSession && watchStartTimeRef.current) {
+            const previousVideo = currentWatchingVideoRef.current;
+            const previousStartTime = watchStartTimeRef.current;
+            watchStartTimeRef.current = null;
+            currentWatchingVideoRef.current = null;
+            void saveWatchSession(previousStartTime, previousVideo);
+        }
+        if (!hadActiveSession && typeof document !== 'undefined') {
             const activeElement = document.activeElement;
             videoTriggerRef.current = activeElement instanceof HTMLElement && activeElement !== document.body
                 ? activeElement
                 : null;
         }
         savedScrollY.current = typeof window !== 'undefined' ? window.scrollY : 0;
-        watchStartTimeRef.current = Date.now();
+        watchStartTimeRef.current = null;
         currentWatchingVideoRef.current = video;
+        isPlayerPlayingRef.current = false;
         setSelectedVideo(video);
         setIframeKey(k => k + 1); // force iframe remount → guaranteed autoplay
-    }, []);
+    }, [saveWatchSession]);
+    useEffect(() => { saveWatchSessionRef.current = saveWatchSession; }, [saveWatchSession]);
+    useEffect(() => () => {
+        const startTime = watchStartTimeRef.current;
+        const video = currentWatchingVideoRef.current;
+        watchStartTimeRef.current = null;
+        currentWatchingVideoRef.current = null;
+        isPlayerPlayingRef.current = false;
+        iframeUnmuteTimers.current.forEach(clearTimeout);
+        iframeUnmuteTimers.current = [];
+        if (startTime && video) void saveWatchSessionRef.current?.(startTime, video, { quiet: true });
+        setSelectedVideo(null);
+    }, [setSelectedVideo]);
 
     const handleVideoCardKeyDown = useCallback((event, video) => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -544,6 +807,10 @@ export default function VideoLibraryPage() {
     const handleNextVideo = useCallback(() => {
         if (!selectedVideo || videos.length === 0) return;
         const idx = videos.findIndex(v => v.videoId === selectedVideo.videoId);
+        if (idx < 0) {
+            handleOpenVideo(videos[0]);
+            return;
+        }
         const next = videos[(idx + 1) % videos.length];
         handleOpenVideo(next);
     }, [selectedVideo, videos, handleOpenVideo]);
@@ -552,6 +819,10 @@ export default function VideoLibraryPage() {
     const handlePrevVideo = useCallback(() => {
         if (!selectedVideo || videos.length === 0) return;
         const idx = videos.findIndex(v => v.videoId === selectedVideo.videoId);
+        if (idx < 0) {
+            handleOpenVideo(videos[videos.length - 1]);
+            return;
+        }
         const prev = videos[(idx - 1 + videos.length) % videos.length];
         handleOpenVideo(prev);
     }, [selectedVideo, videos, handleOpenVideo]);
@@ -566,7 +837,7 @@ export default function VideoLibraryPage() {
             el.webkitRequestFullscreen?.() ||
             el.mozRequestFullScreen?.();
         } else {
-            document.exitFullscreen?.();
+            document.exitFullscreen?.() || document.webkitExitFullscreen?.();
         }
     }, []);
 
@@ -581,101 +852,16 @@ export default function VideoLibraryPage() {
 
 
     // Handle closing a video - save watch duration
-    const handleCloseVideo = useCallback(async () => {
+    const handleCloseVideo = useCallback(() => {
         // BUG-J FIX: guard against double-save (Escape + close button simultaneously).
         // Null the refs BEFORE the await so a concurrent call exits immediately.
-        if (!watchStartTimeRef.current || !currentWatchingVideoRef.current || !userId) {
-            watchStartTimeRef.current = null;
-            currentWatchingVideoRef.current = null;
-            setSelectedVideo(null);
-            setVlHudVisible(false);
-            clearTimeout(vlHudTimer.current);
-            if (typeof window !== 'undefined' && savedScrollY.current > 0) {
-                requestAnimationFrame(() => window.scrollTo({ top: savedScrollY.current, behavior: 'instant' }));
-            }
-            restoreVideoTriggerFocus();
-            return;
-        }
         const startTime = watchStartTimeRef.current;
         const video = currentWatchingVideoRef.current;
-        // Clear refs IMMEDIATELY to prevent concurrent call from re-entering
         watchStartTimeRef.current = null;
         currentWatchingVideoRef.current = null;
 
-        if (true) { // scoping block (was if (watchStartTimeRef.current...))
-            const watchedSeconds = Math.floor((Date.now() - startTime) / 1000);
-
-
-            if (watchedSeconds > 0) {
-                try {
-                    await updateWatchDuration(userId, video.id, watchedSeconds, {
-                        title: video.title,
-                        url: `https://youtube.com/watch?v=${video.videoId}`,
-                        thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
-                    });
-
-                    // Update progress for immediate UI feedback
-                    setWatchProgress(prev => {
-                        const newMap = new Map(prev);
-                        const existing = newMap.get(video.id) || { watchedSeconds: 0 };
-                        newMap.set(video.id, {
-                            watchedSeconds: (existing.watchedSeconds || 0) + watchedSeconds,
-                            watchedAt: new Date().toISOString()
-                        });
-                        return newMap;
-                    });
-
-                    // Refresh recentlyWatched from DB for cross-session accuracy (fire-and-forget)
-                    if (watchedSeconds >= 30) {
-                        getRecentlyWatched(userId, 10)
-                            .then(recent => setRecentlyWatched(recent))
-                            .catch(() => {
-                                // Fallback: optimistic local update
-                                setRecentlyWatched(prev => {
-                                    const filtered = prev.filter(v => v.video_id !== video.id);
-                                    return [{
-                                        video_id: video.id,
-                                        video_title: video.title,
-                                        watch_duration_seconds: (watchProgress.get(video.id)?.watchedSeconds || 0) + watchedSeconds,
-                                        watched_at: new Date().toISOString()
-                                    }, ...filtered].slice(0, 10);
-                                });
-                            });
-                    }
-
-                    // Update stats
-                    setWatchStats(prev => prev ? {
-                        ...prev,
-                        totalWatchTimeSeconds: prev.totalWatchTimeSeconds + watchedSeconds
-                    } : prev);
-
-                    // If user watched 30+ seconds, add to watched set for immediate UI update
-                    const previousWatched = watchProgress.get(video.id)?.watchedSeconds || 0;
-                    const totalWatched = previousWatched + watchedSeconds;
-
-                    if (totalWatched >= 30) {
-                        setWatchedVideos(prev => new Set(prev).add(video.id));
-
-                        // Award diamonds if this is the first time crossing the 30s threshold
-                        if (previousWatched < 30) {
-                            try {
-                                await DiamondEngine.init(userId);
-                                await DiamondEngine.award(2, 'video_watch', {
-                                    description: `Watched: ${video.title.substring(0, 50)}...`,
-                                    reference_id: video.id
-                                });
-                            } catch (diamondErr) {
-                                console.warn('Failed to award diamonds for video watch:', diamondErr);
-                            }
-                        }
-                    }
-                } catch (err) {
-                    console.warn('Error saving watch duration:', err);
-                }
-            }
-        } // end scoping block
-
-        // Refs already cleared above — just clean up UI
+        // Close immediately; persistence continues without trapping the user in
+        // the viewer on a slow network.
         // BUG-K FIX: cancel in-flight iframe unmute timers before iframe unmounts
         iframeUnmuteTimers.current.forEach(clearTimeout);
         iframeUnmuteTimers.current = [];
@@ -688,23 +874,52 @@ export default function VideoLibraryPage() {
             requestAnimationFrame(() => window.scrollTo({ top: savedScrollY.current, behavior: 'instant' }));
         }
         restoreVideoTriggerFocus();
-    }, [userId, watchProgress, restoreVideoTriggerFocus]);
+        if (router.query.v) {
+            const { v: _videoQuery, ...nextQuery } = router.query;
+            openedQueryVideoRef.current = null;
+            void router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false });
+        }
+        void saveWatchSession(startTime, video);
+    }, [saveWatchSession, restoreVideoTriggerFocus, router]);
+    useEffect(() => { handleCloseVideoRef.current = handleCloseVideo; }, [handleCloseVideo]);
 
     // Share a video — copy deep-link to clipboard and show toast
-    const handleShareVideo = useCallback((video) => {
-        if (shareToastTimer.current) clearTimeout(shareToastTimer.current);
+    const handleShareVideo = useCallback(async (video) => {
         const url = `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}/hub/video-library?v=${video.videoId}`;
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(url).catch(() => {});
+        try {
+            const copied = await copyTextToClipboard(url);
+            if (!copied) throw new Error('Copy command was rejected');
+            showActionNotice('Video link copied.', { videoId: video.videoId, kind: 'share' });
+        } catch (error) {
+            showActionNotice('Link could not be copied. Try again.', { videoId: video.videoId, tone: 'error' });
         }
-        setShareToast({ message: 'Link copied!', videoId: video.videoId });
-        shareToastTimer.current = setTimeout(() => setShareToast(null), 2500);
-    }, []);
+    }, [showActionNotice]);
 
-    // Mark a video as unwatched (remove from watchedVideos set)
-    const handleMarkUnwatched = useCallback((videoId) => {
-        setWatchedVideos(prev => { const s = new Set(prev); s.delete(videoId); return s; });
-    }, []);
+    // Mark a video as unwatched and remove its persisted history/progress record.
+    const handleMarkUnwatched = useCallback(async (video) => {
+        if (!userId) return;
+        const videoId = video.id;
+        const actionKey = `history:${videoId}`;
+        if (pendingVideoActionsRef.current.has(actionKey)) return;
+        pendingVideoActionsRef.current.add(actionKey);
+
+        try {
+            await removeFromWatchHistory(userId, videoId, video.legacyId ? [video.legacyId] : []);
+            setWatchedVideos(prev => { const next = new Set(prev); next.delete(videoId); return next; });
+            setWatchProgress(prev => {
+                const next = new Map(prev);
+                next.delete(videoId);
+                watchProgressRef.current = next;
+                return next;
+            });
+            setRecentlyWatched(prev => prev.filter(item => item.video_id !== videoId));
+            showActionNotice('Removed from watch history.', { videoId: video.videoId });
+        } catch (error) {
+            showActionNotice('Watch history was not updated. Try again.', { videoId: video.videoId, tone: 'error' });
+        } finally {
+            pendingVideoActionsRef.current.delete(actionKey);
+        }
+    }, [userId, showActionNotice]);
 
     // Filter videos (runs when any filter changes OR when DB data loads)
     useEffect(() => {
@@ -754,15 +969,33 @@ export default function VideoLibraryPage() {
     // Keyboard navigation in modal
     useEffect(() => {
         const handleKey = (e) => {
+            if (showPlaylistModal) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setShowPlaylistModal(null);
+                    setPlaylistActionError(null);
+                }
+                return;
+            }
+            if (ttsOverlay) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setTtsOverlay(null);
+                }
+                return;
+            }
             if (!selectedVideo) return;
-            if (e.key === 'Escape') handleCloseVideo();
-            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') handleNextVideo();
-            if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   handlePrevVideo();
-            if (e.key === 'f' || e.key === 'F') handleFullscreen();
+            const target = e.target;
+            if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target?.isContentEditable) return;
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            if (e.key === 'Escape') { e.preventDefault(); handleCloseVideo(); }
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); handleNextVideo(); }
+            if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') { e.preventDefault(); handlePrevVideo(); }
+            if (e.key === 'f' || e.key === 'F') { e.preventDefault(); handleFullscreen(); }
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [selectedVideo, handleCloseVideo, handleNextVideo, handlePrevVideo, handleFullscreen]);
+    }, [selectedVideo, showPlaylistModal, ttsOverlay, handleCloseVideo, handleNextVideo, handlePrevVideo, handleFullscreen]);
 
     // Slash is the command shortcut for search when no overlay is active.
     useEffect(() => {
@@ -788,37 +1021,81 @@ export default function VideoLibraryPage() {
     // Treat the full-screen viewer as a true modal: lock background scrolling,
     // place focus on Close, and keep keyboard focus inside until it is dismissed.
     useEffect(() => {
-        if (!selectedVideo) return undefined;
+        if (!selectedVideo) {
+            viewerFocusInitializedRef.current = false;
+            return undefined;
+        }
 
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
-        const focusFrame = requestAnimationFrame(() => modalCloseButtonRef.current?.focus());
+        const focusFrame = !showPlaylistModal && !ttsOverlay && !viewerFocusInitializedRef.current
+            ? requestAnimationFrame(() => {
+                modalCloseButtonRef.current?.focus();
+                viewerFocusInitializedRef.current = true;
+            })
+            : null;
 
         const containFocus = (event) => {
-            if (event.key !== 'Tab' || !modalOverlayRef.current) return;
-            const focusable = [...modalOverlayRef.current.querySelectorAll(
-                'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])'
-            )].filter(element => element.getClientRects().length > 0 && !element.closest('[aria-hidden="true"]'));
-            if (focusable.length === 0) return;
-
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (event.shiftKey && document.activeElement === first) {
-                event.preventDefault();
-                last.focus();
-            } else if (!event.shiftKey && document.activeElement === last) {
-                event.preventDefault();
-                first.focus();
-            }
+            if (showPlaylistModal || ttsOverlay) return;
+            containDialogFocus(event, modalOverlayRef.current);
         };
 
+        document.addEventListener('keydown', containFocus);
+        return () => {
+            if (focusFrame) cancelAnimationFrame(focusFrame);
+            document.removeEventListener('keydown', containFocus);
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [selectedVideo, showPlaylistModal, ttsOverlay]);
+
+    useEffect(() => {
+        if (!showPlaylistModal) return undefined;
+        const focusFrame = requestAnimationFrame(() => playlistNameInputRef.current?.focus());
+        const containFocus = event => containDialogFocus(event, playlistDialogRef.current);
+        document.addEventListener('keydown', containFocus);
+        return () => {
+            cancelAnimationFrame(focusFrame);
+            document.removeEventListener('keydown', containFocus);
+            requestAnimationFrame(() => playlistTriggerRef.current?.focus({ preventScroll: true }));
+        };
+    }, [showPlaylistModal]);
+
+    useEffect(() => {
+        if (!ttsOverlay) return undefined;
+        const focusFrame = requestAnimationFrame(() => ttsCloseButtonRef.current?.focus());
+        const containFocus = event => containDialogFocus(event, ttsDialogRef.current);
+        document.addEventListener('keydown', containFocus);
+        return () => {
+            cancelAnimationFrame(focusFrame);
+            document.removeEventListener('keydown', containFocus);
+            requestAnimationFrame(() => ttsTriggerRef.current?.focus({ preventScroll: true }));
+        };
+    }, [ttsOverlay]);
+
+    useEffect(() => {
+        if (!showReelsModal) return undefined;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        const focusFrame = requestAnimationFrame(() => {
+            const firstControl = getFocusableElements(reelsDialogRef.current)[0];
+            (firstControl || reelsDialogRef.current)?.focus();
+        });
+        const containFocus = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setShowReelsModal(false);
+                return;
+            }
+            containDialogFocus(event, reelsDialogRef.current);
+        };
         document.addEventListener('keydown', containFocus);
         return () => {
             cancelAnimationFrame(focusFrame);
             document.removeEventListener('keydown', containFocus);
             document.body.style.overflow = previousOverflow;
+            requestAnimationFrame(() => reelsTriggerRef.current?.focus({ preventScroll: true }));
         };
-    }, [selectedVideo]);
+    }, [showReelsModal]);
 
     // Get YouTube thumbnail
     const getThumbnail = (videoId) => `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
@@ -858,7 +1135,7 @@ export default function VideoLibraryPage() {
                 progress: getProgressPercent(video.id, video.duration),
             };
         })
-        .filter(Boolean), [recentlyWatched, allVideos, getProgressPercent]);
+        .filter(entry => entry && entry.progress > 0 && entry.progress < 95), [recentlyWatched, allVideos, getProgressPercent]);
 
     // ── P3: Related Videos — same source first, then tag overlap, max 8 ──────
     // useMemo: only recomputes when selectedVideo or allVideos changes.
@@ -907,9 +1184,6 @@ export default function VideoLibraryPage() {
     // Cleanup HUD timer on unmount
     useEffect(() => () => { if (vlHudTimer.current) clearTimeout(vlHudTimer.current); }, []);
 
-    // Cleanup interval on unmount
-    useEffect(() => () => { if (timeTrackingInterval.current) clearInterval(timeTrackingInterval.current); }, []);
-
     // ── BUG-I FIX: Flush pending watch time on tab hide / browser close ──────────
     // Without this, a user closing the tab mid-video loses all watch time because
     // handleCloseVideo never runs. visibilitychange fires reliably on mobile too.
@@ -919,31 +1193,30 @@ export default function VideoLibraryPage() {
             if (pendingFlushRef.current) return; // debounce double-fire
             if (!watchStartTimeRef.current || !currentWatchingVideoRef.current || !userId) return;
             pendingFlushRef.current = true;
-            const watchedSeconds = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
+            const startTime = watchStartTimeRef.current;
             const video = currentWatchingVideoRef.current;
-            // Fire-and-forget via service — if page is unloading, supabase will try its best
-            if (watchedSeconds > 0) {
-                // Optimistic: reset refs immediately
-                watchStartTimeRef.current = null;
-                currentWatchingVideoRef.current = null;
-                // Fire-and-forget via service — if page is unloading, supabase will try its best
-                updateWatchDuration(userId, video.id, watchedSeconds, {
-                    title: video.title,
-                    url: `https://youtube.com/watch?v=${video.videoId}`,
-                    thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
-                }).catch(() => {});
-            }
+            watchStartTimeRef.current = null;
+            currentWatchingVideoRef.current = null;
+            void saveWatchSession(startTime, video, { quiet: true });
             // Reset debounce after 2s
             setTimeout(() => { pendingFlushRef.current = false; }, 2000);
         };
-        const onHide = () => { if (document.visibilityState === 'hidden') flushWatchTime(); };
-        document.addEventListener('visibilitychange', onHide);
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                flushWatchTime();
+            } else if (selectedVideo && isPlayerPlayingRef.current && !currentWatchingVideoRef.current) {
+                pendingFlushRef.current = false;
+                currentWatchingVideoRef.current = selectedVideo;
+                watchStartTimeRef.current = Date.now();
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibilityChange);
         window.addEventListener('beforeunload', flushWatchTime);
         return () => {
-            document.removeEventListener('visibilitychange', onHide);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
             window.removeEventListener('beforeunload', flushWatchTime);
         };
-    }, [userId]);
+    }, [userId, selectedVideo, saveWatchSession]);
 
     const activeSourceName = SOURCES.find(source => source?.id === selectedSource)?.name || selectedSource;
     const activeFilterLabels = [
@@ -996,6 +1269,11 @@ export default function VideoLibraryPage() {
         setSelectedType('ALL');
         setSortMode('default');
         setLibraryFilter('ALL');
+        if (router.query.type || router.query.source || router.query.filter) {
+            const { type: _type, source: _source, filter: _filter, ...nextQuery } = router.query;
+            hadNavigationQueryRef.current = false;
+            void router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false });
+        }
     };
 
     const handleEmptyStateAction = () => {
@@ -1009,6 +1287,13 @@ export default function VideoLibraryPage() {
             document.querySelector('.vl-card-open-button')?.focus();
         });
     };
+
+    const selectedVideoProgress = selectedVideo
+        ? getProgressPercent(selectedVideo.id, selectedVideo.duration)
+        : 0;
+    const selectedVideoResumeSeconds = selectedVideo && selectedVideoProgress > 0 && selectedVideoProgress < 95
+        ? Math.floor(watchProgress.get(selectedVideo.id)?.watchedSeconds || 0)
+        : 0;
 
     return (
         <PageTransition>
@@ -1156,6 +1441,7 @@ export default function VideoLibraryPage() {
                         {/* Reels Button — opens TikTok doom-scroll */}
                         <span className="vl-filter-group-label">Format</span>
                         <button
+                            ref={reelsTriggerRef}
                             type="button"
                             id="vl-reels-tab-btn"
                             className="vl-filter-button vl-reels-button"
@@ -1478,8 +1764,13 @@ export default function VideoLibraryPage() {
                                         <div style={{ position: 'relative', aspectRatio: '16/9' }}>
                                             <img
                                                 src={getThumbnail(video.videoId)}
-                                                alt={video.title}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />
+                                                alt=""
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                loading="lazy"
+                                                decoding="async"
+                                                onLoad={event => recoverYouTubeThumbnail(event, video.videoId)}
+                                                onError={event => recoverYouTubeThumbnail(event, video.videoId)}
+                                            />
                                             {/* Resume play button */}
                                             <div className="vl-continuity-play" style={{
                                                 position: 'absolute',
@@ -1570,7 +1861,7 @@ export default function VideoLibraryPage() {
                                     onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
                                 >
                                     <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
-                                        <img src={getThumbnail(video.videoId)} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />
+                                        <img src={getThumbnail(video.videoId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, video.videoId)} onError={event => recoverYouTubeThumbnail(event, video.videoId)} />
                                         <div style={{ position: 'absolute', top: 6, left: 6, background: '#00D4FF', color: '#fff', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, letterSpacing: '0.5px' }}>NEW</div>
                                         {video.duration && (
                                             <div style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.8)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{video.duration}</div>
@@ -1587,14 +1878,18 @@ export default function VideoLibraryPage() {
                 )}
 
                 {/* Video Grid */}
+                {catalogRefreshFailed && (
+                    <div className="vl-catalog-notice" role="status">
+                        Live catalog refresh is temporarily unavailable. Showing the verified fallback library.
+                    </div>
+                )}
                 <span className="vl-sr-only" role="status" aria-live="polite">
-                    {!dbLoaded ? 'Loading poker videos' : `${videos.length} videos available`}
+                    {`${videos.length} videos available`}
                 </span>
                 <div
                     id="video-library-grid"
                     className="vl-video-grid"
                     aria-label="Poker videos"
-                    aria-busy={!dbLoaded}
                     style={{
                     maxWidth: 1400,
                     margin: '0 auto',
@@ -1602,17 +1897,7 @@ export default function VideoLibraryPage() {
                     gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
                     gap: 20,
                 }}>
-                    {/* Skeleton loading cards while DB fetch runs */}
-                    {!dbLoaded && Array.from({ length: 12 }).map((_, i) => (
-                        <div key={`sk-${i}`} aria-hidden="true" className="metal-frame video-card-metal vl-video-card vl-skeleton-card" style={{ cursor: 'default' }}>
-                            <div className="vl-video-thumb vl-skeleton-thumb" style={{ aspectRatio: '16/9', background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite' }} />
-                            <div style={{ padding: 16 }}>
-                                <div style={{ height: 14, width: '85%', borderRadius: 6, background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite', marginBottom: 8 }} />
-                                <div style={{ height: 14, width: '55%', borderRadius: 6, background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite' }} />
-                            </div>
-                        </div>
-                    ))}
-                    {dbLoaded && videos.slice(0, Math.min(displayedCount, videos.length)).map((video, index) => {
+                    {videos.slice(0, Math.min(displayedCount, videos.length)).map((video, index) => {
                         const progress = getProgressPercent(video.id, video.duration);
                         const roundedProgress = Math.round(progress);
                         const openLabel = progress > 0 && progress < 95 ? 'Resume' : 'Play';
@@ -1638,9 +1923,9 @@ export default function VideoLibraryPage() {
                             }}>
                                 <img
                                     src={getThumbnail(video.videoId)}
-                                    alt={video.title}
+                                        alt=""
                                     loading={index === 0 ? 'eager' : 'lazy'}
-                                    fetchpriority={index === 0 ? 'high' : 'auto'}
+                                    fetchPriority={index === 0 ? 'high' : 'auto'}
                                     decoding="async"
                                     style={{
                                         width: '100%',
@@ -1683,7 +1968,7 @@ export default function VideoLibraryPage() {
                                         className="vl-watched-badge"
                                         aria-label={`Mark ${video.title} as unwatched`}
                                         title="Mark as unwatched"
-                                        onClick={e => { e.stopPropagation(); handleMarkUnwatched(video.id); }}
+                                        onClick={e => { e.stopPropagation(); void handleMarkUnwatched(video); }}
                                         style={{
                                             position: 'absolute',
                                             top: 8,
@@ -1826,10 +2111,10 @@ export default function VideoLibraryPage() {
                                         title="Copy link"
                                         onClick={e => { e.stopPropagation(); handleShareVideo(video); }}
                                         style={{
-                                            background: shareToast?.videoId === video.videoId ? 'rgba(52,199,89,0.2)' : 'rgba(255,255,255,0.06)',
-                                            border: shareToast?.videoId === video.videoId ? '1px solid rgba(52,199,89,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                                            background: shareToast?.kind === 'share' && shareToast?.tone === 'success' && shareToast?.videoId === video.videoId ? 'rgba(52,199,89,0.2)' : 'rgba(255,255,255,0.06)',
+                                            border: shareToast?.kind === 'share' && shareToast?.tone === 'success' && shareToast?.videoId === video.videoId ? '1px solid rgba(52,199,89,0.5)' : '1px solid rgba(255,255,255,0.1)',
                                             borderRadius: 8,
-                                            color: shareToast?.videoId === video.videoId ? '#34C759' : 'rgba(255,255,255,0.5)',
+                                            color: shareToast?.kind === 'share' && shareToast?.tone === 'success' && shareToast?.videoId === video.videoId ? '#34C759' : 'rgba(255,255,255,0.5)',
                                             padding: '5px 10px',
                                             fontSize: 11,
                                             fontWeight: 600,
@@ -1840,7 +2125,7 @@ export default function VideoLibraryPage() {
                                             gap: 4,
                                         }}
                                     >
-                                        {shareToast?.videoId === video.videoId ? '✓ Copied' : '⎘ Share'}
+                                        {shareToast?.kind === 'share' && shareToast?.tone === 'success' && shareToast?.videoId === video.videoId ? '✓ Copied' : '⎘ Share'}
                                     </button>
                                 </div>
                             </div>
@@ -1855,8 +2140,8 @@ export default function VideoLibraryPage() {
                 )}
 
                 {/* No results */}
-                {dbLoaded && videos.length === 0 && (
-                    <div className="vl-empty-state" role="status">
+                {videos.length === 0 && (
+                    <div className="vl-empty-state">
                         <div className="vl-empty-signal" aria-hidden="true"><span /></div>
                         <span className="vl-empty-kicker">{emptyState.eyebrow}</span>
                         <h3>{emptyState.title}</h3>
@@ -1878,7 +2163,7 @@ export default function VideoLibraryPage() {
                     color: C.textSec,
                     fontSize: 14,
                 }}>
-                    Showing {videos.length} of {allVideos.length} videos
+                    Showing {Math.min(displayedCount, videos.length)} of {videos.length} matching · {allVideos.length} total
                 </div>
                 </main>
                 </div>
@@ -2021,7 +2306,10 @@ export default function VideoLibraryPage() {
                     )}
 
                     {/* YouTube embed — takes FULL viewport on mobile */}
-                    <div style={{
+                    <div
+                        onMouseMove={!isTouchDevice ? vlRevealHud : undefined}
+                        onFocusCapture={!isTouchDevice ? vlRevealHud : undefined}
+                        style={{
                         flex: 1,
                         width: '100%',
                         minHeight: 0,
@@ -2048,9 +2336,9 @@ export default function VideoLibraryPage() {
                                 }}
                                 style={{
                                     position: 'absolute',
-                                    top: 0, left: 0,
+                                    top: 0, bottom: 64, left: 0,
                                     width: '15%',
-                                    height: '100%',
+                                    height: 'auto',
                                     zIndex: 5,
                                     background: 'transparent',
                                     WebkitTapHighlightColor: 'transparent',
@@ -2072,9 +2360,9 @@ export default function VideoLibraryPage() {
                                 }}
                                 style={{
                                     position: 'absolute',
-                                    top: 0, right: 0,
+                                    top: 0, bottom: 64, right: 0,
                                     width: '15%',
-                                    height: '100%',
+                                    height: 'auto',
                                     zIndex: 5,
                                     background: 'transparent',
                                     WebkitTapHighlightColor: 'transparent',
@@ -2110,20 +2398,7 @@ export default function VideoLibraryPage() {
                                 aria-pressed={favorites.has(selectedVideo?.id || selectedVideo?.videoId)}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    if (!userId || !selectedVideo) return;
-                                    const videoId = selectedVideo.id || selectedVideo.videoId;
-                                    if (favorites.has(videoId)) {
-                                        setFavorites(prev => { const s = new Set(prev); s.delete(videoId); return s; });
-                                        removeVideoFavorite(userId, videoId).catch(() => {});
-                                    } else {
-                                        setFavorites(prev => new Set([...prev, videoId]));
-                                        // BUG-B FIX: pass full metadata so DB columns are not null
-                                        addVideoFavorite(userId, videoId, {
-                                            title: selectedVideo?.title || '',
-                                            source: selectedVideo?.source || '',
-                                            video_url: `https://youtube.com/watch?v=${selectedVideo?.videoId || videoId}`
-                                        }).catch(() => {});
-                                    }
+                                    if (selectedVideo) void toggleFavorite(selectedVideo);
                                     vlRevealHud(); // reset auto-hide timer
                                 }}
                                 title="Like"
@@ -2191,15 +2466,7 @@ export default function VideoLibraryPage() {
                                 aria-pressed={watchLater.has(selectedVideo?.id || selectedVideo?.videoId)}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    if (!userId || !selectedVideo) return;
-                                    const videoId = selectedVideo.id || selectedVideo.videoId;
-                                    if (watchLater.has(videoId)) {
-                                        setWatchLater(prev => { const s = new Set(prev); s.delete(videoId); return s; });
-                                        removeFromWatchLater(userId, videoId).catch(() => {});
-                                    } else {
-                                        setWatchLater(prev => new Set([...prev, videoId]));
-                                        addToWatchLater(userId, videoId).catch(() => {});
-                                    }
+                                    if (selectedVideo) void toggleWatchLater(selectedVideo);
                                     vlRevealHud();
                                 }}
                                 title="Save"
@@ -2226,12 +2493,50 @@ export default function VideoLibraryPage() {
                                     {watchLater.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Saved' : 'Save'}
                                 </span>
                             </button>
+
+                            {/* Playlist */}
+                            <button
+                                ref={playlistTriggerRef}
+                                type="button"
+                                aria-label="Save video to a playlist"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    if (!userId) {
+                                        showActionNotice('Sign in to use playlists.', { videoId: selectedVideo.videoId, tone: 'info' });
+                                    } else {
+                                        setPlaylistActionError(null);
+                                        setShowPlaylistModal(selectedVideo);
+                                    }
+                                    vlRevealHud();
+                                }}
+                                title="Playlist"
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                                    padding: 0,
+                                }}
+                            >
+                                <div style={{
+                                    width: 52, height: 52, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.6)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: '1.5px solid rgba(255,255,255,0.25)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                        <path d="M4 6h16M4 12h10M4 18h8" />
+                                        <path d="M18 15v6M15 18h6" />
+                                    </svg>
+                                </div>
+                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Playlist</span>
+                            </button>
                         </div>
 
                         <iframe
+                            ref={playerIframeRef}
                             key={iframeKey}
                             id="youtube-player"
-                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&mute=${isTouchDevice ? 0 : 1}&rel=0&modestbranding=1&fs=1&iv_load_policy=3&showinfo=0&enablejsapi=1&playsinline=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
+                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=${preferences.autoplay === false ? 0 : 1}&start=${selectedVideoResumeSeconds}&mute=${isTouchDevice ? 0 : 1}&rel=0&fs=1&iv_load_policy=3&enablejsapi=1&playsinline=1&cc_load_policy=${preferences.captions ? 1 : 0}&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
                             title={selectedVideo.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                             allowFullScreen
@@ -2255,12 +2560,6 @@ export default function VideoLibraryPage() {
                                             } catch { /* best-effort */ }
                                         }, d));
                                     }
-                                    iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
-                                        try {
-                                            win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                            win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                        } catch { /* best-effort */ }
-                                    }, d));
                                 } catch { /* best-effort */ }
                             }}
                             style={{
@@ -2324,6 +2623,7 @@ export default function VideoLibraryPage() {
                                 </span>
                                 {/* ── Train This Spot — in-place overlay ── */}
                                 <button
+                                    ref={ttsTriggerRef}
                                     onClick={() => {
                                         const tags = Array.isArray(selectedVideo.tags)
                                             ? selectedVideo.tags.filter(t => t && t.trim())
@@ -2418,10 +2718,12 @@ export default function VideoLibraryPage() {
                                             <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
                                                 <img
                                                     src={getThumbnail(v.videoId)}
-                                                    alt={v.title}
+                                                    alt=""
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                     loading="lazy"
                                                     decoding="async"
+                                                    onLoad={event => recoverYouTubeThumbnail(event, v.videoId)}
+                                                    onError={event => recoverYouTubeThumbnail(event, v.videoId)}
                                                 />
                                                 {v.duration && (
                                                     <div style={{
@@ -2453,14 +2755,8 @@ export default function VideoLibraryPage() {
 
             {/* CSS */}
             <style>{`
-                div:hover .play-btn {
+                .vl-video-card:hover .play-btn {
                     opacity: 1 !important;
-                }
-
-                /* Skeleton shimmer animation */
-                @keyframes vl-shimmer {
-                    0%   { background-position: 200% 0; }
-                    100% { background-position: -200% 0; }
                 }
 
                 /* Train This Spot button pulse */
@@ -2481,11 +2777,9 @@ export default function VideoLibraryPage() {
                 /* Mobile + Tablet: absolute info bar, hide Up Next */
                 @media (max-width: 1024px) and (hover: none) and (pointer: coarse) {
                     .vl-info-bar {
-                        position: absolute !important;
-                        bottom: 0 !important;
-                        left: 0 !important;
-                        right: 0 !important;
+                        position: relative !important;
                         max-height: 140px !important;
+                        flex: 0 0 auto;
                         pointer-events: auto;
                         z-index: 6;
                     }
@@ -2496,11 +2790,9 @@ export default function VideoLibraryPage() {
                 /* Narrow screen fallback */
                 @media (max-width: 767px) {
                     .vl-info-bar {
-                        position: absolute !important;
-                        bottom: 0 !important;
-                        left: 0 !important;
-                        right: 0 !important;
+                        position: relative !important;
                         max-height: 140px !important;
+                        flex: 0 0 auto;
                         pointer-events: auto;
                         z-index: 6;
                     }
@@ -2532,11 +2824,11 @@ export default function VideoLibraryPage() {
                     }
                 }
             `}</style>
-              <BottomNavBar />
+              <BottomNavBar theme="dark" />
 
             {/* Reels Modal — full-screen TikTok doom-scroll */}
             {showReelsModal && (
-                <div style={{
+                <div ref={reelsDialogRef} role="dialog" aria-modal="true" aria-label="Video reels" tabIndex={-1} style={{
                     position: 'fixed', inset: 0,
                     zIndex: 9999,
                     background: '#000',
@@ -2549,44 +2841,53 @@ export default function VideoLibraryPage() {
 
             {/* Share Toast \u2014 floating clipboard feedback */}
             {shareToast && (
-                <div style={{
+                <div
+                    className={`vl-action-notice vl-action-notice--${shareToast.tone}`}
+                    role={shareToast.tone === 'error' ? 'alert' : 'status'}
+                    aria-live={shareToast.tone === 'error' ? 'assertive' : 'polite'}
+                    style={{
                     position: 'fixed',
                     bottom: 90,
                     left: '50%',
                     transform: 'translateX(-50%)',
                     background: 'rgba(30,30,30,0.95)',
                     backdropFilter: 'blur(12px)',
-                    border: '1px solid rgba(52,199,89,0.5)',
-                    color: '#34C759',
                     fontSize: 14,
                     fontWeight: 700,
                     padding: '12px 24px',
                     borderRadius: 12,
-                    zIndex: 9999,
+                    zIndex: 10001,
                     boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
                     animation: 'fadeInUp 0.2s ease',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
                 }}>
-                    <span>✓</span> Link Copied To Clipboard
+                    <span aria-hidden="true">{shareToast.tone === 'error' ? '!' : shareToast.tone === 'info' ? 'i' : '✓'}</span>
+                    {shareToast.message}
                 </div>
             )}
     
             {/* Playlist Modal */}
             {showPlaylistModal && (
-                <div style={{
+                <div role="presentation" style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0,0,0,0.8)', zIndex: 10000,
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }} onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}>
-                    <div style={{
+                    <div
+                        ref={playlistDialogRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="vl-playlist-title"
+                        style={{
                         background: '#1C1C1E', padding: 24, borderRadius: 16, width: '90%', maxWidth: 400,
                         border: '1px solid #333'
                     }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                            <h3 style={{ margin: 0, color: 'white', fontSize: 17, fontWeight: 700 }}>Save to Playlist</h3>
+                            <h3 id="vl-playlist-title" style={{ margin: 0, color: 'white', fontSize: 17, fontWeight: 700 }}>Save to Playlist</h3>
                             <button onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}
+                                type="button" aria-label="Close playlist dialog"
                                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', padding: 0 }}>×</button>
                         </div>
                         <div style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 16 }}>
@@ -2618,7 +2919,9 @@ export default function VideoLibraryPage() {
                                                 } else {
                                                     await addVideoToPlaylist(p.id, showPlaylistModal.videoId, showPlaylistModal.title, showPlaylistModal.source);
                                                 }
-                                                getVideoPlaylists(userId).then(setPlaylists);
+                                                const refreshedPlaylists = await getVideoPlaylists(userId);
+                                                setPlaylists(refreshedPlaylists);
+                                                showActionNotice(inPlaylist ? 'Removed from playlist.' : 'Added to playlist.', { videoId: showPlaylistModal.videoId });
                                             } catch (err) {
                                                 setPlaylistActionError('Action failed. Please try again.');
                                             }
@@ -2642,14 +2945,17 @@ export default function VideoLibraryPage() {
                         )}
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input
+                                ref={playlistNameInputRef}
                                 value={newPlaylistName}
                                 onChange={e => setNewPlaylistName(e.target.value)}
-                                onKeyDown={async (e) => { if (e.key === 'Enter' && newPlaylistName.trim() && !isCreatingPlaylist) { e.preventDefault(); e.currentTarget.blur(); } }}
+                                onKeyDown={(e) => { if (e.key === 'Enter' && newPlaylistName.trim() && !isCreatingPlaylist) { e.preventDefault(); createPlaylistButtonRef.current?.click(); } }}
                                 placeholder="New playlist name..."
                                 disabled={isCreatingPlaylist}
                                 style={{ flex: 1, padding: '9px 12px', borderRadius: 8, background: '#000', border: '1px solid #444', color: 'white', fontSize: 14, opacity: isCreatingPlaylist ? 0.6 : 1 }}
                             />
                             <button
+                                ref={createPlaylistButtonRef}
+                                type="button"
                                 onClick={async () => {
                                     if (!newPlaylistName.trim() || isCreatingPlaylist) return;
                                     setIsCreatingPlaylist(true);
@@ -2658,7 +2964,9 @@ export default function VideoLibraryPage() {
                                         const p = await createPlaylist(userId, newPlaylistName.trim());
                                         await addVideoToPlaylist(p.id, showPlaylistModal.videoId, showPlaylistModal.title, showPlaylistModal.source);
                                         setNewPlaylistName('');
-                                        getVideoPlaylists(userId).then(setPlaylists);
+                                        const refreshedPlaylists = await getVideoPlaylists(userId);
+                                        setPlaylists(refreshedPlaylists);
+                                        showActionNotice('Playlist created and video added.', { videoId: showPlaylistModal.videoId });
                                     } catch (err) {
                                         setPlaylistActionError('Failed to create playlist. Please try again.');
                                     } finally {
@@ -2683,19 +2991,19 @@ export default function VideoLibraryPage() {
 
             {/* ── Train This Spot In-Place Overlay ── */}
             {ttsOverlay && (
-                <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9500, animation: 'tts-sheet-up 0.32s cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                <div className="vl-tts-sheet" role="presentation" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9500, animation: 'tts-sheet-up 0.32s cubic-bezier(0.34,1.56,0.64,1) both' }}>
                     <div onClick={() => setTtsOverlay(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: -1 }} />
-                    <div style={{ background: 'linear-gradient(180deg, #0a0f1e, #060a14)', borderRadius: '20px 20px 0 0', border: '1px solid rgba(0,200,83,0.2)', borderBottom: 'none', maxHeight: '75vh', overflow: 'auto', boxShadow: '0 -10px 60px rgba(0,0,0,0.7), 0 0 40px rgba(0,200,83,0.08)' }}>
+                    <div ref={ttsDialogRef} role="dialog" aria-modal="true" aria-labelledby="vl-tts-title" style={{ background: 'linear-gradient(180deg, #0a0f1e, #060a14)', borderRadius: '20px 20px 0 0', border: '1px solid rgba(0,200,83,0.2)', borderBottom: 'none', maxHeight: '75vh', overflow: 'auto', boxShadow: '0 -10px 60px rgba(0,0,0,0.7), 0 0 40px rgba(0,200,83,0.08)' }}>
                         <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}><div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} /></div>
                         <div style={{ padding: '8px 20px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
                             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(0,200,83,0.3), rgba(0,150,60,0.15))', border: '1.5px solid rgba(0,200,83,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
                             </div>
                             <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 14, fontWeight: 800, color: '#34C759' }}>Train This Spot</div>
+                                <div id="vl-tts-title" style={{ fontSize: 14, fontWeight: 800, color: '#34C759' }}>Train This Spot</div>
                                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>AI-matched drills for this video</div>
                             </div>
-                            <button onClick={() => setTtsOverlay(null)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</button>
+                            <button ref={ttsCloseButtonRef} type="button" aria-label="Close training recommendations" onClick={() => setTtsOverlay(null)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</button>
                         </div>
                         <div style={{ padding: '0 20px 12px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                             <div style={{ width: 100, height: 56, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}>
