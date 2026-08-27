@@ -2446,6 +2446,13 @@ export default function VirtualSandbox() {
     const displayed = resultsOverride || results;
     const correctLabel = activeSpot?.correct_action || displayed?.optimalAction?.label || '';
     const isCorrect = correctLabel.length > 0 && gradeAction(guess, correctLabel);
+    // God Mode is a developer inspection tool. Its fabricated result can be
+    // previewed, but it must never alter quiz totals, SRS review queues, or the
+    // persisted leaderboard/accuracy history.
+    if (displayed?.forcedMode) {
+      toast('Forced result — drill score not recorded');
+      return;
+    }
     setQuizScore(prev => ({
       correct: prev.correct + (isCorrect ? 1 : 0),
       total: prev.total + 1,
@@ -2722,7 +2729,9 @@ export default function VirtualSandbox() {
   const isHistoricView = !!historicResults;
 
   const sourceBadge = displayResults ? (
-    displayResults.offline
+    displayResults.forcedMode
+      ? { bg: T.purpleSoft, border: T.purple, text: T.purple, label: 'Forced preview' }
+      : displayResults.offline
       ? { bg: T.warnSoft, border: T.warn, text: T.warn, label: 'Offline estimate' }
       : displayResults.matchTier <= 2 ? { bg: T.successSoft, border: T.success, text: T.success, label: 'PIO Verified' }
         : displayResults.matchTier === 3 ? { bg: T.warnSoft, border: T.warn, text: T.warn, label: 'PIO Approximated' }
@@ -3512,6 +3521,7 @@ export default function VirtualSandbox() {
               isMixed: false,
               ev: { hero: ev, heroDisplay: `${ev >= 0 ? '+' : ''}${ev.toFixed(2)} BB`, max: ev, min: ev, avg: ev, evLoss: 0 },
               matchTier: 4,
+              forcedMode: mock.forcedMode === true,
               source: 'God Mode Override',
               explanation: `Forced override: ${mock.optimalAction} at 100% (sizing ${mock.gtoSizing || 'N/A'}).`,
             });

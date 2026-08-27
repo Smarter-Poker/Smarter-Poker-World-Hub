@@ -172,6 +172,62 @@
   box-shadow: 0 0 10px #4de0a5;
 }
 
+.statusWarning {
+  border-color: #b9833d;
+  background: linear-gradient(#332413, #140d05);
+  color: #ffe0a6;
+}
+
+.statusWarning .statusDot {
+  background: #ffb84d;
+  box-shadow: 0 0 10px #ff9d2e;
+}
+
+.syncAlert {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin: -24px 0 42px;
+  padding: 14px 16px;
+  border: 1px solid #9b703b;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 20px, rgba(255, 181, 74, 0.035) 21px 22px),
+    linear-gradient(180deg, #241a0f, #0c0804);
+  box-shadow: inset 0 1px 0 rgba(255, 225, 181, 0.26), 0 10px 22px #000;
+}
+
+.syncAlertIcon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #a7793d;
+  color: #ffc66d;
+}
+
+.syncAlertCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.syncAlertCopy strong {
+  color: #fff2d8;
+  font: 700 12px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.syncAlertCopy small {
+  color: #bca98d;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.syncAlert .secondaryButton:disabled { cursor: wait; opacity: 0.7; }
+
 .heroActions {
   display: flex;
   flex-wrap: wrap;
@@ -823,6 +879,15 @@
   .statusBadge { width: 100%; justify-content: center; margin-top: 18px; padding: 10px; font-size: 8px; }
   .heroActions { display: grid; grid-template-columns: 1fr; width: 100%; }
   .heroActions :is(.primaryButton, .secondaryButton) { width: 100%; }
+
+  .syncAlert {
+    grid-template-columns: auto minmax(0, 1fr);
+    margin: -18px 0 30px;
+    padding: 12px;
+  }
+  .syncAlert .secondaryButton { grid-column: 1 / -1; width: 100%; }
+  .syncAlertCopy strong { font-size: 10px; }
+  .syncAlertCopy small { font-size: 9px; }
 
   .section { margin-top: 30px; }
   .sectionBar { min-height: 58px; margin-bottom: 13px; padding: 12px 15px; }
