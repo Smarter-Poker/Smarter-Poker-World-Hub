@@ -627,6 +627,7 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
   return (
     <button
       className="sp-card"
+      data-category={game.category.toLowerCase()}
       style={{ '--cat-color': meta.color, '--cover-glow': meta.glow }}
       onClick={onStart}
       aria-label={`${game.name}, ${meta.label}, ${game.estMinutes || 10} minutes, ${progress}% complete`}
@@ -644,8 +645,16 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
             e.currentTarget.src = fallbackImage;
           }}
         />
-        {/* Top-edge gradient so badges stay legible regardless of cover art */}
+        {/* Shared Smarter.Poker art direction turns every unique game image into
+            one coherent dimensional training-console surface. */}
         <div className="sp-card-cover-shade" aria-hidden />
+        <img
+          src="/images/training/training-card-hud-overlay.png"
+          alt=""
+          aria-hidden="true"
+          className="sp-card-hud"
+        />
+        <span className="sp-card-scanline" aria-hidden="true" />
         <div className="sp-card-badges">
           {tag === 'recommended' && <span className="sp-badge sp-badge-rec"><Sparkles size={11} aria-hidden /> For You</span>}
           {tag === 'mastered'    && <span className="sp-badge sp-badge-mastered"><Check size={11} aria-hidden /> Mastered</span>}
@@ -653,15 +662,21 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
           {game.locked           && <span className="sp-badge sp-badge-locked"><Lock size={11} aria-hidden /> Locked</span>}
           <span className="sp-cat-pill" aria-hidden><Icon size={12} /></span>
         </div>
+        <div className="sp-card-art-code" aria-hidden="true">
+          <span>{game.id.toUpperCase()}</span>
+          <span>Training Module</span>
+        </div>
       </div>
       <div className="sp-card-body">
         <div className="sp-card-cat"><span className="sp-swatch" /> {meta.label}</div>
         <h3 className="sp-card-title">{game.name}</h3>
+        <p className="sp-card-focus">{game.focus}</p>
         <div className="sp-card-meta">
           <span><Clock size={12} aria-hidden /> {game.estMinutes || 10} min</span>
           {game.handsTarget && <><span className="sp-card-sep" aria-hidden /><span><Layers size={12} aria-hidden /> {game.handsTarget} hands</span></>}
         </div>
         <div className="sp-card-progress">
+          <div className="sp-card-progress-head"><span>Training Calibration</span><span>{progress}%</span></div>
           <div className="sp-progress" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
             <div className="sp-progress-fill" style={{ width: `${progress}%` }} />
           </div>
@@ -1247,37 +1262,152 @@ function GlobalStyle() {
       }
 
       .sp-grid { gap: 20px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .sp-card {
-        min-height: 410px;
+      body.world-training .sp-main .sp-card[data-category] {
+        min-height: 454px;
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        padding: 0;
         border-radius: 0;
-        border: 1px solid rgba(135, 219, 252, .4);
+        border: 1px solid rgba(168, 226, 250, .55);
         color: #eef9ff;
-        background: linear-gradient(180deg, rgba(185,235,255,.13) 0, rgba(12,32,47,.96) 3%, rgba(3,12,21,.98) 100%);
+        background:
+          linear-gradient(90deg, transparent 0, rgba(91,210,255,.16) 18%, transparent 52%) top / 100% 2px no-repeat,
+          linear-gradient(180deg, #254253 0, #0b2130 2.5%, #071621 54%, #020a11 100%);
         box-shadow:
-          inset 0 1px 0 rgba(255,255,255,.44),
-          inset 0 -1px 0 rgba(30,172,230,.35),
-          0 18px 34px rgba(0,0,0,.42),
-          0 0 22px rgba(0,142,220,.08);
+          inset 0 1px 0 rgba(255,255,255,.72),
+          inset 1px 0 0 rgba(114,215,255,.18),
+          inset -1px 0 0 rgba(114,215,255,.12),
+          inset 0 -2px 0 rgba(30,172,230,.38),
+          0 20px 38px rgba(0,0,0,.54),
+          0 0 28px rgba(0,142,220,.1);
       }
-      .sp-card:hover {
+      body.world-training .sp-main .sp-card[data-category]:hover {
         transform: translateY(-5px);
-        border-color: rgba(170, 237, 255, .82);
-        background: linear-gradient(180deg, rgba(210,244,255,.19), rgba(9,28,43,.98) 4%, rgba(3,12,21,.98));
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.64), inset 0 -1px 0 rgba(30,192,255,.55), 0 24px 44px rgba(0,0,0,.5), 0 0 32px rgba(0,184,255,.18);
+        border-color: rgba(195, 242, 255, .9);
+        background:
+          linear-gradient(90deg, transparent 0, rgba(125,225,255,.34) 32%, transparent 68%) top / 100% 2px no-repeat,
+          linear-gradient(180deg, #315367 0, #0d283a 2.5%, #081824 54%, #020a11 100%);
+        box-shadow: inset 0 1px 0 #fff, inset 0 -2px 0 rgba(30,192,255,.64), 0 26px 48px rgba(0,0,0,.58), 0 0 38px rgba(0,184,255,.22);
       }
-      .sp-card-cover { aspect-ratio: 16 / 10; border-bottom: 1px solid rgba(132,220,255,.42); }
-      .sp-card-cover-img { filter: saturate(1.12) contrast(1.06); }
-      .sp-card-cover-shade { background: linear-gradient(180deg, rgba(0,0,0,.12), transparent 48%, rgba(0,7,15,.88)); }
-      .sp-card-badges { top: 12px; left: 12px; right: 12px; }
-      .sp-badge, .sp-cat-pill { border-radius: 0; background: rgba(2,12,20,.86); border-color: rgba(157,225,255,.42); color: #eaf9ff; }
-      .sp-card-body { flex: 1; display: flex; flex-direction: column; padding: 18px; }
+      .sp-card[data-category="mtt"] { --sector-accent: #fb923c; }
+      .sp-card[data-category="cash"] { --sector-accent: #4ade80; }
+      .sp-card[data-category="spins"] { --sector-accent: #facc15; }
+      .sp-card[data-category="psychology"] { --sector-accent: #c084fc; }
+      .sp-card[data-category="advanced"] { --sector-accent: #60a5fa; }
+      .sp-card-cover {
+        aspect-ratio: 16 / 10;
+        isolation: isolate;
+        border-bottom: 1px solid rgba(154,229,255,.66);
+        background: #06101a;
+        box-shadow: inset 0 -1px 0 rgba(255,255,255,.28), inset 0 -16px 30px rgba(0,0,0,.6);
+      }
+      .sp-card-cover-img {
+        z-index: 0;
+        transform: scale(1.015);
+        filter: saturate(.9) contrast(1.16) brightness(.82);
+      }
+      .sp-card:hover .sp-card-cover-img { transform: scale(1.065); filter: saturate(1.06) contrast(1.18) brightness(.93); }
+      .sp-card-cover-shade {
+        z-index: 1;
+        background:
+          radial-gradient(66% 90% at 50% 52%, transparent 34%, rgba(0,8,16,.46) 100%),
+          linear-gradient(180deg, rgba(0,4,10,.28), transparent 36%, rgba(0,7,15,.78) 100%),
+          linear-gradient(115deg, var(--cover-glow), transparent 45%);
+      }
+      .sp-card-hud {
+        position: absolute;
+        z-index: 2;
+        inset: -2.6%;
+        width: 105.2%;
+        height: 105.2%;
+        object-fit: fill;
+        mix-blend-mode: screen;
+        opacity: .88;
+        pointer-events: none;
+        transform: scale(1.025);
+        transform-origin: center;
+        filter: saturate(1.18) contrast(1.12) drop-shadow(0 0 7px rgba(26,186,255,.32));
+      }
+      .sp-card-scanline {
+        position: absolute;
+        z-index: 3;
+        left: 4%;
+        right: 4%;
+        top: 16%;
+        height: 1px;
+        pointer-events: none;
+        background: linear-gradient(90deg, transparent, rgba(150,241,255,.92) 25%, #fff 50%, rgba(80,210,255,.82) 75%, transparent);
+        box-shadow: 0 0 8px rgba(37,202,255,.7), 0 0 18px rgba(37,202,255,.35);
+        opacity: .58;
+        animation: sp-card-scan 5.2s ease-in-out infinite alternate;
+      }
+      @keyframes sp-card-scan { to { transform: translateY(128px); opacity: .28; } }
+      .sp-card-badges { top: 15px; left: 16px; right: 16px; z-index: 4; }
+      .sp-badge, .sp-cat-pill {
+        border-radius: 0;
+        color: #f1fbff;
+        background: linear-gradient(180deg, rgba(43,74,91,.94), rgba(3,14,23,.96));
+        border-color: rgba(180,235,255,.62);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.42), 0 5px 12px rgba(0,0,0,.42);
+      }
+      .sp-card-art-code {
+        position: absolute;
+        z-index: 4;
+        left: 17px;
+        right: 17px;
+        bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        color: #d9f7ff;
+        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: .13em;
+        text-shadow: 0 1px 2px #000, 0 0 8px rgba(0,184,255,.8);
+      }
+      .sp-card-art-code span:first-child { color: var(--sector-accent, #6ee7ff); }
+      .sp-card-body {
+        position: relative;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 18px 18px;
+        background:
+          linear-gradient(90deg, var(--sector-accent, #32d6ff), transparent 52%) top / 100% 2px no-repeat,
+          linear-gradient(180deg, rgba(27,61,80,.64), rgba(4,15,24,.98) 22%, #020910 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.16);
+      }
       .sp-card-cat { color: #8bdfff; font-family: var(--font-orbitron), 'Orbitron', sans-serif; font-weight: 700; letter-spacing: .12em; }
-      .sp-card-title { color: #fff; font-family: var(--font-orbitron), 'Orbitron', sans-serif; font-size: 18px; line-height: 1.3; font-weight: 600; text-shadow: 0 2px 1px #000; }
+      .sp-swatch { border-radius: 0; box-shadow: 0 0 10px var(--sector-accent, #32d6ff); }
+      .sp-card-title { color: #fff; font-family: var(--font-orbitron), 'Orbitron', sans-serif; font-size: 18px; line-height: 1.3; font-weight: 600; text-shadow: 0 2px 1px #000, 0 0 14px rgba(70,205,255,.12); }
+      .sp-card-focus {
+        display: -webkit-box;
+        min-height: 40px;
+        margin: 0 0 10px;
+        overflow: hidden;
+        color: #bed5e1;
+        font-size: 12px;
+        line-height: 1.55;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+      }
       .sp-card-meta { color: #b4cfdd; font-size: 13px; }
       .sp-card-progress { margin-top: auto; padding-top: 18px; }
+      .sp-card-progress-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 6px;
+        color: #93b8ca;
+        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: .09em;
+      }
+      .sp-card-progress-head span:last-child { color: #d9f8ff; }
+      .sp-card-progress .sp-progress-fill { background: linear-gradient(90deg, var(--sector-accent, #31d8ff), #d9faff); box-shadow: 0 0 10px var(--sector-accent, #31d8ff); }
       .sp-card-launch {
         display: flex;
         justify-content: space-between;
@@ -1285,7 +1415,7 @@ function GlobalStyle() {
         margin-top: 14px;
         padding-top: 12px;
         border-top: 1px solid rgba(99,196,235,.2);
-        color: #bfeeff;
+        color: #d7f5ff;
         font-family: var(--font-orbitron), 'Orbitron', sans-serif;
         font-size: 10px;
         font-weight: 700;
@@ -1481,7 +1611,7 @@ function GlobalStyle() {
         }
 
         .sp-grid { gap: 14px; }
-        .sp-card { min-height: 0; }
+        body.world-training .sp-main .sp-card[data-category] { min-height: 0; }
         .sp-card-cover { aspect-ratio: 16 / 9; }
         .sp-card-body { min-height: 180px; padding: 15px; }
         .sp-card-title { font-size: 17px; }

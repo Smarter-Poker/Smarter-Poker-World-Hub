@@ -92,6 +92,7 @@ import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPro
 import PWAInstallPrompt from '../src/components/ui/PWAInstallPrompt';
 import ServiceWorkerUpdater from '../src/components/ui/ServiceWorkerUpdater';
 import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
+import UniversalHeader from '../src/components/ui/UniversalHeader';
 import { HubErrorBoundary } from '../src/components/ui/HubErrorBoundary';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
 import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
@@ -100,6 +101,27 @@ import { useJarvis } from '../src/world/components/Jarvis/useJarvis';
 import { ToastProvider } from '../src/components/club-arena/ToastProvider';
 import GlobalPiPManager from '../src/components/social/GlobalPiPManager';
 import { advanceScrollLockGeneration, sweepStaleScrollLocks, clearBodyScrollLockIfUnheld, scrollLockCount } from '../src/lib/scrollLock';
+
+const TRAINING_ROUTES_WITH_HEADER = new Set([
+  '/hub/training',
+  '/hub/training/achievements',
+  '/hub/training/bluff-catcher',
+  '/hub/training/category/[categoryId]',
+  '/hub/training/challenges',
+  '/hub/training/clinic/[clinicId]',
+  '/hub/training/final-table-sim',
+  '/hub/training/hand-lab',
+  '/hub/training/jarvis',
+  '/hub/training/leaderboard',
+  '/hub/training/mixed-strategy-lab',
+  '/hub/training/play/[gameId]',
+  '/hub/training/progress',
+  '/hub/training/streaks',
+  '/hub/training/study-group',
+  '/hub/training/tournament-prep',
+  '/hub/training/tournament/[id]',
+  '/hub/training/tournaments',
+]);
 // GlobalReportBugButton removed — bug reporting is inside every HamburgerMenu via ReportBugWidget
 // ═══════════════════════════════════════════════════════════════════════════
 // CACHE BUSTER — Clears stale caches on new deploys
@@ -666,6 +688,12 @@ export default function App({ Component, pageProps }) {
 
   // Determine if this route requires global capitalization per User specification
   const path = router.asPath.split('?')[0];
+  const isTrainingRoute = path === '/hub/training' || path.startsWith('/hub/training/');
+
+  // Several legacy training pages already own the unchanged global header.
+  // All other training routes receive the same component here so the complete
+  // training library has consistent navigation without duplicating headers.
+  const trainingPageOwnsHeader = TRAINING_ROUTES_WITH_HEADER.has(router.pathname);
 
   // Do NOT capitalize specific poker/trainer tool screens where exact statistical/range string casing (e.g., AQs, cbet, EV) is mathematically critical
   const isPokerTool = path.includes('/training') || path.includes('/gto') || path.includes('/solver') || path.includes('/sandbox');
@@ -771,7 +799,16 @@ export default function App({ Component, pageProps }) {
                           <ActiveIdentityProvider>
                             <WorldThemeProvider>
                               <PageErrorBoundary key={router.asPath}>
-                                <Component {...pageProps} />
+                                {isTrainingRoute ? (
+                                  <div className="sp-training-route-shell" data-training-route={router.pathname}>
+                                    {!trainingPageOwnsHeader && <UniversalHeader pageDepth={2} />}
+                                    <div className="sp-training-page-stage">
+                                      <Component {...pageProps} />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <Component {...pageProps} />
+                                )}
                               </PageErrorBoundary>
                               <HubErrorBoundary name="Celebrations" fallback={<></>}>
                                 <CelebrationManager />

@@ -774,4 +774,213 @@ body.world-training {
     }
 }
 
+/* =========================================================================
+   SMARTER.POKER TRAINING CONSOLE — route-wide visual system
+   =========================================================================
+   The route shell is installed in _app so every training page and game gets
+   the same dimensional gunmetal environment. UniversalHeader is deliberately
+   excluded: it remains the exact global component used everywhere else.
+   ========================================================================= */
+body.world-training {
+    --sp-ion: #23d7ff;
+    --sp-ion-bright: #8beaff;
+    --sp-silver: #d8f5ff;
+    --sp-silver-muted: #8aa7b6;
+    --sp-gunmetal: #172c3a;
+    --sp-gunmetal-deep: #091722;
+    --sp-console-black: #020a12;
+    --sp-console-panel: rgba(7, 22, 33, 0.94);
+    --sp-console-line: rgba(139, 234, 255, 0.45);
+    --sp-console-shadow: 0 22px 60px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(224, 248, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.88);
+    background: #020810;
+    color: #eaf8ff;
+}
 
+body.world-training .sp-training-route-shell {
+    position: relative;
+    isolation: isolate;
+    min-height: 100dvh;
+    overflow-x: clip;
+    color: #eaf8ff;
+    background:
+        linear-gradient(90deg, rgba(35, 215, 255, 0.04) 1px, transparent 1px) 0 0 / 72px 72px,
+        linear-gradient(rgba(35, 215, 255, 0.035) 1px, transparent 1px) 0 0 / 72px 72px,
+        radial-gradient(circle at 50% -10%, rgba(0, 111, 255, 0.28), transparent 42%),
+        linear-gradient(180deg, #07141f 0%, #020910 44%, #01060b 100%);
+}
+
+body.world-training .sp-training-route-shell::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.28;
+    background:
+        linear-gradient(90deg, transparent 0 49.8%, rgba(35, 215, 255, 0.1) 50%, transparent 50.2%),
+        url('/circuit-brain-bg.png') center top / cover fixed;
+    mix-blend-mode: screen;
+}
+
+body.world-training .sp-training-page-stage {
+    position: relative;
+    min-height: calc(100dvh - 59px);
+    color: #eaf8ff;
+    text-transform: capitalize;
+}
+
+body.world-training .sp-training-page-stage .universal-header,
+body.world-training .sp-training-page-stage .universal-header * {
+    text-transform: none;
+}
+
+/* Title Case for UI copy, with an explicit escape hatch for exact poker data. */
+body.world-training .sp-training-page-stage :where(h1, h2, h3, h4, h5, h6, button, label, legend, [role='tab'], [role='menuitem']):not(.no-capitalize):not(.universal-header *) {
+    text-transform: capitalize !important;
+}
+
+body.world-training .sp-training-page-stage :where(input, textarea, select, code, pre, kbd, samp, [contenteditable='true'], .no-capitalize, .no-capitalize *) {
+    text-transform: none !important;
+}
+
+body.world-training .sp-training-page-stage :where(h1, h2, h3):not(.universal-header *) {
+    font-family: var(--font-orbitron, 'Orbitron'), sans-serif !important;
+    color: #f4fbff !important;
+    letter-spacing: 0.035em;
+    text-shadow: 0 2px 0 #000, 0 0 22px rgba(35, 215, 255, 0.26);
+}
+
+body.world-training .sp-training-page-stage :where(p, label, legend):not(.universal-header *) {
+    color: #b9d1de !important;
+}
+
+/* Straight 90-degree controls and cards: no clipped corners or ornamental boxes. */
+body.world-training .sp-training-page-stage :where(button, [role='button'], .sp-card, .sp-card-sm, .sp-card-lg):not(.universal-header *) {
+    border-radius: 0 !important;
+    clip-path: none !important;
+}
+
+body.world-training .sp-training-page-stage :where(button, [role='button']):not(.universal-header *) {
+    min-height: 42px;
+    color: #eefbff !important;
+    border-color: rgba(154, 226, 255, 0.52) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -2px 0 rgba(0, 0, 0, 0.7), 0 8px 20px rgba(0, 0, 0, 0.32);
+    text-shadow: 0 1px 1px #000;
+}
+
+body.world-training .sp-training-page-stage :where(.sp-card, .sp-card-sm, .sp-card-lg, article, fieldset):not(.universal-header *) {
+    border-color: var(--sp-console-line) !important;
+    background: linear-gradient(145deg, rgba(24, 48, 63, 0.96), rgba(3, 13, 21, 0.98) 42%, rgba(12, 31, 43, 0.96)) !important;
+    box-shadow: var(--sp-console-shadow) !important;
+}
+
+/* Convert the common inline card recipes used by legacy trainers into the
+   same straight-railed metal panels without touching circular avatars. */
+body.world-training .sp-training-page-stage div[style*='border-radius: 8px'][style*='border'],
+body.world-training .sp-training-page-stage div[style*='border-radius: 10px'][style*='border'],
+body.world-training .sp-training-page-stage div[style*='border-radius: 12px'][style*='border'],
+body.world-training .sp-training-page-stage div[style*='border-radius: 16px'][style*='border'] {
+    border-radius: 0 !important;
+    clip-path: none !important;
+    border-color: rgba(139, 234, 255, 0.38) !important;
+    background-image: linear-gradient(145deg, rgba(28, 52, 67, 0.88), rgba(3, 13, 22, 0.96) 48%, rgba(10, 29, 41, 0.92)) !important;
+    box-shadow: var(--sp-console-shadow) !important;
+}
+
+body.world-training .sp-training-page-stage :where(input, textarea, select):not(.universal-header *) {
+    border-radius: 0 !important;
+    border: 1px solid rgba(139, 234, 255, 0.42) !important;
+    background: linear-gradient(180deg, rgba(1, 7, 12, 0.96), rgba(10, 26, 37, 0.96)) !important;
+    color: #eefbff !important;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+body.world-training .sp-training-page-stage :where(input, textarea)::placeholder {
+    color: #7893a3 !important;
+}
+
+body.world-training .sp-training-route-shell:not([data-training-route='/hub/training']):not([data-training-route='/hub/training/arena/[gameId]']) .sp-training-page-stage > div:first-child {
+    border-left: 1px solid rgba(139, 234, 255, 0.2);
+    border-right: 1px solid rgba(139, 234, 255, 0.2);
+    background:
+        linear-gradient(90deg, rgba(255,255,255,0.025), transparent 18%, transparent 82%, rgba(255,255,255,0.025)),
+        rgba(2, 9, 15, 0.34) !important;
+    box-shadow: 0 0 70px rgba(0, 0, 0, 0.52), inset 0 0 48px rgba(35, 215, 255, 0.025);
+}
+
+body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='height: 100vh'] {
+    height: calc(100dvh - 59px) !important;
+}
+
+body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='min-height: 100vh'] {
+    min-height: calc(100dvh - 59px) !important;
+}
+
+@media (max-width: 768px) {
+    body.world-training .sp-training-page-stage {
+        min-height: calc(100dvh - 35px);
+    }
+
+    body.world-training .sp-training-page-stage > :where(main, section, div) {
+        max-width: 100%;
+    }
+
+    body.world-training .sp-training-page-stage :where(h1):not(.universal-header *) {
+        font-size: clamp(24px, 8vw, 38px) !important;
+        line-height: 1.05 !important;
+    }
+
+    body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='height: 100vh'] {
+        height: calc(100dvh - 35px) !important;
+    }
+
+    body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='min-height: 100vh'] {
+        min-height: calc(100dvh - 35px) !important;
+    }
+
+    body.world-training .sp-level-header {
+        display: grid !important;
+        grid-template-columns: auto 1fr !important;
+        gap: 10px 12px !important;
+        padding: 12px !important;
+    }
+
+    body.world-training .sp-level-game-info {
+        order: -1;
+        grid-column: 1 / -1;
+    }
+
+    body.world-training .sp-level-category {
+        justify-self: end;
+    }
+
+    body.world-training .sp-level-map {
+        padding: 14px 10px 24px !important;
+    }
+
+    body.world-training .sp-level-card {
+        display: grid !important;
+        grid-template-columns: 46px minmax(0, 1fr) !important;
+        gap: 12px !important;
+        padding: 14px 12px !important;
+    }
+
+    body.world-training .sp-level-card > div:nth-child(2) {
+        margin-left: 0 !important;
+    }
+
+    body.world-training .sp-level-card > div:nth-child(3) {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0 !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        border-top: 1px solid rgba(139, 234, 255, 0.14);
+        padding-top: 10px;
+    }
+
+    body.world-training .sp-level-play {
+        min-width: 116px;
+    }
+}
