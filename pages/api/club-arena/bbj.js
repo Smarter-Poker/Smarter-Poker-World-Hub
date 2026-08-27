@@ -107,6 +107,7 @@ export default async function handler(req, res) {
         // Fetch board cards from hand_histories and avatars from profiles
         const enrichedWinners = await Promise.all((winners || []).map(async (w) => {
           let boardCards = null;
+          let boardUnavailable = false;
           let loserAvatar = null;
           let winnerAvatar = null;
 
@@ -122,7 +123,16 @@ export default async function handler(req, res) {
               if (hh?.hand_data) {
                 boardCards = hh.hand_data.board || hh.hand_data.communityCards || null;
               }
-            } catch(e) {}
+            } catch (e) {
+              /* A bare `catch(e) {}` here degraded the PUBLIC record of a jackpot
+                 payout - no board, and later no names - with nothing anywhere to
+                 say a read had failed. The endpoint still answers (a missing
+                 board must not fail the whole list) but the failure is now
+                 visible in logs and flagged on the row, so "no board" can be
+                 told apart from "we could not read the board". */
+              console.warn('[bbj] board read failed for hand', w.hand_number, e?.message || e);
+              boardUnavailable = true;
+            }
           }
 
           // Try to get avatars
@@ -130,17 +140,24 @@ export default async function handler(req, res) {
             try {
               const { data: p } = await getSupabase().from('profiles').select('avatar_url').eq('id', w.loser_user_id).maybeSingle();
               loserAvatar = p?.avatar_url || null;
-            } catch(e) {}
+            } catch (e) {
+              console.warn('[bbj] loser avatar read failed for', w.loser_user_id, e?.message || e);
+            }
           }
           if (w.winner_user_id) {
             try {
               const { data: p } = await getSupabase().from('profiles').select('avatar_url').eq('id', w.winner_user_id).maybeSingle();
               winnerAvatar = p?.avatar_url || null;
-            } catch(e) {}
+            } catch (e) {
+              console.warn('[bbj] winner avatar read failed for', w.winner_user_id, e?.message || e);
+            }
           }
 
           return {
             id: w.id,
+            // Lets a client show "board unavailable" instead of silently
+            // rendering a payout with no cards as though none were dealt.
+            boardUnavailable,
             loserName: w.loser_display_name || 'Player',
             loserHand: w.loser_hand,
             loserCards: w.loser_cards,
