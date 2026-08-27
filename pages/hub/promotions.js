@@ -14,6 +14,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 const C = {
     bg: '#F0F2F5',
@@ -666,6 +667,6 @@ export default function PromotionsPage() {
                     }
                 }
             `}</style>
-        </>
+        </PageTransition>
     );
 }
