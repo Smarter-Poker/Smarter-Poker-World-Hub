@@ -47,6 +47,27 @@ const MAX_QTY = 10;
 
 const CATALOG_URL = '/api/store/merch-catalog';
 
+const NEURAL_STEEL_MERCH = {
+    'hoodie-neural': {
+        name: 'Diamond Altitude Hoodie',
+        description: 'Heavyweight Black Hoodie With The Diamond Altitude Circuit Graphic',
+        image: '/images/merch/neural-steel/mockups/diamond-altitude-hoodie.webp',
+        madeToOrder: true,
+    },
+    'tshirt-gto': {
+        name: 'Royal Circuit Tee',
+        description: 'Premium Black Tee With The Royal Circuit Poker Graphic',
+        image: '/images/merch/neural-steel/mockups/royal-circuit-tee.webp',
+        madeToOrder: true,
+    },
+    'hat-diamond': {
+        name: 'Neural Steel Diamond Hat',
+        description: 'Structured Black Hat With The Brain-Spade Crest Embroidered On The Crown',
+        image: '/images/merch/neural-steel/mockups/diamond-dad-hat.webp',
+        madeToOrder: true,
+    },
+};
+
 // These paths were seeded before their product photography was shipped. Let
 // the card render its deliberate category placeholder immediately instead of
 // issuing a guaranteed 404 and swapping to the same placeholder afterward.
@@ -162,6 +183,7 @@ function normalizeVariant(raw, index) {
         priceDiamonds,
         stock,
         inStock,
+        fulfillmentReady: firstBoolean([raw.fulfillment_ready, raw.fulfillmentReady]) === true,
     };
 }
 
@@ -193,7 +215,18 @@ function normalizeProduct(raw, index, source) {
         ? (own.inStock && variants.some(v => v.inStock))
         : own.inStock;
 
-    const image = firstString([raw.image_url, raw.imageUrl, raw.image, raw.thumbnail]);
+    const branded = rawId ? NEURAL_STEEL_MERCH[rawId] : null;
+    const image = branded?.image || firstString([raw.image_url, raw.imageUrl, raw.image, raw.thumbnail]);
+    const fulfillmentProvider = firstString([
+        raw.fulfillment_provider,
+        raw.fulfillmentProvider,
+        raw.metadata?.fulfillment_provider,
+    ]);
+    const madeToOrder = firstBoolean([
+        raw.made_to_order,
+        raw.madeToOrder,
+        raw.metadata?.made_to_order,
+    ]) === true || fulfillmentProvider === 'printful' || branded?.madeToOrder === true;
 
     return {
         key: rawId || `${source}-${index}-${name}`,
@@ -202,8 +235,8 @@ function normalizeProduct(raw, index, source) {
         // recognise, so this does not have to guess.
         catalogId: isCatalogId(rawId) ? rawId.trim() : null,
         source,
-        name,
-        description: firstString([raw.description, raw.subtitle, raw.blurb]) || '',
+        name: branded?.name || name,
+        description: branded?.description || firstString([raw.description, raw.subtitle, raw.blurb]) || '',
         image: image && !UNSHIPPED_MERCH_IMAGES.has(image) ? image : null,
         category: (firstString([raw.category, raw.product_type, raw.collection]) || 'merch').toLowerCase(),
         priceUsd,
@@ -212,6 +245,9 @@ function normalizeProduct(raw, index, source) {
         inStock,
         hasVariants,
         variants,
+        fulfillmentProvider,
+        fulfillmentReady: firstBoolean([raw.fulfillment_ready, raw.fulfillmentReady]) === true,
+        madeToOrder,
     };
 }
 
@@ -251,10 +287,10 @@ function errorMessageOf(data, status) {
         return data?.message && data.message !== raw ? `${raw} — ${data.message}` : raw;
     }
     if (typeof data?.message === 'string' && data.message) return data.message;
-    if (status === 401) return 'Your session expired. Please sign in again.';
-    if (status === 429) return 'Too many requests. Please wait a moment and try again.';
-    if (status === 503) return 'Payments are temporarily unavailable. Please try again later.';
-    return `Request failed (${status})`;
+    if (status === 401) return 'Your Session Expired. Please Sign In Again.';
+    if (status === 429) return 'Too Many Requests. Please Wait A Moment And Try Again.';
+    if (status === 503) return 'Payments Are Temporarily Unavailable. Please Try Again Later.';
+    return `Request Failed (${status})`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -262,7 +298,9 @@ function errorMessageOf(data, status) {
 // ═══════════════════════════════════════════════════════════════════════════
 function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuyDiamonds }) {
     const [variantKey, setVariantKey] = useState(() => {
-        const first = product.variants.find(v => v.inStock) || product.variants[0];
+        const first = product.variants.find(v => v.inStock && v.fulfillmentReady)
+            || product.variants.find(v => v.inStock)
+            || product.variants[0];
         return first ? first.key : null;
     });
     const [qty, setQty] = useState(1);
@@ -278,7 +316,13 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
     const liveAvailabilityRequired = product.source !== 'catalog';
     const optionsUnavailable = product.hasVariants && !needsVariant;
     const variantOutOfStock = needsVariant && (!variant || !variant.inStock);
-    const soldOut = !product.inStock || variantOutOfStock || optionsUnavailable || liveAvailabilityRequired;
+    const fulfillmentReady = needsVariant ? variant?.fulfillmentReady === true : product.fulfillmentReady === true;
+    const fulfillmentUnavailable = !fulfillmentReady;
+    const soldOut = !product.inStock
+        || variantOutOfStock
+        || optionsUnavailable
+        || liveAvailabilityRequired
+        || fulfillmentUnavailable;
 
     // Respect a known per-variant / per-product stock level as well as the
     // server's hard 1..10 clamp.
@@ -300,34 +344,41 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
     const cannotAfford = hasUser && shortBy > 0;
     const titleId = `merch-${String(product.key || product.name).replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-title`;
 
-    const diamondDisabled = soldOut || busy || cannotAfford;
+    const cardCheckoutRequired = product.madeToOrder || product.fulfillmentProvider === 'printful';
+    const diamondDisabled = soldOut || busy || cannotAfford || cardCheckoutRequired;
+    const availabilityReason = liveAvailabilityRequired
+        ? 'Live Availability Required'
+        : optionsUnavailable
+            ? 'Options Temporarily Unavailable'
+            : fulfillmentUnavailable
+                ? 'Fulfillment Setup Required'
+                : 'Sold Out';
     const diamondReason = soldOut
-        ? (liveAvailabilityRequired
-            ? 'Live availability required'
-            : optionsUnavailable
-                ? 'Options temporarily unavailable'
-                : 'Sold out')
+        ? availabilityReason
+        : cardCheckoutRequired
+            ? 'Card Checkout Required For Shipping'
         : cannotAfford
-            ? `You need ${fmt(shortBy)} more diamonds`
+            ? `You Need ${fmt(shortBy)} More Diamonds`
             : null;
 
     const Icon = product.category === 'apparel' ? Shirt : Package;
 
     return (
         <article aria-labelledby={titleId} style={{
-            background: CARD_BG,
+            background: 'linear-gradient(155deg, rgba(34,48,59,0.98) 0%, rgba(5,10,15,0.98) 28%, rgba(2,5,9,0.99) 100%)',
             border: soldOut ? '1px solid rgba(255, 95, 109, 0.35)' : CARD_BORDER,
-            borderRadius: 12,
+            borderRadius: 0,
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
             opacity: soldOut ? 0.72 : 1,
+            boxShadow: 'inset 0 1px 0 rgba(226,247,255,0.35), inset 0 0 0 4px rgba(2,7,12,0.72), 0 18px 38px rgba(0,0,0,0.42)',
         }}>
             {/* Image / placeholder */}
             <div style={{
                 position: 'relative',
-                height: 140,
-                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(138, 43, 226, 0.1))',
+                height: 220,
+                background: 'radial-gradient(circle at 50% 35%, rgba(88,186,227,0.18), transparent 48%), linear-gradient(145deg, #1d2a33, #03070b 72%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
                 {product.image && !imageFailed ? (
@@ -348,19 +399,17 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         background: 'rgba(255, 95, 109, 0.9)', color: '#12151c',
                         fontSize: 10, fontWeight: 800, letterSpacing: '0.6px',
                         padding: '4px 9px', borderRadius: 8, textTransform: 'uppercase',
-                    }}>{liveAvailabilityRequired
-                        ? 'Live Availability Required'
-                        : optionsUnavailable
-                            ? 'Options Temporarily Unavailable'
-                            : 'Sold Out'}</div>
+                    }}>{availabilityReason}</div>
                 )}
-                {!soldOut && product.stock !== null && product.stock <= 5 && (
+                {product.madeToOrder && (
                     <div style={{
-                        position: 'absolute', top: 10, left: 10,
-                        background: 'rgba(255, 215, 0, 0.9)', color: '#0a1628',
+                        position: 'absolute', top: 10, right: 10,
+                        background: 'linear-gradient(180deg, #d9f7ff, #7397aa)', color: '#071017',
                         fontSize: 10, fontWeight: 800, letterSpacing: '0.6px',
-                        padding: '4px 9px', borderRadius: 8, textTransform: 'uppercase',
-                    }}>Only {fmt(product.stock)} left</div>
+                        padding: '5px 9px', borderRadius: 0,
+                        border: '1px solid rgba(240,252,255,0.8)',
+                        boxShadow: '0 5px 18px rgba(0,0,0,0.45)',
+                    }}>Made To Order</div>
                 )}
             </div>
 
@@ -374,20 +423,21 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                     )}
                 </div>
 
-                {/* Dual price — USD and diamonds */}
+                {/* Card price; physical POD orders need a checkout address. */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 20, fontWeight: 800, color: CYAN }}>{usd(unitPriceUsd)}</span>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>or</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, color: TEXT }}>
-                        <Gem size={14} color={CYAN} /> {fmt(unitPriceDiamonds)}
-                    </span>
+                    {product.madeToOrder && (
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.52)', fontWeight: 700 }}>
+                            Printed After Purchase
+                        </span>
+                    )}
                 </div>
 
                 {/* Variant picker */}
                 {needsVariant && (
                     <div>
                         <div style={{ fontSize: 11, color: MUTED, marginBottom: 6, fontWeight: 600, letterSpacing: '0.4px' }}>
-                            SIZE / OPTION
+                            Size / Option
                         </div>
                         <div role="group" aria-label={`Choose ${product.name} Size Or Option`} style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                             {product.variants.map(v => {
@@ -397,21 +447,25 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                                         key={v.key}
                                         type="button"
                                         onClick={() => { setVariantKey(v.key); setQty(1); }}
-                                        disabled={!v.inStock}
-                                        title={v.inStock ? v.label : `${v.label} — sold out`}
+                                        disabled={!v.inStock || !v.fulfillmentReady}
+                                        title={!v.inStock
+                                            ? `${v.label} — Sold Out`
+                                            : !v.fulfillmentReady
+                                                ? `${v.label} — Fulfillment Setup Required`
+                                                : v.label}
                                         aria-pressed={active}
                                         style={{
                                             padding: '6px 11px',
                                             minWidth: 44,
                                             minHeight: 44,
-                                            borderRadius: 8,
+                                            borderRadius: 0,
                                             fontSize: 12,
                                             fontWeight: 700,
-                                            cursor: v.inStock ? 'pointer' : 'not-allowed',
-                                            color: !v.inStock ? 'rgba(255,255,255,0.28)' : active ? '#0a1628' : TEXT,
+                                            cursor: v.inStock && v.fulfillmentReady ? 'pointer' : 'not-allowed',
+                                            color: !v.inStock || !v.fulfillmentReady ? 'rgba(255,255,255,0.28)' : active ? '#0a1628' : TEXT,
                                             background: active ? CYAN : 'rgba(255,255,255,0.06)',
                                             border: active ? `1px solid ${CYAN}` : '1px solid rgba(255,255,255,0.15)',
-                                            textDecoration: v.inStock ? 'none' : 'line-through',
+                                            textDecoration: v.inStock && v.fulfillmentReady ? 'none' : 'line-through',
                                         }}
                                     >
                                         {v.label}
@@ -424,10 +478,10 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
 
                 {/* Quantity */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 11, color: MUTED, fontWeight: 600, letterSpacing: '0.4px' }}>QTY</span>
+                    <span style={{ fontSize: 11, color: MUTED, fontWeight: 600, letterSpacing: '0.4px' }}>Quantity</span>
                     <div style={{
                         display: 'inline-flex', alignItems: 'center',
-                        border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, overflow: 'hidden',
+                        border: '1px solid rgba(255,255,255,0.15)', borderRadius: 0, overflow: 'hidden',
                     }}>
                         <button
                             type="button"
@@ -470,27 +524,23 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         type="button"
                         onClick={() => onBuyCard(product, variant, clampedQty)}
                         disabled={soldOut || busy}
-                        title={liveAvailabilityRequired
-                            ? 'Live availability required'
-                            : optionsUnavailable
-                                ? 'Options temporarily unavailable'
-                                : soldOut
-                                    ? 'Sold out'
-                                    : 'Pay by card via Stripe Checkout'}
+                        title={soldOut ? availabilityReason : 'Pay By Card Through Stripe Checkout'}
                         aria-label={`Buy ${product.name} With Card For ${usd(usdCost)}`}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                            width: '100%', minHeight: 46, padding: '10px 12px', borderRadius: 10, border: 'none',
+                            width: '100%', minHeight: 46, padding: '10px 12px', borderRadius: 0,
+                            border: soldOut || busy ? '1px solid rgba(255,255,255,0.08)' : '1px solid #c8f5ff',
                             fontSize: 13, fontWeight: 800, letterSpacing: '0.3px',
                             color: soldOut || busy ? 'rgba(255,255,255,0.4)' : '#0a1628',
                             background: soldOut || busy
                                 ? 'rgba(255,255,255,0.08)'
-                                : 'linear-gradient(135deg, #00D4FF, #8A2BE2)',
+                                : 'linear-gradient(180deg, #e7fbff 0%, #75bad2 42%, #2c667f 100%)',
+                            boxShadow: soldOut || busy ? 'none' : 'inset 0 1px 0 #fff, inset 0 -2px 0 rgba(0,0,0,0.35), 0 8px 18px rgba(0,0,0,0.35)',
                             cursor: soldOut || busy ? 'not-allowed' : 'pointer',
                         }}
                     >
                         <CreditCard size={15} />
-                        {thisBusy ? 'Opening checkout…' : 'Buy With Card'}
+                        {thisBusy ? 'Opening Checkout…' : soldOut ? availabilityReason : 'Buy With Card'}
                     </button>
 
                     <button
@@ -501,7 +551,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         aria-label={`Buy ${product.name} With ${fmt(diamondCost)} Diamonds`}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                            width: '100%', minHeight: 46, padding: '10px 12px', borderRadius: 10,
+                            width: '100%', minHeight: 46, padding: '10px 12px', borderRadius: 0,
                             fontSize: 13, fontWeight: 800, letterSpacing: '0.3px',
                             color: diamondDisabled ? 'rgba(255,255,255,0.4)' : CYAN,
                             background: 'rgba(0, 212, 255, 0.1)',
@@ -585,18 +635,18 @@ export default function MerchStore({ user = null }) {
                 const contentType = res.headers.get('content-type') || '';
                 if (!res.ok || !contentType.includes('application/json')) {
                     failure = res.status === 404
-                        ? 'Live catalog not available yet'
-                        : `Live catalog unavailable (${res.status})`;
+                        ? 'Live Catalog Not Available Yet'
+                        : `Live Catalog Unavailable (${res.status})`;
                 } else {
                     const body = await res.json();
                     rows = rowsFromCatalogBody(body)
                         .map((r, i) => normalizeProduct(r, i, 'catalog'))
                         .filter(Boolean);
-                    if (rows.length === 0) failure = 'Live catalog returned no items';
+                    if (rows.length === 0) failure = 'Live Catalog Returned No Items';
                 }
             } catch (err) {
                 if (err?.name === 'AbortError') return;
-                failure = 'Could not reach the live catalog';
+                failure = 'Could Not Reach The Live Catalog';
                 console.warn('[MerchStore] Catalog fetch failed:', err?.message || err);
             }
 
@@ -683,7 +733,7 @@ export default function MerchStore({ user = null }) {
     const requireSignedIn = useCallback(() => {
         const token = getAccessToken();
         if (!token || !user?.id) {
-            showStoreToast('error', 'Please sign in to buy merch.');
+            showStoreToast('error', 'Please Sign In To Buy Merch.');
             return null;
         }
         return token;
@@ -695,7 +745,14 @@ export default function MerchStore({ user = null }) {
         const token = requireSignedIn();
         if (!token) return;
         if (product.variants.length > 0 && !variant) {
-            showStoreToast('error', 'Please choose a size or option first.');
+            showStoreToast('error', 'Please Choose A Size Or Option First.');
+            return;
+        }
+        const fulfillmentReady = product.variants.length > 0
+            ? variant?.fulfillmentReady === true
+            : product.fulfillmentReady === true;
+        if (!fulfillmentReady) {
+            showStoreToast('error', 'Fulfillment Setup Is Still Required. No Payment Was Taken.');
             return;
         }
 
@@ -740,7 +797,7 @@ export default function MerchStore({ user = null }) {
                 throw new Error(errorMessageOf(data, res.status));
             }
             if (!data.data?.url) {
-                throw new Error('Checkout session missing redirect URL');
+                throw new Error('Checkout Session Missing Redirect URL');
             }
             captureStoreEvent('checkout_session_created', {
                 route: 'merch',
@@ -752,7 +809,7 @@ export default function MerchStore({ user = null }) {
         } catch (err) {
             console.warn('[MerchStore] Card checkout failed:', err?.message || err);
             captureStoreEvent('checkout_failed', { route: 'merch', type: 'merchandise' });
-            showStoreToast('error', err?.message || 'Could not start checkout. Please try again.');
+            showStoreToast('error', err?.message || 'Could Not Start Checkout. Please Try Again.');
             if (mountedRef.current) setStoreBusy(null);
         }
     }, [requireSignedIn, buildLineItem, setStoreBusy]);
@@ -763,7 +820,11 @@ export default function MerchStore({ user = null }) {
         const token = requireSignedIn();
         if (!token) return;
         if (product.variants.length > 0 && !variant) {
-            showStoreToast('error', 'Please choose a size or option first.');
+            showStoreToast('error', 'Please Choose A Size Or Option First.');
+            return;
+        }
+        if (product.madeToOrder || product.fulfillmentProvider === 'printful') {
+            showStoreToast('error', 'Card Checkout Is Required So We Can Collect A Shipping Address.');
             return;
         }
 
@@ -774,7 +835,7 @@ export default function MerchStore({ user = null }) {
         ]) || Math.ceil(unitPriceUsd * DIAMONDS_PER_DOLLAR);
         const cost = unitPriceDiamonds * quantity;
         if (Number(balance || 0) < cost) {
-            showStoreToast('error', `Not enough diamonds — ${fmt(cost)} needed, you have ${fmt(balance)}.`);
+            showStoreToast('error', `Not Enough Diamonds — ${fmt(cost)} Needed, You Have ${fmt(balance)}.`);
             return;
         }
         setPendingDiamondPurchase({ product, variant, quantity, cost });
@@ -831,7 +892,7 @@ export default function MerchStore({ user = null }) {
                 quantity,
                 diamonds_spent: spent,
             });
-            showStoreToast('success', `Order placed! ${fmt(spent)} diamonds deducted.`);
+            showStoreToast('success', `Order Placed! ${fmt(spent)} Diamonds Deducted.`);
             try {
                 new Audio('/sounds/purchase-success.mp3').play()
                     .catch(e => console.warn('[MerchStore] Sound blocked:', e?.message || e));
@@ -848,7 +909,7 @@ export default function MerchStore({ user = null }) {
             if (mountedRef.current) setReloadToken(t => t + 1);
         } catch (err) {
             console.warn('[MerchStore] Diamond purchase failed:', err?.message || err);
-            showStoreToast('error', err?.message || 'Diamond purchase failed. Please try again.');
+            showStoreToast('error', err?.message || 'Diamond Purchase Failed. Please Try Again.');
         } finally {
             if (mountedRef.current) setStoreBusy(null);
         }
@@ -860,8 +921,8 @@ export default function MerchStore({ user = null }) {
             <div style={styles.intro}>
                 <h2 style={styles.merchTitle}>Official Merch</h2>
                 <p style={styles.introText}>
-                    Rep The Smarter.Poker Brand At The Tables. Premium Quality Gear For Serious Players.
-                    Pay With A Card Or Spend Your Diamonds — 100 Diamonds = $1.00.
+                    Neural Steel Apparel Is Printed Or Embroidered After Purchase, Then Packed And Shipped
+                    Directly By Our Fulfillment Partner. We Never Hold Or Ship Inventory.
                 </p>
 
                 {user?.id && (
@@ -889,7 +950,7 @@ export default function MerchStore({ user = null }) {
                 }}>
                     <AlertTriangle size={14} />
                     <span style={{ flex: 1 }}>
-                        {loadError} — showing the standard lineup. Stock levels and sizes may be out of date.
+                        {loadError} — Showing The Standard Lineup. Live Fulfillment Options Are Required Before Checkout.
                     </span>
                     <button
                         type="button"
@@ -922,8 +983,8 @@ export default function MerchStore({ user = null }) {
                     color: MUTED, fontSize: 14,
                 }}>
                     <Package size={28} color="#a8b2d1" />
-                    <div style={{ marginTop: 10, fontWeight: 700, color: TEXT }}>No merch available right now</div>
-                    <div style={{ marginTop: 6 }}>New gear drops regularly — check back soon.</div>
+                    <div style={{ marginTop: 10, fontWeight: 700, color: TEXT }}>No Merch Available Right Now</div>
+                    <div style={{ marginTop: 6 }}>New Gear Drops Regularly — Check Back Soon.</div>
                 </div>
             )}
 
@@ -948,8 +1009,7 @@ export default function MerchStore({ user = null }) {
 
             {products.length > 0 && (
                 <p style={{ ...styles.introText, fontSize: 12, marginTop: 8, textAlign: 'center' }}>
-                    Card orders ship to the US and Canada and collect your address at checkout.
-                    Diamond orders are fulfilled from the address on your profile — contact support if it needs updating.
+                    Card Orders Ship To The United States And Canada. Your Shipping Address Is Collected Securely At Checkout.
                 </p>
             )}
 

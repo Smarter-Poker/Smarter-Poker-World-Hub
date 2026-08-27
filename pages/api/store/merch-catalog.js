@@ -32,6 +32,10 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const {
+    isPrintfulReady,
+    resolvePrintfulMapping,
+} = require('../../../src/lib/store/printfulFulfillment');
 
 let _supabase = null;
 function getSupabase() {
@@ -124,7 +128,7 @@ export default async function handler(req, res) {
         if (items.length > 0) {
             const { data: variantRows, error: variantErr } = await supabase
                 .from('merchandise_item_variants')
-                .select('id, item_id, sku, size, color, price_usd, price_diamonds, stock, sort_order')
+                .select('id, item_id, sku, size, color, price_usd, price_diamonds, stock, sort_order, metadata')
                 .in('item_id', items.map(i => i.id))
                 .eq('is_active', true)
                 .order('sort_order', { ascending: true })
@@ -146,9 +150,13 @@ export default async function handler(req, res) {
         }
 
         // ── Shape ────────────────────────────────────────────────────────────
+        const printfulReady = isPrintfulReady();
         const payload = items.map(item => {
             const basePriceUsd = toNumber(item.price_usd);
             const basePriceDiamonds = diamondsFor(item.price_diamonds, item.price_usd);
+            const itemMetadata = item.metadata && typeof item.metadata === 'object' ? item.metadata : {};
+            const fulfillmentProvider = itemMetadata.fulfillment_provider || null;
+            const madeToOrder = itemMetadata.made_to_order === true || fulfillmentProvider === 'printful';
 
             const variants = (variantsByItem[item.id] || []).map(v => {
                 // NULL variant price = inherit the parent item price.
@@ -156,6 +164,12 @@ export default async function handler(req, res) {
                 const priceUsd = vUsd !== null && vUsd > 0 ? vUsd : basePriceUsd;
                 const priceDiamonds = diamondsFor(v.price_diamonds, priceUsd);
                 const stock = Number.isFinite(Number(v.stock)) ? Number(v.stock) : 0;
+                const variantMapping = fulfillmentProvider === 'printful'
+                    // A sized/coloured product must be mapped on the exact
+                    // variant. Falling back to an item-level id could send the
+                    // wrong garment size to a customer.
+                    ? resolvePrintfulMapping(null, v.metadata)
+                    : null;
                 return {
                     id: v.id,
                     sku: v.sku,
@@ -164,7 +178,8 @@ export default async function handler(req, res) {
                     price_usd: priceUsd,
                     price_diamonds: priceDiamonds,
                     stock,
-                    in_stock: stock > 0
+                    in_stock: stock > 0,
+                    fulfillment_ready: Boolean(printfulReady && variantMapping)
                 };
             });
 
@@ -181,6 +196,12 @@ export default async function handler(req, res) {
             const effectiveInStock = (variantsAvailable && hasVariants)
                 ? variantStock > 0
                 : (itemStock === null || itemStock > 0);
+            const itemMapping = fulfillmentProvider === 'printful'
+                ? resolvePrintfulMapping(itemMetadata, null)
+                : null;
+            const fulfillmentReady = hasVariants
+                ? variants.some(variant => variant.fulfillment_ready)
+                : Boolean(printfulReady && itemMapping);
 
             return {
                 id: item.id,
@@ -196,7 +217,10 @@ export default async function handler(req, res) {
                 variants,
                 stock: effectiveStock,
                 in_stock: effectiveInStock,
-                metadata: item.metadata || {}
+                metadata: itemMetadata,
+                made_to_order: madeToOrder,
+                fulfillment_provider: fulfillmentProvider,
+                fulfillment_ready: fulfillmentReady
             };
         });
 
@@ -217,7 +241,8 @@ export default async function handler(req, res) {
                 currency: 'usd',
                 diamonds_per_dollar: DIAMONDS_PER_DOLLAR,
                 catalog_available: true,
-                variants_available: variantsAvailable
+                variants_available: variantsAvailable,
+                print_on_demand_available: printfulReady
             }
         });
 

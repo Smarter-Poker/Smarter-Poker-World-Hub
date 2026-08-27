@@ -91,6 +91,28 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Items array required' });
           }
 
+          // Print-on-demand orders require the verified shipping address that
+          // Stripe Checkout collects. Never debit diamonds for a physical POD
+          // order that cannot be routed to the fulfillment provider.
+          const requestedIds = [...new Set(items.map(item => item?.id).filter(Boolean))];
+          if (requestedIds.length > 0) {
+              const { data: requestedCatalog, error: catalogMetadataError } = await getSupabase()
+                  .from('merchandise_items')
+                  .select('id, metadata')
+                  .in('id', requestedIds);
+              if (catalogMetadataError) {
+                  console.error('[DiamondPurchase] fulfillment metadata lookup failed:', catalogMetadataError.message);
+                  return res.status(503).json({ success: false, error: 'Could not verify fulfillment' });
+              }
+              if ((requestedCatalog || []).some(row => row?.metadata?.fulfillment_provider === 'printful')) {
+                  return res.status(400).json({
+                      success: false,
+                      error: 'Card Checkout Required For Shipping',
+                      code: 'CARD_CHECKOUT_REQUIRED',
+                  });
+              }
+          }
+
           // ═══════════════════════════════════════════════════════════════════
           // PRICE AND STOCK ARE RESOLVED TOGETHER, SERVER-SIDE, ATOMICALLY.
           //
