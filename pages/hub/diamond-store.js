@@ -57,6 +57,7 @@ import {
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 import { VIPCard, MerchCard } from '../../src/components/store/StoreCards';
 import MerchStore from '../../src/components/store/MerchStore';
+import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
 
 import {
   STANDARD_REWARDS,
@@ -1108,6 +1109,17 @@ export default function DiamondStorePage({ initialTab }) {
                     .diamond-store-page details[open] > summary .faq-chevron { transform: rotate(180deg); }
                     /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
                     .diamond-store-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
+                    .store-redesign-content, .store-redesign-content button, .store-redesign-content a,
+                    .store-redesign-content h1, .store-redesign-content h2, .store-redesign-content h3,
+                    .store-redesign-content h4, .store-redesign-content p, .store-redesign-content span,
+                    .store-redesign-content strong, .store-redesign-content summary {
+                        text-transform: capitalize;
+                    }
+                    .store-redesign-content button, .store-redesign-content a,
+                    .store-redesign-content details, .store-redesign-content section,
+                    .store-redesign-content article,
+                    .store-redesign-content [style*="border-radius"] { border-radius: 0 !important; }
+                    .legacy-store-header, .legacy-diamond-store { display: none !important; }
                     @keyframes fadeIn {
                         from { opacity: 0; transform: translate(-50%, -6px); }
                         to { opacity: 1; transform: translate(-50%, 0); }
@@ -1123,9 +1135,17 @@ export default function DiamondStorePage({ initialTab }) {
           {/* Header */}
           <UniversalHeader pageDepth={1} />
 
+          <main className="store-redesign-content">
+          <SmarterStoreShowcase
+            activeTab={activeTab}
+            packages={DIAMOND_PACKAGES}
+            onNavigate={(tabId) => openTab(tabId, activeTab)}
+            onBuy={handleDirectCheckout}
+          />
+
           {/* ── DYNAMIC HEADERS FOR OTHER TABS ── */}
           {activeTab !== 'diamonds' && (
-            <div style={{ position: 'relative', width: '100%' }}>
+            <div className="legacy-store-header" style={{ position: 'relative', width: '100%' }}>
               {activeTab === 'vip' && (
                 <>
                   <img
@@ -1379,7 +1399,7 @@ export default function DiamondStorePage({ initialTab }) {
           {/* DIAMONDS TAB — Checkout image with clickable zones */}
           {/* ═══════════════════════════════════════════════════════ */}
           {activeTab === 'diamonds' && (
-            <div style={{ position: 'relative', width: '100%' }}>
+            <div className="legacy-diamond-store" style={{ position: 'relative', width: '100%' }}>
               <img
                 src="/images/new-diamond-store.jpg"
                 alt="Diamond Packages"
@@ -3712,6 +3732,7 @@ export default function DiamondStorePage({ initialTab }) {
               for details.
             </p>
           </div>
+          </main>
         </div>
         <BottomNavBar />
       </PageTransition>

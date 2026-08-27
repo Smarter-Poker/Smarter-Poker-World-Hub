@@ -1,0 +1,387 @@
+.showcase {
+  --cyan: #63e7ff;
+  --line: #718b9e;
+  position: relative;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 26px 14px;
+  color: #eef8ff;
+  font-family:
+    Inter,
+    -apple-system,
+    sans-serif;
+  text-transform: capitalize;
+}
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin-bottom: 26px;
+  border: 1px solid #718b9e;
+  background: linear-gradient(180deg, #2b3944 0, #060b10 18%, #020407 76%, #19242c 100%);
+  box-shadow:
+    inset 0 1px 0 #fff8,
+    inset 0 -3px 5px #000,
+    0 8px 20px #000;
+}
+.tab {
+  min-height: 54px;
+  border: 0;
+  border-right: 1px solid #293c49;
+  background: transparent;
+  color: #aebdc7;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+.tab:last-child {
+  border-right: 0;
+}
+.tab:hover,
+.activeTab {
+  color: #fff;
+  background: linear-gradient(180deg, #3b5364, #0d1b26 24%, #06101a 76%, #1f3544);
+  box-shadow:
+    inset 0 2px 0 #d8fbff,
+    inset 0 -3px 0 #078ed6,
+    0 0 18px #008cff55;
+}
+.hero {
+  position: relative;
+  min-height: 570px;
+  border: 2px solid #92aaba;
+  background: #02060b;
+  box-shadow:
+    inset 0 0 0 7px #03070d,
+    inset 0 0 0 8px #43657c,
+    inset 0 0 45px #000,
+    0 0 0 5px #020409,
+    0 16px 34px #000;
+  overflow: hidden;
+}
+.hero:before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  background-repeat: no-repeat;
+  filter: brightness(1.18) saturate(1.15);
+}
+.hero:after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1px solid #4e7892;
+  background: linear-gradient(
+    90deg,
+    rgba(1, 4, 9, 0.96),
+    rgba(1, 4, 9, 0.72) 31%,
+    rgba(1, 4, 9, 0.08) 59%,
+    transparent
+  );
+  box-shadow: inset 0 0 25px #00aaff33;
+}
+.diamondHero:before {
+  background-image: url('/images/store-v3/diamond-vault-hero.png');
+  background-size: cover;
+  background-position: center;
+}
+.sectionHero:before {
+  background-image: url('/images/store-v3/store-section-heroes.png');
+  background-size: 200% 200%;
+}
+.vip .sectionHero:before {
+  background-position: 0 0;
+}
+.merch .sectionHero:before {
+  background-position: 100% 0;
+}
+.rewards .sectionHero:before {
+  background-position: 0 100%;
+}
+.club-shop .sectionHero:before {
+  background-position: 100% 100%;
+}
+.heroCopy {
+  position: relative;
+  z-index: 2;
+  width: min(54%, 680px);
+  padding: 92px 72px;
+}
+.heroCopy span {
+  font:
+    500 11px 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.2em;
+  color: #a9bbc7;
+}
+.heroCopy h1 {
+  margin: 14px 0 22px;
+  font:
+    400 clamp(42px, 5vw, 76px)/1.05 Michroma,
+    Rajdhani,
+    sans-serif;
+  letter-spacing: -0.05em;
+  background: linear-gradient(180deg, #fff, #9dafba 40%, #fff 50%, #607686 63%, #effcff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 2px #000);
+}
+.heroCopy p {
+  max-width: 560px;
+  margin: 0 0 25px;
+  color: #c5d0d8;
+  font-size: 16px;
+  line-height: 1.75;
+  text-shadow: 0 2px 2px #000;
+}
+.heroCopy strong {
+  display: inline-block;
+  padding: 12px 18px;
+  border: 1px solid #678597;
+  background: linear-gradient(#172938, #07111b);
+  box-shadow:
+    inset 0 1px 0 #dff8ff66,
+    inset 0 -3px 4px #000,
+    0 6px 12px #000;
+  font-size: 12px;
+  color: #d8faff;
+}
+.sectionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 48px 0 18px;
+  padding: 18px 24px;
+  border: 1px solid #6f8798;
+  background: linear-gradient(180deg, #2d3e49, #0a121a 22%, #05090e 74%, #1d2c36);
+  box-shadow:
+    inset 0 1px 0 #fff8,
+    inset 0 -3px 5px #000,
+    0 9px 18px #000;
+}
+.sectionBar h2 {
+  margin: 0;
+  font:
+    400 22px Michroma,
+    Rajdhani,
+    sans-serif;
+}
+.sectionBar span {
+  font:
+    500 10px 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.12em;
+  color: #a9b9c4;
+}
+.packageGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.packageCard {
+  position: relative;
+  min-height: 480px;
+  padding: 320px 28px 28px;
+  border: 1px solid #7892a5;
+  background-repeat: no-repeat;
+  background-size:
+    100% 100%,
+    300% auto;
+  background-image:
+    linear-gradient(180deg, transparent 0 55%, rgba(2, 6, 12, 0.93) 68%, #03070d 100%),
+    url('/images/store-v3/diamond-packages-sheet.png');
+  box-shadow:
+    inset 0 1px 0 #ecfbffb0,
+    inset 0 0 0 6px #060c13,
+    inset 0 0 0 7px #38566a,
+    inset 0 -14px 24px #000,
+    0 15px 30px #000;
+  display: flex;
+  flex-direction: column;
+}
+.package0 {
+  background-position:
+    0 0,
+    0 0;
+}
+.package1 {
+  background-position:
+    0 0,
+    50% 0;
+}
+.package2 {
+  background-position:
+    0 0,
+    100% 0;
+}
+.package3 {
+  background-position:
+    0 0,
+    0 100%;
+}
+.package4 {
+  background-position:
+    0 0,
+    50% 100%;
+}
+.package5 {
+  background-position:
+    0 0,
+    100% 100%;
+}
+.packageTopline {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  right: 28px;
+  display: flex;
+  justify-content: space-between;
+  color: #c9d8e1;
+  font:
+    500 10px 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.12em;
+}
+.packageValue {
+  position: relative;
+  text-align: center;
+}
+.packageValue h3 {
+  margin: 0;
+  font:
+    400 clamp(32px, 3vw, 46px) Michroma,
+    Rajdhani,
+    sans-serif;
+  background: linear-gradient(180deg, #fff, #90a5b4 40%, #fff 50%, #657c8c 64%, #e8faff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 3px 1px #000);
+}
+.packageValue p {
+  min-height: 18px;
+  margin: 6px 0 0;
+  color: #90f4ff;
+  font-size: 12px;
+  text-shadow: 0 0 8px #00aaff;
+}
+.packageCard footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid #61798a;
+}
+.packageCard footer strong {
+  font-family: 'IBM Plex Mono', monospace;
+}
+.packageCard button {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid #d8f6ff;
+  border-radius: 0;
+  color: #fff;
+  background: linear-gradient(
+    180deg,
+    #7e9aac,
+    #253c4d 9%,
+    #0b1722 48%,
+    #1f3d50 51%,
+    #0b1721 88%,
+    #68869a
+  );
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -3px 5px #000,
+    0 4px 8px #000,
+    0 0 9px #009dff55;
+  font-weight: 800;
+  cursor: pointer;
+}
+.packageCard button:hover {
+  background: linear-gradient(
+    180deg,
+    #a5f2ff,
+    #197fb7 12%,
+    #063b60 48%,
+    #0499de 52%,
+    #07334d 88%,
+    #9cefff
+  );
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -3px 6px #001529,
+    0 4px 9px #000,
+    0 0 18px #00bfff;
+}
+.legal {
+  text-align: center;
+  color: #768894;
+  font-size: 11px;
+  margin: 28px 0 10px;
+}
+.showcase * {
+  border-radius: 0 !important;
+}
+.showcase + div,
+.showcase ~ div {
+  text-transform: capitalize;
+}
+@media (max-width: 900px) {
+  .hero {
+    min-height: 520px;
+  }
+  .heroCopy {
+    padding: 70px 44px;
+  }
+  .packageGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .showcase {
+    padding: 14px 10px;
+  }
+  .tabs {
+    overflow-x: auto;
+    display: flex;
+  }
+  .tab {
+    min-width: 135px;
+    padding: 0 12px;
+  }
+  .hero {
+    min-height: 620px;
+  }
+  .hero:before {
+    background-position: 68% center;
+  }
+  .sectionHero:before {
+    background-size: auto 200%;
+    background-position-x: 72% !important;
+  }
+  .hero:after {
+    background: linear-gradient(180deg, transparent 25%, rgba(1, 4, 9, 0.55) 55%, #02060c 84%);
+  }
+  .heroCopy {
+    width: 100%;
+    padding: 310px 25px 38px;
+  }
+  .heroCopy h1 {
+    font-size: 36px;
+  }
+  .packageGrid {
+    grid-template-columns: 1fr;
+  }
+  .packageCard {
+    min-height: 470px;
+  }
+  .sectionBar {
+    padding: 15px;
+  }
+  .sectionBar h2 {
+    font-size: 17px;
+  }
+}
