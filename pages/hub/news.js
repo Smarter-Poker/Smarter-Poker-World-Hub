@@ -59,7 +59,7 @@ const NewsBox = dynamic(() => import('../../src/components/news/NewsBox'), { ssr
 const ReelCard = dynamic(() => import('../../src/components/news/ReelCard'), { ssr: false });
 const VideoCard = dynamic(() => import('../../src/components/news/VideoCard'), { ssr: false });
 
-// Fallback data — shown only when the articles API fails or returns nothing.
+// Fallback data — shown only when the articles API explicitly fails.
 // Every item is tagged is_fallback so it never triggers BREAKING badges or view-count POSTs.
 const getFallbackNews = () => [
     { id: '1', title: "WSOP 2026 Schedule Released", content: "The World Series of Poker announces its biggest schedule yet", image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=400&q=80", category: "tournament", read_time: 4, views: 5200, published_at: new Date().toISOString(), source_name: "PokerNews" },
@@ -156,6 +156,24 @@ const SOURCE_COLORS = {
     'Pokerfuse': '#00897b'
 };
 
+function normalizeSourceName(value) {
+    return String(value || '').replace(/[^a-z]/gi, '').toLowerCase();
+}
+
+function parseSourceQuery(value) {
+    const values = (Array.isArray(value) ? value : [value])
+        .flatMap(item => String(item || '').split(','))
+        .map(item => item.trim())
+        .filter(Boolean);
+    return VALID_SOURCES.filter(source => (
+        values.some(valueItem => normalizeSourceName(valueItem) === normalizeSourceName(source))
+    ));
+}
+
+function isRealArticle(article) {
+    return !!article && !article.is_fallback && !article._isEmpty && !article._isError;
+}
+
 export default function NewsHub() {
     const router = useRouter();
     const { user } = useAvatar();
@@ -166,6 +184,7 @@ export default function NewsHub() {
     // Core State
     const [searchQuery, setSearchQuery] = useState('');
     const [sourceFilters, setSourceFilters] = useState({});
+    const activeSourceFilters = Object.keys(sourceFilters || {}).filter(key => sourceFilters[key]);
     // (The old client-side `visibleStories` slice was replaced by real offset
     // pagination — see NEWS_PAGE_SIZE / loadMoreNews below.)
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -278,6 +297,9 @@ export default function NewsHub() {
     const jsonFetch = (url) => fetch(url).then(r => r.json());
     const { data: sourceBoxesData } = useSWR('/api/news/source-boxes', jsonFetch);
     const rawSourceBoxes = (sourceBoxesData?.success && sourceBoxesData.data?.length) ? sourceBoxesData.data : [];
+    const sourceBoxesUnavailable = !!sourceBoxesData && (
+        sourceBoxesData.success !== true || !Array.isArray(sourceBoxesData.data) || sourceBoxesData.data.length === 0
+    );
     const sourceBoxes = React.useMemo(() => {
         return rawSourceBoxes.map(a => ({
             ...a,
@@ -339,12 +361,11 @@ export default function NewsHub() {
     // hasMore } }. We ask for ONE page at a time and accumulate the results; the
     // infinite-scroll sentinel below advances `offset` instead of slicing a
     // client-side array. category + search stay server-side (the API filters on
-    // both). Source filtering stays client-side on purpose — the API matches
-    // source_name exactly and this page normalizes 'CardPlayer' -> 'Card Player',
-    // so sending the display name would silently return zero rows.
+    // both). Source filtering is server-side too, with Card Player expanded to
+    // both stored spellings so pagination never burns through unrelated pages.
     const NEWS_PAGE_SIZE = 24;
     // Signature of every server-side filter. Changing it restarts pagination.
-    const newsFilterKey = `${activeTab}|${debouncedSearch}`;
+    const newsFilterKey = `${activeTab}|${debouncedSearch}|${storySort}|${activeSourceFilters.join(',')}`;
     const [newsPage, setNewsPage] = useState({ key: newsFilterKey, offset: 0 });
     // Snapping to 0 when the signature changes happens during RENDER (not in an
     // effect) so a stale offset can never be fetched against the new filters.
@@ -359,6 +380,13 @@ export default function NewsHub() {
     const newsParams = new URLSearchParams({ limit: String(NEWS_PAGE_SIZE), offset: String(newsOffset) });
     if (activeTab !== 'all') newsParams.set('category', activeTab);
     if (debouncedSearch) newsParams.set('search', debouncedSearch);
+    if (storySort === 'popular') newsParams.set('sort', 'popular');
+    if (activeSourceFilters.length > 0) {
+        const serverSources = activeSourceFilters.flatMap(source => (
+            source === 'Card Player' ? ['Card Player', 'CardPlayer'] : [source]
+        ));
+        newsParams.set('source', serverSources.join(','));
+    }
     const { data: newsData, error: newsError, isLoading: loading, mutate: refreshNews } = useSWR(`/api/news/articles?${newsParams}`, jsonFetch);
 
     // Merge the arriving page into the accumulated list: de-duped by id and kept in
@@ -387,7 +415,11 @@ export default function NewsHub() {
                     }
                 }
             });
-            merged.sort((a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0));
+            merged.sort((a, b) => {
+                const publishedDelta = new Date(b.published_at || 0) - new Date(a.published_at || 0);
+                if (storySort === 'popular') return ((b.views || 0) - (a.views || 0)) || publishedDelta;
+                return publishedDelta;
+            });
             const total = typeof pg.total === 'number' ? pg.total : merged.length;
             // Older API builds have no `pagination` block — fall back to "a full
             // page came back, so there is probably more".
@@ -400,7 +432,7 @@ export default function NewsHub() {
             }
             return { key: newsFilterKey, items: merged, total, hasMore };
         });
-    }, [newsData, newsFilterKey]);
+    }, [newsData, newsFilterKey, storySort]);
 
     // The in-flight page settled (success OR error) — release the sentinel guard so
     // a failed request can't permanently freeze infinite scroll.
@@ -428,8 +460,11 @@ export default function NewsHub() {
         return refreshNews();
     }, [newsFilterKey, refreshNews]);
 
-    // While the first load is in flight render nothing (skeleton covers it) — never fake data
-    const rawNews = hasLoadedNews ? loadedNews : (loading ? [] : getFallbackNews());
+    const newsFeedFailed = !!newsError || (!!newsData && newsData.success !== true);
+    // A successful empty result is a real empty result. Samples are reserved for an
+    // explicit transport/API failure and are labelled in the UI below.
+    // Generate samples at failure time so Phase 2's relative dates stay fresh.
+    const rawNews = hasLoadedNews ? loadedNews : (loading ? [] : (newsFeedFailed ? getFallbackNews() : []));
     const news = React.useMemo(() => {
         return rawNews.map(a => ({
             ...a,
@@ -490,7 +525,7 @@ export default function NewsHub() {
         setSourceFilters(next);
         const active = Object.keys(next).filter(k => next[k]);
         const { source: _omit, ...restQuery } = router.query;
-        const query = active.length === 1 ? { ...restQuery, source: active[0] } : restQuery;
+        const query = active.length > 0 ? { ...restQuery, source: active.join(',') } : restQuery;
         router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
     };
     const clearSourceFilters = () => {
@@ -498,9 +533,6 @@ export default function NewsHub() {
         const { source: _source, ...restQuery } = router.query;
         router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
     };
-    const activeSourceFilters = Object.keys(sourceFilters || {}).filter(k => sourceFilters[k]);
-
-
     // Article reader state - uses server-side proxy to display articles in-app
     const [articleReader, setArticleReader] = useState({ open: false, url: '', title: '' });
 
@@ -547,12 +579,10 @@ export default function NewsHub() {
     const tabDeepLinkConsumed = useRef(undefined);
     const filterDeepLinkConsumed = useRef(undefined);
     useEffect(() => {
-        if (router.query.source) {
-            const raw = String(router.query.source);
-            const normalize = (s) => s.replace(/[^a-z]/gi, '').toLowerCase();
-            const match = VALID_SOURCES.find(s => normalize(s) === normalize(raw));
-            setSourceFilters(prev => ({ ...prev, [match || raw]: true }));
-        }
+        // The URL is authoritative and supports a comma-separated multi-source
+        // selection. Unknown values are ignored instead of creating invisible chips.
+        const selectedSources = parseSourceQuery(router.query.source);
+        setSourceFilters(Object.fromEntries(selectedSources.map(source => [source, true])));
         if (router.query.sort === 'latest' || router.query.sort === 'popular') {
             setStorySort(router.query.sort);
             if (typeof window !== 'undefined') localStorage.setItem('news_story_sort', router.query.sort);
@@ -606,14 +636,14 @@ export default function NewsHub() {
         emailDigest: false
     });
 
-    // Lock body scroll while the reel viewer or share modal is open
+    // Lock body scroll while any full-screen viewer or modal is open.
     useEffect(() => {
-        if (reelViewerOpen || shareArticle) {
+        if (reelViewerOpen || shareArticle || articleReader.open) {
             const prev = document.body.style.overflow;
             document.body.style.overflow = 'hidden';
             return () => { document.body.style.overflow = prev; };
         }
-    }, [reelViewerOpen, shareArticle]);
+    }, [reelViewerOpen, shareArticle, articleReader.open]);
 
     // Document-level keyboard handling: Escape closes the share modal / reel viewer,
     // arrows step through reels (works even after the YouTube iframe steals focus)
@@ -717,19 +747,6 @@ export default function NewsHub() {
         setPushNotifications: (val) => updatePreference('pushNotifications', val),
         setEmailDigest: (val) => updatePreference('emailDigest', val)
     });
-
-    //  INTRO VIDEO STATE - Video plays while page loads in background
-    // Only show once per session (not on every reload).
-    // Initialized false and hydrated in an effect — reading sessionStorage in the
-    // useState initializer causes React #418 hydration mismatches.
-        useEffect(() => {
-        if (typeof window !== 'undefined' && !sessionStorage.getItem('news-intro-seen')) {
-                    }
-    }, []);
-    
-    // Mark intro as seen when it ends
-
-    // Attempt to unmute video after it starts playing
 
     // Load persisted state. hydratedRef gates the persist effects below so the
     // initial [] state can never overwrite saved bookmarks/read-history.
@@ -989,21 +1006,24 @@ export default function NewsHub() {
     const { openExternal } = useExternalLink();
 
     // Article navigation - uses link containment
-    const openArticle = async (article) => {
-        // Fallback placeholders have fabricated ids — never POST view counts for them
-        if (!article.is_fallback) {
-            fetch('/api/news/articles', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: article.id })
-            }).catch(e => console.warn('[App] Handled exception:', e?.message || e));
-            markAsRead(article.id);
-        }
+    const openArticle = (article) => {
+        // Empty/error/sample cards are status surfaces, not navigable articles.
+        if (!isRealArticle(article)) return;
+
+        // Navigation must never wait on analytics. keepalive gives the view event a
+        // chance to finish if the route changes while failures stay non-blocking.
+        markAsRead(article.id);
+        void fetch('/api/news/articles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: article.id }),
+            keepalive: true
+        }).catch(e => console.warn('[App] Handled exception:', e?.message || e));
 
         if (article.source_url && article.source_url !== '#') {
             // Open full page in-app via proxy-based ArticleReaderModal
             setArticleReader({ open: true, url: article.source_url, title: article.title || 'News Article' });
-        } else if (!article.is_fallback) {
+        } else {
             router.push(`/hub/article?id=${article.id}`);
         }
     };
@@ -1014,7 +1034,11 @@ export default function NewsHub() {
     // ═══════════════════════════════════════════════════════════════════════════
     // ?filter=bookmarks must narrow the top grid too — otherwise the "Showing bookmarks
     // only" chip sits above six articles the user never bookmarked.
-    const allTopArticles = sourceBoxes.length > 0 ? sourceBoxes : getFallbackNews().slice(0, 6);
+    // Do not flash invented cards while the source request is still in flight. A
+    // labelled sample set is reserved for an explicit failed/invalid response.
+    const allTopArticles = sourceBoxes.length > 0
+        ? sourceBoxes
+        : (sourceBoxesUnavailable ? getFallbackNews().slice(0, 6) : []);
     // Muted sources drop out of the top grid too — the API keys boxes on _sourceName.
     const baseTopArticles = allTopArticles.filter(a => !isMuted(a.source_name || a._sourceName));
     const topArticles = feedFilter === 'bookmarks'
@@ -1077,12 +1101,6 @@ export default function NewsHub() {
         .filter(Boolean);
 
     const bookmarkedArticles = news.filter(a => bookmarks.includes(a.id));
-
-    // A card is only saveable / indexable when it represents a REAL published
-    // article. /api/news/source-boxes fills unfilled boxes with `_isEmpty` /
-    // `_isError` rows (synthetic ids like 'empty-box-3' and titles like
-    // "Awaiting WSOP News"), and getFallbackNews() is tagged is_fallback.
-    const isRealArticle = (a) => !!a && !a.is_fallback && !a._isEmpty && !a._isError;
 
     // Breaking news = most recent real article from top sources (fallback data never qualifies)
     const breakingNews = news.find(a => !a.is_fallback && a.source_name !== 'Smarter.Poker' && (Date.now() - new Date(a.published_at).getTime()) < 3600000);
@@ -1199,7 +1217,7 @@ export default function NewsHub() {
         return {
             '@context': 'https://schema.org',
             '@type': 'ItemList',
-            name: 'Latest Poker News',
+            name: storySort === 'popular' ? 'Most Read Poker News' : 'Latest Poker News',
             itemListOrder: 'https://schema.org/ItemListOrderDescending',
             numberOfItems: itemListElement.length,
             itemListElement
@@ -1427,9 +1445,12 @@ export default function NewsHub() {
                                 {VALID_SOURCES.map(src => (
                                     <button
                                         key={src}
+                                        type="button"
                                         className={`source-chip ${sourceFilters[src] ? 'active' : ''}`}
                                         onClick={() => toggleSource(src)}
                                         style={{ '--source-color': SOURCE_COLORS[src] || '#5ef5f0' }}
+                                        aria-pressed={!!sourceFilters[src]}
+                                        aria-label={`${sourceFilters[src] ? 'Remove' : 'Add'} ${src} source filter`}
                                     >
                                         <span className="chip-dot" />
                                         {src}
@@ -1437,7 +1458,7 @@ export default function NewsHub() {
                                     </button>
                                 ))}
                                 {activeSourceFilters.length > 0 && (
-                                    <button className="source-chip clear" onClick={clearSourceFilters}>
+                                    <button type="button" className="source-chip clear" onClick={clearSourceFilters}>
                                         Clear
                                     </button>
                                 )}
@@ -1558,6 +1579,16 @@ export default function NewsHub() {
                                 </div>
                             </div>
 
+                            {((newsFeedFailed && !hasLoadedNews) || sourceBoxesUnavailable) && (
+                                <div className="feed-status-alert" role="alert">
+                                    <div>
+                                        <strong>Part of the live wire is unavailable.</strong>
+                                        <span>Showing clearly marked sample headlines while the feed reconnects.</span>
+                                    </div>
+                                    <button type="button" onClick={() => refreshNewsFeed()}>Try again</button>
+                                </div>
+                            )}
+
                             {/* Phase 5: Reading Stats Bar */}
                             {(readArticles.length > 0 || bookmarks.length > 0 || readLater.length > 0) && (
                                 <div className="reading-stats-bar">
@@ -1602,10 +1633,10 @@ export default function NewsHub() {
                                                             article={article}
                                                             index={index}
                                                             priority={index === 0}
-                                                            onOpen={openArticle}
+                                                            onOpen={isRealArticle(article) ? openArticle : undefined}
                                                             isBookmarked={bookmarks.includes(article.id)}
-                                                            onBookmark={toggleBookmark}
-                                                            onShare={handleShare}
+                                                            onBookmark={isRealArticle(article) ? toggleBookmark : undefined}
+                                                            onShare={isRealArticle(article) ? handleShare : undefined}
                                                             isRead={readArticles.includes(article.id)}
                                                         />
                                                         {/* Read Later affordance. NewsBox owns its bookmark/share
@@ -1695,7 +1726,13 @@ export default function NewsHub() {
                                                                         onClick={(e) => e.stopPropagation()}
                                                                         onKeyDown={(e) => e.stopPropagation() /* row handler would swallow Enter/Space on these buttons */}
                                                                     >
-                                                                        <button onClick={(e) => { e.stopPropagation(); toggleBookmark(article.id, article); }} title="Bookmark">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => { e.stopPropagation(); toggleBookmark(article.id, article); }}
+                                                                            title={bookmarks.includes(article.id) ? 'Remove bookmark' : 'Bookmark'}
+                                                                            aria-label={bookmarks.includes(article.id) ? 'Remove bookmark' : 'Bookmark article'}
+                                                                            aria-pressed={bookmarks.includes(article.id)}
+                                                                        >
                                                                             {bookmarks.includes(article.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
                                                                         </button>
                                                                         <button
@@ -1707,7 +1744,12 @@ export default function NewsHub() {
                                                                         >
                                                                             {isSavedForLater(article.id) ? <CheckCircle size={14} /> : <Clock size={14} />}
                                                                         </button>
-                                                                        <button onClick={(e) => { e.stopPropagation(); handleShare(article); }} title="Share">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => { e.stopPropagation(); handleShare(article); }}
+                                                                            title="Share"
+                                                                            aria-label="Share article"
+                                                                        >
                                                                             <Share2 size={14} />
                                                                         </button>
                                                                     </div>

@@ -38,6 +38,180 @@ body.world-training {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   TRAINING ARENA LOBBY — pressed-metal bridge into Club Arena gameplay
+   ═══════════════════════════════════════════════════════════════════════════ */
+body.world-training .sp-arena-shell {
+    border-inline: 1px solid rgba(133, 218, 244, 0.16);
+    box-shadow: 0 0 80px rgba(0, 0, 0, 0.62), inset 0 0 70px rgba(43, 190, 232, 0.035);
+}
+
+body.world-training .sp-arena-lobby {
+    padding: clamp(12px, 2.5vh, 28px) 12px !important;
+    align-items: flex-start !important;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 18%, rgba(34, 163, 213, 0.2), transparent 32%),
+        repeating-linear-gradient(90deg, rgba(137, 224, 255, 0.018) 0 1px, transparent 1px 5px),
+        linear-gradient(145deg, #0d202b 0%, #040b11 46%, #0b1c26 100%) !important;
+}
+
+body.world-training .sp-arena-lobby__content {
+    position: relative;
+    width: min(100%, 560px) !important;
+    max-width: 560px !important;
+    max-height: 100% !important;
+    margin: auto !important;
+    padding: clamp(18px, 3vh, 28px) clamp(16px, 3vw, 28px) 24px !important;
+    border: 1px solid rgba(165, 229, 249, 0.42);
+    border-radius: 0 !important;
+    background: linear-gradient(160deg, rgba(29, 52, 65, 0.97), rgba(3, 12, 19, 0.985) 38%, rgba(8, 27, 38, 0.98));
+    box-shadow:
+        0 26px 70px rgba(0, 0, 0, 0.62),
+        inset 0 1px 0 rgba(255, 255, 255, 0.24),
+        inset 0 -3px 0 rgba(0, 0, 0, 0.72),
+        0 0 36px rgba(40, 191, 235, 0.09);
+    scrollbar-gutter: stable;
+}
+
+body.world-training .sp-arena-lobby__content::before {
+    content: '';
+    position: absolute;
+    inset: 0 18% auto;
+    height: 2px;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, #bdefff 24%, #ffffff 50%, #4bcdf3 76%, transparent);
+    box-shadow: 0 0 14px rgba(83, 212, 248, 0.58);
+}
+
+body.world-training .sp-arena-lobby__heading {
+    margin: 2px 0 20px !important;
+    text-align: left !important;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(139, 234, 255, 0.22);
+}
+
+body.world-training .sp-arena-lobby__heading > div:first-child {
+    color: #f4fcff !important;
+    font-family: var(--font-orbitron, 'Orbitron'), sans-serif !important;
+    font-size: clamp(23px, 4.5vw, 31px) !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.8px !important;
+    line-height: 1.12;
+    text-shadow: 0 2px 0 #020609, 0 0 18px rgba(88, 215, 249, 0.2);
+}
+
+body.world-training .sp-arena-lobby__heading > div:not(:first-child) {
+    color: #9bb6c4 !important;
+    letter-spacing: 0.55px;
+}
+
+body.world-training .sp-arena-lobby__panel {
+    position: relative;
+    border-radius: 0 !important;
+    border: 1px solid rgba(139, 218, 243, 0.27) !important;
+    background: linear-gradient(145deg, rgba(32, 57, 70, 0.94), rgba(4, 14, 21, 0.97) 48%, rgba(12, 35, 46, 0.94)) !important;
+    box-shadow:
+        0 12px 28px rgba(0, 0, 0, 0.38),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.72) !important;
+}
+
+body.world-training .sp-arena-lobby__panel--goal {
+    border-color: rgba(112, 225, 255, 0.52) !important;
+    background: linear-gradient(145deg, rgba(35, 79, 96, 0.92), rgba(3, 17, 25, 0.98) 52%, rgba(11, 43, 56, 0.95)) !important;
+}
+
+body.world-training .sp-arena-lobby__option-grid {
+    display: grid !important;
+    align-items: stretch;
+    gap: 7px !important;
+}
+
+body.world-training .sp-arena-lobby__option-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body.world-training .sp-arena-lobby__option-grid--four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+body.world-training .sp-arena-lobby__option {
+    min-width: 0;
+    min-height: 42px;
+    border-radius: 0 !important;
+    background: linear-gradient(180deg, rgba(46, 72, 86, 0.9), rgba(5, 17, 25, 0.97) 52%, rgba(11, 31, 41, 0.96)) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 -2px 0 rgba(0, 0, 0, 0.76), 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+body.world-training .sp-arena-lobby__option[data-selected='true'] {
+    filter: brightness(1.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -2px 0 rgba(0, 0, 0, 0.72), 0 0 16px rgba(65, 202, 241, 0.12);
+}
+
+body.world-training .sp-arena-lobby__start {
+    min-height: 52px;
+    border: 1px solid rgba(220, 249, 255, 0.84) !important;
+    border-radius: 0 !important;
+    background: linear-gradient(180deg, #d9f8ff 0%, #42c6ed 12%, #087ca9 51%, #05364c 100%) !important;
+    color: #f7fdff !important;
+    font-family: var(--font-orbitron, 'Orbitron'), sans-serif !important;
+    letter-spacing: 0.8px !important;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.72);
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.52), inset 0 -3px 0 rgba(0, 0, 0, 0.72), 0 12px 24px rgba(0, 92, 129, 0.35) !important;
+}
+
+body.world-training .sp-arena-lobby__start:disabled {
+    filter: grayscale(0.72) brightness(0.62);
+    color: #b2c1c8 !important;
+}
+
+body.world-training .sp-arena-lobby__back {
+    min-height: 40px;
+    color: #a8c2cf !important;
+    border: 1px solid rgba(139, 218, 243, 0.22) !important;
+    border-radius: 0 !important;
+    background: linear-gradient(180deg, rgba(34, 55, 66, 0.72), rgba(4, 14, 21, 0.85)) !important;
+}
+
+@media (max-width: 600px) {
+    body.world-training .sp-arena-lobby {
+        padding: 8px !important;
+    }
+
+    body.world-training .sp-arena-lobby__content {
+        width: 100% !important;
+        padding: 16px 12px 20px !important;
+    }
+
+    body.world-training .sp-arena-lobby__heading {
+        margin-bottom: 14px !important;
+    }
+
+    body.world-training .sp-arena-lobby__option-grid--four {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.world-training .sp-arena-lobby__mode-option {
+        min-height: 58px;
+    }
+}
+
+@media (max-height: 720px) {
+    body.world-training .sp-arena-lobby {
+        padding-block: 6px !important;
+    }
+
+    body.world-training .sp-arena-lobby__content {
+        padding-top: 14px !important;
+    }
+
+    body.world-training .sp-arena-lobby__heading {
+        margin-bottom: 10px !important;
+        padding-bottom: 9px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    TRAIN-CSS-SWEEP-1 — cross-cutting accessibility, mobile, and motion guards
    ═══════════════════════════════════════════════════════════════════════════
    Applied at body.world-training scope so EVERY training page (all 89 routes

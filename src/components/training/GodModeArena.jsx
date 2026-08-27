@@ -13364,7 +13364,7 @@ function GodModeArenaInner({
 
   if (hasFullScreenUI) {
     return (
-      <div style={styles.fullScreenContainer}>
+      <div className="sp-arena-shell" style={styles.fullScreenContainer}>
         {/* Trainer Config Modal */}
         <TrainerConfigModal
           isOpen={showConfigModal}
@@ -13377,6 +13377,7 @@ function GodModeArenaInner({
           {/* ●●● PHASE 18: ENHANCED PRE-SESSION LOBBY ●●● */}
           {gamePhase === 'splash' && (
             <motion.div
+              className="sp-arena-lobby"
               key="splash"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -13385,6 +13386,7 @@ function GodModeArenaInner({
               style={styles.splashScreen}
             >
               <div
+                className="sp-arena-lobby__content"
                 style={{
                   width: '100%',
                   maxWidth: 420,
@@ -13396,6 +13398,7 @@ function GodModeArenaInner({
               >
                 {/* Game Title */}
                 <motion.div
+                  className="sp-arena-lobby__heading"
                   initial={{ y: -20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.1 }}
@@ -13424,7 +13427,7 @@ function GodModeArenaInner({
                           color: levelDef.accentColor || '#00d4ff',
                           fontWeight: 700,
                           marginTop: 2,
-                          textTransform: 'uppercase',
+                          textTransform: 'capitalize',
                           letterSpacing: 0.5,
                         }}
                       >
@@ -13436,6 +13439,7 @@ function GodModeArenaInner({
 
                 {/* Session Goal Card */}
                 <motion.div
+                  className="sp-arena-lobby__panel sp-arena-lobby__panel--goal"
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.2 }}
@@ -13453,7 +13457,7 @@ function GodModeArenaInner({
                       fontSize: 10,
                       fontWeight: 700,
                       color: '#00d4ff',
-                      textTransform: 'uppercase',
+                      textTransform: 'capitalize',
                       letterSpacing: 1,
                       marginBottom: 6,
                     }}
@@ -13473,6 +13477,7 @@ function GodModeArenaInner({
                 {/* Previous Performance (from cross-session analytics) */}
                 {crossSessionAnalytics?.milestones && (
                   <motion.div
+                    className="sp-arena-lobby__panel sp-arena-lobby__panel--performance"
                     initial={{ y: 10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.3 }}
@@ -13489,7 +13494,7 @@ function GodModeArenaInner({
                         fontSize: 10,
                         fontWeight: 700,
                         color: '#94a3b8',
-                        textTransform: 'uppercase',
+                        textTransform: 'capitalize',
                         letterSpacing: 1,
                         marginBottom: 8,
                       }}
@@ -13574,6 +13579,7 @@ function GodModeArenaInner({
 
                 {/* Difficulty + Timer Selectors */}
                 <motion.div
+                  className="sp-arena-lobby__panel sp-arena-lobby__panel--controls"
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.35 }}
@@ -13592,21 +13598,23 @@ function GodModeArenaInner({
                         fontSize: 10,
                         fontWeight: 700,
                         color: '#94a3b8',
-                        textTransform: 'uppercase',
+                        textTransform: 'capitalize',
                         letterSpacing: 1,
                         marginBottom: 6,
                       }}
                     >
                       Difficulty
                     </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div className="sp-arena-lobby__option-grid sp-arena-lobby__option-grid--three">
                       {[
                         { key: 'beginner', label: 'Beginner', color: '#22c55e' },
                         { key: 'standard', label: 'Standard', color: '#00d4ff' },
                         { key: 'expert', label: 'Expert', color: '#ef4444' },
                       ].map((d) => (
                         <button
+                          className="sp-arena-lobby__option"
                           key={d.key}
+                          data-selected={difficulty === d.key}
                           onClick={() => setDifficulty(d.key)}
                           style={{
                             flex: 1,
@@ -13634,14 +13642,14 @@ function GodModeArenaInner({
                         fontSize: 10,
                         fontWeight: 700,
                         color: '#94a3b8',
-                        textTransform: 'uppercase',
+                        textTransform: 'capitalize',
                         letterSpacing: 1,
                         marginBottom: 6,
                       }}
                     >
                       Timer
                     </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div className="sp-arena-lobby__option-grid sp-arena-lobby__option-grid--four">
                       {[
                         { key: 'relaxed', label: 'Relaxed', desc: 'No timer', color: '#22c55e' },
                         { key: 'standard', label: 'Standard', desc: '25s', color: '#fbbf24' },
@@ -13649,7 +13657,9 @@ function GodModeArenaInner({
                         { key: 'blitz', label: 'Blitz', desc: '7s', color: '#ef4444' },
                       ].map((t) => (
                         <button
+                          className="sp-arena-lobby__option"
                           key={t.key}
+                          data-selected={timerMode === t.key}
                           onClick={() => setTimerMode(t.key)}
                           style={{
                             flex: 1,
@@ -13676,6 +13686,7 @@ function GodModeArenaInner({
 
                 {/* Training Mode Selector */}
                 <motion.div
+                  className="sp-arena-lobby__panel sp-arena-lobby__panel--mode"
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.38 }}
@@ -13692,14 +13703,14 @@ function GodModeArenaInner({
                       fontSize: 10,
                       fontWeight: 700,
                       color: '#94a3b8',
-                      textTransform: 'uppercase',
+                      textTransform: 'capitalize',
                       letterSpacing: 1,
                       marginBottom: 8,
                     }}
                   >
                     Training Mode
                   </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div className="sp-arena-lobby__option-grid sp-arena-lobby__option-grid--four">
                     {[
                       {
                         key: 'standard',
@@ -13731,7 +13742,9 @@ function GodModeArenaInner({
                       },
                     ].map((m) => (
                       <button
+                        className="sp-arena-lobby__option sp-arena-lobby__mode-option"
                         key={m.key}
+                        data-selected={trainingMode === m.key}
                         onClick={() => setTrainingMode(m.key)}
                         style={{
                           flex: 1,
@@ -13755,6 +13768,7 @@ function GodModeArenaInner({
                 {/* Spaced Repetition Due */}
                 {reviewDueCount > 0 && (
                   <motion.div
+                    className="sp-arena-lobby__panel sp-arena-lobby__panel--review"
                     initial={{ y: 10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.4 }}
@@ -13788,6 +13802,7 @@ function GodModeArenaInner({
                   transition={{ delay: 0.45 }}
                 >
                   <motion.button
+                    className="sp-arena-lobby__start"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={handleStartTraining}
@@ -13821,6 +13836,7 @@ function GodModeArenaInner({
 
                 {/* Back button */}
                 <motion.button
+                  className="sp-arena-lobby__back"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
@@ -14096,7 +14112,7 @@ function GodModeArenaInner({
 const styles = {
   fullScreenContainer: {
     width: '100%',
-    maxWidth: 900,
+    maxWidth: 1180,
     height: '100vh',
     background: 'radial-gradient(circle at 50% 42%, rgba(0, 111, 177, 0.22), transparent 42%), linear-gradient(180deg, #06111d 0%, #02070d 100%)',
     overflow: 'hidden',
