@@ -10,7 +10,7 @@
  *  signup trial, every 90-day phone-verification giveaway and every canceled
  *  Stripe subscription left the flag set to true forever. Those accounts kept
  *  the VIP diamond ceilings (150/day and 4,500/month instead of 110/3,300),
- *  the ad-free platform, unlimited training, and — once /api/cron/vip-stipend
+ *  unlimited training, and — once /api/cron/vip-stipend
  *  exists — a 500 💎 ($5) monthly stipend. In perpetuity, for $0.
  *
  *  This route is the scheduler-facing wrapper around

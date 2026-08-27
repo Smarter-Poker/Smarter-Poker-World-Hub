@@ -76,7 +76,6 @@ export const VIP_FEATURE_MATRIX = {
       'Social pages',
     ],
     vip: [
-      'Ad-free experience (future)',
       'Priority post visibility in feed (future)',
       'Exclusive creator tools (future)',
     ],
@@ -157,7 +156,6 @@ export const VIP_FEATURE_MATRIX = {
     ],
     vip: [
       'Premium/exclusive content (future)',
-      'Ad-free viewing (future)',
       'Jarvis video insights (currently free)',
     ],
     currentState: 'FREE — no gating in place',
