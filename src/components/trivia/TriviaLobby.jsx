@@ -506,6 +506,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                         loading={cardIdx === 0 ? 'eager' : 'lazy'}
                                         fetchpriority={cardIdx === 0 ? 'high' : 'auto'}
                                         decoding="async"
+                                        draggable="false"
                                     />
                                     <span className="mode-image-card__code" aria-hidden>{mode.code}</span>
                                     <span className="mode-image-card__status" aria-hidden><i /> LIVE</span>
@@ -1306,8 +1307,10 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     color: #e7f4fb;
                     text-align: left;
                     cursor: pointer;
+                    touch-action: manipulation;
+                    -webkit-tap-highlight-color: transparent;
                     content-visibility: auto;
-                    contain-intrinsic-block-size: 578px;
+                    contain-intrinsic-block-size: 490px;
                     box-shadow:
                         inset 0 0 0 1px rgba(255, 255, 255, 0.018),
                         0 10px 28px rgba(0, 0, 0, 0.24);
@@ -1338,7 +1341,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 .mode-image-card__art {
                     position: relative;
                     width: 100%;
-                    aspect-ratio: 1 / 1;
+                    aspect-ratio: 4 / 3;
                     overflow: hidden;
                     border-bottom: 1px solid rgba(111, 155, 176, 0.42);
                     background: #010407;
@@ -1359,6 +1362,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     height: 100%;
                     display: block;
                     object-fit: cover;
+                    object-position: center 46%;
                     border-radius: 0;
                     filter: saturate(0.94) contrast(1.04);
                     transition: transform 500ms cubic-bezier(.2,.7,.2,1), filter 250ms ease;
@@ -1549,8 +1553,14 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     .modes-toolbar__count { font-size: 8px; }
 
                     .mode-filters {
+                        position: sticky;
+                        top: calc(59px + env(safe-area-inset-top, 0px));
+                        z-index: 8;
                         padding: 0 10px;
                         scroll-padding-inline: 10px;
+                        background: linear-gradient(90deg, rgba(5, 14, 20, 0.98), rgba(8, 24, 33, 0.96), rgba(5, 14, 20, 0.98));
+                        box-shadow: 0 1px 0 rgba(25, 185, 255, 0.16), 0 10px 22px rgba(0, 0, 0, 0.34);
+                        backdrop-filter: blur(12px);
                     }
 
                     .mode-filter {
@@ -1569,7 +1579,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         display: flex;
                         flex-direction: column;
                         min-height: 0;
-                        contain-intrinsic-block-size: 560px;
+                        contain-intrinsic-block-size: 470px;
                         border-radius: 1px !important;
                     }
 
@@ -1582,7 +1592,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         width: 100%;
                         height: auto;
                         min-height: 0;
-                        aspect-ratio: 1 / 1;
+                        aspect-ratio: 4 / 3;
                         border-right: 0;
                         border-bottom: 1px solid rgba(111, 155, 176, 0.42);
                     }
@@ -1629,8 +1639,8 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         min-height: 34px;
                         margin-bottom: 11px;
                         overflow: visible;
-                        font-size: 10.5px;
-                        line-height: 1.45;
+                        font-size: 12.5px;
+                        line-height: 1.4;
                     }
 
                     .mode-image-card__telemetry > span {
@@ -1639,11 +1649,11 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     }
 
                     .mode-image-card__telemetry small { font-size: 7px; }
-                    .mode-image-card__telemetry strong { font-size: 9px; }
+                    .mode-image-card__telemetry strong { font-size: 10.5px; }
 
                     .mode-image-card__launch {
                         margin-top: 10px;
-                        font-size: 9px;
+                        font-size: 11px;
                     }
 
                     .quick-stakes-section {
@@ -1659,6 +1669,41 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 @media (max-width: 390px) {
                     .mode-image-card h3 { font-size: 20px; }
                     .mode-image-card__body { padding-left: 9px; padding-right: 9px; }
+                }
+
+                @media (hover: none) {
+                    .mode-image-card:hover,
+                    .mode-image-card:hover .mode-image-card__img,
+                    .quick-stakes-banner:hover,
+                    .daily-trivia-banner:hover {
+                        transform: none;
+                    }
+                }
+
+                .dm-hitbox:focus-visible {
+                    outline: 2px solid #4df8ff;
+                    outline-offset: 3px;
+                    background: rgba(25, 185, 255, 0.14);
+                    box-shadow: 0 0 0 4px rgba(25, 185, 255, 0.12), 0 0 18px rgba(77, 248, 255, 0.55);
+                }
+
+                @media (prefers-contrast: more) {
+                    .mode-image-card,
+                    .mode-filter,
+                    .modes-toolbar,
+                    .mode-filters {
+                        border-color: #8edfff;
+                    }
+
+                    .mode-image-card p,
+                    .mode-image-card__kicker,
+                    .mode-filter {
+                        color: #f2fbff;
+                    }
+
+                    .mode-image-card__art::after {
+                        background: linear-gradient(180deg, transparent 58%, rgba(0, 0, 0, 0.86));
+                    }
                 }
 
                 @media (prefers-reduced-motion: reduce) {
