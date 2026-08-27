@@ -58,8 +58,7 @@ export default async function handler(req, res) {
         if (token) {
             try {
                 const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-                if (!authErr && authData?.user) userId = authData.user.id;
+                if (!authErr && authUser) userId = authUser.id;
             } catch (_e) {
                 // Anonymous logging is fine — analytics must never block
             }

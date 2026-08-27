@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { getVideoPlaylists, createPlaylist, addVideoToPlaylist, removeVideoFromPlaylist } from '../../src/services/videoPlaylists';
 import { supabase } from '../../src/lib/supabase';
+import { getAccessToken } from '../../src/lib/authUtils';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
@@ -2833,9 +2834,13 @@ export default function VideoLibraryPage() {
                                         const games = gameIds.map(id => lookupGame(id)).filter(Boolean).slice(0, 3);
                                         setTtsOverlay({ ctx, games });
                                         // Fire analytics
+                                        const analyticsToken = getAccessToken();
                                         fetch('/api/training/log-request', {
                                             method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                ...(analyticsToken ? { Authorization: `Bearer ${analyticsToken}` } : {}),
+                                            },
                                             body: JSON.stringify({ ref: 'video-library', vid: ctx.vid, title: ctx.title, source: ctx.source, tags, matchedGameIds: gameIds.slice(0, 3) }),
                                         }).catch(() => {});
                                     }}

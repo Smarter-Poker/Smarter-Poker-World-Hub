@@ -71,4 +71,6 @@ test('runtime warnings and failed training analytics writes remain observable', 
   assert.doesNotMatch(TRAINING_LOG, /status\(200\)\.json\(\{ ok: true, warn:/);
   assert.match(TRAINING_LOG, /applyRateLimit\(req, res, LIMITS\.write\)/);
   assert.match(TRAINING_LOG, /status\(413\)\.json\(\{ error: 'Request body too large' \}\)/);
+  assert.match(PAGE, /import \{ getAccessToken \} from '..\/..\/src\/lib\/authUtils'/);
+  assert.match(PAGE, /Authorization: `Bearer \$\{analyticsToken\}`/);
 });
