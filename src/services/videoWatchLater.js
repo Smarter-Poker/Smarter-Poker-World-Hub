@@ -48,12 +48,13 @@ export async function addToWatchLater(userId, videoId, videoData = {}) {
 /**
  * Remove a video from watch later
  */
-export async function removeFromWatchLater(userId, videoId) {
+export async function removeFromWatchLater(userId, videoId, aliases = []) {
+    const videoIds = [...new Set([videoId, ...aliases].filter(Boolean))];
     const { error } = await supabase
         .from('video_watch_later')
         .delete()
         .eq('user_id', userId)
-        .eq('video_id', videoId);
+        .in('video_id', videoIds);
 
     if (error) {
         console.warn('Error removing from watch later:', error);

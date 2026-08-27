@@ -64,7 +64,7 @@ export function claimReward(endpoint, body, reasonLabel) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    fetch(endpoint, {
+    return fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify(body)

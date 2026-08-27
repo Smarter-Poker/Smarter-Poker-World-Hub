@@ -43,15 +43,23 @@ export async function updateVideoLibraryPreferences(userId, preferences) {
     }
 
     try {
+        const current = await getVideoLibraryPreferences(userId);
+        const merged = {
+            autoplay: true,
+            hdQuality: true,
+            captions: false,
+            ...current,
+            ...(preferences && typeof preferences === 'object' ? preferences : {})
+        };
         const { data, error } = await supabase.rpc('update_page_preferences', {
             p_user_id: userId,
             p_column_name: 'video_library_preferences',
-            p_preferences: preferences,
+            p_preferences: merged,
         });
 
         if (error) throw error;
 
-        return data;
+        return data || merged;
     } catch (error) {
         console.warn('Error updating video library preferences:', error);
         throw error;
