@@ -1887,6 +1887,28 @@ export function ReelsViewer({ onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reels[currentIndex]?.id, reels[currentIndex]?.video_url]);
 
+  // Progress hooks must remain above every loading/error/empty early return.
+  // Keeping them below those returns changed the hook count after loadReels()
+  // resolved and crashed the production viewer with React invariant #310.
+  const updateProgressRef = useRef(null);
+  updateProgressRef.current = () => {
+    if (videoRef.current && videoRef.current.duration) {
+      setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
+    }
+    progressRAF.current = requestAnimationFrame(updateProgressRef.current);
+  };
+
+  // Cleanup RAF + interaction timers on every unmount, including loading and
+  // error-state unmounts.
+  useEffect(() => {
+    return () => {
+      if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+      if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
+    };
+  }, []);
+
   if (loading) {
     return (
       <div
@@ -2081,29 +2103,6 @@ export function ReelsViewer({ onClose }) {
     // Single tap = show overlay ONLY (no play/pause)
     revealOverlay();
   };
-
-  // Progress bar update loop - stored in ref to prevent stale closure in RAF
-  const updateProgressRef = useRef(null);
-  updateProgressRef.current = () => {
-    if (videoRef.current && videoRef.current.duration) {
-      setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
-    }
-    progressRAF.current = requestAnimationFrame(updateProgressRef.current);
-  };
-
-  // Cleanup RAF + all timer refs on unmount to prevent memory leaks and
-  // stale state updates on unmounted component (React warning prevention)
-  useEffect(() => {
-    return () => {
-      if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
-      // BUG FIX: clear long-press timer on unmount (was never cleared)
-      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-      // BUG FIX: clear overlay auto-hide timer on unmount
-      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-      // BUG FIX: clear reaction picker timer on unmount
-      if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
-    };
-  }, []);
 
   return (
     <div
