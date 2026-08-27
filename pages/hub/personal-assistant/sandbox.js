@@ -25,7 +25,9 @@ import {
   Trash2, Share2, Layers, PlayCircle, AlertTriangle, Check, Camera,
   BookOpen, Zap, Trophy, Upload, GraduationCap,
 } from 'lucide-react';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { useSandboxAnalysis, useArchetypes, useRecentSessions, useBookmarks, useStudyDeck, useQuizLeaderboard } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../../src/lib/supabase';
@@ -882,12 +884,29 @@ function SetupSheet({
 // flight — a false empty state on every open. isLoading is now honoured.
 // ═══════════════════════════════════════════════════════════════
 function SessionsSheet({ isOpen, onClose, onLoad, leaderboardEntries, onLeakStats }) {
-  const { sessions, isLoading: sessionsLoading, refetch: refetchSessions } = useRecentSessions(15);
-  const { bookmarks, isLoading: bookmarksLoading, refetch: refetchBookmarks } = useBookmarks(15);
+  const { user, initializing: authInitializing } = useAvatar();
+  const authState = { userId: user?.id, ready: !authInitializing };
+  const {
+    sessions,
+    isLoading: sessionsLoading,
+    error: sessionsError,
+    refetch: refetchSessions,
+  } = useRecentSessions(15, authState);
+  const {
+    bookmarks,
+    isLoading: bookmarksLoading,
+    error: bookmarksError,
+    refetch: refetchBookmarks,
+  } = useBookmarks(15, authState);
   const [tab, setTab] = useState('sessions');
 
-  const list = tab === 'sessions' ? (sessions || []) : (bookmarks || []);
+  // Only scenario-shaped rows belong in a restore picker. The guest hub also
+  // carries a sample Leak Review activity; rendering it here produced an
+  // "undefined" stack and tried to restore a non-hand as a sandbox session.
+  const restorableSessions = (sessions || []).filter(session => session?.type === 'sandbox');
+  const list = tab === 'sessions' ? restorableSessions : (bookmarks || []);
   const loading = tab === 'sessions' ? sessionsLoading : bookmarksLoading;
+  const loadError = tab === 'sessions' ? sessionsError : bookmarksError;
   const refetch = tab === 'sessions' ? refetchSessions : refetchBookmarks;
 
   return (
@@ -904,6 +923,8 @@ function SessionsSheet({ isOpen, onClose, onLoad, leaderboardEntries, onLeakStat
 
       {loading ? (
         <SkeletonRows rows={3} height={60} />
+      ) : loadError ? (
+        <ErrorState title={`Could not load ${tab}`} body={loadError} onRetry={refetch} />
       ) : list.length === 0 ? (
         <EmptyState
           icon={<Layers size={24} strokeWidth={2} aria-hidden="true" />}
@@ -1183,11 +1204,13 @@ const MemoActionHistoryBuilder = memo(ActionHistoryBuilder);
 export default function VirtualSandbox() {
   const router = useRouter();
   const reduceMotion = usePrefersReducedMotion();
+  const { user, initializing: authInitializing } = useAvatar();
+  const assistantAuth = { userId: user?.id, ready: !authInitializing };
   const { analyze, isAnalyzing, results, error, clearResults } = useSandboxAnalysis();
   useArchetypes();
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
-  const { studySessions } = useStudyDeck(20);
-  const { entries: leaderboardEntries } = useQuizLeaderboard(10);
+  const { studySessions } = useStudyDeck(20, assistantAuth);
+  const { entries: leaderboardEntries } = useQuizLeaderboard(10, assistantAuth);
   const [studyIndex, setStudyIndex] = useState(0);
 
   // ━━━ SCENARIO STATE ━━━
@@ -1506,7 +1529,6 @@ export default function VirtualSandbox() {
   const [pendingBoard, setPendingBoard] = useState(null);
   const coachStreakRef = useRef(0);
   const coachUserPickRef = useRef(null);
-  const suppressCoachEffectRef = useRef(false);
   useEffect(() => { coachUserPickRef.current = coachUserPick; }, [coachUserPick]);
 
   // ━━━ SPACED REPETITION ━━━
@@ -2170,6 +2192,9 @@ export default function VirtualSandbox() {
     setResultsOverride(null);
 
     const data = await analyze(buildAnalyzePayload(null, effBoard, resolvedPick));
+    // A newer hand or comparison owns the UI. Do not turn this stale response
+    // into an offline solve, history row, analytics event, or completion sound.
+    if (data?.superseded) return;
 
     // Offline / server-error fallback — a badged local estimate instead of a
     // red box, so the tool still teaches something with no connection.
@@ -2366,7 +2391,7 @@ export default function VirtualSandbox() {
   // double-count the streak and POST a duplicate coach-result row).
   useEffect(() => {
     if (!results) return;
-    if (suppressCoachEffectRef.current) { suppressCoachEffectRef.current = false; return; }
+    if (results.skipCoachGrade) return;
     gradeAnalysisRef.current?.(results);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [results]);
@@ -2485,28 +2510,20 @@ export default function VirtualSandbox() {
   // double-count the streak and POST a duplicate coach-result row)
   // ═══════════════════════════════════════════════════════════
 
-  // The suppression flag is consumed by the `results` effect, which only runs
-  // when `analyze` actually succeeds. A failed request leaves `results`
-  // untouched, so the flag has to be released here or it silently swallows the
-  // coach grading of the user's NEXT successful analysis.
-  const analyzeWithoutCoach = useCallback(async (payload) => {
-    suppressCoachEffectRef.current = true;
-    let ok = false;
-    try {
-      const data = await analyze(payload);
-      ok = !!data?.success;
-      return data;
-    } finally {
-      if (!ok) suppressCoachEffectRef.current = false;
-    }
-  }, [analyze]);
+  // Re-solve intent travels with the exact request/result. The previous global
+  // suppression flag could be consumed by the wrong response when comparisons
+  // overlapped, causing a comparison to grade the player's coach streak.
+  const analyzeWithoutCoach = useCallback(
+    (payload) => analyze(payload, { skipCoachGrade: true }),
+    [analyze],
+  );
 
   const runPositionComparison = useCallback(async (pos) => {
     if (!comparePosition) primaryResultsRef.current = resultsOverride || results;
     setComparePosition(pos);
     setResultsOverride(null);
     const data = await analyzeWithoutCoach(buildAnalyzePayload(pos));
-    if (!data?.success) toast.error('Could not compare that position — try again');
+    if (!data?.success && !data?.superseded) toast.error('Could not compare that position — try again');
   }, [comparePosition, resultsOverride, results, analyzeWithoutCoach, buildAnalyzePayload]);
 
   const restorePrimaryResults = useCallback(async () => {
@@ -2822,6 +2839,14 @@ export default function VirtualSandbox() {
         paddingBottom: 'calc(60px + 56px + 16px + env(safe-area-inset-bottom, 0px))',
       }}
     >
+      <SEOHead
+        title="Virtual Sandbox — Poker Scenario Solver"
+        description="Build poker scenarios, compare lines, and study solver-informed decisions in the Smarter.Poker Virtual Sandbox."
+        canonical="/hub/personal-assistant/sandbox"
+      />
+      <h1 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
+        Virtual Sandbox Poker Scenario Solver
+      </h1>
       {UpgradePopup}
       {/* top-right collides with the header on a 375px screen */}
       <Toaster position="top-center" containerStyle={{ top: 'calc(8px + env(safe-area-inset-top, 0px))' }} />
@@ -3747,7 +3772,7 @@ export default function VirtualSandbox() {
                     if (data?.success) {
                       playAnalysisDing();
                       toast.success('Re-solved with your node locks');
-                    } else {
+                    } else if (!data?.superseded) {
                       toast.error('Could not re-run the analysis');
                     }
                   }}
@@ -4039,8 +4064,6 @@ export default function VirtualSandbox() {
       </BottomSheet>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
         .sandbox-page { min-height: 100vh; min-height: 100dvh; }
 
         /* Touch feedback is mandatory and must not rely on hover */

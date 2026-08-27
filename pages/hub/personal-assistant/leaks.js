@@ -27,13 +27,14 @@ import {
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { useLeaks, useAssistantStats, useLeakDetection, useLeakHandExamples } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../src/lib/authUtils';
 import {
   T, F, S, R, Z, FONT, card, cardCompact, btn, iconBtn, pill, numeric,
 } from '../../../src/components/sandbox/paTokens';
@@ -1389,18 +1390,10 @@ export default function LeakFinderPage() {
   const router = useRouter();
   const reduceMotion = usePrefersReducedMotion();
   const [mounted, setMounted] = useState(false);
-  const [userId, setUserId] = useState(null);
+  const { user, initializing: authInitializing } = useAvatar();
+  const userId = user?.id || null;
 
   useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    try {
-      const user = getAuthUser();
-      if (user?.id) setUserId(user.id);
-    } catch (e) {
-      console.warn('[LeakFinder] auth read failed:', e?.message || e);
-    }
-  }, []);
 
   // ═══ ACTION GATE: exploring leaks is free, practice/training is gated ═══
   const { guardAction, hasAccess: paHasAccess, UpgradePopup } = useFeatureGate('personal_assistant');
@@ -1427,8 +1420,11 @@ export default function LeakFinderPage() {
     refetch: refetchLeaks,
     updateLeakStatus,
     isDemo: leaksDemoFlag,
-  } = useLeaks();
-  const { stats: fetchedStats, isLoading: statsLoading, isDemo: statsDemoFlag } = useAssistantStats();
+  } = useLeaks(null, { userId, ready: !authInitializing });
+  const { stats: fetchedStats, isLoading: statsLoading, isDemo: statsDemoFlag } = useAssistantStats({
+    userId,
+    ready: !authInitializing,
+  });
   const { runDetection, isDetecting } = useLeakDetection();
 
   const safeLeaks = useMemo(() => (Array.isArray(fetchedLeaks) ? fetchedLeaks : []), [fetchedLeaks]);
