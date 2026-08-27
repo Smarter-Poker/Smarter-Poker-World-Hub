@@ -62,6 +62,8 @@ export default function SmarterStoreShowcase({ activeTab, packages = [], onNavig
             ref={id === activeTab ? activeTabRef : null}
             type="button"
             className={`${styles.tab} ${id === activeTab ? styles.activeTab : ''}`}
+            aria-current={id === activeTab ? 'page' : undefined}
+            aria-label={id === activeTab ? `${label}, Current Page` : `${label}, Opens In New Tab`}
             onClick={() => id !== activeTab && onNavigate(id)}
           >
             {label}
@@ -97,13 +99,18 @@ export default function SmarterStoreShowcase({ activeTab, packages = [], onNavig
                 </div>
                 <div className={styles.packageValue}>
                   <h3>{Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')}</h3>
+                  <span className={styles.packageUnit}>Diamonds</span>
                   {pkg.bonus > 0 && (
                     <p>Includes {Number(pkg.bonus).toLocaleString('en-US')} Bonus Diamonds</p>
                   )}
                 </div>
                 <footer>
                   <strong>${Number(pkg.price || 0).toFixed(2)}</strong>
-                  <button type="button" onClick={() => onBuy(pkg)} aria-label={`Buy ${pkg.name}`}>
+                  <button
+                    type="button"
+                    onClick={() => onBuy(pkg)}
+                    aria-label={`Buy ${pkg.name}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`}
+                  >
                     Buy Now
                   </button>
                 </footer>

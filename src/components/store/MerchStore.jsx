@@ -241,6 +241,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
     const thisBusy = busyKey === product.key;
     const shortBy = Math.max(0, diamondCost - Number(balance || 0));
     const cannotAfford = hasUser && shortBy > 0;
+    const titleId = `merch-${String(product.key || product.name).replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-title`;
 
     const diamondDisabled = soldOut || busy || cannotAfford;
     const diamondReason = soldOut
@@ -252,7 +253,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
     const Icon = product.category === 'apparel' ? Shirt : Package;
 
     return (
-        <div style={{
+        <article aria-labelledby={titleId} style={{
             background: CARD_BG,
             border: soldOut ? '1px solid rgba(255, 95, 109, 0.35)' : CARD_BORDER,
             borderRadius: 12,
@@ -298,7 +299,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
 
             <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
                 <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{product.name}</div>
+                    <h4 id={titleId} style={{ fontSize: 15, fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>{product.name}</h4>
                     {product.description && (
                         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>
                             {product.description}
@@ -321,7 +322,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         <div style={{ fontSize: 11, color: MUTED, marginBottom: 6, fontWeight: 600, letterSpacing: '0.4px' }}>
                             SIZE / OPTION
                         </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        <div role="group" aria-label={`Choose ${product.name} Size Or Option`} style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                             {product.variants.map(v => {
                                 const active = v.key === variantKey;
                                 return (
@@ -369,9 +370,9 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                                 padding: '6px 9px', cursor: clampedQty <= 1 ? 'not-allowed' : 'pointer',
                             }}
                         ><Minus size={12} /></button>
-                        <span style={{ minWidth: 28, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                        <output aria-live="polite" style={{ minWidth: 28, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#fff' }}>
                             {clampedQty}
-                        </span>
+                        </output>
                         <button
                             type="button"
                             aria-label={`Increase quantity of ${product.name}`}
@@ -397,6 +398,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         onClick={() => onBuyCard(product, variant, clampedQty)}
                         disabled={soldOut || busy}
                         title={soldOut ? 'Sold out' : 'Pay by card via Stripe Checkout'}
+                        aria-label={`Buy ${product.name} With Card For ${usd(usdCost)}`}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                             width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none',
@@ -417,6 +419,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         onClick={() => onBuyDiamonds(product, variant, clampedQty)}
                         disabled={diamondDisabled}
                         title={diamondReason || `Pay ${fmt(diamondCost)} diamonds`}
+                        aria-label={`Buy ${product.name} With ${fmt(diamondCost)} Diamonds`}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                             width: '100%', padding: '10px 12px', borderRadius: 10,
@@ -442,7 +445,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                     )}
                 </div>
             </div>
-        </div>
+        </article>
     );
 }
 
@@ -709,7 +712,7 @@ export default function MerchStore({ user = null }) {
             </div>
 
             {usingFallback && loadError && (
-                <div style={{
+                <div role="alert" style={{
                     display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
                     margin: '0 0 24px',
                     padding: '12px 16px', borderRadius: 12,
@@ -737,14 +740,14 @@ export default function MerchStore({ user = null }) {
             )}
 
             {loading && (
-                <div style={{ textAlign: 'center', padding: '48px 0', color: MUTED, fontSize: 14 }}>
+                <div role="status" aria-live="polite" style={{ textAlign: 'center', padding: '48px 0', color: MUTED, fontSize: 14 }}>
                     <ShoppingBag size={28} color="#a8b2d1" />
                     <div style={{ marginTop: 10 }}>Loading the merch lineup…</div>
                 </div>
             )}
 
             {!loading && products.length === 0 && (
-                <div style={{
+                <div role="status" style={{
                     textAlign: 'center', padding: '48px 20px',
                     background: CARD_BG, border: CARD_BORDER, borderRadius: 12,
                     color: MUTED, fontSize: 14,

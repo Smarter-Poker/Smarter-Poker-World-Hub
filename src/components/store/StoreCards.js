@@ -77,17 +77,21 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
 }
 
 export function VIPCard({ plan, isSelected, onSelect }) {
-    return (
-        <div
-            onClick={() => onSelect(plan.id)}
-            style={{
+  return (
+        <button
+            type="button"
+      onClick={() => onSelect(plan.id)}
+            aria-pressed={isSelected}
+            aria-label={`Select ${plan.name}, ${plan.isDiamondCost ? `${plan.price} Diamonds` : `$${(Number(plan.price) || 0).toFixed(2)}`} Per ${plan.interval}`}
+      style={{
                 position: 'relative', borderRadius: 16, cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                transform: isSelected ? 'scale(1.03)' : 'scale(1)',
+        transition: 'all 0.3s ease',
+        transform: isSelected ? 'scale(1.03)' : 'scale(1)',
                 flex: 1, overflow: 'hidden', background: '#000',
-                border: isSelected ? '3px solid #00D4FF' : '2px solid rgba(255,255,255,0.15)',
-                boxShadow: isSelected ? '0 0 30px rgba(0,212,255,0.4)' : '0 4px 20px rgba(0,0,0,0.3)',
-            }}
+        border: isSelected ? '3px solid #00D4FF' : '2px solid rgba(255,255,255,0.15)',
+        boxShadow: isSelected ? '0 0 30px rgba(0,212,255,0.4)' : '0 4px 20px rgba(0,0,0,0.3)',
+                padding: 0, color: 'inherit', textAlign: 'left', font: 'inherit',
+      }}
         >
             <img src="/images/vip-card.png" alt={plan.name}
                 style={{ width: '100%', display: 'block', borderRadius: 14 }}
@@ -109,8 +113,8 @@ export function VIPCard({ plan, isSelected, onSelect }) {
                     <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>/{plan.interval}</span>
                 </div>
             </div>
-        </div>
-    );
+        </button>
+  );
 }
 
 export function MerchCard({ item, onSelect }) {
