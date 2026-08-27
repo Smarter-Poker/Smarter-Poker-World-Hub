@@ -92,7 +92,8 @@ const LevelCard: React.FC<{
     gameTitle: string;
     onPlay: (level: number) => void;
     index: number;
-}> = ({ levelData, gameTitle, onPlay, index }) => {
+    isLast: boolean;
+}> = ({ levelData, gameTitle, onPlay, index, isLast }) => {
     const { level, title, description, passingGrade, highScore, isUnlocked, isCompleted, attempts, diamondMultiplier, tier } = levelData;
 
     // Determine card state
@@ -133,7 +134,7 @@ const LevelCard: React.FC<{
             }}
         >
             {/* Level Number Badge */}
-            <div style={{
+            <div className="sp-level-badge" style={{
                 ...styles.levelBadge,
                 background: isCompleted
                     ? 'linear-gradient(145deg, #f5fdff, #6ac6e1 45%, #17394d)'
@@ -146,7 +147,7 @@ const LevelCard: React.FC<{
             </div>
 
             {/* Level Info */}
-            <div style={styles.levelInfo}>
+            <div className="sp-level-info" style={styles.levelInfo}>
                 <h3 style={{
                     ...styles.levelTitle,
                     color: isUnlocked ? '#fff' : 'rgba(255, 255, 255, 0.5)',
@@ -179,7 +180,7 @@ const LevelCard: React.FC<{
             </div>
 
             {/* High Score / Lock Status */}
-            <div style={styles.scoreSection}>
+            <div className="sp-level-score" style={styles.scoreSection}>
                 {isUnlocked ? (
                     <>
                         {highScore !== null ? (
@@ -210,7 +211,7 @@ const LevelCard: React.FC<{
                                 color: '#f5fdff',
                             }}
                         >
-                            {isCompleted ? '▶ REPLAY' : highScore !== null ? '▶ RETRY' : '▶ PLAY'}
+                            {isCompleted ? '▶ Replay' : highScore !== null ? '▶ Retry' : '▶ Play'}
                         </motion.button>
                     </>
                 ) : (
@@ -224,7 +225,7 @@ const LevelCard: React.FC<{
             </div>
 
             {/* Connection Line to Next Level */}
-            {level < 10 && (
+            {!isLast && (
                 <div style={{
                     ...styles.connectionLine,
                     background: isCompleted
@@ -441,7 +442,10 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
     // Calculate overall progress
     const completedLevels = levels.filter(l => l.isCompleted).length;
-    const totalProgress = (completedLevels / 10) * 100;
+    const totalProgress = levels.length > 0 ? (completedLevels / levels.length) * 100 : 0;
+    const categoryLabel = (gameData?.category || 'Training')
+        .toLowerCase()
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
     return (
         <div className="sp-level-selector" style={styles.container}>
@@ -469,7 +473,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                 </div>
 
                 <div className="sp-level-category" style={styles.categoryBadge}>
-                    {gameData?.category || '...'}
+                    {categoryLabel}
                 </div>
             </header>
 
@@ -495,6 +499,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                                 gameTitle={gameData?.title || ''}
                                 onPlay={handlePlayLevel}
                                 index={index}
+                                isLast={index === levels.length - 1}
                             />
                         ))}
                     </div>
@@ -530,6 +535,165 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <style jsx global>{`
+                .sp-level-selector {
+                    position: relative;
+                    isolation: isolate;
+                    overflow-x: hidden;
+                }
+
+                .sp-level-selector::before {
+                    content: '';
+                    position: fixed;
+                    inset: 0;
+                    z-index: -1;
+                    pointer-events: none;
+                    background:
+                        repeating-linear-gradient(90deg, rgba(121, 220, 255, .018) 0 1px, transparent 1px 5px),
+                        linear-gradient(115deg, transparent 20%, rgba(93, 211, 255, .035) 48%, transparent 72%);
+                }
+
+                .sp-level-card::before {
+                    content: '';
+                    position: absolute;
+                    inset: 5px;
+                    pointer-events: none;
+                    border: 1px solid rgba(195, 241, 255, .075);
+                }
+
+                .sp-level-card.is-open:hover,
+                .sp-level-card.is-complete:hover {
+                    transform: translateY(-2px);
+                    border-color: rgba(174, 239, 255, .82) !important;
+                    box-shadow: 0 22px 48px rgba(0, 0, 0, .52), inset 0 1px 0 rgba(255, 255, 255, .28), 0 0 28px rgba(35, 215, 255, .14) !important;
+                }
+
+                .sp-level-play:hover {
+                    filter: brightness(1.14);
+                    box-shadow: inset 0 1px 0 rgba(255,255,255,.52), inset 0 -2px 0 rgba(0,0,0,.72), 0 10px 24px rgba(0, 153, 214, .3) !important;
+                }
+
+                @media (max-width: 700px) {
+                    .sp-level-header {
+                        display: grid !important;
+                        grid-template-columns: auto minmax(0, 1fr);
+                        gap: 10px 12px !important;
+                        padding: 12px 12px 14px !important;
+                        align-items: center !important;
+                    }
+
+                    .sp-level-back {
+                        grid-column: 1;
+                        grid-row: 1;
+                        min-height: 40px;
+                        padding: 8px 12px !important;
+                    }
+
+                    .sp-level-game-info {
+                        grid-column: 2;
+                        grid-row: 1;
+                        text-align: left !important;
+                    }
+
+                    .sp-level-game-info h1 {
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        font-size: clamp(16px, 5vw, 21px) !important;
+                        letter-spacing: .45px !important;
+                    }
+
+                    .sp-level-game-info > div {
+                        align-items: flex-start !important;
+                        margin-top: 5px !important;
+                    }
+
+                    .sp-level-game-info > div > div {
+                        width: 100% !important;
+                    }
+
+                    .sp-level-category {
+                        grid-column: 1 / -1;
+                        grid-row: 2;
+                        justify-self: stretch;
+                        text-align: center;
+                        padding: 6px 10px !important;
+                    }
+
+                    .sp-level-map {
+                        padding: 16px 10px 24px !important;
+                    }
+
+                    .sp-level-card {
+                        display: grid !important;
+                        grid-template-columns: 42px minmax(0, 1fr);
+                        gap: 0 12px;
+                        align-items: center !important;
+                        padding: 15px 14px !important;
+                        margin-bottom: 10px !important;
+                    }
+
+                    .sp-level-card::before {
+                        inset: 4px;
+                    }
+
+                    .sp-level-badge {
+                        width: 42px !important;
+                        height: 42px !important;
+                        grid-column: 1;
+                        grid-row: 1;
+                    }
+
+                    .sp-level-info {
+                        grid-column: 2;
+                        grid-row: 1;
+                        margin-left: 0 !important;
+                    }
+
+                    .sp-level-info h3 {
+                        font-size: 15px !important;
+                    }
+
+                    .sp-level-info p {
+                        font-size: 12px !important;
+                    }
+
+                    .sp-level-score {
+                        grid-column: 1 / -1;
+                        grid-row: 2;
+                        min-width: 0 !important;
+                        margin-top: 13px;
+                        padding-top: 12px;
+                        border-top: 1px solid rgba(139, 234, 255, .16);
+                        flex-direction: row !important;
+                        align-items: center !important;
+                        justify-content: space-between;
+                    }
+
+                    .sp-level-score .sp-level-play {
+                        min-width: 116px;
+                        min-height: 40px;
+                    }
+                }
+
+                @media (max-width: 390px) {
+                    .sp-level-card {
+                        padding-inline: 12px !important;
+                    }
+
+                    .sp-level-info p {
+                        line-height: 1.32 !important;
+                    }
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .sp-level-card,
+                    .sp-level-play {
+                        transition: none !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 };
