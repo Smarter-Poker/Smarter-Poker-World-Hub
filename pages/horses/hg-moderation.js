@@ -245,7 +245,7 @@ function ReportedContentPanel({ reportedType, loading, error, detail, onRetry })
 
       {!loading && error && (
         <div>
-          <div style={S.err}>Could not load the reported content: {error}</div>
+          <div role="alert" style={S.err}>Could not load the reported content: {error}</div>
           <button type="button" style={S.btnSm} onClick={onRetry}>Retry</button>
           <p style={S.gateNote}>
             Actions stay disabled until the content loads. Do not resolve a report you have not read.
@@ -317,13 +317,27 @@ function ReportsTab({ token }) {
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailErr, setDetailErr] = useState('');
+  const [total, setTotal] = useState(null);
+  // Monotonic request token. loadDetail had no sequence guard: open report A
+  // (slow), close it or open report B, and A's response still landed, flipping
+  // contentSeen true while the panel showed a DIFFERENT report's content. That
+  // defeats the one guarantee this modal exists to make -- that a moderator has
+  // actually seen what they are acting on before the destructive actions
+  // unlock. Every setState below is gated on still being the newest request.
+  const detailReq = useRef(0);
 
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true); setErr('');
     try {
       const d = await apiFetch(`/api/horses/hg-reports?status=${status}&limit=100`, token);
-      setReports(d.reports || []);
+      // Defensive unwrap. The route now returns a real array (it used to pass
+      // through the jsonb envelope from list_home_content_reports, which made
+      // reports.map throw and white-screened this tab -- the default one -- on
+      // every load). Keeping the shape check here means an older cached bundle
+      // or a future RPC change degrades to an empty queue instead of a crash.
+      setReports(Array.isArray(d.reports) ? d.reports : (d.reports?.reports ?? []));
+      setTotal(d.total ?? null);
     } catch (e) { setErr(e.message); }
     setLoading(false);
   }, [token, status]);
@@ -335,15 +349,19 @@ function ReportsTab({ token }) {
   // where the inner object is the raw jsonb from get_home_content_report_detail.
   const loadDetail = useCallback(async (reportId) => {
     if (!token || !reportId) return;
+    const mine = ++detailReq.current;
     setDetailLoading(true); setDetailErr(''); setDetail(null);
     try {
       const d = await apiFetch(`/api/horses/hg-reports?id=${encodeURIComponent(reportId)}`, token);
+      if (detailReq.current !== mine) return;
       const payload = d.report || null;
       if (!payload) throw new Error('Empty response from the report detail endpoint');
       setDetail(payload);
     } catch (e) {
+      if (detailReq.current !== mine) return;
       setDetailErr(e.message || 'Request failed');
     }
+    if (detailReq.current !== mine) return;
     setDetailLoading(false);
   }, [token]);
 
@@ -356,6 +374,9 @@ function ReportsTab({ token }) {
   };
 
   const closeReview = () => {
+    // Invalidate any in-flight detail request so it cannot land after the modal
+    // is gone and unlock the gate behind the operator's back.
+    detailReq.current += 1;
     setResolving(null);
     setDetail(null);
     setDetailErr('');
@@ -391,12 +412,28 @@ function ReportsTab({ token }) {
           aria-label="Filter reports by status"
         >
           <option value="pending">Pending</option>
-          <option value="resolved">Resolved</option>
+          {/* 'resolved' is not a value this column ever holds. The check
+              constraint allows pending | hidden_pending_review | reviewed |
+              actioned | dismissed, and resolve_home_content_report writes
+              'actioned' or 'dismissed'. The old option matched zero rows and
+              read as an empty queue. */}
+          <option value="actioned">Actioned</option>
+          <option value="dismissed">Dismissed</option>
+          <option value="hidden_pending_review">Hidden, Pending Review</option>
           <option value="">All</option>
         </select>
         <button onClick={load} style={S.btn}>Refresh</button>
+        {/* The request caps at 100. Without the total, a full queue and a
+            truncated one look identical. */}
+        {total !== null && (
+          <span style={{ ...S.dim, fontSize: 13 }}>
+            {reports.length >= 100 && total > reports.length
+              ? `Showing first ${reports.length} of ${total}`
+              : `${total} ${total === 1 ? 'report' : 'reports'}`}
+          </span>
+        )}
       </div>
-      {err && <div style={S.err}>{err}</div>}
+      {err && <div role="alert" style={S.err}>{err}</div>}
       {loading ? <div style={S.dim}>Loading…</div> : reports.length === 0 ? (
         <div style={S.empty}>No reports found.</div>
       ) : (
@@ -435,7 +472,7 @@ function ReportsTab({ token }) {
             onRetry={() => loadDetail(resolving.id)}
           />
 
-          {modalErr && <div style={S.err}>{modalErr}</div>}
+          {modalErr && <div role="alert" style={S.err}>{modalErr}</div>}
           <label style={S.label}>Action
             <select
               value={action}
@@ -525,7 +562,7 @@ function AppealsTab({ token }) {
         </select>
         <button onClick={load} style={S.btn}>Refresh</button>
       </div>
-      {err && <div style={S.err}>{err}</div>}
+      {err && <div role="alert" style={S.err}>{err}</div>}
       {loading ? <div style={S.dim}>Loading…</div> : appeals.length === 0 ? (
         <div style={S.empty}>No appeals found.</div>
       ) : (
@@ -554,7 +591,7 @@ function AppealsTab({ token }) {
         <Modal title="Review Ban Appeal" onClose={() => setReviewing(null)}>
           <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>User: <strong style={{ color: '#f3f4f6' }}>{reviewing.out_user_display}</strong></p>
           <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>Appeal: {reviewing.out_appeal_text}</p>
-          {modalErr && <div style={S.err}>{modalErr}</div>}
+          {modalErr && <div role="alert" style={S.err}>{modalErr}</div>}
           <label style={S.label}>Decision
             <select value={decision} onChange={e => setDecision(e.target.value)} style={{ ...S.select, width: '100%', marginTop: 4 }}>
               <option value="approved">Approve (Unban)</option>
@@ -604,7 +641,7 @@ function OnboardingTab({ token }) {
         />
         <button onClick={lookup} style={S.btn} disabled={loading}>{loading ? '…' : 'Look Up'}</button>
       </div>
-      {err && <div style={S.err}>{err}</div>}
+      {err && <div role="alert" style={S.err}>{err}</div>}
       {result && (
         <div style={{ background: '#0d1520', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 16, overflowX: 'auto' }}>
           <pre style={{ color: '#f3f4f6', fontSize: 13, margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(result, null, 2)}</pre>
@@ -679,6 +716,9 @@ export default function HgModerationPage() {
   const [tab, setTab] = useState(0);
   const [authChecked, setAuthChecked] = useState(false);
   const [authed, setAuthed] = useState(false);
+  // A failed role lookup is not a denial. Kept separate so the page can say
+  // which of the two happened.
+  const [authFailure, setAuthFailure] = useState('');
 
   useEffect(() => {
     if (!ready) return;
@@ -692,18 +732,43 @@ export default function HgModerationPage() {
         const user = getAuthUser();
         if (!active) return;
         if (!user?.id) { router.replace('/auth/login?redirect=/horses/hg-moderation'); return; }
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        const { data: profile, error: roleErr } = await supabase
+          .from('profiles').select('role').eq('id', user.id).maybeSingle();
         if (!active) return;
+        // `error` used to be discarded here. An RLS regression or a dropped
+        // connection yielded profile === null, which is indistinguishable from
+        // "not an admin" -- so a genuine superadmin was shown a hard 403 with
+        // no retry and no hint that anything had gone wrong. Say which it is.
+        if (roleErr) {
+          setAuthFailure(roleErr.message || 'Role lookup failed');
+          setAuthChecked(true); setAuthed(false); return;
+        }
         if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
           setAuthChecked(true); setAuthed(false); return;
         }
         setAuthed(true); setAuthChecked(true);
-      } catch { if (active) { setAuthChecked(true); setAuthed(false); } }
+      } catch (e) {
+        if (active) {
+          setAuthFailure(e?.message || 'Role lookup failed');
+          setAuthChecked(true); setAuthed(false);
+        }
+      }
     })();
     return () => { active = false; };
   }, [token, ready, router]);
 
   if (!authChecked) return <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Verifying access…</div>;
+  if (!authed && authFailure) return (
+    <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>
+      <div role="alert" style={{ color: '#ef4444', fontSize: 18, fontWeight: 700 }}>Could not verify your role</div>
+      <div style={{ color: '#9ca3af', fontSize: 14, maxWidth: 480 }}>
+        {authFailure}. This is a failed check, not a refusal — your access has not changed.
+      </div>
+      <button onClick={() => router.reload()} style={{ background: '#00d4ff', color: '#0a0e17', border: 'none',
+        padding: '10px 20px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, minHeight: 44 }}>Retry</button>
+    </div>
+  );
   if (!authed) return <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontSize: 18 }}>403 — Admin access required</div>;
 
   return (

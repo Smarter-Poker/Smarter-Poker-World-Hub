@@ -21,6 +21,13 @@
  * smarter.poker cyan schema and explicitly no greens -- it was the only green
  * thing on the page. Now cyan/sky/blue, matching the console and the Club
  * Arena accent.
+ *
+ * 2026-08-27: the game-type selector's SELECTED state was still
+ * bg-emerald-600/20 border-emerald-500 -- the one line the first pass missed,
+ * because it only shows once an option is picked and never appears in a
+ * default screenshot. Caught by grepping the DEPLOYED bundle rather than the
+ * source, which is the only check that would have found it. If you recolor
+ * this file again, grep the built chunk, not just the .jsx.
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
@@ -172,7 +179,7 @@ export default function PokerBrainLaunchButton({
                   onClick={() => setGameType(opt.value)}
                   className={`text-left px-4 py-3 rounded-lg border transition ${
                     gameType === opt.value
-                      ? 'bg-emerald-600/20 border-emerald-500 text-white'
+                      ? 'bg-cyan-600/20 border-cyan-500 text-white'
                       : 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
                   }`}
                 >

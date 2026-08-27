@@ -68,6 +68,13 @@ import CalibrationOverlay, {
  *   onClose            -- () => void
  */
 
+// FOUR-COLOUR DECK. The green here is a card suit, not theme chrome, and it is
+// deliberately exempt from the no-greens palette rule that governs the rest of
+// this file and the /horses console it launches from. Clubs are green in every
+// four-colour deck a player has ever used; recolouring them to cyan would
+// collide with diamonds and make the board harder to read at a glance, which
+// is the one thing a poker HUD must never do. Same reasoning in
+// HandHistory.jsx and RangeGrid.jsx.
 const SUIT_DISPLAY = {
   s: { glyph: '\u2660', label: 'Spades',   color: '#1a1a2e' },
   h: { glyph: '\u2665', label: 'Hearts',   color: '#dc2626' },
@@ -78,7 +85,7 @@ const SUIT_DISPLAY = {
 // Confidence color: green = excellent, yellow = good, red = marginal
 function confidenceColor(distance) {
   if (distance == null) return '#6b7280';
-  if (distance <= 4) return '#10b981';  // green - excellent match
+  if (distance <= 4) return '#00d4ff';  // house cyan - excellent match
   if (distance <= 8) return '#f59e0b';  // yellow - good match
   return '#ef4444';                      // red - marginal match
 }
@@ -1702,8 +1709,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   // UI HELPERS
   // ============================================================================
   const decisionColor =
-    decision && decision.action === 'RAISE'       ? 'from-emerald-500 to-green-600'
-    : decision && decision.action === 'BET'       ? 'from-emerald-500 to-green-600'
+    decision && decision.action === 'RAISE'       ? 'from-cyan-500 to-blue-600'
+    : decision && decision.action === 'BET'       ? 'from-cyan-500 to-blue-600'
     : decision && decision.action === 'CALL'      ? 'from-sky-500 to-blue-600'
     : decision && decision.action === 'CHECK'     ? 'from-amber-500 to-orange-600'
     : decision && decision.action === 'FOLD'      ? 'from-rose-500 to-red-600'
@@ -1754,7 +1761,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             {/* Grade + Score */}
             <div className="flex items-center gap-4 mb-4">
               <div className={`text-5xl font-black ${
-                sessionAuditResult.grade === 'A' ? 'text-emerald-400' :
+                sessionAuditResult.grade === 'A' ? 'text-cyan-400' :
                 sessionAuditResult.grade === 'B' ? 'text-blue-400' :
                 sessionAuditResult.grade === 'C' ? 'text-yellow-400' :
                 sessionAuditResult.grade === 'D' ? 'text-orange-400' : 'text-red-400'
@@ -1763,7 +1770,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 <div className="text-sm text-slate-400 mb-1">Session Score</div>
                 <div className="w-full bg-slate-700 rounded-full h-3">
                   <div
-                    className="h-3 rounded-full bg-gradient-to-r from-amber-500 to-emerald-500"
+                    className="h-3 rounded-full bg-gradient-to-r from-amber-500 to-cyan-500"
                     style={{ width: `${Math.min(100, sessionAuditResult.overallScore || 0)}%` }}
                   />
                 </div>
@@ -1801,10 +1808,10 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             {/* Recommendations */}
             {sessionAuditResult.recommendations && sessionAuditResult.recommendations.length > 0 && (
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-emerald-400 mb-2">Recommendations</h3>
+                <h3 className="text-sm font-semibold text-cyan-400 mb-2">Recommendations</h3>
                 <ul className="space-y-1">
                   {sessionAuditResult.recommendations.map((rec, i) => (
-                    <li key={i} className="text-xs text-slate-300 bg-emerald-900/20 border border-emerald-500/20 rounded px-3 py-1.5">
+                    <li key={i} className="text-xs text-slate-300 bg-cyan-900/20 border border-cyan-500/20 rounded px-3 py-1.5">
                       {rec}
                     </li>
                   ))}
@@ -1836,8 +1843,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             <span className="text-sm font-bold text-amber-400">Poker Brain</span>
             {heroName && <span className="text-[10px] text-amber-300">{heroName}</span>}
             {detecting && (
-              <span className="flex items-center gap-1 text-[9px] text-emerald-300">
-                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />LIVE
+              <span className="flex items-center gap-1 text-[9px] text-cyan-300">
+                <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />LIVE
               </span>
             )}
           </div>
@@ -1971,11 +1978,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               Buttons:
               <span className={'ml-1 font-bold ' + (availableActions.fold ? 'text-rose-300' : 'text-slate-600')}>F</span>
               <span className={'ml-1 font-bold ' + (availableActions.checkCall ? 'text-sky-300' : 'text-slate-600')}>C</span>
-              <span className={'ml-1 font-bold ' + (availableActions.betRaise ? 'text-emerald-300' : 'text-slate-600')}>R</span>
+              <span className={'ml-1 font-bold ' + (availableActions.betRaise ? 'text-cyan-300' : 'text-slate-600')}>R</span>
             </span>
           )}
           {debugMode && (
-            <span className={'rounded px-2 py-1 ' + (storage.online ? 'bg-emerald-900/50 text-emerald-300' : 'bg-amber-900/50 text-amber-300')}>
+            <span className={'rounded px-2 py-1 ' + (storage.online ? 'bg-cyan-900/50 text-cyan-300' : 'bg-amber-900/50 text-amber-300')}>
               {storage.online ? 'Online' : 'Offline (queued)'}
             </span>
           )}
@@ -2002,7 +2009,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   : 'Poker Brain says'}
             </span>
             {decision && decision.source === 'horse_brain' && (
-              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300 border border-emerald-400/40">
+              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-cyan-500/30 text-cyan-300 border border-cyan-400/40">
                 GTO Server
               </span>
             )}
@@ -2149,7 +2156,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               {decision.pushFoldHint && (
                 <div className={
                   'rounded-lg px-2.5 py-1.5 ' +
-                  (decision.pushFoldHint.inRange ? 'bg-emerald-900/50' : 'bg-rose-900/50')
+                  (decision.pushFoldHint.inRange ? 'bg-cyan-900/50' : 'bg-rose-900/50')
                 }>
                   <div className="text-[9px] text-white/60 uppercase">Push/Fold</div>
                   <div className="text-sm font-bold">
@@ -2198,8 +2205,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             </div>
           </div>
 
-          <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500/15 to-teal-500/10 border border-emerald-400/30">
-            <h2 className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider mb-1">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/15 to-sky-500/10 border border-cyan-400/30">
+            <h2 className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider mb-1">
               Board
             </h2>
             <div className="flex gap-1.5 flex-wrap">
@@ -2224,7 +2231,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               {streamReady && !detecting && matcherReady && (
                 <button
                   onClick={() => setDetecting(true)}
-                  className="text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full"
+                  className="text-[11px] font-bold bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1 rounded-full"
                 >
                   Start Detection
                 </button>
@@ -2263,7 +2270,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               {/* Hardwired stats badge: debug-mode only */}
               {/* Diagnostic overlay -- only shown in debug mode */}
               {debugMode && diagInfo && (
-                <div className="text-[8px] font-mono bg-black/90 text-green-300 p-1 rounded mt-1 max-w-full overflow-x-auto whitespace-pre leading-tight">
+                <div className="text-[8px] font-mono bg-black/90 text-cyan-300 p-1 rounded mt-1 max-w-full overflow-x-auto whitespace-pre leading-tight">
                   {diagInfo.build} | {diagInfo.vw}x{diagInfo.vh} s:{diagInfo.sX}/{diagInfo.sY} | tpl:{diagInfo.tpl} | h:{diagInfo.holeFound}/{diagInfo.holeN} b:{diagInfo.boardFound}/{diagInfo.boardN}
                   {'\n'}{(diagInfo.probe || []).map((p) =>
                     `${p.kind}[${p.slot}] ${p.matched ? 'OK' : 'MISS'} best=${p.best} d=${p.dist}`
@@ -2326,7 +2333,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                           }
                           alert(`Injected ${injected} template hashes (extractor pipeline). Detection should improve immediately.`);
                         }}
-                        className="text-[10px] px-2 py-1 rounded bg-green-600 hover:bg-green-500 text-white font-bold"
+                        className="text-[10px] px-2 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold"
                       >
                         Inject into Matcher
                       </button>
@@ -2421,7 +2428,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               {debugMode && streamReady && calibrationVisible && (
                 <button
                   onClick={() => setCalibrationFullScreen((v) => !v)}
-                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (calibrationFullScreen ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
+                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (calibrationFullScreen ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
                   title="Expand the capture feed to fill the viewport for precise manual calibration"
                 >
                   {calibrationFullScreen ? 'Exit Full Screen' : 'Full Screen'}
@@ -2439,7 +2446,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               )}
               {debugMode && streamReady && (
                 <span
-                  className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-600 text-white cursor-default"
+                  className="text-[11px] font-bold px-3 py-1 rounded-full bg-cyan-600 text-white cursor-default"
                   title="Hardwired mode: fixed-coordinate pixel-perfect detection. Always on."
                 >
                   Hardwired
@@ -2448,7 +2455,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               {debugMode && streamReady && (
                 <button
                   onClick={() => setShowConfidence((v) => !v)}
-                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (showConfidence ? 'bg-teal-600 hover:bg-teal-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
+                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (showConfidence ? 'bg-sky-600 hover:bg-sky-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
                   title="Show color-coded match confidence indicators on detected cards"
                 >
                   {showConfidence ? 'Confidence ON' : 'Confidence'}
@@ -2506,7 +2513,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             {calibrationFullScreen && (
               <button
                 onClick={() => setCalibrationFullScreen(false)}
-                className="absolute top-4 right-4 z-20 text-xs font-bold px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg"
+                className="absolute top-4 right-4 z-20 text-xs font-bold px-4 py-2 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg"
               >
                 Exit Full Screen
               </button>
@@ -2602,8 +2609,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                     </div>
                   ))}
                   {boardRegions.map((r, i) => (
-                    <div key={'br-' + i} style={toStyle(r)} className="border-2 border-green-500/80 bg-green-500/10 z-10">
-                      <span className="text-[8px] text-green-400 bg-black/60 px-0.5">B{i}</span>
+                    <div key={'br-' + i} style={toStyle(r)} className="border-2 border-cyan-500/80 bg-cyan-500/10 z-10">
+                      <span className="text-[8px] text-cyan-400 bg-black/60 px-0.5">B{i}</span>
                     </div>
                   ))}
                   {/* AR info badge */}
@@ -2716,7 +2723,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-slate-400 font-mono">{seat}</span>
                     <span className={`font-bold ${
-                      stats.playerType === 'TAG' ? 'text-emerald-400'
+                      stats.playerType === 'TAG' ? 'text-cyan-400'
                       : stats.playerType === 'LAG' ? 'text-amber-400'
                       : stats.playerType === 'LP' ? 'text-rose-400'
                       : stats.playerType === 'TP' ? 'text-blue-400'
@@ -2762,7 +2769,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               </div>
               <div className="bg-slate-900/60 rounded-lg p-2">
                 <div className="text-slate-500">GTO Server</div>
-                <div className="text-emerald-400 font-bold">{sessionStats.horseBrainPct}%</div>
+                <div className="text-cyan-400 font-bold">{sessionStats.horseBrainPct}%</div>
               </div>
             </div>
           </div>

@@ -115,7 +115,26 @@ export default async function handler(req, res) {
         console.warn('[hg-reports GET list]', error);
         return res.status(500).json({ success: false, error: 'Failed to load reports' });
       }
-      return res.status(200).json({ success: true, reports: data || [] });
+      // UNWRAP THE ENVELOPE. list_home_content_reports is RETURNS jsonb and its
+      // last statement is jsonb_build_object('success',..,'total',..,'reports',
+      // v_rows) -- so `data` is an OBJECT, not an array. Returning it as
+      // `reports` handed the page { reports: { success, total, reports: [...] } }.
+      //
+      // hg-moderation.js then did `reports.length === 0` (undefined === 0, so
+      // the empty branch never ran) and fell through to `reports.map(...)`,
+      // which threw. Reports is the DEFAULT tab, so the whole moderation page
+      // white-screened on load -- including when there were zero reports, since
+      // the RPC returns the envelope either way. The `|| []` here and in the
+      // page both show an array was expected.
+      const list = Array.isArray(data) ? data : (data?.reports ?? []);
+      return res.status(200).json({
+        success: true,
+        reports: list,
+        // Was computed by the RPC and dropped on the floor. The queue caps at
+        // 100 per request, so without this the operator cannot tell a full
+        // queue from a truncated one.
+        total: Array.isArray(data) ? list.length : (data?.total ?? null),
+      });
     }
 
     // ── PATCH — resolve ───────────────────────────────────────────────────────

@@ -59,7 +59,7 @@ function DecisionRow({ street, decision }) {
   const equity = typeof decision.equity === 'number' ? Math.round(decision.equity) : null;
   const potOdds = typeof decision.potOdds === 'number' ? Math.round(decision.potOdds) : null;
   const actionColor =
-    decision.action === 'RAISE' || decision.action === 'BET' ? 'text-emerald-300'
+    decision.action === 'RAISE' || decision.action === 'BET' ? 'text-cyan-300'
     : decision.action === 'CALL' ? 'text-sky-300'
     : decision.action === 'CHECK' ? 'text-amber-300'
     : decision.action === 'FOLD' ? 'text-rose-300'
