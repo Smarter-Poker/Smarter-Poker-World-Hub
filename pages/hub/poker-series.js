@@ -16,6 +16,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 import { supabase } from '../../src/lib/supabase';
+import useSWR from 'swr';
 
 // ─── Lazy-load components ───
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.default })), { ssr: false });
@@ -409,7 +410,15 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
 
     const menuConfig = getMenuConfig('events');
     // ─── Fetch series data ───
-    useEffect(() => { setAllSeries(initialSeries); setLoading(false); }, [initialSeries]);
+    const fetcher = url => fetch(url).then(res => res.json()).then(d => d.data || d);
+    const { data: liveSeries, error: swrError } = useSWR('/api/poker/series?limit=1500', fetcher, {
+        fallbackData: initialSeries,
+        refreshInterval: 300000,
+        revalidateOnFocus: true
+    });
+    useEffect(() => {
+        if (liveSeries) { setAllSeries(liveSeries); setLoading(false); }
+    }, [liveSeries]);
 
     // ─── Fetch all venues for coordinate lookup ───
     useEffect(() => {
@@ -2073,7 +2082,7 @@ export async function getStaticProps() {
             supabaseAdmin.from('poker_series').select(psColumns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 999),
             supabaseAdmin.from('tournament_series').select(tsColumns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 499)
         ]), 'poker-series supabase queries');
-        if (!raced) return { props: { initialSeries: [] }, revalidate: 60 };
+        if (!raced) return { props: { initialSeries: [] }, revalidate: 3600 };
         const [psRes, tsRes] = raced;
 
         if (psRes.error) throw psRes.error;
@@ -2091,10 +2100,10 @@ export async function getStaticProps() {
 
         return {
             props: { initialSeries: allData },
-            revalidate: 60, // 60 second Edge caching
+            revalidate: 3600, // 60 second Edge caching
         };
     } catch (e) {
         console.warn('ISR Build Failed:', e.message);
-        return { props: { initialSeries: [] }, revalidate: 60 };
+        return { props: { initialSeries: [] }, revalidate: 3600 };
     }
 }

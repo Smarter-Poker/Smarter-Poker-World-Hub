@@ -117,6 +117,7 @@ export default async function handler(req, res) {
               return res.status(500).json({ error: 'Internal server error' });
           }
           let notificationCount = socialCountResult.count || 0;
+          if (convResult.error) { console.error('[get-header-stats]', convResult.error); }
           const conversations = convResult.data || [];
 
           // BUG-29 FIX: Run poker notif sub-query AND messages sub-query in parallel.

@@ -61,7 +61,7 @@ const VideoCard = dynamic(() => import('../../src/components/news/VideoCard'), {
 
 // Fallback data — shown only when the articles API fails or returns nothing.
 // Every item is tagged is_fallback so it never triggers BREAKING badges or view-count POSTs.
-const FALLBACK_NEWS = [
+const getFallbackNews = () => [
     { id: '1', title: "WSOP 2026 Schedule Released", content: "The World Series of Poker announces its biggest schedule yet", image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=400&q=80", category: "tournament", read_time: 4, views: 5200, published_at: new Date().toISOString(), source_name: "PokerNews" },
     { id: '2', title: "Phil Ivey Returns to Live Poker", content: "Legendary player set for major comeback", image_url: "https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=400&q=80", category: "news", read_time: 3, views: 8900, published_at: new Date(Date.now() - 3600000).toISOString(), source_name: "Card Player" },
     { id: '3', title: "GTO Strategy: 3-Betting Ranges Explained", content: "Master the art of 3-betting with optimal frequencies", image_url: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=400&q=80", category: "strategy", read_time: 8, views: 12400, published_at: new Date(Date.now() - 7200000).toISOString(), source_name: "Upswing" },
@@ -429,7 +429,7 @@ export default function NewsHub() {
     }, [newsFilterKey, refreshNews]);
 
     // While the first load is in flight render nothing (skeleton covers it) — never fake data
-    const rawNews = hasLoadedNews ? loadedNews : (loading ? [] : FALLBACK_NEWS);
+    const rawNews = hasLoadedNews ? loadedNews : (loading ? [] : getFallbackNews());
     const news = React.useMemo(() => {
         return rawNews.map(a => ({
             ...a,
@@ -992,13 +992,11 @@ export default function NewsHub() {
     const openArticle = async (article) => {
         // Fallback placeholders have fabricated ids — never POST view counts for them
         if (!article.is_fallback) {
-            try {
-                await fetch('/api/news/articles', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: article.id })
-                });
-            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+            fetch('/api/news/articles', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: article.id })
+            }).catch(e => console.warn('[App] Handled exception:', e?.message || e));
             markAsRead(article.id);
         }
 
@@ -1016,7 +1014,7 @@ export default function NewsHub() {
     // ═══════════════════════════════════════════════════════════════════════════
     // ?filter=bookmarks must narrow the top grid too — otherwise the "Showing bookmarks
     // only" chip sits above six articles the user never bookmarked.
-    const allTopArticles = sourceBoxes.length > 0 ? sourceBoxes : FALLBACK_NEWS.slice(0, 6);
+    const allTopArticles = sourceBoxes.length > 0 ? sourceBoxes : getFallbackNews().slice(0, 6);
     // Muted sources drop out of the top grid too — the API keys boxes on _sourceName.
     const baseTopArticles = allTopArticles.filter(a => !isMuted(a.source_name || a._sourceName));
     const topArticles = feedFilter === 'bookmarks'
@@ -1083,7 +1081,7 @@ export default function NewsHub() {
     // A card is only saveable / indexable when it represents a REAL published
     // article. /api/news/source-boxes fills unfilled boxes with `_isEmpty` /
     // `_isError` rows (synthetic ids like 'empty-box-3' and titles like
-    // "Awaiting WSOP News"), and FALLBACK_NEWS is tagged is_fallback.
+    // "Awaiting WSOP News"), and getFallbackNews() is tagged is_fallback.
     const isRealArticle = (a) => !!a && !a.is_fallback && !a._isEmpty && !a._isError;
 
     // Breaking news = most recent real article from top sources (fallback data never qualifies)
