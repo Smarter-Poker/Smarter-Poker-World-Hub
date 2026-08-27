@@ -216,7 +216,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                                 role="alert"
                                 style={{
                                     display: 'flex', gap: S.sm, alignItems: 'flex-start',
-                                    background: T.dangerSoft, border: '1px solid rgba(239,68,68,0.4)',
+                                    background: T.dangerSoft, border: '1px solid rgba(255,107,122,0.4)',
                                     borderRadius: R.sm, padding: S.md,
                                 }}
                             >

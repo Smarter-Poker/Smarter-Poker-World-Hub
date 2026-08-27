@@ -8,6 +8,10 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const {
+    isPrintfulReady,
+    resolvePrintfulMapping,
+} = require('../../../src/lib/store/printfulFulfillment');
 
 let _supabase = null;
 function getSupabase() {
@@ -254,7 +258,7 @@ async function prepareCheckout(type, items) {
     const itemIds = [...new Set(items.map((item) => item.id))];
     const { data: catalogItems, error: catalogError } = await getSupabase()
         .from('merchandise_items')
-        .select('id, name, price_usd, image_url, is_active')
+        .select('id, name, price_usd, image_url, is_active, has_variants, metadata')
         .in('id', itemIds)
         .eq('is_active', true);
     if (catalogError) {
@@ -301,16 +305,77 @@ async function prepareCheckout(type, items) {
         );
     }
 
+    // Every physical line must have an immutable provider mapping before a
+    // customer can enter Stripe Checkout. This is the zero-inventory safety
+    // gate: no Printful token, no deliberate auto-confirm switch, or no exact
+    // selected variant mapping means no payment can be accepted.
+    if (!isPrintfulReady()) {
+        throw new CheckoutInputError(
+            'FULFILLMENT_NOT_CONFIGURED',
+            'Made-To-Order Fulfillment Is Being Configured. No Payment Was Taken.',
+            503,
+        );
+    }
+
+    const selectedVariantIds = [...new Set(stockCheckLines.map(line => line.variant_id).filter(Boolean))];
+    const selectedVariantsById = {};
+    if (selectedVariantIds.length > 0) {
+        const { data: selectedVariants, error: variantError } = await getSupabase()
+            .from('merchandise_item_variants')
+            .select('id, item_id, metadata')
+            .in('id', selectedVariantIds)
+            .eq('is_active', true);
+        if (variantError) {
+            console.error('[Checkout] fulfillment variant lookup failed:', variantError.message);
+            throw new CheckoutInputError(
+                'FULFILLMENT_NOT_CONFIGURED',
+                'That Option Cannot Be Sent To Fulfillment Yet. No Payment Was Taken.',
+                503,
+            );
+        }
+        for (const variant of selectedVariants || []) selectedVariantsById[variant.id] = variant;
+    }
+
+    const pricedLines = Array.isArray(stockCheck.lines) ? stockCheck.lines : [];
     const resolvedItems = items.map((item) => {
         const catalog = catalogPrices[item.id];
+        const variantId = item.variantId || item.variant_id || null;
+        const selectedVariant = variantId ? selectedVariantsById[variantId] : null;
+        const pricedLine = pricedLines.find(line => (
+            line?.id === item.id
+            && String(line?.variant_id || '') === String(variantId || '')
+        ));
+        const itemMetadata = catalog.metadata && typeof catalog.metadata === 'object' ? catalog.metadata : {};
+        const provider = itemMetadata.fulfillment_provider;
+        const providerVariant = provider === 'printful'
+            ? (catalog.has_variants
+                ? resolvePrintfulMapping(null, selectedVariant?.metadata)
+                : resolvePrintfulMapping(itemMetadata, null))
+            : null;
+
+        if (provider !== 'printful'
+            || (variantId && selectedVariant?.item_id !== item.id)
+            || !providerVariant) {
+            throw new CheckoutInputError(
+                'FULFILLMENT_NOT_CONFIGURED',
+                'That Item Or Option Cannot Be Sent To Fulfillment Yet. No Payment Was Taken.',
+                503,
+            );
+        }
         return {
             id: item.id,
             variantId: item.variantId || item.variant_id || null,
             name: catalog.name,
-            price: parseFloat(catalog.price_usd),
+            // The reservation RPC is the authoritative price oracle and
+            // includes per-variant overrides. Falling back to the parent price
+            // keeps compatibility with an older RPC response shape.
+            price: parseFloat(pricedLine?.price_usd ?? catalog.price_usd),
             image: catalog.image_url || item.image || null,
             description: item.description ? String(item.description).slice(0, 500) : undefined,
             quantity: Number(item.quantity ?? 1),
+            fulfillmentProvider: 'printful',
+            providerVariant,
+            madeToOrder: true,
         };
     });
     const totalUsd = resolvedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -705,7 +770,9 @@ export default async function handler(req, res) {
                       product_data: {
                           name: item.name,
                           description: item.description,
-                          images: item.image ? [String(item.image).slice(0, 500)] : []
+                          images: item.image
+                              ? [new URL(String(item.image).slice(0, 500), baseUrl).toString()]
+                              : []
                       },
                       unit_amount: Math.round(item.price * 100)
                   },
@@ -721,8 +788,15 @@ export default async function handler(req, res) {
                       total_usd: totalUsd,
                       status: 'pending',
                       ...(checkoutRequestId
-                          ? { metadata: { checkout_request_id: checkoutRequestId } }
-                          : {})
+                          ? { metadata: {
+                              checkout_request_id: checkoutRequestId,
+                              fulfillment_provider: 'printful',
+                              fulfillment_status: 'awaiting_payment',
+                          } }
+                          : { metadata: {
+                              fulfillment_provider: 'printful',
+                              fulfillment_status: 'awaiting_payment',
+                          } })
                   })
                   .select()
                   .maybeSingle();

@@ -5,7 +5,6 @@
  * Both are service-role and server-priced; the browser never mutates a balance.
  */
 
-import { createClient } from '@supabase/supabase-js';
 import { busEmit } from '../engine/EventBus';
 import supabase from '../lib/supabase';
 

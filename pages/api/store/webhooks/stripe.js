@@ -6,6 +6,14 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+const {
+    buildPrintfulItems,
+    createPrintfulOrder,
+    isAutoConfirmEnabled,
+    normalizePrintfulRecipient,
+    publicShippingAddress,
+    sanitizeExternalOrderId,
+} = require('../../../../src/lib/store/printfulFulfillment');
 
 // Helper to read raw body from request stream
 async function getRawBody(req) {
@@ -166,7 +174,11 @@ export default async function handler(req, res) {
                   // path. If the row is already gone the retry proceeds anyway,
                   // which is the outcome this is reaching for; a real failure is
                   // caught and logged as CRITICAL below.
-                  await getSupabase().from('stripe_webhook_events').delete().eq('event_id', event.id);
+                  const { error: releaseError } = await getSupabase()
+                      .from('stripe_webhook_events')
+                      .delete()
+                      .eq('event_id', event.id);
+                  if (releaseError) throw releaseError;
               } catch (releaseErr) {
                   console.error(`[stripe-webhook] FAILED TO RELEASE claim on ${event.id} — retries will be skipped:`, releaseErr?.message || releaseErr);
               }
@@ -248,49 +260,88 @@ async function handleCheckoutCompleted(session) {
                 }
             }
         } else if (metadata?.type === 'merchandise' && metadata.order_id) {
-            // ═══════════════════════════════════════════════════════════════
-            // TAKE THE STOCK. Payment is confirmed, so this is the moment the
-            // inventory actually leaves the shelf.
-            //
-            // create-checkout-session only VALIDATES availability (dry run):
-            // reserving there would let abandoned sessions hold stock forever
-            // and nothing expires them. Until 2026-08-08 neither end did
-            // anything at all, so card orders never decremented stock and
-            // physical goods could be oversold without limit.
-            // ═══════════════════════════════════════════════════════════════
-            let stockTaken = true;
-            try {
-                const { data: orderRow } = await getSupabase()
-                    .from('merchandise_orders')
-                    .select('items')
-                    .eq('id', metadata.order_id)
-                    .maybeSingle();
+            const { data: orderRow, error: orderReadError } = await getSupabase()
+                .from('merchandise_orders')
+                .select('items, metadata, status')
+                .eq('id', metadata.order_id)
+                .maybeSingle();
+            if (orderReadError || !orderRow) {
+                throw orderReadError || new Error(`Paid merchandise order ${metadata.order_id} was not found`);
+            }
 
-                const lines = Array.isArray(orderRow?.items)
-                    ? orderRow.items
+            const orderItems = Array.isArray(orderRow.items) ? orderRow.items : [];
+            const orderMetadata = orderRow.metadata && typeof orderRow.metadata === 'object'
+                ? orderRow.metadata
+                : {};
+            const paymentIntentId = typeof session.payment_intent === 'string'
+                ? session.payment_intent
+                : session.payment_intent?.id || null;
+            const isPrintfulOrder = orderItems.length > 0
+                && orderItems.every(item => item?.fulfillmentProvider === 'printful');
+
+            // Local inventory orders still use the existing reservation path.
+            // Printful merchandise is made to order and must never decrement a
+            // fictional warehouse quantity.
+            let stockTaken = true;
+            if (!isPrintfulOrder) {
+                try {
+                    const lines = orderItems
                         .filter((l) => l && (l.id || l.catalogId))
                         .map((l) => ({
                             id: l.id || l.catalogId,
                             variant_id: l.variantId || l.variant_id || null,
                             qty: Math.min(Math.max(parseInt(l.quantity ?? l.qty) || 1, 1), 10),
                         }))
-                    : [];
-
-                if (lines.length > 0) {
-                    const { data: resRaw, error: resErr } = await getSupabase()
-                        .rpc('reserve_merch_order', { p_items: lines });
-                    const reserved = typeof resRaw === 'string' ? JSON.parse(resRaw) : resRaw || {};
-                    if (resErr || !reserved.success) {
-                        stockTaken = false;
-                        console.error(
-                            `[stripe-webhook] STOCK NOT TAKEN for paid order ${metadata.order_id}:`,
-                            resErr?.message || reserved.error,
-                        );
+                    if (lines.length > 0) {
+                        const { data: resRaw, error: resErr } = await getSupabase()
+                            .rpc('reserve_merch_order', { p_items: lines });
+                        const reserved = typeof resRaw === 'string' ? JSON.parse(resRaw) : resRaw || {};
+                        if (resErr || !reserved.success) {
+                            stockTaken = false;
+                            console.error(
+                                `[stripe-webhook] STOCK NOT TAKEN for paid order ${metadata.order_id}:`,
+                                resErr?.message || reserved.error,
+                            );
+                        }
                     }
+                } catch (stockErr) {
+                    stockTaken = false;
+                    console.error(`[stripe-webhook] stock reservation threw for order ${metadata.order_id}:`, stockErr?.message || stockErr);
                 }
-            } catch (stockErr) {
-                stockTaken = false;
-                console.error(`[stripe-webhook] stock reservation threw for order ${metadata.order_id}:`, stockErr?.message || stockErr);
+            }
+
+            let recipient = null;
+            if (isPrintfulOrder) {
+                try {
+                    recipient = normalizePrintfulRecipient(session);
+                } catch (addressError) {
+                    const now = new Date().toISOString();
+                    const { data: blockedOrder, error: addressUpdateError } = await getSupabase()
+                        .from('merchandise_orders')
+                        .update({
+                            status: 'paid',
+                            stripe_checkout_session_id: id,
+                            stripe_payment_intent_id: paymentIntentId,
+                            metadata: {
+                                ...orderMetadata,
+                                fulfillment_provider: 'printful',
+                                fulfillment_status: 'blocked',
+                                needs_review: true,
+                                reason: 'shipping_address_incomplete',
+                                flagged_at: now,
+                            },
+                            updated_at: now,
+                        })
+                        .eq('id', metadata.order_id)
+                        .select('id');
+                    if (addressUpdateError || !blockedOrder?.length) {
+                        throw addressUpdateError || new Error('Printful address exception matched zero orders');
+                    }
+                    // Retrying cannot add an address to the immutable Checkout
+                    // Session. Persist the paid exception for support instead
+                    // of making Stripe redeliver it forever.
+                    return;
+                }
             }
 
             // A paid order whose stock could not be taken must NOT flow into
@@ -309,15 +360,22 @@ async function handleCheckoutCompleted(session) {
             const orderUpdate = {
                 status: stockTaken ? 'processing' : 'paid',
                 stripe_checkout_session_id: id,
+                stripe_payment_intent_id: paymentIntentId,
+                ...(recipient ? { shipping_address: publicShippingAddress(recipient) } : {}),
+                metadata: {
+                    ...orderMetadata,
+                    ...(isPrintfulOrder ? {
+                        fulfillment_provider: 'printful',
+                        fulfillment_status: 'submitting',
+                    } : {}),
+                    ...(!stockTaken ? {
+                        needs_review: true,
+                        reason: 'stock_unavailable_at_payment',
+                        flagged_at: new Date().toISOString(),
+                    } : {}),
+                },
                 updated_at: new Date().toISOString()
             };
-            if (!stockTaken) {
-                orderUpdate.metadata = {
-                    needs_review: true,
-                    reason: 'stock_unavailable_at_payment',
-                    flagged_at: new Date().toISOString()
-                };
-            }
 
             // A paid order that is never marked paid is never fulfilled, and a
             // zero-row match here returns 200 so Stripe stops retrying.
@@ -336,6 +394,65 @@ async function handleCheckoutCompleted(session) {
                 const msg = `[stripe-webhook] PAID ORDER ${metadata.order_id} MATCHED ZERO ROWS — the customer has paid and the order was never marked paid, so it will never be fulfilled. Throwing so Stripe retries.`;
                 console.error(msg);
                 throw new Error(msg);
+            }
+
+            if (isPrintfulOrder && stockTaken) {
+                try {
+                    const providerOrder = await createPrintfulOrder({
+                        orderId: metadata.order_id,
+                        recipient,
+                        items: buildPrintfulItems(orderItems),
+                        confirm: isAutoConfirmEnabled(),
+                    });
+                    const providerStatus = String(providerOrder?.status || 'submitted').slice(0, 80);
+                    const completedAt = new Date().toISOString();
+                    const { data: fulfilledOrder, error: fulfillmentUpdateError } = await getSupabase()
+                        .from('merchandise_orders')
+                        .update({
+                            status: 'processing',
+                            metadata: {
+                                ...orderMetadata,
+                                fulfillment_provider: 'printful',
+                                fulfillment_status: providerStatus,
+                                printful_order_id: providerOrder?.id ? String(providerOrder.id).slice(0, 80) : null,
+                                printful_external_id: sanitizeExternalOrderId(metadata.order_id),
+                                needs_review: false,
+                                submitted_at: completedAt,
+                            },
+                            updated_at: completedAt,
+                        })
+                        .eq('id', metadata.order_id)
+                        .select('id');
+                    if (fulfillmentUpdateError || !fulfilledOrder?.length) {
+                        throw fulfillmentUpdateError || new Error('Printful submission was not recorded');
+                    }
+                } catch (fulfillmentError) {
+                    const failedAt = new Date().toISOString();
+                    const { data: failedOrder, error: failedUpdateError } = await getSupabase()
+                        .from('merchandise_orders')
+                        .update({
+                            status: 'paid',
+                            metadata: {
+                                ...orderMetadata,
+                                fulfillment_provider: 'printful',
+                                fulfillment_status: 'submission_failed',
+                                needs_review: true,
+                                reason: 'printful_submission_failed',
+                                failure_code: String(fulfillmentError?.code || 'PRINTFUL_REQUEST_FAILED').slice(0, 80),
+                                flagged_at: failedAt,
+                            },
+                            updated_at: failedAt,
+                        })
+                        .eq('id', metadata.order_id)
+                        .select('id');
+                    if (failedUpdateError || !failedOrder?.length) {
+                        console.error('[stripe-webhook] failed to flag Printful exception:', failedUpdateError?.message || 'matched zero orders');
+                    }
+                    // A provider timeout/outage is retryable. Event claim release
+                    // plus Printful external_id/update_existing makes the retry
+                    // safe even if their first response was lost in transit.
+                    throw fulfillmentError;
+                }
             }
 
         }

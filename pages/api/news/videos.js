@@ -58,16 +58,17 @@ export default async function handler(req, res) {
           // Read from social_reels — the table pokernews-videos cron populates
           const { data, error } = await getSupabase()
               .from('social_reels')
-              .select('*')
+              .select('id, author_id, caption, thumbnail_url, video_url, view_count, created_at')
               .eq('is_public', true)
               .order('created_at', { ascending: false })
               .limit(fetchLimit);
 
-          if (error || !data?.length) {
-              // No fake sample videos: return an empty list and let the
-              // frontend render its own empty state.
-              if (error) console.warn('Videos API error:', error.message);
-              return res.status(200).json({ success: true, data: [], fallback: true });
+          if (error) {
+              throw error;
+          }
+          res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+          if (!data?.length) {
+              return res.status(200).json({ success: true, data: [] });
           }
 
           // Fetch author profiles so `channel` reflects the real channel
@@ -116,12 +117,11 @@ export default async function handler(req, res) {
               : videos
           ).slice(0, limit);
 
-          res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
           return res.status(200).json({ success: true, data: filtered });
       } catch (error) {
           try { reportApiError(error, req); } catch (_e) { /* noop */ }
           console.warn('Videos API exception:', error?.message || error);
-          return res.status(200).json({ success: true, data: [], fallback: true });
+          return res.status(500).json({ success: false, error: 'Videos feed unavailable' });
       }
 
   } catch (err) {

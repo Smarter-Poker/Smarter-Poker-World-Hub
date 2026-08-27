@@ -264,7 +264,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                     type="button"
                                     className="pa-btn"
                                     onClick={jumpToBiggestLeak}
-                                    style={{ ...btn('secondary', { block: true }), fontSize: F.label, color: T.danger, borderColor: 'rgba(239,68,68,0.4)' }}
+                                    style={{ ...btn('secondary', { block: true }), fontSize: F.label, color: T.danger, borderColor: 'rgba(255,107,122,0.4)' }}
                                 >
                                     <TrendingDown size={18} strokeWidth={2} />
                                     Jump to the biggest leak
@@ -385,7 +385,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                                 scrollSnapAlign: 'center', fontSize: F.caption, ...numeric,
                                                 background: on ? T.accentSoft : T.surface2,
                                                 color: on ? T.accent : colour,
-                                                borderColor: on ? 'rgba(69,153,255,0.45)' : T.border,
+                                                borderColor: on ? 'rgba(99,231,255,0.45)' : T.border,
                                             }}
                                         >
                                             {i + 1}

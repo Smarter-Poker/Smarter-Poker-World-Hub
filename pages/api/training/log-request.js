@@ -3,7 +3,8 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * POST /api/training/log-request
  * Logs a "Train This Spot" conversion event to the training_events table.
  * Uses event_type='train_this_spot' and event_data jsonb for context.
- * Lightweight fire-and-forget analytics — never blocks the user.
+ * Lightweight fire-and-forget analytics. The client never blocks on this
+ * request, while the API still reports failed persistence truthfully.
  *
  * Body: { ref, vid, title, source, tags, matchedGameIds }
  *
@@ -17,11 +18,15 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            throw new Error('Training analytics storage is not configured');
+        }
         _supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -35,7 +40,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+
     try {
+        if (JSON.stringify(req.body || {}).length > 8192) {
+            return res.status(413).json({ error: 'Request body too large' });
+        }
         const { ref, vid, title, source, tags, matchedGameIds } = req.body || {};
 
         if (!ref || !vid) {
@@ -48,8 +58,7 @@ export default async function handler(req, res) {
         if (token) {
             try {
                 const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-                if (!authErr && authData?.user) userId = authData.user.id;
+                if (!authErr && authUser) userId = authUser.id;
             } catch (_e) {
                 // Anonymous logging is fine — analytics must never block
             }
@@ -69,14 +78,13 @@ export default async function handler(req, res) {
         });
 
         if (error) {
-            // Log but don't block - analytics failures must be silent
             console.warn('[training/log-request] Insert failed:', error.message);
-            return res.status(200).json({ ok: true, warn: error.message });
+            return res.status(503).json({ ok: false, error: 'Training analytics are temporarily unavailable' });
         }
 
         return res.status(200).json({ ok: true });
     } catch (err) {
         console.warn('[training/log-request] Error:', err.message);
-        return res.status(200).json({ ok: true, warn: err.message }); // Always 200 — analytics must never block
+        return res.status(503).json({ ok: false, error: 'Training analytics are temporarily unavailable' });
     }
 }

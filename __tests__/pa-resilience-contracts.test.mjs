@@ -77,6 +77,17 @@ test('sandbox history failures render a retryable error instead of an empty stat
   assert.match(sandbox, /<ErrorState title=\{`Could not load \$\{tab\}`\}/);
 });
 
+test('study replay does not depend on a missing PostgREST relationship', () => {
+  const hooks = read('src/hooks/useAssistant.js');
+  const studyDeck = hooks.slice(hooks.indexOf('export function useStudyDeck'), hooks.indexOf('export function useQuizLeaderboard'));
+
+  assert.match(studyDeck, /\.from\('sandbox_sessions'\)/);
+  assert.match(studyDeck, /\.eq\('user_id', user\.id\)/);
+  assert.match(studyDeck, /\.from\('sandbox_results'\)/);
+  assert.match(studyDeck, /\.in\('session_id', sessionIds\)/);
+  assert.doesNotMatch(studyDeck, /sandbox_sessions!inner/);
+});
+
 test('every Personal Assistant destination owns a canonical page title', () => {
   for (const file of [
     'pages/hub/personal-assistant/index.js',
@@ -93,4 +104,34 @@ test('every Personal Assistant destination owns a canonical page title', () => {
 test('sandbox inline CSS cannot hydrate as escaped raw style text', () => {
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
   assert.doesNotMatch(sandbox, /<style>\{`[\s\S]*@import url\(/);
+});
+
+test('secondary surfaces share the Smarter.Poker command-deck visual system', () => {
+  const tokens = read('src/components/sandbox/paTokens.js');
+  const kit = read('src/components/sandbox/paKit.jsx');
+  const components = read('src/components/sandbox/SandboxComponents.jsx');
+
+  assert.match(tokens, /PA_DESIGN_SPEC v2 — "Jarvis Command Deck"/);
+  assert.match(tokens, /accent: '#63E7FF'/);
+  assert.match(tokens, /DISPLAY_FONT/);
+  assert.match(tokens, /DATA_FONT/);
+  assert.match(kit, /pa-sheet-telemetry/);
+  assert.match(kit, /pa-chart-panel/);
+  assert.match(components, /BottomSheet as CommandBottomSheet/);
+  assert.match(components, /<CommandBottomSheet/);
+});
+
+test('secondary charts and desktop workspaces own responsive layouts', () => {
+  const sandbox = read('pages/hub/personal-assistant/sandbox.js');
+  const leaks = read('pages/hub/personal-assistant/leaks.js');
+  const components = read('src/components/sandbox/SandboxComponents.jsx');
+
+  assert.match(sandbox, /className="sandbox-workspace"/);
+  assert.match(sandbox, /className="sandbox-command-bar"/);
+  assert.match(sandbox, /\.sandbox-table-wrap \{ width: min\(100%, 720px\)/);
+  assert.match(leaks, /className="leak-insights-grid"/);
+  assert.match(leaks, /className="leak-list-grid"/);
+  assert.match(leaks, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.ok((components.match(/className="pa-chart-panel"/g) || []).length >= 6);
+  assert.match(components, /className="pa-range-grid"/);
 });

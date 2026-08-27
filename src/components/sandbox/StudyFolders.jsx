@@ -294,7 +294,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                                         flexShrink: 0, scrollSnapAlign: 'start', padding: '0 14px', fontSize: F.label,
                                         background: on ? T.accentSoft : T.surface2,
                                         color: on ? T.accent : T.textMuted,
-                                        borderColor: on ? 'rgba(69,153,255,0.45)' : T.borderHi,
+                                        borderColor: on ? 'rgba(99,231,255,0.45)' : T.borderHi,
                                     }}
                                 >
                                     {f}
@@ -337,7 +337,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                                             ...btn('secondary'), padding: '0 12px', fontSize: F.label,
                                             background: on ? T.accentSoft : T.surface2,
                                             color: on ? T.accent : T.textMuted,
-                                            borderColor: on ? 'rgba(69,153,255,0.45)' : T.borderHi,
+                                            borderColor: on ? 'rgba(99,231,255,0.45)' : T.borderHi,
                                         }}
                                     >
                                         #{t}

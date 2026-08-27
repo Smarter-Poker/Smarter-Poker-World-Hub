@@ -8,7 +8,6 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createClient } from '@supabase/supabase-js';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -62,7 +61,7 @@ const MixedStrategyGame = dynamic(() => import('../../src/games/MixedStrategyGam
 import ScenarioFilterPanel, { filterScenarios } from '../../src/games/ScenarioFilterPanel';
 import { getAccessToken, authedFetch } from '../../src/lib/authUtils';
 // 2026-05-07 — Lucide icons replace emoji in the menu surface (UI-UX-Pro-Max no-emoji-icons rule)
-import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck, BrainCircuit, ChevronRight, Gem, Clock3, Lightbulb, Send, RotateCcw, ArrowRight } from 'lucide-react';
+import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck, BrainCircuit, ChevronRight, Gem, Clock3, Lightbulb, Send, RotateCcw, ArrowRight, Undo2, Trash2 } from 'lucide-react';
 const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 
 const ALL_TRAINING_SCENARIOS = [
@@ -174,7 +173,11 @@ export default function MemoryGamesPage() {
     // Start leak analyzer for Jarvis integration - feeds into LeakService + Jarvis PA alerts
     useEffect(() => {
         leakAnalyzer.start();
-        if (userId) leakAnalyzer.setUserId(userId);
+        leakAnalyzer.setUserId(userId || null);
+        return () => {
+            leakAnalyzer.setUserId(null);
+            leakAnalyzer.stop();
+        };
     }, [userId]);
 
     // Zustand Global State (replaces some local useState)
@@ -192,6 +195,9 @@ export default function MemoryGamesPage() {
     const [userGrid, setUserGrid] = useState({});
     const [selectedAction, setSelectedAction] = useState('raise');
     const [gradeResult, setGradeResult] = useState(null);
+    const [labStatus, setLabStatus] = useState('Raise selected. No hands marked.');
+    const [gameNotice, setGameNotice] = useState(null);
+    const gridHistoryRef = useRef([]);
 
     // Leaderboard state
     const [leaderboardData, setLeaderboardData] = useState([]);
@@ -237,14 +243,6 @@ export default function MemoryGamesPage() {
     const [memoryDashboardLoading, setMemoryDashboardLoading] = useState(true);
     const [isVIP, setIsVIP] = useState(null); // null = loading, true = VIP, false = not VIP
 
-    // Initialize Supabase client
-    const supabase = useRef(null);
-    if (!supabase.current && typeof window !== 'undefined') {
-        supabase.current = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        );
-    }
     const [lastReward, setLastReward] = useState(null);
 
     // Progress state
@@ -263,6 +261,8 @@ export default function MemoryGamesPage() {
     const [showComboPopup, setShowComboPopup] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
+    const [vipCheckoutPending, setVipCheckoutPending] = useState(false);
+    const vipCheckoutRef = useRef(false);
 
     // Jarvis Explain Modal state
     const [explainModal, setExplainModal] = useState({
@@ -325,48 +325,38 @@ export default function MemoryGamesPage() {
     // Safe helper to get level config with fallback
     const safeLevelConfig = getLevelConfig(currentLevel) || { timer: 90, gridSize: 13, maxHands: 20 };
 
-    // Initialize effects CSS and DiamondEngine with user session
+    // Initialize effects CSS once. Re-initialize the economy whenever auth
+    // resolves so an authenticated player can never remain in guest mode.
     useEffect(() => {
         EffectsEngine.initCSS();
+    }, []);
 
-        // Initialize DiamondEngine with user session
+    useEffect(() => {
+        let cancelled = false;
         const initializeDiamondEngine = async () => {
             try {
-                // Get user session
-                if (supabase.current) {
-                    const { data: { session } } = await supabase.current.auth.getSession();
-                    const user = session?.user;
-
-                    if (user) {
-                        // Initialize DiamondEngine with user ID
-                        await DiamondEngine.init(user.id);
-
-                        // Load balance and VIP status
-                        const balance = await DiamondEngine.getBalance();
-                        const vipStatus = await DiamondEngine.isVIP();
-
-                        setDiamondBalance(balance);
-                        setIsVIP(vipStatus);
-                    } else {
-                        // Guest user - use localStorage fallback
-                        await DiamondEngine.init(null);
-                        const balance = await DiamondEngine.getBalance();
-                        setDiamondBalance(balance);
-                        setIsVIP(false); // Guest = non-VIP, unlocks gameplay
-                    }
-                }
+                await DiamondEngine.init(userId || null);
+                const [balance, vipStatus] = await Promise.all([
+                    DiamondEngine.getBalance(),
+                    userId ? DiamondEngine.isVIP() : Promise.resolve(false),
+                ]);
+                if (cancelled) return;
+                setDiamondBalance(balance);
+                setIsVIP(vipStatus);
             } catch (e) {
                 console.warn('[MemoryGames] Failed to initialize DiamondEngine:', e);
                 // Fallback to localStorage — treat as non-VIP so gameplay is not blocked
                 await DiamondEngine.init(null);
                 const balance = await DiamondEngine.getBalance();
+                if (cancelled) return;
                 setDiamondBalance(balance);
                 setIsVIP(false);
             }
         };
 
         initializeDiamondEngine();
-    }, []);
+        return () => { cancelled = true; };
+    }, [userId]);
 
     // Timer logic
     useEffect(() => {
@@ -389,15 +379,50 @@ export default function MemoryGamesPage() {
         return () => clearInterval(timerRef.current);
     }, [timerActive]);
 
+    const handleActionSelect = useCallback((action) => {
+        setSelectedAction(action);
+        setLabStatus(`${ACTION_COLORS[action]?.label || action} selected.`);
+    }, []);
+
+    const handleUndo = useCallback(() => {
+        if (gradeResult || !timerActive) return;
+        const previousGrid = gridHistoryRef.current.pop();
+        if (!previousGrid) return;
+        setUserGrid(previousGrid);
+        const count = Object.keys(previousGrid).length;
+        setLabStatus(`Last range edit undone. ${count} hand${count === 1 ? '' : 's'} marked.`);
+    }, [gradeResult, timerActive]);
+
+    const handleClearRange = useCallback(() => {
+        if (gradeResult || !timerActive) return;
+        if (Object.keys(userGrid).length === 0) return;
+        gridHistoryRef.current.push(userGrid);
+        gridHistoryRef.current = gridHistoryRef.current.slice(-30);
+        setUserGrid({});
+        setLabStatus('Range cleared. Use undo to restore it.');
+    }, [gradeResult, timerActive, userGrid]);
+
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (mode !== 'game' || gradeResult) return;
+            if (mode !== 'game' || gradeResult || preferences.keyboardShortcuts === false) return;
+            const target = e.target instanceof Element ? e.target : null;
+            const isInteractiveTarget = target?.closest('button, a, input, select, textarea, [contenteditable="true"]');
+            if (isInteractiveTarget) return;
+
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                handleUndo();
+                return;
+            }
+
             const key = e.key;
             const actions = Object.entries(ACTION_COLORS);
             const found = actions.find(([_, v]) => v.key === key);
             if (found) {
-                setSelectedAction(found[0]);
+                e.preventDefault();
+                handleActionSelect(found[0]);
+                return;
             }
             if (key === 'Enter' || key === ' ') {
                 e.preventDefault();
@@ -406,7 +431,7 @@ export default function MemoryGamesPage() {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [mode, gradeResult, userGrid, currentScenario]);
+    }, [mode, gradeResult, userGrid, currentScenario, preferences.keyboardShortcuts, handleActionSelect, handleUndo]);
 
     // Reusable: Fresh DB balance check + DiamondEngine deduction
     // NOTE: isStartingRef guards here AND in startGame - both are needed because:
@@ -419,22 +444,13 @@ export default function MemoryGamesPage() {
         if (isStartingRef.current) return false;
         isStartingRef.current = true;
         try {
-        // Fresh balance check from DB to avoid stale-state false negatives
+        // Fresh authoritative balance check to avoid stale-state false negatives.
         try {
-            if (supabase.current && userId) {
-                const { data: profile } = await supabase.current
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .maybeSingle();
-                if (profile) {
-                    const freshBalance = profile.diamonds || 0;
-                    setDiamondBalance(freshBalance);
-                    if (freshBalance < GAME_COST) {
-                        setShowOutOfDiamondsModal(true);
-                        return false;
-                    }
-                }
+            const freshBalance = await DiamondEngine.getBalance();
+            setDiamondBalance(freshBalance);
+            if (freshBalance < GAME_COST) {
+                setShowOutOfDiamondsModal(true);
+                return false;
             }
         } catch (e) {
             console.warn('[MemoryGames] Balance check failed:', e);
@@ -458,6 +474,7 @@ export default function MemoryGamesPage() {
         // Double-click guard - protects ALL users (VIP + non-VIP)
         if (isGameStartingRef.current) return;
         isGameStartingRef.current = true;
+        setGameNotice(null);
         try {
         if (isVIP === null) {
             isGameStartingRef.current = false;
@@ -521,7 +538,10 @@ export default function MemoryGamesPage() {
         }
 
         if (!scenario) {
-            alert('No scenarios available for this level!\n\nTry adjusting or resetting your filters.');
+            setGameNotice({
+                type: 'warning',
+                message: 'No scenarios match this level. Adjust or reset your filters, then try again.',
+            });
             return;
         }
 
@@ -538,7 +558,9 @@ export default function MemoryGamesPage() {
         setCurrentLevel(level);
         setCurrentScenario(scenario);
         setUserGrid({});
+        gridHistoryRef.current = [];
         setGradeResult(null);
+        setLabStatus(`${ACTION_COLORS[selectedAction]?.label || selectedAction} selected. No hands marked.`);
         setLastReward(null);
         submissionLockedRef.current = false;
         setTimeRemaining(levelConfig.timer); // Progressive: higher levels = less time
@@ -566,13 +588,17 @@ export default function MemoryGamesPage() {
     const handleCellClick = (hand) => {
         if (gradeResult || !timerActive) return;
 
-        setUserGrid(prev => {
-            if (prev[hand] === selectedAction) {
-                const { [hand]: _, ...rest } = prev;
-                return rest;
-            }
-            return { ...prev, [hand]: selectedAction };
-        });
+        gridHistoryRef.current.push(userGrid);
+        gridHistoryRef.current = gridHistoryRef.current.slice(-30);
+        if (userGrid[hand] === selectedAction) {
+            const { [hand]: _, ...rest } = userGrid;
+            setUserGrid(rest);
+            setLabStatus(`${hand} removed. ${Object.keys(rest).length} hands marked.`);
+            return;
+        }
+        const nextGrid = { ...userGrid, [hand]: selectedAction };
+        setUserGrid(nextGrid);
+        setLabStatus(`${hand} set to ${ACTION_COLORS[selectedAction]?.label || selectedAction}. ${Object.keys(nextGrid).length} hands marked.`);
     };
 
     // Submit handler
@@ -1080,11 +1106,6 @@ export default function MemoryGamesPage() {
     const loadLeaderboard = useCallback(async () => {
         setLeaderboardLoading(true);
         try {
-            // Initialize service with supabase client if not done
-            if (supabase.current) {
-                await leaderboardService.initialize(supabase.current);
-            }
-
             const result = await leaderboardService.getLeaderboard(leaderboardMode, null, 50);
             if (result.success) {
                 setLeaderboardData(result.leaderboard);
@@ -1108,11 +1129,6 @@ export default function MemoryGamesPage() {
     const loadDailyChallenge = useCallback(async () => {
         setChallengeLoading(true);
         try {
-            // Initialize service with supabase client if not done
-            if (supabase.current) {
-                await dailyChallengeService.initialize(supabase.current);
-            }
-
             const result = await dailyChallengeService.getTodaysChallenge();
             if (result.success && result.challenge) {
                 // Parse scenario from scenario_id JSON string
@@ -1156,10 +1172,6 @@ export default function MemoryGamesPage() {
         if (!userId) return; // Only logged-in users
 
         try {
-            if (supabase.current) {
-                await leaderboardService.initialize(supabase.current);
-            }
-
             const sessionId = crypto.randomUUID();
             const result = await leaderboardService.updateLeaderboard(
                 userId, gameMode, level, score, accuracy, timeTaken, sessionId
@@ -1183,55 +1195,60 @@ export default function MemoryGamesPage() {
 
     // Handle VIP upgrade - initiate Stripe checkout for VIP subscription
     const handleVipUpgrade = useCallback(async () => {
-        // Check if user is logged in
         if (!userId) {
-            alert('Please log in to upgrade to VIP!');
+            router.push('/login?redirect=/hub/preflop-charts');
             return;
         }
 
+        if (vipCheckoutRef.current) return;
+        vipCheckoutRef.current = true;
+        setVipCheckoutPending(true);
+        setGameNotice(null);
         try {
-            // Get auth token for API call
             const token = getAccessToken();
             if (!token) {
-                alert('Please log in to upgrade to VIP!');
+                router.push('/login?redirect=/hub/preflop-charts');
                 return;
             }
 
-            // Call checkout session API
             const response = await authedFetch('/api/store/create-checkout-session', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Checkout-Request-ID': `preflop-vip-${crypto.randomUUID()}`,
+                },
                 body: JSON.stringify({
                     type: 'subscription',
-                    items: [{
-                        name: 'Preflop Charts VIP',
-                        tier: 'vip',
-                        priceId: process.env.NEXT_PUBLIC_STRIPE_VIP_PRICE_ID || 'price_vip_monthly' // Configured in Stripe dashboard
-                    }],
+                    // The server owns price resolution; the browser sends only
+                    // the plan key accepted by create-checkout-session.
+                    items: [{ plan: 'monthly' }],
                     successUrl: `${window.location.origin}/hub/preflop-charts?vip_success=true`,
                     cancelUrl: `${window.location.origin}/hub/preflop-charts?vip_canceled=true`
                 })
             });
 
-            if (!response.ok) throw new Error(`Request failed (${response.status})`);
-            const result = await response.json();
+            const result = await response.json().catch(() => null);
+            if (!response.ok || !result?.success) {
+                throw new Error(result?.error?.message || `Request failed (${response.status})`);
+            }
 
-            if (result.success && result.data?.url) {
-                // Redirect to Stripe checkout
+            if (result.data?.url) {
                 window.location.href = result.data.url;
             } else {
-                // Handle error - show helpful message
-                if (result.error?.code === 'PAYMENTS_NOT_CONFIGURED') {
-                    alert('VIP subscriptions coming soon! Payment processing is being set up.');
-                } else {
-                    alert(result.error?.message || 'Failed to start checkout. Please try again.');
-                }
+                throw new Error('Checkout session missing redirect URL');
             }
         } catch (error) {
             console.warn('[MemoryGames] VIP upgrade error:', error);
-            alert('Something went wrong. Please try again later.');
+            setGameNotice({
+                type: 'warning',
+                context: 'checkout',
+                message: error?.message || 'VIP checkout could not start. Please try again.',
+            });
+        } finally {
+            vipCheckoutRef.current = false;
+            setVipCheckoutPending(false);
         }
-    }, [userId]);
+    }, [router, userId]);
 
     // Timer color
     const getTimerColor = () => {
@@ -1249,6 +1266,8 @@ export default function MemoryGamesPage() {
     const masteryGateProgress = nextLockedLevelIndex === -1
         ? 5
         : Math.max(0, Math.min(5, consecutivePasses - ((nextLockedLevelIndex - 1) * 5)));
+    const markedHandCount = Object.keys(userGrid).length;
+    const selectedActionCount = Object.values(userGrid).filter((action) => action === selectedAction).length;
 
     return (
         <PageTransition>
@@ -2076,6 +2095,14 @@ export default function MemoryGamesPage() {
                                         />
                                     )}
 
+                                    {gameNotice && gameNotice.context !== 'checkout' && (
+                                        <div className="preflop-game-notice" data-notice={gameNotice.type} role="status">
+                                            <Filter size={16} aria-hidden />
+                                            <span>{gameNotice.message}</span>
+                                            <button type="button" onClick={() => setGameNotice(null)} aria-label="Dismiss message">Dismiss</button>
+                                        </div>
+                                    )}
+
                                     <div className="preflop-circuit-status" aria-label="Range progression status">
                                         <div className="preflop-circuit-label">
                                             <span>PROGRESSION CIRCUIT</span>
@@ -2355,9 +2382,15 @@ export default function MemoryGamesPage() {
                                         <div>Go VIP - $19.99/month</div>
                                         <p>Unlimited Games • All Levels • No Diamond Cost • Exclusive Modes</p>
                                     </div>
-                                    <button onClick={handleVipUpgrade}>
-                                        Upgrade to VIP <ChevronRight size={18} aria-hidden />
+                                    <button type="button" onClick={handleVipUpgrade} disabled={vipCheckoutPending}>
+                                        {vipCheckoutPending ? 'Opening checkout…' : 'Upgrade to VIP'} <ChevronRight size={18} aria-hidden />
                                     </button>
+                                    {gameNotice?.context === 'checkout' && (
+                                        <div className="preflop-vip-notice" role="status">
+                                            <span>{gameNotice.message}</span>
+                                            <button type="button" onClick={() => setGameNotice(null)} aria-label="Dismiss checkout message">Dismiss</button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -2484,6 +2517,7 @@ export default function MemoryGamesPage() {
 
                     {(mode === 'game' || mode === 'result') && currentScenario && (
                         <section className="preflop-range-lab" aria-labelledby="preflop-range-lab-title">
+                            <p className="preflop-lab-live" aria-live="polite" aria-atomic="true">{labStatus}</p>
                             <header className="preflop-lab-briefing">
                                 <div className="preflop-lab-briefing-copy">
                                     <div className="preflop-lab-kicker">
@@ -2534,14 +2568,14 @@ export default function MemoryGamesPage() {
                                         <span className="preflop-lab-section-index">01</span>
                                         <span>Choose action</span>
                                     </div>
-                                    <span>{Object.keys(userGrid).length} hands marked</span>
+                                    <span>{markedHandCount} hand{markedHandCount === 1 ? '' : 's'} marked</span>
                                 </div>
                                 <div className="preflop-lab-actions" aria-label="Range actions">
                                     {Object.entries(ACTION_COLORS).map(([action, { bg, border, label, key }]) => (
                                         <button
                                             key={action}
                                             type="button"
-                                            onClick={() => setSelectedAction(action)}
+                                            onClick={() => handleActionSelect(action)}
                                             disabled={!!gradeResult}
                                             className={selectedAction === action ? 'is-selected' : ''}
                                             style={{ '--action-color': border, '--action-fill': bg }}
@@ -2551,6 +2585,44 @@ export default function MemoryGamesPage() {
                                             <span>{label}</span>
                                         </button>
                                     ))}
+                                </div>
+                            </div>
+
+                            <div
+                                className="preflop-lab-command-strip"
+                                style={{ '--selected-color': ACTION_COLORS[selectedAction]?.border, '--selected-fill': ACTION_COLORS[selectedAction]?.bg }}
+                                aria-label="Range editing controls"
+                            >
+                                <div className="preflop-lab-active-tool">
+                                    <span>Active tool</span>
+                                    <strong>
+                                        <i aria-hidden />
+                                        {ACTION_COLORS[selectedAction]?.label || selectedAction}
+                                    </strong>
+                                </div>
+                                <div className="preflop-lab-command-counts" aria-label={`${markedHandCount} hand${markedHandCount === 1 ? '' : 's'} marked; ${selectedActionCount} use the active action`}>
+                                    <span><strong>{markedHandCount}</strong> marked</span>
+                                    <span><strong>{selectedActionCount}</strong> active</span>
+                                </div>
+                                <div className="preflop-lab-edit-tools">
+                                    <button
+                                        type="button"
+                                        onClick={handleUndo}
+                                        disabled={!!gradeResult || !timerActive || gridHistoryRef.current.length === 0}
+                                        aria-label="Undo last range edit"
+                                    >
+                                        <Undo2 size={16} aria-hidden />
+                                        <span>Undo</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleClearRange}
+                                        disabled={!!gradeResult || !timerActive || markedHandCount === 0}
+                                        aria-label="Clear marked range"
+                                    >
+                                        <Trash2 size={16} aria-hidden />
+                                        <span>Clear</span>
+                                    </button>
                                 </div>
                             </div>
 

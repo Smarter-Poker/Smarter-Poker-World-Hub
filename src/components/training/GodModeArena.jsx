@@ -4025,7 +4025,7 @@ function GodModeArenaInner({
     const movesGraded = handHistory.length;
 
     return (
-      <div style={styles.reviewContainer}>
+      <div className="sp-arena-review" style={styles.reviewContainer}>
         {/* #10: confetti is a position:fixed full-viewport canvas, so an
             unfocused table in a multi-table grid would paint 400 pieces over
             every other table. Only the focused arena celebrates. */}
@@ -4046,11 +4046,11 @@ function GodModeArenaInner({
           userId={userId}
         />
         {/* REVIEW HEADER */}
-        <div style={styles.reviewHeader}>
+        <div className="sp-arena-review__header" style={styles.reviewHeader}>
           <button onClick={onExit} style={styles.reviewBackBtn}>
             ← Back
           </button>
-          <div style={styles.reviewTitle}>Session Review</div>
+          <div className="sp-arena-review__title" style={styles.reviewTitle}>Session Review</div>
           <div
             style={{
               fontSize: 11,
@@ -4063,7 +4063,7 @@ function GodModeArenaInner({
           </div>
         </div>
 
-        <div style={styles.reviewScrollArea}>
+        <div className="sp-arena-review__scroll" style={styles.reviewScrollArea}>
           {/* F13: Daily Challenge Banner */}
           <DailyChallengeBanner gtowScore={gtowScore} />
 
@@ -4071,6 +4071,7 @@ function GodModeArenaInner({
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
+            className="sp-arena-review__score"
             style={styles.scoreHero}
           >
             <div style={{ ...styles.scoreHeroValue, color: scoreColor }}>{formatSignedScore(gtowScore)}</div>
@@ -4120,6 +4121,7 @@ function GodModeArenaInner({
             const totalReward = baseReward + bonusReward;
             return (
               <motion.div
+                className="sp-arena-review__reward"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
@@ -4208,7 +4210,7 @@ function GodModeArenaInner({
           })()}
 
           {/* SUMMARY STATS ROW */}
-          <div style={styles.summaryRow}>
+          <div className="sp-arena-review__summary" style={styles.summaryRow}>
             <div style={styles.summaryItem}>
               <div style={styles.summaryValue}>{totalQuestions}</div>
               <div style={styles.summaryLabel}>Hands</div>
@@ -5284,7 +5286,7 @@ function GodModeArenaInner({
                 </motion.div>
               )}
 
-              <div style={styles.classBreakdown}>
+              <div className="sp-arena-review__classification" style={styles.classBreakdown}>
                 <div style={styles.sectionTitle}>Move Breakdown</div>
                 <div style={styles.classGrid}>
                   {Object.entries(CLASSIFICATION_CONFIG || {}).map(([key, config]) => (
@@ -13431,7 +13433,7 @@ function GodModeArenaInner({
                           letterSpacing: 0.5,
                         }}
                       >
-                        {levelDef.name} — {levelDef.tier}
+                        {levelDef.name} — {String(levelDef.tier || '').toLowerCase()}
                       </div>
                     ) : null;
                   })()}
@@ -13797,6 +13799,7 @@ function GodModeArenaInner({
 
                 {/* START BUTTON */}
                 <motion.div
+                  className="sp-arena-lobby__launch"
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.45 }}

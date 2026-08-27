@@ -98,6 +98,7 @@ export function useYouTubeErrorManager({
     surface = 'Unknown',
     onError = null,
     onStateChange = null,
+    onPlaybackInfo = null,
     iframeRef = null,
     autoActionDelay = 3000,
     autoAction = 'advance',
@@ -130,6 +131,9 @@ export function useYouTubeErrorManager({
                 if (data.event === 'onStateChange' && onStateChange) {
                     onStateChange(data.info);
                 }
+                if (data.event === 'infoDelivery' && onPlaybackInfo && data.info) {
+                    onPlaybackInfo(data.info);
+                }
 
                 // Error detection with type coercion guard
                 if (data.event === 'onError' && data?.info) {
@@ -159,7 +163,7 @@ export function useYouTubeErrorManager({
         window.addEventListener('message', handleYTMessage);
         return () => window.removeEventListener('message', handleYTMessage);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- onError removed: it's handled by auto-action timer, not this effect
-    }, [active, videoId, surface, onStateChange, iframeRef]);
+    }, [active, videoId, surface, onStateChange, onPlaybackInfo, iframeRef]);
 
     // ── Auto-action timer (advance/close) ─────────────────────────────────────
     useEffect(() => {

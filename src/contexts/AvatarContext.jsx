@@ -101,7 +101,9 @@ export function AvatarProvider({ children }) {
                 setIsVip(readVipProof(userId));
             }
         } catch (err) {
-            console.warn('Error fetching VIP status:', err);
+            // The five-second guard intentionally aborts a slow request. That is
+            // a normal degraded-mode path, not a console error.
+            if (err?.name !== 'AbortError') console.warn('Error fetching VIP status:', err);
             // Network failed entirely — degraded fallback only.
             setIsVip(readVipProof(userId));
         } finally {

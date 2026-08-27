@@ -70,7 +70,12 @@ body.world-video-library {
     top: 12px;
     align-self: start;
     min-height: calc(100vh - 110px);
+    max-height: calc(100vh - 24px);
     padding: 32px 25px 28px 4px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(85, 216, 255, 0.2) transparent;
     border-right: 1px solid var(--vl-line);
 }
 
@@ -161,6 +166,38 @@ body.world-video-library {
 .vl-filter-button.is-active::after { color: var(--vl-cyan); }
 .vl-reels-button { display: flex !important; }
 
+.vl-library-filter {
+    display: grid !important;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 8px;
+}
+
+.vl-filter-symbol {
+    color: #668695;
+    font: 800 14px/1 var(--vl-utility);
+    text-align: center;
+}
+
+.vl-library-filter.is-active .vl-filter-symbol { color: var(--vl-cyan); }
+
+.vl-filter-count {
+    min-width: 24px;
+    padding: 4px 6px;
+    border: 1px solid rgba(129, 208, 242, 0.18);
+    color: #718691;
+    background: rgba(0, 0, 0, 0.2);
+    font: 800 8px/1 var(--vl-utility);
+    letter-spacing: 0;
+    text-align: center;
+}
+
+.vl-library-filter.is-active .vl-filter-count {
+    border-color: rgba(85, 216, 255, 0.46);
+    color: #dff9ff;
+    background: rgba(24, 129, 174, 0.18);
+}
+
 .vl-rail-count {
     margin-top: 28px;
     padding: 17px 14px 18px;
@@ -205,6 +242,13 @@ body.world-video-library {
     color: #f4fbff;
     font: 800 23px/1.1 var(--vl-body);
     letter-spacing: -0.7px;
+}
+
+.vl-command-heading p {
+    max-width: 650px;
+    margin: 8px 0 0;
+    color: #718692;
+    font: 500 12px/1.45 var(--vl-body);
 }
 
 .vl-search-wrap {
@@ -374,6 +418,85 @@ body.world-video-library {
     border-radius: 0 !important;
     background: var(--vl-cyan) !important;
 }
+
+.vl-subview-banner {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 24px;
+    margin: 4px 0 14px;
+    padding: 22px 24px;
+    overflow: hidden;
+    border: 1px solid rgba(135, 216, 250, 0.3);
+    border-left: 3px solid var(--vl-cyan);
+    background:
+        linear-gradient(90deg, rgba(29, 130, 173, 0.15), transparent 58%),
+        linear-gradient(180deg, rgba(8, 22, 30, 0.96), rgba(2, 9, 13, 0.96));
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.025), 0 13px 30px rgba(0, 0, 0, 0.2);
+}
+
+.vl-subview-banner::after {
+    content: "";
+    position: absolute;
+    top: -54px;
+    right: 92px;
+    width: 170px;
+    height: 170px;
+    border: 1px solid rgba(85, 216, 255, 0.12);
+    transform: rotate(45deg);
+    pointer-events: none;
+}
+
+.vl-subview-copy > span {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--vl-cyan);
+    font: 800 8px/1 var(--vl-utility);
+    letter-spacing: 1.45px;
+    text-transform: uppercase;
+}
+
+.vl-subview-copy h2 {
+    margin: 0;
+    color: #f5fcff;
+    font: 900 clamp(25px, 3vw, 37px)/0.95 var(--vl-display);
+    letter-spacing: -0.65px;
+    text-transform: uppercase;
+}
+
+.vl-subview-copy p {
+    max-width: 610px;
+    margin: 9px 0 0;
+    color: #80939e;
+    font: 500 12px/1.5 var(--vl-body);
+}
+
+.vl-subview-status {
+    min-width: 108px;
+    padding-left: 18px;
+    border-left: 1px solid rgba(135, 216, 250, 0.2);
+    text-align: right;
+}
+
+.vl-subview-status strong {
+    display: block;
+    color: #f5fcff;
+    font: 900 34px/0.9 var(--vl-display);
+}
+
+.vl-subview-status span,
+.vl-subview-status em {
+    display: block;
+    margin-top: 6px;
+    color: #69808c;
+    font: 800 8px/1 var(--vl-utility);
+    font-style: normal;
+    letter-spacing: 0.9px;
+    text-transform: uppercase;
+}
+
+.vl-subview-status em { color: #f2bc66; }
 
 .vl-active-view {
     display: flex;
@@ -898,6 +1021,164 @@ body.world-video-library {
     letter-spacing: 0.25px;
 }
 
+/* Full-screen supporting surfaces use the same broadcast-hardware language. */
+.vl-reels-dialog {
+    background:
+        radial-gradient(720px 420px at 50% 12%, rgba(0, 132, 210, 0.16), transparent 68%),
+        #000 !important;
+}
+
+.vl-reels-fallback {
+    position: fixed;
+    inset: 0;
+    z-index: 10020;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    padding: 28px;
+    color: #e9f9ff;
+    background:
+        linear-gradient(rgba(38, 137, 180, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(38, 137, 180, 0.055) 1px, transparent 1px),
+        radial-gradient(650px 420px at 50% 30%, rgba(0, 127, 207, 0.18), transparent 72%),
+        #020609;
+    background-size: 36px 36px, 36px 36px, auto, auto;
+    text-align: center;
+}
+
+.vl-reels-fallback > span {
+    color: #55d8ff;
+    font: 800 9px/1 "SFMono-Regular", Consolas, monospace;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+}
+
+.vl-reels-fallback h2 {
+    margin: 11px 0 10px;
+    font: 900 clamp(30px, 6vw, 52px)/0.95 "Avenir Next Condensed", "Arial Narrow", sans-serif;
+    text-transform: uppercase;
+}
+
+.vl-reels-fallback p {
+    max-width: 460px;
+    margin: 0 0 24px;
+    color: #81939f;
+    font: 500 13px/1.55 "Avenir Next", "Segoe UI", sans-serif;
+}
+
+.vl-reels-fallback > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
+
+.vl-reels-fallback button {
+    min-height: 44px;
+    padding: 0 17px;
+    border: 1px solid rgba(85, 216, 255, 0.52);
+    border-radius: 0;
+    color: #e8faff;
+    background: rgba(25, 117, 153, 0.18);
+    font: 900 10px/1 "SFMono-Regular", Consolas, monospace;
+    letter-spacing: 0.65px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.vl-reels-fallback button:last-child {
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #8ca0aa;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.vl-playlist-overlay {
+    padding: 18px;
+    background: rgba(0, 4, 7, 0.84) !important;
+    backdrop-filter: blur(14px);
+}
+
+.vl-playlist-dialog {
+    position: relative;
+    width: min(440px, 100%) !important;
+    max-width: 440px !important;
+    padding: 0 !important;
+    overflow: hidden;
+    border: 1px solid rgba(135, 216, 250, 0.42) !important;
+    border-radius: 0 !important;
+    color: #eaf9ff;
+    background:
+        linear-gradient(90deg, rgba(35, 137, 180, 0.045) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(8, 22, 30, 0.99), rgba(2, 8, 12, 0.99)) !important;
+    background-size: 36px 36px, auto !important;
+    box-shadow: 0 26px 80px rgba(0, 0, 0, 0.68), 0 0 36px rgba(0, 142, 220, 0.1);
+}
+
+.vl-playlist-header {
+    min-height: 65px;
+    margin: 0 !important;
+    padding: 0 19px;
+    border-bottom: 1px solid rgba(135, 216, 250, 0.2);
+    background: rgba(3, 12, 17, 0.72);
+}
+
+.vl-playlist-header h3 {
+    font: 900 18px/1 "Avenir Next Condensed", "Arial Narrow", sans-serif !important;
+    letter-spacing: 0.35px;
+    text-transform: uppercase;
+}
+
+.vl-playlist-header button {
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(135, 216, 250, 0.18) !important;
+    color: #9fc7d7 !important;
+}
+
+.vl-playlist-list {
+    max-height: min(42vh, 330px) !important;
+    margin: 0 !important;
+    padding: 7px 19px;
+}
+
+.vl-playlist-empty {
+    padding: 31px 0 27px !important;
+    color: #718691 !important;
+}
+
+.vl-playlist-row {
+    min-height: 61px;
+    padding: 9px 0 !important;
+    border-bottom-color: rgba(135, 216, 250, 0.15) !important;
+}
+
+.vl-playlist-row button { min-height: 36px; border-radius: 0 !important; }
+
+.vl-playlist-error { margin: 0 19px 10px !important; border-radius: 0 !important; }
+
+.vl-playlist-create {
+    padding: 14px 19px 19px;
+    border-top: 1px solid rgba(135, 216, 250, 0.18);
+    background: rgba(1, 7, 10, 0.74);
+}
+
+.vl-playlist-create input,
+.vl-playlist-create button {
+    min-height: 44px;
+    border-radius: 0 !important;
+}
+
+.vl-playlist-create input {
+    border-color: rgba(135, 216, 250, 0.3) !important;
+    background: #02080c !important;
+}
+
+.vl-playlist-create button:not(:disabled) {
+    color: #021017 !important;
+    background: #55d8ff !important;
+}
+
+.vl-tts-sheet [role="dialog"] {
+    border-color: rgba(85, 216, 255, 0.32) !important;
+    background: linear-gradient(180deg, #071923, #02090d) !important;
+    box-shadow: 0 -18px 70px rgba(0, 0, 0, 0.76), 0 0 42px rgba(0, 153, 255, 0.09) !important;
+}
+
 @media (max-width: 1180px) {
     .vl-command-layout { grid-template-columns: 218px minmax(0, 1fr); }
     .vl-command-main { padding-left: 23px; }
@@ -949,7 +1230,9 @@ body.world-video-library {
     .vl-command-rail {
         position: relative;
         min-height: 0;
+        max-height: none;
         padding: 18px 0 11px;
+        overflow: visible;
         border-right: 0;
         border-bottom: 1px solid rgba(134, 216, 251, 0.25);
     }
@@ -983,7 +1266,7 @@ body.world-video-library {
     .vl-filter-button {
         width: auto;
         min-width: max-content;
-        min-height: 42px;
+        min-height: 44px;
         flex: 0 0 auto;
         padding: 0 18px !important;
         border-color: #294552 !important;
@@ -999,6 +1282,18 @@ body.world-video-library {
     .vl-filter-button.is-active {
         background: linear-gradient(180deg, #173348, #061119) !important;
         box-shadow: inset 0 -3px var(--vl-cyan) !important;
+    }
+
+    .vl-library-filter {
+        display: flex !important;
+        gap: 7px;
+    }
+
+    .vl-filter-symbol { font-size: 12px; }
+
+    .vl-filter-count {
+        min-width: 20px;
+        padding: 3px 5px;
     }
 
     .vl-rail-count {
@@ -1064,6 +1359,26 @@ body.world-video-library {
 
     .vl-active-view > button { padding: 8px; }
 
+    .vl-subview-banner {
+        grid-template-columns: minmax(0, 1fr) 72px;
+        gap: 13px;
+        margin: -9px 0 18px;
+        padding: 17px 15px;
+    }
+
+    .vl-subview-banner::after {
+        top: -70px;
+        right: 26px;
+        opacity: 0.7;
+    }
+
+    .vl-subview-copy h2 { font-size: 27px; }
+    .vl-subview-copy p { font-size: 11px; line-height: 1.45; }
+    .vl-subview-status { min-width: 0; padding-left: 11px; }
+    .vl-subview-status strong { font-size: 29px; }
+    .vl-subview-status span,
+    .vl-subview-status em { font-size: 7px; letter-spacing: 0.5px; }
+
     .vl-source-button {
         width: 62px;
         min-width: 62px;
@@ -1076,7 +1391,7 @@ body.world-video-library {
 
     .vl-source-name {
         width: 60px !important;
-        font-size: 8px !important;
+        font-size: 9px !important;
     }
 
     .vl-continue-watching,
@@ -1114,7 +1429,7 @@ body.world-video-library {
 
     .vl-video-grid > .vl-video-card:first-child .vl-video-thumb {
         min-height: 0;
-        aspect-ratio: 1.22 / 1 !important;
+        aspect-ratio: 16 / 10 !important;
     }
 
     .vl-video-grid > .vl-video-card:first-child .vl-card-info {
@@ -1173,6 +1488,7 @@ body.world-video-library {
 
     .vl-share-button {
         margin-left: auto;
+        min-height: 44px;
         padding: 4px 6px !important;
         font-size: 8px !important;
     }
@@ -1202,6 +1518,25 @@ body.world-video-library {
     }
 
     .vl-empty-state h3 { font-size: 25px; }
+
+    .vl-modal-close {
+        min-width: 44px !important;
+        min-height: 44px !important;
+    }
+
+    .vl-playlist-overlay {
+        align-items: flex-end !important;
+        padding: 0 !important;
+    }
+
+    .vl-playlist-dialog {
+        width: 100% !important;
+        max-width: none !important;
+        border-right: 0 !important;
+        border-bottom: 0 !important;
+        border-left: 0 !important;
+        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

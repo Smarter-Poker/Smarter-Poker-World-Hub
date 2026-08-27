@@ -3,7 +3,7 @@
  * Browse and watch complete hands from HCL, The Lodge, Triton, and more
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Component, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { getVideoPlaylists, createPlaylist, addVideoToPlaylist, removeVideoFromPlaylist } from '../../src/services/videoPlaylists';
 import { supabase } from '../../src/lib/supabase';
+import { getAccessToken } from '../../src/lib/authUtils';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
@@ -91,6 +92,65 @@ const C = {
     blue: '#0A84FF',
 };
 
+const LIBRARY_VIEW_OPTIONS = [
+    { id: 'favorites', label: 'Favorites', shortLabel: 'Favorites', symbol: '♥' },
+    { id: 'watchlater', label: 'Watch Later', shortLabel: 'Watch Later', symbol: '▣' },
+    { id: 'history', label: 'Watch History', shortLabel: 'History', symbol: '↺' },
+];
+
+const LIBRARY_VIEW_META = {
+    ALL: {
+        kicker: 'Live poker broadcast archive',
+        title: 'Poker Video Library',
+        description: 'Study complete sessions, tournament coverage, and creator breakdowns from one command deck.',
+    },
+    favorites: {
+        kicker: 'Personal library · Favorites',
+        title: 'Favorite Videos',
+        description: 'Your strongest hands, breakdowns, and broadcasts—saved for a fast return.',
+    },
+    watchlater: {
+        kicker: 'Personal library · Study queue',
+        title: 'Watch Later',
+        description: 'A focused queue for the videos you want in your next study session.',
+    },
+    history: {
+        kicker: 'Personal library · Session log',
+        title: 'Watch History',
+        description: 'Resume recent sessions or revisit videos you have already studied.',
+    },
+};
+
+class VideoLibraryReelsBoundary extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.warn('[VideoLibraryReelsBoundary]', error, errorInfo);
+    }
+
+    render() {
+        if (!this.state.hasError) return this.props.children;
+        return (
+            <div className="vl-reels-fallback" role="alert">
+                <span>Reels signal interrupted</span>
+                <h2>Reopen The Feed</h2>
+                <p>The full library is still available. Retry Reels or return without losing your place.</p>
+                <div>
+                    <button type="button" onClick={() => this.setState({ hasError: false })}>Try Again</button>
+                    <button type="button" onClick={this.props.onClose}>Back To Library</button>
+                </div>
+            </div>
+        );
+    }
+}
+
 // ─── Pure helpers at module scope (must be here, not inside the component).
 // Placing them inside the component caused a TDZ crash during SSR prerendering:
 // useMemo(trendingScores) references parseViews before its `const` declaration
@@ -122,13 +182,18 @@ function parseDuration(durationStr) {
 /** Keep a newly selected horizontal-rail control visible without moving the page. */
 function keepRailButtonInView(button) {
     const rail = button?.parentElement;
-    if (!rail || rail.scrollWidth <= rail.clientWidth) return;
+    if (!rail) return;
 
     window.requestAnimationFrame(() => {
-        const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-        rail.scrollTo({
-            left: button.offsetLeft - ((rail.clientWidth - button.clientWidth) / 2),
-            behavior: reducedMotion ? 'auto' : 'smooth',
+        // A second frame lets responsive CSS settle after hydration/deep-link
+        // state changes before measuring the rail.
+        window.requestAnimationFrame(() => {
+            if (rail.scrollWidth <= rail.clientWidth) return;
+            const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+            rail.scrollTo({
+                left: button.offsetLeft - ((rail.clientWidth - button.clientWidth) / 2),
+                behavior: reducedMotion ? 'auto' : 'smooth',
+            });
         });
     });
 }
@@ -282,6 +347,15 @@ export default function VideoLibraryPage() {
         }
         hadNavigationQueryRef.current = hasNavigationQuery;
 
+        if (hasNavigationQuery) {
+            if (!router.query.type) setSelectedType('ALL');
+            if (!router.query.source) setSelectedSource('ALL');
+            if (!router.query.filter) {
+                setLibraryFilter('ALL');
+                setSearchQuery('');
+            }
+        }
+
         if (router.query.type) {
             // 2026-08-15: was .toUpperCase(), which produced 'CASH'/'TOURNAMENT'
             // and never matched v.type — the DB CHECK constraint stores these
@@ -322,10 +396,13 @@ export default function VideoLibraryPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [showReelsModal, setShowReelsModal] = useState(false);
     const searchInputRef = useRef(null);
+    const filterRailRef = useRef(null);
+    const sourceRailRef = useRef(null);
     const reelsDialogRef = useRef(null);
     const reelsTriggerRef = useRef(null);
     const modalOverlayRef = useRef(null); // ref for native fullscreen
     const playerIframeRef = useRef(null);
+    const playerPositionRef = useRef(0);
     const modalCloseButtonRef = useRef(null);
     const viewerFocusInitializedRef = useRef(false);
     const videoTriggerRef = useRef(null);
@@ -373,6 +450,68 @@ export default function VideoLibraryPage() {
     // ── P3: Sort mode — 'default' | 'trending' | 'top_rated' ─────────────────
     const [sortMode, setSortMode] = useState('default');
 
+    const personalViewCounts = {
+        favorites: favorites.size,
+        watchlater: watchLater.size,
+        history: watchedVideos.size,
+    };
+    const currentViewMeta = LIBRARY_VIEW_META[libraryFilter] || LIBRARY_VIEW_META.ALL;
+
+    // Keep the command rail and URL in lockstep so every subview is shareable,
+    // back-button safe, and visually reports the state it actually represents.
+    const replaceNavigationQuery = useCallback((patch) => {
+        if (!router.isReady) return;
+        const nextQuery = { ...router.query };
+        Object.entries(patch).forEach(([key, value]) => {
+            if (value == null || value === '' || value === 'ALL') delete nextQuery[key];
+            else nextQuery[key] = value;
+        });
+        void router.replace(
+            { pathname: router.pathname, query: nextQuery },
+            undefined,
+            { shallow: true, scroll: false }
+        );
+    }, [router]);
+
+    const selectBrowseView = (type, button) => {
+        setSelectedType(type);
+        setLibraryFilter('ALL');
+        setSearchQuery('');
+        replaceNavigationQuery({ type: type === 'ALL' ? null : type, filter: null });
+        keepRailButtonInView(button);
+    };
+
+    const selectPersonalView = (filter, button) => {
+        setSelectedType('ALL');
+        setLibraryFilter(filter);
+        setSearchQuery('');
+        replaceNavigationQuery({ type: null, filter });
+        keepRailButtonInView(button);
+    };
+
+    const selectSourceView = (source, button) => {
+        setSelectedSource(source);
+        replaceNavigationQuery({
+            source: source === 'ALL' ? null : source,
+            type: selectedType === 'ALL' ? null : selectedType,
+            filter: libraryFilter === 'ALL' ? null : libraryFilter,
+        });
+        keepRailButtonInView(button);
+    };
+
+    useEffect(() => {
+        const group = libraryFilter === 'ALL' ? 'type' : 'library';
+        const activeButton = filterRailRef.current?.querySelector(
+            `[data-filter-group="${group}"][aria-pressed="true"]`
+        );
+        if (activeButton) keepRailButtonInView(activeButton);
+    }, [selectedType, libraryFilter]);
+
+    useEffect(() => {
+        const activeSource = sourceRailRef.current?.querySelector('[aria-pressed="true"]');
+        if (activeSource) keepRailButtonInView(activeSource);
+    }, [selectedSource]);
+
     // ── P3: Trending score — views × recency decay (7-day half-life)
     // useMemo: stable Map reference — only recomputes when allVideos changes.
     // CRITICAL: IIFE here would create a new Map every render, triggering the
@@ -413,16 +552,27 @@ export default function VideoLibraryPage() {
     // Video modal HUD (heart/comment/share/save) — tap to show, auto-hides
     const [vlHudVisible, setVlHudVisible] = useState(false);
     const vlHudTimer = useRef(null);
+    const hideHudIfIdle = useCallback(() => {
+        if (modalOverlayRef.current?.querySelector('.vl-hud:focus-within')) {
+            vlHudTimer.current = setTimeout(hideHudIfIdle, 5000);
+            return;
+        }
+        setVlHudVisible(false);
+    }, []);
     const vlRevealHud = useCallback(() => {
         setVlHudVisible(true);
         clearTimeout(vlHudTimer.current);
-        vlHudTimer.current = setTimeout(() => setVlHudVisible(false), 5000);
-    }, []);
+        vlHudTimer.current = setTimeout(hideHudIfIdle, 5000);
+    }, [hideHudIfIdle]);
 
     // "New This Week" rail dismiss state
     const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
 
     const isPlayerPlayingRef = useRef(false);
+    const handlePlaybackInfo = useCallback((info) => {
+        const currentTime = Number(info?.currentTime);
+        if (Number.isFinite(currentTime) && currentTime >= 0) playerPositionRef.current = currentTime;
+    }, []);
     const handlePlayerStateChange = useCallback((state) => {
         if (state === 1) {
             isPlayerPlayingRef.current = true;
@@ -430,7 +580,7 @@ export default function VideoLibraryPage() {
             if (currentWatchingVideoRef.current && !watchStartTimeRef.current) watchStartTimeRef.current = Date.now();
             return;
         }
-        if (state === 0 || state === 2) {
+        if (state === 0 || state === 2 || state === 3 || state === 5) {
             isPlayerPlayingRef.current = false;
             const startTime = watchStartTimeRef.current;
             const video = currentWatchingVideoRef.current;
@@ -450,6 +600,7 @@ export default function VideoLibraryPage() {
         surface: 'VideoLibrary',
         autoActionDelay: 3000,
         onStateChange: handlePlayerStateChange,
+        onPlaybackInfo: handlePlaybackInfo,
         iframeRef: playerIframeRef,
         onError: handleManagedPlayerError,
     });
@@ -482,11 +633,12 @@ export default function VideoLibraryPage() {
     const watchStartTimeRef = useRef(null);
     const currentWatchingVideoRef = useRef(null);
     const watchSessionUserIdRef = useRef(null);
+    const activeUserIdRef = useRef(userId);
+    activeUserIdRef.current = userId;
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
         autoplay: true,
-        hdQuality: true,
         captions: false
     });
 
@@ -515,7 +667,7 @@ export default function VideoLibraryPage() {
         };
 
         if (!userId) {
-            setPreferences({ autoplay: true, hdQuality: true, captions: false });
+            setPreferences({ autoplay: true, captions: false });
             clearUserLibrary();
             return undefined;
         }
@@ -716,8 +868,10 @@ export default function VideoLibraryPage() {
                 title: video.title,
                 url: `https://youtube.com/watch?v=${video.videoId}`,
                 thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`,
-                durationSeconds: parseDuration(video.duration)
+                durationSeconds: parseDuration(video.duration),
+                progressSeconds: playerPositionRef.current
             });
+            if (activeUserIdRef.current !== effectiveUserId) return true;
             const persistedProgress = Number(savedSession?.progress_seconds);
             const persistedTotal = Number(savedSession?.watch_duration_seconds);
             const nextProgress = Number.isFinite(persistedProgress)
@@ -778,6 +932,7 @@ export default function VideoLibraryPage() {
         savedScrollY.current = typeof window !== 'undefined' ? window.scrollY : 0;
         watchStartTimeRef.current = null;
         currentWatchingVideoRef.current = video;
+        playerPositionRef.current = watchProgressRef.current.get(video.id)?.watchedSeconds || 0;
         isPlayerPlayingRef.current = false;
         setSelectedVideo(video);
         setIframeKey(k => k + 1); // force iframe remount → guaranteed autoplay
@@ -800,8 +955,9 @@ export default function VideoLibraryPage() {
         event.preventDefault();
         handleOpenVideo(video);
     }, [handleOpenVideo]);
-    // Keep ref in sync so early useEffects can call it without a TDZ dep
-    useEffect(() => { handleOpenVideoRef.current = handleOpenVideo; }, [handleOpenVideo]);
+    // Make the callback available before the earlier query effect runs. This
+    // keeps static-fallback deep links working even when catalog refresh fails.
+    handleOpenVideoRef.current = handleOpenVideo;
 
     // Navigate to next video in list (TikTok swipe down / arrow right)
     const handleNextVideo = useCallback(() => {
@@ -1184,6 +1340,20 @@ export default function VideoLibraryPage() {
     // Cleanup HUD timer on unmount
     useEffect(() => () => { if (vlHudTimer.current) clearTimeout(vlHudTimer.current); }, []);
 
+    // Persist a bounded heartbeat while playback continues. The server caps
+    // credit by elapsed time; frequent saves also make browser-close loss small.
+    useEffect(() => {
+        if (!selectedVideo || !userId) return undefined;
+        const heartbeat = setInterval(() => {
+            if (!isPlayerPlayingRef.current || !watchStartTimeRef.current || !currentWatchingVideoRef.current) return;
+            const startTime = watchStartTimeRef.current;
+            const video = currentWatchingVideoRef.current;
+            watchStartTimeRef.current = Date.now();
+            void saveWatchSession(startTime, video, { quiet: true });
+        }, 15000);
+        return () => clearInterval(heartbeat);
+    }, [selectedVideo, userId, saveWatchSession]);
+
     // ── BUG-I FIX: Flush pending watch time on tab hide / browser close ──────────
     // Without this, a user closing the tab mid-video loses all watch time because
     // handleCloseVideo never runs. visibilitychange fires reliably on mobile too.
@@ -1238,22 +1408,28 @@ export default function VideoLibraryPage() {
         : libraryFilter === 'favorites'
             ? {
                 eyebrow: 'Favorites',
-                title: 'No Favorites Yet',
-                copy: 'Favorite a video in the viewer and it will be waiting here for your next study session.',
+                title: userId ? 'No Favorites Yet' : 'Favorites Need Your Profile',
+                copy: userId
+                    ? 'Favorite a video in the viewer and it will be waiting here for your next study session.'
+                    : 'Sign in through the Hub to load and sync your favorite videos across devices.',
                 action: 'Browse All Videos',
             }
             : libraryFilter === 'watchlater'
                 ? {
                     eyebrow: 'Watch Later',
-                    title: 'Your Queue Is Clear',
-                    copy: 'Save a video from the viewer to build a focused study queue.',
+                    title: userId ? 'Your Queue Is Clear' : 'Your Queue Needs Your Profile',
+                    copy: userId
+                        ? 'Save a video from the viewer to build a focused study queue.'
+                        : 'Sign in through the Hub to load and sync your Watch Later queue.',
                     action: 'Browse All Videos',
                 }
                 : libraryFilter === 'history'
                     ? {
                         eyebrow: 'Watch History',
-                        title: 'No Watch History Yet',
-                        copy: 'Start a video and your recent sessions will appear here automatically.',
+                        title: userId ? 'No Watch History Yet' : 'History Needs Your Profile',
+                        copy: userId
+                            ? 'Start a video and your recent sessions will appear here automatically.'
+                            : 'Sign in through the Hub to resume your recent study sessions across devices.',
                         action: 'Browse All Videos',
                     }
                     : {
@@ -1337,7 +1513,7 @@ export default function VideoLibraryPage() {
                         <h1 className="vl-rail-title">Video <span>Library</span></h1>
 
                     {/* Type, sort, and format filters */}
-                    <div className="vl-type-toggle-row" role="group" aria-label="Browse and sort videos" style={{
+                    <div ref={filterRailRef} className="vl-type-toggle-row" role="group" aria-label="Browse and sort videos" style={{
                         display: 'flex',
                         gap: 8,
                         marginBottom: 16,
@@ -1352,7 +1528,7 @@ export default function VideoLibraryPage() {
                             { id: 'cash',       name: 'Cash Games' },
                             { id: 'tournament', name: 'Tournaments' },
                         ].map(type => {
-                            const isActive = selectedType === type.id;
+                            const isActive = selectedType === type.id && libraryFilter === 'ALL';
                             return (
                                 <button
                                     type="button"
@@ -1362,8 +1538,7 @@ export default function VideoLibraryPage() {
                                     aria-pressed={isActive}
                                     aria-controls="video-library-grid"
                                     onClick={(event) => {
-                                        setSelectedType(type.id);
-                                        keepRailButtonInView(event.currentTarget);
+                                        selectBrowseView(type.id, event.currentTarget);
                                     }}
                                     style={{
                                         padding: '9px 22px',
@@ -1390,6 +1565,28 @@ export default function VideoLibraryPage() {
                                     onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)'; e.currentTarget.style.transform = 'none'; } }}
                                 >
                                     {type.name}
+                                </button>
+                            );
+                        })}
+
+                        <span className="vl-filter-group-label">My Library</span>
+                        {LIBRARY_VIEW_OPTIONS.map(view => {
+                            const isActive = libraryFilter === view.id;
+                            const count = personalViewCounts[view.id];
+                            return (
+                                <button
+                                    type="button"
+                                    key={view.id}
+                                    className={`vl-filter-button vl-library-filter${isActive ? ' is-active' : ''}`}
+                                    data-filter-group="library"
+                                    aria-label={`${view.label}, ${count} ${count === 1 ? 'video' : 'videos'}`}
+                                    aria-pressed={isActive}
+                                    aria-controls="video-library-grid"
+                                    onClick={(event) => selectPersonalView(view.id, event.currentTarget)}
+                                >
+                                    <span className="vl-filter-symbol" aria-hidden="true">{view.symbol}</span>
+                                    <span>{view.shortLabel}</span>
+                                    <span className="vl-filter-count" aria-hidden="true">{count}</span>
                                 </button>
                             );
                         })}
@@ -1481,8 +1678,9 @@ export default function VideoLibraryPage() {
                 <main className="vl-command-main">
                     <div className="vl-command-bar">
                         <div className="vl-command-heading">
-                            <span>Smarter.Poker Hub</span>
-                            <h2>Poker Video Library</h2>
+                            <span>{currentViewMeta.kicker}</span>
+                            <h2>{currentViewMeta.title}</h2>
+                            <p>{currentViewMeta.description}</p>
                         </div>
 
                         {/* Search Input */}
@@ -1499,7 +1697,7 @@ export default function VideoLibraryPage() {
                                 aria-label="Search the poker video library"
                                 aria-keyshortcuts="/"
                                 aria-controls="video-library-grid"
-                                placeholder="Search Videos..."
+                                placeholder={libraryFilter === 'ALL' ? 'Search Videos...' : `Search ${currentViewMeta.title}...`}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={(event) => {
@@ -1571,7 +1769,7 @@ export default function VideoLibraryPage() {
 
 
                     {/* Premium Creator Cards */}
-                    <div className="vl-source-pills" style={{
+                    <div ref={sourceRailRef} className="vl-source-pills" style={{
                         display: 'flex',
                         gap: 12,
                         overflowX: 'auto',
@@ -1590,8 +1788,7 @@ export default function VideoLibraryPage() {
                                     aria-pressed={isActive}
                                     aria-controls="video-library-grid"
                                     onClick={(event) => {
-                                        setSelectedSource(source.id);
-                                        keepRailButtonInView(event.currentTarget);
+                                        selectSourceView(source.id, event.currentTarget);
                                     }}
                                     style={{
                                         flexShrink: 0,
@@ -1700,6 +1897,21 @@ export default function VideoLibraryPage() {
                             );
                         })}
                     </div>
+
+                    {libraryFilter !== 'ALL' && (
+                        <section className="vl-subview-banner" aria-labelledby="vl-subview-title">
+                            <div className="vl-subview-copy">
+                                <span>{currentViewMeta.kicker}</span>
+                                <h2 id="vl-subview-title">{currentViewMeta.title}</h2>
+                                <p>{currentViewMeta.description}</p>
+                            </div>
+                            <div className="vl-subview-status">
+                                <strong>{personalViewCounts[libraryFilter]}</strong>
+                                <span>{personalViewCounts[libraryFilter] === 1 ? 'video ready' : 'videos ready'}</span>
+                                {!userId && <em>Sign in to sync</em>}
+                            </div>
+                        </section>
+                    )}
 
                     {hasActiveFilters && (
                         <div className="vl-active-view" aria-label="Active video filters">
@@ -1925,7 +2137,7 @@ export default function VideoLibraryPage() {
                                     src={getThumbnail(video.videoId)}
                                         alt=""
                                     loading={index === 0 ? 'eager' : 'lazy'}
-                                    fetchPriority={index === 0 ? 'high' : 'auto'}
+                                    fetchpriority={index === 0 ? 'high' : 'auto'}
                                     decoding="async"
                                     style={{
                                         width: '100%',
@@ -2188,26 +2400,6 @@ export default function VideoLibraryPage() {
                         display: 'flex',
                         flexDirection: 'column',
                     }}
-                    /* Touch-swipe for TikTok-style navigation — handled by dedicated overlay below */
-                    onTouchStart={e => {
-                        swipeTouchStart.current = e.touches[0].clientX;
-                        swipeTouchStartY.current = e.touches[0].clientY;
-                    }}
-                    onTouchEnd={e => {
-                        if (swipeTouchStart.current === null) return;
-                        const dx = e.changedTouches[0].clientX - swipeTouchStart.current;
-                        const dy = e.changedTouches[0].clientY - swipeTouchStartY.current;
-                        swipeTouchStart.current = null;
-                        swipeTouchStartY.current = null;
-                        // Vertical swipe (TikTok-style): up = next, down = prev
-                        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
-                            if (dy < 0) handleNextVideo(); else handlePrevVideo();
-                        }
-                        // Horizontal swipe: left = next, right = prev
-                        else if (Math.abs(dx) > 50) {
-                            if (dx < 0) handleNextVideo(); else handlePrevVideo();
-                        }
-                    }}
                 >
                     <p id="vl-viewer-help" className="vl-sr-only">
                         Use the arrow keys for the previous or next video, F for fullscreen, and Escape to close.
@@ -2375,6 +2567,7 @@ export default function VideoLibraryPage() {
                         <div
                             className={`vl-hud ${vlHudVisible ? 'vl-hud--visible' : ''}`}
                             aria-hidden={!isTouchDevice && !vlHudVisible}
+                            onFocusCapture={vlRevealHud}
                             style={{
                                 position: 'absolute',
                                 right: 12,
@@ -2641,9 +2834,13 @@ export default function VideoLibraryPage() {
                                         const games = gameIds.map(id => lookupGame(id)).filter(Boolean).slice(0, 3);
                                         setTtsOverlay({ ctx, games });
                                         // Fire analytics
+                                        const analyticsToken = getAccessToken();
                                         fetch('/api/training/log-request', {
                                             method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                ...(analyticsToken ? { Authorization: `Bearer ${analyticsToken}` } : {}),
+                                            },
                                             body: JSON.stringify({ ref: 'video-library', vid: ctx.vid, title: ctx.title, source: ctx.source, tags, matchedGameIds: gameIds.slice(0, 3) }),
                                         }).catch(() => {});
                                     }}
@@ -2828,14 +3025,16 @@ export default function VideoLibraryPage() {
 
             {/* Reels Modal — full-screen TikTok doom-scroll */}
             {showReelsModal && (
-                <div ref={reelsDialogRef} role="dialog" aria-modal="true" aria-label="Video reels" tabIndex={-1} style={{
+                <div ref={reelsDialogRef} className="vl-reels-dialog" role="dialog" aria-modal="true" aria-label="Video reels" tabIndex={-1} style={{
                     position: 'fixed', inset: 0,
                     zIndex: 9999,
                     background: '#000',
                     display: 'flex',
                     flexDirection: 'column',
                 }}>
-                    <ReelsViewer onClose={() => setShowReelsModal(false)} />
+                    <VideoLibraryReelsBoundary onClose={() => setShowReelsModal(false)}>
+                        <ReelsViewer onClose={() => setShowReelsModal(false)} />
+                    </VideoLibraryReelsBoundary>
                 </div>
             )}
 
@@ -2870,13 +3069,14 @@ export default function VideoLibraryPage() {
     
             {/* Playlist Modal */}
             {showPlaylistModal && (
-                <div role="presentation" style={{
+                <div className="vl-playlist-overlay" role="presentation" style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0,0,0,0.8)', zIndex: 10000,
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }} onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}>
                     <div
                         ref={playlistDialogRef}
+                        className="vl-playlist-dialog"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="vl-playlist-title"
@@ -2884,15 +3084,15 @@ export default function VideoLibraryPage() {
                         background: '#1C1C1E', padding: 24, borderRadius: 16, width: '90%', maxWidth: 400,
                         border: '1px solid #333'
                     }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                        <div className="vl-playlist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                             <h3 id="vl-playlist-title" style={{ margin: 0, color: 'white', fontSize: 17, fontWeight: 700 }}>Save to Playlist</h3>
                             <button onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}
                                 type="button" aria-label="Close playlist dialog"
                                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', padding: 0 }}>×</button>
                         </div>
-                        <div style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 16 }}>
+                        <div className="vl-playlist-list" style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 16 }}>
                             {playlists.length === 0 && (
-                                <div style={{ textAlign: 'center', padding: '24px 0 16px', color: 'rgba(255,255,255,0.35)' }}>
+                                <div className="vl-playlist-empty" style={{ textAlign: 'center', padding: '24px 0 16px', color: 'rgba(255,255,255,0.35)' }}>
                                     <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
                                     <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>No Playlists Yet</div>
                                     <div style={{ fontSize: 12 }}>Create one below to save this video</div>
@@ -2901,7 +3101,7 @@ export default function VideoLibraryPage() {
                             {playlists.map(p => {
                                 const inPlaylist = p.items?.some(i => i.video_id === showPlaylistModal.videoId);
                                 return (
-                                    <div key={p.id} style={{
+                                    <div key={p.id} className="vl-playlist-row" style={{
                                         padding: '12px 0', borderBottom: '1px solid #333',
                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                                     }}>
@@ -2939,11 +3139,11 @@ export default function VideoLibraryPage() {
                             })}
                         </div>
                         {playlistActionError && (
-                            <div style={{ color: '#FF453A', fontSize: 12, marginBottom: 10, padding: '6px 10px', background: 'rgba(255,69,58,0.1)', borderRadius: 6, border: '1px solid rgba(255,69,58,0.25)' }}>
+                            <div className="vl-playlist-error" role="alert" style={{ color: '#FF453A', fontSize: 12, marginBottom: 10, padding: '6px 10px', background: 'rgba(255,69,58,0.1)', borderRadius: 6, border: '1px solid rgba(255,69,58,0.25)' }}>
                                 {playlistActionError}
                             </div>
                         )}
-                        <div style={{ display: 'flex', gap: 8 }}>
+                        <div className="vl-playlist-create" style={{ display: 'flex', gap: 8 }}>
                             <input
                                 ref={playlistNameInputRef}
                                 value={newPlaylistName}

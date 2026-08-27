@@ -167,15 +167,27 @@ export default async function handler(req, res) {
 
     try {
         // ── Eligibility: the favorite actually exists for this user ──
-        const { data: fav } = await supabase
+        const { data: fav, error: favoriteError } = await supabase
             .from('video_favorites')
             .select('id')
             .eq('user_id', userId)
             .eq('video_id', videoId)
             .maybeSingle();
 
+        if (favoriteError) throw favoriteError;
+
         if (!fav) {
             return res.status(200).json({ success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0, message: 'Favorite not found' });
+        }
+
+        const { data: catalogVideo, error: catalogError } = await supabase
+            .from('video_library_videos')
+            .select('youtube_video_id')
+            .eq('youtube_video_id', videoId)
+            .maybeSingle();
+        if (catalogError) throw catalogError;
+        if (!catalogVideo) {
+            return res.status(200).json({ success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0, message: 'Catalog video not found' });
         }
 
         const award = await awardDiamondsV2(supabase, {
