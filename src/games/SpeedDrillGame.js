@@ -154,8 +154,9 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                 recordSessionWeakness('speed-drill', mistakesRef.current, handsPlayed + 1);
                 const diamondReward = Math.floor(score / 100);
                 if (diamondReward > 0 && DiamondEngine) {
-                    const newBalance = DiamondEngine.award(diamondReward);
-                    onScoreUpdate?.(newBalance);
+                    void DiamondEngine.award(diamondReward).then(newBalance => {
+                        if (Number.isFinite(newBalance)) onScoreUpdate?.(newBalance);
+                    });
                 }
                 if (userId) {
                     const accuracy = handsPlayed > 0 ? Math.round((score / (handsPlayed * 100)) * 100) : 0;
@@ -163,7 +164,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                         gameMode: 'speed_drill', level,
                         scenarioId: currentHand?.scenario?.title,
                         score, accuracy, timeTaken: 0,
-                        diamondsSpent: 0, diamondsEarned: diamondReward, completed: true
+                        diamondsSpent: 0, diamondsEarned: 0, completed: true
                     }).catch(e => console.warn('[SpeedDrill] Session failed:', e));
                     achievementService.checkAndUnlock(userId, {
                         gamesPlayed: 1, accuracy, level,
@@ -177,11 +178,12 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
         }, 800);
     }, [gameState, currentHand, streak, lives, score, nextHand, DiamondEngine, onScoreUpdate, userId, handsPlayed, level, maxStreak, streakFreezeAvailable, doublePointsActive]);
 
-    const handlePowerUp = useCallback((powerUp) => {
+    const handlePowerUp = useCallback(async (powerUp) => {
         if (!DiamondEngine || usedPowerUps.has(powerUp.id)) return;
-        if (!purchasePowerUp(powerUp, DiamondEngine)) return;
+        const purchase = await purchasePowerUp(powerUp, DiamondEngine);
+        if (!purchase.success) return;
         setUsedPowerUps(prev => new Set([...prev, powerUp.id]));
-        onScoreUpdate?.(DiamondEngine.getBalance());
+        if (Number.isFinite(purchase.balance)) onScoreUpdate?.(purchase.balance);
 
         if (powerUp.id === 'STREAK_FREEZE') {
             setStreakFreezeAvailable(true);

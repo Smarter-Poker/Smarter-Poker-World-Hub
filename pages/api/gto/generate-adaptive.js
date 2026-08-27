@@ -65,7 +65,11 @@ function rangeToSolution(range) {
     if (!range) return {};
     const out = {};
     for (const [hand, freqs] of Object.entries(range)) {
-        out[hand] = freqsToSolutionEntry(freqs);
+        const entry = freqsToSolutionEntry(freqs);
+        // The range grid asks players to mark active hands; folds remain
+        // intentionally blank. Persisting fold entries makes every blank fold
+        // grade as a miss in the range-memory scoring contract.
+        if (entry && !entry.startsWith('fold')) out[hand] = entry;
     }
     return out;
 }

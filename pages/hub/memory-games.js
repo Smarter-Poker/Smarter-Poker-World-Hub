@@ -43,7 +43,6 @@ import dailyChallengeService from '../../src/services/DailyChallengeService';
 import { processGameResult } from '../../src/games/ELOService';
 import gameSessionService from '../../src/services/GameSessionService';
 import achievementService from '../../src/services/AchievementService';
-import { claimReward } from '../../src/lib/claimReward';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 // busEmit not needed at page level - DiamondEngine auto-emits, useTrainingBus has own import
 import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
@@ -61,9 +60,9 @@ const PressureCookerGame = dynamic(() => import('../../src/games/PressureCookerG
 const PatternRecognitionGame = dynamic(() => import('../../src/games/PatternRecognitionGame'), { ssr: false });
 const MixedStrategyGame = dynamic(() => import('../../src/games/MixedStrategyGame'), { ssr: false });
 import ScenarioFilterPanel, { filterScenarios } from '../../src/games/ScenarioFilterPanel';
-import { getAccessToken } from '../../src/lib/authUtils';
+import { getAccessToken, authedFetch } from '../../src/lib/authUtils';
 // 2026-05-07 — Lucide icons replace emoji in the menu surface (UI-UX-Pro-Max no-emoji-icons rule)
-import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck, BrainCircuit, ChevronRight, Gem } from 'lucide-react';
+import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck, BrainCircuit, ChevronRight, Gem, Clock3, Lightbulb, Send, RotateCcw, ArrowRight } from 'lucide-react';
 const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 
 const ALL_TRAINING_SCENARIOS = [
@@ -79,12 +78,33 @@ const ALL_TRAINING_SCENARIOS = [
     ...LEVEL_10_SCENARIOS,
 ];
 
-// ACTION_COLORS moved to src/games/MixedStrategyGame.js
+// Range-memory actions live here because MixedStrategyGame is lazy loaded and
+// does not export its private palette. Keeping this contract local also avoids
+// loading an entire game bundle just to render the range grid.
+const ACTION_COLORS = {
+    fold: { bg: 'rgba(100, 116, 139, 0.3)', border: '#64748B', label: 'FOLD', key: '1' },
+    call: { bg: 'rgba(16, 185, 129, 0.5)', border: '#10B981', label: 'CALL', key: '2' },
+    raise: { bg: 'rgba(239, 68, 68, 0.5)', border: '#EF4444', label: 'RAISE', key: '3' },
+    raise_small: { bg: 'rgba(249, 115, 22, 0.5)', border: '#F97316', label: 'RAISE SM', key: '4' },
+    raise_big: { bg: 'rgba(168, 85, 247, 0.5)', border: '#A855F7', label: 'RAISE BIG', key: '5' },
+    all_in: { bg: 'rgba(220, 38, 127, 0.6)', border: '#DC2680', label: 'ALL IN', key: '6' },
+};
 
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🧮 GRADING ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
+function normalizeRangeAction(action) {
+    const normalized = String(action || '').toLowerCase().replace(/[-\s]/g, '_');
+    if (normalized.startsWith('raise_small')) return 'raise_small';
+    if (normalized.startsWith('raise_big')) return 'raise_big';
+    if (normalized.startsWith('all_in') || normalized.startsWith('allin') || normalized.startsWith('jam')) return 'all_in';
+    if (normalized.startsWith('raise') || normalized.startsWith('3bet') || normalized.startsWith('4bet')) return 'raise';
+    if (normalized.startsWith('call') || normalized.startsWith('complete')) return 'call';
+    if (normalized.startsWith('fold') || normalized.startsWith('check')) return 'fold';
+    return normalized.replace(/\d+$/, '');
+}
+
 function gradeUserGrid(userGrid, solution) {
     let correctHands = 0;
     const missedHands = [];
@@ -93,9 +113,10 @@ function gradeUserGrid(userGrid, solution) {
 
     for (const [hand, correctAction] of Object.entries(solution || {})) {
         const userAction = userGrid[hand];
+        const normalizedCorrectAction = normalizeRangeAction(correctAction);
         if (!userAction || userAction === 'fold') {
             missedHands.push(hand);
-        } else if (userAction !== correctAction) {
+        } else if (userAction !== normalizedCorrectAction) {
             wrongActionHands.push(hand);
         } else {
             correctHands++;
@@ -196,6 +217,11 @@ export default function MemoryGamesPage() {
     const [timeRemaining, setTimeRemaining] = useState(90);
     const [timerActive, setTimerActive] = useState(false);
     const timerRef = useRef(null);
+    const submissionLockedRef = useRef(false);
+    const latestGridRef = useRef(userGrid);
+    const latestTimeRef = useRef(timeRemaining);
+    latestGridRef.current = userGrid;
+    latestTimeRef.current = timeRemaining;
 
     // Combo state
     const [combo, setCombo] = useState(0);
@@ -272,7 +298,7 @@ export default function MemoryGamesPage() {
         if (userId) {
             getMemoryGamesPreferences(userId).then(setPreferences);
         }
-    }, []);
+    }, [userId]);
 
     const updatePreference = useCallback(async (key, value) => {
         const newPrefs = { ...preferences, [key]: value };
@@ -285,7 +311,7 @@ export default function MemoryGamesPage() {
                 console.warn('Failed to save preference:', error);
             }
         }
-    }, [preferences]);
+    }, [preferences, userId]);
 
     const menuConfig = getMenuConfig('preflop-charts', user, preferences, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),
@@ -312,7 +338,6 @@ export default function MemoryGamesPage() {
                     const user = session?.user;
 
                     if (user) {
-                        setUserId(user.id);
                         // Initialize DiamondEngine with user ID
                         await DiamondEngine.init(user.id);
 
@@ -349,12 +374,15 @@ export default function MemoryGamesPage() {
             timerRef.current = setInterval(() => {
                 setTimeRemaining(prev => {
                     if (prev <= 1) {
+                        latestTimeRef.current = 0;
                         clearInterval(timerRef.current);
                         handleTimeUp();
                         return 0;
                     }
                     if (prev <= 10) SoundEngine.play('tick');
-                    return prev - 1;
+                    const nextTime = prev - 1;
+                    latestTimeRef.current = nextTime;
+                    return nextTime;
                 });
             }, 1000);
         }
@@ -366,7 +394,7 @@ export default function MemoryGamesPage() {
         const handleKeyDown = (e) => {
             if (mode !== 'game' || gradeResult) return;
             const key = e.key;
-            const actions = Object.entries(ACTION_COLORS || {});
+            const actions = Object.entries(ACTION_COLORS);
             const found = actions.find(([_, v]) => v.key === key);
             if (found) {
                 setSelectedAction(found[0]);
@@ -426,7 +454,7 @@ export default function MemoryGamesPage() {
 
     // Start game - separate guard for VIP path (isStartingRef guards deduction only)
     const isGameStartingRef = useRef(false);
-    const startGame = async (level) => {
+    const startGame = async (level, filterOverrides = null) => {
         // Double-click guard - protects ALL users (VIP + non-VIP)
         if (isGameStartingRef.current) return;
         isGameStartingRef.current = true;
@@ -436,12 +464,6 @@ export default function MemoryGamesPage() {
             return;
         }
         
-        // Check diamond access for advanced levels (Level 1-3 are free)
-        if (isVIP === false && level > 3) {
-            const canPlay = await checkAndDeductDiamonds();
-            if (!canPlay) return;
-        }
-
         let scenario = null;
 
         // Use AI Generation if enabled (VIP feature)
@@ -449,14 +471,15 @@ export default function MemoryGamesPage() {
             setAIGenerating(true);
             try {
                 // Build filter params from active filters
+                const effectiveFilters = filterOverrides || scenarioFilters;
                 const requestBody = {
                     level,
-                    position: scenarioFilters.position || undefined,
-                    stackDepth: scenarioFilters.stackDepth || undefined,
-                    format: scenarioFilters.format || undefined,
+                    position: effectiveFilters.position || undefined,
+                    stackDepth: effectiveFilters.stackDepth || undefined,
+                    format: effectiveFilters.format || undefined,
                 };
 
-                const response = await fetch('/api/gto/generate-scenario', {
+                const response = await authedFetch('/api/gto/generate-scenario', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestBody)
@@ -486,8 +509,9 @@ export default function MemoryGamesPage() {
             let levelScenarios = getScenariosByLevel(level);
 
             // Apply filters if any are active
-            if (Object.keys(scenarioFilters || {}).filter(k => scenarioFilters[k]).length > 0) {
-                levelScenarios = filterScenarios(levelScenarios, scenarioFilters);
+            const effectiveFilters = filterOverrides || scenarioFilters;
+            if (Object.keys(effectiveFilters || {}).filter(k => effectiveFilters[k]).length > 0) {
+                levelScenarios = filterScenarios(levelScenarios, effectiveFilters);
             }
 
             // Select random scenario from filtered list
@@ -501,6 +525,13 @@ export default function MemoryGamesPage() {
             return;
         }
 
+        // Charge only after a playable scenario is resolved. Previously a
+        // filtered-out level could deduct diamonds and then fail to launch.
+        if (isVIP === false && level > 3) {
+            const canPlay = await checkAndDeductDiamonds();
+            if (!canPlay) return;
+        }
+
         // Get level-specific config for progressive difficulty
         const levelConfig = getLevelConfig(level) || { timer: 90, gridSize: 13, maxHands: 20 };
 
@@ -508,6 +539,8 @@ export default function MemoryGamesPage() {
         setCurrentScenario(scenario);
         setUserGrid({});
         setGradeResult(null);
+        setLastReward(null);
+        submissionLockedRef.current = false;
         setTimeRemaining(levelConfig.timer); // Progressive: higher levels = less time
         setTimerActive(true);
         setCombo(0);
@@ -544,10 +577,16 @@ export default function MemoryGamesPage() {
 
     // Submit handler
     const handleSubmit = (timedOut = false) => {
+        if (submissionLockedRef.current || !currentScenario) return;
+        submissionLockedRef.current = true;
         setTimerActive(false);
         clearInterval(timerRef.current);
 
-        const result = gradeUserGrid(userGrid, currentScenario.solution);
+        // Timer callbacks retain the render that started the interval. Refs
+        // guarantee a timeout grades the player's latest grid and elapsed time.
+        const submittedGrid = timedOut ? latestGridRef.current : userGrid;
+        const submittedTime = timedOut ? latestTimeRef.current : timeRemaining;
+        const result = gradeUserGrid(submittedGrid, currentScenario.solution);
         setGradeResult(result);
 
         // Track session history for trend analysis
@@ -596,9 +635,15 @@ export default function MemoryGamesPage() {
             const comboBonus = Math.floor(newCombo * 2);
             totalReward = Math.floor((baseReward + accuracyBonus + perfectBonus + comboBonus) * multiplier);
 
-            const newBalance = DiamondEngine.award(totalReward);
-            setDiamondBalance(newBalance);
-            setLastReward({ diamonds: totalReward, timestamp: Date.now() });
+            if (!user?.id) DiamondEngine.award(totalReward).then(newBalance => {
+                // Signed-in awards require a server catalog action. Never put a
+                // Promise or a failure object into balance state, and only show
+                // a reward receipt when an award actually landed.
+                if (Number.isFinite(newBalance)) {
+                    setDiamondBalance(newBalance);
+                    setLastReward({ diamonds: totalReward, timestamp: Date.now() });
+                }
+            }).catch(err => console.warn('[MemoryGames] Award failed:', err?.message || err));
         } else {
             // Failure
             SoundEngine.play('wrong');
@@ -614,7 +659,7 @@ export default function MemoryGamesPage() {
         // ═══════════════════════════════════════════════════════════════════════════
         if (user?.id) {
             const gameMode = gameType || 'range';
-            const timeTaken = Math.max(0, Math.floor((safeLevelConfig.timer || 90) - timeRemaining));
+            const timeTaken = Math.max(0, Math.floor((safeLevelConfig.timer || 90) - submittedTime));
 
             // 1. Update leaderboard (only if passed)
             if (passed) {
@@ -631,12 +676,9 @@ export default function MemoryGamesPage() {
             }
 
             // 2. Update ELO rating
-            processGameResult(user.id, currentLevel, result.score, gamesPlayed || 0)
-                .then(eloResult => {
-                    if (eloResult?.rank) {
-                        setEloRank && setEloRank(eloResult.rank);
-                    }
-                }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
+            const gamesPlayed = memoryDashboard?.rolling_30d_sessions || 0;
+            processGameResult(user.id, currentLevel, result.score, gamesPlayed)
+                .catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
 
             // 3. Check and complete daily challenge
             dailyChallengeService.getTodaysChallenge().then(challengeData => {
@@ -650,24 +692,22 @@ export default function MemoryGamesPage() {
                             result.score,
                             result.score,
                             timeTaken
-                        ).then(completionResult => {
+                        ).then(async completionResult => {
                             if (completionResult?.success) {
-                                // Award bonus diamonds for daily challenge
-                                const bonus = challenge.diamond_reward || 25;
-                                DiamondEngine.award(bonus);
-                                setDiamondBalance(prev => prev + bonus);
-
-                                // Award daily trivia diamonds via server-validated API (15💎, with toast)
-                                claimReward('/api/rewards/daily-trivia', { userId: user.id }, 'Daily Trivia Challenge');
+                                // The completion RPC records the challenge, streak,
+                                // and award atomically. Refresh the authoritative
+                                // balance instead of double-claiming trivia rewards.
+                                setChallengeCompleted(true);
+                                const refreshedBalance = await DiamondEngine.getBalance();
+                                if (Number.isFinite(refreshedBalance)) setDiamondBalance(refreshedBalance);
                             }
                         }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
                     }
                 }
-            });
+            }).catch(err => console.warn('[MemoryGames] Daily challenge check failed:', err?.message || err));
 
             // 4. Increment games played counter
-            const newGamesPlayed = (gamesPlayed || 0) + 1;
-            setGamesPlayed && setGamesPlayed(newGamesPlayed);
+            const newGamesPlayed = gamesPlayed + 1;
 
             // 5. Record game session for analytics
             gameSessionService.recordSession(user.id, {
@@ -677,13 +717,17 @@ export default function MemoryGamesPage() {
                 score: result.score,
                 accuracy: result.score,
                 timeTaken,
-                diamondsSpent: isVIP ? 0 : 10,
-                diamondsEarned: passed ? totalReward : 0,
+                diamondsSpent: isVIP || currentLevel <= 3 ? 0 : GAME_COST,
+                diamondsEarned: 0,
                 completed: true
             }).then(sessionResult => {
             }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
 
             // 6. Check and unlock achievements
+            const modesPlayed = Array.from(new Set([
+                ...(memoryDashboard?.per_mode_best || []).map(mode => mode.game_mode).filter(Boolean),
+                gameMode,
+            ]));
             achievementService.checkAndUnlock(user.id, {
                 gamesPlayed: newGamesPlayed,
                 accuracy: result.score,
@@ -693,7 +737,7 @@ export default function MemoryGamesPage() {
                 totalDiamonds: diamondBalance,
                 aiScenariosCompleted: useAIGeneration ? 1 : 0,
                 currentStreak: consecutivePasses,
-                modesPlayed: [gameMode] // TODO: track all modes played
+                modesPlayed,
             }).then(unlocked => {
                 if (unlocked.length > 0) {
                 }
@@ -706,7 +750,7 @@ export default function MemoryGamesPage() {
                 result.wrongActionHands.forEach(hand => {
                     answersData.push({
                         hand,
-                        userAnswer: userGrid[hand] || 'fold',
+                        userAnswer: submittedGrid[hand] || 'fold',
                         correctAnswer: currentScenario?.solution?.[hand] || 'raise',
                         wasCorrect: false,
                         position: currentScenario?.position,
@@ -728,7 +772,7 @@ export default function MemoryGamesPage() {
             }
             // result.correctHands is a count (number), not an array — skip forEach loop
 
-            fetch('/api/jarvis/training-session', {
+            authedFetch('/api/jarvis/training-session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -739,7 +783,7 @@ export default function MemoryGamesPage() {
                     category: currentScenario?.position || 'PREFLOP',
                     level: currentLevel,
                     questionsAnswered: Object.keys(currentScenario?.solution || {}).length,
-                    questionsCorrect: result.correctHands?.length || 0,
+                    questionsCorrect: result.correctHands || 0,
                     accuracy: result.score,
                     streak: consecutivePasses,
                     timeSpentSeconds: timeTaken,
@@ -747,7 +791,7 @@ export default function MemoryGamesPage() {
                     leaksDetected: []
                 })
             }).then(res => res.json()).then(jarvisResult => {
-            }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err)).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+            }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
         }
 
         setMode('result');
@@ -808,7 +852,7 @@ export default function MemoryGamesPage() {
         try {
             // Fetch both explanation AND GTO panel image in parallel
             const [explainResponse, panelResponse] = await Promise.all([
-                fetch('/api/gto/explain-hand', {
+                authedFetch('/api/gto/explain-hand', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -820,7 +864,7 @@ export default function MemoryGamesPage() {
                         scenario: currentScenario
                     })
                 }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)),
-                fetch('/api/gto/render-analysis-card', {
+                authedFetch('/api/gto/render-analysis-card', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -890,7 +934,7 @@ export default function MemoryGamesPage() {
         });
 
         try {
-            const response = await fetch('/api/gto/analyze-game', {
+            const response = await authedFetch('/api/gto/analyze-game', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -926,12 +970,10 @@ export default function MemoryGamesPage() {
 
     // Fetch user's weak spots for adaptive training
     const fetchWeakSpots = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!userId) return;
 
         try {
-            const response = await fetch(`/api/gto/get-weak-spots?userId=${userId}`);
+            const response = await authedFetch('/api/gto/get-weak-spots');
             if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
 
@@ -945,14 +987,12 @@ export default function MemoryGamesPage() {
 
     // Start adaptive training targeting weaknesses
     const startAdaptiveTraining = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!userId) return;
 
         setAdaptiveLoading(true);
 
         try {
-            const response = await fetch('/api/gto/generate-adaptive', {
+            const response = await authedFetch('/api/gto/generate-adaptive', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId })
@@ -962,12 +1002,20 @@ export default function MemoryGamesPage() {
             const result = await response.json();
 
             if (result.success && result.scenario) {
-                // Load the adaptive scenario
+                // Load the adaptive scenario through the same range-game state
+                // contract as a standard level launch.
+                const levelConfig = getLevelConfig(currentLevel) || { timer: 90 };
                 setCurrentScenario(result.scenario);
-                setGameState('playing');
                 setUserGrid({});
                 setGradeResult(null);
+                setLastReward(null);
                 setCoachAnalysis({ show: false, loading: false, analysis: null });
+                setTimeRemaining(levelConfig.timer);
+                latestTimeRef.current = levelConfig.timer;
+                submissionLockedRef.current = false;
+                setTimerActive(true);
+                setMode('game');
+                SoundEngine.play('levelUp');
             }
         } catch (error) {
             console.warn('[MemoryGames] Adaptive training error:', error);
@@ -978,12 +1026,10 @@ export default function MemoryGamesPage() {
 
     // Fetch lobby suggestions for proactive learning
     const fetchLobbySuggestions = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!userId) return;
 
         try {
-            const response = await fetch(`/api/gto/lobby-suggestions?userId=${userId}`);
+            const response = await authedFetch('/api/gto/lobby-suggestions');
             if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
 
@@ -1014,7 +1060,7 @@ export default function MemoryGamesPage() {
         (async () => {
             try {
                 const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-                const r = await fetch('/api/memory/dashboard', {
+                const r = await authedFetch('/api/memory/dashboard', {
                     headers: token ? { Authorization: `Bearer ${token}` } : {},
                 });
                 if (!r.ok) throw new Error(`memory/dashboard ${r.status}`);
@@ -1032,8 +1078,6 @@ export default function MemoryGamesPage() {
     // Load leaderboard data
 
     const loadLeaderboard = useCallback(async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         setLeaderboardLoading(true);
         try {
             // Initialize service with supabase client if not done
@@ -1062,8 +1106,6 @@ export default function MemoryGamesPage() {
 
     // Load daily challenge data
     const loadDailyChallenge = useCallback(async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         setChallengeLoading(true);
         try {
             // Initialize service with supabase client if not done
@@ -1141,8 +1183,6 @@ export default function MemoryGamesPage() {
 
     // Handle VIP upgrade - initiate Stripe checkout for VIP subscription
     const handleVipUpgrade = useCallback(async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         // Check if user is logged in
         if (!userId) {
             alert('Please log in to upgrade to VIP!');
@@ -1152,18 +1192,15 @@ export default function MemoryGamesPage() {
         try {
             // Get auth token for API call
             const token = getAccessToken();
-            if (!session?.access_token) {
+            if (!token) {
                 alert('Please log in to upgrade to VIP!');
                 return;
             }
 
             // Call checkout session API
-            const response = await fetch('/api/store/create-checkout-session', {
+            const response = await authedFetch('/api/store/create-checkout-session', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getAccessToken()}`
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: 'subscription',
                     items: [{
@@ -1260,7 +1297,7 @@ export default function MemoryGamesPage() {
                             {showComboPopup && comboName && (
                 <ComboPopup
                     comboName={comboName}
-                    C={C}
+                    multiplier={multiplier}
                 />
             )}
 
@@ -1364,14 +1401,24 @@ export default function MemoryGamesPage() {
                                                 type="button"
                                                 onClick={() => {
                                                     if (suggestion.actionType === 'daily_challenge') {
-                                                        // Start daily challenge
-                                                        startDailyChallenge && startDailyChallenge();
+                                                        if (dailyChallenge) {
+                                                            startGame(dailyChallenge.level || 1);
+                                                        } else {
+                                                            loadDailyChallenge();
+                                                        }
                                                     } else if (suggestion.actionType === 'start_level') {
-                                                        // Start specific level
-                                                        const levelData = LEVEL_CONFIGS.find(l => l.id === suggestion.levelId);
-                                                        if (levelData) selectLevel(levelData);
+                                                        const suggestedLevel = Number(suggestion.levelId);
+                                                        if (LEVELS.some(level => level.level === suggestedLevel)) {
+                                                            startGame(suggestedLevel);
+                                                        }
                                                     } else if (suggestion.actionType === 'adaptive_training') {
                                                         startAdaptiveTraining();
+                                                    } else if (suggestion.actionType === 'quick_game') {
+                                                        startGame(currentLevel);
+                                                    } else if (suggestion.actionType === 'position_training' && suggestion.position) {
+                                                        const suggestedFilters = { ...scenarioFilters, position: suggestion.position };
+                                                        setScenarioFilters(suggestedFilters);
+                                                        startGame(currentLevel, suggestedFilters);
                                                     }
                                                 }}
                                                 className="preflop-suggestion-row"
@@ -2436,127 +2483,137 @@ export default function MemoryGamesPage() {
                     )}
 
                     {(mode === 'game' || mode === 'result') && currentScenario && (
-                        <>
-                            {/* Timer Bar */}
-                            <div style={styles.timerContainer}>
-                                <div
-                                    style={{
-                                        ...styles.timerBar,
-                                        width: `${(timeRemaining / safeLevelConfig.timer) * 100}%`,
-                                        backgroundColor: getTimerColor(),
-                                    }}
-                                />
-                                <div style={{
-                                    ...styles.timerText,
-                                    color: getTimerColor(),
-                                }}>
-                                    {timeRemaining}s
-                                </div>
-                            </div>
-
-                            {/* Scenario Header */}
-                            <div style={styles.gameHeader}>
-                                <div>
-                                    <div style={styles.levelBadge}>Level {currentLevel} •  {safeLevelConfig.timer}s</div>
-                                    <h2 style={styles.scenarioTitle}>{currentScenario.title}</h2>
-                                    <p style={styles.scenarioDesc}>{currentScenario.description}</p>
+                        <section className="preflop-range-lab" aria-labelledby="preflop-range-lab-title">
+                            <header className="preflop-lab-briefing">
+                                <div className="preflop-lab-briefing-copy">
+                                    <div className="preflop-lab-kicker">
+                                        <span>Range Lab</span>
+                                        <span>Level {currentLevel}</span>
+                                    </div>
+                                    <h2 id="preflop-range-lab-title">{currentScenario.title}</h2>
+                                    <p>{currentScenario.description}</p>
                                     {currentScenario.tip && !gradeResult && (
-                                        <p style={styles.tipText}> {currentScenario.tip}</p>
+                                        <div className="preflop-lab-tip">
+                                            <Lightbulb size={16} aria-hidden />
+                                            <span>{currentScenario.tip}</span>
+                                        </div>
                                     )}
                                 </div>
-                                {gradeResult && (
-                                    <div style={styles.scoreDisplay}>
-                                        <div style={{
-                                            ...styles.scoreValue,
-                                            color: gradeResult.score >= 85 ? '#00ff88' : '#ff4444',
-                                        }}>
-                                            {gradeResult.score}%
-                                        </div>
-                                        <div style={{
-                                            ...styles.passBadge,
-                                            background: gradeResult.score >= 85
-                                                ? 'linear-gradient(135deg, #00ff88, #00D4FF)'
-                                                : 'linear-gradient(135deg, #ff4444, #ff6b6b)',
-                                        }}>
-                                            {gradeResult.score >= 85 ? ' PASSED' : '✗ FAILED'}
-                                        </div>
+
+                                <div className={`preflop-lab-readout${gradeResult ? ' has-result' : ''}`}>
+                                    {gradeResult ? (
+                                        <>
+                                            <strong data-pass={gradeResult.score >= MASTERY_THRESHOLD}>{gradeResult.score}%</strong>
+                                            <span>{gradeResult.score >= MASTERY_THRESHOLD ? 'Range passed' : 'Review required'}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Clock3 size={18} aria-hidden />
+                                            <strong style={{ color: getTimerColor() }}>{timeRemaining}</strong>
+                                            <span>seconds</span>
+                                        </>
+                                    )}
+                                </div>
+
+                                <div
+                                    className="preflop-lab-timer"
+                                    data-urgency={timeRemaining <= 10 ? 'critical' : timeRemaining <= 30 ? 'warning' : 'steady'}
+                                    role="progressbar"
+                                    aria-label="Scenario time remaining"
+                                    aria-valuemin="0"
+                                    aria-valuemax={safeLevelConfig.timer}
+                                    aria-valuenow={timeRemaining}
+                                >
+                                    <span style={{ '--timer-progress': `${Math.max(0, Math.min(100, (timeRemaining / safeLevelConfig.timer) * 100))}%` }} />
+                                </div>
+                            </header>
+
+                            <div className="preflop-lab-console">
+                                <div className="preflop-lab-action-header">
+                                    <div>
+                                        <span className="preflop-lab-section-index">01</span>
+                                        <span>Choose action</span>
                                     </div>
-                                )}
-                            </div>
-
-                            {/* Action Bar */}
-                            <div style={styles.actionBar}>
-                                {Object.entries(ACTION_COLORS || {}).map(([action, { bg, border, label, key }]) => (
-                                    <button
-                                        key={action}
-                                        onClick={() => setSelectedAction(action)}
-                                        disabled={!!gradeResult}
-                                        style={{
-                                            ...styles.actionButton,
-                                            background: selectedAction === action ? bg : 'rgba(0,0,0,0.4)',
-                                            borderColor: selectedAction === action ? border : 'rgba(255,255,255,0.2)',
-                                            color: selectedAction === action ? '#fff' : 'rgba(255,255,255,0.5)',
-                                            transform: selectedAction === action ? 'scale(1.05)' : 'scale(1)',
-                                        }}
-                                    >
-                                        <span style={styles.keyHint}>{key}</span>
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Grid */}
-                            <div style={styles.gridWrapper}>
-                                <div style={styles.grid}>
-                                    {RANKS.map((_, row) => (
-                                        RANKS.map((_, col) => {
-                                            const hand = getHandName(row, col);
-                                            const userAction = userGrid[hand];
-                                            const solutionAction = currentScenario.solution[hand];
-                                            const actionStyle = userAction && ACTION_COLORS[userAction];
-
-                                            let feedbackBorder = 'transparent';
-                                            if (gradeResult) {
-                                                if (gradeResult.missedHands.includes(hand)) feedbackBorder = '#3B82F6';
-                                                else if (gradeResult.extraHands.includes(hand)) feedbackBorder = '#EF4444';
-                                                else if (gradeResult.wrongActionHands.includes(hand)) feedbackBorder = '#F59E0B';
-                                            }
-
-                                            return (
-                                                <div
-                                                    key={hand}
-                                                    onClick={() => handleCellClick(hand)}
-                                                    style={{
-                                                        ...styles.cell,
-                                                        background: actionStyle?.bg || 'rgba(20, 20, 30, 0.6)',
-                                                        borderColor: actionStyle?.border || 'rgba(255,255,255,0.1)',
-                                                        boxShadow: feedbackBorder !== 'transparent'
-                                                            ? `inset 0 0 0 2px ${feedbackBorder}`
-                                                            : 'none',
-                                                        cursor: gradeResult ? 'default' : 'pointer',
-                                                    }}
-                                                >
-                                                    {hand}
-                                                </div>
-                                            );
-                                        })
+                                    <span>{Object.keys(userGrid).length} hands marked</span>
+                                </div>
+                                <div className="preflop-lab-actions" aria-label="Range actions">
+                                    {Object.entries(ACTION_COLORS).map(([action, { bg, border, label, key }]) => (
+                                        <button
+                                            key={action}
+                                            type="button"
+                                            onClick={() => setSelectedAction(action)}
+                                            disabled={!!gradeResult}
+                                            className={selectedAction === action ? 'is-selected' : ''}
+                                            style={{ '--action-color': border, '--action-fill': bg }}
+                                            aria-pressed={selectedAction === action}
+                                        >
+                                            <kbd>{key}</kbd>
+                                            <span>{label}</span>
+                                        </button>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Submit / Result Buttons */}
-                            <div style={styles.buttonArea}>
+                            <div className="preflop-lab-matrix-panel">
+                                <div className="preflop-lab-matrix-heading">
+                                    <div>
+                                        <span className="preflop-lab-section-index">02</span>
+                                        <span>Build your range</span>
+                                    </div>
+                                    <span>Tap a hand to apply {ACTION_COLORS[selectedAction]?.label || selectedAction}</span>
+                                </div>
+                                <div className="preflop-lab-grid-scroll" tabIndex="0" aria-label="Scrollable 13 by 13 starting-hand matrix">
+                                    <div className="preflop-lab-grid" role="group" aria-label="Starting-hand range">
+                                    {RANKS.map((_, row) => (
+                                        RANKS.map((_, col) => {
+                                            const hand = getHandName(row, col);
+                                            const userAction = userGrid[hand];
+                                            const actionStyle = userAction && ACTION_COLORS[userAction];
+
+                                            let feedbackState = 'idle';
+                                            if (gradeResult) {
+                                                if (gradeResult.missedHands.includes(hand)) feedbackState = 'missed';
+                                                else if (gradeResult.extraHands.includes(hand)) feedbackState = 'extra';
+                                                else if (gradeResult.wrongActionHands.includes(hand)) feedbackState = 'wrong';
+                                                else if (userAction && normalizeRangeAction(currentScenario.solution[hand]) === userAction) feedbackState = 'correct';
+                                            }
+
+                                            return (
+                                                <button
+                                                    key={hand}
+                                                    type="button"
+                                                    onClick={() => handleCellClick(hand)}
+                                                    disabled={!!gradeResult || !timerActive}
+                                                    data-action={userAction || 'none'}
+                                                    data-feedback={feedbackState}
+                                                    style={{ '--cell-fill': actionStyle?.bg || 'rgba(20, 29, 43, 0.82)', '--cell-stroke': actionStyle?.border || 'rgba(129, 167, 194, 0.18)' }}
+                                                    aria-label={`${hand}: ${userAction ? ACTION_COLORS[userAction]?.label : 'not selected'}${feedbackState !== 'idle' ? `, ${feedbackState}` : ''}`}
+                                                >
+                                                    {hand}
+                                                </button>
+                                            );
+                                        })
+                                    ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="preflop-lab-submit-panel">
                                 {!gradeResult ? (
-                                    <button onClick={() => handleSubmit()} style={styles.submitButton}>
-                                        SUBMIT RANGE [SPACE]
+                                    <button type="button" onClick={() => handleSubmit()} className="preflop-lab-submit" disabled={!timerActive}>
+                                        <Send size={18} aria-hidden />
+                                        <span>Submit range</span>
+                                        <kbd>Space</kbd>
                                     </button>
                                 ) : (
-                                    <div style={styles.resultButtons}>
-                                        <button onClick={() => setMode('menu')} style={styles.menuButton}>
-                                            ← MENU
+                                    <div className="preflop-lab-result-actions">
+                                        <button type="button" onClick={() => setMode('menu')}>
+                                            <RotateCcw size={17} aria-hidden />
+                                            Training menu
                                         </button>
-                                        <button onClick={handleNext} style={styles.nextButton}>
-                                            NEXT SCENARIO →
+                                        <button type="button" onClick={handleNext} className="is-primary">
+                                            Next scenario
+                                            <ArrowRight size={17} aria-hidden />
                                         </button>
                                     </div>
                                 )}
@@ -2564,28 +2621,29 @@ export default function MemoryGamesPage() {
 
                             {/* Result Feedback */}
                             {gradeResult && (
-                                <div style={styles.feedbackPanel}>
-                                    <div style={styles.feedbackGrid}>
-                                        <div style={styles.feedbackItem}>
-                                            <span style={{ color: '#00ff88' }}> Correct</span>
-                                            <span style={styles.feedbackValue}>{gradeResult.correctHands}</span>
+                                <div className="preflop-lab-feedback" aria-live="polite">
+                                    <div className="preflop-lab-feedback-grid">
+                                        <div data-result="correct">
+                                            <span>Correct</span>
+                                            <strong>{gradeResult.correctHands}</strong>
                                         </div>
-                                        <div style={styles.feedbackItem}>
-                                            <span style={{ color: '#3B82F6' }}>● Missed</span>
-                                            <span style={styles.feedbackValue}>{gradeResult.missedHands.length}</span>
+                                        <div data-result="missed">
+                                            <span>Missed</span>
+                                            <strong>{gradeResult.missedHands.length}</strong>
                                         </div>
-                                        <div style={styles.feedbackItem}>
-                                            <span style={{ color: '#EF4444' }}>● Extra</span>
-                                            <span style={styles.feedbackValue}>{gradeResult.extraHands.length}</span>
+                                        <div data-result="extra">
+                                            <span>Extra</span>
+                                            <strong>{gradeResult.extraHands.length}</strong>
                                         </div>
-                                        <div style={styles.feedbackItem}>
-                                            <span style={{ color: '#F59E0B' }}>● Wrong Action</span>
-                                            <span style={styles.feedbackValue}>{gradeResult.wrongActionHands.length}</span>
+                                        <div data-result="wrong">
+                                            <span>Wrong action</span>
+                                            <strong>{gradeResult.wrongActionHands.length}</strong>
                                         </div>
                                     </div>
                                     {gradeResult.score >= 85 && lastReward && (
-                                        <div style={styles.rewardSummary}>
-                                            Diamonds +{lastReward.diamonds} Diamonds earned! (×{multiplier} multiplier)
+                                        <div className="preflop-lab-reward">
+                                            <Gem size={17} aria-hidden />
+                                            +{lastReward.diamonds} diamonds earned · ×{multiplier} multiplier
                                         </div>
                                     )}
 
@@ -2941,7 +2999,7 @@ export default function MemoryGamesPage() {
                                     `}</style>
                                 </div>
                             )}
-                        </>
+                        </section>
                     )}
                 </div>
             </div >
