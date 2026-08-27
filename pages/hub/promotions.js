@@ -119,7 +119,8 @@ export default function PromotionsPage() {
         series: promotions.filter(p => p.page_type === 'series').length,
     };
 
-    return (\n        <PageTransition>
+    return (
+        <PageTransition>
             <SEOHead
                 title="Promotions — Current Offers & Rewards"
                 description="Discover Current Promotions, Bonuses, And Reward Opportunities On Smarter.Poker. VIP Offers And Special Events."
