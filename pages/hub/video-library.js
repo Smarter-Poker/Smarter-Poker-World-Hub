@@ -855,7 +855,7 @@ export default function VideoLibraryPage() {
                     marginBottom: 24,
                 }}>
                     {/* Global Header - Full Width */}
-                    <div style={{ marginBottom: 20 }}>
+                    <div className="vl-global-header" style={{ marginBottom: 20 }}>
                         <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
                         <HamburgerMenu
                             isOpen={menuOpen}
@@ -868,8 +868,14 @@ export default function VideoLibraryPage() {
                             bottomLinks={menuConfig.bottomLinks}
                         />
                     </div>
+                </div>
 
-                    {/* Type toggle + Search Row */}
+                <div className="vl-command-layout">
+                    <aside className="vl-command-rail" aria-label="Video library filters">
+                        <div className="vl-rail-kicker">Smarter.Poker Hub</div>
+                        <h1 className="vl-rail-title">Video <span>Library</span></h1>
+
+                    {/* Type, sort, and format filters */}
                     <div className="vl-type-toggle-row" style={{
                         display: 'flex',
                         gap: 8,
@@ -888,6 +894,7 @@ export default function VideoLibraryPage() {
                             return (
                                 <button
                                     key={type.id}
+                                    className={`vl-filter-button${isActive ? ' is-active' : ''}`}
                                     onClick={() => setSelectedType(type.id)}
                                     style={{
                                         padding: '9px 22px',
@@ -928,6 +935,7 @@ export default function VideoLibraryPage() {
                             return (
                                 <button
                                     key={s.id}
+                                    className={`vl-filter-button vl-sort-button${isActive ? ' is-active' : ''}`}
                                     onClick={() => setSortMode(s.id)}
                                     style={{
                                         padding: '9px 18px',
@@ -955,6 +963,7 @@ export default function VideoLibraryPage() {
                         {/* Reels Button — opens TikTok doom-scroll */}
                         <button
                             id="vl-reels-tab-btn"
+                            className="vl-filter-button vl-reels-button"
                             onClick={() => setShowReelsModal(true)}
                             style={{
                                 padding: '9px 22px',
@@ -978,6 +987,21 @@ export default function VideoLibraryPage() {
                         >
                             <span style={{ fontSize: 15 }}>▶</span> Reels
                         </button>
+
+                    </div>
+
+                    <div className="vl-rail-count" aria-live="polite">
+                        <strong>{videos.length}</strong>
+                        <span>videos showing</span>
+                    </div>
+                </aside>
+
+                <main className="vl-command-main">
+                    <div className="vl-command-bar">
+                        <div className="vl-command-heading">
+                            <span>Smarter.Poker Hub</span>
+                            <h2>Poker Video Library</h2>
+                        </div>
 
                         {/* Search Input */}
                         <div className="vl-search-wrap" style={{
@@ -1004,7 +1028,7 @@ export default function VideoLibraryPage() {
                                     boxShadow: '0 0 0 2px rgba(160, 170, 180, 0.7), 0 0 0 3px rgba(80, 90, 100, 0.5)',
                                 }}
                             />
-                            <span style={{
+                            <span aria-hidden="true" className="vl-search-icon" style={{
                                 position: 'absolute',
                                 left: 12,
                                 top: '50%',
@@ -1021,7 +1045,7 @@ export default function VideoLibraryPage() {
 
                     {/* Search results count — shown when query is active */}
                     {searchQuery && (
-                        <div style={{
+                        <div className="vl-search-results" style={{
                             fontSize: 13,
                             color: 'rgba(255,255,255,0.45)',
                             marginBottom: 8,
@@ -1054,6 +1078,7 @@ export default function VideoLibraryPage() {
                             return (
                                 <button
                                     key={source.id}
+                                    className={`vl-source-button${isActive ? ' is-active' : ''}`}
                                     onClick={() => setSelectedSource(source.id)}
                                     style={{
                                         flexShrink: 0,
@@ -1074,7 +1099,7 @@ export default function VideoLibraryPage() {
                                     title={source.name}
                                 >
                                     {/* Logo ring — glows cyan when active */}
-                                    <div style={{
+                                    <div className="vl-source-logo-frame" style={{
                                         width: 70,
                                         height: 70,
                                         borderRadius: 18,
@@ -1087,7 +1112,7 @@ export default function VideoLibraryPage() {
                                             : '0 4px 18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)',
                                         transition: 'all 0.25s ease',
                                     }}>
-                                        <div style={{
+                                        <div className="vl-source-logo-inner" style={{
                                             width: '100%',
                                             height: '100%',
                                             borderRadius: 15,
@@ -1132,7 +1157,7 @@ export default function VideoLibraryPage() {
                                         </div>
                                     </div>
                                     {/* Name plate */}
-                                    <div style={{
+                                    <div className="vl-source-name" style={{
                                         width: 72,
                                         textAlign: 'center',
                                         fontSize: 12,
@@ -1148,7 +1173,7 @@ export default function VideoLibraryPage() {
                                     </div>
                                     {/* Active dot */}
                                     {isActive && (
-                                        <div style={{
+                                        <div className="vl-source-active-dot" style={{
                                             width: 5,
                                             height: 5,
                                             borderRadius: '50%',
@@ -1161,7 +1186,6 @@ export default function VideoLibraryPage() {
                             );
                         })}
                     </div>
-                </div>
 
                 {/* Watch Stats moved to hamburger menu - removed from main page */}
 
@@ -1269,18 +1293,19 @@ export default function VideoLibraryPage() {
 
                 {/* New This Week rail — videos scraped in last 7 days */}
                 {newThisWeek.length > 0 && !newThisWeekDismissed && (
-                    <div style={{ maxWidth: 1400, margin: '0 auto 28px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                    <div className="vl-new-this-week" style={{ maxWidth: 1400, margin: '0 auto 28px' }}>
+                        <div className="vl-new-week-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                             <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <span style={{ color: '#00D4FF', fontSize: 14, background: 'rgba(0,212,255,0.2)', border: '1px solid rgba(0,212,255,0.4)', borderRadius: 6, padding: '2px 8px', fontWeight: 700, letterSpacing: '0.5px' }}>NEW</span>
                                 New This Week
                             </h2>
                             <button onClick={() => setNewThisWeekDismissed(true)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 12, cursor: 'pointer', padding: 4 }}>Dismiss</button>
                         </div>
-                        <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
+                        <div className="vl-new-week-scroll" style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
                             {newThisWeek.map(video => (
                                 <div
                                     key={video.videoId}
+                                    className="vl-new-week-card"
                                     onClick={() => handleOpenVideo(video)}
                                     style={{ minWidth: 220, flexShrink: 0, cursor: 'pointer', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', transition: 'transform 0.18s, box-shadow 0.18s' }}
                                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)'; }}
@@ -1313,8 +1338,8 @@ export default function VideoLibraryPage() {
                 }}>
                     {/* Skeleton loading cards while DB fetch runs */}
                     {!dbLoaded && Array.from({ length: 12 }).map((_, i) => (
-                        <div key={`sk-${i}`} className="metal-frame video-card-metal" style={{ cursor: 'default' }}>
-                            <div style={{ aspectRatio: '16/9', background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite' }} />
+                        <div key={`sk-${i}`} className="metal-frame video-card-metal vl-video-card vl-skeleton-card" style={{ cursor: 'default' }}>
+                            <div className="vl-video-thumb vl-skeleton-thumb" style={{ aspectRatio: '16/9', background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite' }} />
                             <div style={{ padding: 16 }}>
                                 <div style={{ height: 14, width: '85%', borderRadius: 6, background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite', marginBottom: 8 }} />
                                 <div style={{ height: 14, width: '55%', borderRadius: 6, background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite' }} />
@@ -1325,13 +1350,13 @@ export default function VideoLibraryPage() {
                         <div
                             key={video.id}
                             onClick={() => handleOpenVideo(video)}
-                            className="metal-frame video-card-metal"
+                            className="metal-frame video-card-metal vl-video-card"
                             style={{
                                 cursor: 'pointer',
                             }}
                         >
                             {/* Thumbnail */}
-                            <div style={{
+                            <div className="vl-video-thumb" style={{
                                 position: 'relative',
                                 aspectRatio: '16/9',
                                 background: '#222',
@@ -1360,7 +1385,7 @@ export default function VideoLibraryPage() {
                                     }}
                                 />
                                 {/* Duration badge */}
-                                <div style={{
+                                <div className="vl-duration" style={{
                                     position: 'absolute',
                                     bottom: 8,
                                     right: 8,
@@ -1376,6 +1401,7 @@ export default function VideoLibraryPage() {
                                 {/* Watched badge — tappable to mark-unwatched */}
                                 {watchedVideos.has(video.id) && (
                                     <div
+                                        className="vl-watched-badge"
                                         title="Click to mark unwatched"
                                         onClick={e => { e.stopPropagation(); handleMarkUnwatched(video.id); }}
                                         style={{
@@ -1400,7 +1426,7 @@ export default function VideoLibraryPage() {
                                 {/* AI badge removed per user request */}
                                 {/* Progress bar */}
                                 {getProgressPercent(video.id, video.duration) > 0 && (
-                                    <div style={{
+                                    <div className="vl-progress-track" style={{
                                         position: 'absolute',
                                         bottom: 0,
                                         left: 0,
@@ -1408,7 +1434,7 @@ export default function VideoLibraryPage() {
                                         height: 4,
                                         background: 'rgba(255,255,255,0.3)',
                                     }}>
-                                        <div style={{
+                                        <div className="vl-progress-fill" style={{
                                             width: `${getProgressPercent(video.id, video.duration)}%`,
                                             height: '100%',
                                             background: '#00D4FF',
@@ -1432,7 +1458,7 @@ export default function VideoLibraryPage() {
                                     opacity: 0,
                                     transition: 'opacity 0.2s',
                                 }}
-                                    className="play-btn"
+                                    className="play-btn vl-play-button"
                                 >
                                     <span style={{ fontSize: 28, marginLeft: 4 }}>▶</span>
                                 </div>
@@ -1440,7 +1466,7 @@ export default function VideoLibraryPage() {
 
                             {/* Info */}
                             <div className="vl-card-info" style={{ padding: 16 }}>
-                                <h3 style={{
+                                <h3 className="vl-card-title" style={{
                                     color: C.text,
                                     fontSize: 15,
                                     fontWeight: 600,
@@ -1455,12 +1481,12 @@ export default function VideoLibraryPage() {
                                     {video.title}
                                 </h3>
 
-                                <div style={{
+                                <div className="vl-card-meta" style={{
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                 }}>
-                                    <span style={{
+                                    <span className="vl-source-chip" style={{
                                         color: C.accent,
                                         fontSize: 12,
                                         fontWeight: 600,
@@ -1472,7 +1498,7 @@ export default function VideoLibraryPage() {
                                         gap: 8,
                                     }}>
                                         {SOURCES.find(s => s.id === video.source)?.logo && (
-                                            <div style={{
+                                            <div className="vl-source-chip-logo" style={{
                                                 width: 26,
                                                 height: 26,
                                                 borderRadius: 8,
@@ -1494,12 +1520,13 @@ export default function VideoLibraryPage() {
                                         )}
                                         {video.source.replace('_', ' ')}
                                     </span>
-                                    <span style={{ color: C.textSec, fontSize: 13 }}>
+                                    <span className="vl-card-views" style={{ color: C.textSec, fontSize: 13 }}>
                                         {video.views} views
                                     </span>
                                     {/* Share button */}
                                     <button
                                         id={`vl-share-${video.videoId}`}
+                                        className="vl-share-button"
                                         title="Copy link"
                                         onClick={e => { e.stopPropagation(); handleShareVideo(video); }}
                                         style={{
@@ -1569,6 +1596,8 @@ export default function VideoLibraryPage() {
                     fontSize: 14,
                 }}>
                     Showing {videos.length} of {allVideos.length} videos
+                </div>
+                </main>
                 </div>
             </div>
 
