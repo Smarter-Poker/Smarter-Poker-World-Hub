@@ -216,6 +216,15 @@ const MODE_FILTERS = [
     { id: 'competitive', label: 'Competitive' },
 ];
 
+const MODE_FILTER_COUNTS = Object.fromEntries(
+    MODE_FILTERS.map(filter => [
+        filter.id,
+        filter.id === 'all'
+            ? MODE_CARDS.length
+            : MODE_CARDS.filter(mode => mode.category === filter.id).length,
+    ])
+);
+
 
 /**
  * onDiamondsChange is still accepted (index.js passes it) but is intentionally
@@ -336,7 +345,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     className="daily-trivia-banner__image"
                     width={1024}
                     height={309}
-                    fetchPriority="high"
+                    fetchpriority="high"
                     decoding="async"
                 />
                 {/* Clickable button overlay positioned over the START DAILY TRIVIA button */}
@@ -374,7 +383,12 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         <span className="modes-toolbar__eyebrow">GAME SELECT // TRIVIA NETWORK</span>
                         <h2>Choose Your Game</h2>
                     </div>
-                    <span className="modes-toolbar__count">
+                    <span
+                        className="modes-toolbar__count"
+                        role="status"
+                        aria-live="polite"
+                        aria-atomic="true"
+                    >
                         <i aria-hidden /> {filteredModes.length} LIVE {filteredModes.length === 1 ? 'MODE' : 'MODES'}
                     </span>
                 </div>
@@ -387,13 +401,16 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                             className={`mode-filter${activeFilter === filter.id ? ' mode-filter--active' : ''}`}
                             onClick={() => setActiveFilter(filter.id)}
                             aria-pressed={activeFilter === filter.id}
+                            aria-controls="trivia-mode-grid"
+                            aria-label={`${filter.label}, ${MODE_FILTER_COUNTS[filter.id]} modes`}
                         >
-                            {filter.label}
+                            <span>{filter.label}</span>
+                            <span className="mode-filter__count" aria-hidden>{MODE_FILTER_COUNTS[filter.id]}</span>
                         </button>
                     ))}
                 </div>
 
-                <div className="modes-grid">
+                <div className="modes-grid" id="trivia-mode-grid">
                     {filteredModes.map((mode, cardIdx) => {
                         const Icon = mode.icon;
                         const cost = getEntryCost(mode.id);
@@ -424,7 +441,8 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                         className="mode-image-card__img"
                                         width={1024}
                                         height={1024}
-                                        loading={cardIdx < 3 ? 'eager' : 'lazy'}
+                                        loading={cardIdx === 0 ? 'eager' : 'lazy'}
+                                        fetchpriority={cardIdx === 0 ? 'high' : 'auto'}
                                         decoding="async"
                                     />
                                     <span className="mode-image-card__code" aria-hidden>{mode.code}</span>
@@ -1128,6 +1146,10 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     gap: 0;
                     padding: 0 18px;
                     overflow-x: auto;
+                    overscroll-behavior-x: contain;
+                    scroll-padding-inline: 18px;
+                    scroll-snap-type: x proximity;
+                    -webkit-overflow-scrolling: touch;
                     border-bottom: 1px solid rgba(111, 155, 176, 0.2);
                     scrollbar-width: none;
                 }
@@ -1138,6 +1160,9 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     position: relative;
                     min-width: max-content;
                     min-height: 48px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
                     padding: 0 20px;
                     border: 0;
                     border-right: 1px solid rgba(111, 155, 176, 0.16);
@@ -1149,7 +1174,28 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     letter-spacing: 0.08em;
                     text-transform: uppercase;
                     cursor: pointer;
+                    scroll-snap-align: start;
                     transition: color 180ms ease, background 180ms ease;
+                }
+
+                .mode-filter__count {
+                    min-width: 20px;
+                    height: 20px;
+                    display: inline-grid;
+                    place-items: center;
+                    margin-left: 8px;
+                    border: 1px solid rgba(111, 155, 176, 0.28);
+                    background: rgba(3, 10, 14, 0.72);
+                    color: #9ab3bf;
+                    font-size: 9px;
+                    line-height: 1;
+                    letter-spacing: 0;
+                }
+
+                .mode-filter--active .mode-filter__count {
+                    border-color: rgba(25, 185, 255, 0.55);
+                    color: #eaf8ff;
+                    box-shadow: inset 0 0 8px rgba(25, 185, 255, 0.12);
                 }
 
                 .mode-filter:first-child { border-left: 1px solid rgba(111, 155, 176, 0.16); }
@@ -1198,6 +1244,8 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     color: #e7f4fb;
                     text-align: left;
                     cursor: pointer;
+                    content-visibility: auto;
+                    contain-intrinsic-block-size: 578px;
                     box-shadow:
                         inset 0 0 0 1px rgba(255, 255, 255, 0.018),
                         0 10px 28px rgba(0, 0, 0, 0.24);
@@ -1440,6 +1488,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                     .mode-filters {
                         padding: 0 10px;
+                        scroll-padding-inline: 10px;
                     }
 
                     .mode-filter {
@@ -1458,6 +1507,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         display: flex;
                         flex-direction: column;
                         min-height: 0;
+                        contain-intrinsic-block-size: 560px;
                         border-radius: 1px !important;
                     }
 
