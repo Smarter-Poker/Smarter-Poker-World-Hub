@@ -1870,6 +1870,16 @@ function UniversalDynamicTable({
         return FELT_ASPECT_FULL - t * (FELT_ASPECT_FULL - FELT_ASPECT_FLAT);
     }, [areaBox.w, areaBox.h]);
 
+    // The Club Arena skin is a fixed 605×1000 portrait surface. `maxHeight`
+    // used to shrink the table independently of its width on short desktop
+    // screens, turning that portrait table into a landscape oval. Resolve one
+    // width from both available axes and let aspect-ratio own the height, so the
+    // production table can scale down but can never distort.
+    const clubTableWidth = useMemo(() => {
+        if (!areaBox.w || !areaBox.h) return '88%';
+        return Math.max(1, Math.min(areaBox.w * 0.88, areaBox.h * (605 / 1000), 605));
+    }, [areaBox.w, areaBox.h]);
+
     // Honour the OS "reduce motion" setting: no deal-in, no travel, no pulse.
     const reduceMotion = useReducedMotion();
 
@@ -3296,16 +3306,121 @@ function UniversalDynamicTable({
                 }
                 @media (min-width: 900px) {
                     .gto-trainer-container {
-                        max-width: 900px !important;
+                        max-width: 1040px !important;
                         margin: 0 auto !important;
-                        border-left: 1px solid rgba(255,255,255,0.06) !important;
-                        border-right: 1px solid rgba(255,255,255,0.06) !important;
-                        box-shadow: 0 0 60px rgba(0,0,0,0.5) !important;
+                        border-left: 1px solid rgba(120,212,240,0.15) !important;
+                        border-right: 1px solid rgba(120,212,240,0.15) !important;
+                        box-shadow: 0 0 70px rgba(0,0,0,0.62), inset 0 0 60px rgba(27,154,196,0.035) !important;
                     }
                 }
                 @media (min-width: 1200px) {
                     .gto-trainer-container {
-                        max-width: 800px !important;
+                        max-width: 1180px !important;
+                    }
+                }
+                .gto-trainer-container {
+                    background:
+                        radial-gradient(circle at 50% 28%, rgba(56,146,177,.24), transparent 34%),
+                        linear-gradient(135deg,#122732 0%,#071019 47%,#102833 100%) !important;
+                }
+                .sp-club-gto-table-area::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    pointer-events: none;
+                    background:
+                        radial-gradient(circle at 13% 25%,rgba(182,239,255,.12),transparent 22%),
+                        radial-gradient(circle at 88% 70%,rgba(64,214,241,.1),transparent 23%);
+                    filter: blur(18px);
+                }
+                .sp-club-gto-table {
+                    isolation: isolate;
+                }
+                .sp-club-gto-table::after {
+                    content: '';
+                    position: absolute;
+                    inset: 1.5%;
+                    pointer-events: none;
+                    z-index: 20;
+                    border-radius: 48% / 31%;
+                    box-shadow: inset 0 0 16px rgba(202,239,255,.12), inset 0 -12px 22px rgba(0,0,0,.18);
+                }
+                .sp-club-gto-desktop-rail {
+                    display: none;
+                }
+                @media (min-width: 1000px) {
+                    .sp-club-gto-desktop-rail {
+                        position: absolute;
+                        z-index: 4;
+                        top: 50%;
+                        display: flex;
+                        width: clamp(190px, 20vw, 238px);
+                        min-height: 142px;
+                        transform: translateY(-50%);
+                        flex-direction: column;
+                        justify-content: center;
+                        box-sizing: border-box;
+                        padding: 19px;
+                        border: 1px solid rgba(159,224,244,.46);
+                        border-radius: 6px;
+                        background: linear-gradient(180deg,rgba(63,82,93,.88) 0,rgba(18,31,40,.96) 10%,rgba(2,8,13,.97) 72%,rgba(24,42,51,.96) 100%);
+                        box-shadow: 0 22px 44px rgba(0,0,0,.55), inset 0 2px rgba(255,255,255,.16), inset 0 -3px 8px rgba(0,0,0,.72), 0 0 0 1px rgba(0,0,0,.72);
+                    }
+                    .sp-club-gto-desktop-rail::before {
+                        content: '';
+                        position: absolute;
+                        left: 12px;
+                        right: 12px;
+                        top: 7px;
+                        height: 1px;
+                        background: linear-gradient(90deg,transparent,#bdeeff 22%,#5cdcff 50%,#bdeeff 78%,transparent);
+                        opacity: .65;
+                    }
+                    .sp-club-gto-desktop-rail.is-left { left: clamp(18px,3vw,42px); }
+                    .sp-club-gto-desktop-rail.is-right { right: clamp(18px,3vw,42px); text-align: right; }
+                    .sp-club-gto-desktop-rail > span {
+                        color: #8ed8eb;
+                        font-size: 9px;
+                        font-weight: 800;
+                        letter-spacing: 1.8px;
+                        text-transform: uppercase;
+                    }
+                    .sp-club-gto-desktop-rail > strong {
+                        display: block;
+                        margin: 8px 0;
+                        color: #f2fbff;
+                        font-size: 17px;
+                        line-height: 1.15;
+                    }
+                    .sp-club-gto-desktop-rail > p {
+                        margin: 0;
+                        color: #bdd3dc;
+                        font-size: 11px;
+                        line-height: 1.4;
+                    }
+                    .sp-club-gto-desktop-rail > em {
+                        margin-top: 12px;
+                        color: #70e6ff;
+                        font-size: 10px;
+                        font-style: normal;
+                        font-weight: 800;
+                        letter-spacing: .7px;
+                    }
+                    .sp-club-gto-rail-track {
+                        height: 5px;
+                        margin: 3px 0 12px;
+                        padding: 1px;
+                        border: 1px solid rgba(91,197,225,.18);
+                        border-radius: 5px;
+                        background: #02070b;
+                        box-shadow: inset 0 2px 3px rgba(0,0,0,.8);
+                    }
+                    .sp-club-gto-rail-track > i {
+                        display: block;
+                        height: 100%;
+                        border-radius: 3px;
+                        background: linear-gradient(90deg,#1599c5,#63edff);
+                        box-shadow: 0 0 10px #44dfff;
                     }
                 }
                 .sp-club-gto-avatar-frame {
@@ -3319,6 +3434,35 @@ function UniversalDynamicTable({
                     object-fit: contain !important;
                     object-position: 50% 100% !important;
                     filter: drop-shadow(0 5px 4px rgba(0,0,0,.82));
+                }
+                .sp-club-gto-chip-disc {
+                    position: relative;
+                    z-index: 2;
+                    background: radial-gradient(circle at 34% 27%,#fff 0 19%,#cbd3d6 22% 43%,#f8fafb 46% 57%,#77858b 60% 75%,#d9e1e3 78%) !important;
+                    border: 1px solid #d8e2e5 !important;
+                    box-shadow: 0 3px 3px rgba(0,0,0,.72), inset 0 0 0 1px rgba(0,0,0,.34) !important;
+                }
+                .sp-club-gto-chip-disc::before,
+                .sp-club-gto-chip-disc::after {
+                    content: '';
+                    position: absolute;
+                    z-index: -1;
+                    left: -1px;
+                    width: 100%;
+                    height: 100%;
+                    border: 1px solid #aab6bb;
+                    border-radius: 50%;
+                    background: #5f6d73;
+                }
+                .sp-club-gto-chip-disc::before { top: 2px; }
+                .sp-club-gto-chip-disc::after { top: 4px; box-shadow: 0 3px 3px rgba(0,0,0,.62); }
+                .sp-club-gto-board {
+                    perspective: 700px;
+                    filter: drop-shadow(0 8px 10px rgba(0,0,0,.52));
+                }
+                .sp-club-gto-board-card {
+                    border: 2px solid rgba(247,252,255,.96) !important;
+                    box-shadow: inset 0 0 0 1px rgba(4,12,20,.2), 0 5px 11px rgba(0,0,0,.66) !important;
                 }
                 .sp-club-gto-actions [data-action] {
                     border: 0 !important;
@@ -3668,6 +3812,20 @@ function UniversalDynamicTable({
                 paddingBottom: isMobile ? CORNER_RAIL_BAND : 0,
             }}>
 
+                <aside className="sp-club-gto-desktop-rail is-left" aria-label="Current Training Decision">
+                    <span>Live Training Decision</span>
+                    <strong>{gameTitle || 'GTO Training'}</strong>
+                    <p>{questionText && questionText !== 'Loading question...' ? questionText : contextString}</p>
+                    <em>Hand {questionNumber || 1} Of {totalQuestions || 25}</em>
+                </aside>
+
+                <aside className="sp-club-gto-desktop-rail is-right" aria-label="Training Session Progress">
+                    <span>Training Session</span>
+                    <strong>{Math.round(((questionNumber || 1) / Math.max(totalQuestions || 25, 1)) * 100)}% Complete</strong>
+                    <div className="sp-club-gto-rail-track"><i style={{ width: `${Math.min(100, ((questionNumber || 1) / Math.max(totalQuestions || 25, 1)) * 100)}%` }} /></div>
+                    <p>{gtowAccuracy}% Accuracy · {gtowCurrentStreak || streak || 0} Hand Streak{difficultyLevel > 0 ? ` · Level ${difficultyLevel}` : ''}</p>
+                </aside>
+
                 {/* Phase 3: Floating EV Popup */}
                 <AnimatePresence>
                     {evPopup && (
@@ -3765,7 +3923,7 @@ function UniversalDynamicTable({
 
                 {/* PREMIUM RACETRACK TABLE — GoldenTemplateTable design */}
                 {/* NEW CUSTOM STANDALONE RACETRACK TABLE */}
-                <div ref={tableRef} className="sp-club-gto-table" style={{ ...styles.basicTable, aspectRatio: '605 / 1000' }}>
+                <div ref={tableRef} className="sp-club-gto-table" style={{ ...styles.basicTable, width: clubTableWidth, aspectRatio: '605 / 1000' }}>
 
                 {/* THE FELT — inset into the rail above. Purely decorative and
                     pointer-transparent; every seat, chip and card is drawn on
@@ -4244,7 +4402,7 @@ function UniversalDynamicTable({
                                     borderRadius: ui(10),
                                 }}
                             >
-                                <span style={{ ...styles.chipDisc, width: ui(13), height: ui(13) }} />
+                                <span className="sp-club-gto-chip-disc" style={{ ...styles.chipDisc, width: ui(13), height: ui(13) }} />
                                 <span style={{ ...styles.chipAmount, fontSize: Math.max(8, ui(11)) }}>{amount}</span>
                             </motion.div>
                         );
@@ -4253,7 +4411,7 @@ function UniversalDynamicTable({
 
                 {/* BOARD CARDS — Multi-street-aware dealing animation */}
                 {visibleBoard.length > 0 && (
-                    <div style={{...styles.boardCards, ...m.boardCards}}>
+                    <div className="sp-club-gto-board" style={{...styles.boardCards, ...m.boardCards}}>
                         {(() => {
                             // Stable per-hand key: multi-street streets share the same
                             // questionNumber (see the reset effect), so existing street
@@ -4293,6 +4451,7 @@ function UniversalDynamicTable({
                                     style={{ perspective: 600, transformStyle: 'preserve-3d', position: 'relative' }}
                                 >
                                     <img
+                                        className="sp-club-gto-board-card"
                                         src={getCardPath(card)}
                                         alt={card}
                                         style={{
@@ -4364,7 +4523,7 @@ function UniversalDynamicTable({
 
                 {/* PREFLOP: Deck placeholder when no board cards */}
                 {visibleBoard.length === 0 && (
-                    <div style={{...styles.boardCards, ...m.boardCards}}>
+                    <div className="sp-club-gto-board" style={{...styles.boardCards, ...m.boardCards}}>
                         <motion.div
                             animate={{ opacity: [0.3, 0.5, 0.3] }}
                             transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
@@ -4514,64 +4673,6 @@ function UniversalDynamicTable({
 
             {/* Hand Strength indicator — hidden when hero cards are giant */}
             {/* (Removed to prevent collision with the large hero focal cards) */}
-
-            {/* SESSION STATS HUD — Score, EV Loss, Mistakes + Difficulty Bar */}
-            <div style={styles.statsHUD}>
-                <div style={styles.statsHUDItem}>
-                    <span style={styles.statsHUDLabel}>EV Loss</span>
-                    <span style={{ ...styles.statsHUDValue, color: totalSessionEVLoss > 0 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)' }}>
-                        {totalSessionEVLoss > 0 ? `-${totalSessionEVLoss.toFixed(1)}` : '0.0'} BB
-                    </span>
-                </div>
-                <div style={styles.statsHUDItem}>
-                    <span style={styles.statsHUDLabel}>Mistakes</span>
-                    <span style={{ ...styles.statsHUDValue, color: sessionMistakes > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)' }}>
-                        {sessionMistakes}
-                    </span>
-                </div>
-                <div style={styles.statsHUDItem}>
-                    <span style={styles.statsHUDLabel}>Streak</span>
-                    <span style={{ ...styles.statsHUDValue, color: streak >= 3 ? 'var(--sp-accent-orange)' : 'var(--sp-fg-muted)' }}>
-                        {streak >= 2 ? `${streak}` : streak}
-                    </span>
-                </div>
-                {/* Adaptive Difficulty Indicator */}
-                {difficultyLevel > 0 && (
-                    <div style={styles.statsHUDItem}>
-                        <span style={styles.statsHUDLabel}>Difficulty</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <div style={{
-                                width: 40, height: 5, borderRadius: 3,
-                                background: 'rgba(255,255,255,0.1)',
-                                overflow: 'hidden',
-                            }}>
-                                <motion.div
-                                    animate={{ width: `${Math.min(difficultyLevel * 10, 100)}%` }}
-                                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                                    style={{
-                                        height: '100%', borderRadius: 3,
-                                        background: difficultyLevel <= 3 ? 'var(--sp-accent-green)'
-                                            : difficultyLevel <= 6 ? 'var(--sp-accent-amber)'
-                                                : difficultyLevel <= 8 ? 'var(--sp-accent-orange)' : 'var(--sp-accent-red)',
-                                    }}
-                                />
-                            </div>
-                            <span style={{
-                                fontSize: 9, fontWeight: 700, fontFamily: "'Inter', monospace",
-                                color: difficultyLevel <= 3 ? 'var(--sp-accent-green)'
-                                    : difficultyLevel <= 6 ? 'var(--sp-accent-amber)'
-                                        : difficultyLevel <= 8 ? 'var(--sp-accent-orange)' : 'var(--sp-accent-red)',
-                            }}>
-                                {difficultyLevel}
-                            </span>
-                            {/* Phase 50: Difficulty labels */}
-                            <span style={{ fontSize: 7, color: 'var(--sp-fg-dim)', marginLeft: 1 }}>
-                                {difficultyLevel <= 2 ? 'Easy' : difficultyLevel <= 4 ? 'Med' : difficultyLevel <= 6 ? 'Hard' : difficultyLevel <= 8 ? 'Expert' : 'GTO'}
-                            </span>
-                        </div>
-                    </div>
-                )}
-            </div>
 
             {/* STREAK CELEBRATION OVERLAY */}
             <AnimatePresence>
@@ -6558,7 +6659,7 @@ const styles = {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: '#121212',
+        background: 'linear-gradient(135deg,#122732 0%,#071019 47%,#102833 100%)',
         fontFamily: "'Inter', -apple-system, sans-serif",
         overflow: 'hidden',
     },
@@ -6885,7 +6986,7 @@ const styles = {
         position: 'relative',
         boxSizing: 'border-box',
         width: '88%',
-        maxWidth: 510,
+        maxWidth: 605,
         aspectRatio: '605 / 1000',
         borderRadius: 0,
         background: 'transparent url("/hub/club-arena/assets/skin_carbon_ion-CuncF2Ud-v6.png") center / 100% 100% no-repeat',
@@ -6899,7 +7000,7 @@ const styles = {
         filter: 'drop-shadow(0 18px 26px rgba(0,0,0,0.72))',
         margin: '0 auto',
         // Shrink with the container rather than overflow it (see tableArea).
-        flexShrink: 1,
+        flexShrink: 0,
         maxHeight: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -7134,8 +7235,9 @@ const styles = {
         gap: 4,
         padding: '2px 6px 2px 3px',
         borderRadius: 10,
-        background: 'rgba(5, 10, 20, 0.72)',
-        border: '1px solid rgba(255, 255, 255, 0.14)',
+        background: 'linear-gradient(180deg, rgba(26,38,45,.9), rgba(3,8,12,.88))',
+        border: '1px solid rgba(174,215,229,.25)',
+        boxShadow: '0 5px 10px rgba(0,0,0,.5), inset 0 1px rgba(255,255,255,.08)',
         pointerEvents: 'none',
         zIndex: 6,
     },
@@ -7164,15 +7266,15 @@ const styles = {
         width: 18,
         height: 18,
         borderRadius: '50%',
-        background: 'radial-gradient(circle at 34% 28%, #fff6dc 0%, #f3d489 45%, #c99b2a 100%)',
-        color: '#3a2a05',
+        background: 'radial-gradient(circle at 34% 28%, #ffffff 0%, #dfe8eb 42%, #6f7d83 72%, #cfd9dc 100%)',
+        color: '#11181c',
         fontSize: 9,
         fontWeight: 900,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        border: '1px solid rgba(90,64,10,0.7)',
-        boxShadow: '0 3px 8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.8)',
+        border: '1px solid rgba(218,234,239,.88)',
+        boxShadow: '0 4px 9px rgba(0,0,0,0.66), inset 0 1px 0 rgba(255,255,255,.9), inset 0 -2px 3px rgba(0,0,0,.32)',
         zIndex: 10,
     },
 
@@ -7526,38 +7628,6 @@ const styles = {
         letterSpacing: 2,
         textTransform: 'uppercase',
         zIndex: 2,
-    },
-
-    // ── STATS HUD (compact GTO Wizard style)
-    statsHUD: {
-        display: 'flex',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        padding: '5px 16px',
-        background: '#1a1a1a',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        flexShrink: 0,
-    },
-
-    statsHUDItem: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 0,
-    },
-
-    statsHUDLabel: {
-        fontSize: 11,
-        color: 'var(--sp-fg-muted)',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        fontWeight: '700',
-    },
-
-    statsHUDValue: {
-        fontSize: 16,
-        fontWeight: 800,
-        fontFamily: "'Inter', sans-serif",
     },
 
     // ── ACTION BAR (GTO Wizard-style — adapts to 2-9 buttons)
