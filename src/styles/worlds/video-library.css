@@ -466,11 +466,74 @@ body.world-video-library {
     text-transform: uppercase;
 }
 
+.vl-continuity-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(132, 214, 249, 0.18);
+}
+
+.vl-continuity-header h2 { margin: 5px 0 0 !important; }
+
+.vl-continuity-header h2 > span {
+    margin-right: 7px;
+    color: var(--vl-cyan);
+}
+
+.vl-continuity-kicker,
+.vl-continuity-actions > span {
+    color: #6f8792;
+    font: 800 9px/1 var(--vl-utility);
+    letter-spacing: 1.15px;
+    text-transform: uppercase;
+}
+
+.vl-continuity-actions {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.vl-continuity-actions button {
+    min-height: 34px;
+    padding: 0 12px;
+    border: 1px solid rgba(85, 216, 255, 0.46);
+    border-radius: 0;
+    color: #dff8ff;
+    background: linear-gradient(180deg, rgba(20, 94, 122, 0.32), rgba(3, 14, 20, 0.78));
+    font: 800 9px/1 var(--vl-utility);
+    letter-spacing: 0.65px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.vl-continuity-actions button:hover {
+    border-color: var(--vl-cyan);
+    background: rgba(31, 143, 188, 0.2);
+}
+
 .vl-new-week-card,
 .vl-continue-watching .video-card-metal {
     border: 1px solid rgba(135, 216, 250, 0.24) !important;
     border-radius: 0 !important;
     background: #061016 !important;
+}
+
+.vl-continuity-card { overflow: hidden; }
+
+.vl-continuity-play {
+    color: #f5fcff;
+    background: rgba(1, 13, 19, 0.76) !important;
+    border: 1px solid rgba(255, 255, 255, 0.88);
+    box-shadow: 0 0 0 6px rgba(85, 216, 255, 0.12);
+}
+
+.vl-continuity-progress {
+    z-index: 2;
+    overflow: hidden;
 }
 
 .vl-video-grid {
@@ -489,6 +552,12 @@ body.world-video-library {
     background: linear-gradient(160deg, rgba(10, 23, 31, 0.98), rgba(3, 9, 13, 0.98)) !important;
     box-shadow: inset 0 1px rgba(255, 255, 255, 0.025), 0 10px 27px rgba(0, 0, 0, 0.24) !important;
     transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+/* Defer deep-feed rendering while reserving stable card geometry. */
+.vl-video-grid > .vl-video-card:nth-child(n + 5) {
+    content-visibility: auto;
+    contain-intrinsic-size: 300px 330px;
 }
 
 .vl-card-open-button {
@@ -593,6 +662,26 @@ body.world-video-library {
     box-shadow: 0 0 8px rgba(85, 216, 255, 0.65);
 }
 
+.vl-watch-signal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: -2px 0 10px;
+    padding: 6px 8px;
+    border-left: 2px solid var(--vl-cyan);
+    color: #8edffa;
+    background: linear-gradient(90deg, rgba(34, 151, 194, 0.14), transparent 85%);
+    font: 800 9px/1 var(--vl-utility);
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+}
+
+.vl-watch-signal strong {
+    color: #dff8ff;
+    font-weight: 900;
+}
+
 .vl-play-button {
     z-index: 3;
     width: 50px !important;
@@ -678,6 +767,90 @@ body.world-video-library {
     font: 700 10px/1 var(--vl-utility) !important;
     letter-spacing: 0.5px;
     text-align: right !important;
+}
+
+.vl-empty-state {
+    width: 100%;
+    max-width: none;
+    margin: 12px auto 0;
+    padding: clamp(54px, 8vw, 88px) 22px;
+    border: 1px solid rgba(132, 214, 249, 0.22);
+    color: #80939d;
+    background:
+        linear-gradient(90deg, transparent, rgba(85, 216, 255, 0.035), transparent),
+        linear-gradient(180deg, rgba(8, 20, 28, 0.88), rgba(2, 8, 12, 0.94));
+    text-align: center;
+}
+
+.vl-empty-signal {
+    position: relative;
+    width: 92px;
+    height: 38px;
+    margin: 0 auto 18px;
+}
+
+.vl-empty-signal::before,
+.vl-empty-signal::after {
+    content: "";
+    position: absolute;
+    top: 18px;
+    width: 37px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(85, 216, 255, 0.72));
+}
+
+.vl-empty-signal::before { left: 0; }
+.vl-empty-signal::after { right: 0; transform: rotate(180deg); }
+
+.vl-empty-signal span {
+    position: absolute;
+    inset: 9px auto auto 36px;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--vl-cyan);
+    transform: rotate(45deg);
+    box-shadow: 0 0 18px rgba(85, 216, 255, 0.25);
+}
+
+.vl-empty-kicker {
+    display: block;
+    margin-bottom: 9px;
+    color: var(--vl-cyan);
+    font: 800 9px/1 var(--vl-utility);
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+}
+
+.vl-empty-state h3 {
+    margin: 0 0 10px;
+    color: #f1fbff;
+    font: 900 clamp(24px, 3vw, 34px)/1 var(--vl-display);
+    letter-spacing: -0.45px;
+    text-transform: uppercase;
+}
+
+.vl-empty-state p {
+    max-width: 500px;
+    margin: 0 auto 22px;
+    font: 500 13px/1.6 var(--vl-body);
+}
+
+.vl-empty-state button {
+    min-height: 42px;
+    padding: 0 17px;
+    border: 1px solid rgba(85, 216, 255, 0.52);
+    border-radius: 0;
+    color: #dff8ff;
+    background: rgba(25, 117, 153, 0.18);
+    font: 900 10px/1 var(--vl-utility);
+    letter-spacing: 0.75px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.vl-empty-state button:hover {
+    border-color: var(--vl-cyan);
+    background: rgba(29, 140, 184, 0.26);
 }
 
 @keyframes vl-shimmer {
@@ -872,6 +1045,20 @@ body.world-video-library {
         padding: 11px;
     }
 
+    .vl-continuity-header {
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .vl-continuity-actions {
+        align-items: flex-end;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .vl-continuity-actions > span { font-size: 8px; }
+    .vl-continuity-actions button { min-height: 32px; padding-inline: 9px; font-size: 8px; }
+
     .vl-new-week-card,
     .vl-continue-watching .video-card-metal { min-width: 198px !important; }
 
@@ -908,6 +1095,10 @@ body.world-video-library {
         min-height: 112px;
         border-left-color: rgba(137, 216, 249, 0.36) !important;
         border-right-color: rgba(137, 216, 249, 0.36) !important;
+    }
+
+    .vl-video-grid > .vl-video-card:nth-child(n + 5) {
+        contain-intrinsic-size: 112px;
     }
 
     .vl-video-grid > .vl-video-card:not(:first-child) .vl-video-thumb {
@@ -964,6 +1155,13 @@ body.world-video-library {
         margin-top: 18px !important;
         text-align: center !important;
     }
+
+    .vl-empty-state {
+        margin-top: 3px;
+        padding: 50px 18px;
+    }
+
+    .vl-empty-state h3 { font-size: 25px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
