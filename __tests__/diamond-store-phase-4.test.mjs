@@ -31,7 +31,9 @@ test('dialog busy-state changes do not release the focus trap or lose return foc
 test('the route-specific LCP artwork is preloaded and merchandise is code split', () => {
   assert.match(STORE, /rel="preload"[\s\S]*?as="image"[\s\S]*?fetchPriority="high"/);
   assert.match(STORE, /diamond-vault-hero\.webp/);
-  assert.match(STORE, /store-section-heroes\.webp/);
+  for (const asset of ['vip-hero', 'merch-hero', 'rewards-hero', 'club-shop-hero']) {
+    assert.match(STORE, new RegExp(`${asset}\\.webp`));
+  }
   assert.match(STORE, /const MerchStore = dynamic\(/);
   assert.match(STORE, /Loading Merch Store\.\.\./);
 });

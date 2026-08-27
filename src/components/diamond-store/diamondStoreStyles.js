@@ -204,7 +204,7 @@ const styles = {
     },
     legalNote: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.4)',
+        color: '#A8B8C2',
         textAlign: 'center',
         maxWidth: 500,
         margin: '0 auto',

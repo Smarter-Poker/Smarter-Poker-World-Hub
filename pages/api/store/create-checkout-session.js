@@ -148,6 +148,209 @@ function resolveCheckoutRedirect(rawUrl, baseUrl, fallbackPath) {
     }
 }
 
+class CheckoutInputError extends Error {
+    constructor(code, message, status = 400) {
+        super(message);
+        this.name = 'CheckoutInputError';
+        this.code = code;
+        this.status = status;
+    }
+}
+
+function validateCheckoutRequestId(value) {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return /^[a-z0-9][a-z0-9_-]{11,127}$/i.test(trimmed) ? trimmed : null;
+}
+
+/**
+ * Resolve and validate every purchasable line before creating a Stripe
+ * customer or writing a pending order. Besides removing side effects from bad
+ * requests, the returned server-owned values are reused below so validation
+ * and charging cannot drift within one request.
+ */
+async function prepareCheckout(type, items) {
+    if (type === 'diamonds') {
+        const resolvedPackages = [];
+        for (const clientItem of items) {
+            const serverPackage = resolveDiamondPackage(clientItem);
+            if (!serverPackage) {
+                throw new CheckoutInputError(
+                    'INVALID_PACKAGE',
+                    `Unknown diamond package: ${clientItem?.packageId ?? clientItem?.id ?? 'unknown'}`
+                );
+            }
+            const quantity = Number(clientItem?.quantity ?? 1);
+            if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_DIAMOND_QUANTITY_PER_PACKAGE) {
+                throw new CheckoutInputError(
+                    'INVALID_QUANTITY',
+                    `Quantity must be 1-${MAX_DIAMOND_QUANTITY_PER_PACKAGE} per package`
+                );
+            }
+            const existing = resolvedPackages.find((pkg) => pkg.key === serverPackage.key);
+            if (existing) {
+                const merged = existing.quantity + quantity;
+                if (merged > MAX_DIAMOND_QUANTITY_PER_PACKAGE) {
+                    throw new CheckoutInputError(
+                        'INVALID_QUANTITY',
+                        `Quantity must be 1-${MAX_DIAMOND_QUANTITY_PER_PACKAGE} per package`
+                    );
+                }
+                existing.quantity = merged;
+            } else {
+                resolvedPackages.push({ ...serverPackage, quantity });
+            }
+        }
+        return { resolvedPackages };
+    }
+
+    if (type === 'subscription') {
+        const item = items[0];
+        const plan = resolveVipPlan(item?.plan ?? item?.planId ?? item?.id);
+        if (!plan) {
+            throw new CheckoutInputError(
+                'INVALID_PLAN',
+                `Unknown subscription plan: ${item?.plan ?? item?.planId ?? item?.id ?? 'unknown'}`
+            );
+        }
+
+        let stripePrice = null;
+        if (plan.priceId) {
+            try {
+                stripePrice = await stripe.prices.retrieve(plan.priceId);
+            } catch (error) {
+                console.warn(`[Checkout] ${plan.envVar} points at an unknown Stripe price:`, plan.priceId, error?.message);
+                throw new CheckoutInputError(
+                    'SUBSCRIPTIONS_NOT_CONFIGURED',
+                    'VIP subscriptions are not available right now. Please contact support.',
+                    503
+                );
+            }
+            if (!stripePrice?.active || !stripePrice.recurring) {
+                throw new CheckoutInputError(
+                    'SUBSCRIPTIONS_NOT_CONFIGURED',
+                    'VIP subscriptions are not available right now. Please contact support.',
+                    503
+                );
+            }
+        }
+        return { plan, stripePrice };
+    }
+
+    const MAX_ORDER_TOTAL_USD = 2000;
+    for (const item of items) {
+        if (!item?.id || typeof item.id !== 'string' || item.id.length > 160) {
+            throw new CheckoutInputError('ITEM_NOT_FOUND', 'That item is no longer available');
+        }
+        if (!item.name || typeof item.name !== 'string' || item.name.length > 200) {
+            throw new CheckoutInputError('INVALID_ITEM', 'Invalid item name');
+        }
+        const quantity = Number(item.quantity ?? 1);
+        if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
+            throw new CheckoutInputError('INVALID_QUANTITY', 'Quantity must be 1-10');
+        }
+    }
+
+    const itemIds = [...new Set(items.map((item) => item.id))];
+    const { data: catalogItems, error: catalogError } = await getSupabase()
+        .from('merchandise_items')
+        .select('id, name, price_usd, image_url, is_active')
+        .in('id', itemIds)
+        .eq('is_active', true);
+    if (catalogError) {
+        console.error('[Checkout] catalog validation failed:', catalogError.message);
+        throw new CheckoutInputError('CATALOG_UNAVAILABLE', 'Could not verify the merchandise catalog', 503);
+    }
+
+    const catalogPrices = Object.fromEntries((catalogItems || []).map((item) => [item.id, item]));
+    const unavailable = items.find((item) => !catalogPrices[item.id]);
+    if (unavailable) {
+        throw new CheckoutInputError(
+            'ITEM_NOT_FOUND',
+            `Item "${String(unavailable.name || 'unknown').slice(0, 80)}" is no longer available`
+        );
+    }
+
+    const stockCheckLines = items.map((item) => ({
+        id: item.id,
+        variant_id: item.variantId || item.variant_id || null,
+        qty: Number(item.quantity ?? 1),
+    }));
+    const { data: stockRaw, error: stockError } = await getSupabase()
+        .rpc('reserve_merch_order', { p_items: stockCheckLines, p_dry_run: true });
+    if (stockError) {
+        console.error('[Checkout] stock validation failed:', stockError.message);
+        throw new CheckoutInputError('STOCK_CHECK_FAILED', 'Could not verify availability', 503);
+    }
+
+    const stockCheck = typeof stockRaw === 'string' ? JSON.parse(stockRaw) : stockRaw || {};
+    if (!stockCheck.success) {
+        const reasons = {
+            insufficient_stock: stockCheck.available > 0
+                ? `Only ${stockCheck.available} left of that item`
+                : 'That item just sold out',
+            variant_required: 'Please choose a size or colour',
+            variant_unavailable: 'That option is no longer available',
+            variant_not_applicable: 'That item has no size or colour options',
+            item_unavailable: 'That item is no longer available',
+            unpriced_item: 'That item is not currently purchasable',
+        };
+        throw new CheckoutInputError(
+            stockCheck.error === 'insufficient_stock' ? 'OUT_OF_STOCK' : 'ITEM_NOT_FOUND',
+            reasons[stockCheck.error] || 'That item is no longer available'
+        );
+    }
+
+    const resolvedItems = items.map((item) => {
+        const catalog = catalogPrices[item.id];
+        return {
+            id: item.id,
+            variantId: item.variantId || item.variant_id || null,
+            name: catalog.name,
+            price: parseFloat(catalog.price_usd),
+            image: catalog.image_url || item.image || null,
+            description: item.description ? String(item.description).slice(0, 500) : undefined,
+            quantity: Number(item.quantity ?? 1),
+        };
+    });
+    const totalUsd = resolvedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    if (totalUsd > MAX_ORDER_TOTAL_USD) {
+        throw new CheckoutInputError('ORDER_TOO_LARGE', `Maximum order total is $${MAX_ORDER_TOTAL_USD}`);
+    }
+
+    return { catalogPrices, resolvedItems, stockCheckLines, totalUsd };
+}
+
+async function findExistingCheckout(type, userId, checkoutRequestId) {
+    if (!checkoutRequestId || !['diamonds', 'merchandise'].includes(type)) return null;
+    const table = type === 'diamonds' ? 'diamond_purchases' : 'merchandise_orders';
+    const { data, error } = await getSupabase()
+        .from(table)
+        .select('id, status, stripe_checkout_session_id')
+        .eq('user_id', userId)
+        .contains('metadata', { checkout_request_id: checkoutRequestId })
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (error) {
+        console.warn('[Checkout] Could not inspect checkout request id:', error.message);
+        return null;
+    }
+    if (!data) return null;
+    if (!data.stripe_checkout_session_id) return { initializing: true };
+
+    try {
+        const session = await stripe.checkout.sessions.retrieve(data.stripe_checkout_session_id);
+        return session?.url
+            ? { sessionId: session.id, url: session.url, status: session.status }
+            : { initializing: true };
+    } catch (error) {
+        console.warn('[Checkout] Existing session lookup failed:', error?.message || error);
+        return { initializing: true };
+    }
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -195,7 +398,6 @@ export default async function handler(req, res) {
               });
           }
 
-          const token = authHeader.replace('Bearer ', '');
           const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
           const user = authData?.user;
@@ -236,6 +438,48 @@ export default async function handler(req, res) {
               return res.status(400).json({
                   success: false,
                   error: { code: 'INVALID_ITEMS', message: 'A subscription checkout requires one plan' }
+              });
+          }
+
+          const rawCheckoutRequestId = req.headers['x-checkout-request-id'] || req.headers['x-idempotency-key'];
+          const checkoutRequestId = validateCheckoutRequestId(rawCheckoutRequestId);
+          if (rawCheckoutRequestId && !checkoutRequestId) {
+              return res.status(400).json({
+                  success: false,
+                  error: { code: 'INVALID_REQUEST_ID', message: 'Invalid checkout request identifier' }
+              });
+          }
+          let preparedCheckout;
+          try {
+              preparedCheckout = await prepareCheckout(type, items);
+          } catch (inputError) {
+              if (inputError instanceof CheckoutInputError) {
+                  return res.status(inputError.status).json({
+                      success: false,
+                      error: { code: inputError.code, message: inputError.message }
+                  });
+              }
+              throw inputError;
+          }
+
+          const existingCheckout = await findExistingCheckout(type, user.id, checkoutRequestId);
+          if (existingCheckout?.url) {
+              return res.status(200).json({
+                  success: true,
+                  duplicate: true,
+                  data: {
+                      session_id: existingCheckout.sessionId,
+                      url: existingCheckout.url
+                  }
+              });
+          }
+          if (existingCheckout?.initializing) {
+              return res.status(409).json({
+                  success: false,
+                  error: {
+                      code: 'CHECKOUT_INITIALIZING',
+                      message: 'This checkout is already being prepared. Please wait a moment.'
+                  }
               });
           }
 
@@ -326,7 +570,8 @@ export default async function handler(req, res) {
               cancel_url: safeCancelUrl,
               metadata: {
                   user_id: user.id,
-                  type: type
+                  type: type,
+                  ...(checkoutRequestId ? { checkout_request_id: checkoutRequestId } : {})
               }
           };
 
@@ -335,50 +580,7 @@ export default async function handler(req, res) {
               // Diamond purchase - one-time payment (multi-package, multi-quantity)
               // SECURITY: Every price/diamond amount below is resolved from
               // VALID_DIAMOND_PACKAGES. Client-supplied price/diamonds/bonus are ignored.
-              const resolvedPackages = [];
-
-              for (const clientItem of items) {
-                  const serverPackage = resolveDiamondPackage(clientItem);
-
-                  if (!serverPackage) {
-                      return res.status(400).json({
-                          success: false,
-                          error: {
-                              code: 'INVALID_PACKAGE',
-                              message: `Unknown diamond package: ${clientItem?.packageId ?? clientItem?.id ?? 'unknown'}`
-                          }
-                      });
-                  }
-
-                  const quantity = parseInt(clientItem?.quantity, 10) || 1;
-                  if (quantity < 1 || quantity > MAX_DIAMOND_QUANTITY_PER_PACKAGE) {
-                      return res.status(400).json({
-                          success: false,
-                          error: {
-                              code: 'INVALID_QUANTITY',
-                              message: `Quantity must be 1-${MAX_DIAMOND_QUANTITY_PER_PACKAGE} per package`
-                          }
-                      });
-                  }
-
-                  // Merge duplicate package entries into a single Stripe line item
-                  const existing = resolvedPackages.find(p => p.key === serverPackage.key);
-                  if (existing) {
-                      const merged = existing.quantity + quantity;
-                      if (merged > MAX_DIAMOND_QUANTITY_PER_PACKAGE) {
-                          return res.status(400).json({
-                              success: false,
-                              error: {
-                                  code: 'INVALID_QUANTITY',
-                                  message: `Quantity must be 1-${MAX_DIAMOND_QUANTITY_PER_PACKAGE} per package`
-                              }
-                          });
-                      }
-                      existing.quantity = merged;
-                  } else {
-                      resolvedPackages.push({ ...serverPackage, quantity });
-                  }
-              }
+              const resolvedPackages = preparedCheckout.resolvedPackages;
 
               // Use SERVER-SIDE values only — never trust client amounts
               sessionConfig.line_items = resolvedPackages.map(pkg => ({
@@ -416,7 +618,10 @@ export default async function handler(req, res) {
                       diamonds_amount: totalDiamonds,
                       bonus_diamonds: totalBonus,
                       price_usd: totalUsd,
-                      status: 'pending'
+                      status: 'pending',
+                      ...(checkoutRequestId
+                          ? { metadata: { checkout_request_id: checkoutRequestId } }
+                          : {})
                   })
                   .select()
                   .maybeSingle();
@@ -437,18 +642,7 @@ export default async function handler(req, res) {
               // SECURITY: The client sends only a plan key ('monthly' | 'annual').
               // The Stripe price ID is resolved SERVER-SIDE from env config, so a
               // client can never pair a cheap price with a premium tier claim.
-              const item = items[0];
-              const plan = resolveVipPlan(item?.plan ?? item?.planId ?? item?.id);
-
-              if (!plan) {
-                  return res.status(400).json({
-                      success: false,
-                      error: {
-                          code: 'INVALID_PLAN',
-                          message: `Unknown subscription plan: ${item?.plan ?? item?.planId ?? item?.id ?? 'unknown'}`
-                      }
-                  });
-              }
+              const { plan, stripePrice: preparedStripePrice } = preparedCheckout;
 
               // ── Resolve the price: configured Stripe price, or inline. ──
               let vipTier = plan.tier;
@@ -460,29 +654,7 @@ export default async function handler(req, res) {
                   // papered over with the fallback, because someone deliberately
                   // pointed at a price and we should say it is wrong rather than
                   // quietly charge a different amount.
-                  let stripePrice;
-                  try {
-                      stripePrice = await stripe.prices.retrieve(plan.priceId);
-                  } catch (priceErr) {
-                      console.warn(`[Checkout] ${plan.envVar} points at an unknown Stripe price:`, plan.priceId, priceErr?.message);
-                      return res.status(503).json({
-                          success: false,
-                          error: {
-                              code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
-                              message: 'VIP subscriptions are not available right now. Please contact support.'
-                          }
-                      });
-                  }
-                  if (!stripePrice?.active || !stripePrice.recurring) {
-                      console.warn(`[Checkout] ${plan.envVar} is not an active recurring price:`, plan.priceId);
-                      return res.status(503).json({
-                          success: false,
-                          error: {
-                              code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
-                              message: 'VIP subscriptions are not available right now. Please contact support.'
-                          }
-                      });
-                  }
+                  const stripePrice = preparedStripePrice;
                   vipTier = stripePrice.metadata?.vip_tier
                       || (stripePrice.recurring.interval === 'year' ? 'annual' : plan.tier);
 
@@ -522,166 +694,10 @@ export default async function handler(req, res) {
               };
 
           } else if (type === 'merchandise') {
-              // Merchandise order - one-time payment
-              // SECURITY: Validate merchandise prices against server-side catalog.
-              // Until a full merchandise_items table exists, enforce sanity checks.
-              const MAX_SINGLE_ITEM_USD = 500;
-              const MAX_ORDER_TOTAL_USD = 2000;
-              const MIN_ITEM_PRICE_USD = 0.50;
-
-              for (const item of items) {
-                  if (!item.name || typeof item.name !== 'string' || item.name.length > 200) {
-                      return res.status(400).json({
-                          success: false,
-                          error: { code: 'INVALID_ITEM', message: 'Invalid item name' }
-                      });
-                  }
-                  const itemPrice = parseFloat(item.price);
-                  if (!Number.isFinite(itemPrice) || itemPrice < MIN_ITEM_PRICE_USD || itemPrice > MAX_SINGLE_ITEM_USD) {
-                      return res.status(400).json({
-                          success: false,
-                          error: { code: 'INVALID_PRICE', message: `Item price must be between $${MIN_ITEM_PRICE_USD} and $${MAX_SINGLE_ITEM_USD}` }
-                      });
-                  }
-                  const qty = parseInt(item.quantity) || 1;
-                  if (qty < 1 || qty > 10) {
-                      return res.status(400).json({
-                          success: false,
-                          error: { code: 'INVALID_QUANTITY', message: 'Quantity must be 1-10' }
-                      });
-                  }
-              }
-
-              // SECURITY: Look up server-side prices from merchandise_items table.
-              // Items with an 'id' field are validated against the catalog price.
-              // Items without an ID (custom/unlisted) fall back to sanity-checked client price.
-              const itemIds = items.map(i => i.id).filter(Boolean);
-              let catalogPrices = {};
-              if (itemIds.length > 0) {
-                  const { data: catalogItems } = await getSupabase()
-                      .from('merchandise_items')
-                      .select('id, name, price_usd, image_url, is_active')
-                      .in('id', itemIds)
-                      .eq('is_active', true);
-                  if (catalogItems) {
-                      catalogItems.forEach(ci => { catalogPrices[ci.id] = ci; });
-                  }
-                  // Reject if any catalogued item ID wasn't found (deleted/inactive)
-                  for (const item of items) {
-                      if (item.id && !catalogPrices[item.id]) {
-                          return res.status(400).json({
-                              success: false,
-                              error: { code: 'ITEM_NOT_FOUND', message: `Item "${item.name}" is no longer available` }
-                          });
-                      }
-                  }
-              }
-
-              // ═══════════════════════════════════════════════════════════════
-              // Every merchandise line MUST resolve to a catalog row. There is
-              // no client-priced path any more.
-              //
-              // SECURITY (2026-08-06): items with no `id` were accepted and
-              // priced from the request body, bounded only by a $0.50–$500
-              // sanity band. That was survivable while the storefront always
-              // sent ids — but MerchStore.jsx required a UUID to treat a value
-              // as a catalog id, and merchandise_items.id is TEXT holding slugs
-              // ('hoodie-neural'), so it sent NO id for any real product and
-              // every merch purchase was priced by the browser. A $199.99 chip
-              // set went through at $0.50. Rejecting unpriceable items closes
-              // both halves: the storefront now sends slugs, and anything the
-              // catalog does not recognise is refused rather than trusted.
-              // ═══════════════════════════════════════════════════════════════
-              const unpriceable = items.find((item) => !item.id || !catalogPrices[item.id]);
-              if (unpriceable) {
-                  console.warn(`[Checkout] Rejected unpriceable item "${unpriceable.name}" from ${user.id}`);
-                  return res.status(400).json({
-                      success: false,
-                      error: {
-                          code: 'ITEM_NOT_FOUND',
-                          message: `Item "${String(unpriceable.name || 'unknown').slice(0, 80)}" is no longer available`,
-                      },
-                  });
-              }
-
-              // ═══════════════════════════════════════════════════════════════
-              // STOCK VALIDATION — dry run, no reservation.
-              //
-              // A Stripe session is not synchronous: minutes can pass before
-              // the customer pays, and most sessions are abandoned. Reserving
-              // here would let every abandoned cart hold inventory hostage, and
-              // nothing in this codebase expires sessions. So the card path
-              // VALIDATES now — fail fast rather than showing a payment page
-              // for something already sold out — and the webhook TAKES the
-              // stock when payment is confirmed.
-              //
-              // The residual race is deliberate: stock can sell out between
-              // here and payment. The webhook flags that order for review
-              // rather than silently shipping something that does not exist —
-              // rare, visible and correctable, which beats both an
-              // unfulfillable order and a permanent stock leak.
-              //
-              // This also enforces variant selection: an item with variants is
-              // refused without a variant_id, because guessing either
-              // mischarges the customer or ships the wrong size.
-              // ═══════════════════════════════════════════════════════════════
-              const stockCheckLines = items.map((item) => ({
-                  id: item.id,
-                  variant_id: item.variantId || item.variant_id || null,
-                  qty: Math.min(Math.max(parseInt(item.quantity) || 1, 1), 10),
-              }));
-
-              const { data: stockRaw, error: stockErr } = await getSupabase()
-                  .rpc('reserve_merch_order', { p_items: stockCheckLines, p_dry_run: true });
-
-              if (stockErr) {
-                  console.error('[Checkout] stock validation failed:', stockErr.message);
-                  return res.status(500).json({
-                      success: false,
-                      error: { code: 'STOCK_CHECK_FAILED', message: 'Could not verify availability' },
-                  });
-              }
-
-              const stockCheck = typeof stockRaw === 'string' ? JSON.parse(stockRaw) : stockRaw || {};
-              if (!stockCheck.success) {
-                  const reasons = {
-                      insufficient_stock: stockCheck.available > 0
-                          ? `Only ${stockCheck.available} left of that item`
-                          : 'That item just sold out',
-                      variant_required: 'Please choose a size or colour',
-                      variant_unavailable: 'That option is no longer available',
-                      variant_not_applicable: 'That item has no size or colour options',
-                      item_unavailable: 'That item is no longer available',
-                      unpriced_item: 'That item is not currently purchasable',
-                  };
-                  return res.status(400).json({
-                      success: false,
-                      error: {
-                          code: stockCheck.error === 'insufficient_stock' ? 'OUT_OF_STOCK' : 'ITEM_NOT_FOUND',
-                          message: reasons[stockCheck.error] || 'That item is no longer available',
-                      },
-                  });
-              }
-
-              // Build line items from the SERVER price, always.
-              const resolvedItems = items.map(item => {
-                  const catalog = catalogPrices[item.id];
-                  return {
-                      name: catalog.name,
-                      price: parseFloat(catalog.price_usd),
-                      image: catalog?.image_url || item.image || null,
-                      description: item.description ? String(item.description).slice(0, 500) : undefined,
-                      quantity: Math.min(Math.max(parseInt(item.quantity) || 1, 1), 10),
-                  };
-              });
-
-              const totalUsd = resolvedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-              if (totalUsd > MAX_ORDER_TOTAL_USD) {
-                  return res.status(400).json({
-                      success: false,
-                      error: { code: 'ORDER_TOO_LARGE', message: `Maximum order total is $${MAX_ORDER_TOTAL_USD}` }
-                  });
-              }
+              // Catalog identity, stock, quantity, and price were already
+              // validated before any Stripe customer or pending-order side
+              // effect. Reuse that immutable server-owned result here.
+              const { resolvedItems, totalUsd } = preparedCheckout;
 
               sessionConfig.line_items = resolvedItems.map(item => ({
                   price_data: {
@@ -703,7 +719,10 @@ export default async function handler(req, res) {
                       user_id: user.id,
                       items: resolvedItems,
                       total_usd: totalUsd,
-                      status: 'pending'
+                      status: 'pending',
+                      ...(checkoutRequestId
+                          ? { metadata: { checkout_request_id: checkoutRequestId } }
+                          : {})
                   })
                   .select()
                   .maybeSingle();
@@ -729,7 +748,67 @@ export default async function handler(req, res) {
           }
 
           // Create checkout session
-          const session = await stripe.checkout.sessions.create(sessionConfig);
+          let session;
+          try {
+              session = await stripe.checkout.sessions.create(
+                  sessionConfig,
+                  checkoutRequestId ? { idempotencyKey: checkoutRequestId } : undefined
+              );
+          } catch (sessionError) {
+              if (type === 'diamonds' && sessionConfig.metadata.purchase_id) {
+                  const { data: cleanedRows, error: cleanupError } = await getSupabase()
+                      .from('diamond_purchases')
+                      .update({ status: 'failed' })
+                      .eq('id', sessionConfig.metadata.purchase_id)
+                      .eq('status', 'pending')
+                      .select('id');
+                  if (cleanupError) console.error('[Checkout] Pending diamond cleanup failed:', cleanupError.message);
+                  else if (!cleanedRows?.length) console.info('[Checkout] Pending diamond purchase was already terminal');
+              }
+              if (type === 'merchandise' && sessionConfig.metadata.order_id) {
+                  const { data: cleanedRows, error: cleanupError } = await getSupabase()
+                      .from('merchandise_orders')
+                      .update({ status: 'canceled' })
+                      .eq('id', sessionConfig.metadata.order_id)
+                      .eq('status', 'pending')
+                      .select('id');
+                  if (cleanupError) console.error('[Checkout] Pending merchandise cleanup failed:', cleanupError.message);
+                  else if (!cleanedRows?.length) console.info('[Checkout] Pending merchandise order was already terminal');
+              }
+              throw sessionError;
+          }
+
+          // Persist the session immediately instead of waiting for payment.
+          // This makes abandoned/expired sessions observable and lets the
+          // authenticated return-status endpoint reconcile the pending record.
+          if (type === 'diamonds' && sessionConfig.metadata.purchase_id) {
+              const { data: linkedRows, error: linkError } = await getSupabase()
+                  .from('diamond_purchases')
+                  .update({ stripe_checkout_session_id: session.id })
+                  .eq('id', sessionConfig.metadata.purchase_id)
+                  .select('id');
+              if (linkError || !linkedRows?.length) {
+                  console.error('[Checkout] Could not link diamond purchase to session:', linkError?.message || 'zero rows');
+                  await stripe.checkout.sessions.expire(session.id).catch((expireError) => {
+                      console.error('[Checkout] Could not expire unlinked diamond session:', expireError?.message || expireError);
+                  });
+                  throw new Error('Could not finalize checkout. No payment was taken. Please try again.');
+              }
+          }
+          if (type === 'merchandise' && sessionConfig.metadata.order_id) {
+              const { data: linkedRows, error: linkError } = await getSupabase()
+                  .from('merchandise_orders')
+                  .update({ stripe_checkout_session_id: session.id })
+                  .eq('id', sessionConfig.metadata.order_id)
+                  .select('id');
+              if (linkError || !linkedRows?.length) {
+                  console.error('[Checkout] Could not link merchandise order to session:', linkError?.message || 'zero rows');
+                  await stripe.checkout.sessions.expire(session.id).catch((expireError) => {
+                      console.error('[Checkout] Could not expire unlinked merchandise session:', expireError?.message || expireError);
+                  });
+                  throw new Error('Could not finalize checkout. No payment was taken. Please try again.');
+              }
+          }
 
           return res.status(200).json({
               success: true,

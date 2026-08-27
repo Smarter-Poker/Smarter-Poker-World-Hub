@@ -76,6 +76,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
 
+      - name: Verify Storefront Performance Budgets
+        run: node scripts/ci/check-storefront-budget.mjs
+
       # Start the production server in the background so Playwright has a
       # real localhost:3000 to hit. Without this, every test that calls
       # page.goto() or fetches /api/* had been failing since this workflow
@@ -90,6 +93,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET || 'placeholder-admin-secret-for-ci' }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET || 'ci-placeholder-stripe-webhook' }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN || 'ci-placeholder-twilio-token' }}
+          KYC_WEBHOOK_SECRET: ${{ secrets.KYC_WEBHOOK_SECRET || 'ci-placeholder-kyc-webhook' }}
+          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET || 'ci-placeholder-deploy-webhook' }}
 
       - name: Wait for server to be ready
         run: |

@@ -35,6 +35,7 @@ import { showStoreToast } from './StoreToast';
 import useDiamondBalance from '../../hooks/useDiamondBalance';
 import { broadcastSync } from '../../lib/broadcastSync';
 import { busEmit } from '../../engine/EventBus';
+import { captureStoreEvent, createCheckoutRequestId } from '../../lib/store/storeAnalytics';
 
 // ── Economy constants (mirror of the server) ──────────────────────────────
 // 1 diamond = $0.01 → 100 diamonds per USD. purchase-with-diamonds.js uses the
@@ -185,6 +186,7 @@ function rowsFromCatalogBody(body) {
 
 const CATEGORY_LABELS = { apparel: 'Apparel', accessories: 'Accessories', merch: 'More Gear' };
 const categoryLabel = (key) => CATEGORY_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1));
+const STATIC_PRODUCTS = MERCHANDISE.map((row, index) => normalizeProduct(row, index, 'static')).filter(Boolean);
 
 // ── Error extraction ──────────────────────────────────────────────────────
 // create-checkout-session answers with { error: { code, message } };
@@ -335,6 +337,8 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                                         aria-pressed={active}
                                         style={{
                                             padding: '6px 11px',
+                                            minWidth: 44,
+                                            minHeight: 44,
                                             borderRadius: 8,
                                             fontSize: 12,
                                             fontWeight: 700,
@@ -367,7 +371,9 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                             disabled={soldOut || clampedQty <= 1}
                             style={{
                                 background: 'rgba(255,255,255,0.05)', border: 'none', color: TEXT,
-                                padding: '6px 9px', cursor: clampedQty <= 1 ? 'not-allowed' : 'pointer',
+                                width: 44, minWidth: 44, height: 44, padding: 0,
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: clampedQty <= 1 ? 'not-allowed' : 'pointer',
                             }}
                         ><Minus size={12} /></button>
                         <output aria-live="polite" style={{ minWidth: 28, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#fff' }}>
@@ -380,7 +386,9 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                             disabled={soldOut || clampedQty >= maxQty}
                             style={{
                                 background: 'rgba(255,255,255,0.05)', border: 'none', color: TEXT,
-                                padding: '6px 9px', cursor: clampedQty >= maxQty ? 'not-allowed' : 'pointer',
+                                width: 44, minWidth: 44, height: 44, padding: 0,
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: clampedQty >= maxQty ? 'not-allowed' : 'pointer',
                             }}
                         ><Plus size={12} /></button>
                     </div>
@@ -453,13 +461,17 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
 // Storefront
 // ═══════════════════════════════════════════════════════════════════════════
 export default function MerchStore({ user = null }) {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [usingFallback, setUsingFallback] = useState(false);
+    // Render the verified static lineup on the server and during the live
+    // catalog refresh. The database remains the checkout price oracle, but a
+    // slow catalog request no longer leaves the whole page as a loading panel.
+    const [products, setProducts] = useState(() => STATIC_PRODUCTS);
+    const [loading, setLoading] = useState(false);
+    const [usingFallback, setUsingFallback] = useState(true);
     const [loadError, setLoadError] = useState(null);
     const [busyKey, setBusyKey] = useState(null);
     const [reloadToken, setReloadToken] = useState(0);
     const mountedRef = useRef(true);
+    const catalogSourceRef = useRef(null);
 
     const { balance, refreshBalance } = useDiamondBalance(user?.id || null);
 
@@ -472,7 +484,6 @@ export default function MerchStore({ user = null }) {
     useEffect(() => {
         let cancelled = false;
         (async () => {
-            setLoading(true);
             let rows = [];
             let failure = null;
             try {
@@ -503,14 +514,22 @@ export default function MerchStore({ user = null }) {
                 setUsingFallback(false);
                 setLoadError(null);
             } else {
-                setProducts(MERCHANDISE.map((r, i) => normalizeProduct(r, i, 'static')).filter(Boolean));
+                setProducts(STATIC_PRODUCTS);
                 setUsingFallback(true);
                 setLoadError(failure);
+                captureStoreEvent('catalog_fallback', { reason: failure || 'empty' });
             }
             setLoading(false);
         })();
         return () => { cancelled = true; };
     }, [reloadToken]);
+
+    useEffect(() => {
+        const source = usingFallback ? 'static' : 'live';
+        if (catalogSourceRef.current === source || products.length === 0) return;
+        catalogSourceRef.current = source;
+        captureStoreEvent('catalog_viewed', { route: 'merch', source, items: products.length });
+    }, [products.length, usingFallback]);
 
     // ── Group into the page's existing category sections ──────────────────
     const sections = useMemo(() => {
@@ -583,9 +602,21 @@ export default function MerchStore({ user = null }) {
         }
 
         setBusyKey(product.key);
+        const checkoutRequestId = createCheckoutRequestId(`merch-${product.catalogId || product.key}`);
+        captureStoreEvent('checkout_started', {
+            route: 'merch',
+            type: 'merchandise',
+            product: product.catalogId || product.key,
+            quantity,
+            value_usd: Number(product.priceUsd || 0) * quantity,
+        });
         const post = (includePrice) => fetch('/api/store/create-checkout-session', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                'X-Checkout-Request-ID': checkoutRequestId,
+            },
             body: JSON.stringify({
                 type: 'merchandise',
                 items: [buildLineItem(product, variant, quantity, { includePrice })],
@@ -612,10 +643,16 @@ export default function MerchStore({ user = null }) {
             if (!data.data?.url) {
                 throw new Error('Checkout session missing redirect URL');
             }
+            captureStoreEvent('checkout_session_created', {
+                route: 'merch',
+                type: 'merchandise',
+                product: product.catalogId || product.key,
+            });
             // Leave the busy state on through the navigation.
             window.location.href = data.data.url;
         } catch (err) {
             console.warn('[MerchStore] Card checkout failed:', err?.message || err);
+            captureStoreEvent('checkout_failed', { route: 'merch', type: 'merchandise' });
             showStoreToast('error', err?.message || 'Could not start checkout. Please try again.');
             if (mountedRef.current) setBusyKey(null);
         }
@@ -665,6 +702,12 @@ export default function MerchStore({ user = null }) {
             }
 
             const spent = Number(data.data?.diamonds_spent) || cost;
+            captureStoreEvent('diamond_purchase_complete', {
+                route: 'merch',
+                product: product.catalogId || product.key,
+                quantity,
+                diamonds_spent: spent,
+            });
             showStoreToast('success', `Order placed! ${fmt(spent)} diamonds deducted.`);
             try {
                 new Audio('/sounds/purchase-success.mp3').play()
