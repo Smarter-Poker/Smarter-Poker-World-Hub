@@ -23,7 +23,6 @@ export default class MyDocument extends Document {
                     {/* OneSignal push SDK — loaded on every page */}
                     <link rel="dns-prefetch" href="https://cdn.onesignal.com" />
                     {/* iOS PWA support */}
-
                     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
                     <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
                     <meta name="apple-mobile-web-app-capable" content="yes" />
