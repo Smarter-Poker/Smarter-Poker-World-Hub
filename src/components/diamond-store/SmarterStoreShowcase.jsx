@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 import styles from './SmarterStoreShowcase.module.css';
 
 const TAB_LABELS = [
@@ -39,6 +41,17 @@ const SECTION_COPY = {
 export default function SmarterStoreShowcase({ activeTab, packages = [], onNavigate, onBuy }) {
   const copy = SECTION_COPY[activeTab] || SECTION_COPY.diamonds;
   const isDiamonds = activeTab === 'diamonds';
+  const activeTabRef = useRef(null);
+
+  useEffect(() => {
+    if (!activeTabRef.current || !window.matchMedia('(max-width: 640px)').matches) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    activeTabRef.current.scrollIntoView({
+      behavior: reduceMotion ? 'auto' : 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    });
+  }, [activeTab]);
 
   return (
     <section className={`${styles.showcase} ${styles[activeTab] || ''}`}>
@@ -46,6 +59,7 @@ export default function SmarterStoreShowcase({ activeTab, packages = [], onNavig
         {TAB_LABELS.map(([id, label]) => (
           <button
             key={id}
+            ref={id === activeTab ? activeTabRef : null}
             type="button"
             className={`${styles.tab} ${id === activeTab ? styles.activeTab : ''}`}
             onClick={() => id !== activeTab && onNavigate(id)}
@@ -68,18 +82,24 @@ export default function SmarterStoreShowcase({ activeTab, packages = [], onNavig
         <>
           <div className={styles.sectionBar}>
             <h2>Choose Your Stack</h2>
-            <span>1 Diamond = $0.01</span>
+            <span className={styles.exchangeRate}>1 Diamond = $0.01</span>
+            <span className={styles.mobileHint}>Swipe To Compare Packages</span>
           </div>
           <div className={styles.packageGrid}>
             {packages.slice(-6).map((pkg, index) => (
-              <article key={pkg.id} className={`${styles.packageCard} ${styles[`package${index}`]}`}>
+              <article
+                key={pkg.id}
+                className={`${styles.packageCard} ${styles[`package${index}`]}`}
+              >
                 <div className={styles.packageTopline}>
                   <span>{pkg.name}</span>
                   <span>Digital Currency</span>
                 </div>
                 <div className={styles.packageValue}>
                   <h3>{Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')}</h3>
-                  {pkg.bonus > 0 && <p>Includes {Number(pkg.bonus).toLocaleString('en-US')} Bonus Diamonds</p>}
+                  {pkg.bonus > 0 && (
+                    <p>Includes {Number(pkg.bonus).toLocaleString('en-US')} Bonus Diamonds</p>
+                  )}
                 </div>
                 <footer>
                   <strong>${Number(pkg.price || 0).toFixed(2)}</strong>
@@ -91,7 +111,8 @@ export default function SmarterStoreShowcase({ activeTab, packages = [], onNavig
             ))}
           </div>
           <p className={styles.legal}>
-            Diamonds Are Virtual Currency And Have No Real-World Cash Value. All Purchases Are Final.
+            Diamonds Are Virtual Currency And Have No Real-World Cash Value. All Purchases Are
+            Final.
           </p>
         </>
       )}
