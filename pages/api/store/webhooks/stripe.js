@@ -174,7 +174,11 @@ export default async function handler(req, res) {
                   // path. If the row is already gone the retry proceeds anyway,
                   // which is the outcome this is reaching for; a real failure is
                   // caught and logged as CRITICAL below.
-                  await getSupabase().from('stripe_webhook_events').delete().eq('event_id', event.id);
+                  const { error: releaseError } = await getSupabase()
+                      .from('stripe_webhook_events')
+                      .delete()
+                      .eq('event_id', event.id);
+                  if (releaseError) throw releaseError;
               } catch (releaseErr) {
                   console.error(`[stripe-webhook] FAILED TO RELEASE claim on ${event.id} — retries will be skipped:`, releaseErr?.message || releaseErr);
               }

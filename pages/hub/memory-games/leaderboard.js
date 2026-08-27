@@ -1,269 +1,101 @@
-/**
- * Preflop Charts - Leaderboard
- * Wired to Supabase for real-time rankings
- */
-
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Clock3, Medal, RefreshCw, ShieldCheck, Target } from 'lucide-react';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useRouter } from 'next/router';
-import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import PageTransition from '../../../src/components/transitions/PageTransition';
+import PreflopSubpageShell from '../../../src/components/memory-games/PreflopSubpageShell';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
-import { supabase } from '../../../src/lib/supabase';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import { accuracyToPercent } from '../../../src/lib/preflopRangeLab';
+import { supabase } from '../../../src/lib/supabase';
 
 const GAME_MODES = [
-    { key: 'range', label: 'Range Training', icon: '🎯' },
-    { key: 'speed_drill', label: 'Speed Drill', icon: '⚡' },
-    { key: 'pressure_cooker', label: 'Pressure Cooker', icon: '💣' },
-    { key: 'pattern_recognition', label: 'Pattern Recognition', icon: '🧩' },
-    { key: 'mixed_strategy', label: 'Mixed Strategy', icon: '🎰' },
-    { key: 'spot_trainer', label: 'Spot Trainer', icon: '🎯' },
-    { key: 'tournament', label: 'Tournament', icon: '⚔️' },
+  { key: 'range', label: 'Range Lab' },
+  { key: 'speed_drill', label: 'Speed Drill' },
+  { key: 'pressure_cooker', label: 'Pressure' },
+  { key: 'pattern_recognition', label: 'Patterns' },
+  { key: 'mixed_strategy', label: 'Mixed' },
+  { key: 'spot_trainer', label: 'Spot Trainer' },
+  { key: 'tournament', label: 'Tournament' },
 ];
 
-export default function MemoryGamesLeaderboard() {
-    const bus = useTrainingBus('preflop-charts-leaderboard');
-    const router = useRouter();
-    const { user } = useAvatar();
-    const [selectedMode, setSelectedMode] = useState('range');
-    const [leaderboard, setLeaderboard] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [userRank, setUserRank] = useState(null);
-
-    // Fetch leaderboard data
-    useEffect(() => {
-        fetchLeaderboard();
-    }, [selectedMode]);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`mem-lb`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'memory_leaderboards' }, () => {
-        fetchLeaderboard();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id, selectedMode]);
-
-    const fetchLeaderboard = async () => {
-        setLoading(true);
-        try {
-            // Fetch top 50 entries for selected game mode
-            const { data, error } = await supabase
-                .from('memory_leaderboards')
-                .select(`
-                .limit(100) // leaderboard
-                    id,
-                    user_id,
-                    game_mode,
-                    level,
-                    score,
-                    accuracy,
-                    time_taken,
-                    perfect_game,
-                    created_at,
-                    profiles:user_id (
-                        username,
-                        avatar_url
-                    )
-                `)
-                .eq('game_mode', selectedMode)
-                .order('score', { ascending: false })
-                .limit(50);
-
-            if (error) {
-                console.warn('[Leaderboard] Error fetching:', error);
-                // Use fallback placeholder data if table doesn't exist yet
-                setLeaderboard(getPlaceholderData());
-            } else {
-                setLeaderboard(data || []);
-
-                // Find user's rank if logged in
-                if (user?.id && data) {
-                    const rank = data.findIndex(entry => entry.user_id === user.id);
-                    setUserRank(rank >= 0 ? rank + 1 : null);
-                }
-            }
-        } catch (err) {
-            console.warn('[Leaderboard] Fetch error:', err);
-            setLeaderboard(getPlaceholderData());
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Placeholder data if table doesn't exist yet
-    const getPlaceholderData = () => [
-        { id: 1, profiles: { username: 'GTOWizard' }, score: 18947, accuracy: 98.5, time_taken: 83, perfect_game: true },
-        { id: 2, profiles: { username: 'RangeKing' }, score: 17232, accuracy: 96.2, time_taken: 88, perfect_game: true },
-        { id: 3, profiles: { username: 'SolverPro' }, score: 15654, accuracy: 94.8, time_taken: 95, perfect_game: false },
-        { id: 4, profiles: { username: 'MemoryAce' }, score: 14200, accuracy: 93.1, time_taken: 102, perfect_game: false },
-        { id: 5, profiles: { username: 'PokerBrain' }, score: 13500, accuracy: 91.5, time_taken: 110, perfect_game: false },
-    ];
-
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
-
-    const getRankIcon = (rank) => {
-        if (rank === 1) return '🥇';
-        if (rank === 2) return '🥈';
-        if (rank === 3) return '🥉';
-        return `#${rank}`;
-    };
-
-    return (
-        <>
-            <SEOHead
-                title="Preflop Charts Leaderboard"
-                description="See Who Has The Sharpest GTO Ranges On The Smarter.Poker Preflop Charts Leaderboard."
-                canonical="/hub/preflop-charts/leaderboard"
-            />
-
-            <PageTransition>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0e1a' }}>
-                    <UniversalHeader pageDepth={2} />
-
-                    <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-
-
-                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '20px' }}>
-                            Preflop Charts Leaderboard
-                        </h1>
-
-                        {/* Game Mode Tabs */}
-                        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
-                            {GAME_MODES.map(mode => (
-                                <button
-                                    key={mode.key}
-                                    onClick={() => setSelectedMode(mode.key)}
-                                    style={{
-                                        padding: '12px 20px',
-                                        borderRadius: '12px',
-                                        border: selectedMode === mode.key
-                                            ? '2px solid #00D4FF'
-                                            : '1px solid rgba(255,255,255,0.15)',
-                                        background: selectedMode === mode.key
-                                            ? 'rgba(0, 212, 255, 0.15)'
-                                            : 'rgba(255,255,255,0.05)',
-                                        color: selectedMode === mode.key ? '#00D4FF' : '#fff',
-                                        cursor: 'pointer',
-                                        fontWeight: 600,
-                                        fontSize: '14px',
-                                        transition: 'all 0.2s ease',
-                                    }}
-                                >
-                                    {mode.icon} {mode.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* User Rank Banner */}
-                        {userRank && (
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(139, 92, 246, 0.2))',
-                                border: '1px solid rgba(0, 212, 255, 0.3)',
-                                borderRadius: '12px',
-                                padding: '16px 20px',
-                                marginBottom: '20px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px'
-                            }}>
-                                <div style={{ fontSize: '28px' }}>{getRankIcon(userRank)}</div>
-                                <div>
-                                    <div style={{ color: '#00D4FF', fontWeight: 700, fontSize: '18px' }}>
-                                        Your Rank: #{userRank}
-                                    </div>
-                                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
-                                        Keep playing to climb the leaderboard!
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Leaderboard Table */}
-                        <div style={{
-                            background: 'rgba(255,255,255,0.03)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: '12px',
-                            overflow: 'hidden'
-                        }}>
-                            {loading ? (
-                                <div style={{ padding: '60px', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
-                                    Loading leaderboard...
-                                </div>
-                            ) : (
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                        <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
-                                            <th style={{ padding: '16px', textAlign: 'left', color: '#9ca3af', fontWeight: '600' }}>Rank</th>
-                                            <th style={{ padding: '16px', textAlign: 'left', color: '#9ca3af', fontWeight: '600' }}>Player</th>
-                                            <th style={{ padding: '16px', textAlign: 'right', color: '#9ca3af', fontWeight: '600' }}>Score</th>
-                                            <th style={{ padding: '16px', textAlign: 'right', color: '#9ca3af', fontWeight: '600' }}>Accuracy</th>
-                                            <th style={{ padding: '16px', textAlign: 'right', color: '#9ca3af', fontWeight: '600' }}>Time</th>
-                                            <th style={{ padding: '16px', textAlign: 'center', color: '#9ca3af', fontWeight: '600' }}>Perfect</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {leaderboard.map((entry, index) => {
-                                            const rank = index + 1;
-                                            const isCurrentUser = user?.id === entry.user_id;
-
-                                            return (
-                                                <tr
-                                                    key={entry.id}
-                                                    style={{
-                                                        borderTop: '1px solid rgba(255,255,255,0.05)',
-                                                        background: isCurrentUser ? 'rgba(0, 212, 255, 0.1)' : 'transparent'
-                                                    }}
-                                                >
-                                                    <td style={{ padding: '16px', fontWeight: 'bold', fontSize: '18px' }}>
-                                                        {getRankIcon(rank)}
-                                                    </td>
-                                                    <td style={{ padding: '16px', color: isCurrentUser ? '#00D4FF' : '#fff', fontWeight: isCurrentUser ? 700 : 400 }}>
-                                                        {entry.profiles?.username || 'Anonymous'}
-                                                        {isCurrentUser && <span style={{ marginLeft: '8px', fontSize: '12px' }}>(You)</span>}
-                                                    </td>
-                                                    <td style={{ padding: '16px', color: '#00D4FF', textAlign: 'right', fontWeight: 'bold' }}>
-                                                        {(entry.score || 0).toLocaleString()}
-                                                    </td>
-                                                    <td style={{ padding: '16px', color: '#10b981', textAlign: 'right' }}>
-                                                        {entry.accuracy?.toFixed(1) || '0.0'}%
-                                                    </td>
-                                                    <td style={{ padding: '16px', color: '#9ca3af', textAlign: 'right' }}>
-                                                        {formatTime(entry.time_taken || 0)}
-                                                    </td>
-                                                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                                                        {entry.perfect_game ? '⭐' : '-'}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            )}
-                        </div>
-
-                        {/* Empty State */}
-                        {!loading && leaderboard.length === 0 && (
-                            <div style={{
-                                textAlign: 'center',
-                                padding: '60px 20px',
-                                color: 'rgba(255,255,255,0.5)'
-                            }}>
-                                No entries yet. Be the first to play and set a record!
-                            </div>
-                        )}
-                    </div>
-                </div>
-                  <BottomNavBar />
-    </PageTransition>
-        </>
-    );
+function formatTime(seconds) {
+  const total = Math.max(0, Number(seconds) || 0);
+  return `${Math.floor(total / 60)}:${Math.floor(total % 60).toString().padStart(2, '0')}`;
 }
+
+export default function MemoryGamesLeaderboard() {
+  useTrainingBus('preflop-charts-leaderboard');
+  const { user } = useAvatar();
+  const [selectedMode, setSelectedMode] = useState('range');
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchLeaderboard = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { data, error: queryError } = await supabase
+        .from('memory_leaderboards')
+        .select(`id,user_id,game_mode,level,score,accuracy,time_taken,perfect_game,created_at,profiles:user_id(username,avatar_url)`)
+        .eq('game_mode', selectedMode)
+        .order('score', { ascending: false })
+        .order('time_taken', { ascending: true, nullsFirst: false })
+        .limit(50);
+      if (queryError) throw queryError;
+      setLeaderboard(data || []);
+    } catch (queryError) {
+      console.warn('[PreflopLeaderboard] Fetch failed:', queryError?.message || queryError);
+      setLeaderboard([]);
+      setError('Rankings could not be loaded. Refresh the board or try another mode.');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedMode]);
+
+  useEffect(() => { fetchLeaderboard(); }, [fetchLeaderboard]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`preflop-leaderboard:${selectedMode}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'memory_leaderboards', filter: `game_mode=eq.${selectedMode}` }, fetchLeaderboard)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchLeaderboard, selectedMode]);
+
+  const userRank = useMemo(() => {
+    const index = leaderboard.findIndex((entry) => entry.user_id === user?.id);
+    return index >= 0 ? index + 1 : null;
+  }, [leaderboard, user?.id]);
+  const podium = leaderboard.slice(0, 3);
+
+  return (
+    <>
+      <SEOHead title="Preflop Charts Leaderboard" description="Live Smarter.Poker Preflop Charts rankings by training mode." canonical="/hub/preflop-charts/leaderboard" />
+      <PreflopSubpageShell eyebrow="GLOBAL SIGNAL // LIVE RANKINGS" title="Range command ranks" description="Compare verified personal-best results across every Preflop Charts training mode." metric={leaderboard.length ? `TOP ${leaderboard.length}` : 'LIVE'}>
+        <div className="preflop-mode-rail" role="tablist" aria-label="Leaderboard game mode">
+          {GAME_MODES.map((mode) => <button key={mode.key} type="button" role="tab" aria-selected={selectedMode === mode.key} onClick={() => setSelectedMode(mode.key)}>{mode.label}</button>)}
+        </div>
+
+        {userRank && <div className="preflop-user-rank"><Target size={20} aria-hidden /><span><small>YOUR CURRENT POSITION</small><strong>#{userRank} in {GAME_MODES.find((mode) => mode.key === selectedMode)?.label}</strong></span></div>}
+        {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchLeaderboard}><RefreshCw size={15} aria-hidden /> Refresh</button></div>}
+
+        {!loading && podium.length > 0 && <section className="preflop-podium" aria-label="Top three players">
+          {podium.map((entry, index) => <article key={entry.id} data-rank={index + 1}><Medal size={22} aria-hidden /><span>0{index + 1}</span><h2>{entry.profiles?.username || 'Anonymous player'}</h2><strong>{Number(entry.score || 0).toLocaleString()}</strong><small>{accuracyToPercent(entry.accuracy, entry.score).toFixed(1)}% accuracy</small></article>)}
+        </section>}
+
+        <section className="preflop-subpage-panel" aria-labelledby="ranking-table-title">
+          <div className="preflop-panel-heading"><div><span>TOP 50 // PERSONAL BESTS</span><h2 id="ranking-table-title">Live ranking board</h2></div><button type="button" onClick={fetchLeaderboard} disabled={loading} aria-label="Refresh leaderboard"><RefreshCw size={16} aria-hidden /></button></div>
+          {loading ? <div className="preflop-subpage-loading">Synchronizing rankings…</div> : leaderboard.length === 0 ? <div className="preflop-subpage-empty"><TrophyIcon /><h3>No verified entries yet</h3><p>Complete this mode to establish the first personal best.</p></div> : (
+            <div className="preflop-ranking-scroll"><table className="preflop-ranking-table"><thead><tr><th>Rank</th><th>Player</th><th>Level</th><th>Score</th><th>Accuracy</th><th>Time</th><th><span className="sr-only">Perfect</span></th></tr></thead><tbody>{leaderboard.map((entry, index) => {
+              const current = entry.user_id === user?.id;
+              const accuracy = accuracyToPercent(entry.accuracy, entry.score);
+              return <tr key={entry.id} data-current={current || undefined}><td><strong>#{index + 1}</strong></td><td>{entry.profiles?.username || 'Anonymous player'}{current && <small> YOU</small>}</td><td>L{entry.level || 1}</td><td>{Number(entry.score || 0).toLocaleString()}</td><td>{accuracy.toFixed(1)}%</td><td><Clock3 size={13} aria-hidden />{formatTime(entry.time_taken)}</td><td>{(entry.perfect_game || accuracy >= 99.5) && <ShieldCheck size={16} aria-label="Perfect result" />}</td></tr>;
+            })}</tbody></table></div>
+          )}
+        </section>
+      </PreflopSubpageShell>
+    </>
+  );
+}
+
+function TrophyIcon() { return <Medal size={28} aria-hidden />; }

@@ -7,6 +7,8 @@ const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const PAGE = read('pages/hub/memory-games.js');
 const CSS = read('src/styles/worlds/memory-games.css');
+const RANGE_LOGIC = read('src/lib/preflopRangeLab.js');
+const RANGE_MATRIX = read('src/components/memory-games/PreflopRangeMatrix.jsx');
 const ADAPTIVE_API = read('pages/api/gto/generate-adaptive.js');
 const GENERATE_API = read('pages/api/gto/generate-scenario.js');
 const POWER_UPS = read('src/utils/powerUps.js');
@@ -30,18 +32,21 @@ test('active range memory owns a complete six-action contract', () => {
     for (const action of ['fold', 'call', 'raise', 'raise_small', 'raise_big', 'all_in']) {
         assert.match(PAGE, new RegExp(`\\b${action}: \\{`));
     }
-    assert.match(PAGE, /function normalizeRangeAction\(action\)/);
-    assert.match(PAGE, /userAction !== normalizedCorrectAction/);
+    assert.match(RANGE_LOGIC, /function normalizeRangeAction\(action\)/);
+    assert.match(RANGE_LOGIC, /userAction !== normalizedCorrectAction/);
+    assert.match(RANGE_LOGIC, /unionHands = totalSolutionHands \+ extraHands\.length/);
     assert.doesNotMatch(PAGE, /ACTION_COLORS moved to/);
 });
 
 test('Range Lab is a mobile-first native-button matrix with a separate desktop expansion', () => {
     assert.match(PAGE, /className="preflop-range-lab"/);
-    assert.match(PAGE, /className="preflop-lab-grid-scroll" tabIndex="0"/);
-    assert.match(PAGE, /className="preflop-lab-grid" role="group"/);
-    assert.match(PAGE, /type="button"[\s\S]*data-feedback=\{feedbackState\}/);
+    assert.match(PAGE, /<PreflopRangeMatrix/);
+    assert.match(RANGE_MATRIX, /className="preflop-lab-grid"[\s\S]*role="grid"/);
+    assert.match(RANGE_MATRIX, /role="gridcell"/);
+    assert.match(RANGE_MATRIX, /tabIndex=\{focusedHand === hand \? 0 : -1\}/);
+    assert.match(RANGE_MATRIX, /type="button"[\s\S]*data-feedback=\{feedbackState\}/);
     assert.match(PAGE, /aria-pressed=\{selectedAction === action\}/);
-    assert.match(CSS, /\.preflop-lab-grid\s*\{[\s\S]*min-width:\s*520px/);
+    assert.match(CSS, /\.preflop-lab-grid\s*\{[\s\S]*min-width:\s*628px/);
     assert.match(CSS, /\.preflop-lab-feedback\s*\{\s*position:\s*relative;\s*min-width:\s*0/);
     assert.match(CSS, /\.preflop-lab-actions\s*\{[\s\S]*repeat\(3, minmax\(0, 1fr\)\)/);
     assert.match(CSS, /@media \(min-width: 768px\)[\s\S]*\.preflop-lab-actions\s*\{[\s\S]*repeat\(6, minmax\(0, 1fr\)\)/);

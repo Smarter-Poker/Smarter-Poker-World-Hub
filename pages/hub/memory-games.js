@@ -60,8 +60,15 @@ const PatternRecognitionGame = dynamic(() => import('../../src/games/PatternReco
 const MixedStrategyGame = dynamic(() => import('../../src/games/MixedStrategyGame'), { ssr: false });
 import ScenarioFilterPanel, { filterScenarios } from '../../src/games/ScenarioFilterPanel';
 import { getAccessToken, authedFetch } from '../../src/lib/authUtils';
+import PreflopRangeMatrix from '../../src/components/memory-games/PreflopRangeMatrix';
+import {
+    accuracyToPercent,
+    getUnlockedLevel,
+    gradeUserGrid,
+    normalizeMemoryDashboard,
+} from '../../src/lib/preflopRangeLab';
 // 2026-05-07 — Lucide icons replace emoji in the menu surface (UI-UX-Pro-Max no-emoji-icons rule)
-import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck, BrainCircuit, ChevronRight, Gem, Clock3, Lightbulb, Send, RotateCcw, ArrowRight, Undo2, Trash2 } from 'lucide-react';
+import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck, BrainCircuit, ChevronRight, Gem, Clock3, Lightbulb, Send, RotateCcw, ArrowRight, Undo2, Redo2, Trash2 } from 'lucide-react';
 const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 
 const ALL_TRAINING_SCENARIOS = [
@@ -89,53 +96,6 @@ const ACTION_COLORS = {
     all_in: { bg: 'rgba(220, 38, 127, 0.6)', border: '#DC2680', label: 'ALL IN', key: '6' },
 };
 
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 🧮 GRADING ENGINE
-// ═══════════════════════════════════════════════════════════════════════════
-function normalizeRangeAction(action) {
-    const normalized = String(action || '').toLowerCase().replace(/[-\s]/g, '_');
-    if (normalized.startsWith('raise_small')) return 'raise_small';
-    if (normalized.startsWith('raise_big')) return 'raise_big';
-    if (normalized.startsWith('all_in') || normalized.startsWith('allin') || normalized.startsWith('jam')) return 'all_in';
-    if (normalized.startsWith('raise') || normalized.startsWith('3bet') || normalized.startsWith('4bet')) return 'raise';
-    if (normalized.startsWith('call') || normalized.startsWith('complete')) return 'call';
-    if (normalized.startsWith('fold') || normalized.startsWith('check')) return 'fold';
-    return normalized.replace(/\d+$/, '');
-}
-
-function gradeUserGrid(userGrid, solution) {
-    let correctHands = 0;
-    const missedHands = [];
-    const extraHands = [];
-    const wrongActionHands = [];
-
-    for (const [hand, correctAction] of Object.entries(solution || {})) {
-        const userAction = userGrid[hand];
-        const normalizedCorrectAction = normalizeRangeAction(correctAction);
-        if (!userAction || userAction === 'fold') {
-            missedHands.push(hand);
-        } else if (userAction !== normalizedCorrectAction) {
-            wrongActionHands.push(hand);
-        } else {
-            correctHands++;
-        }
-    }
-
-    for (const [hand, userAction] of Object.entries(userGrid || {})) {
-        if (!solution[hand] && userAction && userAction !== 'fold') {
-            extraHands.push(hand);
-        }
-    }
-
-    const totalSolutionHands = Object.keys(solution || {}).length;
-    const mistakes = missedHands.length + extraHands.length + wrongActionHands.length;
-    const score = totalSolutionHands > 0
-        ? Math.round(((totalSolutionHands - missedHands.length - wrongActionHands.length) / totalSolutionHands) * 100)
-        : 0;
-
-    return { score: Math.max(0, score), correctHands, missedHands, extraHands, wrongActionHands, mistakes };
-}
 
 // SpeedDrillGame - extracted to src/games/SpeedDrillGame.js (dynamic import above)
 // PressureCookerGame - extracted to src/games/PressureCookerGame.js (dynamic import above)
@@ -198,6 +158,27 @@ export default function MemoryGamesPage() {
     const [labStatus, setLabStatus] = useState('Raise selected. No hands marked.');
     const [gameNotice, setGameNotice] = useState(null);
     const gridHistoryRef = useRef([]);
+    const gridRedoRef = useRef([]);
+
+    // Hamburger and deep links use ?mode=. Hydrate that route contract once so
+    // every advertised sub-function opens the matching game instead of landing
+    // silently on the default Range Lab menu.
+    useEffect(() => {
+        if (!router.isReady) return;
+        const requested = Array.isArray(router.query.mode) ? router.query.mode[0] : router.query.mode;
+        const routeModes = {
+            'speed-drill': ['speed', 'speed-drill'],
+            'pressure-cooker': ['pressure', 'pressure-cooker'],
+            pattern: ['pattern', 'pattern-recognition'],
+            mixed: ['mixed', 'mixed-strategy'],
+            'spot-trainer': ['spot', 'spot-trainer'],
+            tournament: ['tournament', 'tournament'],
+        };
+        const mapped = routeModes[requested];
+        if (!mapped) return;
+        setGameType(mapped[0]);
+        setMode(mapped[1]);
+    }, [router.isReady, router.query.mode]);
 
     // Leaderboard state
     const [leaderboardData, setLeaderboardData] = useState([]);
@@ -289,8 +270,9 @@ export default function MemoryGamesPage() {
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
         soundEffects: true,
-        showHints: true,
-        autoSave: true
+        keyboardShortcuts: true,
+        showTimer: true,
+        visualHints: false,
     });
 
     // Load preferences from Supabase on mount
@@ -324,6 +306,9 @@ export default function MemoryGamesPage() {
 
     // Safe helper to get level config with fallback
     const safeLevelConfig = getLevelConfig(currentLevel) || { timer: 90, gridSize: 13, maxHands: 20 };
+    const playSound = useCallback((sound) => {
+        if (preferences.soundEffects !== false) SoundEngine.play(sound);
+    }, [preferences.soundEffects]);
 
     // Initialize effects CSS once. Re-initialize the economy whenever auth
     // resolves so an authenticated player can never remain in guest mode.
@@ -369,7 +354,7 @@ export default function MemoryGamesPage() {
                         handleTimeUp();
                         return 0;
                     }
-                    if (prev <= 10) SoundEngine.play('tick');
+                    if (prev <= 10 && preferences.soundEffects !== false) SoundEngine.play('tick');
                     const nextTime = prev - 1;
                     latestTimeRef.current = nextTime;
                     return nextTime;
@@ -377,7 +362,7 @@ export default function MemoryGamesPage() {
             }, 1000);
         }
         return () => clearInterval(timerRef.current);
-    }, [timerActive]);
+    }, [timerActive, preferences.soundEffects]);
 
     const handleActionSelect = useCallback((action) => {
         setSelectedAction(action);
@@ -388,19 +373,50 @@ export default function MemoryGamesPage() {
         if (gradeResult || !timerActive) return;
         const previousGrid = gridHistoryRef.current.pop();
         if (!previousGrid) return;
+        gridRedoRef.current.push(userGrid);
+        gridRedoRef.current = gridRedoRef.current.slice(-30);
         setUserGrid(previousGrid);
         const count = Object.keys(previousGrid).length;
         setLabStatus(`Last range edit undone. ${count} hand${count === 1 ? '' : 's'} marked.`);
-    }, [gradeResult, timerActive]);
+    }, [gradeResult, timerActive, userGrid]);
+
+    const handleRedo = useCallback(() => {
+        if (gradeResult || !timerActive) return;
+        const nextGrid = gridRedoRef.current.pop();
+        if (!nextGrid) return;
+        gridHistoryRef.current.push(userGrid);
+        gridHistoryRef.current = gridHistoryRef.current.slice(-30);
+        setUserGrid(nextGrid);
+        const count = Object.keys(nextGrid).length;
+        setLabStatus(`Range edit restored. ${count} hand${count === 1 ? '' : 's'} marked.`);
+    }, [gradeResult, timerActive, userGrid]);
 
     const handleClearRange = useCallback(() => {
         if (gradeResult || !timerActive) return;
         if (Object.keys(userGrid).length === 0) return;
         gridHistoryRef.current.push(userGrid);
         gridHistoryRef.current = gridHistoryRef.current.slice(-30);
+        gridRedoRef.current = [];
         setUserGrid({});
         setLabStatus('Range cleared. Use undo to restore it.');
     }, [gradeResult, timerActive, userGrid]);
+
+    const handleFillShape = useCallback((shape) => {
+        if (gradeResult || !timerActive) return;
+        const hands = [];
+        RANKS.forEach((_, row) => RANKS.forEach((__, col) => {
+            if (shape === 'pairs' && row === col) hands.push(getHandName(row, col));
+            if (shape === 'suited' && row < col) hands.push(getHandName(row, col));
+            if (shape === 'offsuit' && row > col) hands.push(getHandName(row, col));
+        }));
+        gridHistoryRef.current.push(userGrid);
+        gridHistoryRef.current = gridHistoryRef.current.slice(-30);
+        gridRedoRef.current = [];
+        const nextGrid = { ...userGrid };
+        hands.forEach((hand) => { nextGrid[hand] = selectedAction; });
+        setUserGrid(nextGrid);
+        setLabStatus(`${shape} filled with ${ACTION_COLORS[selectedAction]?.label || selectedAction}. ${Object.keys(nextGrid).length} hands marked.`);
+    }, [gradeResult, selectedAction, timerActive, userGrid]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -408,11 +424,13 @@ export default function MemoryGamesPage() {
             if (mode !== 'game' || gradeResult || preferences.keyboardShortcuts === false) return;
             const target = e.target instanceof Element ? e.target : null;
             const isInteractiveTarget = target?.closest('button, a, input, select, textarea, [contenteditable="true"]');
-            if (isInteractiveTarget) return;
+            const isTextEntry = target?.closest('input, select, textarea, [contenteditable="true"]');
 
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+                if (isTextEntry) return;
                 e.preventDefault();
-                handleUndo();
+                if (e.shiftKey) handleRedo();
+                else handleUndo();
                 return;
             }
 
@@ -420,10 +438,12 @@ export default function MemoryGamesPage() {
             const actions = Object.entries(ACTION_COLORS);
             const found = actions.find(([_, v]) => v.key === key);
             if (found) {
+                if (isTextEntry) return;
                 e.preventDefault();
                 handleActionSelect(found[0]);
                 return;
             }
+            if (isInteractiveTarget) return;
             if (key === 'Enter' || key === ' ') {
                 e.preventDefault();
                 handleSubmit();
@@ -431,7 +451,7 @@ export default function MemoryGamesPage() {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [mode, gradeResult, userGrid, currentScenario, preferences.keyboardShortcuts, handleActionSelect, handleUndo]);
+    }, [mode, gradeResult, userGrid, currentScenario, preferences.keyboardShortcuts, handleActionSelect, handleRedo, handleUndo]);
 
     // Reusable: Fresh DB balance check + DiamondEngine deduction
     // NOTE: isStartingRef guards here AND in startGame - both are needed because:
@@ -478,6 +498,17 @@ export default function MemoryGamesPage() {
         try {
         if (isVIP === null) {
             isGameStartingRef.current = false;
+            return;
+        }
+
+        const serverUnlockedLevel = getUnlockedLevel(memoryDashboard?.per_level_mastery || []);
+        const sessionUnlockedLevel = Math.min(10, Math.floor(consecutivePasses / 5) + 1);
+        const highestUnlocked = Math.max(serverUnlockedLevel, sessionUnlockedLevel);
+        if (Number(level) > highestUnlocked) {
+            setGameNotice({
+                type: 'warning',
+                message: `Level ${level} is locked. Master Level ${highestUnlocked} at 85% or better first.`,
+            });
             return;
         }
         
@@ -559,6 +590,7 @@ export default function MemoryGamesPage() {
         setCurrentScenario(scenario);
         setUserGrid({});
         gridHistoryRef.current = [];
+        gridRedoRef.current = [];
         setGradeResult(null);
         setLabStatus(`${ACTION_COLORS[selectedAction]?.label || selectedAction} selected. No hands marked.`);
         setLastReward(null);
@@ -570,7 +602,7 @@ export default function MemoryGamesPage() {
         setMultiplier(1);
         setMode('game');
 
-        SoundEngine.play('levelUp');
+        playSound('levelUp');
         } finally {
             isGameStartingRef.current = false;
         }
@@ -579,17 +611,18 @@ export default function MemoryGamesPage() {
     // Handle time up
     const handleTimeUp = () => {
         setTimerActive(false);
-        SoundEngine.play('gameOver');
+        playSound('gameOver');
         triggerScreenShake();
         handleSubmit(true);
     };
 
     // Cell click handler
-    const handleCellClick = (hand) => {
+    const handleCellClick = useCallback((hand) => {
         if (gradeResult || !timerActive) return;
 
         gridHistoryRef.current.push(userGrid);
         gridHistoryRef.current = gridHistoryRef.current.slice(-30);
+        gridRedoRef.current = [];
         if (userGrid[hand] === selectedAction) {
             const { [hand]: _, ...rest } = userGrid;
             setUserGrid(rest);
@@ -599,7 +632,7 @@ export default function MemoryGamesPage() {
         const nextGrid = { ...userGrid, [hand]: selectedAction };
         setUserGrid(nextGrid);
         setLabStatus(`${hand} set to ${ACTION_COLORS[selectedAction]?.label || selectedAction}. ${Object.keys(nextGrid).length} hands marked.`);
-    };
+    }, [gradeResult, selectedAction, timerActive, userGrid]);
 
     // Submit handler
     const handleSubmit = (timedOut = false) => {
@@ -634,7 +667,7 @@ export default function MemoryGamesPage() {
 
         if (passed) {
             // Success!
-            SoundEngine.play('combo');
+            playSound('combo');
             triggerParticles();
 
             // God-Mode: Confetti celebration on mastery
@@ -672,7 +705,7 @@ export default function MemoryGamesPage() {
             }).catch(err => console.warn('[MemoryGames] Award failed:', err?.message || err));
         } else {
             // Failure
-            SoundEngine.play('wrong');
+            playSound('wrong');
             triggerScreenShake();
             setCombo(0);
             setComboName(null);
@@ -747,6 +780,7 @@ export default function MemoryGamesPage() {
                 diamondsEarned: 0,
                 completed: true
             }).then(sessionResult => {
+                if (sessionResult?.success) loadMemoryDashboard(true);
             }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
 
             // 6. Check and unlock achievements
@@ -861,6 +895,24 @@ export default function MemoryGamesPage() {
     // Next scenario
     const handleNext = () => {
         startGame(currentLevel);
+    };
+
+    const handleRetry = () => {
+        if (!currentScenario) return;
+        const levelConfig = getLevelConfig(currentLevel) || { timer: 90 };
+        setUserGrid({});
+        gridHistoryRef.current = [];
+        gridRedoRef.current = [];
+        setGradeResult(null);
+        setLastReward(null);
+        setCoachAnalysis({ show: false, loading: false, analysis: null });
+        setTimeRemaining(levelConfig.timer);
+        latestTimeRef.current = levelConfig.timer;
+        submissionLockedRef.current = false;
+        setTimerActive(true);
+        setMode('game');
+        setLabStatus(`${ACTION_COLORS[selectedAction]?.label || selectedAction} selected. Retry started.`);
+        playSound('levelUp');
     };
 
     // Fetch Jarvis explanation for a hand (with GTO panel image)
@@ -1033,6 +1085,8 @@ export default function MemoryGamesPage() {
                 const levelConfig = getLevelConfig(currentLevel) || { timer: 90 };
                 setCurrentScenario(result.scenario);
                 setUserGrid({});
+                gridHistoryRef.current = [];
+                gridRedoRef.current = [];
                 setGradeResult(null);
                 setLastReward(null);
                 setCoachAnalysis({ show: false, loading: false, analysis: null });
@@ -1041,7 +1095,7 @@ export default function MemoryGamesPage() {
                 submissionLockedRef.current = false;
                 setTimerActive(true);
                 setMode('game');
-                SoundEngine.play('levelUp');
+                playSound('levelUp');
             }
         } catch (error) {
             console.warn('[MemoryGames] Adaptive training error:', error);
@@ -1076,30 +1130,39 @@ export default function MemoryGamesPage() {
         }
     }, [userId, mode]);
 
-    // Load aggregated dashboard payload (real grade, per-level mastery, daily-challenge state)
-    useEffect(() => {
+    const loadMemoryDashboard = useCallback(async (fresh = false) => {
         if (!userId) {
             setMemoryDashboardLoading(false);
-            return;
+            return null;
         }
-        let cancelled = false;
-        (async () => {
-            try {
-                const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-                const r = await authedFetch('/api/memory/dashboard', {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                });
-                if (!r.ok) throw new Error(`memory/dashboard ${r.status}`);
-                const json = await r.json();
-                if (!cancelled && json?.success) setMemoryDashboard(json.stats);
-            } catch (e) {
-                if (!cancelled) console.warn('[MemoryGames] dashboard fetch failed:', e?.message || e);
-            } finally {
-                if (!cancelled) setMemoryDashboardLoading(false);
+        try {
+            const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+            const suffix = fresh ? `?refresh=${Date.now()}` : '';
+            const r = await authedFetch(`/api/memory/dashboard${suffix}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                cache: fresh ? 'no-store' : 'default',
+            });
+            if (!r.ok) throw new Error(`memory/dashboard ${r.status}`);
+            const json = await r.json();
+            if (json?.success) {
+                const normalized = normalizeMemoryDashboard(json.stats);
+                setMemoryDashboard(normalized);
+                return normalized;
             }
-        })();
-        return () => { cancelled = true; };
+        } catch (e) {
+            console.warn('[MemoryGames] dashboard fetch failed:', e?.message || e);
+        } finally {
+            setMemoryDashboardLoading(false);
+        }
+        return null;
     }, [userId]);
+
+    // Load aggregated dashboard payload (real grade, per-level mastery, daily-challenge state)
+    useEffect(() => {
+        let cancelled = false;
+        if (!cancelled) loadMemoryDashboard();
+        return () => { cancelled = true; };
+    }, [loadMemoryDashboard]);
 
     // Load leaderboard data
 
@@ -1179,7 +1242,7 @@ export default function MemoryGamesPage() {
 
             if (result.new_record) {
                 // Show celebration for new record
-                SoundEngine.play('levelUp');
+                playSound('levelUp');
                 fireConfetti({
                     particleCount: 100,
                     spread: 70,
@@ -1262,10 +1325,9 @@ export default function MemoryGamesPage() {
     const masteredLevelCount = memoryDashboard?.mastered_levels_count
         ?? memoryDashboard?.per_level_mastery?.filter((level) => level.mastered).length
         ?? 0;
-    const nextLockedLevelIndex = LEVELS.findIndex((_, idx) => idx > 0 && consecutivePasses < (idx * 5));
-    const masteryGateProgress = nextLockedLevelIndex === -1
-        ? 5
-        : Math.max(0, Math.min(5, consecutivePasses - ((nextLockedLevelIndex - 1) * 5)));
+    const serverUnlockedLevel = getUnlockedLevel(memoryDashboard?.per_level_mastery || []);
+    const sessionUnlockedLevel = Math.min(10, Math.floor(consecutivePasses / 5) + 1);
+    const highestUnlockedLevel = Math.max(serverUnlockedLevel, sessionUnlockedLevel);
     const markedHandCount = Object.keys(userGrid).length;
     const selectedActionCount = Object.values(userGrid).filter((action) => action === selectedAction).length;
 
@@ -1959,7 +2021,7 @@ export default function MemoryGamesPage() {
                                             </div>
 
                                             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
-                                                {dailyChallenge.description || `Score ${dailyChallenge.target_accuracy || 80}% or higher to complete the challenge.`}
+                                                {dailyChallenge.description || `Score ${accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}% or higher to complete the challenge.`}
                                             </p>
 
                                             <div style={{
@@ -1972,7 +2034,7 @@ export default function MemoryGamesPage() {
                                             }}>
                                                 <div>
                                                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>TARGET SCORE</div>
-                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#00ff88' }}>{dailyChallenge.target_accuracy || 80}%</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#00ff88' }}>{accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}%</div>
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
                                                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>REWARD</div>
@@ -1994,6 +2056,10 @@ export default function MemoryGamesPage() {
                                                         setMode('pattern-recognition');
                                                     } else if (mode === 'mixed-strategy') {
                                                         setMode('mixed-strategy');
+                                                    } else if (mode === 'spot-trainer') {
+                                                        setMode('spot-trainer');
+                                                    } else if (mode === 'tournament') {
+                                                        setMode('tournament');
                                                     }
                                                 }}
                                                 style={{
@@ -2119,7 +2185,7 @@ export default function MemoryGamesPage() {
                                             <ShieldCheck size={16} aria-hidden />
                                             <span>
                                                 <small>Next mastery gate</small>
-                                                <strong>{masteryGateProgress}/5 <em>· {masteredLevelCount} mastered</em></strong>
+                                                <strong>Level {highestUnlockedLevel} open <em>· {masteredLevelCount} mastered</em></strong>
                                             </span>
                                         </div>
                                         <div className={`preflop-circuit-stat is-pool${activeScenarioFilterCount > 0 ? ' has-filters' : ''}`}>
@@ -2139,7 +2205,7 @@ export default function MemoryGamesPage() {
                                                 ? filterScenarios(levelScenarios, scenarioFilters).length
                                                 : scenarioCount;
                                             const levelConfig = getLevelConfig(level.level) || { timer: 90, gridSize: 13, maxHands: 20, diamondMultiplier: 1.0 };
-                                            const isUnlocked = idx === 0 || consecutivePasses >= (idx * 5);
+                                            const isUnlocked = level.level <= highestUnlockedLevel;
                                             const isCurrent = level.level === currentLevel;
                                             const mastery = memoryDashboard?.per_level_mastery?.find(x => x.level === level.level);
                                             const isMastered = Boolean(mastery?.mastered);
@@ -2163,23 +2229,20 @@ export default function MemoryGamesPage() {
                                             }[levelState];
 
                                             return (
-                                                <div
+                                                <article
                                                     key={level.level}
-                                                    onClick={() => isAvailable && startGame(level.level)}
                                                     className={`preflop-level-card${isCurrent ? ' is-current' : ''}${isMastered ? ' is-mastered' : ''}${!isUnlocked ? ' is-locked' : ''}${isUnlocked && !hasMatchingScenarios ? ' is-no-match' : ''}`}
                                                     style={{ '--level-index': idx }}
                                                     data-level-state={levelState}
-                                                    role="button"
-                                                    tabIndex={isAvailable ? 0 : -1}
-                                                    onKeyDown={(event) => {
-                                                        if ((event.key === 'Enter' || event.key === ' ') && isAvailable) {
-                                                            event.preventDefault();
-                                                            startGame(level.level);
-                                                        }
-                                                    }}
                                                     aria-current={isCurrent ? 'step' : undefined}
-                                                    aria-disabled={!isAvailable}
                                                 >
+                                                    <button
+                                                        type="button"
+                                                        className="preflop-level-card-action"
+                                                        onClick={() => startGame(level.level)}
+                                                        disabled={!isAvailable}
+                                                        aria-label={`${levelStateLabel}: Level ${level.level}, ${level.name}. ${matchingScenarioCount} matching scenarios.`}
+                                                    />
                                                     <div className="preflop-level-node" aria-hidden="true"><span>{level.level}</span></div>
                                                     <div className="preflop-level-copy">
                                                         <div className="preflop-level-heading">
@@ -2229,7 +2292,7 @@ export default function MemoryGamesPage() {
                                                             </div>
                                                         );
                                                     })()}
-                                                </div>
+                                                </article>
                                             );
                                         })}
                                     </div>
@@ -2240,7 +2303,7 @@ export default function MemoryGamesPage() {
                                         <div>
                                             <div className="preflop-mastery-title">85% Mastery Gate</div>
                                             <div className="preflop-mastery-desc">
-                                                Score 85%+ on 5 consecutive scenarios to unlock the next level
+                                                Master each level at 85% or better to permanently open the next station. Five passes in one session also unlock it immediately.
                                             </div>
                                         </div>
                                     </div>
@@ -2526,7 +2589,7 @@ export default function MemoryGamesPage() {
                                     </div>
                                     <h2 id="preflop-range-lab-title">{currentScenario.title}</h2>
                                     <p>{currentScenario.description}</p>
-                                    {currentScenario.tip && !gradeResult && (
+                                    {currentScenario.tip && !gradeResult && preferences.visualHints === true && (
                                         <div className="preflop-lab-tip">
                                             <Lightbulb size={16} aria-hidden />
                                             <span>{currentScenario.tip}</span>
@@ -2540,16 +2603,22 @@ export default function MemoryGamesPage() {
                                             <strong data-pass={gradeResult.score >= MASTERY_THRESHOLD}>{gradeResult.score}%</strong>
                                             <span>{gradeResult.score >= MASTERY_THRESHOLD ? 'Range passed' : 'Review required'}</span>
                                         </>
-                                    ) : (
+                                    ) : preferences.showTimer !== false ? (
                                         <>
                                             <Clock3 size={18} aria-hidden />
                                             <strong style={{ color: getTimerColor() }}>{timeRemaining}</strong>
                                             <span>seconds</span>
                                         </>
+                                    ) : (
+                                        <>
+                                            <Clock3 size={18} aria-hidden />
+                                            <strong className="preflop-lab-timer-hidden">—</strong>
+                                            <span>timer hidden</span>
+                                        </>
                                     )}
                                 </div>
 
-                                <div
+                                {preferences.showTimer !== false && <div
                                     className="preflop-lab-timer"
                                     data-urgency={timeRemaining <= 10 ? 'critical' : timeRemaining <= 30 ? 'warning' : 'steady'}
                                     role="progressbar"
@@ -2559,7 +2628,7 @@ export default function MemoryGamesPage() {
                                     aria-valuenow={timeRemaining}
                                 >
                                     <span style={{ '--timer-progress': `${Math.max(0, Math.min(100, (timeRemaining / safeLevelConfig.timer) * 100))}%` }} />
-                                </div>
+                                </div>}
                             </header>
 
                             <div className="preflop-lab-console">
@@ -2586,6 +2655,12 @@ export default function MemoryGamesPage() {
                                         </button>
                                     ))}
                                 </div>
+                                <div className="preflop-lab-shape-tools" aria-label="Quick range shapes">
+                                    <span>Apply active action to</span>
+                                    <button type="button" onClick={() => handleFillShape('pairs')} disabled={!!gradeResult}>Pairs</button>
+                                    <button type="button" onClick={() => handleFillShape('suited')} disabled={!!gradeResult}>Suited</button>
+                                    <button type="button" onClick={() => handleFillShape('offsuit')} disabled={!!gradeResult}>Offsuit</button>
+                                </div>
                             </div>
 
                             <div
@@ -2600,6 +2675,22 @@ export default function MemoryGamesPage() {
                                         {ACTION_COLORS[selectedAction]?.label || selectedAction}
                                     </strong>
                                 </div>
+                                <div className="preflop-lab-command-actions" aria-label="Quick action selector">
+                                    {Object.entries(ACTION_COLORS).map(([action, { border, label }]) => (
+                                        <button
+                                            key={action}
+                                            type="button"
+                                            onClick={() => handleActionSelect(action)}
+                                            disabled={!!gradeResult}
+                                            aria-label={`Use ${label}`}
+                                            aria-pressed={selectedAction === action}
+                                            style={{ '--action-color': border }}
+                                        >
+                                            <i aria-hidden />
+                                            <span>{label.replace('RAISE ', 'R-')}</span>
+                                        </button>
+                                    ))}
+                                </div>
                                 <div className="preflop-lab-command-counts" aria-label={`${markedHandCount} hand${markedHandCount === 1 ? '' : 's'} marked; ${selectedActionCount} use the active action`}>
                                     <span><strong>{markedHandCount}</strong> marked</span>
                                     <span><strong>{selectedActionCount}</strong> active</span>
@@ -2613,6 +2704,15 @@ export default function MemoryGamesPage() {
                                     >
                                         <Undo2 size={16} aria-hidden />
                                         <span>Undo</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleRedo}
+                                        disabled={!!gradeResult || !timerActive || gridRedoRef.current.length === 0}
+                                        aria-label="Redo last undone range edit"
+                                    >
+                                        <Redo2 size={16} aria-hidden />
+                                        <span>Redo</span>
                                     </button>
                                     <button
                                         type="button"
@@ -2634,40 +2734,16 @@ export default function MemoryGamesPage() {
                                     </div>
                                     <span>Tap a hand to apply {ACTION_COLORS[selectedAction]?.label || selectedAction}</span>
                                 </div>
-                                <div className="preflop-lab-grid-scroll" tabIndex="0" aria-label="Scrollable 13 by 13 starting-hand matrix">
-                                    <div className="preflop-lab-grid" role="group" aria-label="Starting-hand range">
-                                    {RANKS.map((_, row) => (
-                                        RANKS.map((_, col) => {
-                                            const hand = getHandName(row, col);
-                                            const userAction = userGrid[hand];
-                                            const actionStyle = userAction && ACTION_COLORS[userAction];
-
-                                            let feedbackState = 'idle';
-                                            if (gradeResult) {
-                                                if (gradeResult.missedHands.includes(hand)) feedbackState = 'missed';
-                                                else if (gradeResult.extraHands.includes(hand)) feedbackState = 'extra';
-                                                else if (gradeResult.wrongActionHands.includes(hand)) feedbackState = 'wrong';
-                                                else if (userAction && normalizeRangeAction(currentScenario.solution[hand]) === userAction) feedbackState = 'correct';
-                                            }
-
-                                            return (
-                                                <button
-                                                    key={hand}
-                                                    type="button"
-                                                    onClick={() => handleCellClick(hand)}
-                                                    disabled={!!gradeResult || !timerActive}
-                                                    data-action={userAction || 'none'}
-                                                    data-feedback={feedbackState}
-                                                    style={{ '--cell-fill': actionStyle?.bg || 'rgba(20, 29, 43, 0.82)', '--cell-stroke': actionStyle?.border || 'rgba(129, 167, 194, 0.18)' }}
-                                                    aria-label={`${hand}: ${userAction ? ACTION_COLORS[userAction]?.label : 'not selected'}${feedbackState !== 'idle' ? `, ${feedbackState}` : ''}`}
-                                                >
-                                                    {hand}
-                                                </button>
-                                            );
-                                        })
-                                    ))}
-                                    </div>
-                                </div>
+                                <PreflopRangeMatrix
+                                    ranks={RANKS}
+                                    getHandName={getHandName}
+                                    actionColors={ACTION_COLORS}
+                                    userGrid={userGrid}
+                                    gradeResult={gradeResult}
+                                    scenario={currentScenario}
+                                    timerActive={timerActive}
+                                    onCellClick={handleCellClick}
+                                />
                             </div>
 
                             <div className="preflop-lab-submit-panel">
@@ -2675,13 +2751,17 @@ export default function MemoryGamesPage() {
                                     <button type="button" onClick={() => handleSubmit()} className="preflop-lab-submit" disabled={!timerActive}>
                                         <Send size={18} aria-hidden />
                                         <span>Submit range</span>
-                                        <kbd>Space</kbd>
+                                        {preferences.keyboardShortcuts !== false && <kbd>Space</kbd>}
                                     </button>
                                 ) : (
                                     <div className="preflop-lab-result-actions">
                                         <button type="button" onClick={() => setMode('menu')}>
                                             <RotateCcw size={17} aria-hidden />
                                             Training menu
+                                        </button>
+                                        <button type="button" onClick={handleRetry}>
+                                            <RotateCcw size={17} aria-hidden />
+                                            Retry this range
                                         </button>
                                         <button type="button" onClick={handleNext} className="is-primary">
                                             Next scenario
