@@ -756,20 +756,24 @@ export default async function handler(req, res) {
               );
           } catch (sessionError) {
               if (type === 'diamonds' && sessionConfig.metadata.purchase_id) {
-                  const { error: cleanupError } = await getSupabase()
+                  const { data: cleanedRows, error: cleanupError } = await getSupabase()
                       .from('diamond_purchases')
                       .update({ status: 'failed' })
                       .eq('id', sessionConfig.metadata.purchase_id)
-                      .eq('status', 'pending');
+                      .eq('status', 'pending')
+                      .select('id');
                   if (cleanupError) console.error('[Checkout] Pending diamond cleanup failed:', cleanupError.message);
+                  else if (!cleanedRows?.length) console.info('[Checkout] Pending diamond purchase was already terminal');
               }
               if (type === 'merchandise' && sessionConfig.metadata.order_id) {
-                  const { error: cleanupError } = await getSupabase()
+                  const { data: cleanedRows, error: cleanupError } = await getSupabase()
                       .from('merchandise_orders')
                       .update({ status: 'canceled' })
                       .eq('id', sessionConfig.metadata.order_id)
-                      .eq('status', 'pending');
+                      .eq('status', 'pending')
+                      .select('id');
                   if (cleanupError) console.error('[Checkout] Pending merchandise cleanup failed:', cleanupError.message);
+                  else if (!cleanedRows?.length) console.info('[Checkout] Pending merchandise order was already terminal');
               }
               throw sessionError;
           }
@@ -778,20 +782,32 @@ export default async function handler(req, res) {
           // This makes abandoned/expired sessions observable and lets the
           // authenticated return-status endpoint reconcile the pending record.
           if (type === 'diamonds' && sessionConfig.metadata.purchase_id) {
-              const { error: linkError } = await getSupabase()
+              const { data: linkedRows, error: linkError } = await getSupabase()
                   .from('diamond_purchases')
                   .update({ stripe_checkout_session_id: session.id })
                   .eq('id', sessionConfig.metadata.purchase_id)
-                  .eq('status', 'pending');
-              if (linkError) console.error('[Checkout] Could not link pending diamond purchase to session:', linkError.message);
+                  .select('id');
+              if (linkError || !linkedRows?.length) {
+                  console.error('[Checkout] Could not link diamond purchase to session:', linkError?.message || 'zero rows');
+                  await stripe.checkout.sessions.expire(session.id).catch((expireError) => {
+                      console.error('[Checkout] Could not expire unlinked diamond session:', expireError?.message || expireError);
+                  });
+                  throw new Error('Could not finalize checkout. No payment was taken. Please try again.');
+              }
           }
           if (type === 'merchandise' && sessionConfig.metadata.order_id) {
-              const { error: linkError } = await getSupabase()
+              const { data: linkedRows, error: linkError } = await getSupabase()
                   .from('merchandise_orders')
                   .update({ stripe_checkout_session_id: session.id })
                   .eq('id', sessionConfig.metadata.order_id)
-                  .eq('status', 'pending');
-              if (linkError) console.error('[Checkout] Could not link pending merchandise order to session:', linkError.message);
+                  .select('id');
+              if (linkError || !linkedRows?.length) {
+                  console.error('[Checkout] Could not link merchandise order to session:', linkError?.message || 'zero rows');
+                  await stripe.checkout.sessions.expire(session.id).catch((expireError) => {
+                      console.error('[Checkout] Could not expire unlinked merchandise session:', expireError?.message || expireError);
+                  });
+                  throw new Error('Could not finalize checkout. No payment was taken. Please try again.');
+              }
           }
 
           return res.status(200).json({
