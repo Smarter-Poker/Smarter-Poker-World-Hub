@@ -40,9 +40,9 @@ test('mode filters support roving keyboard navigation and keep the active choice
     assert.match(LOBBY, /prefers-reduced-motion: reduce/);
 });
 
-test('phase three leaves the twelve game definitions, artwork, and destinations intact', () => {
+test('phase five keeps every game definition, artwork, and destination intact', () => {
     const cards = LOBBY.slice(LOBBY.indexOf('const MODE_CARDS = ['), LOBBY.indexOf('const MODE_FILTERS = ['));
-    assert.equal((cards.match(/image: '\/images\/trivia\/modes-v2\//g) || []).length, 12);
-    assert.equal((cards.match(/\n\s*id: '/g) || []).length, 12);
-    assert.match(LOBBY, /router\.push\(standaloneRoutes\[modeId\] \|\| `\/hub\/trivia\/\$\{modeId\}`\)/);
+    assert.equal((cards.match(/image: '\/images\/trivia\/modes-v2\//g) || []).length, 13);
+    assert.equal((cards.match(/\n\s*id: '/g) || []).length, 13);
+    assert.match(LOBBY, /router\.push\(getModeRoute\(modeId\)\)/);
 });

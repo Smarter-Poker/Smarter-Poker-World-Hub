@@ -282,16 +282,9 @@ function applyPoolFilters(query, { category, difficulty, minQuality }) {
     return q;
 }
 
-/**
- * Columns served to gameplay. `*` used to ship correct_index AND explanation
- * for every question in the pool; the answer key is still needed by the
- * current client-side scoring flow, but selecting explicitly stops new
- * columns (embeddings, internal audit fields) leaking to the browser.
- */
-const POOL_COLUMNS =
-    'id, category, difficulty, question, options, correct_index, explanation, quality_score';
-
-const POOL_COLUMNS_NO_ANSWER = 'id, category, difficulty, question, options, quality_score';
+/** Public gameplay columns. All active modes grade through server routes. */
+const POOL_COLUMNS = 'id, category, difficulty, question, options, quality_score';
+const POOL_COLUMNS_NO_ANSWER = POOL_COLUMNS;
 
 /**
  * Randomized pool fetcher. Counts the matching pool, picks a random offset,

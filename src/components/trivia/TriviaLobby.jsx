@@ -5,14 +5,25 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { Trophy, BookOpen, GraduationCap, Gem, Heart, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain, Flame, ArrowUpRight } from 'lucide-react';
-import useVIPGate from '../../hooks/useVIPGate';
-import VIPGateModal from '../ui/VIPGateModal';
+import { Trophy, BookOpen, GraduationCap, Gem, Heart, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain, Flame, ArrowUpRight, Timer } from 'lucide-react';
+import { acquireScrollLock } from '../../lib/scrollLock';
 // The lobby no longer bills, so supabase / EventBus / getAuthUser are gone with
 // deductDiamonds. Entry price now comes from the engine config only.
 import { getModeConfig } from '../../lib/trivia/triviaEngine';
 
 const ACKNOWLEDGED_KEY = 'trivia_charge_acknowledged';
+
+const MODE_ROUTES = {
+    survival: '/hub/trivia/survival-game',
+    endless: '/hub/trivia/endless',
+    mixed: '/hub/trivia/mixed',
+    pvp: '/hub/trivia/pvp',
+    tournaments: '/hub/trivia/tournaments',
+};
+
+function getModeRoute(modeId) {
+    return MODE_ROUTES[modeId] || `/hub/trivia/${modeId}`;
+}
 
 /**
  * ENTRY PRICING — display only.
@@ -105,7 +116,7 @@ const MODE_CARDS = [
         code: '05',
         category: 'competitive',
         name: 'Tournaments',
-        description: 'Weekly Competitions with Big Prizes!',
+        description: 'Daily 7 PM CST Brackets with Big Prize Pools',
         icon: Calendar,
         color: '#FFD700',
         glowColor: '#FFD700',
@@ -158,31 +169,44 @@ const MODE_CARDS = [
         code: '09',
         category: 'challenge',
         name: 'Mixed Mode',
-        description: 'Rotating Categories: History → Rules → Pro',
+        description: 'Seven Poker Categories, Rotating Every Question',
         icon: Shuffle,
         color: '#00D4FF',
         glowColor: '#00D4FF',
-        diamondReward: '1/Q',
+        diamondReward: '5+ / +10 perfect',
         perfectBonus: null,
         image: '/images/trivia/modes-v2/mixed.webp'
     },
     // ROW 4 - Competitive
     {
-        id: 'pvp',
+        id: 'time-attack',
         code: '10',
+        category: 'challenge',
+        name: 'Time Attack',
+        description: 'Thirty Seconds. Answer as Many as You Can.',
+        icon: Timer,
+        color: '#14b8a6',
+        glowColor: '#14b8a6',
+        diamondReward: '1 / correct',
+        perfectBonus: null,
+        image: '/images/trivia/modes-v2/time-attack.webp'
+    },
+    {
+        id: 'pvp',
+        code: '11',
         category: 'competitive',
         name: '1v1 Battle',
         description: 'Challenge Real Players for Diamonds!',
         icon: Swords,
         color: '#f02849',
         glowColor: '#f02849',
-        diamondReward: '2x stake',
+        diamondReward: '1.8x stake',
         perfectBonus: null,
         image: '/images/trivia/modes-v2/pvp.webp'
     },
     {
         id: 'rules',
-        code: '11',
+        code: '12',
         category: 'knowledge',
         name: 'Rules Quiz',
         description: 'Test Your Understanding of Official Poker Rules',
@@ -195,7 +219,7 @@ const MODE_CARDS = [
     },
     {
         id: 'gto',
-        code: '12',
+        code: '13',
         category: 'competitive',
         name: 'GTO Master',
         description: 'Solver-based Scenarios Combining MTT, Cash, and ICM',
@@ -236,6 +260,11 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
     const [activeFilter, setActiveFilter] = useState('all');
     const filterRailRef = useRef(null);
     const filterButtonRefs = useRef([]);
+    const modalRef = useRef(null);
+    const modalCloseRef = useRef(null);
+    const previousFocusRef = useRef(null);
+    const routingRef = useRef(false);
+    const prefetchedRoutesRef = useRef(new Set());
 
     useEffect(() => {
         // Clear any legacy 'already paid' flags left in this session by an
@@ -253,7 +282,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
     const [showChargePopup, setShowChargePopup] = useState(false);
     const [pendingMode, setPendingMode] = useState(null);
     const [isRouting, setIsRouting] = useState(false);
-    const { showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('trivia');
+    const [routeError, setRouteError] = useState('');
 
     const pendingCost = pendingMode ? getEntryCost(pendingMode) : 0;
     const filteredModes = activeFilter === 'all'
@@ -287,6 +316,56 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         revealFilter(filterIndex, options);
     };
 
+    useEffect(() => {
+        if (!router.isReady) return;
+        const requested = typeof router.query.filter === 'string' ? router.query.filter : '';
+        const filterIndex = MODE_FILTERS.findIndex(filter => filter.id === requested);
+        if (filterIndex >= 0) selectFilter(requested, filterIndex);
+    // The query string is the external navigation contract. selectFilter is
+    // deliberately omitted because it is recreated during render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [router.isReady, router.query.filter]);
+
+    useEffect(() => {
+        if (!showChargePopup) return undefined;
+        previousFocusRef.current = document.activeElement;
+        const releaseScrollLock = acquireScrollLock('trivia-entry-disclosure');
+        const focusTimer = window.setTimeout(() => modalCloseRef.current?.focus(), 0);
+
+        const handleKeyDown = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setShowChargePopup(false);
+                setPendingMode(null);
+                return;
+            }
+            if (event.key !== 'Tab' || !modalRef.current) return;
+            const focusable = Array.from(modalRef.current.querySelectorAll(
+                'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+            ));
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.clearTimeout(focusTimer);
+            document.removeEventListener('keydown', handleKeyDown);
+            releaseScrollLock();
+            if (!routingRef.current && previousFocusRef.current instanceof HTMLElement) {
+                previousFocusRef.current.focus();
+            }
+        };
+    }, [showChargePopup]);
+
     const handleFilterKeyDown = (event, currentIndex) => {
         let nextIndex;
 
@@ -311,17 +390,30 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         selectFilter(MODE_FILTERS[nextIndex].id, nextIndex, { focus: true });
     };
 
-    // Route to the correct page for a mode
-    const routeToMode = (modeId) => {
+    const prefetchMode = modeId => {
+        const route = getModeRoute(modeId);
+        if (prefetchedRoutesRef.current.has(route)) return;
+        prefetchedRoutesRef.current.add(route);
+        router.prefetch(route).catch(() => prefetchedRoutesRef.current.delete(route));
+    };
+
+    // Route to the correct page for a mode, and recover if Next cancels or
+    // rejects the transition. The old fire-and-forget push stranded the full
+    // screen spinner forever after a route error.
+    const routeToMode = async modeId => {
+        if (routingRef.current) return;
+        routingRef.current = true;
+        setRouteError('');
         setIsRouting(true);
-        const standaloneRoutes = {
-            survival: '/hub/trivia/survival-game',
-            endless: '/hub/trivia/endless',
-            mixed: '/hub/trivia/mixed',
-            pvp: '/hub/trivia/pvp',
-            tournaments: '/hub/trivia/tournaments',
-        };
-        router.push(standaloneRoutes[modeId] || `/hub/trivia/${modeId}`);
+        try {
+            const didNavigate = await router.push(getModeRoute(modeId));
+            if (didNavigate === false) throw new Error('Navigation was cancelled');
+        } catch (error) {
+            console.warn('[TriviaLobby] Could not open mode:', error?.message || error);
+            routingRef.current = false;
+            setIsRouting(false);
+            setRouteError('That game could not be opened. Please try again.');
+        }
     };
 
     const handleChargeAccept = () => {
@@ -331,7 +423,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         try { localStorage.setItem(ACKNOWLEDGED_KEY, 'true'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         setShowChargePopup(false);
         setPendingMode(null);
-        routeToMode(modeId);
+        void routeToMode(modeId);
     };
 
     // Synchronous re-entry guard: two fast taps on a card used to run two
@@ -357,16 +449,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
         // VIPs and free modes go straight through.
         if (isVip || cost === 0 || VARIABLE_COST_MODES.has(modeId)) {
-            routeToMode(modeId);
-            return;
-        }
-
-        // Client-side balance check is a courtesy only; the destination page
-        // re-checks against the database before it charges.
-        if (userDiamonds < cost) {
-            // devhead replaced the in-lobby top-up card with the shared VIP
-            // upgrade gate; that modal is the insufficient-funds surface now.
-            showUpgradeModal();
+            void routeToMode(modeId);
             return;
         }
 
@@ -379,7 +462,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
             return;
         }
 
-        routeToMode(modeId);
+        void routeToMode(modeId);
     };
 
     return (
@@ -449,9 +532,8 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 <div
                     ref={filterRailRef}
                     className="mode-filters"
-                    role="group"
+                    role="toolbar"
                     aria-label="Filter trivia modes"
-                    aria-orientation="horizontal"
                 >
                     {MODE_FILTERS.map((filter, filterIndex) => (
                         <button
@@ -473,7 +555,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 </div>
 
                 <div className="modes-grid" id="trivia-mode-grid">
-                    {filteredModes.map((mode, cardIdx) => {
+                    {filteredModes.map((mode) => {
                         const Icon = mode.icon;
                         const cost = getEntryCost(mode.id);
                         const variableCost = VARIABLE_COST_MODES.has(mode.id);
@@ -492,7 +574,10 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                 type="button"
                                 className="mode-image-card"
                                 onClick={() => startMode(mode.id)}
-                                aria-label={`${mode.name}. ${mode.description}. ${costText}${rewardText ? `. Reward ${rewardText} diamonds` : ''}.`}
+                                onPointerEnter={() => prefetchMode(mode.id)}
+                                onFocus={() => prefetchMode(mode.id)}
+                                disabled={isRouting}
+                                aria-label={`${mode.name}. ${mode.description}. ${costText}${rewardText ? `. Reward ${rewardText}${typeof mode.diamondReward === 'number' ? ' diamonds' : ''}` : ''}.`}
                                 style={{ '--mode-color': mode.color, '--mode-glow': `${mode.glowColor}80` }}
                             >
                                 <div className="mode-image-card__art">
@@ -503,8 +588,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                         className="mode-image-card__img"
                                         width={1024}
                                         height={1024}
-                                        loading={cardIdx === 0 ? 'eager' : 'lazy'}
-                                        fetchpriority={cardIdx === 0 ? 'high' : 'auto'}
+                                        loading="lazy"
                                         decoding="async"
                                         draggable="false"
                                     />
@@ -547,6 +631,9 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     type="button"
                     className="quick-stakes-banner"
                     onClick={() => startMode('arcade')}
+                    onPointerEnter={() => prefetchMode('arcade')}
+                    onFocus={() => prefetchMode('arcade')}
+                    disabled={isRouting}
                     aria-label={`Quick Stakes — timed arcade round. ${isVip ? 'Free for VIP' : `Entry ${getEntryCost('arcade')} diamonds`}.`}
                 >
                     <img
@@ -1031,6 +1118,8 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     outline: none;
                     padding: 0;
                     -webkit-tap-highlight-color: transparent;
+                    min-width: 44px;
+                    min-height: 44px;
                 }
                 
                 /* Remove hover effects per requirements */
@@ -1481,8 +1570,8 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                 .mode-image-card__telemetry small {
                     margin-bottom: 3px;
-                    color: #5e7784;
-                    font-size: 8px;
+                    color: #7895a3;
+                    font-size: 10px;
                     font-weight: 700;
                     letter-spacing: 0.16em;
                 }
@@ -1529,6 +1618,13 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 @media (max-width: 900px) and (min-width: 701px) {
                     .modes-grid {
                         grid-template-columns: repeat(2, minmax(0, 1fr));
+                    }
+
+                    .mode-filters {
+                        position: sticky;
+                        top: calc(59px + env(safe-area-inset-top, 0px));
+                        z-index: 8;
+                        background: rgba(5, 14, 20, 0.97);
                     }
                 }
 
@@ -1579,7 +1675,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         display: flex;
                         flex-direction: column;
                         min-height: 0;
-                        contain-intrinsic-block-size: 470px;
+                        contain-intrinsic-block-size: 455px;
                         border-radius: 1px !important;
                     }
 
@@ -1648,7 +1744,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         padding-bottom: 7px;
                     }
 
-                    .mode-image-card__telemetry small { font-size: 7px; }
+                    .mode-image-card__telemetry small { font-size: 10px; }
                     .mode-image-card__telemetry strong { font-size: 10.5px; }
 
                     .mode-image-card__launch {
@@ -1706,6 +1802,62 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     }
                 }
 
+                .dm-dialog-copy {
+                    position: absolute;
+                    width: 1px;
+                    height: 1px;
+                    overflow: hidden;
+                    clip: rect(0 0 0 0);
+                    white-space: nowrap;
+                }
+
+                .route-error {
+                    margin: 10px 0 0;
+                    padding: 10px 12px;
+                    border: 1px solid #f28b82;
+                    color: #ffd7d3;
+                    background: rgba(86, 18, 18, 0.78);
+                    font-size: 13px;
+                    text-align: center;
+                }
+
+                @media (forced-colors: active) {
+                    .diamond-modal__bg { display: none; }
+                    .diamond-modal {
+                        width: min(92vw, 440px);
+                        padding: 24px;
+                        border: 2px solid ButtonText;
+                        background: Canvas;
+                        color: CanvasText;
+                    }
+                    .dm-dialog-copy {
+                        position: static;
+                        width: auto;
+                        height: auto;
+                        overflow: visible;
+                        clip: auto;
+                        white-space: normal;
+                    }
+                    .dm-hitbox {
+                        position: static;
+                        width: 100%;
+                        min-height: 44px;
+                        margin-top: 12px;
+                        border: 1px solid ButtonText;
+                        color: ButtonText;
+                    }
+                    .dm-close::after { content: 'Close'; }
+                    .dm-vip::after { content: 'Upgrade to VIP'; }
+                    .dm-accept::after { content: 'Accept and play'; }
+                    .dm-balance {
+                        position: static;
+                        transform: none;
+                        width: auto;
+                        height: auto;
+                        margin-top: 12px;
+                    }
+                }
+
                 @media (prefers-reduced-motion: reduce) {
                     .mode-image-card,
                     .mode-image-card__img,
@@ -1727,10 +1879,26 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
             {
                 showChargePopup && (
                     <div className="gate-overlay" onClick={() => { setShowChargePopup(false); setPendingMode(null); }}>
-                        <div className="diamond-modal" onClick={e => e.stopPropagation()}>
+                        <div
+                            ref={modalRef}
+                            className="diamond-modal"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="trivia-entry-title"
+                            aria-describedby="trivia-entry-description"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="dm-dialog-copy">
+                                <h2 id="trivia-entry-title">Diamond entry</h2>
+                                <p id="trivia-entry-description">
+                                    This game costs {pendingCost} diamonds. Your current balance is {userDiamonds} diamonds.
+                                    The game page verifies and charges the entry when it starts.
+                                </p>
+                            </div>
                             <img
                                 src="/images/trivia/diamond-entry-modal.webp?v=v6"
-                                alt="Diamond Entry Modal"
+                                alt=""
+                                aria-hidden="true"
                                 className="diamond-modal__bg"
                                 width={946}
                                 height={1024}
@@ -1739,6 +1907,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                             {/* Close Button hit area */}
                             <button
+                                ref={modalCloseRef}
                                 type="button"
                                 className="dm-hitbox dm-close"
                                 onClick={() => {
@@ -1755,7 +1924,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                 className="dm-hitbox dm-vip"
                                 onClick={() => {
                                     navigator.vibrate?.(50);
-                                    router.push('/hub/vip');
+                                    void router.push('/hub/vip-membership');
                                 }}
                                 aria-label="Upgrade to VIP"
                             />
@@ -1780,7 +1949,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                             </div>
 
                             {isRouting && (
-                                <div className="dm-spinner-overlay">
+                                <div className="dm-spinner-overlay" role="status" aria-live="polite" aria-label="Opening game">
                                     <div className="deducting-spinner" />
                                 </div>
                             )}
@@ -1789,18 +1958,12 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 )
             }
 
-            {/* ═══════ VIP UPGRADE GATE ═══════ */}
-            <VIPGateModal 
-                visible={upgradeModalVisible}
-                onClose={hideUpgradeModal}
-                featureName="Unlimited Trivia Sessions"
-                featureConfig={featureConfig}
-            />
+            {routeError && <p className="route-error" role="alert">{routeError}</p>}
 
             {/* Routing spinner overlay */}
             {
                 isRouting && !showChargePopup && (
-                    <div className="deducting-overlay">
+                    <div className="deducting-overlay" role="status" aria-live="polite" aria-label="Opening game">
                         <div className="deducting-spinner" />
                     </div>
                 )

@@ -512,24 +512,47 @@ if [ -n "$TS_FILES" ]; then
 
         # Run tsc on the CURRENT state (with our changes)
         CURRENT_ERRORS=$("$TSC_BIN" --noEmit --skipLibCheck 2>&1 | grep '^src/' | sort)
-        CURRENT_COUNT=$(echo "$CURRENT_ERRORS" | grep -c 'error TS' 2>/dev/null || echo 0)
+        CURRENT_COUNT=$(printf '%s\n' "$CURRENT_ERRORS" | grep -c 'error TS' 2>/dev/null || true)
 
-        # Run tsc on the REMOTE HEAD state (before our changes)
+        # Run tsc on the REMOTE HEAD state (before our changes) in an isolated,
+        # detached worktree. Never use git stash here: stashes are shared across
+        # all worktrees, so popping one from a clean worktree can apply another
+        # developer's unrelated work and corrupt the checkout being pushed.
         if [ -n "$REMOTE_HEAD" ]; then
-            BASELINE_ERRORS=$(git stash --quiet 2>/dev/null && \
-                "$TSC_BIN" --noEmit --skipLibCheck 2>&1 | grep '^src/' | sort; \
-                git stash pop --quiet 2>/dev/null)
-            BASELINE_COUNT=$(echo "$BASELINE_ERRORS" | grep -c 'error TS' 2>/dev/null || echo 0)
+            BASELINE_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/sp-ts-baseline.XXXXXX" 2>/dev/null)
+            BASELINE_DIR="${BASELINE_ROOT}/worktree"
+
+            if [ -n "$BASELINE_ROOT" ] && \
+                git -c core.hooksPath=/dev/null worktree add --detach "$BASELINE_DIR" "$REMOTE_HEAD" >/dev/null 2>&1; then
+                # Reuse the installed dependencies without copying or mutating them.
+                ln -s "$(pwd)/node_modules" "$BASELINE_DIR/node_modules" 2>/dev/null || true
+                BASELINE_ERRORS=$(cd "$BASELINE_DIR" && \
+                    "$TSC_BIN" --noEmit --skipLibCheck 2>&1 | grep '^src/' | sort)
+                git -c core.hooksPath=/dev/null worktree remove --force "$BASELINE_DIR" >/dev/null 2>&1 || true
+                rmdir "$BASELINE_ROOT" 2>/dev/null || true
+            else
+                echo -e "${RED}  ✗ TYPESCRIPT: Could not create an isolated remote baseline.${NC}"
+                echo "    Refusing to compare against or modify the current worktree."
+                echo ""
+                BASELINE_ERRORS=""
+                ERRORS=$((ERRORS + 1))
+                [ -n "$BASELINE_ROOT" ] && rmdir "$BASELINE_ROOT" 2>/dev/null || true
+            fi
+
+            BASELINE_COUNT=$(printf '%s\n' "$BASELINE_ERRORS" | grep -c 'error TS' 2>/dev/null || true)
         else
             BASELINE_COUNT=0
             BASELINE_ERRORS=""
         fi
 
-        # Find errors that are NEW (in current but not in baseline)
-        NEW_ERRORS=$(comm -23 \
-            <(echo "$CURRENT_ERRORS" | grep 'error TS' | sort) \
-            <(echo "$BASELINE_ERRORS" | grep 'error TS' | sort) 2>/dev/null)
-        NEW_COUNT=$(echo "$NEW_ERRORS" | grep -c 'error TS' 2>/dev/null || echo 0)
+        # Find errors that are NEW (in current but not in baseline). Keep this
+        # POSIX-compatible because Husky may invoke hooks through /bin/sh.
+        NEW_ERRORS=$(printf '%s\n' "$CURRENT_ERRORS" | grep 'error TS' | while IFS= read -r error_line; do
+            if ! printf '%s\n' "$BASELINE_ERRORS" | grep -Fqx "$error_line"; then
+                printf '%s\n' "$error_line"
+            fi
+        done)
+        NEW_COUNT=$(printf '%s\n' "$NEW_ERRORS" | grep -c 'error TS' 2>/dev/null || true)
 
         if [ "$NEW_COUNT" -gt 0 ] 2>/dev/null && [ -n "$NEW_ERRORS" ]; then
             echo -e "${RED}  ✗ TYPESCRIPT: ${NEW_COUNT} NEW type error(s) introduced by this push:${NC}"

@@ -38,7 +38,6 @@ import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { DAILY_DIAMOND_CAPS, calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
-import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
@@ -106,6 +105,7 @@ export default function SurvivalGamePage() {
     // the level's 20 questions, session-answer grades each tap, and
     // session-submit settles the level. No client-side crediting.
     const serverRun = useServerGradedRun('survival');
+    const survivalParentSessionRef = useRef(null);
     // Current question's server verdict (wasCorrect / correctDisplayIndex);
     // null until session-answer resolves, cleared on advance. The reveal is
     // driven entirely from this - the client holds no answer key.
@@ -376,6 +376,7 @@ export default function SurvivalGamePage() {
         try {
         setLevelLoadError(null);
         setCurrentLevel(level);
+        if (level === 1) survivalParentSessionRef.current = null;
 
         // Reset the per-level save pipeline. A stale phase or settlement from
         // the previous level would make this level skip its own submit and
@@ -401,9 +402,11 @@ export default function SurvivalGamePage() {
             served = await serverRun.start({
                 count: QUESTIONS_PER_LEVEL,
                 difficulty: LEVEL_CONFIG[level - 1].difficulty,
+                parentSessionId: survivalParentSessionRef.current,
             });
         } catch (e) {
             console.warn('[Survival] Server session start failed:', e?.message || e);
+            if (e?.status === 402) setShowOutOfDiamonds(true);
             setLevelLoadError('We could not load this level. Please check your connection and try again.');
             setGameState('lobby');
             return;
@@ -421,47 +424,9 @@ export default function SurvivalGamePage() {
             return;
         }
 
-        // One-time entry gate (VIP bypass) - only charge on level 1 (start of
-        // a new run). Charged only AFTER the session opened; every failure
-        // path abandons the session via serverRun.reset() (it expires
-        // server-side and pays nothing).
-        if (level === 1 && !isVip && userId) {
-            // Fresh balance check from DB to avoid stale-state false negatives
-            try {
-                let freshBalance = userDiamonds;
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .maybeSingle();
-                if (profile) {
-                    freshBalance = profile.diamonds || 0;
-                    setUserDiamonds(freshBalance);
-                }
-
-                if (freshBalance < GAME_ENTRY_COST) {
-                    serverRun.reset();
-                    setGameState('lobby'); // leave the loading screen
-                    setShowOutOfDiamonds(true);
-                    return;
-                }
-
-                const result = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_survival_game');
-                if (!result.success) {
-                    serverRun.reset();
-                    setGameState('lobby'); // leave the loading screen
-                    setShowOutOfDiamonds(true);
-                    return;
-                }
-                if (result.balance !== undefined) setUserDiamonds(result.balance);
-                // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
-            } catch (e) {
-                console.warn('[Survival] Diamond deduction failed:', e);
-                serverRun.reset();
-                setGameState('lobby');
-                setShowOutOfDiamonds(true);
-                return;
-            }
+        if (Number.isFinite(served.newBalance)) setUserDiamonds(served.newBalance);
+        if (served.entryState === 'charged' && served.entryCost > 0) {
+            busEmit.diamondsSpent(served.entryCost, 'Survival entry');
         }
         setQuestions(served.questions);
         setCurrentQuestionIndex(0);
@@ -531,7 +496,7 @@ export default function SurvivalGamePage() {
         if (lifelineBusyRef.current) return;
         lifelineBusyRef.current = true;
         try {
-            const paid = await chargeLifeline(LIFELINE_COST, 'survival_skip');
+            const paid = await chargeLifeline(LIFELINE_COST, 'trivia_lifeline');
             if (!paid) return;
             setLifelinesUsedThisLevel(prev => prev + 1);
 
@@ -676,6 +641,7 @@ export default function SurvivalGamePage() {
                     }))
                 );
                 serverResultRef.current = submitted;
+                survivalParentSessionRef.current = submitted.sessionId;
                 savePhaseRef.current = 1;
 
                 // Local balance from the server's post-award number, with a
@@ -705,11 +671,9 @@ export default function SurvivalGamePage() {
             }
 
             const settled = serverResultRef.current || {};
-            const awarded = Number.isFinite(settled.diamondsAwarded) ? settled.diamondsAwarded : 0;
             // The submit's `correct` is authoritative: if the client tally
             // and the server count disagree, the server wins.
             const serverCorrect = Number.isFinite(settled.correct) ? settled.correct : correctCountRef.current;
-            const serverScore = Number.isFinite(settled.score) ? settled.score : serverCorrect * 100;
             const passed = serverCorrect >= config.minCorrect;
             correctCountRef.current = serverCorrect;
             setCorrectCount(serverCorrect);
@@ -779,25 +743,8 @@ export default function SurvivalGamePage() {
                 savePhaseRef.current = 3;
             }
 
-            // Phase 4: Record to unified trivia_scores (for leaderboard) with
-            // the SERVER numbers. Capture insert error — supabase-js does NOT
-            // throw on DB errors.
+            // Phase 4: session-submit persisted the verified score atomically.
             if (savePhaseRef.current < 4) {
-                if (userId) {
-                    // Phase 73: CST-anchored play_date so leaderboard.js (which
-                    // queries by CST today) finds same-day rows.
-                    const { error: scoreErr } = await supabase.from('trivia_scores').insert({
-                        user_id: userId,
-                        username: avatarUser?.username || avatarUser?.display_name || null,
-                        mode: 'survival',
-                        score: serverScore,
-                        correct_count: serverCorrect,
-                        total_questions: QUESTIONS_PER_LEVEL,
-                        diamonds_earned: awarded,
-                        play_date: getTodayCST()
-                    });
-                    if (scoreErr) throw scoreErr;
-                }
                 savePhaseRef.current = 4;
             }
 

@@ -58,6 +58,17 @@ export const SERVER_GRADING_ENABLED = true;
  */
 const SELF_SETTLING_MODES = new Set(['tournaments']);
 
+function createStartNonce() {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+    else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 async function postJson(url, body, accessToken) {
     const headers = { 'Content-Type': 'application/json' };
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -96,28 +107,48 @@ export default function useServerGradedRun(mode, opts = {}) {
     const startingRef = useRef(false);
     const submittingRef = useRef(false);
     const sessionRef = useRef(null);
+    const pendingStartNonceRef = useRef(null);
 
     const isEnabled = SERVER_GRADING_ENABLED && !SELF_SETTLING_MODES.has(mode);
 
-    const start = useCallback(async ({ count, category, difficulty, matchId } = {}) => {
+    const start = useCallback(async ({ count, category, difficulty, matchId, parentSessionId } = {}) => {
         if (!isEnabled) throw new Error('server_grading_disabled');
         if (startingRef.current) return null;
         startingRef.current = true;
         setIsStarting(true);
         setError(null);
         try {
+            if (mode !== 'pvp' && !pendingStartNonceRef.current) {
+                pendingStartNonceRef.current = createStartNonce();
+            }
             // matchId is pvp-only: it binds the session to a match row, makes
             // the server share one roster between both players, and escrows
             // the stake server-side.
             const json = await postJson(
                 '/api/trivia/session-start',
-                { mode, count, category, difficulty, matchId },
+                {
+                    mode,
+                    count,
+                    category,
+                    difficulty,
+                    matchId,
+                    startNonce: mode === 'pvp' ? undefined : pendingStartNonceRef.current,
+                    parentSessionId,
+                },
                 opts.accessToken
             );
+            pendingStartNonceRef.current = null;
             sessionRef.current = json.sessionId;
             setSessionId(json.sessionId);
             // questions[].options are already permuted; no correct_index.
-            return { sessionId: json.sessionId, questions: json.questions || [] };
+            return {
+                sessionId: json.sessionId,
+                questions: json.questions || [],
+                entryCost: Number(json.entryCost) || 0,
+                entryState: json.entryState || 'free',
+                newBalance: json.newBalance == null ? null : Number(json.newBalance),
+                resumed: json.resumed === true,
+            };
         } catch (e) {
             setError(e.message || 'start_failed');
             throw e;
@@ -205,6 +236,7 @@ export default function useServerGradedRun(mode, opts = {}) {
 
     const reset = useCallback(() => {
         sessionRef.current = null;
+        pendingStartNonceRef.current = null;
         setSessionId(null);
         setError(null);
     }, []);

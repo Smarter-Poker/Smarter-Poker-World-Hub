@@ -34,7 +34,6 @@ import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
-import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import { getAccessToken } from '../../../src/lib/authUtils';
@@ -322,6 +321,7 @@ export default function EndlessModePage() {
             served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
         } catch (e) {
             console.warn('[Endless] Server session start failed:', e?.message || e);
+            if (e?.status === 402) setShowOutOfDiamonds(true);
             setLoadError('We could not load any questions right now. Please check your connection and try again.');
             return;
         } finally {
@@ -334,47 +334,9 @@ export default function EndlessModePage() {
             return;
         }
 
-        // NOTE: the `sessionStorage.trivia_paid` short-circuit is gone. Nothing
-        // writes that flag any more, so the only thing it could still do was let
-        // a stale flag from an earlier session buy a free entry. Always charge.
-
-        // Per-game diamond gate (VIP bypass). Charged only AFTER the session
-        // opened; every failure path abandons the session via serverRun.reset()
-        // (it expires server-side and pays nothing).
-        if (!isVip && userId) {
-            // Fresh balance check from DB to avoid stale-state false negatives
-            let freshBalance = userDiamonds;
-            try {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .maybeSingle();
-                if (profile) {
-                    freshBalance = profile.diamonds || 0;
-                    setUserDiamonds(freshBalance);
-                }
-
-                if (freshBalance < GAME_ENTRY_COST) {
-                    serverRun.reset();
-                    setShowOutOfDiamonds(true);
-                    return;
-                }
-
-                const result = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_endless');
-                if (!result.success) {
-                    serverRun.reset();
-                    setShowOutOfDiamonds(true);
-                    return;
-                }
-                if (result.balance !== undefined) setUserDiamonds(result.balance);
-                // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
-            } catch (e) {
-                console.warn('[Endless] Diamond deduction failed:', e);
-                serverRun.reset();
-                setShowOutOfDiamonds(true);
-                return;
-            }
+        if (Number.isFinite(served.newBalance)) setUserDiamonds(served.newBalance);
+        if (served.entryState === 'charged' && served.entryCost > 0) {
+            busEmit.diamondsSpent(served.entryCost, 'Endless entry');
         }
         setQuestions(served.questions);
         setGameState('playing');
@@ -511,7 +473,7 @@ export default function EndlessModePage() {
         if (lifelineBusyRef.current) return;
         lifelineBusyRef.current = true;
         try {
-            const paid = await chargeLifeline(LIFELINE_COST, 'endless_skip');
+            const paid = await chargeLifeline(LIFELINE_COST, 'trivia_lifeline');
             if (!paid) return;
             setLifelinesUsedThisGame(prev => prev + 1);
 
@@ -676,7 +638,6 @@ export default function EndlessModePage() {
             const settled = serverResultRef.current || {};
             const awarded = Number.isFinite(settled.diamondsAwarded) ? settled.diamondsAwarded : 0;
             const serverCorrect = Number.isFinite(settled.correct) ? settled.correct : streakRef.current;
-            const serverScore = Number.isFinite(settled.score) ? settled.score : serverCorrect * 100;
 
             // Show what the server actually graded and credited, not what the
             // client hoped for.
@@ -757,27 +718,8 @@ export default function EndlessModePage() {
                 savePhaseRef.current = 3;
             }
 
-            // Phase 4: Record to unified trivia_scores (for leaderboard) with
-            // the SERVER numbers. Capture insert error — supabase-js does NOT
-            // throw on DB errors.
+            // Phase 4: session-submit persisted the verified score atomically.
             if (savePhaseRef.current < 4) {
-                // Phase 73: CST-anchored play_date so leaderboard.js (which
-                // queries by CST today) finds same-day rows.
-                const today = getTodayCST();
-                // The server's `total` is the FULL served roster (padded far
-                // beyond a realistic run), so "X of Y" stats use the count
-                // actually answered (timeouts included, skips not).
-                const { error: scoreErr } = await supabase.from('trivia_scores').insert({
-                    user_id: userId,
-                    username: avatarUser?.username || avatarUser?.display_name || null,
-                    mode: 'endless',
-                    score: serverScore,
-                    correct_count: serverCorrect,
-                    total_questions: Math.max(serverCorrect, sessionAnswersRef.current.length),
-                    diamonds_earned: awarded,
-                    play_date: today
-                });
-                if (scoreErr) throw scoreErr;
                 savePhaseRef.current = 4;
             }
 

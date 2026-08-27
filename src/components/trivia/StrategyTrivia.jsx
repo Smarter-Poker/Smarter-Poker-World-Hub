@@ -27,7 +27,6 @@ import {
     getModeConfig,
     getCategoryName,
 } from '../../../src/lib/trivia/triviaEngine';
-import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
@@ -487,6 +486,10 @@ export default function StrategyTrivia({ mode }) {
                 served = await serverRun.start({ count: QUESTIONS_PER_GAME });
             } catch (e) {
                 console.warn('[StrategyTrivia] Server session start failed:', e?.message || e);
+                if (e?.status === 402) {
+                    setShowOutOfDiamonds(true);
+                    return;
+                }
                 setEntryError('Could not start the game. Please try again in a moment. You have not been charged.');
                 return;
             }
@@ -499,50 +502,12 @@ export default function StrategyTrivia({ mode }) {
 
             // 2. Display-only solver metadata for the analysis panel.
             const set = await withSolverMetadata(served.questions);
-
-            // 3. Entry charge for non-VIP users - only now that a playable
-            //    session exists. Every failure path below resets the session.
-            if (!isVip && entryCost > 0) {
-                let freshBalance = userDiamonds;
-                try {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('diamonds')
-                        .eq('id', userId)
-                        .maybeSingle();
-                    if (profile) {
-                        freshBalance = profile.diamonds || 0;
-                        setUserDiamonds(freshBalance);
-                    }
-                } catch (e) {
-                    console.warn('[StrategyTrivia] Balance check failed:', e);
-                }
-
-                if (freshBalance < entryCost) {
-                    serverRun.reset();
-                    setShowOutOfDiamonds(true);
-                    return;
-                }
-
-                try {
-                    await DiamondEngine.init(userId);
-                    const result = await DiamondEngine.deduct(entryCost, 'game_cost', { mode, game: 'trivia' });
-                    if (!result?.success) {
-                        serverRun.reset();
-                        setShowOutOfDiamonds(true);
-                        return;
-                    }
-                    if (result.balance !== undefined) setUserDiamonds(result.balance);
-                    busEmit.diamondsSpent(entryCost, `${config.title} Entry`);
-                } catch (e) {
-                    console.warn('[StrategyTrivia] Diamond deduction failed:', e);
-                    serverRun.reset();
-                    setEntryError('The entry charge could not be completed. You have not been charged.');
-                    return;
-                }
+            if (Number.isFinite(served.newBalance)) setUserDiamonds(served.newBalance);
+            if (served.entryState === 'charged' && served.entryCost > 0) {
+                busEmit.diamondsSpent(served.entryCost, `${config.title} Entry`);
             }
 
-            // 4. Start. Everything below is synchronous so a paid entry
+            // 3. Start. Everything below is synchronous so a paid entry
             //    always lands in a playable game.
             setQuestions(set);
 
@@ -721,25 +686,9 @@ export default function StrategyTrivia({ mode }) {
         if (awarded > 0) busEmit.diamondsEarned(awarded, `${config.title} Reward`);
         if (serverTotal > 0 && serverCorrect >= serverTotal) busEmit.celebration('confetti');
 
-        // Save score to trivia_scores with the SERVER numbers. Capture insert
-        // error - supabase-js does NOT throw on DB errors.
-        if (userId) {
-            try {
-                const { error: scoreErr } = await supabase.from('trivia_scores').insert({
-                    user_id: userId,
-                    mode,
-                    score: Number.isFinite(settled?.score) ? settled.score : serverCorrect * 100,
-                    correct_count: serverCorrect,
-                    total_questions: serverTotal,
-                    time_spent: timeSpent,
-                    diamonds_earned: awarded,
-                    play_date: getTodayCST()
-                });
-                if (scoreErr) throw scoreErr;
-            } catch (e) {
-                console.warn('[StrategyTrivia] Error saving score:', e);
-            }
-        }
+        // session-submit persists the verified score atomically with payout.
+        // Client INSERT is intentionally revoked so leaderboard and wheel
+        // tokens cannot be forged from devtools.
 
         // No client-side history write: session-start already recorded the
         // served roster into trivia_user_question_history at serve time, so

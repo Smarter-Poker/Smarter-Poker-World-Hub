@@ -11,10 +11,10 @@ const CARD_DEFINITIONS = LOBBY.slice(
     LOBBY.indexOf('const MODE_FILTERS = ['),
 );
 
-test('phase four keeps all twelve modes, artwork files, and the established route handoff', () => {
-    assert.equal((CARD_DEFINITIONS.match(/\n\s*id: '/g) || []).length, 12);
-    assert.equal((CARD_DEFINITIONS.match(/image: '\/images\/trivia\/modes-v2\//g) || []).length, 12);
-    assert.match(LOBBY, /router\.push\(standaloneRoutes\[modeId\] \|\| `\/hub\/trivia\/\$\{modeId\}`\)/);
+test('phase five keeps all thirteen modes, artwork files, and the established route handoff', () => {
+    assert.equal((CARD_DEFINITIONS.match(/\n\s*id: '/g) || []).length, 13);
+    assert.equal((CARD_DEFINITIONS.match(/image: '\/images\/trivia\/modes-v2\//g) || []).length, 13);
+    assert.match(LOBBY, /router\.push\(getModeRoute\(modeId\)\)/);
 });
 
 test('mobile cards stay stacked with artwork before descriptions at a denser 4:3 ratio', () => {

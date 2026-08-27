@@ -1103,7 +1103,7 @@ export default function UniversalHeader({
                 /* MOBILE: Compact layout with all icons visible */
                 @media (max-width: 640px) {
                     .universal-header {
-                        padding: 4px 6px;
+                        padding: calc(4px + env(safe-area-inset-top, 0px)) 6px 4px;
                         gap: 2px;
                     }
                     

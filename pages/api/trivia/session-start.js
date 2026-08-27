@@ -58,7 +58,7 @@ import {
     recordQuestionsSeen,
     DEFAULT_QUALITY_FLOOR
 } from '../../../src/lib/triviaQuestionLoader';
-import { getModeConfig, getCategoriesForMode, ALL_CATEGORIES } from '../../../src/lib/trivia/triviaEngine';
+import { getCategoriesForMode, ALL_CATEGORIES } from '../../../src/lib/trivia/triviaEngine';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import {
     SESSION_LINK_COLUMNS,
@@ -77,6 +77,18 @@ const MAX_QUESTIONS = {
     daily: 30, history: 30, rules: 30, pro: 30, arcade: 30,
     mtt: 30, cash: 30, icm: 30, gto: 30, mixed: 30, pvp: 20, tournaments: 60,
     survival: 400, endless: 1000, 'time-attack': 400,
+};
+
+// The server, not the request body, defines the denominator for every run.
+// Letting callers request `{ count: 1, difficulty: 'easy' }` turned one known
+// answer into a perfect paid run. These values mirror the live game pages,
+// including the long rosters used by timed/endless modes.
+const SESSION_QUESTION_COUNTS = {
+    daily: 10, history: 20, rules: 20, pro: 20, arcade: 20,
+    mtt: 20, cash: 20, icm: 20, gto: 20, mixed: 21,
+    survival: 20, endless: 100, 'time-attack': 60,
+    // PvP is handled by startPvpSession and shares a fixed 20-question roster.
+    pvp: 20, tournaments: 10,
 };
 
 const DEFAULT_COUNT = 20;
@@ -104,6 +116,46 @@ async function fetchPvpRosterRows(sb, rosterIds) {
     return ids
         .map(id => byId.get(id))
         .filter(q => q && typeof q.id === 'string' && Array.isArray(q.options) && q.options.length >= 2);
+}
+
+async function serveExistingSoloSession(res, sb, userId, session) {
+    if (!session || session.user_id !== userId || session.status !== 'open') {
+        return res.status(409).json({ success: false, error: 'session_not_resumable' });
+    }
+    const rows = await fetchPvpRosterRows(sb, session.question_ids);
+    if (rows.length === 0) {
+        return res.status(503).json({ success: false, error: 'no_questions_available' });
+    }
+    const byId = new Map(rows.map(row => [row.id, row]));
+    const stored = session.permutations && typeof session.permutations === 'object'
+        ? session.permutations
+        : {};
+    const questions = (session.question_ids || []).map(id => {
+        const q = byId.get(id);
+        if (!q) return null;
+        const order = Array.isArray(stored[id])
+            ? stored[id]
+            : deterministicOptionOrder(q.options.length, optionOrderSeed(userId, session.id, id));
+        return {
+            id: q.id,
+            question: q.question,
+            options: order.map(index => q.options[index]),
+            category: q.category ?? null,
+            difficulty: q.difficulty ?? null,
+        };
+    }).filter(Boolean);
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    return res.status(200).json({
+        success: true,
+        resumed: true,
+        sessionId: session.id,
+        mode: session.mode,
+        questionCount: questions.length,
+        questions,
+        entryCost: session.entry_cost || 0,
+        entryState: session.entry_state || 'legacy',
+        newBalance: null,
+    });
 }
 
 /**
@@ -428,7 +480,7 @@ export default async function handler(req, res) {
         const userId = authUser.id;
 
         // --- INPUT -------------------------------------------------------
-        const { mode, count, category, difficulty } = req.body || {};
+        const { mode, category, difficulty, startNonce, parentSessionId } = req.body || {};
         if (typeof mode !== 'string' || !Object.prototype.hasOwnProperty.call(MAX_QUESTIONS, mode)) {
             return res.status(400).json({
                 success: false,
@@ -442,16 +494,35 @@ export default async function handler(req, res) {
             return await startPvpSession(req, res, sb, userId);
         }
 
+        if (typeof startNonce !== 'string' || !PVP_UUID_RE.test(startNonce)) {
+            return res.status(400).json({ success: false, error: 'invalid_start_nonce' });
+        }
+        if (parentSessionId != null && (typeof parentSessionId !== 'string' || !PVP_UUID_RE.test(parentSessionId))) {
+            return res.status(400).json({ success: false, error: 'invalid_parent_session_id' });
+        }
+
+        // A lost HTTP response must not charge or deal twice. The browser
+        // retries with the same nonce, which is also the session UUID.
+        const { data: existing, error: existingErr } = await sb
+            .from('trivia_sessions')
+            .select('id, user_id, mode, status, question_ids, permutations, entry_cost, entry_state')
+            .eq('id', startNonce)
+            .maybeSingle();
+        if (existingErr) {
+            return res.status(500).json({ success: false, error: 'session_resume_failed' });
+        }
+        if (existing) {
+            if (existing.mode !== mode) return res.status(409).json({ success: false, error: 'session_mode_conflict' });
+            return serveExistingSoloSession(res, sb, userId, existing);
+        }
+
         const modeCap = MAX_QUESTIONS[mode];
-        const requested = Number.isInteger(count) && count > 0
-            ? count
-            : (Number(getModeConfig(mode)?.questionsCount) || DEFAULT_COUNT);
-        // Clamp, do not reject: an oversized count is not an attack by itself,
-        // but it must never buy a bigger roster than the mode allows.
-        const wanted = Math.max(1, Math.min(requested, modeCap));
+        const wanted = Math.max(1, Math.min(SESSION_QUESTION_COUNTS[mode] || DEFAULT_COUNT, modeCap));
 
         const categories = resolveCategories(mode, category);
-        const diff = typeof difficulty === 'string' && VALID_DIFFICULTIES.has(difficulty)
+        // Survival legitimately ramps difficulty by level. Other modes never
+        // expose a per-run difficulty selector, so ignore a forged filter.
+        const diff = mode === 'survival' && typeof difficulty === 'string' && VALID_DIFFICULTIES.has(difficulty)
             ? difficulty
             : undefined;
 
@@ -523,7 +594,7 @@ export default async function handler(req, res) {
         // The id is minted here (not by the DB default) because it is part of
         // the permutation seed, and the seed has to be known before the row
         // exists.
-        const sessionId = randomUUID();
+        const sessionId = startNonce;
         const permutations = {};
         const questions = picked.map(q => {
             const order = deterministicOptionOrder(
@@ -542,28 +613,30 @@ export default async function handler(req, res) {
             };
         });
 
-        const { error: insertErr } = await sb
-            .from('trivia_sessions')
-            .insert({
-                id: sessionId,
-                user_id: userId,
-                mode,
-                question_ids: picked.map(q => q.id),
-                permutations,
-                status: 'open',
-            });
-        if (insertErr) {
-            console.warn('[trivia session-start] session insert failed:', insertErr.message || insertErr);
-            // Fail closed: without the row there is nothing to grade against,
-            // so serving the questions anyway would just recreate the
-            // ungraded, client-authoritative flow this route replaces.
-            return res.status(500).json({ success: false, error: 'session_create_failed' });
+        const { data: created, error: insertErr } = await sb.rpc('create_trivia_session_v2', {
+            p_session_id: sessionId,
+            p_user_id: userId,
+            p_mode: mode,
+            p_question_ids: picked.map(q => q.id),
+            p_permutations: permutations,
+            p_parent_session_id: mode === 'survival' ? (parentSessionId || null) : null,
+        });
+        if (insertErr || !created || created.success === false) {
+            console.warn('[trivia session-start] atomic session create failed:', insertErr?.message || created?.error || insertErr);
+            const error = created?.error || 'session_create_failed';
+            const status = error === 'insufficient_diamonds' ? 402
+                : error.startsWith('invalid_survival') || error === 'survival_continuation_used' ? 409
+                : 500;
+            return res.status(status).json({ success: false, error });
         }
 
         // Feed the 60-day no-repeat window. Fire-and-forget: a history write
         // failing must not cost the player their run.
-        recordQuestionsSeen(sb, userId, picked.map(q => q.id), mode)
-            .catch(e => console.warn('[trivia session-start] history record failed:', e?.message || e));
+        try {
+            await recordQuestionsSeen(sb, userId, picked.map(q => q.id), mode);
+        } catch (e) {
+            console.warn('[trivia session-start] history record failed:', e?.message || e);
+        }
 
         // Personalized and single-use - never cacheable.
         res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
@@ -573,6 +646,9 @@ export default async function handler(req, res) {
             mode,
             questionCount: questions.length,
             questions,
+            entryCost: Number(created.entry_cost) || 0,
+            entryState: created.entry_state || 'free',
+            newBalance: created.new_balance == null ? null : Number(created.new_balance),
         });
     } catch (e) {
         console.warn('[trivia session-start] unexpected:', e);
