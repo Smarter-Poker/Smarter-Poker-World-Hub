@@ -502,4 +502,89 @@ export const MERCHANDISE = [
         image: '/merch/chip-set-500.jpg',
         category: 'accessories',
     },
+    {
+        id: 'ice-orbit-snapback', name: 'Ice Orbit Snapback',
+        description: 'Structured Matte-Black Snapback With An Ice-Chrome Neural Spade Crest',
+        price: 34.99, image: '/images/merch/neural-steel/collection-02/ice-orbit-snapback.webp', category: 'headwear',
+    },
+    {
+        id: 'river-signal-trucker-hat', name: 'River Signal Trucker Hat',
+        description: 'Technical Black Trucker Hat With A Circuit-Wave Suit Signal',
+        price: 32.99, image: '/images/merch/neural-steel/collection-02/river-signal-trucker-hat.webp', category: 'headwear',
+    },
+    {
+        id: 'midnight-circuit-beanie', name: 'Midnight Circuit Beanie',
+        description: 'Ribbed Black Cuff Beanie With A Chrome Poker-Core Circuit Emblem',
+        price: 29.99, image: '/images/merch/neural-steel/collection-02/midnight-circuit-beanie.webp', category: 'headwear',
+    },
+    {
+        id: 'dead-money-detector-tee', name: 'Dead Money Detector Tee',
+        description: 'Heavyweight Black Tee With A Chrome Poker Radar Instrument Graphic',
+        price: 31.99, image: '/images/merch/neural-steel/collection-02/dead-money-detector-tee.webp', category: 'apparel',
+    },
+    {
+        id: 'range-architect-tee', name: 'Range Architect Tee',
+        description: 'Heavyweight Black Tee With A Precision-Built Chrome Spade Blueprint',
+        price: 31.99, image: '/images/merch/neural-steel/collection-02/range-architect-tee.webp', category: 'apparel',
+    },
+    {
+        id: 'all-in-after-dark-tee', name: 'All In After Dark Tee',
+        description: 'Heavyweight Black Tee With Chrome Tournament Chips Entering A Cyan Diamond Aperture',
+        price: 31.99, image: '/images/merch/neural-steel/collection-02/all-in-after-dark-tee.webp', category: 'apparel',
+    },
+    {
+        id: 'no-free-cards-tee', name: 'No Free Cards Tee',
+        description: 'Heavyweight Black Tee With A Locked Chrome Card-Vault Circuit Graphic',
+        price: 31.99, image: '/images/merch/neural-steel/collection-02/no-free-cards-tee.webp', category: 'apparel',
+    },
+    {
+        id: 'cold-four-bet-hoodie', name: 'Cold Four-Bet Hoodie',
+        description: 'Heavyweight Black Hoodie With Four Chrome Betting Discs Under Diamond Pressure',
+        price: 64.99, image: '/images/merch/neural-steel/collection-02/cold-four-bet-hoodie.webp', category: 'apparel',
+    },
+    {
+        id: 'final-table-voltage-hoodie', name: 'Final Table Voltage Hoodie',
+        description: 'Heavyweight Black Hoodie With Seven Final-Table Seats Orbiting A Live Circuit Core',
+        price: 66.99, image: '/images/merch/neural-steel/collection-02/final-table-voltage-hoodie.webp', category: 'apparel',
+    },
+    {
+        id: 'stack-pressure-zip-hoodie', name: 'Stack Pressure Zip Hoodie',
+        description: 'Premium Black Zip Hoodie With Mirrored Chrome Stacks And Cyan Pressure Lines',
+        price: 69.99, image: '/images/merch/neural-steel/collection-02/stack-pressure-zip-hoodie.webp', category: 'apparel',
+    },
+    {
+        id: 'river-read-polarized-sunglasses', name: 'River Read Polarized Sunglasses',
+        description: 'Angular Matte-Black Performance Frames With Cyan Mirror Polarized Lenses',
+        price: 44.99, image: '/images/merch/neural-steel/collection-02/river-read-sunglasses.webp', category: 'eyewear',
+    },
+    {
+        id: 'final-table-mirror-sunglasses', name: 'Final Table Mirror Sunglasses',
+        description: 'Sharp Square Black Frames With Ice-Chrome To Cyan Mirror Lenses',
+        price: 49.99, image: '/images/merch/neural-steel/collection-02/final-table-mirror-sunglasses.webp', category: 'eyewear',
+    },
+    {
+        id: 'tournament-wire-tumbler', name: 'Tournament Wire Insulated Tumbler',
+        description: 'Matte-Black Stainless Tumbler With An Etched Neural Suit Circuit',
+        price: 29.99, image: '/images/merch/neural-steel/collection-02/tournament-wire-tumbler.webp', category: 'lifestyle',
+    },
+    {
+        id: 'neural-steel-card-protector', name: 'Neural Steel Card Protector',
+        description: 'Weighted Blackened-Steel Card Guard With A Machined Spade-Diamond Crest',
+        price: 27.99, image: '/images/merch/neural-steel/collection-02/neural-steel-card-protector.webp', category: 'tabletop',
+    },
+    {
+        id: 'circuit-breaker-playing-cards', name: 'Circuit Breaker Playing Cards',
+        description: 'Premium Matte-Black Poker Deck With A Symmetrical Chrome Circuit Back',
+        price: 18.99, image: '/images/merch/neural-steel/collection-02/circuit-breaker-deck.webp', category: 'tabletop',
+    },
+    {
+        id: 'range-grid-desk-mat', name: 'Range Grid Desk Mat',
+        description: 'Wide Black Desk Mat With A Graphite Poker Range Grid And Cyan Nodes',
+        price: 39.99, image: '/images/merch/neural-steel/collection-02/range-grid-desk-mat.webp', category: 'accessories',
+    },
+    {
+        id: 'vault-cut-poker-towel', name: 'Vault Cut Poker Towel',
+        description: 'Premium Black Microfiber Towel With Chrome Borders And Circuit Corners',
+        price: 24.99, image: '/images/merch/neural-steel/collection-02/vault-cut-poker-towel.webp', category: 'accessories',
+    },
 ];
