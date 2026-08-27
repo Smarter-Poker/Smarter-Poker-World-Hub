@@ -5,14 +5,10 @@
    1. DO NOT revert this page to the legacy plain text / emoji design.
    2. DO NOT overwrite this file with stale code from old sessions.
    3. DO NOT run blanket "Daily update" bulk commits that touch this file.
-   4. This page uses dynamic image overlays (`diamond-store-checkout.png`). 
-      Preserve the clickable zone coordinates.
+   4. Keep the shared cinematic showcase and sharp-corner treatment intact.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import dynamic from 'next/dynamic';
-const ShoppingCart = dynamic(() => import('../../src/components/store/ShoppingCart'), {
-  ssr: false,
-});
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -22,13 +18,12 @@ import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { EARNABLE_EGG_COUNT } from '../../src/lib/rewards/eggCoverage';
 
 // God-Mode Stack
-import useCartStore from '../../src/stores/cartStore';
 import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
+import { acquireScrollLock } from '../../src/lib/scrollLock';
 import { showStoreToast } from '../../src/components/store/StoreToast';
-import { busEmit } from '../../src/engine/EventBus';
 
 const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), {
   ssr: false,
@@ -55,7 +50,7 @@ import {
   Trash2,
 } from 'lucide-react';
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
-import { VIPCard, MerchCard } from '../../src/components/store/StoreCards';
+import { VIPCard } from '../../src/components/store/StoreCards';
 import MerchStore from '../../src/components/store/MerchStore';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
 import shellStyles from '../../src/components/diamond-store/DiamondStoreShell.module.css';
@@ -80,7 +75,7 @@ import {
 } from '../../src/data/diamondStoreData';
 import styles from '../../src/components/diamond-store/diamondStoreStyles';
 
-// PackageCard, VIPCard, MerchCard — extracted to src/components/store/StoreCards.js
+// VIPCard is shared with the store card library.
 
 // ───────────────────────────────────────────────────────────────────────────
 // DERIVED ECONOMY COPY HELPERS
@@ -109,6 +104,7 @@ const GEM = '\uD83D\uDC8E';
 // an `initialTab` prop, so there is exactly one implementation of the store and
 // five addresses into it. The old `?tab=` deep links still work.
 export const STORE_TABS = ['diamonds', 'vip', 'merch', 'rewards', 'club-shop'];
+const REWARD_TABS = ['overview', 'diamonds', 'eggs'];
 
 export const TAB_ROUTES = {
   diamonds: '/hub/diamond-store',
@@ -148,26 +144,6 @@ export const TAB_META = {
 };
 
 /**
- * Enter/Space activation for the image-map hotspots.
- *
- * Those hotspots are `<div role="button" tabIndex={0} onKeyDown={activateOnKey}>` painted over a picture.
- * `tabIndex={0}` puts all twenty in the tab order and `role="button"` promises
- * a screen reader they behave like buttons -- but they carried only onClick, so
- * a keyboard user could focus every one of them and activate none. Focusable
- * and inert is worse than not focusable at all: it is a trap you tab through
- * with nothing happening.
- *
- * Delegating to `.click()` keeps one behaviour for both input methods instead
- * of a second copy of each handler that can drift out of step.
- */
-function activateOnKey(e) {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    e.currentTarget.click();
-  }
-}
-
-/**
  * Opens a store tab in its own browser tab.
  *
  * `currentTab` is not optional politeness — without it, clicking "Diamonds"
@@ -189,6 +165,7 @@ function useDialogFocus(isOpen, dialogRef, onDismiss, isBusy) {
   useEffect(() => {
     if (!isOpen) return undefined;
 
+    const releaseScrollLock = acquireScrollLock('DiamondStoreDialog');
     returnFocusRef.current = document.activeElement;
     const dialog = dialogRef.current;
     dialog?.focus();
@@ -226,6 +203,7 @@ function useDialogFocus(isOpen, dialogRef, onDismiss, isBusy) {
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      releaseScrollLock();
       returnFocusRef.current?.focus?.();
     };
   }, [dialogRef, isBusy, isOpen, onDismiss]);
@@ -321,9 +299,35 @@ export default function DiamondStorePage({ initialTab }) {
   const activeTab = initialTab || 'diamonds';
   const rewardsSubTab = filters.rewardsSubTab;
   const setRewardsSubTab = (val) => setFilter('rewardsSubTab', val);
+  const handleRewardsTabKeyDown = (event, currentTab) => {
+    const currentIndex = REWARD_TABS.indexOf(currentTab);
+    let nextIndex = null;
+
+    if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % REWARD_TABS.length;
+    if (event.key === 'ArrowLeft') {
+      nextIndex = (currentIndex - 1 + REWARD_TABS.length) % REWARD_TABS.length;
+    }
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = REWARD_TABS.length - 1;
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const nextTab = REWARD_TABS[nextIndex];
+    setRewardsSubTab(nextTab);
+    requestAnimationFrame(() => document.getElementById(`rewards-tab-${nextTab}`)?.focus());
+  };
 
   const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [busyPackageId, setBusyPackageId] = useState(null);
+  // React state does not update synchronously. This ref closes the few-
+  // millisecond double-tap window before a disabled button can render.
+  const processingRef = useRef(false);
+  const setStoreProcessing = useCallback((nextValue) => {
+    processingRef.current = nextValue;
+    setIsProcessing(nextValue);
+    if (!nextValue) setBusyPackageId(null);
+  }, []);
   const [isVip, setIsVip] = useState(false);
   // `is_vip` alone cannot render an honest membership card: it says THAT you
   // are a member, not which tier or until when. Both are read below.
@@ -503,36 +507,15 @@ export default function DiamondStorePage({ initialTab }) {
   // Autoplay policies may pause an autoplaying video that is unmuted without
   // a user gesture — if that happens, re-mute and resume playback.
 
-  const { addItem } = useCartStore();
-
-  // Add diamond package to cart (with haptic feedback)
-  const handleAddToCart = (pkg) => {
-    // Haptic feedback — short vibration pulse on mobile
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(50);
-    }
-
-    addItem({
-      id: `diamond-${pkg.id}`,
-      name: pkg.name,
-      type: 'diamonds',
-      diamonds: pkg.diamonds,
-      bonus: pkg.bonus || 0,
-      price: pkg.price,
-      quantity: 1,
-    });
-  };
-
-  // Handle checkout from cart
-
   const handleDirectCheckout = async (pkg) => {
-    if (isProcessing) return;
-    setIsProcessing(true);
+    if (processingRef.current) return;
+    setBusyPackageId(pkg.id);
+    setStoreProcessing(true);
     try {
       const token = getAccessToken();
       if (!token) {
         showStoreToast('error', 'Please sign in to complete your purchase');
-        setIsProcessing(false);
+        setStoreProcessing(false);
         return;
       }
       showStoreToast('success', 'Redirecting to secure checkout...');
@@ -555,88 +538,14 @@ export default function DiamondStorePage({ initialTab }) {
       window.location.href = data.data.url;
     } catch (err) {
       showStoreToast('error', err.message || 'Purchase failed');
-      setIsProcessing(false);
-    }
-  };
-
-  const handleCheckout = async (items) => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-
-    try {
-      const token = getAccessToken();
-
-      if (!token) {
-        showStoreToast('error', 'Please sign in to complete your purchase');
-        setIsProcessing(false);
-        return;
-      }
-
-      // Only diamond packages are checked out through this handler. A VIP
-      // plan goes straight to a subscription session (handleVIPSubscribe),
-      // and merchandise uses the dedicated cart page.
-      const diamondItems = (items || []).filter((item) => item?.type === 'diamonds');
-
-      if (diamondItems.length !== (items || []).length) {
-        showStoreToast(
-          'error',
-          'Only diamond packages can be checked out here. Please remove the other items from your cart.'
-        );
-        setIsProcessing(false);
-        return;
-      }
-      if (diamondItems.length === 0) {
-        showStoreToast('error', 'Your cart is empty.');
-        setIsProcessing(false);
-        return;
-      }
-
-      // Create checkout session.
-      // Send the package id + quantity ONLY — the server resolves the name,
-      // price, diamonds and bonus from its own catalog. Client-supplied
-      // prices are never trusted (and are ignored server-side).
-      const response = await fetch('/api/store/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          type: 'diamonds',
-          items: diamondItems.map((item) => ({
-            packageId: String(item.id || '').replace(/^diamond-/, ''),
-            quantity: item.quantity || 1,
-          })),
-        }),
-      });
-
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => null);
-        throw new Error(errBody?.error?.message || `Request failed (${response.status})`);
-      }
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error?.message || 'Failed to create checkout session');
-      }
-
-      if (!data.data?.url) {
-        throw new Error('Checkout session missing redirect URL');
-      }
-
-      // Redirect to Stripe Checkout
-      window.location.href = data.data.url;
-    } catch (error) {
-      console.warn('Checkout error:', error);
-      showStoreToast('error', error.message || 'Failed to start checkout. Please try again.');
-      setIsProcessing(false);
+      setStoreProcessing(false);
     }
   };
 
   // VIP subscription — the daily pass is bought with diamonds, the monthly and
   // annual tiers go straight to a Stripe Checkout subscription session.
   const handleVIPSubscribe = async () => {
-    if (isProcessing) return;
+    if (processingRef.current) return;
     const plan =
       selectedVIP === 'vip-daily'
         ? VIP_MEMBERSHIP.daily
@@ -670,13 +579,14 @@ export default function DiamondStorePage({ initialTab }) {
 
   /** The daily pass, once the in-page confirmation has been accepted. */
   const runDailyPassPurchase = async () => {
+    if (processingRef.current) return;
     const plan = VIP_MEMBERSHIP.daily;
     const token = getAccessToken();
     if (!token || !user?.id) {
       showStoreToast('error', 'Please sign in to purchase VIP.');
       return;
     }
-    setIsProcessing(true);
+    setStoreProcessing(true);
     try {
       const res = await fetch('/api/store/purchase-daily-vip', {
         method: 'POST',
@@ -707,7 +617,7 @@ export default function DiamondStorePage({ initialTab }) {
     } catch (e) {
       showStoreToast('error', e.message);
     } finally {
-      setIsProcessing(false);
+      setStoreProcessing(false);
     }
   };
 
@@ -722,12 +632,13 @@ export default function DiamondStorePage({ initialTab }) {
    * a membership. The FAQ said they could. Now they can.
    */
   const runDiamondPlanPurchase = async (planKey, idempotencyKey) => {
+    if (processingRef.current) return;
     const token = getAccessToken();
     if (!token || !user?.id) {
       showStoreToast('error', 'Please sign in to purchase VIP.');
       return;
     }
-    setIsProcessing(true);
+    setStoreProcessing(true);
     try {
       const res = await fetch('/api/store/purchase-vip-with-diamonds', {
         method: 'POST',
@@ -767,12 +678,13 @@ export default function DiamondStorePage({ initialTab }) {
     } catch (e) {
       showStoreToast('error', e.message);
     } finally {
-      setIsProcessing(false);
+      setStoreProcessing(false);
     }
   };
 
   /** Stripe Checkout, subscription mode, for the cash plans. */
   const startStripeCheckout = async (plan) => {
+    if (processingRef.current) return;
     // Only the plan key is sent; the server resolves the Stripe price ID from
     // its own env config, so the price is never client-controlled.
     const token = getAccessToken();
@@ -781,7 +693,7 @@ export default function DiamondStorePage({ initialTab }) {
       return;
     }
 
-    setIsProcessing(true);
+    setStoreProcessing(true);
     try {
       const response = await fetch('/api/store/create-checkout-session', {
         method: 'POST',
@@ -808,7 +720,7 @@ export default function DiamondStorePage({ initialTab }) {
     } catch (error) {
       console.warn('VIP subscription error:', error);
       showStoreToast('error', error.message || 'Failed to start VIP checkout. Please try again.');
-      setIsProcessing(false);
+      setStoreProcessing(false);
     }
   };
 
@@ -1053,83 +965,6 @@ export default function DiamondStorePage({ initialTab }) {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [clubShopClubId, loadClubShop, activeTab]);
 
-  // Pay with Diamonds handler — routes through the server API, which
-  // validates pricing and deducts atomically (never trust a client-computed
-  // cost or a client-side deduct RPC for a purchase).
-  // NOTE: Diamond packages and VIP subscriptions can NOT be bought with
-  // diamonds — /api/store/purchase-with-diamonds only deducts (diamond
-  // grants and VIP activation happen exclusively in the Stripe webhook /
-  // purchase-daily-vip endpoint), so those paths would charge the user and
-  // deliver nothing. Same policy as /hub/diamond-store/cart.
-  const handlePayWithDiamonds = async (items) => {
-    if (isProcessing) return;
-    if (!items?.length) return;
-
-    if (items.some((item) => item?.type === 'diamonds' || item?.type === 'vip')) {
-      showStoreToast(
-        'error',
-        'Diamond packages and VIP subscriptions cannot be purchased with diamonds. Please use card checkout.'
-      );
-      return;
-    }
-
-    const token = getAccessToken();
-    if (!token || !user?.id) {
-      showStoreToast('error', 'Please sign in to pay with diamonds');
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const response = await fetch('/api/store/purchase-with-diamonds', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ items }),
-      });
-
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data?.success) {
-        throw new Error(data?.error || `Request failed (${response.status})`);
-      }
-
-      const totalDiamondCost = data.data?.diamonds_spent ?? 0;
-
-      showStoreToast(
-        'success',
-        `Purchase complete! ${totalDiamondCost.toLocaleString()} diamonds deducted.`
-      );
-      // Play success sound
-      try {
-        new Audio('/sounds/purchase-success.mp3')
-          .play()
-          .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
-      } catch (_) {
-        console.warn('[App] Handled exception:', _?.message || _);
-      }
-      // Clear cart after successful purchase
-      const { clearCart } = useCartStore.getState();
-      clearCart();
-
-      // BUS EVENT: Notify all listeners of diamond spend
-      busEmit.diamondsSpent(totalDiamondCost, 'Diamond Store Purchase');
-
-      // Broadcast across tabs — diamond balance + chips changed
-      broadcastSync('smarter_poker_diamond_sync', 'refresh');
-      broadcastSync('smarter_poker_chips_sync', 'refresh');
-    } catch (error) {
-      console.warn('Diamond payment error:', error);
-      showStoreToast(
-        'error',
-        error.message || 'Failed to complete diamond payment. Please try again.'
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const selectedVIPPlan =
     selectedVIP === 'vip-daily'
       ? VIP_MEMBERSHIP.daily
@@ -1175,7 +1010,6 @@ export default function DiamondStorePage({ initialTab }) {
                     .store-redesign-content details, .store-redesign-content section,
                     .store-redesign-content article,
                     .store-redesign-content [style*="border-radius"] { border-radius: 0 !important; }
-                    .legacy-store-header, .legacy-diamond-store { display: none !important; }
                     @keyframes fadeIn {
                         from { opacity: 0; transform: translate(-50%, -6px); }
                         to { opacity: 1; transform: translate(-50%, 0); }
@@ -1195,362 +1029,11 @@ export default function DiamondStorePage({ initialTab }) {
           <SmarterStoreShowcase
             activeTab={activeTab}
             packages={DIAMOND_PACKAGES}
+            isProcessing={isProcessing}
+            busyPackageId={busyPackageId}
             onNavigate={(tabId) => openTab(tabId, activeTab)}
             onBuy={handleDirectCheckout}
           />
-
-          {/* ── DYNAMIC HEADERS FOR OTHER TABS ── */}
-          {activeTab !== 'diamonds' && (
-            <div className="legacy-store-header" style={{ position: 'relative', width: '100%' }}>
-              {activeTab === 'vip' && (
-                <>
-                  <img
-                    src="/images/store-header-vip.png"
-                    alt="VIP Membership"
-                    style={{ width: '100%', height: 'auto', display: 'block' }}
-                    draggable={false}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('diamonds', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '3%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('merch', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '27%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('rewards', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '51%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('club-shop', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '75%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                </>
-              )}
-              {activeTab === 'merch' && (
-                <>
-                  <img
-                    src="/images/store-header-merch.png"
-                    alt="Merchandise"
-                    style={{ width: '100%', height: 'auto', display: 'block' }}
-                    draggable={false}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('diamonds', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '3%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('vip', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '27%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('rewards', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '51%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('club-shop', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '75%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                </>
-              )}
-              {activeTab === 'rewards' && (
-                <>
-                  <img
-                    src="/images/store-header-rewards.png"
-                    alt="Smarter Rewards"
-                    style={{ width: '100%', height: 'auto', display: 'block' }}
-                    draggable={false}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('diamonds', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '3%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('vip', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '27%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('merch', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '51%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('club-shop', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '75%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                </>
-              )}
-              {activeTab === 'club-shop' && (
-                <>
-                  <img
-                    src="/images/store-header-arena.png"
-                    alt="Club Arena"
-                    style={{ width: '100%', height: 'auto', display: 'block' }}
-                    draggable={false}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('diamonds', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '3%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('vip', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '27%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('merch', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '51%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0} onKeyDown={activateOnKey}
-                    onClick={() => openTab('rewards', activeTab)}
-                    style={{
-                      position: 'absolute',
-                      left: '75%',
-                      top: '42%',
-                      width: '23%',
-                      height: '22%',
-                      cursor: 'pointer',
-                    }}
-                  />
-                </>
-              )}
-            </div>
-          )}
-          {/* DIAMONDS TAB — Checkout image with clickable zones */}
-          {/* ═══════════════════════════════════════════════════════ */}
-          {activeTab === 'diamonds' && (
-            <div className="legacy-diamond-store" style={{ position: 'relative', width: '100%' }}>
-              <img
-                src="/images/new-diamond-store.jpg"
-                alt="Diamond Packages"
-                style={{ width: '100%', height: 'auto', display: 'block' }}
-                draggable={false}
-              />
-
-              {/* ── New Image Tab Clickable Zones ── */}
-              <div
-                role="button"
-                tabIndex={0} onKeyDown={activateOnKey}
-                onClick={() => openTab('vip', activeTab)}
-                style={{
-                  position: 'absolute',
-                  left: '18%',
-                  top: '14%',
-                  width: '17%',
-                  height: '8%',
-                  cursor: 'pointer',
-                }}
-              />
-              <div
-                role="button"
-                tabIndex={0} onKeyDown={activateOnKey}
-                onClick={() => openTab('merch', activeTab)}
-                style={{
-                  position: 'absolute',
-                  left: '35%',
-                  top: '14%',
-                  width: '17%',
-                  height: '8%',
-                  cursor: 'pointer',
-                }}
-              />
-              <div
-                role="button"
-                tabIndex={0} onKeyDown={activateOnKey}
-                onClick={() => openTab('rewards', activeTab)}
-                style={{
-                  position: 'absolute',
-                  left: '52%',
-                  top: '14%',
-                  width: '20%',
-                  height: '8%',
-                  cursor: 'pointer',
-                }}
-              />
-              <div
-                role="button"
-                tabIndex={0} onKeyDown={activateOnKey}
-                onClick={() => (window.location.href = '/hub')}
-                style={{
-                  position: 'absolute',
-                  left: '72%',
-                  top: '14%',
-                  width: '18%',
-                  height: '8%',
-                  cursor: 'pointer',
-                }}
-              />
-
-              {/* ── Diamond package clickable zones (6 boxes, 2×3 grid) ── */}
-              {[
-                { pkgIndex: 2, left: '3%', top: '41%', width: '46%', height: '18%' }, // 1,000 Diamonds
-                { pkgIndex: 3, left: '51%', top: '41%', width: '46%', height: '18%' }, // 2,500 Diamonds
-                { pkgIndex: 4, left: '3%', top: '60%', width: '46%', height: '18%' }, // 5,000 Diamonds
-                { pkgIndex: 5, left: '51%', top: '60%', width: '46%', height: '18%' }, // 10,500 Diamonds
-                { pkgIndex: 6, left: '3%', top: '79%', width: '46%', height: '18%' }, // 26,250 Diamonds
-                { pkgIndex: 7, left: '51%', top: '79%', width: '46%', height: '18%' }, // 52,500 Diamonds
-              ].map(({ pkgIndex, left, top, width, height }) => {
-                const pkg = DIAMOND_PACKAGES[pkgIndex];
-                if (!pkg) return null;
-                return (
-                  <div
-                    key={pkg.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Buy ${pkg.name}`}
-                    onClick={() => handleDirectCheckout(pkg)}
-                    onKeyDown={activateOnKey}
-                    style={{
-                      position: 'absolute',
-                      left,
-                      top,
-                      width,
-                      height,
-                      cursor: 'pointer',
-                      background: 'transparent',
-                      borderRadius: 8,
-                    }}
-                  />
-                );
-              })}
-            </div>
-          )}
 
           {/* Main Content (non-diamonds tabs) */}
           <div
@@ -2105,7 +1588,9 @@ export default function DiamondStorePage({ initialTab }) {
                     id="rewards-tab-overview"
                     aria-selected={rewardsSubTab === 'overview'}
                     aria-controls="rewards-panel-overview"
+                    tabIndex={rewardsSubTab === 'overview' ? 0 : -1}
                     onClick={() => setRewardsSubTab('overview')}
+                    onKeyDown={(event) => handleRewardsTabKeyDown(event, 'overview')}
                     style={{
                       ...styles.rewardsSubTab,
                       ...(rewardsSubTab === 'overview' ? styles.rewardsSubTabActive : {}),
@@ -2119,7 +1604,9 @@ export default function DiamondStorePage({ initialTab }) {
                     id="rewards-tab-diamonds"
                     aria-selected={rewardsSubTab === 'diamonds'}
                     aria-controls="rewards-panel-diamonds"
+                    tabIndex={rewardsSubTab === 'diamonds' ? 0 : -1}
                     onClick={() => setRewardsSubTab('diamonds')}
+                    onKeyDown={(event) => handleRewardsTabKeyDown(event, 'diamonds')}
                     style={{
                       ...styles.rewardsSubTab,
                       ...(rewardsSubTab === 'diamonds' ? styles.rewardsSubTabActive : {}),
@@ -2134,7 +1621,9 @@ export default function DiamondStorePage({ initialTab }) {
                     id="rewards-tab-eggs"
                     aria-selected={rewardsSubTab === 'eggs'}
                     aria-controls="rewards-panel-eggs"
+                    tabIndex={rewardsSubTab === 'eggs' ? 0 : -1}
                     onClick={() => setRewardsSubTab('eggs')}
+                    onKeyDown={(event) => handleRewardsTabKeyDown(event, 'eggs')}
                     style={{
                       ...styles.rewardsSubTab,
                       ...(rewardsSubTab === 'eggs' ? styles.rewardsSubTabActive : {}),
@@ -3865,12 +3354,6 @@ export default function DiamondStorePage({ initialTab }) {
         <BottomNavBar />
       </PageTransition>
 
-      {/* Shopping Cart Component */}
-      <ShoppingCart
-        onCheckout={handleCheckout}
-        onPayWithDiamonds={handlePayWithDiamonds}
-        isProcessing={isProcessing}
-      />
     </>
   );
 }

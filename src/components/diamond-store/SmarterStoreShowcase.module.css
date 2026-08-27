@@ -88,11 +88,19 @@
 }
 .diamondHero:before {
   background-image: url('/images/store-v3/diamond-vault-hero.png');
+  background-image: image-set(
+    url('/images/store-v3/diamond-vault-hero.webp') type('image/webp'),
+    url('/images/store-v3/diamond-vault-hero.png') type('image/png')
+  );
   background-size: cover;
   background-position: center;
 }
 .sectionHero:before {
   background-image: url('/images/store-v3/store-section-heroes.png');
+  background-image: image-set(
+    url('/images/store-v3/store-section-heroes.webp') type('image/webp'),
+    url('/images/store-v3/store-section-heroes.png') type('image/png')
+  );
   background-size: 200% 200%;
 }
 .vip .sectionHero:before {
@@ -200,6 +208,12 @@
   background-image:
     linear-gradient(180deg, transparent 0 55%, rgba(2, 6, 12, 0.93) 68%, #03070d 100%),
     url('/images/store-v3/diamond-packages-sheet.png');
+  background-image:
+    linear-gradient(180deg, transparent 0 55%, rgba(2, 6, 12, 0.93) 68%, #03070d 100%),
+    image-set(
+      url('/images/store-v3/diamond-packages-sheet.webp') type('image/webp'),
+      url('/images/store-v3/diamond-packages-sheet.png') type('image/png')
+    );
   box-shadow:
     inset 0 1px 0 #ecfbffb0,
     inset 0 0 0 6px #060c13,
@@ -319,7 +333,7 @@
   font-weight: 800;
   cursor: pointer;
 }
-.packageCard button:hover {
+.packageCard button:hover:not(:disabled) {
   background: linear-gradient(
     180deg,
     #a5f2ff,
@@ -334,6 +348,11 @@
     inset 0 -3px 6px #001529,
     0 4px 9px #000,
     0 0 18px #00bfff;
+}
+.packageCard button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+  filter: saturate(0.72);
 }
 .legal {
   text-align: center;

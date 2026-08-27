@@ -127,6 +127,27 @@ function resolveVipPlan(rawPlan) {
     };
 }
 
+/**
+ * Accept an optional return URL only when its parsed origin exactly matches
+ * the configured Smarter.Poker origin. A string-prefix check is insufficient:
+ * `https://smarter.poker.attacker.example` starts with `https://smarter.poker`.
+ */
+function resolveCheckoutRedirect(rawUrl, baseUrl, fallbackPath) {
+    const allowedOrigin = new URL(baseUrl).origin;
+    const fallbackUrl = `${allowedOrigin}${fallbackPath}`;
+    if (typeof rawUrl !== 'string' || !rawUrl) return fallbackUrl;
+
+    try {
+        const candidate = new URL(rawUrl, allowedOrigin);
+        if (candidate.origin !== allowedOrigin) return fallbackUrl;
+        return candidate
+            .toString()
+            .replace(/%7BCHECKOUT_SESSION_ID%7D/gi, '{CHECKOUT_SESSION_ID}');
+    } catch (_) {
+        return fallbackUrl;
+    }
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -256,14 +277,24 @@ export default async function handler(req, res) {
           }
 
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker';
+          const returnRoute = type === 'subscription'
+              ? '/hub/vip-membership'
+              : type === 'merchandise'
+                  ? '/hub/merch-store'
+                  : '/hub/diamond-store';
 
-          // SECURITY: Only allow post-checkout redirects to our own origin
-          const safeSuccessUrl = (typeof successUrl === 'string' && successUrl.startsWith(baseUrl))
-              ? successUrl
-              : `${baseUrl}/hub/diamond-store?success=true&session_id={CHECKOUT_SESSION_ID}`;
-          const safeCancelUrl = (typeof cancelUrl === 'string' && cancelUrl.startsWith(baseUrl))
-              ? cancelUrl
-              : `${baseUrl}/hub/diamond-store?canceled=true`;
+          // SECURITY: Only allow post-checkout redirects to our exact origin.
+          // Defaults return each product to its own storefront.
+          const safeSuccessUrl = resolveCheckoutRedirect(
+              successUrl,
+              baseUrl,
+              `${returnRoute}?success=true&session_id={CHECKOUT_SESSION_ID}`
+          );
+          const safeCancelUrl = resolveCheckoutRedirect(
+              cancelUrl,
+              baseUrl,
+              `${returnRoute}?canceled=true`
+          );
 
           let sessionConfig = {
               customer: customerId,
