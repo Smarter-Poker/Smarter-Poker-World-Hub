@@ -77,6 +77,17 @@ test('sandbox history failures render a retryable error instead of an empty stat
   assert.match(sandbox, /<ErrorState title=\{`Could not load \$\{tab\}`\}/);
 });
 
+test('study replay does not depend on a missing PostgREST relationship', () => {
+  const hooks = read('src/hooks/useAssistant.js');
+  const studyDeck = hooks.slice(hooks.indexOf('export function useStudyDeck'), hooks.indexOf('export function useQuizLeaderboard'));
+
+  assert.match(studyDeck, /\.from\('sandbox_sessions'\)/);
+  assert.match(studyDeck, /\.eq\('user_id', user\.id\)/);
+  assert.match(studyDeck, /\.from\('sandbox_results'\)/);
+  assert.match(studyDeck, /\.in\('session_id', sessionIds\)/);
+  assert.doesNotMatch(studyDeck, /sandbox_sessions!inner/);
+});
+
 test('every Personal Assistant destination owns a canonical page title', () => {
   for (const file of [
     'pages/hub/personal-assistant/index.js',
