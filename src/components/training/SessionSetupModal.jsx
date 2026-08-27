@@ -37,6 +37,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { getGameImage } from '../../data/GAME_IMAGES';
 
 const DIFFICULTY_OPTIONS = [
   { id: 'beginner', label: 'Beginner', desc: 'Generous tolerances' },
@@ -243,11 +244,11 @@ export default function SessionSetupModal({
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
     >
       <div
-        className="sp-card-lg sp-stack-4"
+        className="sp-card-lg sp-setup-console"
         style={{
           width: '100%',
-          maxWidth: 440,
-          maxHeight: '90dvh',
+          maxWidth: 1040,
+          maxHeight: '92dvh',
           overflowY: 'auto',
           position: 'relative',
         }}
@@ -257,7 +258,7 @@ export default function SessionSetupModal({
           type="button"
           onClick={onClose}
           aria-label="Back to training"
-          className="sp-cta sp-cta-ghost"
+          className="sp-cta sp-cta-ghost sp-setup-close"
           style={{
             position: 'absolute', top: 8, right: 8,
             padding: '6px 10px', fontSize: 11,
@@ -267,107 +268,94 @@ export default function SessionSetupModal({
           ← Back
         </button>
 
-        <header className="sp-stack-1" style={{ textAlign: 'center', paddingTop: 8 }}>
-          <h2 id="sp-setup-title" className="sp-h2">{game.name || game.title || 'Training session'}</h2>
-          {(game.level || game.tier) && (
-            <div className="sp-caption" style={{ letterSpacing: 1.2, textTransform: 'uppercase' }}>
-              {game.tier ? game.tier : null}
-              {game.tier && game.level ? ' · ' : null}
-              {game.level ? `Level ${game.level}` : null}
+        <div className="sp-setup-layout">
+          <aside className="sp-setup-identity">
+            <div className="sp-setup-art" aria-hidden="true">
+              <img src={getGameImage(gameId)} alt="" />
+              <div className="sp-setup-art-shade" />
+              <div className="sp-setup-live"><span /> Live Training System</div>
             </div>
-          )}
-        </header>
+            <header className="sp-stack-1 sp-setup-title">
+              <div className="sp-caption">Mission Configuration</div>
+              <h2 id="sp-setup-title" className="sp-h2">{game.name || game.title || 'Training Session'}</h2>
+              <p className="sp-body-sm">{game.focus || 'Configure the table, then sharpen the decisions that matter.'}</p>
+              {(game.level || game.tier) && (
+                <div className="sp-caption">
+                  {game.tier ? game.tier : null}
+                  {game.tier && game.level ? ' · ' : null}
+                  {game.level ? `Level ${game.level}` : null}
+                </div>
+              )}
+            </header>
 
-        {/* SESSION GOAL */}
-        <section className="sp-card sp-stack-1" aria-label="Session goal">
-          <div className="sp-h4">Session goal</div>
-          <div className="sp-body-sm">
-            Score ≥85% to advance{game.level ? ` to Level ${Number(game.level) + 1}` : ''}.
-          </div>
-        </section>
+            <section className="sp-card sp-stack-1 sp-setup-goal" aria-label="Session goal">
+              <div className="sp-h4">Session Goal</div>
+              <div className="sp-body-sm">
+                Score ≥85% To Advance{game.level ? ` To Level ${Number(game.level) + 1}` : ''}.
+              </div>
+            </section>
 
-        {/* YOUR PERFORMANCE (30 DAYS) */}
-        <section className="sp-card sp-stack-2" aria-label="Your performance over the last 30 days">
-          <div className="sp-h4">Your performance · 30 days</div>
-          <div className="sp-cluster sp-cluster-4" style={{ justifyContent: 'space-between' }}>
-            <Stat label="Avg score" value={loading ? null : avgScore} unit="%" />
-            <Stat label="Sessions" value={loading ? null : sessionsCount} />
-            <Stat label="Hands"    value={loading ? null : hands} />
-          </div>
-          {lastSession && (
-            <div className="sp-caption" style={{ marginTop: 4 }}>
-              Last: <span className="sp-num-tabular">{lastScore != null ? `${lastScore}%` : '—'}</span>
-              {lastHands != null ? ` · ${lastHands} hands` : ''}
-              {lastRel ? ` · ${lastRel}` : ''}
+            <section className="sp-card sp-stack-2 sp-setup-performance" aria-label="Your performance over the last 30 days">
+              <div className="sp-h4">Your Performance · 30 Days</div>
+              <div className="sp-cluster sp-cluster-4" style={{ justifyContent: 'space-between' }}>
+                <Stat label="Avg Score" value={loading ? null : avgScore} unit="%" />
+                <Stat label="Sessions" value={loading ? null : sessionsCount} />
+                <Stat label="Hands" value={loading ? null : hands} />
+              </div>
+              {lastSession && (
+                <div className="sp-caption" style={{ marginTop: 4 }}>
+                  Last: <span className="sp-num-tabular">{lastScore != null ? `${lastScore}%` : '—'}</span>
+                  {lastHands != null ? ` · ${lastHands} Hands` : ''}
+                  {lastRel ? ` · ${lastRel}` : ''}
+                </div>
+              )}
+            </section>
+          </aside>
+
+          <section className="sp-setup-config" aria-label="Training configuration">
+            <div className="sp-setup-config-heading">
+              <div>
+                <span>Training Control Deck</span>
+                <strong>Configure Your Session</strong>
+              </div>
+              <span>Settings Save Automatically</span>
             </div>
-          )}
-        </section>
 
-        {/* DIFFICULTY */}
-        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
-          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Difficulty</legend>
-          <PillRow options={DIFFICULTY_OPTIONS} value={difficulty} onChange={setDifficulty} name="difficulty" />
-        </fieldset>
+            <div className="sp-setup-field-grid">
+              <SetupField title="Difficulty"><PillRow options={DIFFICULTY_OPTIONS} value={difficulty} onChange={setDifficulty} name="difficulty" /></SetupField>
+              <SetupField title="Timer"><PillRow options={TIMER_OPTIONS} value={timer} onChange={setTimer} name="timer" /></SetupField>
+              <SetupField title="Training Mode" wide><PillRow options={MODE_OPTIONS} value={mode} onChange={setMode} name="mode" tile /></SetupField>
+              <SetupField title="Game Scope"><PillRow options={SCOPE_OPTIONS} value={scope} onChange={setScope} name="scope" /></SetupField>
+              <SetupField title="Game Speed"><PillRow options={SPEED_OPTIONS} value={speed} onChange={setSpeed} name="speed" /></SetupField>
+              <SetupField title="Tables"><PillRow options={TABLE_OPTIONS} value={tables} onChange={setTables} name="tables" /></SetupField>
+              <SetupField title="Feedback"><PillRow options={FEEDBACK_OPTIONS} value={feedbackRule} onChange={setFeedbackRule} name="feedbackRule" /></SetupField>
+              <SetupField title="Hand Advance"><PillRow options={AUTO_ADVANCE_OPTIONS} value={autoAdvanceUI} onChange={setAutoAdvanceUI} name="autoAdvanceUI" /></SetupField>
+              <SetupField title="Hand Selection"><PillRow options={HAND_SELECTION_OPTIONS} value={handSelection} onChange={setHandSelection} name="handSelection" /></SetupField>
+            </div>
 
-        {/* TIMER */}
-        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
-          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Timer</legend>
-          <PillRow options={TIMER_OPTIONS} value={timer} onChange={setTimer} name="timer" />
-        </fieldset>
-
-        {/* TRAINING MODE */}
-        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
-          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Training mode</legend>
-          <PillRow options={MODE_OPTIONS} value={mode} onChange={setMode} name="mode" tile />
-        </fieldset>
-
-        {/* GAME SCOPE */}
-        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
-          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Game scope</legend>
-          <PillRow options={SCOPE_OPTIONS} value={scope} onChange={setScope} name="scope" />
-        </fieldset>
-
-        {/* GAME SPEED */}
-        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
-          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Game speed</legend>
-          <PillRow options={SPEED_OPTIONS} value={speed} onChange={setSpeed} name="speed" />
-        </fieldset>
-
-        {/* TABLES */}
-        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
-          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Tables</legend>
-          <PillRow options={TABLE_OPTIONS} value={tables} onChange={setTables} name="tables" />
-        </fieldset>
-
-        {/* FEEDBACK RULE */}
-        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
-          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Feedback</legend>
-          <PillRow options={FEEDBACK_OPTIONS} value={feedbackRule} onChange={setFeedbackRule} name="feedbackRule" />
-        </fieldset>
-
-        {/* AUTO NEW HAND */}
-        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
-          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Hand advance</legend>
-          <PillRow options={AUTO_ADVANCE_OPTIONS} value={autoAdvanceUI} onChange={setAutoAdvanceUI} name="autoAdvanceUI" />
-        </fieldset>
-
-        {/* HAND SELECTION — GTOW parity #7 */}
-        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
-          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Hand selection</legend>
-          <PillRow options={HAND_SELECTION_OPTIONS} value={handSelection} onChange={setHandSelection} name="handSelection" />
-        </fieldset>
-
-        {/* CTA */}
-        <button
-          type="button"
-          onClick={handleStart}
-          className="sp-cta sp-cta-primary"
-          style={{ width: '100%', padding: '14px 20px', fontSize: 15 }}
-        >
-          Start training →
-        </button>
+            <div className="sp-setup-launch">
+              <div><span>Ready Status</span><strong>Table Systems Online</strong></div>
+              <button
+                type="button"
+                onClick={handleStart}
+                className="sp-cta sp-cta-primary"
+              >
+                Start Training →
+              </button>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
+  );
+}
+
+function SetupField({ title, wide = false, children }) {
+  return (
+    <fieldset className={`sp-card sp-stack-2 sp-setup-field${wide ? ' is-wide' : ''}`}>
+      <legend className="sp-h4">{title}</legend>
+      {children}
+    </fieldset>
   );
 }
 
