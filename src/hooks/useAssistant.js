@@ -3,30 +3,20 @@
  * Provides data fetching for Strategy Hub, Virtual Sandbox, and Leak Finder
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { getAuthUser } from '../lib/authUtils';
+import { getAuthUser, getFreshAccessToken } from '../lib/authUtils';
 import { busEmit } from '../engine/EventBus';
 import { ARCHETYPE_CONFIG } from '../lib/sandbox/VillainArchetypeRanges';
 
-// Helper to get auth token from the Supabase session.
-// Ask the client first: it knows the real session shape and refreshes an
-// expired JWT (a stale token would make every PA API quietly serve demo data).
-// The raw localStorage read stays as a fallback for the pre-hydration window.
+// Use the platform's lock-free token helper. It reads the canonical stored
+// session, coalesces concurrent refreshes, and refreshes expiring JWTs through
+// the Auth REST endpoint without invoking the SDK session-lock path.
 async function getAuthToken() {
   try {
-    const { data } = await supabase.auth.getSession();
-    const token = data?.session?.access_token;
-    if (token) return token;
+    return await getFreshAccessToken();
   } catch (e) {
-    console.warn('[useAssistant] getSession failed, falling back to storage:', e?.message || e);
-  }
-
-  try {
-    if (typeof window === 'undefined') return null;
-    const stored = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-    return stored?.access_token || stored?.currentSession?.access_token || null;
-  } catch (e) {
+    console.warn('[useAssistant] token resolution failed:', e?.message || e);
     return null;
   }
 }
@@ -46,47 +36,56 @@ export function useAssistantStats() {
   const [isDemo, setIsDemo] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const requestIdRef = useRef(0);
+
+  const fetchStats = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const token = await getAuthToken();
+
+      const response = await fetch('/api/assistant/stats', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      const data = await response.json();
+      if (requestId !== requestIdRef.current) return;
+
+      // A 401/500 must not read as "no data" — surface it.
+      if (!response.ok || data.success === false) {
+        setError(data.error || `HTTP ${response.status}`);
+        return;
+      }
+
+      if (data.success) {
+        const demo = !!data.isDemo;
+        // Keep the flag on the stats object too — consumers read either.
+        setStats({ ...data.stats, isDemo: demo });
+        setIsDemo(demo);
+        setError(null);
+      }
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+      console.warn('Error fetching stats:', err);
+      setError(err.message);
+    } finally {
+      if (requestId === requestIdRef.current) setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchStats() {
-      try {
-        const token = await getAuthToken();
-
-        const response = await fetch('/api/assistant/stats', {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-        const data = await response.json();
-
-        // A 401/500 must not read as "no data" — surface it.
-        if (!response.ok || data.success === false) {
-          setError(data.error || `HTTP ${response.status}`);
-          return;
-        }
-
-        if (data.success) {
-          const demo = !!data.isDemo;
-          // Keep the flag on the stats object too — consumers read either.
-          setStats({ ...data.stats, isDemo: demo });
-          setIsDemo(demo);
-          setError(null);
-        }
-      } catch (err) {
-        console.warn('Error fetching stats:', err);
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
     fetchStats();
 
     // 🔄 BUS LISTENER for real-time Stat updates
     const handleUpdate = () => fetchStats();
     window.addEventListener('pa-data-updated', handleUpdate);
-    return () => window.removeEventListener('pa-data-updated', handleUpdate);
-  }, []);
+    return () => {
+      requestIdRef.current += 1;
+      window.removeEventListener('pa-data-updated', handleUpdate);
+    };
+  }, [fetchStats]);
 
-  return { stats, isDemo, isLoading, error };
+  return { stats, isDemo, isLoading, error, refetch: fetchStats };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -464,8 +463,14 @@ function extractEvLoss(resultRow) {
 export function useRecentSessions(limit = 10) {
   const [sessions, setSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDemo, setIsDemo] = useState(false);
+  const [error, setError] = useState(null);
+  const requestIdRef = useRef(0);
 
   const fetchSessions = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    setIsLoading(true);
+    setError(null);
     try {
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
       const user = getAuthUser();
@@ -475,9 +480,11 @@ export function useRecentSessions(limit = 10) {
           { id: 'demo-1', title: 'MP vs BTN Single Raised Pot', stack: '100BB', evLoss: -0.14, type: 'sandbox', isDemo: true },
           { id: 'demo-2', title: 'Post-Session Leak Analysis', date: 'Yesterday', evLoss: -0.11, type: 'leak', isDemo: true },
         ]);
-        setIsLoading(false);
+        setIsDemo(true);
+        setError(null);
         return;
       }
+      setIsDemo(false);
 
       const SELECT_WITH_RESULTS = `
           id,
@@ -513,7 +520,7 @@ export function useRecentSessions(limit = 10) {
           created_at
         `;
 
-      let { data, error } = await supabase
+      let { data, error: queryError } = await supabase
         .from('sandbox_sessions')
         .select(SELECT_WITH_RESULTS)
         .eq('user_id', user.id)
@@ -521,7 +528,7 @@ export function useRecentSessions(limit = 10) {
         .limit(limit);
 
       // Defensive: sandbox_results may not exist in every environment
-      if (error) {
+      if (queryError) {
         const retry = await supabase
           .from('sandbox_sessions')
           .select(SELECT_BASE)
@@ -529,11 +536,13 @@ export function useRecentSessions(limit = 10) {
           .order('created_at', { ascending: false })
           .limit(limit);
         data = retry.data;
-        error = retry.error;
+        queryError = retry.error;
       }
 
-      if (error) {
-        console.warn('Error fetching sessions:', error);
+      if (requestId !== requestIdRef.current) return;
+      if (queryError) {
+        console.warn('Error fetching sessions:', queryError);
+        setError(queryError.message || 'Recent sessions could not be loaded');
         setSessions([]);
       } else {
         const formatted = (data || []).map(s => ({
@@ -559,12 +568,15 @@ export function useRecentSessions(limit = 10) {
           pot_size_bb: s.pot_size_bb,
         }));
         setSessions(formatted);
+        setError(null);
       }
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       console.warn('Fetch sessions error:', err);
+      setError(err.message || 'Recent sessions could not be loaded');
       setSessions([]);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
   }, [limit]);
 
@@ -574,10 +586,13 @@ export function useRecentSessions(limit = 10) {
     // 🔄 BUS LISTENER for real-time Session updates
     const handleUpdate = () => fetchSessions();
     window.addEventListener('pa-data-updated', handleUpdate);
-    return () => window.removeEventListener('pa-data-updated', handleUpdate);
+    return () => {
+      requestIdRef.current += 1;
+      window.removeEventListener('pa-data-updated', handleUpdate);
+    };
   }, [fetchSessions]);
 
-  return { sessions, isLoading, refetch: fetchSessions };
+  return { sessions, isDemo, isLoading, error, refetch: fetchSessions };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
