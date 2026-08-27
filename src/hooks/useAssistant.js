@@ -773,7 +773,6 @@ export function useStudyDeck(limit = 20, authState) {
         ? (authUserId ? { id: authUserId } : null)
         : getAuthUser();
       if (!user) { setStudySessions([]); return; }
-
       // Production does not expose a PostgREST relationship from
       // sandbox_results back to sandbox_sessions. Resolve ownership first,
       // then fetch only results whose session ids belong to this user. This is
