@@ -681,6 +681,22 @@ const nextConfig = {
       // construction: cache them for a year. A new deploy changes the hashes
       // in index.html (which stays must-revalidate), so users always pick up
       // new code on the next navigation.
+      // Next.js content-hashes ALL files under /_next/static/ at build time
+      // (the build ID is part of the path), so they are safe to cache for 1 year.
+      // Without this, Vercel serves them with max-age=0, must-revalidate, forcing
+      // a round-trip revalidation on EVERY page navigation — the root cause of
+      // slow /hub/news, /hub/friends, /hub/leaderboards etc. clicks.
+      // NOTE: The matching rule in vercel.json takes precedence. This entry is a
+      // fallback in case vercel.json rules are ever removed.
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
       {
         source: '/hub/club-arena/assets/:path*',
         headers: [
