@@ -54,7 +54,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
+        # `npm ci` alone is NOT safe in this repo: package-lock.json is
+        # currently out of sync with package.json on main -- npm 11 refuses it
+        # with "Invalid: lock file's ajv@6.15.0 does not satisfy ajv@8.20.0".
+        # build-safety-gate.yml and e2e-tests.yml already carry this same
+        # fallback for the same reason. A new guard must not be the thing that
+        # turns a pre-existing lockfile problem into a red required check.
+        run: npm ci --prefer-offline --no-audit 2>/dev/null || npm install --no-audit --no-fund
         env:
           HUSKY: '0'
 

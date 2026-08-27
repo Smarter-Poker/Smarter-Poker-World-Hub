@@ -48,8 +48,29 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative } from 'node:path';
-import { parse } from '@babel/parser';
-import _traverse from '@babel/traverse';
+// @babel/parser and @babel/traverse are present transitively (via next/babel),
+// not as declared dependencies. Declaring them properly would be the tidier
+// answer, but package-lock.json is currently out of sync with package.json on
+// main, so touching either file is a separate repair and not one to bundle
+// into a guard.
+//
+// If they ever disappear, this must FAIL LOUDLY rather than crash with a bare
+// MODULE_NOT_FOUND. A guard that stops running for an unrelated reason and
+// says nothing intelligible is worse than no guard: the count stops moving and
+// everyone assumes it is clean.
+let parse, _traverse;
+try {
+  ({ parse } = await import('@babel/parser'));
+  _traverse = (await import('@babel/traverse')).default;
+} catch (e) {
+  console.error(
+    '::error::check-silent-writes cannot run: @babel/parser / @babel/traverse are not installed.\n'
+    + 'They are relied on transitively via next/babel. Add them to devDependencies '
+    + '(and repair the package-lock sync) rather than deleting this check.\n'
+    + String(e?.message || e)
+  );
+  process.exit(1);
+}
 
 const traverse = _traverse.default || _traverse;
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
