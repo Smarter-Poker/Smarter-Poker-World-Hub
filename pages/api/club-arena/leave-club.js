@@ -177,18 +177,34 @@ export default async function handler(req, res) {
         // here would strand them. A retry of leave-club can pick it up.
         continue;
       }
-      heldChipsReturned += co.amount;
-
-      // Cancel the request
-      const { error: err_cashout_requests_bmcqu } = await supabaseAdmin
+      // Cancel the request FIRST, and only count the chips as returned once
+      // the cancellation is confirmed to have written.
+      //
+      // heldChipsReturned used to be incremented before this, and the update
+      // was unchecked. A zero-row match therefore left the request PENDING
+      // while its chips had already been counted back to the player -- so the
+      // same chips would be returned a second time when that pending cashout
+      // was later approved. The comment a few lines above already says the
+      // rule ("the chips are still held, so cancelling it here would strand
+      // them"); this makes the converse true too.
+      const { data: cancelledRows, error: err_cashout_requests_bmcqu } = await supabaseAdmin
         .from('cashout_requests')
         .update({
           status: 'cancelled',
           cancelled_at: new Date().toISOString(),
           agent_note: 'Auto-cancelled: player left club',
         })
-        .eq('id', co.id);
-      if (err_cashout_requests_bmcqu) console.warn('[Supabase] Silent mutation failed in cashout_requests:', err_cashout_requests_bmcqu.message);
+        .eq('id', co.id)
+        .select('id');
+      if (err_cashout_requests_bmcqu) {
+        console.error('[leave-club] cashout cancel FAILED for', co.id, '- NOT counting its chips as returned:', err_cashout_requests_bmcqu.message);
+        continue;
+      }
+      if (!cancelledRows || cancelledRows.length === 0) {
+        console.error('[leave-club] cashout cancel matched ZERO rows for', co.id, '- request is still pending, NOT counting its chips as returned');
+        continue;
+      }
+      heldChipsReturned += co.amount;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -290,13 +306,26 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     // 8. DELETE MEMBERSHIP
     // ═══════════════════════════════════════════════════════════════
-    const { error: delErr } = await supabaseAdmin
+    // The chips have already been moved to the treasury by this point, so a
+    // membership row that survives is a member with a zeroed balance who was
+    // told they left. Checked rather than assumed.
+    const { data: deletedMembership, error: delErr } = await supabaseAdmin
       .from('club_members')
       .delete()
       .eq('club_id', clubId)
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .select('user_id');
 
     if (delErr) throw delErr;
+    if (!deletedMembership || deletedMembership.length === 0) {
+      console.error('[leave-club] membership delete matched ZERO rows for', clubId, user.id, '- chips were already returned to the treasury');
+      return res.status(500).json({
+        success: false,
+        error: 'Your chips were returned to the club treasury but your membership could not be removed. Please contact support before rejoining.',
+        chipsReturned: true,
+        membershipRemoved: false,
+      });
+    }
 
     // ═══════════════════════════════════════════════════════════════
     // 9. UPDATE MEMBER COUNT
