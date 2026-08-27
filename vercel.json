@@ -264,15 +264,55 @@
       ]
     },
     {
+      "source": "/api/poker/tours",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/poker/live-games",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=60, stale-while-revalidate=300" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/poker/promotions",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/poker/venues",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=120, stale-while-revalidate=600" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/social/interactions",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=30, stale-while-revalidate=60" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
       "source": "/_next/static/(.*)",
       "headers": [
-
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
         }
       ]
     },
+
     {
       "source": "/hub/:orb*/assets/(.*)",
       "headers": [

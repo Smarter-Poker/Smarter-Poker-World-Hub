@@ -202,6 +202,9 @@ try {
 
       const pagedPromotions = promotions.slice(offsetNum, offsetNum + limitNum);
 
+      // Public read-only: promotions change daily at most. Cache at the edge for
+      // 5 minutes and serve stale for up to 10 minutes while revalidating.
+      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
       return res.status(200).json({
         success: true,
         promotions: pagedPromotions,
