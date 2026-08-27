@@ -105,6 +105,7 @@ body.world-video-library {
     align-items: stretch !important;
     gap: 4px !important;
     margin: 0 !important;
+    scroll-padding-inline: 18px;
 }
 
 .vl-filter-button {
@@ -122,6 +123,7 @@ body.world-video-library {
     font: 700 12px/1 var(--vl-body) !important;
     letter-spacing: 0.15px !important;
     text-align: left;
+    touch-action: manipulation;
 }
 
 .vl-filter-button::after {
@@ -238,6 +240,8 @@ body.world-video-library {
     padding: 9px 0 18px !important;
     border-bottom: 1px solid rgba(140, 219, 251, 0.22);
     scroll-snap-type: x proximity;
+    scroll-padding-inline: 18px;
+    overscroll-behavior-inline: contain;
 }
 
 .vl-source-pills::-webkit-scrollbar,
@@ -255,6 +259,20 @@ body.world-video-library {
     padding: 3px 1px !important;
     transform: none !important;
     scroll-snap-align: start;
+    touch-action: manipulation;
+}
+
+.vl-source-button:focus-visible { outline: none !important; }
+
+.vl-source-button:focus-visible .vl-source-logo-frame {
+    outline: 2px solid var(--vl-cyan);
+    outline-offset: 4px;
+    border-color: var(--vl-cyan);
+}
+
+.vl-source-all-mark {
+    font: 900 12px/1 var(--vl-utility) !important;
+    letter-spacing: 1px !important;
 }
 
 .vl-source-logo-frame {
@@ -296,6 +314,72 @@ body.world-video-library {
     background: var(--vl-cyan) !important;
 }
 
+.vl-active-view {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin: -15px 0 24px;
+    padding: 11px 12px;
+    border: 1px solid rgba(126, 211, 248, 0.2);
+    border-left: 2px solid var(--vl-cyan);
+    background: linear-gradient(90deg, rgba(31, 129, 171, 0.11), rgba(4, 13, 18, 0.65));
+}
+
+.vl-active-view-copy {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.vl-active-view-copy > span {
+    flex: 0 0 auto;
+    color: #72909e;
+    font: 800 8px/1 var(--vl-utility);
+    letter-spacing: 1.45px;
+    text-transform: uppercase;
+}
+
+.vl-active-filter-list {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.vl-active-filter-list::-webkit-scrollbar { display: none; }
+
+.vl-active-filter-list strong {
+    flex: 0 0 auto;
+    padding: 5px 8px;
+    border: 1px solid rgba(111, 203, 242, 0.22);
+    color: #cceefa;
+    background: rgba(7, 25, 34, 0.72);
+    font: 700 9px/1 var(--vl-utility);
+    letter-spacing: 0.25px;
+}
+
+.vl-active-view > button {
+    flex: 0 0 auto;
+    padding: 6px 9px;
+    border: 1px solid rgba(135, 216, 250, 0.28);
+    border-radius: 0;
+    color: var(--vl-cyan);
+    background: rgba(2, 12, 17, 0.72);
+    font: 800 9px/1 var(--vl-utility);
+    letter-spacing: 0.45px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.vl-active-view > button:hover {
+    border-color: var(--vl-cyan);
+    background: rgba(36, 150, 196, 0.14);
+}
+
 .vl-command-main > .vl-continue-watching,
 .vl-command-main > .vl-new-this-week,
 .vl-command-main > .vl-video-grid,
@@ -335,6 +419,7 @@ body.world-video-library {
 }
 
 .vl-video-card {
+    position: relative;
     min-width: 0;
     overflow: hidden;
     border: 1px solid rgba(137, 216, 249, 0.28) !important;
@@ -343,6 +428,26 @@ body.world-video-library {
     background: linear-gradient(160deg, rgba(10, 23, 31, 0.98), rgba(3, 9, 13, 0.98)) !important;
     box-shadow: inset 0 1px rgba(255, 255, 255, 0.025), 0 10px 27px rgba(0, 0, 0, 0.24) !important;
     transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.vl-card-open-button {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    color: transparent;
+    background: transparent;
+    cursor: pointer;
+}
+
+.vl-card-open-button:focus { outline: none; }
+
+.vl-video-card:focus-within {
+    border-color: var(--vl-cyan) !important;
+    box-shadow: 0 0 0 2px rgba(85, 216, 255, 0.3), 0 0 24px rgba(0, 158, 255, 0.15) !important;
 }
 
 .vl-video-card:hover {
@@ -436,6 +541,7 @@ body.world-video-library {
     color: white;
     background: rgba(1, 13, 19, 0.78) !important;
     box-shadow: 0 0 0 7px rgba(61, 198, 255, 0.1);
+    pointer-events: none;
 }
 
 .vl-card-info { padding: 12px 13px 13px !important; }
@@ -477,6 +583,8 @@ body.world-video-library {
 }
 
 .vl-share-button {
+    position: relative;
+    z-index: 4;
     padding: 5px 8px !important;
     border-color: rgba(139, 214, 245, 0.16) !important;
     border-radius: 1px !important;
@@ -484,6 +592,16 @@ body.world-video-library {
     background: rgba(255, 255, 255, 0.025) !important;
     font: 700 9px/1 var(--vl-utility) !important;
     white-space: nowrap;
+}
+
+.vl-watched-badge { z-index: 4 !important; }
+
+.vl-new-week-card:focus-visible,
+.vl-continue-watching .video-card-metal:focus-visible,
+.vl-up-next-card:focus-visible {
+    outline: 2px solid var(--vl-cyan) !important;
+    outline-offset: 3px;
+    border-color: var(--vl-cyan) !important;
 }
 
 .vl-share-button:hover {
@@ -511,6 +629,27 @@ body.world-video-library {
     .vl-command-main { padding-left: 23px; }
     .vl-video-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
     .vl-video-grid > .vl-video-card:first-child { grid-column: 1 / -1; }
+}
+
+/* Tablet bridge: keep the command rail while giving feature cards usable width. */
+@media (min-width: 761px) and (max-width: 900px) {
+    .video-library-page { padding-inline: 16px !important; }
+    .vl-command-layout { grid-template-columns: 188px minmax(0, 1fr); }
+    .vl-command-rail { padding-right: 17px; }
+    .vl-command-main { padding-left: 18px; }
+    .vl-command-bar { align-items: stretch; flex-direction: column; gap: 14px; }
+    .vl-search-wrap { width: 100% !important; }
+    .vl-video-grid { grid-template-columns: minmax(0, 1fr) !important; }
+
+    .vl-video-grid > .vl-video-card:first-child {
+        display: block;
+        min-height: 0;
+    }
+
+    .vl-video-grid > .vl-video-card:first-child .vl-video-thumb {
+        min-height: 0;
+        aspect-ratio: 16 / 9 !important;
+    }
 }
 
 /* Phone composition: controls become swipeable rails and cards become a feed. */
@@ -560,6 +699,7 @@ body.world-video-library {
         overscroll-behavior-inline: contain;
         scroll-snap-type: x mandatory;
         scrollbar-width: none;
+        padding-right: 28px;
     }
 
     .vl-type-toggle-row::-webkit-scrollbar { display: none; }
@@ -627,7 +767,26 @@ body.world-video-library {
         margin: 0 0 21px !important;
         padding: 12px 0 14px !important;
         border-top: 1px solid rgba(137, 217, 250, 0.18);
+        padding-right: 28px !important;
     }
+
+    .vl-active-view {
+        margin: -10px 0 18px;
+        padding: 9px 10px;
+        gap: 10px;
+    }
+
+    .vl-active-view-copy {
+        display: block;
+        overflow: hidden;
+    }
+
+    .vl-active-view-copy > span {
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .vl-active-view > button { padding: 8px; }
 
     .vl-source-button {
         width: 62px;

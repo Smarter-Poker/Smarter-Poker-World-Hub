@@ -108,6 +108,20 @@ function parseDuration(durationStr) {
     return parts[0] || 0;
 }
 
+/** Keep a newly selected horizontal-rail control visible without moving the page. */
+function keepRailButtonInView(button) {
+    const rail = button?.parentElement;
+    if (!rail || rail.scrollWidth <= rail.clientWidth) return;
+
+    window.requestAnimationFrame(() => {
+        const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        rail.scrollTo({
+            left: button.offsetLeft - ((rail.clientWidth - button.clientWidth) / 2),
+            behavior: reducedMotion ? 'auto' : 'smooth',
+        });
+    });
+}
+
 export default function VideoLibraryPage() {
     const router = useRouter();
     const { user } = useAvatar();
@@ -509,6 +523,12 @@ export default function VideoLibraryPage() {
         setSelectedVideo(video);
         setIframeKey(k => k + 1); // force iframe remount → guaranteed autoplay
     }, []);
+
+    const handleVideoCardKeyDown = useCallback((event, video) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        handleOpenVideo(video);
+    }, [handleOpenVideo]);
     // Keep ref in sync so early useEffects can call it without a TDZ dep
     useEffect(() => { handleOpenVideoRef.current = handleOpenVideo; }, [handleOpenVideo]);
 
@@ -834,6 +854,24 @@ export default function VideoLibraryPage() {
         };
     }, [userId]);
 
+    const activeSourceName = SOURCES.find(source => source?.id === selectedSource)?.name || selectedSource;
+    const activeFilterLabels = [
+        selectedType !== 'ALL' ? (selectedType === 'cash' ? 'Cash Games' : 'Tournaments') : null,
+        selectedSource !== 'ALL' ? activeSourceName : null,
+        sortMode !== 'default' ? (sortMode === 'trending' ? 'Trending' : 'Top Rated') : null,
+        libraryFilter !== 'ALL' ? ({ favorites: 'Favorites', history: 'Watch History', watchlater: 'Watch Later' }[libraryFilter] || libraryFilter) : null,
+        searchQuery ? `Search: “${searchQuery}”` : null,
+    ].filter(Boolean);
+    const hasActiveFilters = activeFilterLabels.length > 0;
+
+    const clearAllFilters = () => {
+        setSearchQuery('');
+        setSelectedSource('ALL');
+        setSelectedType('ALL');
+        setSortMode('default');
+        setLibraryFilter('ALL');
+    };
+
     return (
         <PageTransition>
             
@@ -893,9 +931,16 @@ export default function VideoLibraryPage() {
                             const isActive = selectedType === type.id;
                             return (
                                 <button
+                                    type="button"
                                     key={type.id}
                                     className={`vl-filter-button${isActive ? ' is-active' : ''}`}
-                                    onClick={() => setSelectedType(type.id)}
+                                    data-filter-group="type"
+                                    aria-pressed={isActive}
+                                    aria-controls="video-library-grid"
+                                    onClick={(event) => {
+                                        setSelectedType(type.id);
+                                        keepRailButtonInView(event.currentTarget);
+                                    }}
                                     style={{
                                         padding: '9px 22px',
                                         background: isActive
@@ -934,9 +979,17 @@ export default function VideoLibraryPage() {
                             const isActive = sortMode === s.id;
                             return (
                                 <button
+                                    type="button"
                                     key={s.id}
                                     className={`vl-filter-button vl-sort-button${isActive ? ' is-active' : ''}`}
-                                    onClick={() => setSortMode(s.id)}
+                                    data-filter-group="sort"
+                                    aria-label={`Sort videos by ${s.label.replace(/[🔥⭐]/gu, '').trim()}`}
+                                    aria-pressed={isActive}
+                                    aria-controls="video-library-grid"
+                                    onClick={(event) => {
+                                        setSortMode(s.id);
+                                        keepRailButtonInView(event.currentTarget);
+                                    }}
                                     style={{
                                         padding: '9px 18px',
                                         background: isActive
@@ -962,8 +1015,10 @@ export default function VideoLibraryPage() {
 
                         {/* Reels Button — opens TikTok doom-scroll */}
                         <button
+                            type="button"
                             id="vl-reels-tab-btn"
                             className="vl-filter-button vl-reels-button"
+                            aria-label="Open the video Reels viewer"
                             onClick={() => setShowReelsModal(true)}
                             style={{
                                 padding: '9px 22px',
@@ -1013,6 +1068,8 @@ export default function VideoLibraryPage() {
                         }}>
                             <input
                                 type="text"
+                                aria-label="Search the poker video library"
+                                aria-controls="video-library-grid"
                                 placeholder="Search Videos..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -1054,7 +1111,8 @@ export default function VideoLibraryPage() {
                             {videos.length} result{videos.length !== 1 ? 's' : ''} for <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>&ldquo;{searchQuery}&rdquo;</span>
                             {videos.length === 0 && (
                                 <button
-                                    onClick={() => { setSearchQuery(''); setSelectedSource('ALL'); setSelectedType('ALL'); }}
+                                    type="button"
+                                    onClick={clearAllFilters}
                                     style={{ marginLeft: 10, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontSize: 12, padding: '3px 10px', cursor: 'pointer' }}
                                 >
                                     Clear Filters
@@ -1072,14 +1130,21 @@ export default function VideoLibraryPage() {
                         padding: '8px 4px 12px',
                         scrollbarWidth: 'none',
                     }}>
-                        {SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL').map(source => {
+                        {[{ id: 'ALL', name: 'All Sources', logo: null }, ...SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL')].map(source => {
                             const isActive = selectedSource === source.id;
                             const initials = (source.name || source.id || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
                             return (
                                 <button
+                                    type="button"
                                     key={source.id}
                                     className={`vl-source-button${isActive ? ' is-active' : ''}`}
-                                    onClick={() => setSelectedSource(source.id)}
+                                    aria-label={`Show videos from ${source.name}`}
+                                    aria-pressed={isActive}
+                                    aria-controls="video-library-grid"
+                                    onClick={(event) => {
+                                        setSelectedSource(source.id);
+                                        keepRailButtonInView(event.currentTarget);
+                                    }}
                                     style={{
                                         flexShrink: 0,
                                         display: 'flex',
@@ -1130,7 +1195,7 @@ export default function VideoLibraryPage() {
                                             {source.logo ? (
                                                 <img
                                                     src={source.logo}
-                                                    alt={source.name}
+                                                    alt=""
                                                     style={{
                                                         width: '100%',
                                                         height: '100%',
@@ -1144,7 +1209,7 @@ export default function VideoLibraryPage() {
                                                     loading="lazy"
                                                 />
                                             ) : (
-                                                <span style={{
+                                                <span className={source.id === 'ALL' ? 'vl-source-all-mark' : undefined} style={{
                                                     fontSize: 17,
                                                     fontWeight: 800,
                                                     color: isActive ? '#00D4FF' : 'rgba(190,205,225,0.7)',
@@ -1187,6 +1252,18 @@ export default function VideoLibraryPage() {
                         })}
                     </div>
 
+                    {hasActiveFilters && (
+                        <div className="vl-active-view" aria-label="Active video filters">
+                            <div className="vl-active-view-copy">
+                                <span>Active view</span>
+                                <div className="vl-active-filter-list">
+                                    {activeFilterLabels.map(label => <strong key={label}>{label}</strong>)}
+                                </div>
+                            </div>
+                            <button type="button" onClick={clearAllFilters}>Reset view</button>
+                        </div>
+                    )}
+
                 {/* Watch Stats moved to hamburger menu - removed from main page */}
 
                 {/* Continue Watching / Recently Watched Section */}
@@ -1221,6 +1298,10 @@ export default function VideoLibraryPage() {
                                     <div
                                         key={item.video_id}
                                         onClick={() => handleOpenVideo(video)}
+                                        onKeyDown={(event) => handleVideoCardKeyDown(event, video)}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={`Resume ${video.title}`}
                                         className="metal-frame video-card-metal"
                                         style={{
                                             minWidth: 240,
@@ -1307,6 +1388,10 @@ export default function VideoLibraryPage() {
                                     key={video.videoId}
                                     className="vl-new-week-card"
                                     onClick={() => handleOpenVideo(video)}
+                                    onKeyDown={(event) => handleVideoCardKeyDown(event, video)}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`Play ${video.title}`}
                                     style={{ minWidth: 220, flexShrink: 0, cursor: 'pointer', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', transition: 'transform 0.18s, box-shadow 0.18s' }}
                                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)'; }}
                                     onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
@@ -1329,7 +1414,7 @@ export default function VideoLibraryPage() {
                 )}
 
                 {/* Video Grid */}
-                <div className="vl-video-grid" style={{
+                <div id="video-library-grid" className="vl-video-grid" aria-label="Poker videos" style={{
                     maxWidth: 1400,
                     margin: '0 auto',
                     display: 'grid',
@@ -1349,12 +1434,17 @@ export default function VideoLibraryPage() {
                     {dbLoaded && videos.slice(0, Math.min(displayedCount, videos.length)).map(video => (
                         <div
                             key={video.id}
-                            onClick={() => handleOpenVideo(video)}
                             className="metal-frame video-card-metal vl-video-card"
                             style={{
                                 cursor: 'pointer',
                             }}
                         >
+                            <button
+                                type="button"
+                                className="vl-card-open-button"
+                                aria-label={`Play ${video.title}`}
+                                onClick={() => handleOpenVideo(video)}
+                            />
                             {/* Thumbnail */}
                             <div className="vl-video-thumb" style={{
                                 position: 'relative',
@@ -1400,9 +1490,11 @@ export default function VideoLibraryPage() {
                                 </div>
                                 {/* Watched badge — tappable to mark-unwatched */}
                                 {watchedVideos.has(video.id) && (
-                                    <div
+                                    <button
+                                        type="button"
                                         className="vl-watched-badge"
-                                        title="Click to mark unwatched"
+                                        aria-label={`Mark ${video.title} as unwatched`}
+                                        title="Mark as unwatched"
                                         onClick={e => { e.stopPropagation(); handleMarkUnwatched(video.id); }}
                                         style={{
                                             position: 'absolute',
@@ -1418,10 +1510,11 @@ export default function VideoLibraryPage() {
                                             alignItems: 'center',
                                             gap: 4,
                                             cursor: 'pointer',
+                                            border: 'none',
                                         }}
                                     >
                                         <span>✓</span> Watched
-                                    </div>
+                                    </button>
                                 )}
                                 {/* AI badge removed per user request */}
                                 {/* Progress bar */}
@@ -1525,6 +1618,7 @@ export default function VideoLibraryPage() {
                                     </span>
                                     {/* Share button */}
                                     <button
+                                        type="button"
                                         id={`vl-share-${video.videoId}`}
                                         className="vl-share-button"
                                         title="Copy link"
@@ -1570,7 +1664,8 @@ export default function VideoLibraryPage() {
                             {searchQuery ? `No results for "${searchQuery}"` : 'Try Adjusting Your Filters'}
                         </p>
                         <button
-                            onClick={() => { setSearchQuery(''); setSelectedSource('ALL'); setSelectedType('ALL'); }}
+                            type="button"
+                            onClick={clearAllFilters}
                             style={{
                                 padding: '10px 24px',
                                 background: 'rgba(0,212,255,0.15)',
@@ -2092,6 +2187,11 @@ export default function VideoLibraryPage() {
                                         <div
                                             key={v.id}
                                             onClick={() => handleOpenVideo(v)}
+                                            onKeyDown={(event) => handleVideoCardKeyDown(event, v)}
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-label={`Play ${v.title}`}
+                                            className="vl-up-next-card"
                                             style={{
                                                 minWidth: 160,
                                                 flexShrink: 0,
