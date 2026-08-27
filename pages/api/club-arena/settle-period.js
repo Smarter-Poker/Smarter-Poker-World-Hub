@@ -207,10 +207,19 @@ export default async function handler(req, res) {
       if (pErr) throw pErr;
 
       // Reset all agents' weekly_rake_generated — single batch UPDATE (was serial loop, O(n) round-trips)
-      const { error: err_agents_8n8q4 } = await supabaseAdmin
+      // Row count is captured but NOT treated as failure. This filters by
+      // club_id, and a club with no agents legitimately matches zero rows --
+      // making that fatal would break opening a period for every agent-less
+      // club. It is logged so a reset that silently touched nothing in a club
+      // that DOES have agents is still visible.
+      const { data: resetRows, error: err_agents_8n8q4 } = await supabaseAdmin
         .from('agents')
         .update({ weekly_rake_generated: 0 })
-        .eq('club_id', clubId);
+        .eq('club_id', clubId)
+        .select('id');
+      if (!err_agents_8n8q4) {
+        console.info(`[settle-period] weekly rake reset for ${resetRows?.length ?? 0} agent(s) in club ${clubId}`);
+      }
       if (err_agents_8n8q4) {
         // FAIL-LOUD: if the reset does not land, every agent keeps last week's
         // weekly_rake_generated and the NEXT close pays commission on it a
@@ -454,11 +463,16 @@ export default async function handler(req, res) {
 
       // Update the period with the actual total
       if (actualTotalRake > 0) {
-        const { error: err_settlement_periods_ekp4u } = await supabaseAdmin
+        // The figure everything below is calculated from. If it does not land,
+        // the period reports a rake total that does not match what was actually
+        // settled against it.
+        const { data: rakeRows, error: err_settlement_periods_ekp4u } = await supabaseAdmin
           .from('settlement_periods')
           .update({ total_rake_collected: actualTotalRake })
-          .eq('id', pid);
-        if (err_settlement_periods_ekp4u) console.warn('[Supabase] Silent mutation failed in settlement_periods:', err_settlement_periods_ekp4u.message);
+          .eq('id', pid)
+          .select('id');
+        if (err_settlement_periods_ekp4u) console.error('[settle-period] total_rake_collected write FAILED for period', pid, err_settlement_periods_ekp4u.message);
+        else if (!rakeRows || rakeRows.length === 0) console.error('[settle-period] total_rake_collected write matched ZERO rows for period', pid, '- the stored total will not match the settlement');
       }
 
       // Debit union hold from club treasury, credit to union rake_wallet
@@ -625,14 +639,32 @@ export default async function handler(req, res) {
       }
 
       // Close the period
-      const { error: err_settlement_periods_3wobo } = await supabaseAdmin
+      // .select() because the existing FAIL-LOUD branch below only fires on
+      // `error`, and PostgREST reports a zero-row UPDATE as { error: null }.
+      // Every consequence described in that comment -- period stays open,
+      // caller told "closed", next run re-applies commissions and the union
+      // hold -- follows just as exactly from a zero-row match. The check was
+      // catching one of the two ways this fails.
+      const { data: closedRows, error: err_settlement_periods_3wobo } = await supabaseAdmin
         .from('settlement_periods')
         .update({
           status: 'closed',
           settled_at: new Date().toISOString(),
           settled_by: user.id,
         })
-        .eq('id', pid);
+        .eq('id', pid)
+        .select('id');
+      if (!err_settlement_periods_3wobo && (!closedRows || closedRows.length === 0)) {
+        return res.status(500).json({
+          success: false,
+          error: `Settlement completed but the period could not be marked closed: the update `
+            + `matched no rows (period ${pid} may have been altered concurrently). DO NOT `
+            + `re-run close for this period -- commissions and the union hold have already `
+            + `been applied.`,
+          periodId: pid,
+          alreadyApplied: true,
+        });
+      }
       if (err_settlement_periods_3wobo) {
         // FAIL-LOUD: this is the worst one. All the money movement above has
         // already committed. If the period is not marked closed, it stays

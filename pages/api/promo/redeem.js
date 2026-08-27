@@ -119,12 +119,19 @@ export default async function handler(req, res) {
           // would block retries forever after a transient failure.
           const rollbackRedemption = async (label) => {
               try {
-                  const { error: err_promo_code_redemptions_h7gtb } = await getSupabase()
+                  // The comment above states exactly why the row count matters
+                  // here: the unique constraint on (promo_code_id, user_id)
+                  // blocks retries forever if this row survives. A zero-row
+                  // delete leaves the user permanently unable to redeem a code
+                  // they were never given the reward for.
+                  const { data: rolledBack, error: err_promo_code_redemptions_h7gtb } = await getSupabase()
                     .from('promo_code_redemptions')
                     .delete()
                       .eq('promo_code_id', promo.id)
-                      .eq('user_id', user.id);
-                  if (err_promo_code_redemptions_h7gtb) console.warn('[Supabase] Silent mutation failed in promo_code_redemptions:', err_promo_code_redemptions_h7gtb.message);
+                      .eq('user_id', user.id)
+                      .select('id');
+                  if (err_promo_code_redemptions_h7gtb) console.error(`[promo] CRITICAL rollback FAILED (${label}) - user ${user.id} can never retry code ${promo.id}:`, err_promo_code_redemptions_h7gtb.message);
+                  else if (!rolledBack || rolledBack.length === 0) console.error(`[promo] CRITICAL rollback matched ZERO rows (${label}) - the redemption row survives, so user ${user.id} can never retry code ${promo.id}`);
               } catch (rbErr) {
                   console.warn(`[Promo] Rollback delete failed (${label}):`, rbErr?.message || rbErr);
               }
@@ -165,13 +172,22 @@ export default async function handler(req, res) {
               const startDate = currentExpiry > now ? currentExpiry : now;
               const newExpiry = new Date(startDate.getTime() + promo.reward_value * 24 * 60 * 60 * 1000);
 
-              const { error: vipErr } = await getSupabase()
+              // The redemption row is already committed, so a miss here burns
+              // the user's code and grants nothing. Folded into vipErr so it
+              // takes the existing rollback-and-fail path rather than being
+              // reported as a successful redemption.
+              const { data: vipRows, error: rawVipErr } = await getSupabase()
                   .from('profiles')
                   .update({
                       is_vip: true,
                       vip_expires_at: newExpiry.toISOString()
                   })
-                  .eq('id', user.id);
+                  .eq('id', user.id)
+                  .select('id');
+              const vipErr = rawVipErr
+                  || ((!vipRows || vipRows.length === 0)
+                      ? new Error(`VIP grant matched zero rows for user ${user.id}`)
+                      : null);
 
               if (vipErr) {
                   await rollbackRedemption('vip_days update failed');
@@ -185,13 +201,18 @@ export default async function handler(req, res) {
               const now = new Date();
               const trialEnd = new Date(now.getTime() + promo.reward_value * 24 * 60 * 60 * 1000);
 
-              const { error: trialErr } = await getSupabase()
+              const { data: trialRows, error: rawTrialErr } = await getSupabase()
                   .from('profiles')
                   .update({
                       is_vip: true,
                       vip_expires_at: trialEnd.toISOString()
                   })
-                  .eq('id', user.id);
+                  .eq('id', user.id)
+                  .select('id');
+              const trialErr = rawTrialErr
+                  || ((!trialRows || trialRows.length === 0)
+                      ? new Error(`free trial grant matched zero rows for user ${user.id}`)
+                      : null);
 
               if (trialErr) {
                   await rollbackRedemption('free_trial update failed');
@@ -207,12 +228,17 @@ export default async function handler(req, res) {
 
           // ── Redemption already recorded above (atomic insert) ──
           // Update with reward details
-          const { error: err_promo_code_redemptions_ufo99 } = await getSupabase()
+          // Record of what was actually granted. Not fatal -- the reward has
+          // already been applied -- but a miss means the audit row does not say
+          // what the user received.
+          const { data: rewardRows, error: err_promo_code_redemptions_ufo99 } = await getSupabase()
             .from('promo_code_redemptions')
             .update({ reward_applied: reward })
               .eq('promo_code_id', promo.id)
-              .eq('user_id', user.id);
-          if (err_promo_code_redemptions_ufo99) console.warn('[Supabase] Silent mutation failed in promo_code_redemptions:', err_promo_code_redemptions_ufo99.message);
+              .eq('user_id', user.id)
+              .select('id');
+          if (err_promo_code_redemptions_ufo99) console.error('[promo] reward_applied write failed:', err_promo_code_redemptions_ufo99.message);
+          else if (!rewardRows || rewardRows.length === 0) console.error('[promo] reward_applied write matched ZERO rows for code', promo.id, 'user', user.id);
 
           // ── INCREMENT USAGE COUNT ──
           const { error: err_promo_codes_en9fo } = await getSupabase()

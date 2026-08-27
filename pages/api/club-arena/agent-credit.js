@@ -151,20 +151,39 @@ export default async function handler(req, res) {
               .from('club_members').select('credit_limit')
               .eq('club_id', clubId).eq('user_id', agentUserId).maybeSingle();
             newLimit = (fresh?.credit_limit || 0) + amount;
-            const { error: err_club_members_v35ny } = await getSupabase().from('club_members').update({ credit_limit: newLimit })
-              .eq('club_id', clubId).eq('user_id', agentUserId);
-            if (err_club_members_v35ny) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_v35ny.message);
+            // The retry after a lost optimistic-lock race. The FIRST attempt
+            // checks its result (that is what `if (!updated)` is); this retry
+            // did not, so a second lost race left the credit limit UNCHANGED
+            // while the handler carried on to insert a chip_transactions row
+            // recording credit as issued. Ledger and reality diverge, and
+            // nothing says so.
+            const { data: retryRows, error: err_club_members_v35ny } = await getSupabase().from('club_members').update({ credit_limit: newLimit })
+              .eq('club_id', clubId).eq('user_id', agentUserId)
+              .select('user_id');
+            if (err_club_members_v35ny) {
+              console.error('[agent-credit] credit_limit issue retry FAILED:', err_club_members_v35ny.message);
+              return res.status(500).json({ success: false, error: 'Could not update the credit limit. No credit was issued.' });
+            }
+            if (!retryRows || retryRows.length === 0) {
+              console.error('[agent-credit] credit_limit issue retry matched ZERO rows for', clubId, agentUserId);
+              return res.status(409).json({ success: false, error: 'The credit limit changed while this was processing. No credit was issued -- please retry.' });
+            }
           }
         } else {
           newLimit = atomicResult?.new_value ?? ((agentMember.credit_limit || 0) + amount);
         }
 
         // Mirror to agents table
-        const { error: err_agents_2pfhe } = await getSupabase()
+        // agents.credit_limit and club_members.credit_limit are two stores of
+        // the same number. A silent miss here leaves them disagreeing, and
+        // whichever one a given screen reads decides what the operator sees.
+        const { data: mirrorRows, error: err_agents_2pfhe } = await getSupabase()
           .from('agents')
           .update({ credit_limit: newLimit })
-          .eq('id', agentRecord.id);
-        if (err_agents_2pfhe) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_2pfhe.message);
+          .eq('id', agentRecord.id)
+          .select('id');
+        if (err_agents_2pfhe) console.error('[agent-credit] agents mirror FAILED - agents.credit_limit now disagrees with club_members:', err_agents_2pfhe.message);
+        else if (!mirrorRows || mirrorRows.length === 0) console.error('[agent-credit] agents mirror matched ZERO rows for agent', agentRecord.id, '- agents.credit_limit now disagrees with club_members');
 
         const { error: issueTxErr } = await getSupabase().from('chip_transactions').insert({
           club_id: clubId,
@@ -256,17 +275,28 @@ export default async function handler(req, res) {
             .from('club_members').select('credit_limit')
             .eq('club_id', clubId).eq('user_id', agentUserId).maybeSingle();
           finalLimit = Math.max(0, (fresh?.credit_limit || 0) - amount);
-          const { error: err_club_members_65bwq } = await getSupabase().from('club_members').update({ credit_limit: finalLimit })
-            .eq('club_id', clubId).eq('user_id', agentUserId);
-          if (err_club_members_65bwq) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_65bwq.message);
+          // Same as the issue path: an unchecked retry after a lost race.
+          const { data: revokeRetryRows, error: err_club_members_65bwq } = await getSupabase().from('club_members').update({ credit_limit: finalLimit })
+            .eq('club_id', clubId).eq('user_id', agentUserId)
+            .select('user_id');
+          if (err_club_members_65bwq) {
+            console.error('[agent-credit] credit_limit revoke retry FAILED:', err_club_members_65bwq.message);
+            return res.status(500).json({ success: false, error: 'Could not update the credit limit. Nothing was revoked.' });
+          }
+          if (!revokeRetryRows || revokeRetryRows.length === 0) {
+            console.error('[agent-credit] credit_limit revoke retry matched ZERO rows for', clubId, agentUserId);
+            return res.status(409).json({ success: false, error: 'The credit limit changed while this was processing. Nothing was revoked -- please retry.' });
+          }
         }
 
         // Mirror to agents table
-        const { error: err_agents_q3fjw } = await getSupabase()
+        const { data: revokeMirrorRows, error: err_agents_q3fjw } = await getSupabase()
           .from('agents')
           .update({ credit_limit: finalLimit })
-          .eq('id', agentRecord.id);
-        if (err_agents_q3fjw) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_q3fjw.message);
+          .eq('id', agentRecord.id)
+          .select('id');
+        if (err_agents_q3fjw) console.error('[agent-credit] agents mirror FAILED on revoke - agents.credit_limit now disagrees with club_members:', err_agents_q3fjw.message);
+        else if (!revokeMirrorRows || revokeMirrorRows.length === 0) console.error('[agent-credit] agents mirror matched ZERO rows on revoke for agent', agentRecord.id);
 
         await notifyUser(supabaseAdmin, {
           userId: agentUserId,
