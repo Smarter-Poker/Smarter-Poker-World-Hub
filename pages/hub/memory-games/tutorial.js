@@ -1,100 +1,47 @@
-/**
- * Preflop Charts - Tutorial
- */
-
+import Link from 'next/link';
+import { ArrowRight, CheckCircle2, Keyboard, Layers3, MousePointer2 as PointerIcon, ScanSearch } from 'lucide-react';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useRouter } from 'next/router';
-import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import PageTransition from '../../../src/components/transitions/PageTransition';
+import PreflopSubpageShell from '../../../src/components/memory-games/PreflopSubpageShell';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+
+const STEPS = [
+  { icon: ScanSearch, title: 'Read the situation', description: 'Confirm your position, effective stack, format, and the action you are facing. Those details determine the target range.' },
+  { icon: Layers3, title: 'Choose an action', description: 'Select Fold, Call, Raise, Raise Small, Raise Big, or All In. The active action stays available in the mobile command strip.' },
+  { icon: PointerIcon, title: 'Build the range', description: 'Tap individual hands or apply the active action to every pair, suited hand, or offsuit hand. Undo and redo are available before submission.' },
+  { icon: CheckCircle2, title: 'Submit and compare', description: 'Your score measures exact overlap with the solver range. Missing hands, extra hands, and correct hands with the wrong action all reduce accuracy.' },
+];
+
+const FEEDBACK = [
+  { state: 'correct', label: 'Correct', detail: 'Right hand and right action' },
+  { state: 'missed', label: 'Missed', detail: 'Solver hand left unmarked' },
+  { state: 'wrong', label: 'Wrong action', detail: 'Right hand, different action' },
+  { state: 'extra', label: 'Extra', detail: 'Hand added outside the range' },
+];
 
 export default function MemoryGamesTutorial() {
-    const bus = useTrainingBus('preflop-charts-tutorial');
-    const router = useRouter();
-
-    const steps = [
-        { title: 'How to Play', description: 'Match Pairs of Cards by Remembering Their Positions' },
-        { title: 'Scoring', description: 'Faster Matches and Fewer Mistakes Earn More Points' },
-        { title: 'Power-ups', description: 'Earn Power-ups by Completing Challenges' },
-    ];
-
-    return (
-        <>
-            <SEOHead
-                title="Preflop Charts Tutorial — How To Play"
-                description="Learn How To Master GTO Preflop Ranges With This Step-by-step Tutorial."
-                canonical="/hub/preflop-charts/tutorial"
-            />
-
-            <PageTransition>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0e1a' }}>
-                    <UniversalHeader pageDepth={2} />
-
-                    <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-
-
-                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            Tutorial
-                        </h1>
-
-                        <div style={{ display: 'grid', gap: '20px' }}>
-                            {steps.map((step, idx) => (
-                                <div
-                                    key={idx}
-                                    style={{
-                                        background: 'rgba(255,255,255,0.03)',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '12px',
-                                        padding: '24px'
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-                                        <div style={{
-                                            background: '#ec4899',
-                                            color: '#fff',
-                                            width: '32px',
-                                            height: '32px',
-                                            borderRadius: '50%',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontWeight: 'bold'
-                                        }}>
-                                            {idx + 1}
-                                        </div>
-                                        <h3 style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>
-                                            {step.title}
-                                        </h3>
-                                    </div>
-                                    <p style={{ color: '#9ca3af', marginLeft: '48px' }}>
-                                        {step.description}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-
-                        <button
-                            onClick={() => router.push('/hub/preflop-charts')}
-                            style={{
-                                background: '#ec4899',
-                                border: 'none',
-                                color: '#fff',
-                                padding: '16px 32px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 'bold',
-                                fontSize: '16px',
-                                marginTop: '30px',
-                                width: '100%'
-                            }}
-                        >
-                            Start Playing
-                        </button>
-                    </div>
-                </div>
-                  <BottomNavBar />
-    </PageTransition>
-        </>
-    );
+  useTrainingBus('preflop-charts-tutorial');
+  return (
+    <>
+      <SEOHead title="Preflop Charts Guide — Build Accurate GTO Ranges" description="Learn how to construct, score, and review GTO preflop ranges in Smarter.Poker." canonical="/hub/preflop-charts/tutorial" />
+      <PreflopSubpageShell eyebrow="FIELD MANUAL // RANGE LAB" title="Operate the matrix" description="A practical guide to building exact preflop ranges on desktop or mobile." metric="GUIDE">
+        <section className="preflop-guide-grid" aria-label="How to use Preflop Charts">
+          {STEPS.map(({ icon: Icon, title, description }, index) => (
+            <article className="preflop-guide-step" key={title}>
+              <div className="preflop-guide-step-index">0{index + 1}</div><Icon size={22} aria-hidden /><h2>{title}</h2><p>{description}</p>
+            </article>
+          ))}
+        </section>
+        <section className="preflop-subpage-panel preflop-guide-feedback" aria-labelledby="feedback-legend-title">
+          <div className="preflop-panel-heading"><div><span>RESULT LAYER</span><h2 id="feedback-legend-title">Read the review colors</h2></div></div>
+          <div className="preflop-feedback-legend">
+            {FEEDBACK.map((item) => <div key={item.state} data-feedback={item.state}><i aria-hidden /><span><strong>{item.label}</strong>{item.detail}</span></div>)}
+          </div>
+        </section>
+        <section className="preflop-subpage-panel preflop-guide-shortcuts" aria-labelledby="shortcut-title">
+          <Keyboard size={24} aria-hidden /><div><span>DESKTOP CONTROL MAP</span><h2 id="shortcut-title">Keyboard shortcuts</h2><p><kbd>1–6</kbd> select actions · <kbd>Arrow keys</kbd> move through the matrix · <kbd>Space</kbd> marks a focused hand or submits outside the grid · <kbd>Ctrl/⌘ Z</kbd> undo · <kbd>Shift + Ctrl/⌘ Z</kbd> redo.</p></div>
+        </section>
+        <div className="preflop-subpage-cta-row"><Link href="/hub/preflop-charts" className="preflop-subpage-primary-cta">Start range training <ArrowRight size={17} aria-hidden /></Link></div>
+      </PreflopSubpageShell>
+    </>
+  );
 }

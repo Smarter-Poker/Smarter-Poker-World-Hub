@@ -12,16 +12,16 @@ test('the progression circuit reports live level, mastery, and practice-pool sta
     assert.match(PAGE, /className="preflop-circuit-status"/);
     assert.match(PAGE, /aria-label="Range progression status"/);
     assert.match(PAGE, /Current station[\s\S]*Level \{currentLevel\}/);
-    assert.match(PAGE, /Next mastery gate[\s\S]*\{masteryGateProgress\}\/5/);
+    assert.match(PAGE, /Next mastery gate[\s\S]*Level \{highestUnlockedLevel\} open/);
     assert.match(PAGE, /Practice pool[\s\S]*\{filteredScenarioCount\}\/\{ALL_TRAINING_SCENARIOS\.length\}/);
 });
 
 test('level availability reflects the applied filters without replacing game handlers', () => {
     assert.match(PAGE, /filterScenarios\(levelScenarios, scenarioFilters\)\.length/);
     assert.match(PAGE, /const isAvailable = isUnlocked && hasMatchingScenarios/);
-    assert.match(PAGE, /onClick=\{\(\) => isAvailable && startGame\(level\.level\)\}/);
-    assert.match(PAGE, /startGame\(level\.level\);/);
-    assert.match(PAGE, /aria-disabled=\{!isAvailable\}/);
+    assert.match(PAGE, /className="preflop-level-card-action"/);
+    assert.match(PAGE, /onClick=\{\(\) => startGame\(level\.level\)\}/);
+    assert.match(PAGE, /disabled=\{!isAvailable\}/);
     assert.match(PAGE, /data-level-state=\{levelState\}/);
 });
 
@@ -40,5 +40,5 @@ test('the circuit and level states retain responsive, accessible styling', () =>
     assert.match(CSS, /@media \(max-width: 640px\)[\s\S]*\.preflop-circuit-stat\s*\{[\s\S]*min-height:\s*72px/);
     assert.match(CSS, /\.preflop-level-card\.is-no-match/);
     assert.match(CSS, /\.preflop-level-state\.is-mastered/);
-    assert.match(CSS, /\.preflop-menu :is\(button, \[role='button'\]\):focus-visible/);
+    assert.match(CSS, /\.preflop-level-card:focus-within/);
 });

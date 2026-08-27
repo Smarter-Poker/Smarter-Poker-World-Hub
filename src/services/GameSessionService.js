@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { accuracyToPercent } from '../lib/preflopRangeLab';
 
 class GameSessionService {
     /**
@@ -82,7 +83,7 @@ class GameSessionService {
             const totalGames = sessions.length;
             const completedGames = sessions.filter(s => s.completed).length;
             const avgAccuracy = sessions.length > 0
-                ? sessions.reduce((sum, s) => sum + (s.accuracy || 0), 0) / sessions.length
+                ? sessions.reduce((sum, s) => sum + accuracyToPercent(s.accuracy, s.score), 0) / sessions.length
                 : 0;
             const totalDiamonds = sessions.reduce((sum, s) => sum + (s.diamonds_earned || 0), 0);
             const totalTime = sessions.reduce((sum, s) => sum + (s.time_taken || 0), 0);
@@ -94,7 +95,7 @@ class GameSessionService {
                 levelStats[i] = {
                     games: levelSessions.length,
                     avgAccuracy: levelSessions.length > 0
-                        ? levelSessions.reduce((sum, s) => sum + (s.accuracy || 0), 0) / levelSessions.length
+                        ? levelSessions.reduce((sum, s) => sum + accuracyToPercent(s.accuracy, s.score), 0) / levelSessions.length
                         : 0
                 };
             }
@@ -107,7 +108,7 @@ class GameSessionService {
                 modeStats[mode] = {
                     games: modeSessions.length,
                     avgAccuracy: modeSessions.length > 0
-                        ? modeSessions.reduce((sum, s) => sum + (s.accuracy || 0), 0) / modeSessions.length
+                        ? modeSessions.reduce((sum, s) => sum + accuracyToPercent(s.accuracy, s.score), 0) / modeSessions.length
                         : 0
                 };
             });
