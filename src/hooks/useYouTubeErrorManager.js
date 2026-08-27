@@ -87,6 +87,7 @@ function reportToSentry(videoId, errorCode, surface) {
  * @param {string}  options.surface       — Component name for telemetry (e.g., 'Reels', 'Stories', 'VideoLibrary')
  * @param {Function} options.onError      — Optional callback fired when an error is detected
  * @param {Function} options.onStateChange — Optional callback for YouTube state changes (0=ended, 1=playing, 2=paused)
+ * @param {Object} options.iframeRef     — Optional ref used to reject events from stale/unrelated players
  * @param {number}  options.autoActionDelay — Milliseconds before auto-action (default: 3000). Set 0 to disable.
  * @param {'advance'|'close'} options.autoAction — What to do after delay: 'advance' (call onError) or 'close'
  * @returns {{ ytError, clearError, errorInfo, thumbnailUrl }}
@@ -97,6 +98,7 @@ export function useYouTubeErrorManager({
     surface = 'Unknown',
     onError = null,
     onStateChange = null,
+    iframeRef = null,
     autoActionDelay = 3000,
     autoAction = 'advance',
 } = {}) {
@@ -118,6 +120,7 @@ export function useYouTubeErrorManager({
         const handleYTMessage = (e) => {
             // Strict origin validation (Security)
             if (!YOUTUBE_ORIGINS.includes(e.origin)) return;
+            if (iframeRef?.current?.contentWindow && e.source !== iframeRef.current.contentWindow) return;
 
             try {
                 const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
@@ -156,7 +159,7 @@ export function useYouTubeErrorManager({
         window.addEventListener('message', handleYTMessage);
         return () => window.removeEventListener('message', handleYTMessage);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- onError removed: it's handled by auto-action timer, not this effect
-    }, [active, videoId, surface, onStateChange]);
+    }, [active, videoId, surface, onStateChange, iframeRef]);
 
     // ── Auto-action timer (advance/close) ─────────────────────────────────────
     useEffect(() => {
