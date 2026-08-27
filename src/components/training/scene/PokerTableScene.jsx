@@ -59,6 +59,8 @@ function PokerTableScene({
                 questionNumber={1}
                 totalQuestions={20}
                 gameTitle={gameTitle || 'GTO Training'}
+                seatCount={seatCount}
+                players={players}
             />
 
             {/* Debug overlay */}

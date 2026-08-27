@@ -677,7 +677,7 @@ const POSITION_NAMES = {
 // the asset is missing or fails to decode, so a bad path can never leave a
 // blank hole on the felt where a character should be. Module-level because it
 // owns state and the seats are rendered inside a .map().
-function SeatAvatar({ src, label, fontSize }) {
+function SeatAvatar({ src, label, fontSize, tableCutout = false }) {
     const [failed, setFailed] = React.useState(false);
     React.useEffect(() => { setFailed(false); }, [src]);
     if (!src || failed) {
@@ -702,18 +702,27 @@ function SeatAvatar({ src, label, fontSize }) {
     }
     return (
         <img
-            src={src}
+            src={tableCutout ? getTablePortraitSrc(src) : src}
             alt={label || 'Player'}
             onError={() => setFailed(true)}
             style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover',
-                objectPosition: '50% 20%',
+                objectFit: tableCutout ? 'contain' : 'cover',
+                objectPosition: tableCutout ? '50% 100%' : '50% 20%',
                 display: 'block',
             }}
         />
     );
+}
+
+// The live Club Arena keeps a second, transparent portrait set specifically
+// for table seats. Training uses the same cutouts instead of cropping the
+// full-size profile art into flat circles.
+function getTablePortraitSrc(src) {
+    if (!src || src.includes('/avatars/table/')) return src;
+    const match = src.match(/\/avatars\/(free|vip)\/([^/.]+)/);
+    return match ? `/avatars/table/${match[1]}_${match[2]}.webp` : src;
 }
 
 // Convert card notation (e.g., 'Ah' for Ace of Hearts) to image path
@@ -1178,7 +1187,7 @@ const loadingStyles = {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: '#121212',
+        background: 'radial-gradient(circle at 50% 20%, rgba(74,151,182,0.46), transparent 34%), radial-gradient(circle at 50% 78%, rgba(20,129,159,0.28), transparent 38%), linear-gradient(135deg, #142a36, #071019 48%, #102a34)',
     },
     questionBar: {
         height: 50,
@@ -3308,6 +3317,61 @@ function UniversalDynamicTable({
                         max-width: 800px !important;
                     }
                 }
+                .sp-club-gto-avatar-frame {
+                    overflow: visible !important;
+                    border: 0 !important;
+                    border-radius: 0 !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                }
+                .sp-club-gto-avatar-frame img {
+                    object-fit: contain !important;
+                    object-position: 50% 100% !important;
+                    filter: drop-shadow(0 5px 4px rgba(0,0,0,.82));
+                }
+                .sp-club-gto-actions [data-action] {
+                    border: 0 !important;
+                    border-radius: 13px !important;
+                    box-shadow: inset 0 2px rgba(255,255,255,.24), inset 0 -5px rgba(0,0,0,.28), 0 8px 15px rgba(0,0,0,.5) !important;
+                    text-shadow: 0 2px 2px rgba(0,0,0,.75) !important;
+                }
+                .sp-club-gto-actions [data-action]:not(:disabled) {
+                    color: #fff !important;
+                }
+                .sp-club-gto-actions [data-action='fold']:not(:disabled) {
+                    background: linear-gradient(180deg,#ff4b52,#f00819 56%,#a5000b) !important;
+                }
+                .sp-club-gto-actions [data-action='check']:not(:disabled),
+                .sp-club-gto-actions [data-action='call']:not(:disabled) {
+                    background: linear-gradient(180deg,#1aa2ff,#0879ef 56%,#004aa8) !important;
+                }
+                .sp-club-gto-actions [data-action='raise']:not(:disabled),
+                .sp-club-gto-actions [data-action='bet']:not(:disabled),
+                .sp-club-gto-actions [data-action='allin']:not(:disabled) {
+                    background: linear-gradient(180deg,#14df75,#00ad4e 56%,#006d30) !important;
+                }
+                @media (max-width: 640px) {
+                    .sp-club-gto-question {
+                        margin: 4px 6px 3px !important;
+                        padding: 7px 9px !important;
+                        border-radius: 6px !important;
+                        box-shadow: 0 5px 14px rgba(0,0,0,.48) !important;
+                    }
+                    .sp-club-gto-table-area {
+                        background: radial-gradient(circle at 50% 14%,rgba(181,229,243,.18),transparent 24%);
+                    }
+                    .sp-club-gto-actions {
+                        gap: 7px !important;
+                        padding-left: 7px !important;
+                        padding-right: 7px !important;
+                        border-top: 2px solid #096be6;
+                        background: linear-gradient(180deg,#12243f,#061226 48%,#02060c);
+                        box-shadow: 0 -10px 25px rgba(0,0,0,.65);
+                    }
+                    .sp-club-gto-actions [data-action] {
+                        min-height: 62px !important;
+                    }
+                }
             `}</style>
             {/* F11: Streak Toast */}
             <AnimatePresence>
@@ -3532,7 +3596,7 @@ function UniversalDynamicTable({
                 where it lived until now, at 15px, on top of the top row of
                 seats. This is the single most important thing on screen. */}
             {(contextString || (questionText && questionText !== 'Loading question...')) && (
-                <div style={{ ...styles.questionPanel, ...m.questionPanel }}>
+                <div className="sp-club-gto-question" style={{ ...styles.questionPanel, ...m.questionPanel }}>
                     {questionText && questionText !== 'Loading question...' && (
                         <div style={styles.questionPanelText}>{questionText}</div>
                     )}
@@ -3603,7 +3667,7 @@ function UniversalDynamicTable({
             </div>
 
                         {/* TABLE AREA - Center */}
-            <div style={{
+            <div className="sp-club-gto-table-area" style={{
                 ...styles.tableArea,
                 // On a phone the felt fills the table area edge to edge and the
                 // gutters beside the oval are too narrow to hold the countdown
@@ -3710,7 +3774,7 @@ function UniversalDynamicTable({
 
                 {/* PREMIUM RACETRACK TABLE — GoldenTemplateTable design */}
                 {/* NEW CUSTOM STANDALONE RACETRACK TABLE */}
-                <div ref={tableRef} style={{ ...styles.basicTable, aspectRatio: `1 / ${feltAspect}` }}>
+                <div ref={tableRef} className="sp-club-gto-table" style={{ ...styles.basicTable, aspectRatio: isMobile ? '1 / 1.62' : '1 / 1.55' }}>
 
                 {/* THE FELT — inset into the rail above. Purely decorative and
                     pointer-transparent; every seat, chip and card is drawn on
@@ -3892,6 +3956,7 @@ function UniversalDynamicTable({
 
                         return (
                             <motion.div
+                                className={`sp-club-gto-seat ${isHero ? 'is-hero' : 'is-villain'}`}
                                 key={seat.id}
                                 initial={reduceMotion ? false : { opacity: 0, scale: 0.86 }}
                                 animate={{ opacity: villainFolded ? 0.42 : 1, scale: 1 }}
@@ -3908,6 +3973,7 @@ function UniversalDynamicTable({
                                 {/* CIRCULAR AVATAR — gold rim-light plus outer
                                     glow when this seat is the one to act. */}
                                 <motion.div
+                                    className="sp-club-gto-avatar-frame"
                                     initial={reduceMotion ? false : { scale: 0.4, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     transition={{ duration: 0.26, delay: reduceMotion ? 0 : 0.06 }}
@@ -3946,6 +4012,7 @@ function UniversalDynamicTable({
                                             : seatAvatars[seatRel]}
                                         label={seatLabel}
                                         fontSize={Math.max(12, Math.round(avatarPx * 0.42))}
+                                        tableCutout
                                     />
                                 </motion.div>
 
@@ -4093,36 +4160,37 @@ function UniversalDynamicTable({
                                         visible but grey out. */}
                                     {!isHero && (
                                         <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            gap: ui(2),
-                                            marginTop: ui(3),
+                                            position: 'absolute',
+                                            left: '50%',
+                                            top: ui(5),
+                                            width: avatarPx * 1.25,
+                                            height: vilCardH * 1.2,
+                                            transform: 'translateX(-50%)',
                                             zIndex: 1,
-                                            borderRadius: ui(5),
                                             ...(villainFolded
                                                 ? { filter: 'grayscale(100%) brightness(0.5)', opacity: 0.6 }
                                                 : { animation: reduceMotion ? 'none' : 'pulse-glow 2s ease-in-out infinite' }),
                                         }}>
-                                            {[0, 1].map((ci) => (
-                                                <motion.div
+                                            {[0, 1, 2, 3, 4].map((ci) => (
+                                                <motion.img
                                                     key={`vc-${ci}`}
+                                                    src="/images/card-backs/red.png"
+                                                    alt=""
                                                     initial={reduceMotion ? false : { y: -ui(18), rotate: ci ? 14 : -14, opacity: 0 }}
-                                                    animate={{ y: 0, rotate: 0, opacity: 1 }}
+                                                    animate={{ y: 0, rotate: (ci - 2) * 12, opacity: 1 }}
                                                     transition={{ delay: reduceMotion ? 0 : 0.06 + ci * 0.06, duration: 0.24 }}
                                                     style={{
-                                                        width: vilCardW, height: vilCardH, borderRadius: ui(4),
-                                                        background: 'linear-gradient(135deg, #7d0f14 0%, #b02a2a 50%, #7d0f14 100%)',
-                                                        border: `1px solid rgba(255,199,84,0.75)`,
-                                                        boxShadow: '0 3px 8px rgba(0,0,0,0.6)',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        position: 'absolute',
+                                                        left: '50%',
+                                                        bottom: 0,
+                                                        width: vilCardW,
+                                                        height: vilCardH,
+                                                        marginLeft: -vilCardW / 2,
+                                                        borderRadius: ui(3),
+                                                        transformOrigin: '50% 100%',
+                                                        boxShadow: '0 3px 8px rgba(0,0,0,0.65)',
                                                     }}
-                                                >
-                                                    <div style={{
-                                                        width: vilCardW * 0.56, height: vilCardH * 0.68, borderRadius: 2,
-                                                        border: '1px solid rgba(255,199,84,0.35)',
-                                                        background: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,199,84,0.12) 3px, rgba(255,199,84,0.12) 6px)',
-                                                    }} />
-                                                </motion.div>
+                                                />
                                             ))}
                                         </div>
                                     )}
@@ -4703,14 +4771,14 @@ function UniversalDynamicTable({
             })()}
 
             {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
-            <div style={{
+            <div className="sp-club-gto-actions" style={{
                 ...styles.actionBar,
                 position: 'relative',
                 // The template lays four actions out as a 2x2 GRID, not a single
                 // row of four thin slivers. Two columns up to four options;
                 // beyond that a third column, because a 2-wide grid of nine
                 // buttons would push the felt off a phone screen.
-                gridTemplateColumns: `repeat(${Math.min(displayOptions.length, 9) > 4 ? 3 : 2}, minmax(0, 1fr))`,
+                gridTemplateColumns: `repeat(${Math.min(displayOptions.length, 9) <= 3 ? Math.max(1, Math.min(displayOptions.length, 3)) : (Math.min(displayOptions.length, 9) > 4 ? 3 : 2)}, minmax(0, 1fr))`,
             }}>
                 {/* YOUR ACTION turn indicator */}
                 {!showFeedback && (
@@ -6896,25 +6964,26 @@ const styles = {
     basicTable: {
         position: 'relative',
         boxSizing: 'border-box',
-        width: '92%',
-        maxWidth: 440,
-        aspectRatio: '1 / 1.45',
-        borderRadius: '50% / 26%',
+        width: '88%',
+        maxWidth: 510,
+        aspectRatio: '1 / 1.62',
+        borderRadius: '44% / 19%',
         background: [
-            'radial-gradient(ellipse at 50% 8%, rgba(255,190,70,0.05) 0%, rgba(255,190,70,0) 55%)',
-            'linear-gradient(180deg, #0b0b0d 0%, #060607 58%, #030304 100%)',
+            'radial-gradient(ellipse at 50% 8%, rgba(190,234,248,0.08) 0%, rgba(190,234,248,0) 55%)',
+            'linear-gradient(180deg, #2b3036 0%, #0d1116 38%, #080b0e 64%, #24292f 100%)',
         ].join(', '),
         // OUTER GOLD RING of the racetrack rail. The rail reads as two
         // concentric BRIGHT gold hoops with a black channel between them: this
         // border is hoop one, `feltSurface`'s ring is hoop two. Both hoops carry
         // their own soft outer bloom -- in the template they glow, they are not
         // just drawn.
-        border: '2.5px solid #e8bd4e',
+        border: '7px solid #171b20',
         boxShadow: [
             '0 26px 60px rgba(0,0,0,0.85)',
-            '0 0 26px rgba(232,189,78,0.38)',
-            '0 0 60px rgba(232,189,78,0.14)',
-            'inset 0 0 0 1px rgba(255,224,150,0.45)',
+            '0 0 0 2px rgba(139,151,160,0.72)',
+            '0 0 24px rgba(45,196,236,0.18)',
+            'inset 0 0 0 3px rgba(211,224,230,0.72)',
+            'inset 0 0 0 6px rgba(25,30,36,0.95)',
             'inset 0 -22px 44px rgba(0,0,0,0.55)',
         ].join(', '),
         margin: '0 auto',
@@ -6930,7 +6999,7 @@ const styles = {
     // its proportion when the table shrinks.
     feltSurface: {
         position: 'absolute',
-        borderRadius: '50% / 26%',
+        borderRadius: '44% / 19%',
         background: [
             'radial-gradient(ellipse at 50% 34%, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0) 60%)',
             'radial-gradient(ellipse at 50% 44%, #1a1a1c 0%, #121214 38%, #0a0a0b 72%, #050506 100%)',
@@ -6938,9 +7007,8 @@ const styles = {
         boxShadow: [
             'inset 0 12px 30px rgba(0,0,0,0.62)',
             'inset 0 -16px 38px rgba(0,0,0,0.58)',
-            // INNER GOLD RING (hoop two of the racetrack rail).
-            '0 0 0 2.5px #e8bd4e',
-            '0 0 22px rgba(232,189,78,0.32)',
+            '0 0 0 2.5px #aab8c0',
+            '0 0 18px rgba(83,218,255,0.2)',
         ].join(', '),
         pointerEvents: 'none',
         zIndex: 0,

@@ -16,6 +16,7 @@ const TrainingGameTable = dynamic(
 export default function TrainingTableDemo() {
     const [timer, setTimer] = useState(15);
     const [communityCards, setCommunityCards] = useState([]);
+    const [showDemoControls, setShowDemoControls] = useState(false);
 
     // Timer countdown
     useEffect(() => {
@@ -23,6 +24,10 @@ export default function TrainingTableDemo() {
             setTimer(t => t > 0 ? t - 1 : 15);
         }, 1000);
         return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        setShowDemoControls(!new URLSearchParams(window.location.search).has('clean'));
     }, []);
 
     const dealFlop = () => setCommunityCards(['Ks', 'Qh', '7d']);
@@ -57,7 +62,7 @@ export default function TrainingTableDemo() {
             />
 
             {/* Demo controls */}
-            <div style={{
+            {showDemoControls && <div style={{
                 position: 'fixed',
                 top: 80,
                 right: 10,
@@ -73,7 +78,7 @@ export default function TrainingTableDemo() {
                 <button onClick={dealTurn} style={{ padding: '6px 10px', fontSize: 11 }}>Deal Turn</button>
                 <button onClick={dealRiver} style={{ padding: '6px 10px', fontSize: 11 }}>Deal River</button>
                 <button onClick={resetCards} style={{ padding: '6px 10px', fontSize: 11 }}>Reset</button>
-            </div>
+            </div>}
         </>
     );
 }
