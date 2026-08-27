@@ -102,6 +102,7 @@ export default function OmnichannelSQLConsole() {
     const router = useRouter();
     const [loadingConfig, setLoadingConfig] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [authError, setAuthError] = useState('');
 
     const [sqlQuery, setSqlQuery] = useState('-- Write your raw PostgreSQL query here\nSELECT * FROM profiles LIMIT 5;');
     const [isRunning, setIsRunning] = useState(false);
@@ -135,10 +136,25 @@ export default function OmnichannelSQLConsole() {
             // slow. authUtils reads the same session out of storage.
             const authUser = getAuthUser();
             if (!authUser?.id) {
+                // setLoadingConfig(false) has to run on EVERY exit. It used to
+                // sit only at the bottom, so this branch left the page on
+                // "Authenticating Agent..." for the whole navigation -- and
+                // forever if the push did not go anywhere.
+                setLoadingConfig(false);
                 router.push('/auth/login?redirect=/horses/sql-console');
                 return;
             }
-            const { data: profile } = await supabase.from('profiles').select('role').eq('id', authUser.id).maybeSingle();
+            const { data: profile, error: roleErr } = await supabase
+                .from('profiles').select('role').eq('id', authUser.id).maybeSingle();
+            // A FAILED QUERY IS NOT A DENIAL. `error` used to be discarded, so
+            // an RLS regression or a dropped connection made profile null and
+            // bounced a real superadmin to the home page with no way to tell
+            // "you are not an admin" from "we could not ask". Say which.
+            if (roleErr) {
+                setAuthError('Could not verify your role: ' + roleErr.message);
+                setLoadingConfig(false);
+                return;
+            }
             if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) {
                 setIsAdmin(true);
             } else {
@@ -254,6 +270,27 @@ export default function OmnichannelSQLConsole() {
 
     if (loadingConfig) {
         return <div style={{ background: C.page, minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: C.textDim }}>Authenticating Agent...</div>;
+    }
+    // Renders instead of a blank page, and offers a retry. `return null` for
+    // this case meant a superadmin hitting a transient RLS or network failure
+    // saw an empty white screen with no explanation and nothing to click.
+    if (authError) {
+        return (
+            <div style={{ background: C.page, minHeight: '100vh', display: 'flex', flexDirection: 'column',
+                justifyContent: 'center', alignItems: 'center', gap: 16, color: C.text, padding: 24, textAlign: 'center' }}>
+                <div role="alert" style={{ color: C.danger, fontWeight: 700 }}>{authError}</div>
+                <div style={{ color: C.textDim, fontSize: 14, maxWidth: 480 }}>
+                    This is a failure to check your role, not a refusal. Your access has not changed.
+                </div>
+                <button
+                    onClick={() => router.reload()}
+                    style={{ background: C.accent, color: C.page, border: 'none', padding: '10px 20px',
+                        borderRadius: 6, cursor: 'pointer', fontWeight: 700, minHeight: 44 }}
+                >
+                    Retry
+                </button>
+            </div>
+        );
     }
     if (!isAdmin) return null;
 

@@ -63,6 +63,9 @@ function weightToColor(w) {
 }
 
 const TYPE_COLORS = {
+  // Semantic, not chrome -- see the four-colour-deck note in HUD.jsx. Green
+  // reads as "tight-aggressive" and "in range" in every solver output a
+  // player has seen; the grid is a data display, not console furniture.
   TAG: '#22c55e', LAG: '#f97316', LP: '#eab308', TP: '#3b82f6',
   NIT: '#6b7280', MANIAC: '#ef4444', UNK: '#6b7280',
 };
