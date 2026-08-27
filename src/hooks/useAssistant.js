@@ -25,7 +25,7 @@ async function getAuthToken() {
 // useAssistantStats — Fetch user's assistant statistics
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function useAssistantStats() {
+export function useAssistantStats(authState) {
   const [stats, setStats] = useState({
     sessionsReviewed: 0,
     handsAnalyzed: 0,
@@ -37,11 +37,18 @@ export function useAssistantStats() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
+  const hasExplicitAuth = authState !== undefined;
+  const authReady = !hasExplicitAuth || authState?.ready !== false;
+  const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
 
   const fetchStats = useCallback(async () => {
     const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
+    // AvatarContext deliberately exposes an unresolved auth phase. Do not
+    // fetch guest/sample stats during that window or they can win the race and
+    // remain visible after the signed-in identity hydrates.
+    if (!authReady) return;
     try {
       const token = await getAuthToken();
 
@@ -69,9 +76,9 @@ export function useAssistantStats() {
       console.warn('Error fetching stats:', err);
       setError(err.message);
     } finally {
-      if (requestId === requestIdRef.current) setIsLoading(false);
+      if (requestId === requestIdRef.current && authReady) setIsLoading(false);
     }
-  }, []);
+  }, [authReady, authUserId]);
 
   useEffect(() => {
     fetchStats();
@@ -92,7 +99,7 @@ export function useAssistantStats() {
 // useLeaks — Fetch user's detected leaks
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function useLeaks(statusFilter = null) {
+export function useLeaks(statusFilter = null, authState) {
   const [leaks, setLeaks] = useState([]);
   const [isDemo, setIsDemo] = useState(false);
   // Onboarding sample leaks the API ships alongside an empty result set. Kept
@@ -100,10 +107,17 @@ export function useLeaks(statusFilter = null) {
   const [demoLeaks, setDemoLeaks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const requestIdRef = useRef(0);
+  const hasExplicitAuth = authState !== undefined;
+  const authReady = !hasExplicitAuth || authState?.ready !== false;
+  const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
 
   const fetchLeaks = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     try {
       setIsLoading(true);
+      setError(null);
+      if (!authReady) return;
       const token = await getAuthToken();
 
       let url = '/api/assistant/leaks';
@@ -115,6 +129,7 @@ export function useLeaks(statusFilter = null) {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       const data = await response.json();
+      if (requestId !== requestIdRef.current) return;
 
       // A 401/500 must not read as "no leaks" — surface it.
       if (!response.ok || data.success === false) {
@@ -131,12 +146,13 @@ export function useLeaks(statusFilter = null) {
         setDemoLeaks((data.demoLeaks || []).map(formatLeak));
       }
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       console.warn('Error fetching leaks:', err);
       setError(err.message);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current && authReady) setIsLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, authReady, authUserId]);
 
   useEffect(() => {
     fetchLeaks();
@@ -144,7 +160,10 @@ export function useLeaks(statusFilter = null) {
     // 🔄 BUS LISTENER for real-time Leak updates
     const handleUpdate = () => fetchLeaks();
     window.addEventListener('pa-data-updated', handleUpdate);
-    return () => window.removeEventListener('pa-data-updated', handleUpdate);
+    return () => {
+      requestIdRef.current += 1;
+      window.removeEventListener('pa-data-updated', handleUpdate);
+    };
   }, [fetchLeaks]);
 
   const updateLeakStatus = async (leakId, newStatus) => {
@@ -299,14 +318,22 @@ export function useSandboxAnalysis() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const requestIdRef = useRef(0);
+  const activeAbortRef = useRef(null);
 
-  const analyze = useCallback(async (params) => {
+  const analyze = useCallback(async (params, options = {}) => {
+    activeAbortRef.current?.abort();
+    const controller = new AbortController();
+    activeAbortRef.current = controller;
+    const requestId = ++requestIdRef.current;
+    const superseded = () => ({ success: false, superseded: true, error: 'Analysis superseded' });
     try {
       setIsAnalyzing(true);
       setError(null);
 
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
       const token = await getAuthToken();
+      if (requestId !== requestIdRef.current) return superseded();
 
       const doFetch = async () => {
         const response = await fetch('/api/assistant/sandbox/analyze', {
@@ -316,6 +343,7 @@ export function useSandboxAnalysis() {
             ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           },
           body: JSON.stringify(params),
+          signal: controller.signal,
         });
 
         // Guard: Check if response is actually JSON before parsing
@@ -351,16 +379,21 @@ export function useSandboxAnalysis() {
         if (fetchErr.message === 'SERVER_RELOADING') {
           // Wait 2s and retry once
           await new Promise(r => setTimeout(r, 2000));
+          if (requestId !== requestIdRef.current) return superseded();
           try {
             data = await doFetch();
           } catch (retryErr) {
-            setError('Server is temporarily unavailable. Please try again in a moment.');
+            if (requestId !== requestIdRef.current) return superseded();
+            if (requestId === requestIdRef.current) {
+              setError('Server is temporarily unavailable. Please try again in a moment.');
+            }
             return { success: false, error: 'Server temporarily unavailable' };
           }
         } else {
           throw fetchErr;
         }
       }
+      if (requestId !== requestIdRef.current) return superseded();
 
       if (data.success === false) {
         setError(data.error || 'Analysis failed');
@@ -389,6 +422,10 @@ export function useSandboxAnalysis() {
           confidence: data.confidence,
           street: data.street,
           context: data.context,
+          // Caller intent belongs to this exact response. Keeping it on the
+          // result removes the old global suppression flag that could be
+          // consumed by the wrong request when comparisons overlapped.
+          skipCoachGrade: options.skipCoachGrade === true,
 
           // sandbox_sessions row id for this analysis, used to link a coach
           // verdict to the exact hand. Absent on cached/guest responses —
@@ -418,19 +455,34 @@ export function useSandboxAnalysis() {
 
       return data;
     } catch (err) {
+      if (requestId !== requestIdRef.current) return superseded();
       console.warn('Analysis error:', err);
       setError(err.message === 'SERVER_RELOADING'
         ? 'Server is temporarily unavailable. Please try again in a moment.'
         : err.message);
       return { success: false, error: err.message };
     } finally {
-      setIsAnalyzing(false);
+      // An older request finishing must never clear the spinner for the newer
+      // solve that is still in flight.
+      if (requestId === requestIdRef.current) {
+        activeAbortRef.current = null;
+        setIsAnalyzing(false);
+      }
     }
   }, []);
 
   const clearResults = useCallback(() => {
+    activeAbortRef.current?.abort();
+    activeAbortRef.current = null;
+    requestIdRef.current += 1;
+    setIsAnalyzing(false);
     setResults(null);
     setError(null);
+  }, []);
+
+  useEffect(() => () => {
+    activeAbortRef.current?.abort();
+    requestIdRef.current += 1;
   }, []);
 
   return { analyze, isAnalyzing, results, error, clearResults };
@@ -460,20 +512,26 @@ function extractEvLoss(resultRow) {
   return -Math.abs(Math.round(raw * 100) / 100);
 }
 
-export function useRecentSessions(limit = 10) {
+export function useRecentSessions(limit = 10, authState) {
   const [sessions, setSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
+  const hasExplicitAuth = authState !== undefined;
+  const authReady = !hasExplicitAuth || authState?.ready !== false;
+  const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
 
   const fetchSessions = useCallback(async () => {
     const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
+    if (!authReady) return;
     try {
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
-      const user = getAuthUser();
+      const user = hasExplicitAuth
+        ? (authUserId ? { id: authUserId } : null)
+        : getAuthUser();
       if (!user) {
         // Demo sessions for non-logged-in users — tagged so the UI can label them
         setSessions([
@@ -576,9 +634,9 @@ export function useRecentSessions(limit = 10) {
       setError(err.message || 'Recent sessions could not be loaded');
       setSessions([]);
     } finally {
-      if (requestId === requestIdRef.current) setIsLoading(false);
+      if (requestId === requestIdRef.current && authReady) setIsLoading(false);
     }
-  }, [limit]);
+  }, [limit, hasExplicitAuth, authReady, authUserId]);
 
   useEffect(() => {
     fetchSessions();
@@ -599,30 +657,40 @@ export function useRecentSessions(limit = 10) {
 // useBookmarks — Fetch saved sandbox bookmarks
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function useBookmarks(limit = 15) {
+export function useBookmarks(limit = 15, authState) {
   const [bookmarks, setBookmarks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const requestIdRef = useRef(0);
+  const hasExplicitAuth = authState !== undefined;
+  const authReady = !hasExplicitAuth || authState?.ready !== false;
+  const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
 
   const fetchBookmarks = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     try {
       setIsLoading(true);
-      const user = getAuthUser();
+      setError(null);
+      if (!authReady) return;
+      const user = hasExplicitAuth
+        ? (authUserId ? { id: authUserId } : null)
+        : getAuthUser();
 
       if (!user) {
         if (typeof window !== 'undefined') {
           const stored = JSON.parse(localStorage.getItem('sandbox_bookmarks') || '[]');
-          setBookmarks(stored.slice(0, limit).map(b => ({
+          const formatted = stored.slice(0, limit).map(b => ({
             ...b,
             title: b.label || 'Saved Scenario',
             stack: `${b.hero_stack || 100}BB`,
             type: 'bookmark',
             villain_config: typeof b.villains === 'string' ? JSON.parse(b.villains) : b.villains,
             action_history: typeof b.action_history === 'string' ? JSON.parse(b.action_history) : b.action_history,
-          })));
+          }));
+          if (requestId === requestIdRef.current) setBookmarks(formatted);
         } else {
           setBookmarks([]);
         }
-        setIsLoading(false);
         return;
       }
 
@@ -633,8 +701,10 @@ export function useBookmarks(limit = 15) {
         .order('created_at', { ascending: false })
         .limit(limit);
 
+      if (requestId !== requestIdRef.current) return;
       if (error) {
         console.warn('Error fetching bookmarks:', error);
+        setError(error.message || 'Bookmarks could not be loaded');
         setBookmarks([]);
       } else {
         const formatted = (data || []).map(b => ({
@@ -657,12 +727,14 @@ export function useBookmarks(limit = 15) {
         setBookmarks(formatted);
       }
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       console.warn('Fetch bookmarks error:', err);
+      setError(err.message || 'Bookmarks could not be loaded');
       setBookmarks([]);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current && authReady) setIsLoading(false);
     }
-  }, [limit]);
+  }, [limit, hasExplicitAuth, authReady, authUserId]);
 
   useEffect(() => {
     fetchBookmarks();
@@ -671,24 +743,36 @@ export function useBookmarks(limit = 15) {
     if (typeof window === 'undefined') return;
     const handleUpdate = () => fetchBookmarks();
     window.addEventListener('pa-data-updated', handleUpdate);
-    return () => window.removeEventListener('pa-data-updated', handleUpdate);
+    return () => {
+      requestIdRef.current += 1;
+      window.removeEventListener('pa-data-updated', handleUpdate);
+    };
   }, [fetchBookmarks]);
 
-  return { bookmarks, isLoading, refetch: fetchBookmarks };
+  return { bookmarks, isLoading, error, refetch: fetchBookmarks };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // useStudyDeck — Fetch previous analyses with full_analysis for study replay
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function useStudyDeck(limit = 20) {
+export function useStudyDeck(limit = 20, authState) {
   const [studySessions, setStudySessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const requestIdRef = useRef(0);
+  const hasExplicitAuth = authState !== undefined;
+  const authReady = !hasExplicitAuth || authState?.ready !== false;
+  const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
 
   const fetchStudySessions = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     try {
-      const user = getAuthUser();
-      if (!user) { setStudySessions([]); setIsLoading(false); return; }
+      setIsLoading(true);
+      if (!authReady) return;
+      const user = hasExplicitAuth
+        ? (authUserId ? { id: authUserId } : null)
+        : getAuthUser();
+      if (!user) { setStudySessions([]); return; }
 
       const { data, error } = await supabase
         .from('sandbox_results')
@@ -717,6 +801,7 @@ export function useStudyDeck(limit = 20) {
         .order('created_at', { ascending: false })
         .limit(limit);
 
+      if (requestId !== requestIdRef.current) return;
       if (error) {
         console.warn('[useStudyDeck] Query error:', error.message);
         setStudySessions([]);
@@ -734,19 +819,23 @@ export function useStudyDeck(limit = 20) {
         setStudySessions(formatted);
       }
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       console.warn('[useStudyDeck] Error:', err);
       setStudySessions([]);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current && authReady) setIsLoading(false);
     }
-  }, [limit]);
+  }, [limit, hasExplicitAuth, authReady, authUserId]);
 
   useEffect(() => {
     fetchStudySessions();
     if (typeof window === 'undefined') return;
     const handleUpdate = () => fetchStudySessions();
     window.addEventListener('pa-data-updated', handleUpdate);
-    return () => window.removeEventListener('pa-data-updated', handleUpdate);
+    return () => {
+      requestIdRef.current += 1;
+      window.removeEventListener('pa-data-updated', handleUpdate);
+    };
   }, [fetchStudySessions]);
 
   return { studySessions, isLoading, refetch: fetchStudySessions };
@@ -756,15 +845,20 @@ export function useStudyDeck(limit = 20) {
 // useQuizLeaderboard — Aggregate quiz results for leaderboard display
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function useQuizLeaderboard(limit = 10) {
+export function useQuizLeaderboard(limit = 10, authState) {
   const [entries, setEntries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const hasExplicitAuth = authState !== undefined;
+  const authReady = !hasExplicitAuth || authState?.ready !== false;
+  const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
 
   useEffect(() => {
     let cancelled = false;
 
     async function fetchLeaderboard() {
       try {
+        setIsLoading(true);
+        if (!authReady) return;
         // Aggregated server-side (service-role) so the browser never reads
         // other users' quiz rows — and so the board isn't just the viewer.
         const token = await getAuthToken();
@@ -788,13 +882,13 @@ export function useQuizLeaderboard(limit = 10) {
         console.warn('[useQuizLeaderboard] Error:', err);
         if (!cancelled) setEntries([]);
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled && authReady) setIsLoading(false);
       }
     }
 
     fetchLeaderboard();
     return () => { cancelled = true; };
-  }, [limit]);
+  }, [limit, authReady, authUserId]);
 
   return { entries, isLoading };
 }
