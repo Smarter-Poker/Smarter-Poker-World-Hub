@@ -21,6 +21,7 @@ import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settle
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { runStandardGuards } = require('../../../src/lib/club-arena/redteam-validation');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+const { logAdminAction } = require('../../../src/lib/antiAbuse');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -211,6 +212,28 @@ export default async function handler(req, res) {
         );
 
         logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, agentNote: note || 'Approved', platformAdminOverride: viaPlatformOverride } });
+
+        // Admin console audit trail — this moves real chips off a player
+        // balance into club treasury. logAdminAction swallows its own errors
+        // so it can never fail the request.
+        await logAdminAction(supabaseAdmin, {
+          admin_user_id: user.id,
+          action: 'cashout.approved',
+          target_type: 'cashout_request',
+          target_id: cashoutId,
+          details: {
+            amount: cashout.amount,
+            club_id: cashout.club_id,
+            player_id: cashout.player_id,
+            agent_id: cashout.agent_id,
+            agent_note: note || 'Approved',
+            platform_admin_override: viaPlatformOverride,
+          },
+          before: { status: cashout.status },
+          after: { status: 'approved' },
+          req,
+        });
+
         return res.status(200).json({
           success: true,
           action: 'approved',
@@ -247,6 +270,28 @@ export default async function handler(req, res) {
         );
 
         logAudit(supabaseAdmin, { actionType: 'cashout_cancelled', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, chipsReturned: cashout.amount, playerNewBalance, agentNote: note || 'Cancelled by agent', platformAdminOverride: viaPlatformOverride } });
+
+        // Admin console audit trail — returns held chips to the player.
+        await logAdminAction(supabaseAdmin, {
+          admin_user_id: user.id,
+          action: 'cashout.cancelled',
+          target_type: 'cashout_request',
+          target_id: cashoutId,
+          details: {
+            amount: cashout.amount,
+            club_id: cashout.club_id,
+            player_id: cashout.player_id,
+            agent_id: cashout.agent_id,
+            chips_returned: cashout.amount,
+            player_new_balance: playerNewBalance,
+            agent_note: note || 'Cancelled by agent',
+            platform_admin_override: viaPlatformOverride,
+          },
+          before: { status: cashout.status },
+          after: { status: 'cancelled' },
+          req,
+        });
+
         return res.status(200).json({
           success: true,
           action: 'cancelled',

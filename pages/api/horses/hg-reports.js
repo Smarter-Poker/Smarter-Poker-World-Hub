@@ -9,6 +9,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { logAdminAction } = require('../../../src/lib/antiAbuse');
 
 const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 
@@ -140,6 +141,23 @@ export default async function handler(req, res) {
         console.warn('[hg-reports PATCH]', error);
         return res.status(500).json({ success: false, error: 'Failed to resolve report' });
       }
+      // Admin console audit trail. delete_content, strike_author and
+      // ban_author are irreversible; this is the only record of who ran them.
+      // Logged with the service-role client so the audit write does not
+      // depend on the caller's own grants.
+      await logAdminAction(getSB(), {
+        admin_user_id: user.id,
+        action: 'hg.report_resolved',
+        target_type: 'home_content_report',
+        target_id: report_id,
+        details: {
+          resolution: action,
+          moderator_note: moderator_note || null,
+        },
+        after: { result: data ?? null },
+        req,
+      });
+
       return res.status(200).json({ success: true, result: data });
     }
 
