@@ -216,9 +216,24 @@ export default async function handler(req, res) {
                 daily_cap: dailyCap,
                 is_active: true,
             });
-            if (plInsErr) console.warn('[house-ads] placement insert failed:', plInsErr.message);
+            if (plInsErr) {
+                /* The ad row exists but has no placement, which means it runs
+                   NOWHERE. Reporting a bare success here would be the exact
+                   failure this whole system was built to stop: you publish, and
+                   nothing happens, and nothing tells you why. Keep the ad (the
+                   copy is not lost) and say plainly that it is not live. */
+                console.warn('[house-ads] placement insert failed:', plInsErr.message);
+                return res.status(200).json({
+                    success: true,
+                    id: created.id,
+                    placed: false,
+                    // Title Case: this string renders in the Club Arena admin
+                    // banner alongside the house-style notices.
+                    warning: 'The Ad Was Saved But Is Not Running Anywhere Yet. Set Its Placement And Try Again.',
+                });
+            }
 
-            return res.status(200).json({ success: true, id: created.id });
+            return res.status(200).json({ success: true, id: created.id, placed: true });
         }
 
         // ── PATCH: update / toggle ────────────────────────────────────────
@@ -246,10 +261,21 @@ export default async function handler(req, res) {
                 return res.status(400).json({ success: false, error: 'Nothing to change' });
             }
 
-            const { error: updErr } = await getSupabase().from('ad_catalog').update(patch).eq('id', id);
+            /* .select() IS NOT DECORATION HERE. Without it PostgREST answers a
+               zero-row match with { error: null }, so editing an ad that was
+               deleted in another tab would report "Saved" and change nothing.
+               Ask which row was touched and say so honestly. */
+            const { data: updated, error: updErr } = await getSupabase()
+                .from('ad_catalog')
+                .update(patch)
+                .eq('id', id)
+                .select('id');
             if (updErr) {
                 console.warn('[house-ads] update failed:', updErr.message);
                 return res.status(500).json({ success: false, error: 'Could not save that change' });
+            }
+            if (!updated || updated.length === 0) {
+                return res.status(404).json({ success: false, error: 'That ad no longer exists' });
             }
             return res.status(200).json({ success: true });
         }
@@ -259,10 +285,19 @@ export default async function handler(req, res) {
             const id = clean(req.query?.id, 64);
             if (!id) return res.status(400).json({ success: false, error: 'Which ad?' });
             // ad_placement and ad_event cascade on the FK.
-            const { error: delErr } = await getSupabase().from('ad_catalog').delete().eq('id', id);
+            // .select() for the same reason as PATCH above: deleting nothing
+            // must not report a successful delete.
+            const { data: deleted, error: delErr } = await getSupabase()
+                .from('ad_catalog')
+                .delete()
+                .eq('id', id)
+                .select('id');
             if (delErr) {
                 console.warn('[house-ads] delete failed:', delErr.message);
                 return res.status(500).json({ success: false, error: 'Could not delete that ad' });
+            }
+            if (!deleted || deleted.length === 0) {
+                return res.status(404).json({ success: false, error: 'That ad no longer exists' });
             }
             return res.status(200).json({ success: true });
         }
