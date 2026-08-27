@@ -11,6 +11,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import {
   Activity,
+  AlertTriangle,
   BrainCircuit,
   CheckCircle2,
   ChevronRight,
@@ -21,6 +22,7 @@ import {
   Layers,
   Play,
   Route,
+  RotateCw,
   ScanSearch,
   Sparkles,
   Target,
@@ -72,11 +74,23 @@ export default function PersonalAssistantPage() {
   const { user } = useAvatar();
   const [mounted, setMounted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
   const menuConfig = getMenuConfig('hub-home', user, {}, {});
-  const { sessions: recentSessions, isLoading: sessionsLoading, refetch: refetchSessions } = useRecentSessions(5);
-  const { stats, isLoading: statsLoading, isDemo: statsDemo } = useAssistantStats();
+  const {
+    sessions: recentSessions,
+    isLoading: sessionsLoading,
+    error: sessionsError,
+    refetch: refetchSessions,
+  } = useRecentSessions(5);
+  const {
+    stats,
+    isLoading: statsLoading,
+    isDemo: statsDemo,
+    error: statsError,
+    refetch: refetchStats,
+  } = useAssistantStats();
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -86,10 +100,8 @@ export default function PersonalAssistantPage() {
       try { refetchSessions?.(); } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
     };
     window.addEventListener('pa-sandbox-updated', handleSandboxUpdate);
-    window.addEventListener('pa-data-updated', handleSandboxUpdate);
     return () => {
       window.removeEventListener('pa-sandbox-updated', handleSandboxUpdate);
-      window.removeEventListener('pa-data-updated', handleSandboxUpdate);
     };
   }, [refetchSessions]);
 
@@ -129,7 +141,8 @@ export default function PersonalAssistantPage() {
     if (board) params.set('b', board.join(','));
     const pot = Number(hand.pot);
     if (Number.isFinite(pot) && pot > 0) params.set('pot', String(pot));
-    router.push(`/hub/personal-assistant/sandbox?${params.toString()}`);
+    const query = params.toString();
+    router.push(`/hub/personal-assistant/sandbox${query ? `?${query}` : ''}`);
   };
 
   const openSession = (session) => {
@@ -173,6 +186,20 @@ export default function PersonalAssistantPage() {
   const activeLeakCount = Number(stats?.leaksFound) || 0;
   const sandboxSessionCount = Number(stats?.sandboxSessions) || 0;
   const handsAnalyzedCount = Number(stats?.handsAnalyzed) || 0;
+  const dataSyncError = statsError || sessionsError;
+
+  const retryAssistantData = async () => {
+    if (isRetrying) return;
+    setIsRetrying(true);
+    try {
+      await Promise.allSettled([
+        Promise.resolve(refetchStats?.()),
+        Promise.resolve(refetchSessions?.()),
+      ]);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   const nextMission = (() => {
     if (statsLoading || sessionsLoading) {
@@ -183,6 +210,17 @@ export default function PersonalAssistantPage() {
         description: 'Jarvis Is Checking Your Sessions, Analysis History, And Active Leaks.',
         action: 'Syncing Data',
         signal: 'Live Data Link',
+      };
+    }
+
+    if (dataSyncError) {
+      return {
+        mode: 'reconnect',
+        badge: 'Data Link Interrupted',
+        title: 'Reconnect Your Live Poker Data',
+        description: 'Jarvis Could Not Confirm Your Latest Sessions And Stats. Retry Before Acting On The Priority Queue.',
+        action: isRetrying ? 'Retrying Data' : 'Retry Live Data',
+        signal: 'Your Saved Data Is Unchanged',
       };
     }
 
@@ -231,6 +269,10 @@ export default function PersonalAssistantPage() {
 
   const runNextMission = () => {
     if (nextMission.mode === 'loading') return;
+    if (nextMission.mode === 'reconnect') {
+      retryAssistantData();
+      return;
+    }
     if (nextMission.mode === 'leaks') {
       openGuardedRoute('/hub/personal-assistant/leaks');
       return;
@@ -374,9 +416,9 @@ export default function PersonalAssistantPage() {
                 <span className={styles.eyebrow}>Personal Poker Assistant</span>
                 <h1 id="assistant-title">Meet Jarvis.<br />Your Edge At The Table.</h1>
                 <p>Explore Theoretical Hands, Find Leaks, And Turn Solver Data Into Better Decisions From One Command Center.</p>
-                <div className={styles.statusBadge}>
+                <div className={`${styles.statusBadge} ${dataSyncError ? styles.statusWarning : ''}`} role="status">
                   <span className={styles.statusDot} aria-hidden="true" />
-                  Jarvis Online · Solver Connected
+                  {dataSyncError ? 'Jarvis Online · Data Sync Needs Attention' : 'Jarvis Online · Solver Connected'}
                 </div>
                 <div className={styles.heroActions}>
                   <button
@@ -400,6 +442,19 @@ export default function PersonalAssistantPage() {
             </div>
           </section>
 
+          {dataSyncError && (
+            <div className={styles.syncAlert} role="alert">
+              <span className={styles.syncAlertIcon} aria-hidden="true"><AlertTriangle size={18} /></span>
+              <span className={styles.syncAlertCopy}>
+                <strong>Live Data Could Not Refresh</strong>
+                <small>Your saved poker data is unchanged. Retry the connection to refresh sessions and statistics.</small>
+              </span>
+              <button type="button" className={styles.secondaryButton} onClick={retryAssistantData} disabled={isRetrying}>
+                <RotateCw size={14} aria-hidden="true" />{isRetrying ? 'Retrying' : 'Retry Now'}
+              </button>
+            </div>
+          )}
+
           <section className={`${styles.section} ${styles.missionSection}`} aria-labelledby="mission-title">
             <SectionBar
               id="mission-title"
@@ -419,7 +474,7 @@ export default function PersonalAssistantPage() {
                   type="button"
                   className={styles.primaryButton}
                   onClick={runNextMission}
-                  disabled={nextMission.mode === 'loading'}
+                  disabled={nextMission.mode === 'loading' || isRetrying}
                 >
                   {nextMission.action}<ChevronRight size={16} aria-hidden="true" />
                 </button>
