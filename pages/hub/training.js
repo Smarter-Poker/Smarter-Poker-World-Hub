@@ -1331,6 +1331,197 @@ function GlobalStyle() {
         display: none !important;
       }
 
+      /* Mobile Training Orb composition — designed as a phone-native poker
+         cockpit, not a reduced desktop canvas. The global header is outside
+         every selector in this block and remains completely unchanged. */
+      @media (max-width: 720px) {
+        .sp-main {
+          width: 100%;
+          padding: 10px 10px calc(104px + env(safe-area-inset-bottom, 0px));
+          border-left: 0;
+          border-right: 0;
+          background:
+            linear-gradient(rgba(3, 10, 19, .86), rgba(3, 10, 19, .96)),
+            url('/circuit-brain-bg.png') 44% top / auto 900px repeat-y,
+            #030811;
+        }
+        .sp-main > section + section { margin-top: 24px; }
+
+        .sp-hero {
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          padding: 252px 16px 18px;
+          background:
+            linear-gradient(180deg, rgba(0, 5, 13, .04) 0, rgba(0, 7, 17, .08) 29%, rgba(0, 8, 18, .82) 42%, rgba(2, 10, 18, .98) 54%, #020a12 100%),
+            url('/images/training/training-orb-hero.png') 67% top / auto 360px no-repeat,
+            #020a12;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.4),
+            inset 0 -2px 0 rgba(27,183,255,.55),
+            0 12px 32px rgba(0,0,0,.5);
+        }
+        .sp-hero-copy { width: 100%; max-width: none; align-self: stretch; }
+        .sp-hero-eyebrow {
+          margin: 0 0 11px;
+          font-size: 9px;
+          line-height: 1.4;
+          letter-spacing: .14em;
+        }
+        .sp-hero-title {
+          margin: 0 0 10px;
+          font-size: clamp(28px, 8.25vw, 34px);
+          line-height: 1.08;
+          letter-spacing: -.04em;
+          text-wrap: balance;
+        }
+        .sp-hero-sub {
+          margin: 0 0 16px;
+          max-width: none;
+          font-size: 15px;
+          line-height: 1.45;
+          color: #cce3ee;
+        }
+        .sp-drill-card {
+          width: 100%;
+          gap: 11px;
+          padding: 10px;
+          margin-bottom: 12px;
+        }
+        .sp-drill-cover { flex-basis: 54px; height: 54px; }
+        .sp-drill-title { font-size: 15px; }
+        .sp-drill-tags { gap: 4px; }
+        .sp-tag { padding: 3px 6px; font-size: 10px; }
+        .sp-cta-row {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 9px;
+          width: 100%;
+        }
+        .sp-cta {
+          width: 100%;
+          min-height: 50px;
+          padding: 0 14px;
+          font-size: 11px;
+        }
+        .sp-grade-card {
+          width: 100%;
+          padding: 14px;
+          margin-top: 0;
+          backdrop-filter: none;
+        }
+        .sp-grade-row { gap: 12px; }
+        .sp-grade-letter { width: 52px; font-size: 42px; }
+        .sp-grade-label { font-size: 11px; }
+        .sp-grade-value { font-size: 12px; line-height: 1.35; }
+
+        .sp-section-head {
+          min-height: 50px;
+          padding: 0 12px;
+          margin-bottom: 10px;
+          gap: 8px;
+        }
+        .sp-section-title {
+          min-width: 0;
+          overflow: hidden;
+          font-size: 14px;
+          line-height: 1.2;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .sp-section-link {
+          flex: 0 0 auto;
+          min-height: 40px;
+          padding: 5px 2px 5px 8px;
+          font-size: 10px;
+          letter-spacing: .04em;
+        }
+
+        .sp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .sp-stat { min-height: 102px; padding: 13px; }
+        .sp-stat-label { margin-bottom: 7px; font-size: 10px; letter-spacing: .05em; }
+        .sp-stat-value { font-size: 23px; }
+        .sp-stat-trend, .sp-stat-sub { font-size: 9px; line-height: 1.3; }
+
+        .sp-progress { padding: 12px; }
+        .sp-progress-grid { gap: 16px; }
+        .sp-progress-label { font-size: 9px; line-height: 1.35; }
+        .sp-plist-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 38px 36px;
+          gap: 8px;
+          padding: 9px 1px;
+        }
+        .sp-plist-date, .sp-plist-ev { display: none; }
+        .sp-plist-game, .sp-plist-score, .sp-plist-acc { width: auto; }
+
+        .sp-toolbar { margin-bottom: 8px; }
+        .sp-search { min-width: 0; }
+        .sp-search input {
+          min-height: 50px;
+          padding-left: 42px;
+          font-size: 14px;
+        }
+        .sp-cat-chips {
+          width: calc(100% + 10px);
+          gap: 7px;
+          margin-right: -10px;
+          padding: 2px 10px 14px 0;
+          scroll-padding-inline: 10px;
+          scroll-snap-type: x proximity;
+          overscroll-behavior-inline: contain;
+          -webkit-overflow-scrolling: touch;
+        }
+        .sp-cat-chip {
+          min-height: 44px;
+          padding: 0 13px;
+          font-size: 12px;
+          scroll-snap-align: start;
+        }
+
+        .sp-grid { gap: 14px; }
+        .sp-card { min-height: 0; }
+        .sp-card-cover { aspect-ratio: 16 / 9; }
+        .sp-card-body { min-height: 180px; padding: 15px; }
+        .sp-card-title { font-size: 17px; }
+        .sp-card-meta { font-size: 11px; }
+        .sp-card-launch { min-height: 42px; margin-top: 10px; padding-top: 10px; }
+
+        [role="dialog"] {
+          align-items: flex-end !important;
+          padding: 0 !important;
+        }
+        [role="dialog"] .sp-card-lg {
+          width: 100% !important;
+          max-width: none !important;
+          max-height: calc(100dvh - env(safe-area-inset-top, 0px)) !important;
+          padding: 18px 14px calc(18px + env(safe-area-inset-bottom, 0px)) !important;
+          overscroll-behavior: contain;
+        }
+        [role="dialog"] .sp-card { padding: 12px !important; }
+        [role="dialog"] .sp-cluster { flex-wrap: wrap; }
+        [role="dialog"] .sp-cta { min-width: 96px !important; }
+
+        /* On training screens, keep the global install invitation away from
+           drill controls and the bottom navigation. It docks beneath the
+           unchanged global header, over the non-interactive hero artwork. */
+        body:has(.sp-main) .sp-pwa-install-bar {
+          top: calc(58px + env(safe-area-inset-top, 0px)) !important;
+          bottom: auto !important;
+        }
+      }
+
+      @media (max-width: 360px) {
+        .sp-main { padding-inline: 8px; }
+        .sp-hero { padding: 224px 13px 15px; background-size: auto 322px; }
+        .sp-hero-title { font-size: 27px; }
+        .sp-hero-sub { font-size: 14px; }
+        .sp-section-head { padding-inline: 10px; }
+        .sp-stat { min-height: 96px; padding: 11px; }
+        .sp-card-body { min-height: 170px; padding: 13px; }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
       }

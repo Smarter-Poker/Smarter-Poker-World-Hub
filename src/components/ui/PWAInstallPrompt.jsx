@@ -171,19 +171,19 @@ export default function PWAInstallPrompt() {
     const oneTap = canPromptInstall();
 
     return (
-        <div style={S.bar} role="dialog" aria-label="Install Smarter Poker">
-            <div style={S.spade} aria-hidden="true">♠</div>
-            <div style={S.copy}>
-                <div style={S.title}>Install Smarter.Poker</div>
-                <div style={S.sub}>
+        <div className="sp-pwa-install-bar" style={S.bar} role="dialog" aria-label="Install Smarter Poker">
+            <div className="sp-pwa-install-spade" style={S.spade} aria-hidden="true">♠</div>
+            <div className="sp-pwa-install-copy" style={S.copy}>
+                <div className="sp-pwa-install-title" style={S.title}>Install Smarter.Poker</div>
+                <div className="sp-pwa-install-sub" style={S.sub}>
                     {isIos() && !oneTap
                         ? 'Add to your Home Screen to get alerts'
                         : 'Get seat alerts and messages on your phone'}
                 </div>
             </div>
-            <div style={S.actions}>
-                <button onClick={handleLater} style={S.later} type="button">Later</button>
-                <button onClick={handleOpen} style={S.install} type="button">
+            <div className="sp-pwa-install-actions" style={S.actions}>
+                <button className="sp-pwa-install-later" onClick={handleLater} style={S.later} type="button">Later</button>
+                <button className="sp-pwa-install-action" onClick={handleOpen} style={S.install} type="button">
                     {oneTap ? 'Install' : 'Show Me'}
                 </button>
             </div>
@@ -191,6 +191,41 @@ export default function PWAInstallPrompt() {
                 @keyframes slideUp {
                     from { transform: translateX(-50%) translateY(20px); opacity: 0; }
                     to { transform: translateX(-50%) translateY(0); opacity: 1; }
+                }
+                @media (max-width: 720px) {
+                    .sp-pwa-install-bar {
+                        bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+                        width: calc(100% - 16px) !important;
+                        padding: 10px 12px !important;
+                        gap: 10px !important;
+                        border-radius: 0 !important;
+                    }
+                    .sp-pwa-install-spade { font-size: 24px !important; }
+                    .sp-pwa-install-title { font-size: 12px !important; }
+                    .sp-pwa-install-sub {
+                        overflow: hidden;
+                        font-size: 10px !important;
+                        line-height: 1.25;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                    .sp-pwa-install-actions { gap: 5px !important; }
+                    .sp-pwa-install-later, .sp-pwa-install-action {
+                        min-height: 42px;
+                        padding: 5px 10px !important;
+                        border-radius: 0 !important;
+                    }
+                }
+                @media (max-width: 360px) {
+                    .sp-pwa-install-bar { gap: 7px !important; padding: 8px 9px !important; }
+                    .sp-pwa-install-spade { display: none; }
+                    .sp-pwa-install-title { font-size: 11px !important; }
+                    .sp-pwa-install-sub { max-width: 118px; font-size: 9px !important; }
+                    .sp-pwa-install-later, .sp-pwa-install-action {
+                        min-height: 40px;
+                        padding-inline: 8px !important;
+                        font-size: 10px !important;
+                    }
                 }
             `}</style>
         </div>
