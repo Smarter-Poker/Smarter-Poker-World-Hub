@@ -27,7 +27,10 @@ export default function TrainingTableDemo() {
     }, []);
 
     useEffect(() => {
-        setShowDemoControls(!new URLSearchParams(window.location.search).has('clean'));
+        // The demo is a public visual reference, so its first impression must be
+        // the table itself. Developer dealing controls are opt-in instead of
+        // floating over every production visit.
+        setShowDemoControls(new URLSearchParams(window.location.search).has('debug'));
     }, []);
 
     const dealFlop = () => setCommunityCards(['Ks', 'Qh', '7d']);
