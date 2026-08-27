@@ -55,7 +55,7 @@ function getAccessToken() {
  * @param {object} body - Request body (must include userId)
  * @param {string} reasonLabel - Human-readable reason for toast (e.g. 'Liked a Post')
  */
-export function claimReward(endpoint, body, reasonLabel) {
+export async function claimReward(endpoint, body, reasonLabel) {
     const headers = { 'Content-Type': 'application/json' };
 
     // Attach JWT for server-side auth validation
@@ -64,18 +64,28 @@ export function claimReward(endpoint, body, reasonLabel) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    return fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body)
-    })
-        .then(res => res.json())
-        .then(data => {
-            if (data?.claimed && data?.diamondsAwarded > 0) {
-                showDiamondToast(data.diamondsAwarded, reasonLabel);
-                // 🚌 BUS EVENT: Notify all listeners of diamond earnings
-                busEmit.diamondsEarned(data.diamondsAwarded, reasonLabel);
-            }
-        })
-        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Non-blocking, silent fail
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data) {
+            return { claimed: false, terminal: false, retryable: true, status: response.status };
+        }
+        if (data.claimed && data.diamondsAwarded > 0) {
+            showDiamondToast(data.diamondsAwarded, reasonLabel);
+            busEmit.diamondsEarned(data.diamondsAwarded, reasonLabel);
+        }
+        return {
+            ...data,
+            terminal: Boolean(data.claimed || data.alreadyClaimed),
+            retryable: !data.claimed && !data.alreadyClaimed,
+            status: response.status,
+        };
+    } catch (error) {
+        console.warn('[App] Reward claim will be retried:', error?.message || error);
+        return { claimed: false, terminal: false, retryable: true, status: 0 };
+    }
 }

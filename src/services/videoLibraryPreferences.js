@@ -12,23 +12,21 @@ import { supabase } from '../lib/supabase';
  */
 export async function getVideoLibraryPreferences(userId) {
     if (!userId) {
-        return { autoplay: true, hdQuality: true, captions: false };
+        return { autoplay: true, captions: false };
     }
 
-    try {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('video_library_preferences')
-            .eq('id', userId)
-            .maybeSingle();
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('video_library_preferences')
+        .eq('id', userId)
+        .maybeSingle();
 
-        if (error) throw error;
-
-        return data?.video_library_preferences || { autoplay: true, hdQuality: true, captions: false };
-    } catch (error) {
+    if (error) {
         console.warn('Error fetching video library preferences:', error);
-        return { autoplay: true, hdQuality: true, captions: false };
+        throw error;
     }
+
+    return { autoplay: true, captions: false, ...(data?.video_library_preferences || {}) };
 }
 
 /**
@@ -43,23 +41,15 @@ export async function updateVideoLibraryPreferences(userId, preferences) {
     }
 
     try {
-        const current = await getVideoLibraryPreferences(userId);
-        const merged = {
-            autoplay: true,
-            hdQuality: true,
-            captions: false,
-            ...current,
-            ...(preferences && typeof preferences === 'object' ? preferences : {})
-        };
-        const { data, error } = await supabase.rpc('update_page_preferences', {
-            p_user_id: userId,
-            p_column_name: 'video_library_preferences',
-            p_preferences: merged,
+        const patch = preferences && typeof preferences === 'object' ? preferences : {};
+        const { data, error } = await supabase.rpc('patch_video_library_preferences', {
+            p_expected_user_id: userId,
+            p_patch: patch,
         });
 
         if (error) throw error;
 
-        return data || merged;
+        return data || patch;
     } catch (error) {
         console.warn('Error updating video library preferences:', error);
         throw error;

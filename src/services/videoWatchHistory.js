@@ -7,7 +7,24 @@ import { supabase } from '../lib/supabase';
 import { claimReward } from '../lib/claimReward';
 
 // Track which videos already triggered a reward this session (avoids duplicate API calls)
-const rewardedVideoIds = new Set();
+const terminalRewardClaims = new Set();
+const rewardClaimsInFlight = new Set();
+
+async function claimEligibleWatchReward(userId, videoId) {
+    const claimKey = `${userId}:${videoId}`;
+    if (!userId || terminalRewardClaims.has(claimKey) || rewardClaimsInFlight.has(claimKey)) return;
+    rewardClaimsInFlight.add(claimKey);
+    try {
+        const result = await claimReward(
+            '/api/rewards/video-watch',
+            { userId, videoId },
+            'Watched a Video (5+ min)'
+        );
+        if (result?.terminal) terminalRewardClaims.add(claimKey);
+    } finally {
+        rewardClaimsInFlight.delete(claimKey);
+    }
+}
 
 /**
  * Get watch history for a user
@@ -113,10 +130,6 @@ export async function removeFromWatchHistory(userId, videoId, aliases = []) {
         throw error;
     }
 
-    if (!data?.length) {
-        throw new Error('No matching watch-history record was removed.');
-    }
-
     return true;
 }
 
@@ -127,105 +140,26 @@ export async function removeFromWatchHistory(userId, videoId, aliases = []) {
 export async function updateWatchDuration(userId, videoId, additionalSeconds, videoData = {}) {
     const durationSeconds = Number(videoData.durationSeconds) || null;
     const { data: rpcData, error: rpcError } = await supabase.rpc('record_video_watch_session', {
+        p_expected_user_id: userId,
         p_video_id: videoId,
         p_additional_seconds: additionalSeconds,
+        p_progress_seconds: Number.isFinite(Number(videoData.progressSeconds))
+            ? Math.max(0, Math.floor(Number(videoData.progressSeconds)))
+            : null,
         p_video_title: videoData.title || null,
         p_thumbnail_url: videoData.thumbnail || null,
         p_duration_seconds: durationSeconds
     });
 
-    if (!rpcError) {
-        const result = Array.isArray(rpcData) ? rpcData[0] : rpcData;
-        const previousDuration = result?.previous_watch_duration_seconds || 0;
-        const newDuration = result?.watch_duration_seconds || previousDuration + additionalSeconds;
-        if (previousDuration < 300 && newDuration >= 300 && !rewardedVideoIds.has(videoId) && userId) {
-            rewardedVideoIds.add(videoId);
-            claimReward('/api/rewards/video-watch', { userId, videoId }, 'Watched a Video (5+ min)').catch(console.warn);
-        }
-        return result || null;
-    }
-
-    // Deployment-order fallback: older environments may not have the Phase 5
-    // RPC yet. Keep the existing path only for a genuinely missing function.
-    if (rpcError.code !== 'PGRST202' && rpcError.code !== '42883') {
+    if (rpcError) {
         console.warn('Error recording watch session:', rpcError);
         throw rpcError;
     }
-
-    // Check if already exists
-    const { data: existing, error: lookupError } = await supabase
-        .from('video_watch_history')
-        .select('id, watch_duration_seconds, progress_seconds, duration_seconds')
-        .eq('user_id', userId)
-        .eq('video_id', videoId)
-        .maybeSingle();
-
-    if (lookupError) {
-        console.warn('Error checking watch history:', lookupError);
-        throw lookupError;
+    const result = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+    if (Number(result?.watch_duration_seconds || 0) >= 300) {
+        void claimEligibleWatchReward(userId, result?.canonical_video_id || videoId);
     }
-
-    if (existing) {
-        // Update with additional duration
-        const newDuration = (existing.watch_duration_seconds || 0) + additionalSeconds;
-        const videoDuration = Number(durationSeconds || existing.duration_seconds || 0);
-        const newProgress = videoDuration > 0
-            ? Math.min(videoDuration, (existing.progress_seconds || 0) + additionalSeconds)
-            : (existing.progress_seconds || 0) + additionalSeconds;
-        const { data, error } = await supabase
-            .from('video_watch_history')
-            .update({
-                watch_duration_seconds: newDuration,
-                progress_seconds: newProgress,
-                duration_seconds: videoDuration || null,
-                watched_at: new Date().toISOString()
-            })
-            .eq('id', existing.id)
-            .select()
-            .maybeSingle();
-
-        if (error) {
-            console.warn('Error updating watch duration:', error);
-            throw error;
-        }
-
-        // Award video watch diamonds when crossing 5-min threshold (3 diamonds, once per video)
-        if (newDuration >= 300 && !rewardedVideoIds.has(videoId) && userId) {
-            rewardedVideoIds.add(videoId);
-            claimReward('/api/rewards/video-watch', { userId, videoId }, 'Watched a Video (5+ min)').catch(console.warn);
-        }
-
-        return data || null;
-    }
-
-    // Insert new record with duration
-    const { data, error } = await supabase
-        .from('video_watch_history')
-        .insert({
-            user_id: userId,
-            video_id: videoId,
-            video_title: videoData.title || null,
-            thumbnail_url: videoData.thumbnail || null,
-            watch_duration_seconds: additionalSeconds,
-            progress_seconds: videoData.durationSeconds
-                ? Math.min(Number(videoData.durationSeconds), additionalSeconds)
-                : additionalSeconds,
-            duration_seconds: Number(videoData.durationSeconds) || null
-        })
-        .select()
-        .maybeSingle();
-
-    if (error) {
-        console.warn('Error adding watch duration:', error);
-        throw error;
-    }
-
-    if (additionalSeconds >= 300 && !rewardedVideoIds.has(videoId) && userId) {
-        rewardedVideoIds.add(videoId);
-        claimReward('/api/rewards/video-watch', { userId, videoId }, 'Watched a Video (5+ min)').catch(console.warn);
-    }
-
-    return data || null;
+    return result || null;
 }
 
 /**

@@ -282,6 +282,15 @@ export default function VideoLibraryPage() {
         }
         hadNavigationQueryRef.current = hasNavigationQuery;
 
+        if (hasNavigationQuery) {
+            if (!router.query.type) setSelectedType('ALL');
+            if (!router.query.source) setSelectedSource('ALL');
+            if (!router.query.filter) {
+                setLibraryFilter('ALL');
+                setSearchQuery('');
+            }
+        }
+
         if (router.query.type) {
             // 2026-08-15: was .toUpperCase(), which produced 'CASH'/'TOURNAMENT'
             // and never matched v.type — the DB CHECK constraint stores these
@@ -326,6 +335,7 @@ export default function VideoLibraryPage() {
     const reelsTriggerRef = useRef(null);
     const modalOverlayRef = useRef(null); // ref for native fullscreen
     const playerIframeRef = useRef(null);
+    const playerPositionRef = useRef(0);
     const modalCloseButtonRef = useRef(null);
     const viewerFocusInitializedRef = useRef(false);
     const videoTriggerRef = useRef(null);
@@ -413,16 +423,27 @@ export default function VideoLibraryPage() {
     // Video modal HUD (heart/comment/share/save) — tap to show, auto-hides
     const [vlHudVisible, setVlHudVisible] = useState(false);
     const vlHudTimer = useRef(null);
+    const hideHudIfIdle = useCallback(() => {
+        if (modalOverlayRef.current?.querySelector('.vl-hud:focus-within')) {
+            vlHudTimer.current = setTimeout(hideHudIfIdle, 5000);
+            return;
+        }
+        setVlHudVisible(false);
+    }, []);
     const vlRevealHud = useCallback(() => {
         setVlHudVisible(true);
         clearTimeout(vlHudTimer.current);
-        vlHudTimer.current = setTimeout(() => setVlHudVisible(false), 5000);
-    }, []);
+        vlHudTimer.current = setTimeout(hideHudIfIdle, 5000);
+    }, [hideHudIfIdle]);
 
     // "New This Week" rail dismiss state
     const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
 
     const isPlayerPlayingRef = useRef(false);
+    const handlePlaybackInfo = useCallback((info) => {
+        const currentTime = Number(info?.currentTime);
+        if (Number.isFinite(currentTime) && currentTime >= 0) playerPositionRef.current = currentTime;
+    }, []);
     const handlePlayerStateChange = useCallback((state) => {
         if (state === 1) {
             isPlayerPlayingRef.current = true;
@@ -430,7 +451,7 @@ export default function VideoLibraryPage() {
             if (currentWatchingVideoRef.current && !watchStartTimeRef.current) watchStartTimeRef.current = Date.now();
             return;
         }
-        if (state === 0 || state === 2) {
+        if (state === 0 || state === 2 || state === 3 || state === 5) {
             isPlayerPlayingRef.current = false;
             const startTime = watchStartTimeRef.current;
             const video = currentWatchingVideoRef.current;
@@ -450,6 +471,7 @@ export default function VideoLibraryPage() {
         surface: 'VideoLibrary',
         autoActionDelay: 3000,
         onStateChange: handlePlayerStateChange,
+        onPlaybackInfo: handlePlaybackInfo,
         iframeRef: playerIframeRef,
         onError: handleManagedPlayerError,
     });
@@ -482,11 +504,12 @@ export default function VideoLibraryPage() {
     const watchStartTimeRef = useRef(null);
     const currentWatchingVideoRef = useRef(null);
     const watchSessionUserIdRef = useRef(null);
+    const activeUserIdRef = useRef(userId);
+    activeUserIdRef.current = userId;
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
         autoplay: true,
-        hdQuality: true,
         captions: false
     });
 
@@ -515,7 +538,7 @@ export default function VideoLibraryPage() {
         };
 
         if (!userId) {
-            setPreferences({ autoplay: true, hdQuality: true, captions: false });
+            setPreferences({ autoplay: true, captions: false });
             clearUserLibrary();
             return undefined;
         }
@@ -716,8 +739,10 @@ export default function VideoLibraryPage() {
                 title: video.title,
                 url: `https://youtube.com/watch?v=${video.videoId}`,
                 thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`,
-                durationSeconds: parseDuration(video.duration)
+                durationSeconds: parseDuration(video.duration),
+                progressSeconds: playerPositionRef.current
             });
+            if (activeUserIdRef.current !== effectiveUserId) return true;
             const persistedProgress = Number(savedSession?.progress_seconds);
             const persistedTotal = Number(savedSession?.watch_duration_seconds);
             const nextProgress = Number.isFinite(persistedProgress)
@@ -778,6 +803,7 @@ export default function VideoLibraryPage() {
         savedScrollY.current = typeof window !== 'undefined' ? window.scrollY : 0;
         watchStartTimeRef.current = null;
         currentWatchingVideoRef.current = video;
+        playerPositionRef.current = watchProgressRef.current.get(video.id)?.watchedSeconds || 0;
         isPlayerPlayingRef.current = false;
         setSelectedVideo(video);
         setIframeKey(k => k + 1); // force iframe remount → guaranteed autoplay
@@ -800,8 +826,9 @@ export default function VideoLibraryPage() {
         event.preventDefault();
         handleOpenVideo(video);
     }, [handleOpenVideo]);
-    // Keep ref in sync so early useEffects can call it without a TDZ dep
-    useEffect(() => { handleOpenVideoRef.current = handleOpenVideo; }, [handleOpenVideo]);
+    // Make the callback available before the earlier query effect runs. This
+    // keeps static-fallback deep links working even when catalog refresh fails.
+    handleOpenVideoRef.current = handleOpenVideo;
 
     // Navigate to next video in list (TikTok swipe down / arrow right)
     const handleNextVideo = useCallback(() => {
@@ -1183,6 +1210,20 @@ export default function VideoLibraryPage() {
 
     // Cleanup HUD timer on unmount
     useEffect(() => () => { if (vlHudTimer.current) clearTimeout(vlHudTimer.current); }, []);
+
+    // Persist a bounded heartbeat while playback continues. The server caps
+    // credit by elapsed time; frequent saves also make browser-close loss small.
+    useEffect(() => {
+        if (!selectedVideo || !userId) return undefined;
+        const heartbeat = setInterval(() => {
+            if (!isPlayerPlayingRef.current || !watchStartTimeRef.current || !currentWatchingVideoRef.current) return;
+            const startTime = watchStartTimeRef.current;
+            const video = currentWatchingVideoRef.current;
+            watchStartTimeRef.current = Date.now();
+            void saveWatchSession(startTime, video, { quiet: true });
+        }, 15000);
+        return () => clearInterval(heartbeat);
+    }, [selectedVideo, userId, saveWatchSession]);
 
     // ── BUG-I FIX: Flush pending watch time on tab hide / browser close ──────────
     // Without this, a user closing the tab mid-video loses all watch time because
@@ -2188,26 +2229,6 @@ export default function VideoLibraryPage() {
                         display: 'flex',
                         flexDirection: 'column',
                     }}
-                    /* Touch-swipe for TikTok-style navigation — handled by dedicated overlay below */
-                    onTouchStart={e => {
-                        swipeTouchStart.current = e.touches[0].clientX;
-                        swipeTouchStartY.current = e.touches[0].clientY;
-                    }}
-                    onTouchEnd={e => {
-                        if (swipeTouchStart.current === null) return;
-                        const dx = e.changedTouches[0].clientX - swipeTouchStart.current;
-                        const dy = e.changedTouches[0].clientY - swipeTouchStartY.current;
-                        swipeTouchStart.current = null;
-                        swipeTouchStartY.current = null;
-                        // Vertical swipe (TikTok-style): up = next, down = prev
-                        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
-                            if (dy < 0) handleNextVideo(); else handlePrevVideo();
-                        }
-                        // Horizontal swipe: left = next, right = prev
-                        else if (Math.abs(dx) > 50) {
-                            if (dx < 0) handleNextVideo(); else handlePrevVideo();
-                        }
-                    }}
                 >
                     <p id="vl-viewer-help" className="vl-sr-only">
                         Use the arrow keys for the previous or next video, F for fullscreen, and Escape to close.
@@ -2375,6 +2396,7 @@ export default function VideoLibraryPage() {
                         <div
                             className={`vl-hud ${vlHudVisible ? 'vl-hud--visible' : ''}`}
                             aria-hidden={!isTouchDevice && !vlHudVisible}
+                            onFocusCapture={vlRevealHud}
                             style={{
                                 position: 'absolute',
                                 right: 12,
