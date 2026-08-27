@@ -309,11 +309,12 @@ export default async function handler(req, res) {
         diamonds = Math.max(0, Math.floor(diamonds));
 
         // --- PAY OUT (atomic close + idempotent credit) ------------------
-        const { data: award, error: awardErr } = await sb.rpc('award_trivia_run', {
+        const { data: award, error: awardErr } = await sb.rpc('award_trivia_run_v2', {
             p_session_id: sessionId,
             p_score: score,
             p_correct: correct,
             p_total: total,
+            p_answered: byId.size,
             p_diamonds: diamonds,
         });
         if (awardErr) {
@@ -339,7 +340,10 @@ export default async function handler(req, res) {
         // (capped run reward + flat completion bonus).
         let dailyBonusAwarded = 0;
         let bonusBalance = null;
-        if (mode === 'daily' && total >= 10) {
+        // Completion means the whole served roster was answered. The old
+        // check looked only at roster length, so `answers: []` still received
+        // the +10 completion bonus as long as the server had dealt 10 rows.
+        if (mode === 'daily' && total >= 10 && byId.size >= total) {
             try {
                 const { data: bonusRes, error: bonusErr } = await sb.rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
@@ -369,7 +373,10 @@ export default async function handler(req, res) {
             correct,
             total,
             score,
-            diamondsAwarded: diamonds,
+            scoreId: award?.score_id ?? null,
+            diamondsAwarded: Number.isFinite(Number(award?.diamonds_awarded))
+                ? Number(award.diamonds_awarded)
+                : diamonds,
             dailyBonusAwarded,
             newBalance: bonusBalance ?? award?.new_balance ?? null,
             perQuestion,

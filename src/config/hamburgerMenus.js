@@ -679,9 +679,9 @@ export const MENU_CONFIGS = {
     'trivia': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Game Modes'),
-            createMenuItem.navigation('Daily Challenge', '/hub/trivia?mode=daily'),
-            createMenuItem.navigation('Quick Play', '/hub/trivia?mode=quick'),
-            createMenuItem.navigation('Practice Mode', '/hub/trivia?mode=practice'),
+            createMenuItem.navigation('Daily Challenge', '/hub/trivia/daily'),
+            createMenuItem.navigation('Quick Play', '/hub/trivia/arcade'),
+            createMenuItem.navigation('Practice Mode', '/hub/trivia?filter=knowledge'),
             createMenuItem.divider(),
             createMenuItem.section('My Progress'),
             createMenuItem.navigation('Leaderboard', '/hub/trivia/leaderboard'),

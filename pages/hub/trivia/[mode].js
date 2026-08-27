@@ -679,53 +679,18 @@ export default function TriviaModePage() {
             try {
                 const started = await serverRun.start({ count: modeConfig.questionsCount });
                 setQuestions(started.questions);
+                if (Number.isFinite(started.newBalance)) setUserDiamonds(started.newBalance);
+                if (started.entryState === 'charged' && started.entryCost > 0) {
+                    busEmit.diamondsSpent(started.entryCost, `Trivia ${mode} entry`);
+                }
             } catch (e) {
                 console.warn('[mode] Server-graded session start failed:', e?.message || e);
-                setError('Could not start the game. Please try again.');
-                setGameState('error');
-                return;
-            }
-        }
-
-        // Per-game diamond deduction for paid modes
-        if (!isFreeMode && userId && !isVIP) {
-            // Fresh balance check from DB to avoid stale-state false negatives
-            try {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .maybeSingle();
-                if (profile) {
-                    const freshBalance = profile.diamonds || 0;
-                    setUserDiamonds(freshBalance);
-                    if (freshBalance < modeCost) {
-                        // Abandon the just-opened server session (it expires
-                        // harmlessly) — nothing has been recorded or charged.
-                        if (serverGraded) serverRun.reset();
-                        setShowOutOfDiamonds(true);
-                        return;
-                    }
-                }
-
-                const result = await DiamondEngine.deduct(modeCost, `trivia_${mode}`);
-                if (!result.success) {
-                    if (serverGraded) serverRun.reset();
+                if (e?.status === 402) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-                // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
-                // Refresh balance from DB after deduction
-                const { data: postProfile } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .maybeSingle();
-                if (postProfile) setUserDiamonds(postProfile.diamonds || 0);
-            } catch (e) {
-                console.warn('[mode] Diamond deduction failed:', e);
-                if (serverGraded) serverRun.reset();
-                setShowOutOfDiamonds(true);
+                setError('Could not start the game. Please try again.');
+                setGameState('error');
                 return;
             }
         }
@@ -892,67 +857,15 @@ export default function TriviaModePage() {
         // Save results to database
         if (userId) {
             try {
-                // Phase 1: Save score (only if not already saved).
-                // Capture DB errors — supabase-js does NOT throw on insert errors,
-                // so the function-level catch never saw NOT NULL / RLS / schema
-                // violations. Without this, the user's score would silently fail
-                // to persist while the UI showed success.
+                // Phase 1: session-submit persisted the verified score in the
+                // same transaction as the session close and payout. The
+                // returned id is the only valid prize-wheel token; browsers no
+                // longer have INSERT permission on trivia_scores.
                 if (savePhaseRef.current < 1) {
-                    // The inserted row's id is the prize wheel's spin token —
-                    // fn_trivia_prize_wheel_spin(p_score_id) verifies ownership,
-                    // perfection and recency from it. Select it back here so the
-                    // wheel never has to be trusted for what it paid out.
-                    const scorePayload = {
-                        user_id: userId,
-                        username: avatarUser?.username || avatarUser?.display_name || null,
-                        mode,
-                        score: runScore,
-                        correct_count: effCorrectCount,
-                        total_questions: effTotalQuestions,
-                        time_spent: timeSpent,
-                        diamonds_earned: diamondsEarned,
-                        play_date: today
-                    };
-                    const { data: scoreRow, error: scoreErr } = await supabase
-                        .from('trivia_scores')
-                        .insert(scorePayload)
-                        .select('id')
-                        .maybeSingle();
-
-                    if (scoreErr) {
-                        // 23505 = idx_trivia_scores_daily_once (one 'daily' row per
-                        // player per CST day, added in migration
-                        // 20260726120000_trivia_phase80_dedup_integrity.sql).
-                        // A second daily run of the same day is a LEGITIMATE action
-                        // — the diamond bonus is already gated separately by
-                        // firstDailyTodayRef — so this must not blow up the save and
-                        // strand the rest of the run's rewards. Fold into the
-                        // existing row, keep-best, and reuse its id as the prize
-                        // wheel token.
-                        if (scoreErr.code !== '23505') throw scoreErr;
-
-                        const { data: existingRow, error: existingErr } = await supabase
-                            .from('trivia_scores')
-                            .select('id, score')
-                            .eq('user_id', userId)
-                            .eq('mode', mode)
-                            .eq('play_date', today)
-                            .order('score', { ascending: false })
-                            .limit(1)
-                            .maybeSingle();
-                        if (existingErr || !existingRow?.id) throw scoreErr;
-
-                        if ((scorePayload.score || 0) > (existingRow.score || 0)) {
-                            const { error: updErr } = await supabase
-                                .from('trivia_scores')
-                                .update(scorePayload)
-                                .eq('id', existingRow.id);
-                            if (updErr) console.warn('[Supabase] daily score keep-best update failed:', updErr.message);
-                        }
-                        scoreIdRef.current = existingRow.id;
-                    } else if (scoreRow?.id) {
-                        scoreIdRef.current = scoreRow.id;
+                    if (!useServerPayout || !serverResult?.scoreId) {
+                        throw new Error('verified_score_missing');
                     }
+                    scoreIdRef.current = serverResult.scoreId;
                     savePhaseRef.current = 1;
                 }
 
@@ -1336,13 +1249,15 @@ export default function TriviaModePage() {
         // identical questions with known answers (diamond-farming hole); the
         // just-finished game's history rows (phase 3) are now excluded too.
         setGameState('loading');
-        try {
-            const fresh = await loadQuestions(mode, modeConfig.questionsCount, userId);
-            if (fresh && fresh.length > 0) {
-                setQuestions(sortByDifficulty(shuffleOptions(fresh)));
+        if (!serverGraded) {
+            try {
+                const fresh = await loadQuestions(mode, modeConfig.questionsCount, userId);
+                if (fresh && fresh.length > 0) {
+                    setQuestions(sortByDifficulty(shuffleOptions(fresh)));
+                }
+            } catch (e) {
+                console.warn('[mode] Play Again question refetch failed, reusing previous set:', e);
             }
-        } catch (e) {
-            console.warn('[mode] Play Again question refetch failed, reusing previous set:', e);
         }
         if (isMountedRef.current) setGameState('ready');
     };

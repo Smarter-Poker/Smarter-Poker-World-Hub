@@ -20,10 +20,21 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import styles from '../../../src/styles/trivia/TriviaHub.module.css';
+import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 
-// The 'Timer' hamburger toggle is not part of the original trivia preferences
-// payload, so it is mirrored to this namespaced key for durable local persistence.
-const TRIVIA_TIMER_KEY = 'trivia_timer_enabled';
+const GAME_SETTINGS_KEY = 'trivia_settings';
+
+function mirrorGamePreference(key, value) {
+    if (typeof window === 'undefined') return;
+    if (key === 'soundEffects') triviaAudio.setMuted(!value);
+    try {
+        const existing = JSON.parse(localStorage.getItem(GAME_SETTINGS_KEY) || '{}') || {};
+        const gameKey = key === 'soundEffects' ? 'audio' : key;
+        localStorage.setItem(GAME_SETTINGS_KEY, JSON.stringify({ ...existing, [gameKey]: value }));
+    } catch (error) {
+        console.warn('[TriviaHub] Could not mirror game preference:', error);
+    }
+}
 
 export default function TriviaHubPage() {
     useTrainingBus('trivia-hub');
@@ -39,19 +50,9 @@ export default function TriviaHubPage() {
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
         soundEffects: true,
-        showHints: true
+        timerEnabled: true,
+        hintsEnabled: false,
     });
-    // Backs the menu's 'Timer' toggle. Initialized to a constant and hydrated
-    // after mount (never in the useState initializer) so SSR and the first
-    // client render agree.
-    const [timerEnabled, setTimerEnabled] = useState(true);
-
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem(TRIVIA_TIMER_KEY);
-            if (stored !== null) setTimerEnabled(stored === '1');
-        } catch (e) { console.warn('[TriviaHub] Timer preference read failed:', e); }
-    }, []);
 
     // Load preferences from localStorage on mount.
     // Phase 71: track unmount via ref so the resolved-after-unmount setState
@@ -63,8 +64,7 @@ export default function TriviaHubPage() {
                 .then(p => {
                     if (cancelled) return;
                     setPreferences(p);
-                    // Server value wins over the local mirror when it exists.
-                    if (typeof p?.timerEnabled === 'boolean') setTimerEnabled(p.timerEnabled);
+                    Object.entries(p || {}).forEach(([key, value]) => mirrorGamePreference(key, value));
                 })
                 .catch(e => console.warn('[TriviaHub] Failed to load prefs:', e));
         }
@@ -80,6 +80,7 @@ export default function TriviaHubPage() {
         const previousValue = preferences[key];
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
+        mirrorGamePreference(key, value);
 
         if (userId) {
             try {
@@ -87,44 +88,22 @@ export default function TriviaHubPage() {
             } catch (error) {
                 console.warn('Failed to save preference, reverting:', error);
                 setPreferences(prev => ({ ...prev, [key]: previousValue }));
+                mirrorGamePreference(key, previousValue);
                 return false;
             }
         }
         return true;
     }, [preferences, userId]);
 
-    const writeTimerMirror = useCallback((next) => {
-        try { localStorage.setItem(TRIVIA_TIMER_KEY, next ? '1' : '0'); }
-        catch (e) { console.warn('[TriviaHub] Timer preference write failed:', e); }
-    }, []);
-
-    // Writes the local mirror and then through the shared preferences store.
-    // BUG FIX: updatePreference rolls `preferences` back when the server write
-    // fails, but `timerEnabled` and the localStorage mirror are a SECOND copy of
-    // the same value — without this rollback a failed save left the menu (and
-    // the next page load) showing a value the server never accepted.
-    const handleSetTimerEnabled = useCallback(async (val) => {
-        const next = !!val;
-        const previous = timerEnabled;
-        setTimerEnabled(next);
-        writeTimerMirror(next);
-        const ok = await updatePreference('timerEnabled', next);
-        if (!ok) {
-            setTimerEnabled(previous);
-            writeTimerMirror(previous);
-        }
-    }, [timerEnabled, updatePreference, writeTimerMirror]);
-
     const menuConfig = getMenuConfig('trivia', user, {
         ...preferences,
-        timerEnabled,
-        // The menu's 'Hints' toggle is backed by this page's existing showHints pref.
-        hintsEnabled: preferences.showHints
+        timerEnabled: preferences.timerEnabled,
+        hintsEnabled: preferences.hintsEnabled,
     }, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),
-        setShowHints: (val) => updatePreference('showHints', val),
-        setHintsEnabled: (val) => updatePreference('showHints', val),
-        setTimerEnabled: handleSetTimerEnabled
+        setShowHints: (val) => updatePreference('hintsEnabled', val),
+        setHintsEnabled: (val) => updatePreference('hintsEnabled', val),
+        setTimerEnabled: (val) => updatePreference('timerEnabled', val),
     });
 
     // Using existing supabase instance from lib
@@ -132,7 +111,13 @@ export default function TriviaHubPage() {
     const loadUserData = useCallback(async () => {
         if (!userId) {
             // Wait for auth to populate or fail
-            if (!authLoading) setIsLoading(false);
+            if (!authLoading) {
+                setUserDiamonds(0);
+                setIsVip(false);
+                setDailyCompleted(false);
+                setCurrentStreak(0);
+                setIsLoading(false);
+            }
             return;
         }
         try {
@@ -162,6 +147,11 @@ export default function TriviaHubPage() {
                     .eq('user_id', userId)
                     .maybeSingle(),
             ]);
+
+            const readErrors = [profileRes?.error, dailyPlayRes?.error, streakRes?.error].filter(Boolean);
+            if (readErrors.length > 0) {
+                throw new Error(readErrors.map(error => error.message || String(error)).join('; '));
+            }
 
             const profile = profileRes?.data;
             if (profile) {
@@ -232,7 +222,8 @@ export default function TriviaHubPage() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
-                <div className={styles.content}>
+                <main className={styles.content}>
+                    <h1 className="sr-only">Smarter Poker Trivia</h1>
                     {isLoading ? (
                         <div className={styles.loading}>
                             <TriviaSkeleton />
@@ -246,7 +237,7 @@ export default function TriviaHubPage() {
                             onDiamondsChange={(delta) => setUserDiamonds(prev => prev + delta)}
                         />
                     )}
-                </div>
+                </main>
             </div>
 
               <BottomNavBar />
