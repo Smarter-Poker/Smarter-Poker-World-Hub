@@ -292,14 +292,15 @@ function NotificationsPage() {
         return () => { mounted.current = false; };
     }, []);
 
-    // ── Clear badge count on mount ──
     useEffect(() => {
-        const token = getAccessToken();
-        fetch('/api/notifications/mark-seen', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-            body: JSON.stringify({})
-        }).catch(() => {});
+        (async () => {
+            const token = await getAccessToken();
+            fetch('/api/notifications/mark-seen', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({})
+            }).catch(() => {});
+        })();
     }, []);
 
     useTrainingBus('notifications');
@@ -383,7 +384,7 @@ function NotificationsPage() {
         };
     }, [user?.id]);
 
-    const markAsRead = (id) => {
+    const markAsRead = async (id) => {
         // Prevent double-execution in the exact same tick (e.g. click + observer)
         if (processingReadIds.current.has(id)) return;
         processingReadIds.current.add(id);
@@ -430,7 +431,7 @@ function NotificationsPage() {
         const isPoker = typeof id === 'string' && id.startsWith('poker-');
         if (!isPoker && user?.id) {
             // Route through server API to invalidate feed + unread-count caches
-            const token = getAccessToken();
+            const token = await getAccessToken();
             fetch('/api/notifications/mark-read', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -444,7 +445,7 @@ function NotificationsPage() {
             });
         } else if (isPoker && user?.id) {
             const realId = id.replace('poker-', '');
-            const token = getAccessToken();
+            const token = await getAccessToken();
             fetch('/api/poker/notifications', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -682,6 +683,34 @@ function NotificationsPage() {
                             }}>{unreadCount}</span>
                         )}
                     </div>
+                    {unreadCount > 0 && (
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const token = await getAccessToken();
+                                    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+                                    await fetch('/api/notifications/mark-read', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                                        body: JSON.stringify({ ids: unreadIds })
+                                    });
+                                    setNotifications(prev => prev.map(n => ({ ...n, read: true, seen: true })));
+                                    let newCount = 0;
+                                    localStorage.setItem('sp-notif-count', '0');
+                                    broadcastSync('smarter_poker_notif_sync', { action: 'mark_all_read', tabId: BROADCAST_TAB_ID });
+                                    toast.success('All notifications marked as read');
+                                } catch (e) {
+                                    toast.error('Failed to mark all as read');
+                                }
+                            }}
+                            style={{
+                                background: 'transparent', border: 'none', color: C.blue,
+                                fontWeight: 600, fontSize: 14, cursor: 'pointer', padding: '4px 8px'
+                            }}
+                        >
+                            Mark All Read
+                        </button>
+                    )}
                 </header>
 
                 {/* Notifications List — [Audit#17] tap anywhere to dismiss open swipes */}

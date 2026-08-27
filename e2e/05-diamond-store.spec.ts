@@ -122,9 +122,10 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       await page.waitForFunction(() =>
         Array.from(document.querySelectorAll('main img')).every((image) => image.complete)
       );
-      await page.evaluate(() => new Promise((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(resolve))
-      ));
+      // Let the metal-card entrance animation settle before measuring the
+      // rendered hit box. Measuring mid-transform can report 43.x for a
+      // correctly declared 44px control and produce a false regression.
+      await page.waitForTimeout(900);
       const undersized = await page.locator('main button, main nav a').evaluateAll((elements) =>
         elements.map((element) => {
           const rect = element.getBoundingClientRect();
@@ -142,5 +143,26 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     });
     expect(legalStyle.size).toBeGreaterThanOrEqual(12);
     expect(legalStyle.color).not.toBe('rgba(255, 255, 255, 0.4)');
+  });
+
+  test('wide merchandise purchase controls retain the 44-pixel target', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/hub/merch-store', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() =>
+      Array.from(document.querySelectorAll('main img')).every((image) => image.complete)
+    );
+    await page.waitForTimeout(900);
+
+    const purchaseControls = page.locator('main button').filter({
+      hasText: /Buy With Card|Pay With Diamonds/,
+    });
+    await expect(purchaseControls.first()).toBeVisible();
+    const undersized = await purchaseControls.evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { text: (element.textContent || '').trim(), width: rect.width, height: rect.height };
+      }).filter((item) => item.width > 0 && item.height > 0 && (item.width < 44 || item.height < 44))
+    );
+    expect(undersized).toEqual([]);
   });
 });

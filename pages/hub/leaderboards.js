@@ -17,7 +17,6 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
@@ -340,7 +339,7 @@ export default function LeaderboardsPage() {
     const swrKey = `/api/poker/leaderboards?type=${activeTab}&period=${period}&limit=50`;
     const { data: swrData, error, isLoading: loading, mutate: refreshLeaderboards } = useSWR(swrKey, (url) =>
         fetch(url).then(r => { if (!r.ok) throw new Error('Failed to load leaderboards'); return r.json(); }),
-        { refreshInterval: 60000 }
+        { refreshInterval: 60000, refreshWhenHidden: false }
     );
     const leaders = swrData?.leaders || [];
 
@@ -387,7 +386,7 @@ export default function LeaderboardsPage() {
             <PageTransition>
                 <div style={{
                     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg,
-                    paddingTop: 80, paddingBottom: 40
+                    paddingTop: 80
                 }}>
                     <div style={{ maxWidth: 680, margin: '0 auto', padding: '0 16px' }}>
 
@@ -521,7 +520,7 @@ export default function LeaderboardsPage() {
                                     <p style={{ color: C.text, fontSize: 16, fontWeight: 600, margin: '0 0 8px' }}>
                                         Failed to load leaderboards
                                     </p>
-                                    <p style={{ color: C.textSec, fontSize: 14, margin: '0 0 16px' }}>{error}</p>
+                                    <p style={{ color: C.textSec, fontSize: 14, margin: '0 0 16px' }}>{error?.message || 'Failed to load leaderboard. Please retry.'}</p>
                                     <button
                                         onClick={refreshLeaderboards}
                                         style={{

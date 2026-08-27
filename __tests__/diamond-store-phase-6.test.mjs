@@ -74,3 +74,13 @@ test('VIP headings no longer skip level two and store corners stay sharp without
   assert.match(SHELL_CSS, /border-radius:\s*0 !important/);
   assert.doesNotMatch(SHELL_CSS, /UniversalHeader|universal-header|header-left|header-right/);
 });
+
+test('wide merchandise purchase controls preserve an accessibility-safe height', () => {
+  const purchaseArea = MERCH.slice(
+    MERCH.indexOf('{/* Purchase buttons */}'),
+    MERCH.indexOf('{/* Honest, specific reason instead of a silently dead button */}')
+  );
+  assert.equal((purchaseArea.match(/minHeight:\s*46/g) || []).length, 2);
+  const fallbackArea = MERCH.slice(MERCH.indexOf('{usingFallback && loadError && ('), MERCH.indexOf('{loading && ('));
+  assert.match(fallbackArea, /minHeight:\s*46/);
+});
