@@ -46,6 +46,22 @@ const MAX_QTY = 10;
 
 const CATALOG_URL = '/api/store/merch-catalog';
 
+// These paths were seeded before their product photography was shipped. Let
+// the card render its deliberate category placeholder immediately instead of
+// issuing a guaranteed 404 and swapping to the same placeholder afterward.
+// Keep this list exact so future catalog images at other /merch paths render
+// normally.
+const UNSHIPPED_MERCH_IMAGES = new Set([
+    '/merch/card-protector-gold.jpg',
+    '/merch/card-protector-black.jpg',
+    '/merch/hoodie-neural.jpg',
+    '/merch/tshirt-gto.jpg',
+    '/merch/hat-diamond.jpg',
+    '/merch/deck-premium.jpg',
+    '/merch/chip-set-100.jpg',
+    '/merch/chip-set-500.jpg',
+]);
+
 // ── Palette (same values the styles module uses) ──────────────────────────
 const CYAN = '#00D4FF';
 const TEXT = '#E4E6EB';
@@ -153,6 +169,8 @@ function normalizeProduct(raw, index, source) {
         ? (own.inStock && variants.some(v => v.inStock))
         : own.inStock;
 
+    const image = firstString([raw.image_url, raw.imageUrl, raw.image, raw.thumbnail]);
+
     return {
         key: rawId || `${source}-${index}-${name}`,
         // Any non-empty id is a candidate; merchandise_items.id is TEXT and
@@ -162,7 +180,7 @@ function normalizeProduct(raw, index, source) {
         source,
         name,
         description: firstString([raw.description, raw.subtitle, raw.blurb]) || '',
-        image: firstString([raw.image_url, raw.imageUrl, raw.image, raw.thumbnail]),
+        image: image && !UNSHIPPED_MERCH_IMAGES.has(image) ? image : null,
         category: (firstString([raw.category, raw.product_type, raw.collection]) || 'merch').toLowerCase(),
         priceUsd,
         priceDiamonds,

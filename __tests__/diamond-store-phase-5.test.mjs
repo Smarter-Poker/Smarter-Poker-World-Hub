@@ -69,6 +69,23 @@ test('the merch page server-renders a static lineup while refreshing the live ca
   assert.match(MERCH, /width: 44, minWidth: 44, height: 44/);
 });
 
+test('seeded merch image placeholders do not issue guaranteed production 404s', () => {
+  assert.match(MERCH, /const UNSHIPPED_MERCH_IMAGES = new Set/);
+  for (const path of [
+    '/merch/card-protector-gold.jpg',
+    '/merch/card-protector-black.jpg',
+    '/merch/hoodie-neural.jpg',
+    '/merch/tshirt-gto.jpg',
+    '/merch/hat-diamond.jpg',
+    '/merch/deck-premium.jpg',
+    '/merch/chip-set-100.jpg',
+    '/merch/chip-set-500.jpg',
+  ]) {
+    assert.match(MERCH, new RegExp(path.replaceAll('/', '\\/').replace('.', '\\.')));
+  }
+  assert.match(MERCH, /image: image && !UNSHIPPED_MERCH_IMAGES\.has\(image\) \? image : null/);
+});
+
 test('all store routes own canonical and social metadata', () => {
   assert.match(STORE, /rel="canonical"/);
   assert.match(STORE, /type="application\/ld\+json"/);
