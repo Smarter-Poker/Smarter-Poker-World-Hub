@@ -222,6 +222,7 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
     const categoryLabel = typeof article.category === 'string' && article.category
         ? article.category.toUpperCase()
         : 'POKER';
+    const canOpen = typeof onOpen === 'function';
 
     const openArticle = () => {
         // Handler errors are outside the error boundary's reach, so contain
@@ -235,7 +236,7 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
 
     return (
         <div
-            className={`news-box ${isRead ? 'read' : ''}`}
+            className={`news-box ${isRead ? 'read' : ''} ${canOpen ? '' : 'status-card'}`}
             data-source={safeText(article.source_name)}
             style={{ '--src-accent': srcColor }}
         >
@@ -257,35 +258,43 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
                 It is first in the DOM so it keeps the old tab order
                 (card, then bookmark, then share).
                 ───────────────────────────────────────────────────────────── */}
-            <button
-                type="button"
-                className="card-open"
-                aria-label={title || 'Open article'}
-                onClick={openArticle}
-            />
+            {canOpen && (
+                <button
+                    type="button"
+                    className="card-open"
+                    aria-label={title || 'Open article'}
+                    onClick={openArticle}
+                />
+            )}
 
             {/* Quick Actions — siblings of .card-open, so no nested interactive.
                 stopPropagation is kept so a click here never reaches any handler
                 the page may attach to the surrounding card wrapper. */}
-            <div className="box-actions">
-                <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); if (onBookmark) onBookmark(article.id, article); }}
-                    title={isBookmarked ? 'Remove bookmark' : 'Bookmark'}
-                    aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark article'}
-                    aria-pressed={!!isBookmarked}
-                >
-                    {isBookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
-                </button>
-                <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); if (onShare) onShare(article); }}
-                    title="Share"
-                    aria-label="Share article"
-                >
-                    <Share2 size={14} />
-                </button>
-            </div>
+            {(onBookmark || onShare) && (
+                <div className="box-actions">
+                    {onBookmark && (
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onBookmark(article.id, article); }}
+                            title={isBookmarked ? 'Remove bookmark' : 'Bookmark'}
+                            aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark article'}
+                            aria-pressed={!!isBookmarked}
+                        >
+                            {isBookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+                        </button>
+                    )}
+                    {onShare && (
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onShare(article); }}
+                            title="Share"
+                            aria-label="Share article"
+                        >
+                            <Share2 size={14} />
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Read Indicator */}
             {isRead && (
@@ -375,6 +384,15 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
                 .news-box:hover {
                     transform: translateY(-2px);
                     filter: brightness(1.05);
+                }
+
+                .news-box.status-card {
+                    cursor: default;
+                }
+
+                .news-box.status-card:hover {
+                    transform: none;
+                    filter: none;
                 }
 
                 /* Card focus ring. Kept on .news-box for any consumer that
@@ -729,6 +747,9 @@ export function areNewsBoxPropsEqual(prev, next) {
     if (prev.isRead !== next.isRead) return false;
     if (prev.index !== next.index) return false;
     if (prev.priority !== next.priority) return false;
+    if (!!prev.onOpen !== !!next.onOpen) return false;
+    if (!!prev.onBookmark !== !!next.onBookmark) return false;
+    if (!!prev.onShare !== !!next.onShare) return false;
 
     const a = prev.article;
     const b = next.article;

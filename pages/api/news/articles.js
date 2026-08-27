@@ -63,14 +63,23 @@ export default async function handler(req, res) {
               const offset = clampInt(safeQ(req.query.offset), 0, 0, MAX_OFFSET);
               const featured = safeQ(req.query.featured);
               const source = safeQ(req.query.source);
+              // Explicit allowlist: unknown values retain the historical newest-first
+              // contract. Popular is sorted in Postgres so every offset page belongs to
+              // one global ranking instead of reordering only the rows a browser loaded.
+              const sort = safeQ(req.query.sort) === 'popular' ? 'popular' : 'latest';
 
               // Same sanitizing rationale for both: keep PostgREST filter
               // metacharacters out of the value.
               // BUG #270 FIX: Sanitize search input to prevent PostgREST filter injection.
               // Characters like commas, parentheses, and dots could break/modify the filter.
-              const safeSource = (source && source !== 'all')
-                  ? source.slice(0, 100).replace(/[,().]/g, ' ').trim()
-                  : '';
+              const safeSources = (source && source !== 'all')
+                  ? source
+                      .slice(0, 300)
+                      .split(',')
+                      .map(value => value.replace(/[().]/g, ' ').trim())
+                      .filter(Boolean)
+                      .slice(0, 12)
+                  : [];
               const safeSearch = search
                   ? search.slice(0, 100).replace(/[,().]/g, ' ').trim()
                   : '';
@@ -81,7 +90,8 @@ export default async function handler(req, res) {
               const applyFilters = (q) => {
                   let out = q.eq('is_published', true);
                   if (category && category !== 'all') out = out.eq('category', category);
-                  if (safeSource) out = out.eq('source_name', safeSource);
+                  if (safeSources.length === 1) out = out.eq('source_name', safeSources[0]);
+                  if (safeSources.length > 1) out = out.in('source_name', safeSources);
                   if (safeSearch) {
                       out = out.or(`title.ilike.%${safeSearch}%,content.ilike.%${safeSearch}%`);
                   }
@@ -92,11 +102,17 @@ export default async function handler(req, res) {
               // count: 'exact' runs the same filters as the row query, so
               // `total` always describes THIS filtered result set (not the
               // whole table) and hasMore stays correct under search/category.
-              const query = applyFilters(
+              let query = applyFilters(
                   getSupabase().from('poker_news').select('*', { count: 'exact' })
-              )
-                  .order('published_at', { ascending: false })
-                  .range(offset, offset + limit - 1);
+              );
+              if (sort === 'popular') {
+                  query = query
+                      .order('views', { ascending: false, nullsFirst: false })
+                      .order('published_at', { ascending: false });
+              } else {
+                  query = query.order('published_at', { ascending: false });
+              }
+              query = query.range(offset, offset + limit - 1);
 
               const { data, error, count } = await query;
 
@@ -119,7 +135,8 @@ export default async function handler(req, res) {
                           limit,
                           offset,
                           total: typeof totalOnly === 'number' ? totalOnly : 0,
-                          hasMore: false
+                          hasMore: false,
+                          sort
                       }
                   });
               }
@@ -166,7 +183,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
           success: true,
           data: slimRows,
-          pagination: { limit, offset, total, hasMore }
+          pagination: { limit, offset, total, hasMore, sort }
       });
           } catch (error) {
               try { reportApiError(error, req); } catch (_e) { /* noop */ }
