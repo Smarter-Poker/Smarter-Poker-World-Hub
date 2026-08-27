@@ -768,7 +768,6 @@ export default function HorsesAdmin() {
     }
   }, [authFetch, showNotification, loadBadges]);
 
-  const forceCashoutApprove = useCallback((cashout) => resolveCashout(cashout, 'approve'), [resolveCashout]);
 
   const loadApplications = useCallback(async (statusFilter = 'pending') => {
     setCaAppLoading(true);
@@ -1235,17 +1234,24 @@ export default function HorsesAdmin() {
     }
   };
 
+  // Goes through /api/horses/stable-admin rather than straight to PostgREST.
+  // The direct call it replaces was the last unaudited mutation in this
+  // console, and -- because PostgREST answers a zero-row UPDATE with
+  // { error: null } -- it reported "Ticket Marked Resolved" even on the runs
+  // where the row was invisible to the caller and nothing was written. The
+  // route checks the affected row count and files the change in
+  // admin_audit_log, so both of those failure modes are now impossible.
   const updateBugReportStatus = async (ticketId, newStatus) => {
     const snapshot = bugReports;
     setBugReports((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)));
-    const { error } = await supabase.from('live_help_tickets').update({
-      status: newStatus,
-      updated_at: new Date().toISOString(),
-      ...(newStatus === 'resolved' ? { resolved_at: new Date().toISOString() } : { resolved_at: null }),
-    }).eq('id', ticketId);
-    if (error) {
+    try {
+      await authFetch('/api/horses/stable-admin', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'set_ticket_status', id: ticketId, status: newStatus }),
+      });
+    } catch (err) {
       setBugReports(snapshot);
-      showNotification(`Could Not Update Ticket: ${error.message}`, 'error');
+      showNotification(`Could Not Update Ticket: ${err.message}`, 'error');
       return;
     }
     showNotification(`Ticket Marked ${newStatus === 'resolved' ? 'Resolved' : 'Open'}`);

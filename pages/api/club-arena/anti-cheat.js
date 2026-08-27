@@ -21,6 +21,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { applyCors } = require('../../../src/lib/cors');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+const { logAdminAction } = require('../../../src/lib/antiAbuse');
 
 let _supabase = null;
 function getSupabase() {
@@ -331,6 +332,27 @@ try {
           });
           if (eventErr) console.warn('[AntiCheat] Failed to log review event:', eventErr.message);
 
+          // Admin console audit trail. The conditional update above only
+          // matches rows still in 'open', so that is the prior status.
+          await logAdminAction(getSupabase(), {
+            admin_user_id: userId,
+            action: 'anticheat.flag_reviewed',
+            target_type: 'anti_cheat_flag',
+            target_id: flagId,
+            details: {
+              club_id: clubId,
+              player_id: data.player_id,
+              table_id: data.table_id,
+              flag_type: data.flag_type,
+              severity: data.severity,
+              verdict: status,
+              notes: notes || null,
+            },
+            before: { status: 'open', reviewed_by: null, reviewed_at: null },
+            after: { status, reviewed_by: userId, reviewed_at: data.reviewed_at },
+            req,
+          });
+
           return res.status(200).json({ success: true, flag: data });
         }
 
@@ -434,6 +456,22 @@ try {
             console.warn('[AntiCheat] kick log failed:', logErr?.message || logErr);
             // Non-fatal — kick already succeeded server-side
           }
+
+          // Admin console audit trail — a kick removes a seated player.
+          await logAdminAction(getSupabase(), {
+            admin_user_id: userId,
+            action: 'anticheat.player_kicked',
+            target_type: 'player',
+            target_id: targetPlayerId,
+            details: {
+              club_id: clubId,
+              table_id: tableId,
+              reason: reason || null,
+              source: tableId ? 'engine_admin_kick' : 'no_active_table',
+              engine_result: engineResult,
+            },
+            req,
+          });
 
           return res.status(200).json({
             success: true,

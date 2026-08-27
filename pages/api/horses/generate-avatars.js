@@ -64,6 +64,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { logAdminAction } from '../../../src/lib/antiAbuse';
 
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 let _supabase = null;
@@ -167,6 +168,13 @@ export default async function handler(req, res) {
       const adminSecret = req.headers['x-admin-secret'];
       const envSecret = process.env.ADMIN_ROUTE_SECRET;
       let isAuthorized = false;
+      // Hoisted out of the JWT branch below so the audit write at the end of
+      // the handler can attribute the batch. A cron-secret call legitimately
+      // has no user, and is filed with a null admin_user_id rather than not
+      // being filed at all -- this route spends money per image, so an
+      // unattributed run still has to leave a record.
+      let auditUserId = null;
+      let auditVia = 'admin_secret';
 
       if (authHeader) {
         const token = authHeader.replace('Bearer ', '');
@@ -175,7 +183,11 @@ export default async function handler(req, res) {
         const user = authData?.user;
         if (!authErr && user) {
           const { data: profile } = await getSupabase().from('profiles').select('role').eq('id', user.id).maybeSingle();
-          if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) isAuthorized = true;
+          if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) {
+            isAuthorized = true;
+            auditUserId = user.id;
+            auditVia = 'jwt';
+          }
         }
       }
       if (!isAuthorized && envSecret && adminSecret === envSecret) {
@@ -283,6 +295,29 @@ export default async function handler(req, res) {
               // Small delay between generations
               await new Promise(r => setTimeout(r, 2000));
           }
+
+          // Admin console audit trail. Every horse in this batch is a paid
+          // image generation and a permanent write to content_authors.avatar_url
+          // (mirrored into profiles), so who ran it and what it produced has to
+          // be recoverable. logAdminAction swallows its own errors and can
+          // never fail the request.
+          const succeeded = results.filter(r => r.success);
+          await logAdminAction(getSupabase(), {
+              admin_user_id: auditUserId,
+              action: 'horses.avatars_generated',
+              target_type: 'content_author',
+              target_id: null,
+              details: {
+                  authenticated_via: auditVia,
+                  requested_limit: limit,
+                  max_batch: MAX_BATCH,
+                  attempted: results.length,
+                  generated: succeeded.length,
+                  failed: results.length - succeeded.length,
+                  horses: succeeded.map(r => r.horse),
+              },
+              req,
+          });
 
           return res.status(200).json({
               success: true,

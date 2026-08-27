@@ -19,6 +19,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateUnionApplication } from '../../../src/contracts/orb4_syndicate';
 import { checkIdempotency } from '../../../src/lib/club-arena/idempotency';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { logAdminAction } = require('../../../src/lib/antiAbuse');
 
 // Lazy accessor — a module-scope createClient() throws at IMPORT time when the
 // service-role key is missing, which takes the whole route down before any
@@ -388,6 +389,27 @@ export default async function handler(req, res) {
         });
       }
 
+      // Admin console audit trail — the club is now fully in the union and
+      // its own tables have been closed and refunded.
+      await logAdminAction(getSupabase(), {
+        admin_user_id: user.id,
+        action: 'union.application_approved',
+        target_type: 'union_application',
+        target_id: applicationId,
+        details: {
+          club_id: app.club_id,
+          club_name: app.club_name,
+          union_id: app.union_id,
+          commission_rate: rate,
+          tables_closed: closedTables,
+          seats_refunded: refundedSeats,
+          review_note: reason || null,
+        },
+        before: { status: app.status },
+        after: { status: 'approved' },
+        req,
+      });
+
       return res.status(200).json({
         success: true,
         closedTables,
@@ -408,7 +430,7 @@ export default async function handler(req, res) {
 
       const { data: app } = await getSupabase()
         .from('union_applications')
-        .select('club_name, status, union_id')
+        .select('club_id, club_name, status, union_id')
         .eq('id', applicationId)
         .maybeSingle();
 
@@ -433,6 +455,23 @@ export default async function handler(req, res) {
           error: 'Could not reject the application. Please try again.',
         });
       }
+
+      // Admin console audit trail.
+      await logAdminAction(getSupabase(), {
+        admin_user_id: user.id,
+        action: 'union.application_rejected',
+        target_type: 'union_application',
+        target_id: applicationId,
+        details: {
+          club_id: app.club_id,
+          club_name: app.club_name,
+          union_id: app.union_id,
+          review_note: reason || null,
+        },
+        before: { status: app.status },
+        after: { status: 'rejected' },
+        req,
+      });
 
       return res.status(200).json({ success: true, message: `${app.club_name} application rejected` });
     }
@@ -554,6 +593,23 @@ export default async function handler(req, res) {
         });
       }
 
+      // Admin console audit trail — the club has been removed from the union
+      // and its rake routing has moved back to its own treasury.
+      await logAdminAction(getSupabase(), {
+        admin_user_id: user.id,
+        action: 'union.leave_approved',
+        target_type: 'union_leave_request',
+        target_id: leaveRequestId,
+        details: {
+          club_id: lr.club_id,
+          club_name: lr.club_name,
+          union_id: lr.union_id,
+        },
+        before: { status: lr.status },
+        after: { status: 'approved' },
+        req,
+      });
+
       return res.status(200).json({
         success: true,
         message: `${lr.club_name} has been released from the union`,
@@ -568,7 +624,7 @@ export default async function handler(req, res) {
 
       const { data: lr } = await getSupabase()
         .from('union_leave_requests')
-        .select('id, club_name, status, union_id')
+        .select('id, club_id, club_name, status, union_id')
         .eq('id', leaveRequestId)
         .maybeSingle();
 
@@ -596,6 +652,24 @@ export default async function handler(req, res) {
       // `reason` lives there and must not be overwritten. The reviewer's
       // reason is echoed back and logged, not stored.
       if (reason) console.warn(`[union-application] leave request ${leaveRequestId} denied, reason: ${reason}`);
+
+      // Admin console audit trail. The reviewer's reason has no column on
+      // union_leave_requests, so the audit row is the only record of it.
+      await logAdminAction(getSupabase(), {
+        admin_user_id: user.id,
+        action: 'union.leave_rejected',
+        target_type: 'union_leave_request',
+        target_id: leaveRequestId,
+        details: {
+          club_id: lr.club_id,
+          club_name: lr.club_name,
+          union_id: lr.union_id,
+          review_note: reason || null,
+        },
+        before: { status: lr.status },
+        after: { status: 'denied' },
+        req,
+      });
 
       return res.status(200).json({
         success: true,

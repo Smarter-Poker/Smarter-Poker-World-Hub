@@ -9,6 +9,7 @@
  *   { action: 'bulk_active',   ids: [...], is_active }
  *   { action: 'bulk_delete',   ids: [...] }
  *   { action: 'save_settings', settings: {...} }
+ *   { action: 'set_ticket_status', id, status }
  *
  * WHY THIS ROUTE EXISTS (added 2026-08-26, second audit pass).
  *
@@ -90,6 +91,9 @@ const SETTING_RANGES = {
 
 const MAX_BULK = 600; // the stable is 593 horses; one page of "select all" must fit
 
+/** live_help_tickets.status values the Bug Reports tab can set. */
+const VALID_TICKET_STATUS = ['open', 'resolved'];
+
 function pick(source, allowed) {
   const out = {};
   for (const key of allowed) {
@@ -150,13 +154,15 @@ function clientIp(req) {
   return req.socket?.remoteAddress || null;
 }
 
-async function audit(req, adminId, action, targetId, details) {
+async function audit(req, adminId, action, targetId, details, targetType) {
   // Columns verified against production: admin_user_id, action, target_type,
   // target_id, details, ip_address, created_at.
   const { error } = await getSupabase().from('admin_audit_log').insert({
     admin_user_id: adminId,
     action,
-    target_type: 'content_author',
+    // Defaults to the horse table because that is most of this route, but a
+    // support ticket is not a content_author and must not be filed as one.
+    target_type: targetType || (String(action).startsWith('ticket.') ? 'live_help_ticket' : 'content_author'),
     target_id: targetId ? String(targetId) : null,
     details: details || {},
     ip_address: clientIp(req),
@@ -309,6 +315,54 @@ export default async function handler(req, res) {
       await audit(req, user.id, 'horse.bulk_deleted', null,
         { requested: ids.length, affected, deleted: existing || [] });
       return res.status(200).json({ success: true, affected, requested: ids.length });
+    }
+
+    // ── SUPPORT TICKET STATUS ─────────────────────────────────────────────
+    //
+    // The Bug Reports tab used to UPDATE live_help_tickets straight from the
+    // browser. Three problems, all fixed by routing it here:
+    //
+    //   1. NO AUDIT. Resolving or reopening a support ticket left no record of
+    //      who did it. It was the last mutation in the console still going
+    //      direct to PostgREST.
+    //   2. A ZERO-ROW UPDATE LOOKS LIKE SUCCESS. PostgREST returns
+    //      { error: null } when nothing matched, so before the RLS fix -- when
+    //      two of the three admin accounts could not see a ticket at all --
+    //      the toast said "Ticket Marked Resolved" and nothing had changed.
+    //      That is exactly the failure this whole audit started from.
+    //   3. It depended on the caller's own RLS grant rather than on being an
+    //      admin, so it broke silently whenever that policy drifted.
+    if (action === 'set_ticket_status') {
+      const { id, status } = req.body;
+      if (!id) return res.status(400).json({ success: false, error: 'id is required' });
+      if (!VALID_TICKET_STATUS.includes(status)) {
+        return res.status(400).json({ success: false, error: `status must be one of: ${VALID_TICKET_STATUS.join(', ')}` });
+      }
+
+      const { data: before } = await db.from('live_help_tickets')
+        .select('id, status, subject, user_id').eq('id', id).maybeSingle();
+
+      const { data, error } = await db.from('live_help_tickets')
+        .update({
+          status,
+          updated_at: new Date().toISOString(),
+          resolved_at: status === 'resolved' ? new Date().toISOString() : null,
+        })
+        .eq('id', id).select('id, status').maybeSingle();
+
+      if (error) {
+        console.error('[stable-admin] set_ticket_status failed:', error);
+        return res.status(500).json({ success: false, error: `Could not update the ticket: ${error.message}` });
+      }
+      if (!data) return res.status(404).json({ success: false, error: 'That ticket no longer exists.' });
+
+      await audit(req, user.id, status === 'resolved' ? 'ticket.resolved' : 'ticket.reopened', id, {
+        subject: before?.subject || null,
+        reporter: before?.user_id || null,
+        from: before?.status || null,
+        to: status,
+      });
+      return res.status(200).json({ success: true, ticket: data });
     }
 
     // ── SETTINGS ──────────────────────────────────────────────────────────

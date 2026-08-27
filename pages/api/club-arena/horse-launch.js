@@ -23,6 +23,7 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // causing ReferenceError on every POST. Moved to module scope so the
 // handler's idempotency guard actually works.
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+const { logAdminAction } = require('../../../src/lib/antiAbuse');
 
 // Phase 61: Fisher-Yates shuffle helper. Replaces 5 sites that used
 // arr.sort(() => Math.random() - 0.5) — mathematically biased
@@ -293,7 +294,7 @@ async function createCashTables(log) {
       created++;
       tableIds.union.push(data.id);
     } else {
-      log.push(`⚠️ Table "${cfg.name}" failed: ${error?.message}`);
+      log.push(`[WARN] Table "${cfg.name}" failed: ${error?.message}`);
     }
   }
   return { created, tableIds };
@@ -463,7 +464,7 @@ export default async function handler(req, res) {
         cashCreated += res.created;
         tableIds.union.push(...res.tableIds.union);
       }
-      log.push(`✅ Cash tables created: ${cashCreated} (all hosted by Midway Union)`);
+      log.push(`[OK] Cash tables created: ${cashCreated} (all hosted by Midway Union)`);
 
       // 2. Create today's tournaments (alternating clubs)
       const todaysTournaments = getTodaysTournaments();
@@ -491,10 +492,10 @@ export default async function handler(req, res) {
           }
           tournamentsRegistered += reg;
         } else {
-          log.push(`⚠️ Tournament "${cfg.name}" failed: ${result.error}`);
+          log.push(`[WARN] Tournament "${cfg.name}" failed: ${result.error}`);
         }
       }
-      log.push(`✅ Tournaments created: ${tournamentsCreated}, horses registered: ${tournamentsRegistered}`);
+      log.push(`[OK] Tournaments created: ${tournamentsCreated}, horses registered: ${tournamentsRegistered}`);
 
       // 3. Create SNGs (alternating clubs)
       let sngsCreated = 0, sngRegistered = 0, sngFailures = 0;
@@ -541,7 +542,7 @@ export default async function handler(req, res) {
           console.warn('[horse-launch] SNG insert failed:', cfg.name, error?.message || error);
         }
       }
-      log.push(`✅ SNGs created: ${sngsCreated}, horses registered: ${sngRegistered}, failed: ${sngFailures}`);
+      log.push(`[OK] SNGs created: ${sngsCreated}, horses registered: ${sngRegistered}, failed: ${sngFailures}`);
 
       // 4. Create Spins (alternating clubs, with multiplier)
       let spinsCreated = 0, spinRegistered = 0;
@@ -585,15 +586,15 @@ export default async function handler(req, res) {
           }
         }
       }
-      log.push(`✅ Spins created: ${spinsCreated}, horses registered: ${spinRegistered}`);
+      log.push(`[OK] Spins created: ${spinsCreated}, horses registered: ${spinRegistered}`);
 
       // 4.5. Pre-fund all horses to 500,000 chips so they don't bounce off atomic wallet deductions
       const { error: massFundErr } = await getSupabase().rpc('mass_fund_horses', { p_amount: 500000 });
       if (massFundErr) {
-        log.push(`⚠️ mass_fund_horses RPC failed: ${massFundErr.message} — horses may lack chips for buy-ins`);
+        log.push(`[WARN] mass_fund_horses RPC failed: ${massFundErr.message} — horses may lack chips for buy-ins`);
         console.warn('[horse-launch] mass_fund_horses failed:', massFundErr.message);
       } else {
-        log.push(`✅ Granted core bankroll to all horses for atomic cash game buy-ins`);
+        log.push(`[OK] Granted core bankroll to all horses for atomic cash game buy-ins`);
       }
 
       // 5. Seat horses at cash tables (2 per horse, split by club)
@@ -632,7 +633,7 @@ export default async function handler(req, res) {
           }
         }
       }
-      log.push(`✅ Horses seated at cash tables: ${cashSeats}`);
+      log.push(`[OK] Horses seated at cash tables: ${cashSeats}`);
 
       // Update horse statuses to 'seated'
       const { error: err_profiles_z2iy8 } = await getSupabase()
@@ -659,6 +660,31 @@ export default async function handler(req, res) {
         elapsed: `${elapsed}ms`,
         log,
       };
+
+      // Admin console audit trail — the heaviest write on the platform.
+      // The step-by-step log stays server-side; the counts are what an
+      // auditor needs to know what this launch actually created.
+      await logAdminAction(getSupabase(), {
+        admin_user_id: user.id,
+        action: 'fleet.launched',
+        target_type: 'horse_fleet',
+        target_id: UNION_ID,
+        details: {
+          union_id: UNION_ID,
+          horses: horses.all.length,
+          cash_tables_created: cashCreated,
+          tournaments_created: tournamentsCreated,
+          sngs_created: sngsCreated,
+          spins_created: spinsCreated,
+          cash_seats: cashSeats,
+          tournaments_registered: tournamentsRegistered,
+          sng_registered: sngRegistered,
+          spin_registered: spinRegistered,
+          sng_failures: sngFailures,
+          elapsed_ms: elapsed,
+        },
+        req,
+      });
 
       return res.json({ success: true, action: 'launch_all', ...summary });
     }
@@ -750,6 +776,22 @@ export default async function handler(req, res) {
         const { error: err_tables_ceuy2 } = await getSupabase().from('tables').update({ current_players: count ?? 0 }).eq('id', t.id);
         if (err_tables_ceuy2) console.warn('[Supabase] Silent mutation failed in tables:', err_tables_ceuy2.message);
       }
+
+      // Admin console audit trail — removes every horse from every table
+      // and unregisters them from every tournament.
+      await logAdminAction(getSupabase(), {
+        admin_user_id: user.id,
+        action: 'fleet.shutdown',
+        target_type: 'horse_fleet',
+        target_id: UNION_ID,
+        details: {
+          union_id: UNION_ID,
+          horses_removed: ids.length,
+          tables_recounted: (tables || []).length,
+          elapsed_ms: Date.now() - t0,
+        },
+        req,
+      });
 
       return res.json({ success: true, action: 'shutdown', horsesRemoved: ids.length });
     }
