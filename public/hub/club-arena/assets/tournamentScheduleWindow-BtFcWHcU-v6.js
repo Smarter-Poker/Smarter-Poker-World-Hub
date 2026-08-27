@@ -1,2 +1,0 @@
-function e(t){return(Number(t.buy_in_amount)||0)+(Number(t.buy_in_fee)||0)}function r(t){return t>=200?5184e5:2592e5}function o(t,_=Date.now()){const n=t.start_time==null?NaN:new Date(t.start_time).getTime();return!Number.isFinite(n)||n<=_?!0:n-_<=r(e(t))}function O(t=Date.now()){return new Date(t+5184e5).toISOString()}export{o as i,O as l};
-//# sourceMappingURL=tournamentScheduleWindow-BtFcWHcU-v6.js.map
