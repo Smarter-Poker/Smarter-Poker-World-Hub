@@ -192,8 +192,15 @@ bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "descriptive c
 ```
 
 Never run `git add`, `git commit`, `git push`, `git pull` individually.
-Never run `vercel deploy`, `vercel --prod`, or call any deploy hook URL.
-Never run `scripts/antigravity-deploy.sh` (legacy, contains dead code).
+Never run `vercel deploy` or `vercel --prod`.
+Never call the deploy hook URL **by hand** — one deploy hook DOES exist
+(`VERCEL_HUB_VANGUARD_DEPLOY_HOOK`), and it is owned exclusively by the
+sanctioned daily safety-net workflow `club-arena-scheduled-deploy.yml`
+(CHECK 6c allowlisted). No other caller is permitted; CI enforces this
+(`scripts/ci/check-no-vercel-deploy.mjs`).
+(`scripts/antigravity-deploy.sh` was DELETED on 2026-08-27 — issue #653: a
+file the rules name as forbidden, sitting where an agent will find it, is a
+trap. The rule against running it survives as the CI check.)
 
 The script handles everything autonomously:
 - Phase 0: Secret scanning, account verification, .env safety
@@ -215,8 +222,13 @@ If it exits non-zero, your code is NOT deployed. Fix the issue and re-run.
 4. If build succeeds: deployment becomes READY and is auto-promoted to Current (production)
 5. `verify-deploy.js` (called by the push script) confirms production serves the new SHA
 
-There is NO deploy hook. There is NO manual promotion step.
-One push = one build = one deployment = auto-promoted to production.
+There is NO manual promotion step, and no deploy hook in the PUSH path —
+one push = one build = one deployment = auto-promoted to production.
+(One deploy hook exists OUTSIDE the push path: the daily safety net
+`club-arena-scheduled-deploy.yml` POSTs `VERCEL_HUB_VANGUARD_DEPLOY_HOOK`
+so a missed Club Arena sync still publishes. Issue #653 resolved these two
+sentences against reality on 2026-08-27: the hook exists, that workflow owns
+it, and nothing else may ever call it.)
 
 ### 1.5 Claiming Success
 

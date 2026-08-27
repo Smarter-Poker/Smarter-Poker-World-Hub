@@ -706,6 +706,16 @@ jobs:
           echo "✓ No merge conflict markers found"
 
       # ═══════════════════════════════════════════════════════════════
+      # CHECK 18: Nothing but the sanctioned safety net may invoke a
+      # Vercel deploy (issue #653). Ported from Club Arena, with the one
+      # exception (club-arena-scheduled-deploy.yml owns the deploy hook)
+      # written into the script. A rule in a document loses to a script
+      # with a plausible filename; this makes the rule executable.
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 18: No direct Vercel deploy invocations"
+        run: node scripts/ci/check-no-vercel-deploy.mjs
+
+      # ═══════════════════════════════════════════════════════════════
       # CHECK 8: Auth-critical files exist on disk
       # Single source of truth: __tests__/auth-routes-exist.test.mjs
       # See docs/runbooks/07-auth-outage.md for the 2026-05-02 incident

@@ -171,6 +171,14 @@ async function handler(req, res) {
                 .select('user_id, stripe_subscription_id, status, tier, current_period_end')
                 .in('status', PAYING_STATUSES)
                 .not('stripe_subscription_id', 'is', null)
+                /* Issue #771.2 — the non-null test exists to prove CASH was
+                   paid, but purchaseVipWithDiamonds writes a placeholder id
+                   ('diamond_<uid>_<ts>') into the same column, which is
+                   non-null and sails through. A diamond-bought VIP minting a
+                   500-diamond monthly stipend is the economy paying itself.
+                   The placeholder rows are excluded by their own prefix; a
+                   real Stripe subscription id is 'sub_…' and is unaffected. */
+                .not('stripe_subscription_id', 'like', 'diamond_%')
                 .order('created_at', { ascending: true })
                 .range(from, to);
 
@@ -265,8 +273,13 @@ async function handler(req, res) {
                 } else if (reason === 'not_eligible') {
                     // The user pays Stripe but profiles.is_vip / vip_tier /
                     // vip_expires_at do not reflect it — award_diamonds_v2
-                    // refuses. See FOLLOW-UP F2: the Stripe webhook must write
-                    // vip_tier + vip_expires_at from the Stripe period.
+                    // refuses. F2 is FIXED (2026-08-27): the Stripe webhook
+                    // writes all three fields on checkout AND pushes
+                    // vip_expires_at forward on every renewal, and
+                    // vip_subscriptions held ZERO rows when this was verified,
+                    // so there is nobody to backfill. If this counter ever
+                    // goes nonzero now, a webhook delivery was missed — check
+                    // Stripe's event log before suspecting this cron.
                     stats.notEligible += 1;
                 } else {
                     stats.capped += 1;

@@ -3,8 +3,9 @@
 // deploy-log.js — Persistent Deployment Audit Trail
 // ═══════════════════════════════════════════════════════════════════════════════
 //
-// Called automatically by git-safe-push.sh and antigravity-deploy.sh after
-// successful operations. Maintains a rolling JSON log of all deployments.
+// Called automatically by git-safe-push.sh after successful operations.
+// (antigravity-deploy.sh, its other caller, was deleted 2026-08-27 — #653.)
+// Maintains a rolling JSON log of all deployments.
 //
 // USAGE:
 //   node scripts/deploy-log.js --action push --sha abc1234 --branch main --duration 7 --msg "feat: new"

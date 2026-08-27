@@ -93,8 +93,19 @@ export default function PokerToolsPage() {
         if (hands.length <= 2 || idx === 0) return;
         setHands(h => h.filter((_, i) => i !== idx));
         setResults(null);
-        if (selectedSlot?.type === 'hand' && selectedSlot.playerIdx === idx) {
-            setSelectedSlot({ type: 'hand', playerIdx: 0 });
+        /* Issue #780 — the production crash. Removing a player BELOW the
+           selected one shifts every hand down an index, but the selected slot
+           kept its old playerIdx: select Player 3, remove Player 2, and the
+           slot now points one PAST the end of the array. The next card tap
+           spread `updated[playerIdx]` — undefined — and took the page down
+           with "Spread syntax requires ...iterable not be null or undefined".
+           The slot now follows the hand it was pointing at. */
+        if (selectedSlot?.type === 'hand') {
+            if (selectedSlot.playerIdx === idx) {
+                setSelectedSlot({ type: 'hand', playerIdx: 0 });
+            } else if (selectedSlot.playerIdx > idx) {
+                setSelectedSlot({ type: 'hand', playerIdx: selectedSlot.playerIdx - 1 });
+            }
         }
     }, [hands.length, selectedSlot]);
 
@@ -122,8 +133,13 @@ export default function PokerToolsPage() {
 
         if (selectedSlot.type === 'hand') {
             setHands(prev => {
+                /* Issue #780 defense-in-depth: a slot that outlived its hand
+                   (removed player, game switch mid-selection) must be a no-op,
+                   never a crash. The primary fix is in removePlayer; this
+                   guard makes the invariant hold against any future writer. */
+                if (selectedSlot.playerIdx >= prev.length) return prev;
                 const updated = [...prev];
-                const hand = [...updated[selectedSlot.playerIdx]];
+                const hand = [...(updated[selectedSlot.playerIdx] ?? [])];
                 if (hand.length < config.holeCards) {
                     hand.push(card);
                     updated[selectedSlot.playerIdx] = hand;
@@ -142,6 +158,8 @@ export default function PokerToolsPage() {
     const removeCard = useCallback((type, playerIdx, cardIdx) => {
         if (type === 'hand') {
             setHands(prev => {
+                // Same out-of-range guard as selectCard (issue #780).
+                if (playerIdx >= prev.length || !prev[playerIdx]) return prev;
                 const updated = [...prev];
                 updated[playerIdx] = updated[playerIdx].filter((_, i) => i !== cardIdx);
                 return updated;
