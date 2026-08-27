@@ -428,19 +428,23 @@ async function handleCheckoutExpired(session) {
     const metadata = session?.metadata || {};
 
     if (metadata.type === 'diamonds' && metadata.purchase_id) {
-        const { error } = await getSupabase()
+        const { data: updatedRows, error } = await getSupabase()
             .from('diamond_purchases')
             .update({ status: 'failed', stripe_checkout_session_id: session.id })
             .eq('id', metadata.purchase_id)
-            .eq('status', 'pending');
+            .eq('status', 'pending')
+            .select('id');
         if (error) {
             console.warn('[stripe-webhook] expired diamond checkout cleanup failed:', error.message);
             throw error;
         }
+        if (!updatedRows?.length) {
+            console.info('[stripe-webhook] expired diamond checkout was already terminal or missing');
+        }
     }
 
     if (metadata.type === 'merchandise' && metadata.order_id) {
-        const { error } = await getSupabase()
+        const { data: updatedRows, error } = await getSupabase()
             .from('merchandise_orders')
             .update({
                 status: 'canceled',
@@ -448,10 +452,14 @@ async function handleCheckoutExpired(session) {
                 updated_at: new Date().toISOString(),
             })
             .eq('id', metadata.order_id)
-            .eq('status', 'pending');
+            .eq('status', 'pending')
+            .select('id');
         if (error) {
             console.warn('[stripe-webhook] expired merchandise checkout cleanup failed:', error.message);
             throw error;
+        }
+        if (!updatedRows?.length) {
+            console.info('[stripe-webhook] expired merchandise checkout was already terminal or missing');
         }
     }
 }
