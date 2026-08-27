@@ -105,6 +105,7 @@ const TABS = [
   { id: 'geeves', label: 'Geeves KB' },
   { id: 'reviews', label: 'Reviews' },
   { id: 'scrapers', label: 'Scrapers' },
+  { id: 'audit', label: 'Audit Log' },
 ];
 
 /** Pages that live outside this SPA but belong to the same console.
@@ -1234,6 +1235,46 @@ export default function HorsesAdmin() {
     }
   };
 
+  // ── AUDIT LOG ─────────────────────────────────────────────────────────
+  //
+  // New surface. The platform wrote to admin_audit_log from three routes and
+  // read it from NOWHERE -- nine rows across five months, visible to nobody.
+  // Now that every mutating admin route files an entry, this is the tab that
+  // makes the trail answerable: who approved that cashout, who kicked that
+  // player, who launched the fleet at 3am.
+  const [auditEntries, setAuditEntries] = useState([]);
+  const [auditTotal, setAuditTotal] = useState(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditLoaded, setAuditLoaded] = useState(false);
+  const [auditPage, setAuditPage] = useState(0);
+  const [auditPrefix, setAuditPrefix] = useState('');
+  const [auditDays, setAuditDays] = useState('90');
+  const [auditExpanded, setAuditExpanded] = useState(null);
+  const AUDIT_PAGE_SIZE = 100;
+
+  const loadAuditLog = useCallback(async () => {
+    setAuditLoading(true);
+    try {
+      const d = await authFetch('/api/horses/stable-admin', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'audit_log',
+          actionPrefix: auditPrefix || undefined,
+          days: auditDays || undefined,
+          limit: AUDIT_PAGE_SIZE,
+          offset: auditPage * AUDIT_PAGE_SIZE,
+        }),
+      });
+      setAuditEntries(d.entries || []);
+      setAuditTotal(d.total ?? null);
+      setAuditLoaded(true);
+    } catch (err) {
+      showNotification(err.message, 'error');
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [authFetch, showNotification, auditPrefix, auditDays, auditPage]);
+
   // Goes through /api/horses/stable-admin rather than straight to PostgREST.
   // The direct call it replaces was the last unaudited mutation in this
   // console, and -- because PostgREST answers a zero-row UPDATE with
@@ -1501,6 +1542,7 @@ export default function HorsesAdmin() {
     if (activeTab === 'antiabuse' && !abuseLoaded && !abuseLoading) loadAntiAbuseData();
     if (activeTab === 'geeves' && !geevesLoaded && !geevesLoading) loadGeevesAnalytics();
     if (activeTab === 'reviews' && !reviewsLoaded && !reviewsLoading) loadAdminReviews();
+    if (activeTab === 'audit' && !auditLoaded && !auditLoading) loadAuditLog();
     if (activeTab === 'bugreports' && bugReports.length === 0 && !bugReportsLoading) loadBugReports(bugReportsFilter);
     if (activeTab === 'clubarena' && !caLoaded && !caLoading) {
       loadClubArenaData();
@@ -1514,6 +1556,15 @@ export default function HorsesAdmin() {
     if (activeTab === 'reviews' && reviewsLoaded) loadAdminReviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsPage]);
+
+  useEffect(() => {
+    if (activeTab === 'audit' && auditLoaded) loadAuditLog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auditPrefix, auditDays, auditPage]);
+
+  // Same reason as the reviews reset below: a filter change must not leave the
+  // operator on page 4 of a result set that now has one page.
+  useEffect(() => { setAuditPage(0); }, [auditPrefix, auditDays]);
 
   // A filter change must return to page one, or the operator lands on page 4
   // of a result set that now has one page.
@@ -4600,6 +4651,181 @@ export default function HorsesAdmin() {
                   <button onClick={() => setReviewsPage((p) => p + 1)}
                     disabled={reviewsData.length < REVIEWS_PER_PAGE || reviewsLoading}>Next</button>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* ─────────────────────────────── AUDIT LOG ─────────────────────── */}
+          {activeTab === 'audit' && (
+            <div className={styles.statsView}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
+                <div>
+                  <h2 style={{ margin: 0 }}>Admin Audit Log</h2>
+                  <p style={{ margin: '4px 0 0', color: T.dim, fontSize: 14 }}>
+                    Every privileged action taken through this console. Cashout approvals,
+                    player kicks, fleet launches, moderation decisions and horse edits all
+                    file here.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    className={styles.actionBtn}
+                    disabled={!auditEntries.length}
+                    onClick={() => downloadCsv(stampedName('admin-audit-log'), toCsv(auditEntries, [
+                      ['created_at', 'When'],
+                      ['admin_name', 'Admin'],
+                      ['admin_role', 'Role'],
+                      ['action', 'Action'],
+                      ['target_type', 'Target Type'],
+                      ['target_id', 'Target'],
+                      ['ip_address', 'IP'],
+                      ['request_id', 'Request'],
+                    ]))}
+                  >
+                    Export CSV
+                  </button>
+                  <button className={styles.actionBtn} onClick={loadAuditLog} disabled={auditLoading}>
+                    {auditLoading ? 'Loading' : 'Refresh'}
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.filterBar}>
+                <select
+                  value={auditPrefix}
+                  onChange={(e) => setAuditPrefix(e.target.value)}
+                  aria-label="Filter by action type"
+                >
+                  <option value="">All Actions</option>
+                  <option value="cashout.">Cashouts</option>
+                  <option value="anticheat.">Anti-Cheat</option>
+                  <option value="union.">Union Applications</option>
+                  <option value="fleet.">Fleet Launches</option>
+                  <option value="hg.">Home Game Moderation</option>
+                  <option value="ticket.">Support Tickets</option>
+                  <option value="horses.">Horse Operations</option>
+                  <option value="content_author">Horse Records</option>
+                  <option value="content_settings">Engine Settings</option>
+                  <option value="promo">Promo Codes</option>
+                  <option value="review">Review Moderation</option>
+                </select>
+                <select
+                  value={auditDays}
+                  onChange={(e) => setAuditDays(e.target.value)}
+                  aria-label="Filter by time range"
+                >
+                  <option value="1">Last 24 Hours</option>
+                  <option value="7">Last 7 Days</option>
+                  <option value="30">Last 30 Days</option>
+                  <option value="90">Last 90 Days</option>
+                  <option value="365">Last Year</option>
+                  <option value="">All Time</option>
+                </select>
+                <span style={{ color: T.muted, fontSize: 13, alignSelf: 'center' }}>
+                  {auditTotal === null ? '' : `${num(auditTotal)} ${auditTotal === 1 ? 'entry' : 'entries'}`}
+                </span>
+              </div>
+
+              {auditLoading && !auditEntries.length ? (
+                <div className={styles.loadingSpinner}>Loading Audit Log</div>
+              ) : !auditEntries.length ? (
+                <div className={styles.emptyState}>
+                  {/* Stated plainly rather than as a bare "no results". Audit
+                      coverage only became complete in this release, so an empty
+                      window is the expected answer for older ranges, not a bug
+                      the operator should go hunting for. */}
+                  No audit entries in this range. Full coverage of every mutating
+                  admin route began 2026-08-26; earlier actions were not recorded.
+                </div>
+              ) : (
+                <>
+                  <div className={styles.tableWrapper}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th scope="col">When</th>
+                          <th scope="col">Admin</th>
+                          <th scope="col">Action</th>
+                          <th scope="col">Target</th>
+                          <th scope="col">Detail</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auditEntries.map((entry) => (
+                          <React.Fragment key={entry.id}>
+                            <tr>
+                              <td style={{ whiteSpace: 'nowrap', color: T.dim, fontSize: 13 }}>
+                                {when(entry.created_at)}
+                              </td>
+                              <td>
+                                <div>{entry.admin_name || 'System / Cron'}</div>
+                                {entry.admin_role && (
+                                  <div style={{ color: T.muted, fontSize: 12 }}>{entry.admin_role}</div>
+                                )}
+                              </td>
+                              <td>
+                                <code style={{ color: T.accent, fontSize: 13 }}>{entry.action}</code>
+                              </td>
+                              <td style={{ color: T.dim, fontSize: 13 }}>
+                                <div>{entry.target_type || '-'}</div>
+                                {entry.target_id && (
+                                  <div style={{ color: T.muted, fontSize: 12, wordBreak: 'break-all' }}>
+                                    {entry.target_id}
+                                  </div>
+                                )}
+                              </td>
+                              <td>
+                                <button
+                                  className={styles.actionBtn}
+                                  onClick={() => setAuditExpanded(auditExpanded === entry.id ? null : entry.id)}
+                                  aria-expanded={auditExpanded === entry.id}
+                                >
+                                  {auditExpanded === entry.id ? 'Hide' : 'View'}
+                                </button>
+                              </td>
+                            </tr>
+                            {auditExpanded === entry.id && (
+                              <tr>
+                                <td colSpan={5} style={{ background: T.inset, padding: 16 }}>
+                                  <div style={{ display: 'grid', gap: 12 }}>
+                                    <div style={{ color: T.muted, fontSize: 12 }}>
+                                      IP {entry.ip_address || 'not recorded'}
+                                      {entry.request_id ? ` - request ${entry.request_id}` : ''}
+                                    </div>
+                                    {[['Details', entry.details], ['Before', entry.before_state], ['After', entry.after_state]]
+                                      .filter(([, v]) => v && Object.keys(v).length)
+                                      .map(([label, v]) => (
+                                        <div key={label}>
+                                          <div style={{ color: T.dim, fontSize: 12, marginBottom: 4 }}>{label}</div>
+                                          <pre style={{
+                                            margin: 0, padding: 12, background: T.page, borderRadius: 6,
+                                            color: T.text, fontSize: 12, overflowX: 'auto', whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-word',
+                                          }}>{JSON.stringify(v, null, 2)}</pre>
+                                        </div>
+                                      ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className={styles.pagination}>
+                    <button onClick={() => setAuditPage((p) => Math.max(0, p - 1))}
+                      disabled={auditPage === 0 || auditLoading}>Previous</button>
+                    <span>
+                      {auditTotal === null
+                        ? `Page ${auditPage + 1}`
+                        : `${num(auditPage * AUDIT_PAGE_SIZE + 1)}-${num(auditPage * AUDIT_PAGE_SIZE + auditEntries.length)} of ${num(auditTotal)}`}
+                    </span>
+                    <button onClick={() => setAuditPage((p) => p + 1)}
+                      disabled={auditEntries.length < AUDIT_PAGE_SIZE || auditLoading}>Next</button>
+                  </div>
+                </>
               )}
             </div>
           )}

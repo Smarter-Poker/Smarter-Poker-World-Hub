@@ -10,6 +10,7 @@
  *   { action: 'bulk_delete',   ids: [...] }
  *   { action: 'save_settings', settings: {...} }
  *   { action: 'set_ticket_status', id, status }
+ *   { action: 'audit_log', ...filters }   (read)
  *
  * WHY THIS ROUTE EXISTS (added 2026-08-26, second audit pass).
  *
@@ -93,6 +94,10 @@ const MAX_BULK = 600; // the stable is 593 horses; one page of "select all" must
 
 /** live_help_tickets.status values the Bug Reports tab can set. */
 const VALID_TICKET_STATUS = ['open', 'resolved'];
+
+/** Audit Log reader. A page has to fit in one response; 500 is the ceiling. */
+const AUDIT_PAGE_DEFAULT = 100;
+const AUDIT_PAGE_MAX = 500;
 
 function pick(source, allowed) {
   const out = {};
@@ -404,6 +409,82 @@ export default async function handler(req, res) {
 
       await audit(req, user.id, 'content_settings.updated', current.id, { fields: Object.keys(settings) });
       return res.status(200).json({ success: true, settings: data });
+    }
+
+    // ── AUDIT LOG (read) ──────────────────────────────────────────────────
+    //
+    // Until this release the console WROTE to admin_audit_log from three
+    // routes and READ it from nowhere. The whole table held nine rows across
+    // five months, and there was no surface anywhere on the platform that
+    // could show them. An audit trail nobody can read is a table, not a
+    // control.
+    //
+    // Service-role on purpose. admin_audit_log records who kicked a player and
+    // who approved a cashout, so it must not be readable through the caller's
+    // own grants -- that is how a policy drift turns into a privacy incident.
+    // The admin gate above is the only thing that opens it.
+    if (action === 'audit_log') {
+      const {
+        actionPrefix, adminId, targetType, targetId, days,
+        limit: rawLimit, offset: rawOffset,
+      } = req.body;
+
+      const limit = Math.min(Math.max(parseInt(rawLimit, 10) || AUDIT_PAGE_DEFAULT, 1), AUDIT_PAGE_MAX);
+      const offset = Math.max(parseInt(rawOffset, 10) || 0, 0);
+
+      let q = db.from('admin_audit_log')
+        .select('id, admin_user_id, action, target_type, target_id, details, before_state, after_state, ip_address, actor_role, request_id, created_at', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      // `like` with a trailing % rather than `ilike` on both sides: action
+      // strings are namespaced (cashout.*, fleet.*, hg.*), so a prefix match is
+      // what the filter actually means. Note this does NOT use
+      // admin_audit_log_action_idx -- a btree under a non-C collation cannot
+      // serve LIKE -- but the created_at range is what bounds the scan, and
+      // idx_aal_created does serve that. If this table ever grows large enough
+      // for the prefix scan to matter, the fix is a text_pattern_ops index on
+      // action, not a change here.
+      //
+      // The % and _ strip is deliberate: without it an operator-supplied
+      // prefix could turn into a full-table wildcard scan.
+      if (actionPrefix) q = q.like('action', `${String(actionPrefix).replace(/[%_]/g, '')}%`);
+      if (adminId) q = q.eq('admin_user_id', adminId);
+      if (targetType) q = q.eq('target_type', targetType);
+      if (targetId) q = q.eq('target_id', String(targetId));
+      if (days) {
+        const n = Math.min(Math.max(parseInt(days, 10) || 0, 1), 365);
+        q = q.gte('created_at', new Date(Date.now() - n * 86400000).toISOString());
+      }
+
+      const { data: rows, error, count } = await q;
+      if (error) {
+        console.error('[stable-admin] audit_log read failed:', error);
+        return res.status(500).json({ success: false, error: `Could not read the audit log: ${error.message}` });
+      }
+
+      // Resolve the admin ids to names in one round trip. A join through
+      // PostgREST needs a declared FK that admin_audit_log does not have, and
+      // one lookup per row would be N+1 across a 500-row page.
+      const ids = [...new Set((rows || []).map((r) => r.admin_user_id).filter(Boolean))];
+      let names = {};
+      if (ids.length) {
+        const { data: profiles } = await db.from('profiles')
+          .select('id, username, email, role').in('id', ids);
+        names = Object.fromEntries((profiles || []).map((pr) => [pr.id, pr]));
+      }
+
+      return res.status(200).json({
+        success: true,
+        entries: (rows || []).map((r) => ({
+          ...r,
+          admin_name: names[r.admin_user_id]?.username || names[r.admin_user_id]?.email || null,
+          admin_role: names[r.admin_user_id]?.role || r.actor_role || null,
+        })),
+        total: count ?? null,
+        limit,
+        offset,
+      });
     }
 
     return res.status(400).json({ success: false, error: 'Unknown action' });
