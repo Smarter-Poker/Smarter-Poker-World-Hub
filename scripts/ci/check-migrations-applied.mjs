@@ -32,10 +32,10 @@
  * CHECK 11 and CHECK 13 use. `definitions` gives tables, views and their
  * columns; `paths` gives the exposed /rpc/ functions.
  *
- * LIMIT WORTH KNOWING: PostgREST only exposes what the API role can see. A
- * function that is deliberately service-role-only will not appear in `paths`,
- * so functions are reported as a WARNING and tables/columns as a FAILURE.
- * Being loud about what it can prove beats being wrong about what it cannot.
+ * LIMIT WORTH KNOWING: PostgREST only exposes what the API role can see. New
+ * client-facing RPCs must appear in `paths`; an absent declared function is a
+ * deployment failure, not a warning. Service-only SQL should live outside the
+ * exposed public schema when it is intentionally not callable through the API.
  *
  * USAGE
  *   SUPABASE_SERVICE_ROLE_KEY=... NEXT_PUBLIC_SUPABASE_URL=... \
@@ -166,7 +166,6 @@ async function main() {
 
   const { tables, fns } = await liveSchema();
   const failures = [];
-  const warnings = [];
 
   for (const file of files) {
     if (!existsSync(join(REPO, file))) continue;
@@ -177,21 +176,16 @@ async function main() {
       if (!tables.has(t)) continue;
       if (!tables.get(t).has(c)) failures.push([file, 'column', `${t}.${c}`]);
     }
-    for (const f of d.fns) if (!fns.has(f)) warnings.push([file, 'function', f]);
+    for (const f of d.fns) if (!fns.has(f)) failures.push([file, 'function', f]);
   }
 
   console.log(
     `[check-migrations-applied] ${files.length} changed migration(s) vs ${base}; ` +
-      `${failures.length} unapplied object(s), ${warnings.length} unverifiable function(s).`
+      `${failures.length} unapplied object(s).`
   );
 
-  if (warnings.length > 0) {
-    console.log('\nNot exposed through PostgREST — expected for service-role-only functions:');
-    for (const [file, kind, name] of warnings) console.log(`  ${file}\n    ${kind} ${name}`);
-  }
-
   if (failures.length === 0) {
-    console.log('\nOK — every table, view and column these migrations declare exists live.');
+    console.log('\nOK — every table, view, column and function these migrations declare exists live.');
     return;
   }
 

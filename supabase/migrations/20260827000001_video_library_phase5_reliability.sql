@@ -2,7 +2,9 @@
 
 CREATE OR REPLACE FUNCTION public.update_page_preferences(
   p_user_id uuid, p_column_name text, p_preferences jsonb
-) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_preferences jsonb;
 BEGIN
   IF auth.uid() IS NULL OR auth.uid() != p_user_id THEN
     RAISE EXCEPTION 'Unauthorized: User ID mismatch';
@@ -12,8 +14,14 @@ BEGIN
     'diamond_arcade_preferences','diamond_arena_preferences','poker_near_me_preferences') THEN
     RAISE EXCEPTION 'Invalid preference column: %', p_column_name;
   END IF;
-  EXECUTE format('UPDATE profiles SET %I = $1, updated_at = now() WHERE id = $2', p_column_name)
-    USING p_preferences, p_user_id;
+  EXECUTE format(
+    'UPDATE profiles SET %I = $1, updated_at = now() WHERE id = $2 RETURNING %I',
+    p_column_name, p_column_name
+  ) INTO v_preferences USING p_preferences, p_user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Profile not found';
+  END IF;
+  RETURN v_preferences;
 END; $$;
 
 CREATE OR REPLACE FUNCTION public.record_video_watch_session(

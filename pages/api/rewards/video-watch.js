@@ -5,21 +5,12 @@
  * in award_diamonds_v2. reference_id: `video_watch_<userId>_<videoId>`.
  *
  * PROOF-OF-WATCH — READ THIS BEFORE TRUSTING IT:
- * public.video_watch_history is CLIENT-WRITABLE (RLS lets a user insert/update
- * their own rows), so watch_duration_seconds is self-reported. There is no
- * server-side player heartbeat in this codebase today. We therefore apply every
- * server-side sanity check that IS available:
+ * public.video_watch_history watch credit is written only by the hardened,
+ * authenticated heartbeat RPC. The API independently verifies:
  *   1. the row must exist for (this user, this video)
  *   2. watch_duration_seconds >= 300
- *   3. the claim must be physically possible: the row must have existed for at
- *      least 300 seconds of wall-clock (watched_at), and watched_at may not be
- *      in the future
- *   4. the claimed watch time may not exceed the video's own duration_seconds
- *      (with 10% slack for replays/seek jitter) and a video shorter than 300s
- *      can never yield a 5-minute watch
- * Residual gap: a determined client can still forge the history row. The real
- * fix is a server-side heartbeat (SECURITY DEFINER RPC that increments watch
- * time at most ~30s per call) — see the handover notes.
+ *   3. an immutable server timestamp proves at least 285 seconds elapsed
+ *   4. the canonical catalog video exists and is at least five minutes long
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -158,7 +149,15 @@ function sendAwardResult(res, award, label, extra = {}) {
 
 const ACTION_KEY = 'video_watch';
 const MIN_WATCH_SECONDS = 300;
-const DURATION_SLACK = 1.10;
+const MIN_PROOF_AGE_SECONDS = 285;
+
+function parseCatalogDuration(value) {
+    const parts = String(value || '').split(':').map(Number);
+    if (!parts.length || parts.some(part => !Number.isFinite(part) || part < 0)) return 0;
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return parts[0] || 0;
+}
 
 export default async function handler(req, res) {
   try {
@@ -187,21 +186,20 @@ export default async function handler(req, res) {
 
     try {
         // ── Proof-of-watch: strongest server-side signal available ──
-        const { data: watchRecord } = await supabase
+        const { data: watchRecord, error: watchError } = await supabase
             .from('video_watch_history')
-            .select('id, watch_duration_seconds, progress_seconds, duration_seconds, watched_at')
+            .select('id, watch_duration_seconds, progress_seconds, duration_seconds, watch_started_at, last_heartbeat_at')
             .eq('user_id', userId)
             .eq('video_id', videoId)
             .maybeSingle();
+
+        if (watchError) throw watchError;
 
         if (!watchRecord) {
             return res.status(200).json({ success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0, message: 'No watch history for this video' });
         }
 
-        const watched = Math.max(
-            Number(watchRecord.watch_duration_seconds || 0),
-            Number(watchRecord.progress_seconds || 0)
-        );
+        const watched = Number(watchRecord.watch_duration_seconds || 0);
 
         if (watched < MIN_WATCH_SECONDS) {
             return res.status(200).json({
@@ -212,30 +210,26 @@ export default async function handler(req, res) {
 
         // Wall-clock plausibility: you cannot have watched 5 minutes of a video
         // whose history row is 30 seconds old, and a future timestamp is a forgery.
-        const watchedAt = watchRecord.watched_at ? new Date(watchRecord.watched_at) : null;
-        if (watchedAt && !Number.isNaN(watchedAt.getTime())) {
-            const ageSeconds = (now - watchedAt) / 1000;
-            if (ageSeconds < -60) {
-                return res.status(200).json({ success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0, message: 'Watch record timestamp is invalid' });
-            }
+        const startedAt = watchRecord.watch_started_at ? new Date(watchRecord.watch_started_at) : null;
+        const proofAgeSeconds = startedAt && !Number.isNaN(startedAt.getTime())
+            ? (now - startedAt) / 1000
+            : -1;
+        if (proofAgeSeconds < MIN_PROOF_AGE_SECONDS) {
+            return res.status(200).json({ success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0, message: 'Watch time is still being verified' });
         }
 
-        // Video-length plausibility.
-        const videoDuration = Number(watchRecord.duration_seconds || 0);
-        if (videoDuration > 0) {
-            if (videoDuration < MIN_WATCH_SECONDS) {
-                return res.status(200).json({
-                    success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0,
-                    message: 'This video is too short to earn a watch reward'
-                });
-            }
-            if (watched > videoDuration * DURATION_SLACK) {
-                console.warn('[VideoWatch] Implausible watch time', { userId, videoId, watched, videoDuration });
-                return res.status(200).json({
-                    success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0,
-                    message: 'Watch time could not be verified'
-                });
-            }
+        const { data: catalogVideo, error: catalogError } = await supabase
+            .from('video_library_videos')
+            .select('youtube_video_id, duration')
+            .eq('youtube_video_id', videoId)
+            .maybeSingle();
+        if (catalogError) throw catalogError;
+        const videoDuration = parseCatalogDuration(catalogVideo?.duration);
+        if (!catalogVideo || videoDuration < MIN_WATCH_SECONDS) {
+            return res.status(200).json({
+                success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0,
+                message: 'This catalog video is too short to earn a watch reward'
+            });
         }
 
         const award = await awardDiamondsV2(supabase, {
@@ -247,7 +241,7 @@ export default async function handler(req, res) {
                 video_id: String(videoId),
                 watch_seconds: watched,
                 video_duration_seconds: videoDuration || null,
-                proof: 'client_reported_history'
+                proof: 'server_timed_heartbeat'
             }
         });
 

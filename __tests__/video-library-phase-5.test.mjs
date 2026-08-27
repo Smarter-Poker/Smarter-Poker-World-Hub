@@ -14,6 +14,7 @@ const CSS = readFileSync(new URL('../src/styles/worlds/video-library.css', impor
 const YOUTUBE_HOOK = readFileSync(new URL('../src/hooks/useYouTubeErrorManager.js', import.meta.url), 'utf8');
 const PLAYLISTS = readFileSync(new URL('../src/services/videoPlaylists.js', import.meta.url), 'utf8');
 const MIGRATION = readFileSync(new URL('../supabase/migrations/20260827000001_video_library_phase5_reliability.sql', import.meta.url), 'utf8');
+const HARDENING = readFileSync(new URL('../supabase/migrations/20260827000002_video_library_phase6_hardening.sql', import.meta.url), 'utf8');
 
 test('the playable fallback catalog canonicalizes IDs and rejects placeholder embeds', () => {
   assert.match(PAGE, /STATIC_VIDEO_ALIASES/);
@@ -34,19 +35,21 @@ test('legacy persisted aliases remain visible and removable after canonicalizati
 
 test('watch sessions are player-state driven, resumable, and atomically persisted', () => {
   assert.match(PAGE, /onStateChange: handlePlayerStateChange/);
-  assert.match(PAGE, /state === 0 \|\| state === 2/);
+  assert.match(PAGE, /state === 0 \|\| state === 2 \|\| state === 3 \|\| state === 5/);
   assert.match(PAGE, /start=\$\{selectedVideoResumeSeconds\}/);
   assert.match(PAGE, /durationSeconds: parseDuration\(video\.duration\)/);
   assert.match(HISTORY, /rpc\('record_video_watch_session'/);
   assert.match(MIGRATION, /ON CONFLICT \(user_id, video_id\) DO UPDATE/);
-  assert.match(MIGRATION, /watch_duration_seconds = COALESCE\(video_watch_history\.watch_duration_seconds, 0\) \+ v_additional/);
+  assert.match(HARDENING, /pg_advisory_xact_lock/);
+  assert.match(HARDENING, /watch_duration_seconds = CASE/);
 });
 
-test('reward claims have a promise contract on both watch-history branches', () => {
-  assert.match(REWARD, /return fetch\(endpoint/);
-  assert.equal((HISTORY.match(/claimReward\('\/api\/rewards\/video-watch'/g) || []).length, 3);
-  assert.match(HISTORY, /previousDuration < 300 && newDuration >= 300/);
-  assert.match(HISTORY, /additionalSeconds >= 300/);
+test('reward claims return structured outcomes and retry until terminal', () => {
+  assert.match(REWARD, /terminal: Boolean\(data\.claimed \|\| data\.alreadyClaimed\)/);
+  assert.equal((HISTORY.match(/'\/api\/rewards\/video-watch'/g) || []).length, 1);
+  assert.match(HISTORY, /terminalRewardClaims/);
+  assert.match(HISTORY, /if \(result\?\.terminal\)/);
+  assert.match(HISTORY, /Number\(result\?\.watch_duration_seconds \|\| 0\) >= 300/);
 });
 
 test('favorite and Watch Later controls use rollback-capable handlers', () => {
@@ -90,8 +93,8 @@ test('supported player settings are wired and the false HD control is retired', 
   assert.match(PAGE, /autoplay=\$\{preferences\.autoplay === false \? 0 : 1\}/);
   assert.match(PAGE, /cc_load_policy=\$\{preferences\.captions \? 1 : 0\}/);
   assert.doesNotMatch(MENU, /createMenuItem\.toggle\('HD Quality'/);
-  assert.match(PREFS, /const merged =/);
-  assert.match(MIGRATION, /'video_library_preferences'/);
+  assert.match(PREFS, /patch_video_library_preferences/);
+  assert.match(HARDENING, /video_library_preferences =/);
 });
 
 test('desktop actions, playlist wiring, touch controls, and safe-area layout remain reachable', () => {
