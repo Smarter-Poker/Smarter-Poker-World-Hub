@@ -72,15 +72,11 @@ export default class MyDocument extends Document {
                     <meta name="twitter:image" content="https://smarter.poker/images/og-default.png" />
 
                     {/* PWA settings — manifest/icons are in _app.js for route-based switching */}
-                    <meta name="mobile-web-app-capable" content="Yes" />
-                    <meta name="apple-mobile-web-app-capable" content="Yes" />
-                    <meta name="apple-mobile-web-app-status-bar-style" content="Black-translucent" />
 
                     {/* Theme color for mobile browsers */}
                     <meta name="theme-color" content="#0a0a15" />
 
-                    {/* OpenCV.js — WASM for document detection (receipt scanner) */}
-                    <script async src="https://docs.opencv.org/4.9.0/opencv.js"></script>
+                    {/* OpenCV removed from _document.js — load lazily in the specific component that needs it (Toke Tracker). See: pages/hub/bankroll-manager.js or wherever the receipt scanner lives. */}
 
                     {/* ═══ PWA STALE CACHE BUSTER ═════════════════════════════════
                          If Vercel deployed a new build, old PWA service workers

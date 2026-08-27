@@ -148,8 +148,8 @@ export default function HubPage() {
             {/* WorldHub 3D carousel — isolated so a bad orb/import NEVER crashes the page */}
             <HubErrorBoundary name="World Hub">
                 <WorldHub onOpenCardCustomizer={() => setCardCustomizerOpen(true)} />
-                  <BottomNavBar theme="dark" noSafeArea />
-    </HubErrorBoundary>
+            </HubErrorBoundary>
+            <BottomNavBar theme="dark" noSafeArea />
         </>
     );
 }
