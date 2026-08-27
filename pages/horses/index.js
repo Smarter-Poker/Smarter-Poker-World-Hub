@@ -1250,6 +1250,8 @@ export default function HorsesAdmin() {
   const [auditPrefix, setAuditPrefix] = useState('');
   const [auditDays, setAuditDays] = useState('90');
   const [auditExpanded, setAuditExpanded] = useState(null);
+  const [auditAdmin, setAuditAdmin] = useState('');
+  const [auditActors, setAuditActors] = useState([]);
   const AUDIT_PAGE_SIZE = 100;
 
   const loadAuditLog = useCallback(async () => {
@@ -1260,6 +1262,7 @@ export default function HorsesAdmin() {
         body: JSON.stringify({
           action: 'audit_log',
           actionPrefix: auditPrefix || undefined,
+          adminId: auditAdmin || undefined,
           days: auditDays || undefined,
           limit: AUDIT_PAGE_SIZE,
           offset: auditPage * AUDIT_PAGE_SIZE,
@@ -1267,13 +1270,16 @@ export default function HorsesAdmin() {
       });
       setAuditEntries(d.entries || []);
       setAuditTotal(d.total ?? null);
+      // Only replace the actor list when the route sends one, so a filtered
+      // response cannot empty the dropdown the operator is filtering with.
+      if (Array.isArray(d.actors)) setAuditActors(d.actors);
       setAuditLoaded(true);
     } catch (err) {
       showNotification(err.message, 'error');
     } finally {
       setAuditLoading(false);
     }
-  }, [authFetch, showNotification, auditPrefix, auditDays, auditPage]);
+  }, [authFetch, showNotification, auditPrefix, auditAdmin, auditDays, auditPage]);
 
   // Goes through /api/horses/stable-admin rather than straight to PostgREST.
   // The direct call it replaces was the last unaudited mutation in this
@@ -1560,11 +1566,11 @@ export default function HorsesAdmin() {
   useEffect(() => {
     if (activeTab === 'audit' && auditLoaded) loadAuditLog();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auditPrefix, auditDays, auditPage]);
+  }, [auditPrefix, auditAdmin, auditDays, auditPage]);
 
   // Same reason as the reviews reset below: a filter change must not leave the
   // operator on page 4 of a result set that now has one page.
-  useEffect(() => { setAuditPage(0); }, [auditPrefix, auditDays]);
+  useEffect(() => { setAuditPage(0); }, [auditPrefix, auditAdmin, auditDays]);
 
   // A filter change must return to page one, or the operator lands on page 4
   // of a result set that now has one page.
@@ -4711,6 +4717,7 @@ export default function HorsesAdmin() {
                     onClick={() => downloadCsv(stampedName('admin-audit-log'), toCsv(auditEntries, [
                       ['created_at', 'When'],
                       ['admin_name', 'Admin'],
+                      ['admin_user_id', 'Admin ID'],
                       ['admin_role', 'Role'],
                       ['action', 'Action'],
                       ['target_type', 'Target Type'],
@@ -4745,6 +4752,21 @@ export default function HorsesAdmin() {
                   <option value="content_settings">Engine Settings</option>
                   <option value="promo">Promo Codes</option>
                   <option value="review">Review Moderation</option>
+                </select>
+                {/* "What did this person do?" is the question an audit log
+                    exists to answer, and it was the one filter the tab could
+                    not express. The route already accepted adminId. */}
+                <select
+                  value={auditAdmin}
+                  onChange={(e) => setAuditAdmin(e.target.value)}
+                  aria-label="Filter by admin"
+                >
+                  <option value="">All Admins</option>
+                  {auditActors.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}{a.role ? ` (${a.role})` : ''}
+                    </option>
+                  ))}
                 </select>
                 <select
                   value={auditDays}

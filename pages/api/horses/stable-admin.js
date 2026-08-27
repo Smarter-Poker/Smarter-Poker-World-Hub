@@ -474,8 +474,29 @@ export default async function handler(req, res) {
         names = Object.fromEntries((profiles || []).map((pr) => [pr.id, pr]));
       }
 
+      // The set of admins who appear ANYWHERE in the log, so the UI can offer a
+      // real "who" filter instead of asking the operator to paste a uuid. Read
+      // from a dedicated distinct query rather than from the current page --
+      // filtering by an admin who happens not to appear on page 1 is exactly
+      // the case the filter exists for.
+      let actors = [];
+      {
+        const { data: actorRows } = await db
+          .from('admin_audit_log').select('admin_user_id').not('admin_user_id', 'is', null)
+          .limit(5000);
+        const actorIds = [...new Set((actorRows || []).map((r) => r.admin_user_id))];
+        if (actorIds.length) {
+          const { data: actorProfiles } = await db.from('profiles')
+            .select('id, username, email, role').in('id', actorIds);
+          actors = (actorProfiles || []).map((a) => ({
+            id: a.id, name: a.username || a.email || a.id, role: a.role,
+          })).sort((x, y) => String(x.name).localeCompare(String(y.name)));
+        }
+      }
+
       return res.status(200).json({
         success: true,
+        actors,
         entries: (rows || []).map((r) => ({
           ...r,
           admin_name: names[r.admin_user_id]?.username || names[r.admin_user_id]?.email || null,
