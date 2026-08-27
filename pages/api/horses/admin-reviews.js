@@ -139,12 +139,28 @@ export default async function handler(req, res) {
             // `avg_rating_sample_size` say exactly what the number was built
             // from. venue_reviews holds 0 rows in production today, so the
             // cap is not currently reached.
+            //
+            // FILTERED COUNT, 2026-08-27. `total` is what the UI builds
+            // "Page X of N" from, but it was counted over the WHOLE table
+            // while the listing above is filtered by venue_id / rating /
+            // flagged. With "flagged only" on, the pager offered pages that
+            // did not exist and every one of them rendered empty. The
+            // unfiltered figures are still returned separately, because the
+            // header tiles legitimately want the whole-table numbers.
             const AVG_SAMPLE_CAP = 10000;
-            const [totalRes, flaggedRes, ratingsRes] = await Promise.all([
+            const applyFilters = (q) => {
+                if (venue_id) q = q.eq('venue_id', String(venue_id));
+                if (rating) q = q.eq('rating', parseInt(rating, 10));
+                if (flagged === 'true') q = q.eq('is_flagged', true);
+                return q;
+            };
+            const [totalRes, flaggedRes, ratingsRes, filteredRes] = await Promise.all([
                 getSupabase().from('venue_reviews').select('id', { count: 'exact', head: true }),
                 getSupabase().from('venue_reviews').select('id', { count: 'exact', head: true }).eq('is_flagged', true),
                 getSupabase().from('venue_reviews').select('rating').not('rating', 'is', null).limit(AVG_SAMPLE_CAP),
+                applyFilters(getSupabase().from('venue_reviews').select('id', { count: 'exact', head: true })),
             ]);
+            if (filteredRes.error) console.warn('[Admin Reviews GET] filtered count error:', filteredRes.error.message || filteredRes.error);
 
             if (totalRes.error) console.warn('[Admin Reviews GET] total count error:', totalRes.error.message || totalRes.error);
             if (flaggedRes.error) console.warn('[Admin Reviews GET] flagged count error:', flaggedRes.error.message || flaggedRes.error);
@@ -168,6 +184,11 @@ export default async function handler(req, res) {
                 stats: {
                     total: totalCount,
                     flagged: flaggedCount,
+                    // The count under the CURRENT filters. This is what the
+                    // pager must divide by; `total` is the whole table and is
+                    // what the header tile shows. Using `total` for both meant
+                    // "flagged only" offered pages that did not exist.
+                    filtered_total: filteredRes.count ?? null,
                     avg_rating: avgRating,
                     // True when the average was computed from a capped sample
                     // rather than every row, so the number is not presented as
@@ -192,14 +213,27 @@ export default async function handler(req, res) {
                 .eq('id', review_id)
                 .maybeSingle();
 
-            const { error } = await getSupabase()
+            // .select() so the affected row count is knowable. Without it a stale
+            // or already-deleted id came back { error: null }, the UI removed the
+            // row and decremented the total, and admin_audit_log recorded a
+            // deletion that never happened -- a false entry in the one table that
+            // is supposed to be the record of truth.
+            const { data: deletedRows, error } = await getSupabase()
                 .from('venue_reviews')
                 .delete()
-                .eq('id', review_id);
+                .eq('id', review_id)
+                .select('id');
 
             if (error) {
                 console.warn('[Admin Reviews DELETE] Error:', error);
                 return res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+
+            // Stop here on a zero-row delete. Everything below -- the trust-score
+            // recalc, the reviewer punishment, the push notification and the audit
+            // write -- is a consequence of a deletion that did not occur.
+            if (!deletedRows || deletedRows.length === 0) {
+                return res.status(404).json({ success: false, error: 'That review no longer exists.' });
             }
 
             // Recalculate trust score after deletion. RPC errors don't throw —
@@ -304,14 +338,22 @@ export default async function handler(req, res) {
                 ? { is_flagged: true, flag_reason: reason || 'Admin flagged' }
                 : { is_flagged: false, flag_reason: null };
 
-            const { error } = await getSupabase()
+            // Same zero-row problem as DELETE. Flagging suppresses a business's
+            // public review; reporting success without having written one is not a
+            // cosmetic bug.
+            const { data: updatedRows, error } = await getSupabase()
                 .from('venue_reviews')
                 .update(updatePayload)
-                .eq('id', review_id);
+                .eq('id', review_id)
+                .select('id');
 
             if (error) {
                 console.warn('[Admin Reviews PATCH] Error:', error);
                 return res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+
+            if (!updatedRows || updatedRows.length === 0) {
+                return res.status(404).json({ success: false, error: 'That review no longer exists.' });
             }
 
             // Audit log. DELETE has written one since it was built; flag/unflag

@@ -68,9 +68,14 @@ export default async function handler(req, res) {
               .from('diamond_reward_catalog')
               .select('action_key');
 
+          // One failed source must not blank the whole tab. Every OTHER source
+          // in this route is already collected into failedSources and the page
+          // renders a banner for it; this one alone 500'd, so a catalog hiccup
+          // took down ten working panels with it. Same treatment now.
+          const failedSourcesEarly = [];
           if (catalogError) {
               console.warn('[EconomyStats] diamond_reward_catalog error:', catalogError.message || catalogError);
-              return res.status(500).json({ error: 'Failed to load economy stats' });
+              failedSourcesEarly.push('diamond_reward_catalog');
           }
 
           const actionKeys = (catalogRows || []).map(r => r.action_key).filter(Boolean);
@@ -156,7 +161,11 @@ export default async function handler(req, res) {
               // 7. Recent users (last 10 signups with details)
               getSupabase()
                   .from('profiles')
-                  .select('id, username, full_name, email, created_at')
+                  // `email` was selected and never returned -- ten real
+                  // addresses pulled on every poll of this endpoint for
+                  // nothing. The same PII was already dropped from the top
+                  // holders query in anti-abuse.js for this reason.
+                  .select('id, username, full_name, created_at')
                   .order('created_at', { ascending: false })
                   .limit(10),
 
@@ -221,7 +230,10 @@ export default async function handler(req, res) {
           if (failed.length > 0) {
               failed.forEach(([label, r]) => console.warn(`[EconomyStats] ${label} error:`, r.error?.message || r.error));
           }
-          const failedSources = failed.map(([label]) => label);
+          // Merge in the catalog failure collected before the parallel block,
+          // so the banner names every source that did not load, not just the
+          // ones inside Promise.allSettled.
+          const failedSources = [...failedSourcesEarly, ...failed.map(([label]) => label)];
 
           // Calculate aggregates. De-duplicate the two reward queries by id so
           // rows carrying the action in both columns are not counted twice.

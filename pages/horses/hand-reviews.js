@@ -194,9 +194,11 @@ export default function HorseHandReviews() {
 
   const [audits, setAudits] = useState([]);
   const [auditsError, setAuditsError] = useState(null);
+  const [roleError, setRoleError] = useState(null);
   const [auditOpen, setAuditOpen] = useState(null);
 
   const [telemetry, setTelemetry] = useState([]);
+  const [telemetryError, setTelemetryError] = useState(null);
   const [telemetryOpen, setTelemetryOpen] = useState(false);
 
   const [filters, setFilters] = useState({ horse: '', variant: '', format: '', tag: '', win: '' });
@@ -217,11 +219,19 @@ export default function HorseHandReviews() {
         router.push('/auth/login?redirect=/horses/hand-reviews');
         return;
       }
-      const { data: profile } = await supabase
+      const { data: profile, error: roleErr } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .maybeSingle();
+      // A FAILED QUERY IS NOT A DENIAL. `error` was discarded, so a transient
+      // RLS or network failure made profile null and silently redirected a
+      // real admin to the home page with no message.
+      if (roleErr) {
+        setRoleError(roleErr.message || 'Role lookup failed');
+        setLoading(false);
+        return;
+      }
       if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) {
         setIsAdmin(true);
       } else {
@@ -245,8 +255,18 @@ export default function HorseHandReviews() {
     const { data, error } = await supabase.rpc('ca_horse_daily_audit', { p_days: 14 });
     if (error) setAuditsError(error.message);
     else setAudits(data || []);
-    const { data: tData } = await supabase.rpc('ca_brain_telemetry', { p_days: 3 });
-    setTelemetry(tData || []);
+    // The error was discarded here. A failing or ungranted RPC rendered as
+    // "No Data Yet" -- in the one panel whose own caption says a deployed
+    // layer sitting at zero IS a wiring regression. So a broken read looked
+    // exactly like the finding it is meant to help you rule out.
+    const { data: tData, error: tErr } = await supabase.rpc('ca_brain_telemetry', { p_days: 3 });
+    if (tErr) {
+      setTelemetryError(tErr.message);
+      setTelemetry([]);
+    } else {
+      setTelemetryError(null);
+      setTelemetry(tData || []);
+    }
   }, []);
 
   const loadRows = useCallback(async () => {
@@ -281,6 +301,22 @@ export default function HorseHandReviews() {
     return (
       <div style={{ background: BG, minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: MUTED }}>
         Authenticating...
+      </div>
+    );
+  }
+  // Renders instead of a blank page. `return null` for a failed role lookup
+  // meant an admin hitting a transient error saw an empty white screen with no
+  // explanation and nothing to click.
+  if (roleError) {
+    return (
+      <div style={{ background: BG, minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24, textAlign: 'center', color: TEXT }}>
+        <div role="alert" style={{ color: RED, fontWeight: 700, fontSize: 18 }}>Could not verify your role</div>
+        <div style={{ color: MUTED, fontSize: 14, maxWidth: 480 }}>
+          {roleError}. This is a failed check, not a refusal — your access has not changed.
+        </div>
+        <button onClick={() => router.reload()} style={{ background: ACCENT, color: BG, border: 'none',
+          padding: '10px 20px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, minHeight: 44 }}>Retry</button>
       </div>
     );
   }
@@ -366,7 +402,7 @@ export default function HorseHandReviews() {
                 Live-Table Execution Counts Per Layer. A Deployed Layer At Zero Is A Wiring Regression.
               </span>
               <span style={{ marginLeft: 'auto', color: POSITIVE, fontSize: '0.8rem' }}>
-                {telemetry.length > 0 ? `${telemetry.length} rows` : 'No Data Yet'}
+                {telemetryError ? 'Read Failed' : telemetry.length > 0 ? `${telemetry.length} rows` : 'No Data Yet'}
               </span>
             </div>
             {telemetryOpen && (
@@ -392,7 +428,9 @@ export default function HorseHandReviews() {
                     {telemetry.length === 0 && (
                       <tr>
                         <td colSpan={3} style={{ padding: '0.4rem', color: MUTED }}>
-                          Counters appear after the telemetry engine deploy. A telemetry_dark finding above means this is expected.
+                          {telemetryError
+                            ? `The telemetry read FAILED (${telemetryError}). This is not evidence the engine is dark -- the query did not run. Fix the read before drawing any conclusion from this panel.`
+                            : 'Counters appear after the telemetry engine deploy. A telemetry_dark finding above means this is expected.'}
                         </td>
                       </tr>
                     )}
