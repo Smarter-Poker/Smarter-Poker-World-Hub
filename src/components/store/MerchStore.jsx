@@ -428,7 +428,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         aria-label={`Buy ${product.name} With Card For ${usd(usdCost)}`}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                            width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none',
+                            width: '100%', minHeight: 46, padding: '10px 12px', borderRadius: 10, border: 'none',
                             fontSize: 13, fontWeight: 800, letterSpacing: '0.3px',
                             color: soldOut || busy ? 'rgba(255,255,255,0.4)' : '#0a1628',
                             background: soldOut || busy
@@ -449,7 +449,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         aria-label={`Buy ${product.name} With ${fmt(diamondCost)} Diamonds`}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                            width: '100%', padding: '10px 12px', borderRadius: 10,
+                            width: '100%', minHeight: 46, padding: '10px 12px', borderRadius: 10,
                             fontSize: 13, fontWeight: 800, letterSpacing: '0.3px',
                             color: diamondDisabled ? 'rgba(255,255,255,0.4)' : CYAN,
                             background: 'rgba(0, 212, 255, 0.1)',
@@ -820,6 +820,7 @@ export default function MerchStore({ user = null }) {
                         onClick={() => setReloadToken(t => t + 1)}
                         style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
+                            minHeight: 46,
                             background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
                             color: TEXT, borderRadius: 8, padding: '5px 10px',
                             fontSize: 11, fontWeight: 700, cursor: 'pointer',
