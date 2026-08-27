@@ -71,7 +71,7 @@ const SectionBar = ({ title, meta, id }) => (
 
 export default function PersonalAssistantPage() {
   const router = useRouter();
-  const { user } = useAvatar();
+  const { user, initializing: authInitializing } = useAvatar();
   const [mounted, setMounted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -83,14 +83,14 @@ export default function PersonalAssistantPage() {
     isLoading: sessionsLoading,
     error: sessionsError,
     refetch: refetchSessions,
-  } = useRecentSessions(5);
+  } = useRecentSessions(5, { userId: user?.id, ready: !authInitializing });
   const {
     stats,
     isLoading: statsLoading,
     isDemo: statsDemo,
     error: statsError,
     refetch: refetchStats,
-  } = useAssistantStats();
+  } = useAssistantStats({ userId: user?.id, ready: !authInitializing });
 
   useEffect(() => { setMounted(true); }, []);
 
