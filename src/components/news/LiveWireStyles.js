@@ -409,6 +409,55 @@ export default function LiveWireStyles() {
                 color: #fff;
             }
 
+            .live-wire .feed-status-alert {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 14px;
+                min-height: 52px;
+                margin: 0 0 10px;
+                padding: 9px 11px;
+                border: 1px solid rgba(255, 77, 91, 0.66);
+                background: rgba(35, 7, 12, 0.92);
+                color: #d9e3e8;
+                font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+                letter-spacing: 0.05em;
+            }
+
+            .live-wire .feed-status-alert div,
+            .live-wire .feed-status-alert span {
+                display: block;
+            }
+
+            .live-wire .feed-status-alert strong {
+                color: #fff;
+                text-transform: uppercase;
+            }
+
+            .live-wire .feed-status-alert span {
+                margin-top: 3px;
+                color: #aebbc2;
+            }
+
+            .live-wire .feed-status-alert button {
+                flex: 0 0 auto;
+                min-width: 88px;
+                min-height: 36px;
+                border: 1px solid var(--wire-alert);
+                background: #120408;
+                color: #fff;
+                font: 800 8px ui-monospace, monospace;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                cursor: pointer;
+            }
+
+            .live-wire .feed-status-alert button:hover,
+            .live-wire .feed-status-alert button:focus-visible {
+                background: var(--wire-alert);
+                color: #080204;
+            }
+
             .live-wire .reading-stats-bar,
             .live-wire .feed-filter-chip,
             .live-wire .bookmark-notice {
@@ -903,6 +952,10 @@ export default function LiveWireStyles() {
                     min-height: 44px;
                 }
 
+                .live-wire .source-chip {
+                    min-height: 44px;
+                }
+
                 .live-wire .search-clear-button {
                     width: 42px;
                     height: 42px;
@@ -930,6 +983,16 @@ export default function LiveWireStyles() {
                     min-width: 82px;
                     min-height: 44px;
                     padding: 0 9px;
+                }
+
+                .live-wire .feed-status-alert {
+                    align-items: stretch;
+                    flex-direction: column;
+                }
+
+                .live-wire .feed-status-alert button {
+                    width: 100%;
+                    min-height: 44px;
                 }
 
                 .live-wire .news-section {

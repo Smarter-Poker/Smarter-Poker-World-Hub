@@ -38,6 +38,16 @@ const SOURCE_BOXES = [
     { box: 6, source_name: 'Pokerfuse', fallback_image: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800' }
 ];
 
+// Source cards never render a full scraped body or Postgres search vector.
+// Strip both from the above-the-fold response while retaining excerpt/summary,
+// which keeps the visual card contract intact and reduces repeat mobile transfer.
+function toSourceBoxPayload(article) {
+    if (!article || typeof article !== 'object') return article;
+    // eslint-disable-next-line no-unused-vars
+    const { content, search_vector, ...rest } = article;
+    return rest;
+}
+
 /**
  * Resolve the latest article for a single source box.
  * Returns the article row (or an explicit empty-box placeholder).
@@ -93,7 +103,7 @@ async function resolveBoxArticle(box) {
     // If we found an article, return it with box number
     if (article) {
         return {
-            ...article,
+            ...toSourceBoxPayload(article),
             _boxNumber: box.box,
             _sourceName: box.source_name
         };
