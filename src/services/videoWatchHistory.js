@@ -101,15 +101,20 @@ export async function clearWatchHistory(userId) {
  */
 export async function removeFromWatchHistory(userId, videoId, aliases = []) {
     const videoIds = [...new Set([videoId, ...aliases].filter(Boolean))];
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('video_watch_history')
         .delete()
         .eq('user_id', userId)
-        .in('video_id', videoIds);
+        .in('video_id', videoIds)
+        .select('id');
 
     if (error) {
         console.warn('Error removing video from watch history:', error);
         throw error;
+    }
+
+    if (!data?.length) {
+        throw new Error('No matching watch-history record was removed.');
     }
 
     return true;
