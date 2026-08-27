@@ -592,6 +592,327 @@ body.world-preflop-charts .preflop-filter-count {
     font-weight: 900;
 }
 
+/* Phase 2 — the scenario filter becomes a range-tuning console instead of a
+   generic form card. The numeric pool readout is the signature interaction. */
+body.world-preflop-charts .scenario-filter-console {
+    position: relative;
+    margin: 0 0 14px;
+    padding: 19px 20px 17px 24px;
+    overflow: hidden;
+    border: 1px solid rgba(102, 217, 255, 0.46);
+    border-radius: 2px;
+    background:
+        linear-gradient(135deg, rgba(102, 217, 255, 0.055), transparent 32%),
+        linear-gradient(180deg, rgba(8, 21, 34, 0.99), rgba(2, 9, 16, 0.99));
+    color: var(--pc-silver);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.025),
+        inset 0 1px 34px rgba(32, 168, 255, 0.045),
+        0 16px 32px rgba(0, 0, 0, 0.28);
+}
+
+body.world-preflop-charts .scenario-filter-console::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: linear-gradient(180deg, transparent, var(--pc-cyan) 22%, var(--pc-cobalt) 78%, transparent);
+    box-shadow: 0 0 16px rgba(32, 168, 255, 0.78);
+}
+
+body.world-preflop-charts .scenario-filter-console::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 168px;
+    height: 74px;
+    pointer-events: none;
+    opacity: 0.26;
+    background-image:
+        linear-gradient(rgba(102, 217, 255, 0.16) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(102, 217, 255, 0.16) 1px, transparent 1px);
+    background-size: 18px 18px;
+    mask-image: linear-gradient(135deg, transparent 8%, black 100%);
+}
+
+body.world-preflop-charts .scenario-filter-console[data-filter-state='draft'] {
+    border-color: rgba(155, 108, 255, 0.65);
+}
+
+body.world-preflop-charts .scenario-filter-console[data-filter-state='draft']::before {
+    background: linear-gradient(180deg, transparent, var(--pc-violet), var(--pc-cyan), transparent);
+}
+
+body.world-preflop-charts .scenario-filter-header {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 17px;
+}
+
+body.world-preflop-charts .scenario-filter-heading {
+    min-width: 0;
+}
+
+body.world-preflop-charts .scenario-filter-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--pc-cyan);
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.19em;
+    text-transform: uppercase;
+}
+
+body.world-preflop-charts .scenario-filter-heading h3 {
+    margin: 5px 0 3px;
+    color: #eef5fa;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+body.world-preflop-charts .scenario-filter-heading p {
+    margin: 0;
+    color: #7f91a3;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+body.world-preflop-charts .scenario-filter-close {
+    position: relative;
+    z-index: 2;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid rgba(126, 157, 184, 0.28);
+    border-radius: 2px;
+    background: rgba(2, 8, 15, 0.82);
+    color: #8294a5;
+    cursor: pointer;
+}
+
+body.world-preflop-charts .scenario-filter-close:hover {
+    border-color: var(--pc-cyan);
+    color: var(--pc-cyan);
+}
+
+body.world-preflop-charts .scenario-filter-console form {
+    position: relative;
+    z-index: 1;
+}
+
+body.world-preflop-charts .scenario-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+}
+
+body.world-preflop-charts .scenario-filter-field {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid rgba(103, 138, 166, 0.22);
+    background: linear-gradient(180deg, rgba(12, 26, 41, 0.72), rgba(3, 10, 18, 0.8));
+}
+
+body.world-preflop-charts .scenario-filter-field label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #dce7ee;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+body.world-preflop-charts .scenario-filter-field label svg {
+    color: var(--pc-cyan);
+}
+
+body.world-preflop-charts .scenario-filter-field-note {
+    display: block;
+    min-height: 16px;
+    margin: 4px 0 8px 21px;
+    color: #65788b;
+    font-size: 9px;
+    letter-spacing: 0.025em;
+}
+
+body.world-preflop-charts .scenario-filter-select-wrap {
+    position: relative;
+}
+
+body.world-preflop-charts .scenario-filter-select-wrap::after {
+    content: '⌄';
+    position: absolute;
+    top: 50%;
+    right: 13px;
+    color: var(--pc-cyan);
+    font-size: 16px;
+    line-height: 1;
+    pointer-events: none;
+    transform: translateY(-62%);
+}
+
+body.world-preflop-charts .scenario-filter-field select {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 38px 0 12px;
+    border: 1px solid rgba(103, 166, 205, 0.32);
+    border-radius: 1px;
+    appearance: none;
+    color: #edf5fa;
+    color-scheme: dark;
+    background: rgba(1, 7, 13, 0.9);
+    font: 700 12px/1 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    cursor: pointer;
+}
+
+body.world-preflop-charts .scenario-filter-field select:hover {
+    border-color: rgba(102, 217, 255, 0.62);
+}
+
+body.world-preflop-charts .scenario-filter-field select:focus-visible,
+body.world-preflop-charts .scenario-filter-close:focus-visible,
+body.world-preflop-charts .scenario-filter-actions button:focus-visible {
+    border-color: var(--pc-cyan);
+    outline: 2px solid rgba(102, 217, 255, 0.62);
+    outline-offset: 2px;
+}
+
+body.world-preflop-charts .scenario-filter-readout {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(103, 138, 166, 0.19);
+    background: rgba(1, 7, 13, 0.62);
+}
+
+body.world-preflop-charts .scenario-filter-meter {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: baseline;
+    gap: 5px;
+    padding-right: 13px;
+    border-right: 1px solid rgba(117, 153, 181, 0.18);
+}
+
+body.world-preflop-charts .scenario-filter-meter span {
+    grid-column: 1 / -1;
+    color: #6e8294;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+body.world-preflop-charts .scenario-filter-meter strong {
+    color: var(--pc-cyan);
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+body.world-preflop-charts .scenario-filter-meter small {
+    color: #728597;
+    font: 700 10px/1 Inter, sans-serif;
+}
+
+body.world-preflop-charts .scenario-filter-summary {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+body.world-preflop-charts .scenario-filter-summary span {
+    min-height: 25px;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border: 1px solid rgba(110, 143, 169, 0.2);
+    background: rgba(9, 19, 30, 0.9);
+    color: #718495;
+    font-size: 9px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+body.world-preflop-charts .scenario-filter-summary span.is-selected {
+    border-color: rgba(102, 217, 255, 0.44);
+    color: #bdeeff;
+}
+
+body.world-preflop-charts .scenario-filter-status {
+    margin: 0;
+    color: #899aaa;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+}
+
+body.world-preflop-charts .scenario-filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+body.world-preflop-charts .scenario-filter-actions button {
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 18px;
+    border-radius: 2px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+
+body.world-preflop-charts .scenario-filter-reset {
+    min-width: 126px;
+    border: 1px solid rgba(120, 151, 177, 0.28);
+    background: linear-gradient(180deg, rgba(14, 27, 42, 0.94), rgba(4, 11, 18, 0.96));
+    color: #899aaa;
+}
+
+body.world-preflop-charts .scenario-filter-reset:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+body.world-preflop-charts .scenario-filter-apply {
+    min-width: 210px;
+    border: 1px solid #78dcff;
+    background: linear-gradient(180deg, #3ba9f4, #176ad1);
+    color: #f8fcff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 0 18px rgba(32, 168, 255, 0.18);
+}
+
+body.world-preflop-charts .scenario-filter-apply:hover {
+    filter: brightness(1.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 0 24px rgba(32, 168, 255, 0.3);
+}
+
 body.world-preflop-charts .preflop-level-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1069,6 +1390,100 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
     body.world-preflop-charts .preflop-level-actions {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.world-preflop-charts .scenario-filter-console {
+        padding: 15px 12px 13px 15px;
+    }
+
+    body.world-preflop-charts .scenario-filter-console::after {
+        width: 108px;
+        height: 54px;
+        background-size: 15px 15px;
+    }
+
+    body.world-preflop-charts .scenario-filter-header {
+        gap: 10px;
+        margin-bottom: 13px;
+    }
+
+    body.world-preflop-charts .scenario-filter-heading h3 {
+        font-size: 17px;
+    }
+
+    body.world-preflop-charts .scenario-filter-heading p {
+        max-width: 250px;
+        font-size: 11px;
+    }
+
+    body.world-preflop-charts .scenario-filter-close {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+    }
+
+    body.world-preflop-charts .scenario-filter-grid {
+        grid-template-columns: 1fr;
+        gap: 7px;
+    }
+
+    body.world-preflop-charts .scenario-filter-field {
+        padding: 11px;
+    }
+
+    body.world-preflop-charts .scenario-filter-field-note {
+        min-height: 0;
+        margin-bottom: 7px;
+    }
+
+    body.world-preflop-charts .scenario-filter-field select {
+        min-height: 50px;
+        font-size: 13px;
+    }
+
+    body.world-preflop-charts .scenario-filter-readout {
+        grid-template-columns: 112px minmax(0, 1fr);
+        gap: 10px;
+        padding: 10px;
+    }
+
+    body.world-preflop-charts .scenario-filter-meter {
+        padding-right: 9px;
+    }
+
+    body.world-preflop-charts .scenario-filter-meter strong {
+        font-size: 21px;
+    }
+
+    body.world-preflop-charts .scenario-filter-summary {
+        gap: 4px;
+    }
+
+    body.world-preflop-charts .scenario-filter-summary span {
+        min-height: 24px;
+        padding-inline: 6px;
+        font-size: 8px;
+    }
+
+    body.world-preflop-charts .scenario-filter-status {
+        grid-column: 1 / -1;
+        padding-top: 7px;
+        border-top: 1px solid rgba(117, 153, 181, 0.14);
+        text-align: left;
+        white-space: normal;
+    }
+
+    body.world-preflop-charts .scenario-filter-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.35fr);
+    }
+
+    body.world-preflop-charts .scenario-filter-actions button,
+    body.world-preflop-charts .scenario-filter-reset,
+    body.world-preflop-charts .scenario-filter-apply {
+        min-width: 0;
+        min-height: 50px;
+        padding-inline: 10px;
     }
 
     body.world-preflop-charts .preflop-level-card {
