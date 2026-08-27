@@ -1,0 +1,111 @@
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    width: 100%;
+    /* Reserve the real board footprint so loaded questions do not shift the page. */
+    min-height: 520px;
+}
+
+.srLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.headerTextLines {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.questionBox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 0;
+}
+
+.answersGrid {
+    display: grid;
+    gap: 12px;
+}
+
+.shimmerBlock {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* The sweep only runs when the player has not asked the OS to reduce motion. */
+@media (prefers-reduced-motion: no-preference) {
+    .shimmerBlock::after {
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 50%;
+        height: 100%;
+        animation: shimmerSweep 3s infinite linear;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.08),
+            transparent
+        );
+        content: '';
+    }
+}
+
+@keyframes shimmerSweep {
+    0% { left: -100%; }
+    100% { left: 200%; }
+}
+
+.circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+}
+
+.lineShort {
+    width: 40%;
+    height: 16px;
+}
+
+.lineLong {
+    width: 70%;
+    height: 12px;
+}
+
+.questionLine {
+    width: 100%;
+    height: 24px;
+}
+
+.answerBox {
+    width: 100%;
+    height: 64px;
+    border: 2px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+}
