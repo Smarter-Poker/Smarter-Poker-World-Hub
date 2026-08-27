@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { AlertTriangle, CheckCircle, Clock3, ReceiptText, X } from 'lucide-react';
 
 import styles from './CheckoutStatusPanel.module.css';
@@ -45,6 +46,14 @@ function amountLabel(receipt) {
   return null;
 }
 export default function CheckoutStatusPanel({ state, onDismiss }) {
+  const panelRef = useRef(null);
+
+  useEffect(() => {
+    if (!state?.status) return undefined;
+    const frame = requestAnimationFrame(() => panelRef.current?.focus({ preventScroll: false }));
+    return () => cancelAnimationFrame(frame);
+  }, [state?.status]);
+
   if (!state?.status) return null;
 
   const config = COPY[state.status] || COPY.failed;
@@ -55,11 +64,13 @@ export default function CheckoutStatusPanel({ state, onDismiss }) {
 
   return (
     <section
+      ref={panelRef}
       className={`${styles.panel} ${styles[state.status] || styles.failed}`}
       role={state.status === 'failed' ? 'alert' : 'status'}
       aria-live={state.status === 'failed' ? 'assertive' : 'polite'}
       aria-atomic="true"
       data-checkout-status={state.status}
+      tabIndex={-1}
     >
       <div className={styles.seal} aria-hidden="true">
         <Icon size={28} strokeWidth={1.7} />

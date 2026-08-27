@@ -59,6 +59,16 @@ export default function SmarterStoreShowcase({
   const activeTabRef = useRef(null);
   const diamondImpressionRef = useRef(false);
 
+  const handlePackageRailKeyDown = (event) => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    event.currentTarget.scrollBy({
+      left: event.key === 'ArrowRight' ? event.currentTarget.clientWidth * 0.86 : event.currentTarget.clientWidth * -0.86,
+      behavior: reduceMotion ? 'auto' : 'smooth',
+    });
+  };
+
   useEffect(() => {
     if (!activeTabRef.current || !window.matchMedia('(max-width: 640px)').matches) return;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -109,7 +119,9 @@ export default function SmarterStoreShowcase({
           <div className={styles.sectionBar}>
             <h2>Choose Your Stack</h2>
             <span className={styles.exchangeRate}>1 Diamond = $0.01</span>
-            <span className={styles.mobileHint}>Swipe To Compare Packages</span>
+            <span id="diamond-package-scroll-hint" className={styles.mobileHint}>
+              Swipe To Compare Packages Or Use Arrow Keys
+            </span>
           </div>
           <div className={styles.starterRail} aria-label="Starter Diamond Packs">
             <span className={styles.starterLabel}>Starter Access</span>
@@ -131,7 +143,14 @@ export default function SmarterStoreShowcase({
               </article>
             ))}
           </div>
-          <div className={styles.packageGrid}>
+          <div
+            className={styles.packageGrid}
+            role="region"
+            aria-label="Diamond Packages"
+            aria-describedby="diamond-package-scroll-hint"
+            tabIndex={0}
+            onKeyDown={handlePackageRailKeyDown}
+          >
             {packages.slice(-6).map((pkg, index) => (
               <article
                 key={pkg.id}

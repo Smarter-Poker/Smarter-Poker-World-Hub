@@ -35,6 +35,12 @@
   outline-offset: 3px !important;
 }
 
+/* The store surface is a machined control panel. Keep this rule scoped to the
+   store main so the locked Universal Header remains byte-for-byte untouched. */
+.root :is(article, button, a[href], input, select, [role='dialog'], [role='tab'], [role='button']) {
+  border-radius: 0 !important;
+}
+
 .contentShell {
   position: relative;
   isolation: isolate;
@@ -63,6 +69,7 @@
 }
 
 .dialogPanel {
+  border-radius: 0 !important;
   border: 1px solid #7892a5 !important;
   background: linear-gradient(180deg, #263641 0, #080e14 12%, #03070c 100%) !important;
   box-shadow:
