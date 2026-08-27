@@ -159,7 +159,7 @@ export default function CoachLeaderboard({ userId }) {
                                     display: 'flex', alignItems: 'center', gap: S.sm,
                                     minHeight: 44, padding: `${S.sm}px ${S.md}px`, borderRadius: R.sm,
                                     background: isMe ? T.accentSoft : T.surface2,
-                                    border: `1px solid ${isMe ? 'rgba(69,153,255,0.4)' : T.border}`,
+                                    border: `1px solid ${isMe ? 'rgba(99,231,255,0.4)' : T.border}`,
                                     boxSizing: 'border-box',
                                 }}
                             >

@@ -1,7 +1,7 @@
 /**
  * paKit — shared UI primitives for the Personal Assistant sandbox surfaces.
  * ═══════════════════════════════════════════════════════════════════════════
- * Everything here implements PA_DESIGN_SPEC v1 so the 20+ sandbox feature
+ * Everything here implements PA_DESIGN_SPEC v2 so the 20+ sandbox feature
  * components stop hand-rolling their own modals, skeletons and empty states.
  *
  * Exports:
@@ -105,6 +105,72 @@ export function PAStyles() {
             .pa-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
             .pa-btn:active:not(:disabled) { transform: scale(0.97); filter: brightness(1.12); }
             .pa-btn:focus-visible { outline: 2px solid ${T.accent}; outline-offset: 2px; }
+            .pa-sheet-backdrop { padding-top: max(12px, env(safe-area-inset-top, 0px)); }
+            .pa-sheet {
+                isolation: isolate;
+                position: relative;
+                color: ${T.text};
+            }
+            .pa-sheet::before {
+                position: absolute; inset: 0; z-index: -1; pointer-events: none; content: '';
+                background:
+                    linear-gradient(rgba(99,231,255,.035) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(99,231,255,.025) 1px, transparent 1px);
+                background-size: 24px 24px;
+                -webkit-mask-image: linear-gradient(to bottom, #000, transparent 72%);
+                mask-image: linear-gradient(to bottom, #000, transparent 72%);
+            }
+            .pa-sheet-telemetry {
+                display: flex; align-items: center; justify-content: space-between; gap: 12px;
+                padding: 2px 16px 8px; color: ${T.accent};
+                font: 600 9px 'IBM Plex Mono', monospace; letter-spacing: .16em;
+                text-transform: uppercase; white-space: nowrap;
+            }
+            .pa-sheet-telemetry span:last-child { color: ${T.textDim}; letter-spacing: .1em; }
+            .pa-sheet-header { background: linear-gradient(180deg, rgba(23,41,56,.74), rgba(3,9,14,.42)); }
+            .pa-sheet-title {
+                font-family: 'Rajdhani','Arial Narrow',sans-serif;
+                font-size: clamp(20px, 4vw, 25px) !important;
+                letter-spacing: .015em;
+            }
+            .pa-sheet-scroll { scrollbar-color: ${T.borderHi} transparent; scrollbar-width: thin; }
+            .pa-sheet-scroll :is(input, select, textarea) {
+                border-radius: 2px !important;
+                border-color: ${T.borderHi} !important;
+                background-color: rgba(7,17,27,.86) !important;
+                color: ${T.text} !important;
+            }
+            .pa-sheet-scroll :is(input, select, textarea):focus-visible {
+                outline: 2px solid ${T.accent}; outline-offset: 1px;
+                box-shadow: 0 0 0 3px rgba(99,231,255,.1);
+            }
+            .pa-chart-panel {
+                position: relative; overflow: hidden; border: 1px solid ${T.borderHi} !important;
+                border-radius: 4px !important;
+                background:
+                    linear-gradient(rgba(99,231,255,.025) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(99,231,255,.02) 1px, transparent 1px),
+                    linear-gradient(180deg, #0b1c27, #03090e) !important;
+                background-size: 20px 20px, 20px 20px, auto !important;
+                box-shadow: inset 0 1px 0 rgba(216,251,255,.12), 0 14px 28px rgba(0,0,0,.32) !important;
+            }
+            .pa-chart-panel::after {
+                position: absolute; inset: 0 0 auto; height: 1px; content: '';
+                background: linear-gradient(90deg, transparent, ${T.accent}, transparent);
+                opacity: .72; pointer-events: none;
+            }
+            .pa-range-grid {
+                min-width: 0; width: 100%; max-width: 100%;
+                box-shadow: 0 0 0 1px ${T.borderHi}, inset 0 0 24px rgba(0,142,214,.08);
+            }
+            .pa-range-grid > :is(button, [role="button"]) {
+                min-width: 0; font-family: 'IBM Plex Mono', monospace !important;
+                font-size: clamp(8px, 2.45vw, 11px) !important;
+            }
+            .pa-data-label {
+                font-family: 'IBM Plex Mono', monospace !important;
+                letter-spacing: .08em !important; text-transform: uppercase;
+            }
             .pa-row:active { background: ${T.surface2}; }
             .pa-skel { animation: paSkel 1.4s ease-in-out infinite; }
             @keyframes paSkel { 0%, 100% { opacity: .35 } 50% { opacity: .7 } }
@@ -117,7 +183,14 @@ export function PAStyles() {
             }
             @media (min-width: 769px) {
                 .pa-sheet-backdrop { align-items: center; }
-                .pa-sheet { border-radius: ${R.lg}px; max-height: 85dvh; }
+                .pa-sheet { border-radius: ${R.lg}px; max-height: 88dvh; border-bottom: 1px solid ${T.borderHi} !important; }
+                .pa-sheet-telemetry { padding-inline: 24px; }
+            }
+            @media (max-width: 768px) {
+                .pa-sheet { max-height: 92dvh !important; }
+                .pa-sheet-telemetry { overflow: hidden; }
+                .pa-sheet-telemetry span:last-child { overflow: hidden; text-overflow: ellipsis; }
+                .pa-chart-panel { padding: 12px !important; }
             }
             @media (prefers-reduced-motion: reduce) {
                 .pa-skel { animation: none; opacity: .5 }
@@ -158,7 +231,7 @@ export function BottomSheet({
     headerRight = null,
     children,
     footer = null,
-    maxWidth = 520,
+    maxWidth = 680,
     ariaLabel,
     /** When false the backdrop tap and drag do NOT close (Esc + ✕ still do). */
     dismissOnBackdrop = true,
@@ -268,14 +341,19 @@ export function BottomSheet({
                     >
                         <div style={sheetGrip} aria-hidden="true" />
 
-                        <div style={sheetHeader}>
+                        <div className="pa-sheet-telemetry" aria-hidden="true">
+                            <span>Smarter.Poker</span>
+                            <span>Jarvis // module active</span>
+                        </div>
+
+                        <div className="pa-sheet-header" style={sheetHeader}>
                             <div style={{ minWidth: 0, flex: 1 }}>
                                 <div style={{
                                     display: 'flex', alignItems: 'center', gap: S.sm,
                                     fontSize: F.h3, fontWeight: 800, color: T.text, lineHeight: 1.2,
                                 }}>
                                     {titleIcon}
-                                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    <span className="pa-sheet-title" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         {title}
                                     </span>
                                 </div>
@@ -388,11 +466,11 @@ export function SignInState({
    ═══════════════════════════════════════════════════════════════════════ */
 export function Segmented({ options, value, onChange, label, tone = 'accent', columns = null, idPrefix = 'seg' }) {
     const active = {
-        accent: [T.accent, T.accentSoft, 'rgba(69,153,255,0.45)'],
+        accent: [T.accent, T.accentSoft, 'rgba(99,231,255,0.45)'],
         purple: [T.purple, T.purpleSoft, 'rgba(167,139,250,0.45)'],
-        success: [T.success, T.successSoft, 'rgba(34,197,94,0.45)'],
-        warn: [T.warn, T.warnSoft, 'rgba(251,191,36,0.45)'],
-    }[tone] || [T.accent, T.accentSoft, 'rgba(69,153,255,0.45)'];
+        success: [T.success, T.successSoft, 'rgba(77,224,165,0.45)'],
+        warn: [T.warn, T.warnSoft, 'rgba(255,198,109,0.45)'],
+    }[tone] || [T.accent, T.accentSoft, 'rgba(99,231,255,0.45)'];
 
     return (
         <div role="group" aria-label={label}>

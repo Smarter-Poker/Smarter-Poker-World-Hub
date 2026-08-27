@@ -193,7 +193,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
 
                     {preview.defaults.length > 0 && (
                         <div style={{
-                            background: T.warnSoft, border: '1px solid rgba(251,191,36,0.4)',
+                            background: T.warnSoft, border: '1px solid rgba(255,198,109,0.4)',
                             borderRadius: R.sm, padding: S.md,
                         }}>
                             <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.warn, marginBottom: S.xs }}>
@@ -217,7 +217,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                             role="alert"
                             style={{
                                 display: 'flex', gap: S.sm, alignItems: 'flex-start',
-                                background: T.dangerSoft, border: '1px solid rgba(239,68,68,0.4)',
+                                background: T.dangerSoft, border: '1px solid rgba(255,107,122,0.4)',
                                 borderRadius: R.sm, padding: S.md,
                             }}
                         >

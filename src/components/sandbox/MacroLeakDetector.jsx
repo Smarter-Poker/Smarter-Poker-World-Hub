@@ -176,7 +176,7 @@ export default function MacroLeakDetector() {
     } else if (data?.insufficientData) {
         const total = Number(data.total) || 0;
         return (
-            <div style={{ ...card, marginBottom: S.md }}>
+            <div className="pa-chart-panel" style={{ ...card, marginBottom: S.md }}>
                 <PAStyles />
                 {header}
                 <p style={{ fontSize: F.bodySm, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
@@ -282,7 +282,7 @@ export default function MacroLeakDetector() {
     }
 
     return (
-        <div style={{ ...card, marginBottom: S.md }}>
+        <div className="pa-chart-panel" style={{ ...card, marginBottom: S.md }}>
             <PAStyles />
             {header}
             {body}

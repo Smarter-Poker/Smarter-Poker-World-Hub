@@ -79,15 +79,15 @@ function describeTexture(cards) {
 }
 
 function heatColor(eq) {
-    if (eq > 55) return 'rgba(34,197,94,0.35)';
-    if (eq < 45) return 'rgba(239,68,68,0.35)';
-    return 'rgba(251,191,36,0.28)';
+    if (eq > 55) return 'rgba(77,224,165,0.35)';
+    if (eq < 45) return 'rgba(255,107,122,0.35)';
+    return 'rgba(255,198,109,0.28)';
 }
 
 function heatBorder(eq) {
-    if (eq > 55) return 'rgba(34,197,94,0.6)';
-    if (eq < 45) return 'rgba(239,68,68,0.6)';
-    return 'rgba(251,191,36,0.6)';
+    if (eq > 55) return 'rgba(77,224,165,0.6)';
+    if (eq < 45) return 'rgba(255,107,122,0.6)';
+    return 'rgba(255,198,109,0.6)';
 }
 
 export default function EquityHeatmapOverlay({ isVisible, board, heroPosition, villains, equity }) {

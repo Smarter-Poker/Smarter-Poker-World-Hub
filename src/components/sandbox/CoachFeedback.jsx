@@ -228,7 +228,7 @@ export default function CoachFeedback({
                                                 display: 'inline-flex', alignItems: 'center', gap: S.xs,
                                                 minHeight: 32, padding: `0 ${S.md}px`, borderRadius: R.pill,
                                                 background: optimal ? T.successSoft : T.surface2,
-                                                border: `1px solid ${optimal ? 'rgba(34,197,94,0.4)' : T.border}`,
+                                                border: `1px solid ${optimal ? 'rgba(77,224,165,0.4)' : T.border}`,
                                                 fontSize: F.caption, color: optimal ? T.success : T.textMuted,
                                                 boxSizing: 'border-box',
                                             }}>
