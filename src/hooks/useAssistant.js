@@ -773,30 +773,36 @@ export function useStudyDeck(limit = 20, authState) {
         ? (authUserId ? { id: authUserId } : null)
         : getAuthUser();
       if (!user) { setStudySessions([]); return; }
+      // Production does not expose a PostgREST relationship from
+      // sandbox_results back to sandbox_sessions. Resolve ownership first,
+      // then fetch only results whose session ids belong to this user. This is
+      // both schema-cache independent and safe if results RLS is permissive.
+      const sessionLimit = Math.max(limit * 3, limit);
+      const { data: ownedSessions, error: sessionsError } = await supabase
+        .from('sandbox_sessions')
+        .select(`
+          id,
+          hero_hand,
+          hero_position,
+          board_flop
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(sessionLimit);
+
+      if (sessionsError) throw sessionsError;
+
+      const sessionById = new Map((ownedSessions || []).map(session => [String(session.id), session]));
+      const sessionIds = Array.from(sessionById.keys());
+      if (sessionIds.length === 0) {
+        if (requestId === requestIdRef.current) setStudySessions([]);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('sandbox_results')
-        .select(`
-          id,
-          primary_action,
-          primary_frequency,
-          full_analysis,
-          confidence,
-          created_at,
-          sandbox_sessions!inner (
-            hero_hand,
-            hero_position,
-            hero_stack_bb,
-            game_type,
-            board_flop,
-            board_turn,
-            board_river
-          )
-        `)
-        // Scope to this user's own sessions — the !inner join makes the filter
-        // on the embedded table effective (without it, permissive RLS would
-        // hand back other users' full_analysis records).
-        .eq('sandbox_sessions.user_id', user.id)
+        .select('id, session_id, primary_action, primary_frequency, full_analysis, confidence, created_at')
+        .in('session_id', sessionIds)
         .not('full_analysis', 'is', null)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -806,16 +812,32 @@ export function useStudyDeck(limit = 20, authState) {
         console.warn('[useStudyDeck] Query error:', error.message);
         setStudySessions([]);
       } else {
-        const formatted = (data || []).map(r => ({
-          id: r.id,
-          label: `${r.sandbox_sessions?.hero_position || '?'} ${r.sandbox_sessions?.hero_hand || '??'} on ${r.sandbox_sessions?.board_flop || 'Preflop'}`,
-          hero_position: r.sandbox_sessions?.hero_position,
-          hero_hand: r.sandbox_sessions?.hero_hand,
-          primary_action: r.primary_action,
-          full_analysis: typeof r.full_analysis === 'string' ? JSON.parse(r.full_analysis) : r.full_analysis,
-          confidence: r.confidence,
-          date: r.created_at,
-        }));
+        const formatted = (data || []).reduce((sessions, result) => {
+          const session = sessionById.get(String(result.session_id));
+          if (!session) return sessions;
+
+          let fullAnalysis = result.full_analysis;
+          if (typeof fullAnalysis === 'string') {
+            try {
+              fullAnalysis = JSON.parse(fullAnalysis);
+            } catch {
+              return sessions;
+            }
+          }
+          if (!fullAnalysis || typeof fullAnalysis !== 'object') return sessions;
+
+          sessions.push({
+            id: result.id,
+            label: `${session.hero_position || '?'} ${session.hero_hand || '??'} on ${session.board_flop || 'Preflop'}`,
+            hero_position: session.hero_position,
+            hero_hand: session.hero_hand,
+            primary_action: result.primary_action,
+            full_analysis: fullAnalysis,
+            confidence: result.confidence,
+            date: result.created_at,
+          });
+          return sessions;
+        }, []);
         setStudySessions(formatted);
       }
     } catch (err) {
