@@ -568,38 +568,33 @@ function StreakToast({ message }) {
 // the oval, not sideways, so each seat keeps its relationship to its own dealer
 // button and chip slot (both of which sit between the seat and the pot).
 const SEAT_CONFIGS = {
-    // 9-Max positions — SPREAD WIDE to prevent overlap
-    // Seats hug the outer edge of the felt oval
     9: [
-        { id: 0, name: 'BTN', x: 50, y: 84 },   // Hero: Center bottom
-        { id: 1, name: 'SB', x: 24, y: 76 },    // Bottom-left
-        { id: 2, name: 'BB', x: 16, y: 59 },    // Mid-left
-        { id: 3, name: 'UTG', x: 21, y: 21 },   // Upper-mid-left
-        { id: 4, name: 'UTG+1', x: 38, y: 15 }, // Top-left
-        { id: 5, name: 'MP', x: 62, y: 15 },    // Top-right
-        { id: 6, name: 'MP+1', x: 79, y: 21 },  // Upper-mid-right
-        { id: 7, name: 'HJ', x: 84, y: 59 },    // Mid-right
-        { id: 8, name: 'CO', x: 76, y: 76 },    // Bottom-right
+        { id: 0, name: 'BTN', x: 50, y: 100 },
+        { id: 1, name: 'SB', x: 10.5, y: 82.5 },
+        { id: 2, name: 'BB', x: 8, y: 58 },
+        { id: 3, name: 'UTG', x: 8, y: 30 },
+        { id: 4, name: 'UTG+1', x: 27, y: 6 },
+        { id: 5, name: 'MP', x: 73, y: 6 },
+        { id: 6, name: 'MP+1', x: 92, y: 30 },
+        { id: 7, name: 'HJ', x: 92, y: 58 },
+        { id: 8, name: 'CO', x: 89.5, y: 82.5 },
     ],
-    // 6-Max positions — evenly spaced around the oval, clear of the board band
     6: [
-        { id: 0, name: 'BTN', x: 50, y: 84 },   // Hero: Center bottom
-        { id: 1, name: 'SB', x: 21, y: 62 },    // Mid-left
-        { id: 2, name: 'BB', x: 24, y: 21 },    // Upper-left
-        { id: 3, name: 'UTG', x: 50, y: 15 },   // Top center
-        { id: 4, name: 'HJ', x: 76, y: 21 },    // Upper-right
-        { id: 5, name: 'CO', x: 79, y: 62 },    // Mid-right
+        { id: 0, name: 'BTN', x: 50, y: 100 },
+        { id: 1, name: 'SB', x: 8, y: 66 },
+        { id: 2, name: 'BB', x: 8, y: 33 },
+        { id: 3, name: 'UTG', x: 50, y: 5 },
+        { id: 4, name: 'HJ', x: 92, y: 33 },
+        { id: 5, name: 'CO', x: 92, y: 66 },
     ],
-    // 3-Max (Spins) — Spread
     3: [
-        { id: 0, name: 'BTN', x: 50, y: 84 },   // Hero: Center bottom
-        { id: 1, name: 'SB', x: 28, y: 21 },    // Top-left
-        { id: 2, name: 'BB', x: 72, y: 21 },    // Top-right
+        { id: 0, name: 'BTN', x: 50, y: 100 },
+        { id: 1, name: 'SB', x: 20.5, y: 6 },
+        { id: 2, name: 'BB', x: 79.5, y: 6 },
     ],
-    // Heads-Up
     2: [
-        { id: 0, name: 'BTN/SB', x: 50, y: 78 }, // Hero: Center bottom
-        { id: 1, name: 'BB', x: 50, y: 22 },     // Villain: Top center
+        { id: 0, name: 'BTN/SB', x: 50, y: 100 },
+        { id: 1, name: 'BB', x: 50, y: 5 },
     ],
 };
 
@@ -743,7 +738,7 @@ function getCardPath(card) {
     };
 
     const suitName = suitMap[suit] || 'hearts';
-    return `/cards/${suitName}_${rank}.png`;
+    return `/hub/club-arena/cards/2color/${suitName}_${rank}.webp`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -3276,10 +3271,6 @@ function UniversalDynamicTable({
             {/* CSS Animation Keyframes + H5: Desktop-responsive layout */}
             <style>{`
                 @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
-                @keyframes pulse-glow {
-                    0%, 100% { box-shadow: 0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(255,215,0,0.4); }
-                    50% { box-shadow: 0 0 30px rgba(255,215,0,0.8), 0 0 60px rgba(255,215,0,0.6); }
-                }
                 /* Active-seat rim light: the single strongest cue on the felt.
                    Slow, so it reads as "this seat is live" and not as an alarm. */
                 @keyframes sp-seat-rim {
@@ -3402,7 +3393,7 @@ function UniversalDynamicTable({
                 and the only way out of a session was a floating "Quit" chip
                 pinned over the top-left corner of the felt; that chip is gone
                 and this pill is the exit. */}
-            <div style={{ ...styles.topBar, ...(isNarrow ? styles.topBarNarrow : null) }}>
+            <div style={{ ...styles.topBar, ...(isMobile ? styles.topBarNarrow : null) }}>
                 <div style={styles.topBarLeft}>
                     {onExit && (
                         <button
@@ -3424,8 +3415,8 @@ function UniversalDynamicTable({
                     leave the middle free. On a phone they do not, so the title
                     becomes an ordinary flex child that ellipsizes instead of a
                     free-floating layer that lands on top of the mode chips. */}
-                <div style={{ ...styles.topBarTitle, ...(isNarrow ? styles.topBarTitleNarrow : null) }}>{gameTitle || 'GTO Training'}</div>
-                <div style={{ ...styles.topBarRight, ...(isNarrow ? styles.topBarRightNarrow : null) }}>
+                <div style={{ ...styles.topBarTitle, ...(isMobile ? styles.topBarTitleNarrow : null) }}>{gameTitle || 'GTO Training'}</div>
+                <div style={{ ...styles.topBarRight, ...(isMobile ? styles.topBarRightNarrow : null) }}>
                     {/* The MEDIUM difficulty chip and the SOLVER/AI data-source chip
                         were build diagnostics wearing gameplay HUD clothing: a
                         player deciding whether to call cannot act on either, and
@@ -3774,7 +3765,7 @@ function UniversalDynamicTable({
 
                 {/* PREMIUM RACETRACK TABLE — GoldenTemplateTable design */}
                 {/* NEW CUSTOM STANDALONE RACETRACK TABLE */}
-                <div ref={tableRef} className="sp-club-gto-table" style={{ ...styles.basicTable, aspectRatio: isMobile ? '1 / 1.62' : '1 / 1.55' }}>
+                <div ref={tableRef} className="sp-club-gto-table" style={{ ...styles.basicTable, aspectRatio: '605 / 1000' }}>
 
                 {/* THE FELT — inset into the rail above. Purely decorative and
                     pointer-transparent; every seat, chip and card is drawn on
@@ -3866,90 +3857,35 @@ function UniversalDynamicTable({
                         //   ((absolute - heroSeatIndex) % playerCount + playerCount) % playerCount
                         // wherever they meet those tables (dealer button and chip
                         // blocks below).
-                        const activeCount = seats.filter((s, i) => {
-                            if (i === heroSeatIndex) return true;
-                            return i === villainSeatIndex
-                                || actionHistory.some(a => positionSeatIndex(a?.position, playerCount) === i);
-                        }).length;
-                        // ...and the seat ring is one of those tables. `seats` is a
-                        // POSITION table: entry 0 is BTN, entry 1 is SB, and so on,
-                        // because that is what getHeroSeatIndex maps into. Reading
-                        // seat.x/seat.y at the ABSOLUTE index therefore drew every
-                        // seat at its POSITION's coordinates while the dealer button
-                        // and the chip stacks -- which do rotate -- drew at its
-                        // hero-relative ones. With hero on the button the two agreed
-                        // and nobody noticed. With hero in the big blind they did
-                        // not: hero was pulled to y = 84 but kept the big blind's
-                        // x = 16, so he sat in the bottom-LEFT while his own chips
-                        // sat in the bottom-CENTRE hero slot, the button seat was
-                        // drawn underneath him at bottom-centre, and the D chip was
-                        // over on the mid-right rail. Read the ring through the same
-                        // rotation as everything else and hero lands at (50, 84)
-                        // with the table running clockwise from him, which is the
-                        // arrangement the design template shows.
                         const ringSeat = seats[seatRel] || seat;
-                        let seatX = ringSeat.x;
-                        let seatY = ringSeat.y;
-                        // Heads-up used to slam the lone villain to y = -8%, i.e.
-                        // clean OFF the felt and on top of the HUD header. Because
-                        // tableArea is overflow:visible nothing clipped it -- it
-                        // just covered the question. Both seats now sit ON the felt.
-                        if (activeCount <= 2) {
-                            seatX = 50;
-                            seatY = isHero ? 84 : 17;
-                        } else if (isHero) {
-                            // Hero owns the bottom edge of the oval, centered.
-                            seatY = 84;
-                        }
-
-                        // ── FURNITURE FOOTPRINT ──────────────────────────
-                        // Every fixed dimension below is scaled by ui() against
-                        // the MEASURED felt, and the seat centre is then clamped
-                        // so the whole cluster stays inside the felt at any table
-                        // size. This is what stops hero's cards spilling onto the
-                        // stats strip and the villain bubble climbing over the HUD.
-                        const avatarPx = isHero ? ui(66) : ui(52);
+                        const seatX = ringSeat.x;
+                        const seatY = ringSeat.y;
+                        const clubSeatTier = scaleFactor <= (380 / DESIGN_WIDTH)
+                            ? { villain: { width: 72, height: 79 }, hero: { width: 79, height: 96 } }
+                            : isNarrow
+                                ? { villain: { width: 80, height: 88 }, hero: { width: 88, height: 108 } }
+                                : isMobile
+                                    ? { villain: { width: 88, height: 99 }, hero: { width: 101, height: 121 } }
+                                    : { villain: { width: 96, height: 122 }, hero: { width: 128, height: 150 } };
+                        const portraitBox = isHero ? clubSeatTier.hero : clubSeatTier.villain;
+                        const avatarPx = portraitBox.width;
+                        const avatarHeightPx = portraitBox.height;
                         const plateW = isHero ? ui(94) : ui(78);
-                        const plateH = ui(34);
-                        const heroCardW = ui(46);
-                        const heroCardH = ui(64);
-                        const vilCardW = ui(25);
-                        const vilCardH = ui(35);
+                        const heroCardSizing = heroCards.length >= 6
+                            ? { width: 54, height: 76, step: 21 }
+                            : heroCards.length === 5
+                                ? { width: 57, height: 80, step: 23 }
+                                : heroCards.length === 4
+                                    ? { width: 60, height: 84, step: 25 }
+                                    : { width: 44, height: 62, step: 32 };
+                        const vilCardW = Math.round(33 * (64 / 92));
+                        const vilCardH = isNarrow ? 28 : (isMobile ? 30 : 33);
                         const bubbleH = ui(26);
-                        const boxH = isHero
-                            ? (avatarPx + plateH - ui(8))
-                            : (avatarPx + plateH - ui(8) + ui(3) + vilCardH);
-                        // plateW is the nameplate's FULL width, not its content
-                        // width -- boxSizing below is border-box precisely so the
-                        // footprint used for the clamp matches what is painted.
-                        const boxHalfW = Math.max(avatarPx, plateW) / 2 + 2;
-                        // The villain bubble is pinned to the seat's right edge and
-                        // hangs `bubbleOverhang` past it; it is also capped at the
-                        // nameplate width so a long action string can never widen
-                        // the seat's footprint. Hero has no bubble, but his hole
-                        // cards hang off the RIGHT of his nameplate instead.
                         const bubbleOverhang = isHero ? 0 : ui(6);
-                        const rightExtent = isHero
-                            ? (boxHalfW + heroCardW * 1.7)
-                            : (boxHalfW + ui(8));
-                        const leftExtent = boxHalfW + bubbleOverhang;
-                        const topExtent = (boxH / 2) + (isHero ? 0 : bubbleH);
-                        const railPx = ui(15) + 10;
-                        const pctY = (px) => (px / Math.max(1, feltBox.h)) * 100;
-                        const pctX = (px) => (px / Math.max(1, feltBox.w)) * 100;
-                        seatY = Math.min(
-                            Math.max(seatY, pctY(railPx + topExtent)),
-                            100 - pctY(railPx + boxH / 2)
-                        );
-                        seatX = Math.min(
-                            Math.max(seatX, pctX(railPx + leftExtent)),
-                            100 - pctX(railPx + rightExtent)
-                        );
 
                         // The strongest single cue on the felt is whose turn it
                         // is. In the trainer that is hero, until he has acted.
                         const isActiveSeat = isHero && !showFeedback;
-                        const rimShadow = '0 0 0 2px rgba(255,199,84,0.85), 0 0 16px 3px rgba(255,178,44,0.45), inset 0 2px 6px rgba(0,0,0,0.55)';
                         const seatLabel = isHero
                             ? (playerName || 'HERO')
                             : (index === villainSeatIndex ? (villainPosition || seat.name) : (seat.name || 'Villain'));
@@ -3970,8 +3906,12 @@ function UniversalDynamicTable({
                                     y: '-50%',
                                 }}
                             >
-                                {/* CIRCULAR AVATAR — gold rim-light plus outer
-                                    glow when this seat is the one to act. */}
+                                {/* CLUB ARENA CUTOUT — the production table uses
+                                    freestanding character art, not a circular
+                                    portrait frame. Keeping the footprint here
+                                    still gives cards and nameplates one exact
+                                    anchor while removing the dark rectangle
+                                    that used to sit behind every character. */}
                                 <motion.div
                                     className="sp-club-gto-avatar-frame"
                                     initial={reduceMotion ? false : { scale: 0.4, opacity: 0 }}
@@ -3979,21 +3919,21 @@ function UniversalDynamicTable({
                                     transition={{ duration: 0.26, delay: reduceMotion ? 0 : 0.06 }}
                                     style={{
                                         width: avatarPx,
-                                        height: avatarPx,
-                                        borderRadius: '50%',
-                                        overflow: 'hidden',
+                                        height: avatarHeightPx,
+                                        borderRadius: 0,
+                                        overflow: 'visible',
                                         position: 'relative',
                                         zIndex: 2,
                                         flexShrink: 0,
-                                        background: 'radial-gradient(circle at 50% 22%, #24304a 0%, #121a2c 68%, #070b14 100%)',
-                                        border: `${Math.max(1.5, ui(2))}px solid ${isActiveSeat ? '#ffc754' : 'rgba(214,163,42,0.55)'}`,
-                                        boxShadow: isActiveSeat
-                                            ? rimShadow
-                                            : 'inset 0 2px 6px rgba(0,0,0,0.55), 0 6px 14px rgba(0,0,0,0.6)',
-                                        animation: (isActiveSeat && !reduceMotion)
-                                            ? 'sp-seat-rim 2.4s ease-in-out infinite'
-                                            : 'none',
-                                        filter: villainFolded ? 'grayscale(100%) brightness(0.5)' : 'none',
+                                        background: 'transparent',
+                                        border: 0,
+                                        boxShadow: 'none',
+                                        animation: 'none',
+                                        filter: villainFolded
+                                            ? 'grayscale(100%) brightness(0.5) drop-shadow(0 4px 4px rgba(0,0,0,0.72))'
+                                            : isActiveSeat
+                                                ? 'drop-shadow(0 0 9px rgba(255,199,84,0.52)) drop-shadow(0 5px 4px rgba(0,0,0,0.82))'
+                                                : 'drop-shadow(0 5px 4px rgba(0,0,0,0.82))',
                                     }}
                                 >
                                     {/* seatAvatars is HERO-RELATIVE like every
@@ -4061,98 +4001,74 @@ function UniversalDynamicTable({
                                         {stackSize} bb
                                     </div>
 
-                                    {/* HERO HOLE CARDS — immediately to the RIGHT
-                                        of the nameplate, overlapping it, angled and
-                                        larger than villain cards. They used to sit
-                                        stacked underneath, which pushed the cluster
-                                        off the bottom of the felt.
-                                        ACTIVE_HAND_GLOW_LAW: active hands pulse a
-                                        golden halo. */}
-                                    {isHero && heroCards.length > 0 && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            left: '100%',
-                                            bottom: -ui(3),
-                                            // #48 / Dan's note "cards need to be
-                                            // next to the hero box, not above
-                                            // it": they were already beside it,
-                                            // but a 13px pull-back plus the -9deg
-                                            // rake put the first card on top of
-                                            // the name and the stack line. A 3px
-                                            // tuck still reads as one cluster
-                                            // without covering either number.
-                                            marginLeft: -ui(3),
-                                            display: 'flex',
-                                            // #48 follow-up, measured on production
-                                            // at 375px: hero's own hole cards were
-                                            // rendering 8px and 7px wide against an
-                                            // intended ui(46)=27px. An absolutely
-                                            // positioned box at left:100% has a
-                                            // shrink-to-fit width whose available
-                                            // space is ZERO -- the containing block
-                                            // ends exactly where the box begins --
-                                            // so the default flex-shrink:1 crushed
-                                            // both cards to their minimum. The two
-                                            // most important cards on the screen
-                                            // were slivers. width:max-content sizes
-                                            // the row to its content instead of to
-                                            // the (nonexistent) space beside the
-                                            // nameplate, and flexShrink:0 on each
-                                            // image stops the crush even if some
-                                            // future ancestor constrains it again.
-                                            width: 'max-content',
-                                            alignItems: 'flex-end',
-                                            zIndex: 6,
-                                            borderRadius: ui(6),
-                                            pointerEvents: 'none',
-                                            animation: reduceMotion ? 'none' : 'pulse-glow 2s ease-in-out infinite',
-                                        }}>
-                                            {heroCards[0] && (
-                                                <motion.img
-                                                    key={`hero-seat-0-${questionNumber}`}
-                                                    src={getCardPath(heroCards[0])}
-                                                    alt={heroCards[0]}
-                                                    initial={reduceMotion ? false : { x: -ui(34), y: -ui(26), rotate: -34, opacity: 0, scale: 0.72 }}
-                                                    animate={{ x: 0, y: 0, rotate: -9, opacity: 1, scale: 1 }}
-                                                    transition={{ delay: reduceMotion ? 0 : 0.04, duration: 0.26, type: 'spring', stiffness: 240, damping: 22 }}
-                                                    style={{
-                                                        width: heroCardW,
-                                                        height: heroCardH,
-                                                        flexShrink: 0,
-                                                        borderRadius: ui(5),
-                                                        transformOrigin: 'bottom center',
-                                                        boxShadow: '0 10px 22px rgba(0,0,0,0.8)',
-                                                        border: '1px solid rgba(255,255,255,0.55)',
-                                                    }}
-                                                />
-                                            )}
-                                            {heroCards[1] && (
-                                                <motion.img
-                                                    key={`hero-seat-1-${questionNumber}`}
-                                                    src={getCardPath(heroCards[1])}
-                                                    alt={heroCards[1]}
-                                                    initial={reduceMotion ? false : { x: -ui(34), y: -ui(26), rotate: -34, opacity: 0, scale: 0.72 }}
-                                                    animate={{ x: 0, y: 0, rotate: 8, opacity: 1, scale: 1 }}
-                                                    transition={{ delay: reduceMotion ? 0 : 0.14, duration: 0.26, type: 'spring', stiffness: 240, damping: 22 }}
-                                                    style={{
-                                                        width: heroCardW,
-                                                        height: heroCardH,
-                                                        flexShrink: 0,
-                                                        marginLeft: -ui(14),
-                                                        borderRadius: ui(5),
-                                                        transformOrigin: 'bottom center',
-                                                        boxShadow: '0 10px 22px rgba(0,0,0,0.8)',
-                                                        border: '1px solid rgba(255,255,255,0.55)',
-                                                    }}
-                                                />
-                                            )}
-                                        </div>
-                                    )}
-
                                     {/* Dealer Button — rendered at table level per
                                         DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md */}
 
                                 </motion.div>
+
+                                    {/* Club Arena anchors the hero's hand to the
+                                        complete seat footprint, not to the much
+                                        narrower nameplate. This keeps 2–6 cards
+                                        beside the avatar at every table size. */}
+                                    {isHero && heroCards.length > 0 && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            left: 'calc(100% + 1px)',
+                                            top: 0,
+                                            display: 'flex',
+                                            width: 'max-content',
+                                            alignItems: 'flex-start',
+                                            zIndex: 6,
+                                            pointerEvents: 'none',
+                                            filter: 'drop-shadow(0 8px 12px rgba(0,0,0,0.72))',
+                                        }}>
+                                            {heroCards.map((card, cardIndex) => {
+                                                const center = cardIndex - ((heroCards.length - 1) / 2);
+                                                const isFannedHand = heroCards.length >= 4;
+
+                                                return (
+                                                    <motion.img
+                                                        key={`hero-seat-${cardIndex}-${questionNumber}-${card}`}
+                                                        src={getCardPath(card)}
+                                                        alt={card}
+                                                        initial={reduceMotion ? false : {
+                                                            x: -ui(34),
+                                                            y: -ui(26),
+                                                            rotate: -24,
+                                                            opacity: 0,
+                                                            scale: 0.72,
+                                                        }}
+                                                        animate={{
+                                                            x: 0,
+                                                            y: isFannedHand ? center * center * 1.4 : 0,
+                                                            rotate: isFannedHand ? center * 3 : 0,
+                                                            opacity: 1,
+                                                            scale: 1,
+                                                        }}
+                                                        transition={{
+                                                            delay: reduceMotion ? 0 : 0.04 + cardIndex * 0.06,
+                                                            duration: 0.26,
+                                                            type: 'spring',
+                                                            stiffness: 240,
+                                                            damping: 22,
+                                                        }}
+                                                        style={{
+                                                            width: heroCardSizing.width,
+                                                            height: heroCardSizing.height,
+                                                            flexShrink: 0,
+                                                            marginLeft: cardIndex === 0
+                                                                ? 0
+                                                                : heroCardSizing.step - heroCardSizing.width,
+                                                            borderRadius: 6,
+                                                            transformOrigin: 'bottom center',
+                                                            boxShadow: '0 8px 18px rgba(0,0,0,0.76)',
+                                                            border: '2px solid rgba(255,255,255,0.9)',
+                                                        }}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    )}
 
                                     {/* Villain: face-down cards, centered under the
                                         plate. ACTIVE_HAND_GLOW_LAW: active hands
@@ -4169,15 +4085,19 @@ function UniversalDynamicTable({
                                             zIndex: 1,
                                             ...(villainFolded
                                                 ? { filter: 'grayscale(100%) brightness(0.5)', opacity: 0.6 }
-                                                : { animation: reduceMotion ? 'none' : 'pulse-glow 2s ease-in-out infinite' }),
+                                                : null),
                                         }}>
-                                            {[0, 1, 2, 3, 4].map((ci) => (
+                                            {Array.from({ length: Math.max(2, heroCards.length) }, (_, ci) => (
                                                 <motion.img
                                                     key={`vc-${ci}`}
-                                                    src="/images/card-backs/red.png"
+                                                    src="/hub/club-arena/cards/backs/table/classic_red.webp"
                                                     alt=""
                                                     initial={reduceMotion ? false : { y: -ui(18), rotate: ci ? 14 : -14, opacity: 0 }}
-                                                    animate={{ y: 0, rotate: (ci - 2) * 12, opacity: 1 }}
+                                                    animate={{
+                                                        y: 0,
+                                                        rotate: (ci - (Math.max(2, heroCards.length) - 1) / 2) * 7,
+                                                        opacity: 1,
+                                                    }}
                                                     transition={{ delay: reduceMotion ? 0 : 0.06 + ci * 0.06, duration: 0.24 }}
                                                     style={{
                                                         position: 'absolute',
@@ -4305,7 +4225,7 @@ function UniversalDynamicTable({
                         // coordinates -- otherwise the chips fly in from an
                         // empty patch of felt whenever hero is not on the button.
                         const ringSeat = seats[chipRel] || seat;
-                        const srcTop = isHeroSeat ? 84 : ringSeat.y;
+                        const srcTop = isHeroSeat ? 100 : ringSeat.y;
                         const srcLeft = ringSeat.x;
                         return (
                             <motion.div
@@ -6966,26 +6886,17 @@ const styles = {
         boxSizing: 'border-box',
         width: '88%',
         maxWidth: 510,
-        aspectRatio: '1 / 1.62',
-        borderRadius: '44% / 19%',
-        background: [
-            'radial-gradient(ellipse at 50% 8%, rgba(190,234,248,0.08) 0%, rgba(190,234,248,0) 55%)',
-            'linear-gradient(180deg, #2b3036 0%, #0d1116 38%, #080b0e 64%, #24292f 100%)',
-        ].join(', '),
+        aspectRatio: '605 / 1000',
+        borderRadius: 0,
+        background: 'transparent url("/hub/club-arena/assets/skin_carbon_ion-CuncF2Ud-v6.png") center / 100% 100% no-repeat',
         // OUTER GOLD RING of the racetrack rail. The rail reads as two
         // concentric BRIGHT gold hoops with a black channel between them: this
         // border is hoop one, `feltSurface`'s ring is hoop two. Both hoops carry
         // their own soft outer bloom -- in the template they glow, they are not
         // just drawn.
-        border: '7px solid #171b20',
-        boxShadow: [
-            '0 26px 60px rgba(0,0,0,0.85)',
-            '0 0 0 2px rgba(139,151,160,0.72)',
-            '0 0 24px rgba(45,196,236,0.18)',
-            'inset 0 0 0 3px rgba(211,224,230,0.72)',
-            'inset 0 0 0 6px rgba(25,30,36,0.95)',
-            'inset 0 -22px 44px rgba(0,0,0,0.55)',
-        ].join(', '),
+        border: 0,
+        boxShadow: 'none',
+        filter: 'drop-shadow(0 18px 26px rgba(0,0,0,0.72))',
         margin: '0 auto',
         // Shrink with the container rather than overflow it (see tableArea).
         flexShrink: 1,
@@ -6999,17 +6910,9 @@ const styles = {
     // its proportion when the table shrinks.
     feltSurface: {
         position: 'absolute',
-        borderRadius: '44% / 19%',
-        background: [
-            'radial-gradient(ellipse at 50% 34%, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0) 60%)',
-            'radial-gradient(ellipse at 50% 44%, #1a1a1c 0%, #121214 38%, #0a0a0b 72%, #050506 100%)',
-        ].join(', '),
-        boxShadow: [
-            'inset 0 12px 30px rgba(0,0,0,0.62)',
-            'inset 0 -16px 38px rgba(0,0,0,0.58)',
-            '0 0 0 2.5px #aab8c0',
-            '0 0 18px rgba(83,218,255,0.2)',
-        ].join(', '),
+        borderRadius: 0,
+        background: 'transparent',
+        boxShadow: 'none',
         pointerEvents: 'none',
         zIndex: 0,
     },
