@@ -742,7 +742,7 @@ export default function MerchStore({ user = null }) {
             {loading && (
                 <div role="status" aria-live="polite" style={{ textAlign: 'center', padding: '48px 0', color: MUTED, fontSize: 14 }}>
                     <ShoppingBag size={28} color="#a8b2d1" />
-                    <div style={{ marginTop: 10 }}>Loading the merch lineup…</div>
+                    <div style={{ marginTop: 10 }}>Loading The Merch Lineup...</div>
                 </div>
             )}
 

@@ -216,6 +216,29 @@ export default async function handler(req, res) {
               });
           }
 
+          const checkoutTypes = new Set(['diamonds', 'subscription', 'merchandise']);
+          if (!checkoutTypes.has(type)) {
+              return res.status(400).json({
+                  success: false,
+                  error: { code: 'INVALID_TYPE', message: 'Unsupported checkout type' }
+              });
+          }
+
+          // Reject oversized or malformed carts before any profile write,
+          // Stripe customer creation, catalog query, or pending-order insert.
+          if (items.length > 50) {
+              return res.status(400).json({
+                  success: false,
+                  error: { code: 'TOO_MANY_ITEMS', message: 'Too many items in one order' }
+              });
+          }
+          if (type === 'subscription' && items.length !== 1) {
+              return res.status(400).json({
+                  success: false,
+                  error: { code: 'INVALID_ITEMS', message: 'A subscription checkout requires one plan' }
+              });
+          }
+
           // Stripe is initialized at module level above
 
           // Get or create Stripe customer
@@ -602,18 +625,6 @@ export default async function handler(req, res) {
               // refused without a variant_id, because guessing either
               // mischarges the customer or ships the wrong size.
               // ═══════════════════════════════════════════════════════════════
-              // Bound the array before doing per-item work. It was unbounded,
-              // so a 10,000-element body would be validated line by line and
-              // then handed to Stripe. The diamond-package branch is naturally
-              // limited by its 8-package merge; the merchandise branch had no
-              // equivalent.
-              if (items.length > 50) {
-                  return res.status(400).json({
-                      success: false,
-                      error: { code: 'TOO_MANY_ITEMS', message: 'Too many items in one order' },
-                  });
-              }
-
               const stockCheckLines = items.map((item) => ({
                   id: item.id,
                   variant_id: item.variantId || item.variant_id || null,

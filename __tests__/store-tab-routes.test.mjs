@@ -99,10 +99,14 @@ test('each wrapper page passes its own initialTab and nothing else', () => {
   }
 });
 
-test('a blocked popup still navigates — openTab has a same-tab fallback', () => {
-  assert.match(
-    STORE,
-    /const win = window\.open\([\s\S]{0,80}?\);\s*\n\s*if \(!win\) window\.location\.href = href;/,
-    'openTab must fall back to same-tab navigation when window.open returns null'
+test('store navigation uses native links instead of popup-driven buttons', () => {
+  const showcase = readFileSync(
+    join(ROOT, 'src/components/diamond-store/SmarterStoreShowcase.jsx'),
+    'utf8'
   );
+  assert.match(showcase, /href=\{TAB_ROUTES\[id\]\}/);
+  assert.match(showcase, /target=\{id === activeTab \? undefined : '_blank'\}/);
+  assert.match(showcase, /rel=\{id === activeTab \? undefined : 'noopener noreferrer'\}/);
+  assert.doesNotMatch(showcase, /<button[\s\S]*?Store Sections/);
+  assert.doesNotMatch(STORE, /function openTab|window\.open\(/);
 });

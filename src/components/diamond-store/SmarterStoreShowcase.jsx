@@ -10,6 +10,14 @@ const TAB_LABELS = [
   ['club-shop', 'Club Arena'],
 ];
 
+const TAB_ROUTES = {
+  diamonds: '/hub/diamond-store',
+  vip: '/hub/vip-membership',
+  merch: '/hub/merch-store',
+  rewards: '/hub/smarter-rewards',
+  'club-shop': '/hub/club-shop',
+};
+
 const SECTION_COPY = {
   diamonds: {
     eyebrow: 'Diamond Exchange',
@@ -43,7 +51,6 @@ export default function SmarterStoreShowcase({
   packages = [],
   isProcessing = false,
   busyPackageId = null,
-  onNavigate,
   onBuy,
 }) {
   const copy = SECTION_COPY[activeTab] || SECTION_COPY.diamonds;
@@ -64,17 +71,18 @@ export default function SmarterStoreShowcase({
     <section className={`${styles.showcase} ${styles[activeTab] || ''}`}>
       <nav className={styles.tabs} aria-label="Store Sections">
         {TAB_LABELS.map(([id, label]) => (
-          <button
+          <a
             key={id}
             ref={id === activeTab ? activeTabRef : null}
-            type="button"
+            href={TAB_ROUTES[id]}
+            target={id === activeTab ? undefined : '_blank'}
+            rel={id === activeTab ? undefined : 'noopener noreferrer'}
             className={`${styles.tab} ${id === activeTab ? styles.activeTab : ''}`}
             aria-current={id === activeTab ? 'page' : undefined}
             aria-label={id === activeTab ? `${label}, Current Page` : `${label}, Opens In New Tab`}
-            onClick={() => id !== activeTab && onNavigate(id)}
           >
             {label}
-          </button>
+          </a>
         ))}
       </nav>
 

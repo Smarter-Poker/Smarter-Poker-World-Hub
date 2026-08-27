@@ -51,9 +51,17 @@ import {
 } from 'lucide-react';
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 import { VIPCard } from '../../src/components/store/StoreCards';
-import MerchStore from '../../src/components/store/MerchStore';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
 import shellStyles from '../../src/components/diamond-store/DiamondStoreShell.module.css';
+
+const MerchStore = dynamic(() => import('../../src/components/store/MerchStore'), {
+  ssr: false,
+  loading: () => (
+    <div className={shellStyles.loadingPanel} role="status" aria-live="polite">
+      Loading Merch Store...
+    </div>
+  ),
+});
 
 import {
   STANDARD_REWARDS,
@@ -143,24 +151,13 @@ export const TAB_META = {
   },
 };
 
-/**
- * Opens a store tab in its own browser tab.
- *
- * `currentTab` is not optional politeness — without it, clicking "Diamonds"
- * while already on /hub/diamond-store spawns a duplicate of the page you are
- * standing on, which is the one thing a new-tab policy must not do. Falls back
- * to same-tab navigation when a popup blocker refuses the window.
- */
-function openTab(tabId, currentTab) {
-  const href = TAB_ROUTES[tabId];
-  if (!href || typeof window === 'undefined') return;
-  if (tabId === currentTab) return;
-  const win = window.open(href, '_blank', 'noopener,noreferrer');
-  if (!win) window.location.href = href;
-}
-
 function useDialogFocus(isOpen, dialogRef, onDismiss, isBusy) {
   const returnFocusRef = useRef(null);
+  const isBusyRef = useRef(isBusy);
+
+  useEffect(() => {
+    isBusyRef.current = isBusy;
+  }, [isBusy]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -171,7 +168,7 @@ function useDialogFocus(isOpen, dialogRef, onDismiss, isBusy) {
     dialog?.focus();
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape' && !isBusy) {
+      if (event.key === 'Escape' && !isBusyRef.current) {
         event.preventDefault();
         onDismiss();
         return;
@@ -206,7 +203,7 @@ function useDialogFocus(isOpen, dialogRef, onDismiss, isBusy) {
       releaseScrollLock();
       returnFocusRef.current?.focus?.();
     };
-  }, [dialogRef, isBusy, isOpen, onDismiss]);
+  }, [dialogRef, isOpen, onDismiss]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -988,6 +985,17 @@ export default function DiamondStorePage({ initialTab }) {
             content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
           />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <link
+            rel="preload"
+            as="image"
+            href={
+              activeTab === 'diamonds'
+                ? '/images/store-v3/diamond-vault-hero.webp'
+                : '/images/store-v3/store-section-heroes.webp'
+            }
+            type="image/webp"
+            fetchPriority="high"
+          />
 
           <style>{`
                     /* <details> in the VIP FAQ: Safari/WebKit paints its OWN
@@ -1031,7 +1039,6 @@ export default function DiamondStorePage({ initialTab }) {
             packages={DIAMOND_PACKAGES}
             isProcessing={isProcessing}
             busyPackageId={busyPackageId}
-            onNavigate={(tabId) => openTab(tabId, activeTab)}
             onBuy={handleDirectCheckout}
           />
 
@@ -1067,6 +1074,7 @@ export default function DiamondStorePage({ initialTab }) {
                     payment from someone who already paid. */}
                 {isVip && (
                   <div
+                    className={shellStyles.rewardsBoostLayout}
                     style={{
                       background: 'linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,215,0,0.04))',
                       border: '1px solid rgba(255,215,0,0.35)',
@@ -1509,7 +1517,10 @@ export default function DiamondStorePage({ initialTab }) {
                       flexWrap: 'wrap',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                      className={shellStyles.rewardsBoostCopy}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+                    >
                       <div
                         style={{
                           width: 40,
@@ -1552,7 +1563,10 @@ export default function DiamondStorePage({ initialTab }) {
                         </div>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div
+                      className={shellStyles.rewardsBoostTiers}
+                      style={{ textAlign: 'right', flexShrink: 0 }}
+                    >
                       {[
                         { label: 'Streak 3d', mult: '1.2×', color: '#60a5fa' },
                         { label: 'Expert 7d', mult: '1.5×', color: '#34d399' },
@@ -1748,9 +1762,13 @@ export default function DiamondStorePage({ initialTab }) {
                             </div>
                           </div>
                         </div>
-                        <button
-                          onClick={() => openTab('vip', activeTab)}
+                        <a
+                          href={TAB_ROUTES.vip}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="View VIP Plans, Opens In New Tab"
                           style={{
+                            display: 'inline-block',
                             marginTop: 12,
                             padding: '10px 28px',
                             background: 'linear-gradient(135deg, #FFD700, #FFA500)',
@@ -1761,10 +1779,11 @@ export default function DiamondStorePage({ initialTab }) {
                             fontWeight: 700,
                             cursor: 'pointer',
                             boxShadow: '0 0 16px rgba(255,215,0,0.3)',
+                            textDecoration: 'none',
                           }}
                         >
                           View VIP Plans →
-                        </button>
+                        </a>
                       </div>
 
                       <div style={styles.overviewCard}>
@@ -1822,7 +1841,7 @@ export default function DiamondStorePage({ initialTab }) {
                     </p>
 
                     {/* Daily Cap Banner */}
-                    <div style={styles.capBanner}>
+                    <div className={shellStyles.rewardsCapBanner} style={styles.capBanner}>
                       <div style={styles.capInfo}>
                         <span style={styles.capNumber}>{DAILY_CAP.free}</span>
                         <span style={styles.capLabel}>
@@ -1861,7 +1880,7 @@ export default function DiamondStorePage({ initialTab }) {
                       <h3 style={styles.categoryTitle}>All Standard Rewards</h3>
                       <div style={styles.rewardList}>
                         {STANDARD_REWARDS.map((reward, idx) => (
-                          <div key={idx} style={styles.rewardItem}>
+                          <div key={idx} className={shellStyles.rewardRow} style={styles.rewardItem}>
                             <span style={styles.rewardIcon}>
                               {reward.icon && <reward.icon size={24} />}
                             </span>
@@ -2339,7 +2358,7 @@ export default function DiamondStorePage({ initialTab }) {
 
                 {clubShopLoading && !clubShopLoaded ? (
                   <div role="status" aria-live="polite" style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}>
-                    Loading club shop...
+                    Loading Club Shop...
                   </div>
                 ) : !clubShopClubId ? (
                   clubShopLoaded ? (
@@ -2362,7 +2381,7 @@ export default function DiamondStorePage({ initialTab }) {
                       aria-live="polite"
                       style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
                     >
-                      Loading club shop...
+                      Loading Club Shop...
                     </div>
                   )
                 ) : (

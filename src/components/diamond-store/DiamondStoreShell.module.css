@@ -4,6 +4,21 @@
   --store-panel: #050a10;
 }
 
+.loadingPanel {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(111, 220, 255, 0.42);
+  background: linear-gradient(180deg, #263641, #060b10 18%, #020407 78%, #18232b);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -4px 12px #000,
+    0 12px 26px #000;
+  color: #d8faff;
+  font: 700 13px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.08em;
+}
+
 .root :is(button, a[href], input, select, summary, [role='button']):focus-visible {
   outline: 2px solid var(--store-focus) !important;
   outline-offset: 3px !important;
@@ -95,6 +110,50 @@
 
   .responsiveGrid {
     grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .rewardsBoostLayout {
+    align-items: flex-start !important;
+  }
+
+  .rewardsBoostCopy {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rewardsBoostCopy > div:last-child {
+    min-width: 0;
+  }
+
+  .rewardsBoostTiers {
+    width: 100%;
+    min-width: 0;
+    text-align: left !important;
+  }
+
+  .rewardsCapBanner {
+    gap: 12px !important;
+    padding: 16px 10px !important;
+    flex-wrap: wrap;
+  }
+
+  .rewardsCapBanner > * {
+    min-width: 0;
+  }
+
+  .rewardRow {
+    gap: 8px !important;
+    padding: 14px 12px !important;
+  }
+
+  .rewardRow > * {
+    min-width: 0;
+  }
+
+  .rewardRow > :last-child {
+    max-width: 42%;
+    overflow-wrap: anywhere;
+    text-align: right;
   }
 
   .subPanel {
