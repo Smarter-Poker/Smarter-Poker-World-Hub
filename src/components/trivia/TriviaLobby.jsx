@@ -5,25 +5,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { Trophy, BookOpen, GraduationCap, Gem, Heart, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain, Flame } from 'lucide-react';
-import MetalFrame from '../ui/MetalFrame';
-import HexButton from '../ui/HexButton';
-import PortholeIcon from '../ui/PortholeIcon';
+import { Trophy, BookOpen, GraduationCap, Gem, Heart, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain, Flame, ArrowUpRight } from 'lucide-react';
 import useVIPGate from '../../hooks/useVIPGate';
 import VIPGateModal from '../ui/VIPGateModal';
 // The lobby no longer bills, so supabase / EventBus / getAuthUser are gone with
 // deductDiamonds. Entry price now comes from the engine config only.
 import { getModeConfig } from '../../lib/trivia/triviaEngine';
-
-// Pre-computed particle positions to avoid Math.random() hydration mismatches
-const SUITS = ['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣'];
-const SUIT_PARTICLES = SUITS.map((suit, i) => ({
-    suit,
-    left: (i / 16) * 100 + (((i * 7 + 3) % 10) * 0.6),
-    delay: i * 1.2 + (((i * 13 + 5) % 10) * 0.2),
-    duration: 8 + (((i * 11 + 7) % 10) * 0.6),
-    fontSize: 14 + (((i * 17 + 2) % 10) * 1.2),
-}));
 
 const ACKNOWLEDGED_KEY = 'trivia_charge_acknowledged';
 
@@ -62,6 +49,8 @@ const MODE_CARDS = [
     // TOP ROW - Strategy Modes (MTT, Cash, GTO)
     {
         id: 'mtt',
+        code: '01',
+        category: 'strategy',
         name: 'MTT Scenarios',
         description: 'Multi-table Tournament Situations and Decisions',
         icon: Target,
@@ -69,10 +58,12 @@ const MODE_CARDS = [
         glowColor: '#f97316',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/mtt-scenarios.webp?v=v6'
+        image: '/images/trivia/modes-v2/mtt.webp'
     },
     {
         id: 'cash',
+        code: '02',
+        category: 'strategy',
         name: 'Cash Game',
         description: 'Deep Stack Scenarios, Implied Odds, Table Dynamics',
         icon: Banknote,
@@ -80,10 +71,12 @@ const MODE_CARDS = [
         glowColor: '#31a24c',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/cash-game.webp?v=v6'
+        image: '/images/trivia/modes-v2/cash.webp'
     },
     {
         id: 'icm',
+        code: '03',
+        category: 'strategy',
         name: 'ICM & Chip EV',
         description: 'Tournament Equity, Chip Value vs $EV Decisions',
         icon: Calculator,
@@ -91,11 +84,13 @@ const MODE_CARDS = [
         glowColor: '#2374e1',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/icm-chip-ev.webp?v=v6'
+        image: '/images/trivia/modes-v2/icm.webp'
     },
     // ROW 2 - Core Trivia
     {
         id: 'history',
+        code: '04',
+        category: 'knowledge',
         name: 'Poker History',
         description: 'Iconic Moments, Famous Hands, Legendary Players',
         icon: Trophy,
@@ -103,10 +98,12 @@ const MODE_CARDS = [
         glowColor: '#FFD700',
         diamondReward: 3,
         perfectBonus: 5,
-        image: '/images/trivia/poker-history.webp?v=v6'
+        image: '/images/trivia/modes-v2/history.webp'
     },
     {
         id: 'tournaments',
+        code: '05',
+        category: 'competitive',
         name: 'Tournaments',
         description: 'Weekly Competitions with Big Prizes!',
         icon: Calendar,
@@ -114,10 +111,12 @@ const MODE_CARDS = [
         glowColor: '#FFD700',
         diamondReward: 'Prize pool',
         perfectBonus: null,
-        image: '/images/trivia/tournaments.webp?v=v6'
+        image: '/images/trivia/modes-v2/tournaments.webp'
     },
     {
         id: 'pro',
+        code: '06',
+        category: 'knowledge',
         name: 'Pro Knowledge',
         description: 'Strategy Concepts, GTO Basics, Advanced Trivia',
         icon: GraduationCap,
@@ -125,11 +124,13 @@ const MODE_CARDS = [
         glowColor: '#9D4EDD',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/pro-knowledge.webp?v=v6'
+        image: '/images/trivia/modes-v2/pro.webp'
     },
     // ROW 3 - Challenge Modes
     {
         id: 'survival',
+        code: '07',
+        category: 'challenge',
         name: 'Survival Mode',
         description: '10 Levels, 20 Questions Each. All Categories Combined!',
         icon: Heart,
@@ -137,10 +138,12 @@ const MODE_CARDS = [
         glowColor: '#f02849',
         diamondReward: '10+',
         perfectBonus: null,
-        image: '/images/trivia/survival-mode-v2.webp?v=v6'
+        image: '/images/trivia/modes-v2/survival.webp'
     },
     {
         id: 'endless',
+        code: '08',
+        category: 'challenge',
         name: 'Endless Mode',
         description: 'All Questions, Random Order. Answer Until You Miss!',
         icon: Infinity,
@@ -148,10 +151,12 @@ const MODE_CARDS = [
         glowColor: '#8b5cf6',
         diamondReward: '1+/Q',
         perfectBonus: null,
-        image: '/images/trivia/endless-mode-v2.webp?v=v6'
+        image: '/images/trivia/modes-v2/endless.webp'
     },
     {
         id: 'mixed',
+        code: '09',
+        category: 'challenge',
         name: 'Mixed Mode',
         description: 'Rotating Categories: History → Rules → Pro',
         icon: Shuffle,
@@ -159,11 +164,13 @@ const MODE_CARDS = [
         glowColor: '#00D4FF',
         diamondReward: '1/Q',
         perfectBonus: null,
-        image: '/images/trivia/mixed-mode-v2.webp?v=v6'
+        image: '/images/trivia/modes-v2/mixed.webp'
     },
     // ROW 4 - Competitive
     {
         id: 'pvp',
+        code: '10',
+        category: 'competitive',
         name: '1v1 Battle',
         description: 'Challenge Real Players for Diamonds!',
         icon: Swords,
@@ -171,10 +178,12 @@ const MODE_CARDS = [
         glowColor: '#f02849',
         diamondReward: '2x stake',
         perfectBonus: null,
-        image: '/images/trivia/pvp-battle.webp?v=v6'
+        image: '/images/trivia/modes-v2/pvp.webp'
     },
     {
         id: 'rules',
+        code: '11',
+        category: 'knowledge',
         name: 'Rules Quiz',
         description: 'Test Your Understanding of Official Poker Rules',
         icon: BookOpen,
@@ -182,10 +191,12 @@ const MODE_CARDS = [
         glowColor: '#4a90d9',
         diamondReward: 3,
         perfectBonus: 5,
-        image: '/images/trivia/rules-quiz.webp?v=v6'
+        image: '/images/trivia/modes-v2/rules.webp'
     },
     {
         id: 'gto',
+        code: '12',
+        category: 'competitive',
         name: 'GTO Master',
         description: 'Solver-based Scenarios Combining MTT, Cash, and ICM',
         icon: Brain,
@@ -193,8 +204,16 @@ const MODE_CARDS = [
         glowColor: '#a855f7',
         diamondReward: 8,
         perfectBonus: 15,
-        image: '/images/trivia/gto-master.webp?v=v6'
+        image: '/images/trivia/modes-v2/gto.webp'
     }
+];
+
+const MODE_FILTERS = [
+    { id: 'all', label: 'All Modes' },
+    { id: 'strategy', label: 'Strategy' },
+    { id: 'knowledge', label: 'Knowledge' },
+    { id: 'challenge', label: 'Challenge' },
+    { id: 'competitive', label: 'Competitive' },
 ];
 
 
@@ -205,11 +224,9 @@ const MODE_CARDS = [
  */
 export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyCompleted = false, currentStreak = 0, onDiamondsChange }) {
     const router = useRouter();
-    const [hoveredCard, setHoveredCard] = useState(null);
-    const [mounted, setMounted] = useState(false);
+    const [activeFilter, setActiveFilter] = useState('all');
 
     useEffect(() => {
-        setMounted(true);
         // Clear any legacy 'already paid' flags left in this session by an
         // older build. Nothing writes them any more, and a stale one would
         // hand out one free paid entry on the destination page.
@@ -225,9 +242,12 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
     const [showChargePopup, setShowChargePopup] = useState(false);
     const [pendingMode, setPendingMode] = useState(null);
     const [isRouting, setIsRouting] = useState(false);
-    const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('trivia');
+    const { showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('trivia');
 
     const pendingCost = pendingMode ? getEntryCost(pendingMode) : 0;
+    const filteredModes = activeFilter === 'all'
+        ? MODE_CARDS
+        : MODE_CARDS.filter(mode => mode.category === activeFilter);
 
     // Route to the correct page for a mode
     const routeToMode = (modeId) => {
@@ -302,21 +322,6 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
     return (
         <div className="trivia-lobby">
-
-            {/* ════ Floating Card Suit Particles ════ */}
-            {mounted && (
-                <div className="suit-particles" aria-hidden>
-                    {SUIT_PARTICLES.map((p, i) => (
-                        <span key={i} className={`suit ${p.suit === '♥' || p.suit === '♦' ? 'red' : ''}`} style={{
-                            left: `${p.left}%`,
-                            animationDelay: `${p.delay}s`,
-                            animationDuration: `${p.duration}s`,
-                            fontSize: `${p.fontSize}px`,
-                        }}>{p.suit}</span>
-                    ))}
-                </div>
-            )}
-
             {/* Daily Trivia Hero Card - Image Based.
                 The wrapper keeps its mouse affordance; keyboard and
                 screen-reader users are served by the labelled inner button. */}
@@ -364,113 +369,95 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
             {/* Mode Cards Section */}
             <div className="modes-section">
+                <div className="modes-toolbar">
+                    <div>
+                        <span className="modes-toolbar__eyebrow">GAME SELECT // TRIVIA NETWORK</span>
+                        <h2>Choose Your Game</h2>
+                    </div>
+                    <span className="modes-toolbar__count">
+                        <i aria-hidden /> {filteredModes.length} LIVE {filteredModes.length === 1 ? 'MODE' : 'MODES'}
+                    </span>
+                </div>
+
+                <div className="mode-filters" role="group" aria-label="Filter trivia modes">
+                    {MODE_FILTERS.map(filter => (
+                        <button
+                            key={filter.id}
+                            type="button"
+                            className={`mode-filter${activeFilter === filter.id ? ' mode-filter--active' : ''}`}
+                            onClick={() => setActiveFilter(filter.id)}
+                            aria-pressed={activeFilter === filter.id}
+                        >
+                            {filter.label}
+                        </button>
+                    ))}
+                </div>
 
                 <div className="modes-grid">
-                    {MODE_CARDS.map((mode, cardIdx) => {
+                    {filteredModes.map((mode, cardIdx) => {
                         const Icon = mode.icon;
-                        const isHovered = hoveredCard === mode.id;
+                        const cost = getEntryCost(mode.id);
+                        const variableCost = VARIABLE_COST_MODES.has(mode.id);
+                        const costText = isVip
+                            ? 'VIP FREE'
+                            : variableCost
+                                ? 'VARIABLE'
+                                : cost > 0 ? `${cost} DIAMONDS` : 'FREE';
+                        const rewardText = typeof mode.diamondReward === 'number'
+                            ? `+${mode.diamondReward}${mode.perfectBonus ? ` / +${mode.perfectBonus} PERFECT` : ''}`
+                            : (mode.diamondReward ? String(mode.diamondReward).toUpperCase() : '—');
 
-                        // Use image-based card if mode has an image
-                        if (mode.image) {
-                            const cost = getEntryCost(mode.id);
-                            const variableCost = VARIABLE_COST_MODES.has(mode.id);
-                            const costText = isVip
-                                ? 'VIP: free'
-                                : variableCost
-                                    ? 'Stake to play'
-                                    : cost > 0 ? `${cost} to play` : 'Free';
-                            const rewardText = typeof mode.diamondReward === 'number'
-                                ? `+${mode.diamondReward}${mode.perfectBonus ? ` / perfect +${mode.perfectBonus}` : ''}`
-                                : (mode.diamondReward ? String(mode.diamondReward) : '');
-
-                            // A real <button>: these image cards were click-only
-                            // divs, so the whole lobby was unreachable by keyboard,
-                            // and the price was only revealed by the popup.
-                            return (
-                                <button
-                                    key={mode.id}
-                                    type="button"
-                                    className="mode-image-card"
-                                    onMouseEnter={() => setHoveredCard(mode.id)}
-                                    onMouseLeave={() => setHoveredCard(null)}
-                                    onFocus={() => setHoveredCard(mode.id)}
-                                    onBlur={() => setHoveredCard(null)}
-                                    onClick={() => startMode(mode.id)}
-                                    aria-label={`${mode.name}. ${mode.description}. ${costText}${rewardText ? `. Reward ${rewardText} diamonds` : ''}.`}
-                                    style={isHovered ? { boxShadow: `0 8px 30px ${mode.color}55` } : undefined}
-                                >
+                        return (
+                            <button
+                                key={mode.id}
+                                type="button"
+                                className="mode-image-card"
+                                onClick={() => startMode(mode.id)}
+                                aria-label={`${mode.name}. ${mode.description}. ${costText}${rewardText ? `. Reward ${rewardText} diamonds` : ''}.`}
+                                style={{ '--mode-color': mode.color, '--mode-glow': `${mode.glowColor}80` }}
+                            >
+                                <div className="mode-image-card__art">
                                     <img
                                         src={mode.image}
                                         alt=""
                                         aria-hidden
                                         className="mode-image-card__img"
-                                        width={896}
-                                        height={1200}
+                                        width={1024}
+                                        height={1024}
                                         loading={cardIdx < 3 ? 'eager' : 'lazy'}
                                         decoding="async"
                                     />
-                                </button>
-                            );
-                        }
-
-                        // Fallback to MetalFrame for modes without images
-                        return (
-                            <MetalFrame
-                                key={mode.id}
-                                padding="24px 20px"
-                                showBolts={true}
-                                showNeonStrips={false}
-                                variant={isHovered ? 'elevated' : 'flat'}
-                                className="mode-card"
-                                style={{
-                                    '--mode-color': mode.color,
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <div
-                                    className="mode-card__inner"
-                                    onMouseEnter={() => setHoveredCard(mode.id)}
-                                    onMouseLeave={() => setHoveredCard(null)}
-                                    onClick={() => startMode(mode.id)}
-                                >
-                                    {/* Left neon strip accent */}
-                                    <div
-                                        className="mode-accent-strip"
-                                        style={{ background: mode.color, boxShadow: `0 0 10px ${mode.color}, 0 0 20px ${mode.color}80` }}
-                                    />
-
-                                    <PortholeIcon
-                                        icon={Icon}
-                                        size={60}
-                                        glowColor={mode.glowColor}
-                                        animated={isHovered}
-                                    />
-
-                                    <h3 className="mode-name" style={{ color: mode.color }}>
-                                        {mode.name}
-                                    </h3>
-                                    <p className="mode-description">{mode.description}</p>
-
-
-                                    <HexButton
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            startMode(mode.id);
-                                        }}
-                                        variant="primary"
-                                        size="sm"
-                                        fullWidth
-                                    >
-                                        START
-                                    </HexButton>
+                                    <span className="mode-image-card__code" aria-hidden>{mode.code}</span>
+                                    <span className="mode-image-card__status" aria-hidden><i /> LIVE</span>
+                                    <span className="mode-image-card__icon" aria-hidden>
+                                        <Icon size={18} strokeWidth={1.7} />
+                                    </span>
                                 </div>
-                            </MetalFrame>
+
+                                <div className="mode-image-card__body">
+                                    <span className="mode-image-card__kicker">{mode.category} // {mode.id}</span>
+                                    <h3>{mode.name}</h3>
+                                    <p>{mode.description}</p>
+
+                                    <div className="mode-image-card__telemetry" aria-hidden>
+                                        <span>
+                                            <small>ENTRY</small>
+                                            <strong>{costText}</strong>
+                                        </span>
+                                        <span>
+                                            <small>REWARD</small>
+                                            <strong>{rewardText}</strong>
+                                        </span>
+                                    </div>
+
+                                    <span className="mode-image-card__launch" aria-hidden>
+                                        Launch Mode <ArrowUpRight size={15} />
+                                    </span>
+                                </div>
+                            </button>
                         );
                     })}
                 </div>
-
-
-                {/* Daily Refresh Notice removed */}
             </div>
 
             {/* Quick Stakes Section - Landscape Banner */}
@@ -1015,6 +1002,567 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     font-weight: 700;
                     text-shadow: 0 0 10px rgba(77, 248, 255, 0.4);
                     pointer-events: none;
+                }
+
+                /* ═══════ SMARTER.POKER TRIVIA REDESIGN ═══════ */
+                .trivia-lobby,
+                .trivia-lobby * {
+                    box-sizing: border-box;
+                }
+
+                .trivia-lobby {
+                    --steel: #6f9bb0;
+                    --steel-dim: rgba(111, 155, 176, 0.46);
+                    --cyan: #19b9ff;
+                    --cyan-soft: rgba(25, 185, 255, 0.18);
+                    --panel: #050b10;
+                    --panel-raised: #08131b;
+                    width: 100%;
+                    max-width: 1220px;
+                    padding: 0 18px 24px;
+                    overflow: visible;
+                    color: #e7f4fb;
+                    font-family: 'Rajdhani', 'Arial Narrow', sans-serif;
+                }
+
+                .daily-trivia-banner {
+                    margin: 0 0 14px;
+                    padding: 4px;
+                    overflow: hidden;
+                    border: 1px solid var(--steel);
+                    background: #02070a;
+                    box-shadow:
+                        inset 0 0 0 1px rgba(89, 184, 225, 0.16),
+                        0 12px 32px rgba(0, 0, 0, 0.34);
+                }
+
+                .daily-trivia-banner__image {
+                    border: 1px solid rgba(104, 181, 214, 0.42);
+                }
+
+                .modes-section {
+                    position: relative;
+                    margin-top: 0;
+                    border: 1px solid var(--steel-dim);
+                    background:
+                        linear-gradient(180deg, rgba(16, 33, 43, 0.72), rgba(2, 7, 10, 0.96) 120px),
+                        var(--panel);
+                    box-shadow:
+                        inset 0 0 0 1px rgba(121, 195, 224, 0.08),
+                        0 18px 50px rgba(0, 0, 0, 0.3);
+                }
+
+                .modes-section::before,
+                .modes-section::after {
+                    content: '';
+                    position: absolute;
+                    z-index: 2;
+                    top: -1px;
+                    width: 74px;
+                    height: 2px;
+                    background: var(--cyan);
+                    box-shadow: 0 0 12px rgba(25, 185, 255, 0.72);
+                    pointer-events: none;
+                }
+
+                .modes-section::before { left: 0; }
+                .modes-section::after { right: 0; }
+
+                .modes-toolbar {
+                    min-height: 80px;
+                    padding: 15px 18px 13px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 20px;
+                    border-bottom: 1px solid rgba(111, 155, 176, 0.28);
+                    background: linear-gradient(90deg, rgba(5, 13, 18, 0.9), rgba(11, 24, 32, 0.68), rgba(5, 13, 18, 0.9));
+                }
+
+                .modes-toolbar__eyebrow,
+                .mode-image-card__kicker {
+                    display: block;
+                    color: #8aaabd;
+                    font-size: 10px;
+                    font-weight: 600;
+                    line-height: 1;
+                    letter-spacing: 0.2em;
+                    text-transform: uppercase;
+                }
+
+                .modes-toolbar h2 {
+                    margin: 7px 0 0;
+                    color: #f4fbff;
+                    font-size: clamp(24px, 3vw, 34px);
+                    font-weight: 500;
+                    line-height: 1;
+                    letter-spacing: 0.015em;
+                    text-transform: uppercase;
+                }
+
+                .modes-toolbar__count,
+                .mode-image-card__status {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 7px;
+                    color: #9fc9dc;
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.14em;
+                    white-space: nowrap;
+                }
+
+                .modes-toolbar__count i,
+                .mode-image-card__status i {
+                    width: 6px;
+                    height: 6px;
+                    flex: 0 0 6px;
+                    border-radius: 50%;
+                    background: #33d47b;
+                    box-shadow: 0 0 9px rgba(51, 212, 123, 0.9);
+                }
+
+                .mode-filters {
+                    display: flex;
+                    align-items: stretch;
+                    gap: 0;
+                    padding: 0 18px;
+                    overflow-x: auto;
+                    border-bottom: 1px solid rgba(111, 155, 176, 0.2);
+                    scrollbar-width: none;
+                }
+
+                .mode-filters::-webkit-scrollbar { display: none; }
+
+                .mode-filter {
+                    position: relative;
+                    min-width: max-content;
+                    min-height: 48px;
+                    padding: 0 20px;
+                    border: 0;
+                    border-right: 1px solid rgba(111, 155, 176, 0.16);
+                    background: transparent;
+                    color: #7893a2;
+                    font-family: inherit;
+                    font-size: 12px;
+                    font-weight: 700;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    cursor: pointer;
+                    transition: color 180ms ease, background 180ms ease;
+                }
+
+                .mode-filter:first-child { border-left: 1px solid rgba(111, 155, 176, 0.16); }
+
+                .mode-filter:hover,
+                .mode-filter--active {
+                    color: #eaf8ff;
+                    background: linear-gradient(180deg, rgba(25, 185, 255, 0.1), rgba(25, 185, 255, 0.025));
+                }
+
+                .mode-filter--active::after {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    height: 2px;
+                    background: var(--cyan);
+                    box-shadow: 0 0 10px rgba(25, 185, 255, 0.85);
+                }
+
+                .mode-filter:focus-visible {
+                    outline: 2px solid var(--cyan);
+                    outline-offset: -3px;
+                }
+
+                .modes-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    align-items: stretch;
+                    gap: 12px;
+                    padding: 14px;
+                }
+
+                .mode-image-card {
+                    position: relative;
+                    display: flex;
+                    flex-direction: column;
+                    width: 100%;
+                    min-width: 0;
+                    padding: 0;
+                    overflow: hidden;
+                    border: 1px solid rgba(111, 155, 176, 0.58);
+                    border-radius: 1px;
+                    background: linear-gradient(180deg, #09131a, #03080c);
+                    color: #e7f4fb;
+                    text-align: left;
+                    cursor: pointer;
+                    box-shadow:
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.018),
+                        0 10px 28px rgba(0, 0, 0, 0.24);
+                    transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+                }
+
+                .mode-image-card::before {
+                    content: '';
+                    position: absolute;
+                    z-index: 4;
+                    left: 0;
+                    top: 0;
+                    width: 52px;
+                    height: 2px;
+                    background: var(--mode-color);
+                    box-shadow: 0 0 12px var(--mode-glow);
+                    pointer-events: none;
+                }
+
+                .mode-image-card:hover,
+                .mode-image-card:focus-visible {
+                    transform: translateY(-3px);
+                    border-color: var(--mode-color);
+                    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42), 0 0 18px var(--mode-glow);
+                    outline: none;
+                }
+
+                .mode-image-card__art {
+                    position: relative;
+                    width: 100%;
+                    aspect-ratio: 1 / 1;
+                    overflow: hidden;
+                    border-bottom: 1px solid rgba(111, 155, 176, 0.42);
+                    background: #010407;
+                }
+
+                .mode-image-card__art::after {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background:
+                        linear-gradient(180deg, rgba(0, 0, 0, 0.08) 55%, rgba(0, 0, 0, 0.72)),
+                        repeating-linear-gradient(0deg, transparent 0 3px, rgba(95, 198, 236, 0.025) 3px 4px);
+                    pointer-events: none;
+                }
+
+                .mode-image-card__img {
+                    width: 100%;
+                    height: 100%;
+                    display: block;
+                    object-fit: cover;
+                    border-radius: 0;
+                    filter: saturate(0.94) contrast(1.04);
+                    transition: transform 500ms cubic-bezier(.2,.7,.2,1), filter 250ms ease;
+                }
+
+                .mode-image-card:hover .mode-image-card__img,
+                .mode-image-card:focus-visible .mode-image-card__img {
+                    transform: scale(1.035);
+                    filter: saturate(1.08) contrast(1.06);
+                }
+
+                .mode-image-card__code,
+                .mode-image-card__status,
+                .mode-image-card__icon {
+                    position: absolute;
+                    z-index: 2;
+                }
+
+                .mode-image-card__code {
+                    top: 10px;
+                    left: 11px;
+                    color: #d6e8f1;
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 0.18em;
+                    text-shadow: 0 2px 8px #000;
+                }
+
+                .mode-image-card__status {
+                    top: 10px;
+                    right: 10px;
+                    padding: 4px 6px;
+                    border: 1px solid rgba(129, 185, 211, 0.32);
+                    background: rgba(0, 5, 8, 0.72);
+                    color: #c2dbe7;
+                    font-size: 8px;
+                    backdrop-filter: blur(5px);
+                }
+
+                .mode-image-card__status i { width: 5px; height: 5px; flex-basis: 5px; }
+
+                .mode-image-card__icon {
+                    right: 10px;
+                    bottom: 10px;
+                    width: 34px;
+                    height: 34px;
+                    display: grid;
+                    place-items: center;
+                    border: 1px solid var(--mode-color);
+                    background: rgba(1, 6, 9, 0.74);
+                    color: var(--mode-color);
+                    box-shadow: 0 0 12px var(--mode-glow);
+                    backdrop-filter: blur(6px);
+                }
+
+                .mode-image-card__body {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    min-width: 0;
+                    padding: 15px 15px 14px;
+                }
+
+                .mode-image-card__kicker {
+                    overflow: hidden;
+                    color: var(--mode-color);
+                    font-size: 9px;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                .mode-image-card h3 {
+                    margin: 8px 0 4px;
+                    color: #f1f8fb;
+                    font-size: 23px;
+                    font-weight: 600;
+                    line-height: 1;
+                    letter-spacing: 0.015em;
+                    text-transform: uppercase;
+                }
+
+                .mode-image-card p {
+                    min-height: 38px;
+                    margin: 0 0 13px;
+                    color: #8da4b0;
+                    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                    font-size: 11px;
+                    line-height: 1.45;
+                }
+
+                .mode-image-card__telemetry {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+                    margin-top: auto;
+                    border-top: 1px solid rgba(111, 155, 176, 0.2);
+                    border-bottom: 1px solid rgba(111, 155, 176, 0.2);
+                }
+
+                .mode-image-card__telemetry > span {
+                    min-width: 0;
+                    padding: 9px 7px 8px 0;
+                }
+
+                .mode-image-card__telemetry > span + span {
+                    padding-left: 10px;
+                    border-left: 1px solid rgba(111, 155, 176, 0.2);
+                }
+
+                .mode-image-card__telemetry small,
+                .mode-image-card__telemetry strong {
+                    display: block;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                .mode-image-card__telemetry small {
+                    margin-bottom: 3px;
+                    color: #5e7784;
+                    font-size: 8px;
+                    font-weight: 700;
+                    letter-spacing: 0.16em;
+                }
+
+                .mode-image-card__telemetry strong {
+                    color: #cce1eb;
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.04em;
+                }
+
+                .mode-image-card__launch {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px;
+                    margin-top: 11px;
+                    color: #91adbb;
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.12em;
+                    text-transform: uppercase;
+                    transition: color 180ms ease;
+                }
+
+                .mode-image-card:hover .mode-image-card__launch,
+                .mode-image-card:focus-visible .mode-image-card__launch {
+                    color: var(--mode-color);
+                }
+
+                .quick-stakes-section {
+                    margin-top: 14px;
+                    padding: 4px;
+                    border: 1px solid var(--steel);
+                    background: #02070a;
+                    box-shadow: inset 0 0 0 1px rgba(89, 184, 225, 0.13);
+                }
+
+                .quick-stakes-banner {
+                    border: 1px solid rgba(104, 181, 214, 0.4);
+                    border-radius: 0;
+                }
+
+                @media (max-width: 900px) and (min-width: 701px) {
+                    .modes-grid {
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                    }
+                }
+
+                @media (max-width: 700px) {
+                    .trivia-lobby {
+                        padding: 0 8px 18px !important;
+                    }
+
+                    .daily-trivia-banner {
+                        margin-bottom: 9px;
+                        padding: 3px;
+                    }
+
+                    .modes-toolbar {
+                        min-height: 68px;
+                        padding: 12px 11px 10px;
+                        gap: 10px;
+                    }
+
+                    .modes-toolbar__eyebrow { font-size: 8px; }
+                    .modes-toolbar h2 { margin-top: 6px; font-size: 22px; }
+                    .modes-toolbar__count { font-size: 8px; }
+
+                    .mode-filters {
+                        padding: 0 10px;
+                    }
+
+                    .mode-filter {
+                        min-height: 44px;
+                        padding: 0 15px;
+                        font-size: 10px;
+                    }
+
+                    .modes-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 8px !important;
+                        padding: 8px;
+                    }
+
+                    .mode-image-card {
+                        display: flex;
+                        flex-direction: column;
+                        min-height: 0;
+                        border-radius: 1px !important;
+                    }
+
+                    .mode-image-card:hover,
+                    .mode-image-card:focus-visible {
+                        transform: translateY(-1px);
+                    }
+
+                    .mode-image-card__art {
+                        width: 100%;
+                        height: auto;
+                        min-height: 0;
+                        aspect-ratio: 1 / 1;
+                        border-right: 0;
+                        border-bottom: 1px solid rgba(111, 155, 176, 0.42);
+                    }
+
+                    .mode-image-card__img {
+                        height: 100% !important;
+                        border-radius: 0 !important;
+                    }
+
+                    .mode-image-card__code {
+                        top: 7px;
+                        left: 8px;
+                        font-size: 9px;
+                    }
+
+                    .mode-image-card__status {
+                        top: 7px;
+                        right: 7px;
+                        padding: 3px 4px;
+                    }
+
+                    .mode-image-card__icon {
+                        right: 7px;
+                        bottom: 7px;
+                        width: 28px;
+                        height: 28px;
+                    }
+
+                    .mode-image-card__icon svg { width: 15px; height: 15px; }
+
+                    .mode-image-card__body {
+                        padding: 14px 14px 13px;
+                    }
+
+                    .mode-image-card__kicker { font-size: 8px; }
+
+                    .mode-image-card h3 {
+                        margin: 7px 0 5px;
+                        font-size: 22px;
+                    }
+
+                    .mode-image-card p {
+                        display: block;
+                        min-height: 34px;
+                        margin-bottom: 11px;
+                        overflow: visible;
+                        font-size: 10.5px;
+                        line-height: 1.45;
+                    }
+
+                    .mode-image-card__telemetry > span {
+                        padding-top: 8px;
+                        padding-bottom: 7px;
+                    }
+
+                    .mode-image-card__telemetry small { font-size: 7px; }
+                    .mode-image-card__telemetry strong { font-size: 9px; }
+
+                    .mode-image-card__launch {
+                        margin-top: 10px;
+                        font-size: 9px;
+                    }
+
+                    .quick-stakes-section {
+                        margin-top: 9px !important;
+                        padding: 3px;
+                    }
+
+                    .quick-stakes-banner__img {
+                        border-radius: 0 !important;
+                    }
+                }
+
+                @media (max-width: 390px) {
+                    .mode-image-card h3 { font-size: 20px; }
+                    .mode-image-card__body { padding-left: 9px; padding-right: 9px; }
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .mode-image-card,
+                    .mode-image-card__img,
+                    .mode-filter {
+                        animation: none;
+                        transition: none;
+                    }
+
+                    .mode-image-card:hover,
+                    .mode-image-card:focus-visible,
+                    .mode-image-card:hover .mode-image-card__img,
+                    .mode-image-card:focus-visible .mode-image-card__img {
+                        transform: none;
+                    }
                 }
             `}</style>
 
