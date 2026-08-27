@@ -3,7 +3,7 @@
  * Handles achievement unlocking and tracking
  */
 
-import { supabase } from '../lib/supabase';
+import { authedFetch } from '../lib/authUtils';
 
 // Achievement definitions (matching SQL)
 const ACHIEVEMENT_IDS = {
@@ -37,102 +37,21 @@ class AchievementService {
     async checkAndUnlock(userId, gameData) {
         if (!userId) return [];
 
-        const unlocked = [];
-        const {
-            gamesPlayed = 0,
-            accuracy = 0,
-            timeTaken = 0,
-            level = 1,
-            gameMode = 'range',
-            totalDiamonds = 0,
-            aiScenariosCompleted = 0,
-            currentStreak = 0,
-            modesPlayed = []
-        } = gameData;
-
         try {
-            // First game
-            if (gamesPlayed === 1) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.FIRST_GAME);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.FIRST_GAME);
+            // Achievement eligibility and rewards are authoritative server
+            // work. The legacy browser RPC used a stale parameter name and
+            // attempted a SECURITY DEFINER mutation directly from the client.
+            const response = await authedFetch('/api/training/achievements', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stats: gameData || {} }),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                throw new Error(payload?.error || 'Unable to check achievements');
             }
 
-            // Perfect memory (100% accuracy)
-            if (accuracy === 100) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.PERFECT_MEMORY);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.PERFECT_MEMORY);
-            }
-
-            // Speed demon (complete in under 60 seconds)
-            if (timeTaken < 60 && accuracy >= 85) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.SPEED_DEMON);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.SPEED_DEMON);
-            }
-
-            // Marathon mind (10 games in one session)
-            if (gamesPlayed >= 10) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.MARATHON_MIND);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.MARATHON_MIND);
-            }
-
-            // Level milestones
-            if (level >= 5) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.LEVEL_5);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.LEVEL_5);
-            }
-            if (level >= 10) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.LEVEL_10);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.LEVEL_10);
-            }
-
-            // Streak achievements
-            if (currentStreak >= 3) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.STREAK_3);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.STREAK_3);
-            }
-            if (currentStreak >= 7) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.STREAK_7);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.STREAK_7);
-            }
-            if (currentStreak >= 30) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.STREAK_30);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.STREAK_30);
-            }
-
-            // Diamond milestones
-            if (totalDiamonds >= 100) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.DIAMOND_100);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.DIAMOND_100);
-            }
-            if (totalDiamonds >= 1000) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.DIAMOND_1000);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.DIAMOND_1000);
-            }
-
-            // AI scenario achievements
-            if (aiScenariosCompleted >= 5) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.AI_5);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.AI_5);
-            }
-            if (aiScenariosCompleted >= 25) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.AI_25);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.AI_25);
-            }
-
-            // Mode-specific
-            if (gameMode === 'pressure' && accuracy >= 90) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.PRESSURE_PRO);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.PRESSURE_PRO);
-            }
-
-            // All modes played
-            const allModes = ['range', 'speed', 'pressure', 'pattern', 'mixed', 'spot', 'tournament'];
-            if (allModes.every(m => modesPlayed.includes(m))) {
-                const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.ALL_MODES);
-                if (result?.success) unlocked.push(ACHIEVEMENT_IDS.ALL_MODES);
-            }
-
-            return unlocked;
+            return (payload.newlyUnlocked || []).map((achievement) => achievement.id);
         } catch (error) {
             console.warn('[AchievementService] Error checking achievements:', error);
             return [];
@@ -143,50 +62,24 @@ class AchievementService {
      * Unlock a single achievement via RPC
      */
     async unlockAchievement(userId, achievementId) {
-        try {
-            // Skip if already unlocked in this session
-            const cacheKey = `${userId}-${achievementId}`;
-            if (this.unlockedCache.has(cacheKey)) {
-                return { success: false, already_unlocked: true };
-            }
-
-            const { data, error } = await supabase.rpc('unlock_achievement', {
-                p_user_id: userId,
-                p_achievement_id: achievementId
-            });
-
-            if (error) {
-                // Table doesn't exist yet - silently fail
-                if (error.code === '42P01') {
-                    console.debug('[AchievementService] Achievements table not created yet');
-                    return { success: false };
-                }
-                throw error;
-            }
-
-            if (data?.success) {
-                this.unlockedCache.add(cacheKey);
-                console.debug(`[AchievementService] Unlocked: ${achievementId}`);
-            }
-
-            return data;
-        } catch (error) {
-            console.warn('[AchievementService] Error unlocking:', error);
-            return { success: false, error: error.message };
-        }
+        // Retained for compatibility with older callers. Eligibility cannot be
+        // safely established from an achievement id alone, so route all new
+        // checks through checkAndUnlock and its server-owned stats contract.
+        return { success: false, unsupported: true, userId, achievementId };
     }
 
     /**
      * Get user's unlocked achievements
      */
     async getUserAchievements(userId) {
+        if (!userId) return [];
         try {
-            const { data, error } = await supabase.rpc('get_user_achievements', {
-                p_user_id: userId
-            });
-
-            if (error) throw error;
-            return data || [];
+            const response = await authedFetch('/api/training/achievements');
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                throw new Error(payload?.error || 'Unable to load achievements');
+            }
+            return payload.achievements || [];
         } catch (error) {
             console.warn('[AchievementService] Error fetching:', error);
             return [];
