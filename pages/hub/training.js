@@ -77,6 +77,17 @@ const CATEGORY_META = {
 
 const CATEGORY_ORDER = ['MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'];
 
+// Category art keeps every catalog card visually complete when a legacy
+// game-specific filename is absent. Never collapse a failed image into an
+// empty black panel.
+const CATEGORY_FALLBACK_IMAGES = {
+  MTT: '/images/training/mtt_game_card_art.png',
+  CASH: '/images/training/cash_game_card_art_1768471965279.png',
+  SPINS: '/images/training/spins_game_card_art_1768471979905.png',
+  PSYCHOLOGY: '/images/training/psychology_game_card_art_1768471994579.png',
+  ADVANCED: '/images/training/advanced_game_card_art_1768472009165.png',
+};
+
 export default function TrainingPage() {
   const router = useRouter();
 
@@ -266,10 +277,10 @@ export default function TrainingPage() {
           <main id="main" className="sp-main">
 
             <section aria-labelledby="hero-h" className="sp-hero">
-              <div>
+              <div className="sp-hero-copy">
                 <p className="sp-hero-eyebrow">
                   <span className="sp-dot" aria-hidden />
-                  {jarvisPick?.estMinutes ? `Today · ${jarvisPick.estMinutes} min plan` : 'Today'}
+                  {jarvisPick?.estMinutes ? `Training Orb Online · ${jarvisPick.estMinutes} Minute Plan` : 'Training Orb Online'}
                 </p>
                 <h1 id="hero-h" className="sp-hero-title">
                   {renderHeroHeadline({ authUser, stats, jarvisPick, statsLoading, recommendationLoading })}
@@ -281,7 +292,7 @@ export default function TrainingPage() {
                       ? (jarvisPick.reason
                           ? `Jarvis: ${jarvisPick.reason}`
                           : `Jarvis picked one drill for you — ${jarvisPick.name}.`)
-                      : 'Browse the library below to start your first drill.'}
+                      : 'Browse The Library Below To Start Your First Drill.'}
                 </p>
 
                 {jarvisPick && <DrillCard game={jarvisPick} />}
@@ -293,10 +304,10 @@ export default function TrainingPage() {
                     disabled={!jarvisPick}
                     aria-disabled={!jarvisPick}
                   >
-                    <Play size={18} aria-hidden /> Start today's drill
+                    <Play size={18} aria-hidden /> Start Today's Drill
                   </button>
                   <button className="sp-cta sp-cta-secondary" onClick={() => setActiveCat('ALL')}>
-                    <Shuffle size={18} aria-hidden /> Pick a different drill
+                    <Shuffle size={18} aria-hidden /> Pick A Different Drill
                   </button>
                 </div>
               </div>
@@ -329,8 +340,8 @@ export default function TrainingPage() {
 
             <section aria-labelledby="stats-h">
               <div className="sp-section-head">
-                <h2 id="stats-h" className="sp-section-title">This week</h2>
-                <a className="sp-section-link" href="/hub/session-history">See history <ArrowRight size={14} aria-hidden /></a>
+                <h2 id="stats-h" className="sp-section-title">This Week</h2>
+                <a className="sp-section-link" href="/hub/session-history">See History <ArrowRight size={14} aria-hidden /></a>
               </div>
               <div className="sp-stats">
                 <Stat
@@ -350,7 +361,7 @@ export default function TrainingPage() {
                 />
                 <Stat
                   icon={TrendingUp}
-                  label="EV saved"
+                  label="EV Saved"
                   loading={statsLoading}
                   value={(stats?.ev_saved_this_week_bb ?? 0) >= 0
                     ? `+${stats?.ev_saved_this_week_bb ?? 0}`
@@ -385,7 +396,7 @@ export default function TrainingPage() {
 
             <section aria-labelledby="lib-h">
               <div className="sp-section-head">
-                <h2 id="lib-h" className="sp-section-title">Browse the library</h2>
+                <h2 id="lib-h" className="sp-section-title">Browse The Training Library</h2>
                 <span className="sp-section-link" aria-live="polite">
                   {filtered.length === TRAINING_LIBRARY.length ? `${TRAINING_LIBRARY.length} games` : `${filtered.length} of ${TRAINING_LIBRARY.length}`}
                 </span>
@@ -396,8 +407,8 @@ export default function TrainingPage() {
                   <Search size={16} aria-hidden />
                   <input
                     type="search"
-                    aria-label="Search games"
-                    placeholder="Search drills, spots, formats…"
+                    aria-label="Search Games"
+                    placeholder="Search Drills, Spots, Formats…"
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                   />
@@ -432,7 +443,7 @@ export default function TrainingPage() {
                   ))}
                 </div>
               ) : (
-                <p className="sp-empty">No drills match — try a different search.</p>
+                <p className="sp-empty">No Drills Match — Try A Different Search.</p>
               )}
             </section>
 
@@ -612,6 +623,7 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
               : progress === 0  ? 'new'
               : null;
   const imageUrl = getGameImage(game.id);
+  const fallbackImage = CATEGORY_FALLBACK_IMAGES[game.category] || CATEGORY_FALLBACK_IMAGES.MTT;
   return (
     <button
       className="sp-card"
@@ -627,12 +639,15 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
           loading="lazy"
           decoding="async"
           className="sp-card-cover-img"
-          onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+          onError={(e) => {
+            if (e.currentTarget.src.endsWith(fallbackImage)) return;
+            e.currentTarget.src = fallbackImage;
+          }}
         />
         {/* Top-edge gradient so badges stay legible regardless of cover art */}
         <div className="sp-card-cover-shade" aria-hidden />
         <div className="sp-card-badges">
-          {tag === 'recommended' && <span className="sp-badge sp-badge-rec"><Sparkles size={11} aria-hidden /> For you</span>}
+          {tag === 'recommended' && <span className="sp-badge sp-badge-rec"><Sparkles size={11} aria-hidden /> For You</span>}
           {tag === 'mastered'    && <span className="sp-badge sp-badge-mastered"><Check size={11} aria-hidden /> Mastered</span>}
           {tag === 'new'         && <span className="sp-badge sp-badge-new"><Sparkles size={11} aria-hidden /> New</span>}
           {game.locked           && <span className="sp-badge sp-badge-locked"><Lock size={11} aria-hidden /> Locked</span>}
@@ -651,6 +666,7 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
             <div className="sp-progress-fill" style={{ width: `${progress}%` }} />
           </div>
         </div>
+        <div className="sp-card-launch"><span>Enter Training Arena</span><ArrowRight size={14} aria-hidden /></div>
       </div>
     </button>
   );
@@ -1068,6 +1084,252 @@ function GlobalStyle() {
 
       .sp-spin { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--sp-primary); border-radius: 50%; animation: sp-spin 1s linear infinite; margin: 0 auto; }
       @keyframes sp-spin { to { transform: rotate(360deg); } }
+
+      /* 2026-08-26 — Smarter.Poker Training Orb visual system.
+         Every frame is a complete rectangle. There are deliberately no
+         clip-path corners, corner caps, screw boxes, or ornamental pseudo
+         elements: depth comes from full-width metallic highlights and shadows. */
+      .sp-main {
+        max-width: 1360px;
+        padding: 20px 28px 128px;
+        color: #eef9ff;
+        background:
+          linear-gradient(rgba(3, 10, 19, .82), rgba(3, 10, 19, .94)),
+          url('/circuit-brain-bg.png') center top / cover fixed,
+          #030811;
+        border-left: 1px solid rgba(103, 220, 255, .24);
+        border-right: 1px solid rgba(103, 220, 255, .24);
+        box-shadow: 0 0 48px rgba(0, 168, 255, .08) inset;
+      }
+      .sp-main, .sp-main button, .sp-main input { font-family: var(--font-rajdhani), 'Rajdhani', sans-serif; }
+      .sp-main :is(h1, h2, h3, p, span, a, button, input) { text-transform: capitalize; }
+      .sp-main > section + section { margin-top: 38px; }
+
+      .sp-section-head {
+        min-height: 58px;
+        align-items: center;
+        margin-bottom: 14px;
+        padding: 0 20px;
+        border: 1px solid rgba(126, 220, 255, .32);
+        border-radius: 0;
+        background:
+          linear-gradient(180deg, rgba(213, 246, 255, .14) 0, rgba(35, 72, 91, .10) 11%, rgba(3, 11, 19, .92) 46%, rgba(9, 24, 37, .94) 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.34), inset 0 -1px 0 rgba(29,189,255,.22), 0 10px 28px rgba(0,0,0,.28);
+      }
+      .sp-section-title {
+        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-size: 19px;
+        font-weight: 600;
+        letter-spacing: .02em;
+        color: #f4fbff;
+        text-shadow: 0 1px 0 #000, 0 0 14px rgba(71, 206, 255, .18);
+      }
+      .sp-section-link { color: #a8c9dc; letter-spacing: .06em; font-weight: 700; }
+      .sp-section-link:hover { color: #fff; background: rgba(66, 203, 255, .08); }
+
+      .sp-hero {
+        position: relative;
+        isolation: isolate;
+        min-height: 610px;
+        grid-template-columns: minmax(0, .92fr) minmax(320px, .48fr);
+        align-items: end;
+        overflow: hidden;
+        padding: 54px 50px 44px;
+        border: 1px solid rgba(145, 229, 255, .62);
+        border-radius: 0;
+        background:
+          linear-gradient(90deg, rgba(0,5,13,.98) 0%, rgba(0,7,18,.92) 31%, rgba(0,8,23,.28) 58%, rgba(0,7,18,.10) 100%),
+          linear-gradient(0deg, rgba(0,7,16,.78), transparent 42%),
+          url('/images/training/training-orb-hero.png') 62% center / cover no-repeat;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.48),
+          inset 0 -2px 0 rgba(27,183,255,.65),
+          0 18px 50px rgba(0,0,0,.52),
+          0 0 34px rgba(0,146,255,.16);
+      }
+      .sp-hero-copy { position: relative; z-index: 2; max-width: 620px; align-self: center; }
+      .sp-hero-eyebrow {
+        width: fit-content;
+        margin-bottom: 22px;
+        color: #bcecff;
+        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .18em;
+        text-shadow: 0 0 12px rgba(37, 210, 255, .55);
+      }
+      .sp-dot { width: 7px; height: 7px; background: #5ee8ff; box-shadow: 0 0 13px #16cfff; }
+      .sp-hero-title {
+        max-width: 720px;
+        margin-bottom: 16px;
+        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-size: clamp(35px, 4.5vw, 66px);
+        font-weight: 500;
+        line-height: 1.08;
+        letter-spacing: -.035em;
+        color: #eff8fc;
+        text-shadow: 0 3px 1px #000, 0 0 22px rgba(122,222,255,.22);
+      }
+      .sp-hero-title em {
+        color: #8de9ff;
+        background: linear-gradient(180deg, #f6feff 0%, #83e9ff 45%, #167eb4 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 12px rgba(0,188,255,.38));
+      }
+      .sp-hero-sub { max-width: 56ch; color: #d6e8f3; font-size: 18px; line-height: 1.48; text-shadow: 0 2px 4px #000; }
+      .sp-drill-card {
+        max-width: 570px;
+        border-radius: 0;
+        border-color: rgba(114, 216, 255, .36);
+        background: linear-gradient(180deg, rgba(21,51,70,.72), rgba(3,13,23,.88));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 12px 24px rgba(0,0,0,.28);
+      }
+      .sp-drill-cover { border-radius: 0; border-color: rgba(121,222,255,.38); }
+      .sp-drill-title { color: #fff; font-size: 17px; font-weight: 700; }
+      .sp-tag { border-radius: 0; color: #cfe7f4; background: rgba(3,14,24,.72); border-color: rgba(100,203,245,.22); }
+      .sp-cta { border-radius: 0; font-family: var(--font-orbitron), 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .025em; }
+      .sp-cta-primary {
+        color: #021018;
+        border: 1px solid #b9f4ff;
+        background: linear-gradient(180deg, #dcfbff 0%, #6ce7ff 11%, #0fb8e7 58%, #08729b 100%);
+        box-shadow: inset 0 1px 0 #fff, inset 0 -2px 0 #03445f, 0 0 22px rgba(0,195,255,.32), 0 8px 18px rgba(0,0,0,.35);
+        text-shadow: 0 1px 0 rgba(255,255,255,.55);
+      }
+      .sp-cta-secondary {
+        color: #e9f8ff;
+        border-color: rgba(174, 231, 255, .48);
+        background: linear-gradient(180deg, rgba(216,246,255,.22) 0%, rgba(31,63,82,.38) 16%, rgba(4,15,25,.92) 74%, rgba(15,40,56,.92) 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.38), inset 0 -1px 0 rgba(75,193,239,.26), 0 7px 16px rgba(0,0,0,.34);
+      }
+
+      .sp-grade-card {
+        position: relative;
+        z-index: 2;
+        border-radius: 0;
+        border-color: rgba(134, 225, 255, .5);
+        background: linear-gradient(180deg, rgba(202,242,255,.16), rgba(7,20,31,.93) 16%, rgba(2,10,18,.96));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,173,242,.4), 0 18px 42px rgba(0,0,0,.5);
+        backdrop-filter: blur(12px);
+      }
+      .sp-grade-letter { color: #92ebff; text-shadow: 0 0 20px rgba(0,204,255,.55); }
+      .sp-grade-label, .sp-grade-value { color: #d9edf7; }
+
+      .sp-leak, .sp-progress, .sp-stat, .sp-search input, .sp-empty {
+        border-radius: 0;
+        background: linear-gradient(180deg, rgba(183,232,255,.09), rgba(5,17,28,.94) 18%, rgba(2,10,18,.97));
+        border-color: rgba(112,207,245,.28);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(26,153,210,.22), 0 12px 24px rgba(0,0,0,.24);
+      }
+      .sp-stat { min-height: 118px; padding: 20px; }
+      .sp-stat-label { color: #9ec6da; font-weight: 700; letter-spacing: .08em; }
+      .sp-stat-value { color: #f6fcff; font-size: 28px; text-shadow: 0 0 14px rgba(65,208,255,.2); }
+      .sp-progress { height: auto; }
+      .sp-grade-card .sp-progress, .sp-card-progress .sp-progress { height: 6px; padding: 0; border: 0; box-shadow: none; background: rgba(97,185,222,.14); }
+
+      .sp-toolbar { margin: 0 0 12px; }
+      .sp-search input { min-height: 52px; color: #f3fbff; font-size: 15px; }
+      .sp-cat-chips { gap: 7px; padding: 0 0 18px; }
+      .sp-cat-chip {
+        min-height: 42px;
+        border-radius: 0;
+        color: #c7e0ec;
+        background: linear-gradient(180deg, rgba(201,241,255,.11), rgba(5,16,27,.92));
+        border-color: rgba(106,201,241,.26);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
+      }
+      .sp-cat-chip[aria-pressed="true"] {
+        color: #00141d;
+        background: linear-gradient(180deg, #d8faff, #35d3f8 48%, #087aa4);
+        border-color: #bdf5ff;
+        box-shadow: inset 0 1px 0 #fff, 0 0 18px rgba(0,196,255,.26);
+      }
+
+      .sp-grid { gap: 20px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .sp-card {
+        min-height: 410px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 0;
+        border: 1px solid rgba(135, 219, 252, .4);
+        color: #eef9ff;
+        background: linear-gradient(180deg, rgba(185,235,255,.13) 0, rgba(12,32,47,.96) 3%, rgba(3,12,21,.98) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.44),
+          inset 0 -1px 0 rgba(30,172,230,.35),
+          0 18px 34px rgba(0,0,0,.42),
+          0 0 22px rgba(0,142,220,.08);
+      }
+      .sp-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(170, 237, 255, .82);
+        background: linear-gradient(180deg, rgba(210,244,255,.19), rgba(9,28,43,.98) 4%, rgba(3,12,21,.98));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.64), inset 0 -1px 0 rgba(30,192,255,.55), 0 24px 44px rgba(0,0,0,.5), 0 0 32px rgba(0,184,255,.18);
+      }
+      .sp-card-cover { aspect-ratio: 16 / 10; border-bottom: 1px solid rgba(132,220,255,.42); }
+      .sp-card-cover-img { filter: saturate(1.12) contrast(1.06); }
+      .sp-card-cover-shade { background: linear-gradient(180deg, rgba(0,0,0,.12), transparent 48%, rgba(0,7,15,.88)); }
+      .sp-card-badges { top: 12px; left: 12px; right: 12px; }
+      .sp-badge, .sp-cat-pill { border-radius: 0; background: rgba(2,12,20,.86); border-color: rgba(157,225,255,.42); color: #eaf9ff; }
+      .sp-card-body { flex: 1; display: flex; flex-direction: column; padding: 18px; }
+      .sp-card-cat { color: #8bdfff; font-family: var(--font-orbitron), 'Orbitron', sans-serif; font-weight: 700; letter-spacing: .12em; }
+      .sp-card-title { color: #fff; font-family: var(--font-orbitron), 'Orbitron', sans-serif; font-size: 18px; line-height: 1.3; font-weight: 600; text-shadow: 0 2px 1px #000; }
+      .sp-card-meta { color: #b4cfdd; font-size: 13px; }
+      .sp-card-progress { margin-top: auto; padding-top: 18px; }
+      .sp-card-launch {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(99,196,235,.2);
+        color: #bfeeff;
+        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .08em;
+      }
+
+      [role="dialog"] .sp-card-lg {
+        border-radius: 0;
+        border: 1px solid rgba(143,225,255,.52);
+        background: linear-gradient(180deg, #173142 0, #07141f 4%, #020912 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.48), inset 0 -1px 0 rgba(28,181,240,.38), 0 24px 80px rgba(0,0,0,.72), 0 0 34px rgba(0,180,255,.15);
+      }
+      [role="dialog"] .sp-card { min-height: 0; border-radius: 0; }
+      [role="dialog"] :is(h2, legend, div, span, button) { text-transform: capitalize; }
+
+      @media (max-width: 1000px) {
+        .sp-hero { min-height: 570px; grid-template-columns: 1fr; background-position: 58% center; }
+        .sp-grade-card { max-width: 520px; }
+        .sp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 720px) {
+        .sp-main { padding: 12px 12px 110px; }
+        .sp-hero { min-height: 640px; padding: 34px 22px 24px; background-position: 64% center; }
+        .sp-hero-title { font-size: 38px; }
+        .sp-hero-sub { font-size: 16px; }
+        .sp-grid { grid-template-columns: 1fr; }
+        .sp-section-head { min-height: 54px; padding: 0 14px; }
+        .sp-section-title { font-size: 15px; }
+      }
+
+      /* Binding frame rule: no clipped, chamfered, rounded, or inset-box
+         corners anywhere in the Training Hub surface. */
+      .sp-main :is(.sp-hero, .sp-section-head, .sp-drill-card, .sp-drill-cover,
+        .sp-grade-card, .sp-leak, .sp-progress, .sp-stat, .sp-search input,
+        .sp-cat-chip, .sp-card, .sp-card-cover, .sp-badge, .sp-cat-pill,
+        .sp-empty, .sp-cta, .sp-tag) {
+        border-radius: 0 !important;
+        clip-path: none !important;
+      }
+      .sp-main .sp-card::before, .sp-main .sp-card::after,
+      .sp-main .sp-section-head::before, .sp-main .sp-section-head::after {
+        content: none !important;
+        display: none !important;
+      }
 
       @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
