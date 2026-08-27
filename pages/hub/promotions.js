@@ -119,7 +119,7 @@ export default function PromotionsPage() {
     };
 
     return (
-        <PageTransition>
+        <>
             <SEOHead
                 title="Promotions — Current Offers & Rewards"
                 description="Discover Current Promotions, Bonuses, And Reward Opportunities On Smarter.Poker. VIP Offers And Special Events."
