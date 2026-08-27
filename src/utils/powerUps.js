@@ -75,12 +75,17 @@ export function getGamePowerUps(gameMode) {
 
 /**
  * Purchase a power-up using DiamondEngine
- * Returns true if purchase succeeded
+ * Returns the authoritative charge result for the calling game mode.
  */
-export function purchasePowerUp(powerUp, DiamondEngine) {
-    if (!DiamondEngine) return false;
-    const balance = DiamondEngine.getBalance();
-    if (balance < powerUp.cost) return false;
-    DiamondEngine.deduct(powerUp.cost, `Power-up: ${powerUp.name}`);
-    return true;
+export async function purchasePowerUp(powerUp, DiamondEngine) {
+    if (!DiamondEngine || !powerUp) return { success: false };
+
+    const result = await DiamondEngine.deduct(
+        powerUp.cost,
+        'training_entry',
+        { description: `Power-up: ${powerUp.name}` },
+    );
+
+    if (!result?.success) return { success: false, balance: result?.balance };
+    return { success: true, balance: result.balance, charged: result.charged || 0 };
 }

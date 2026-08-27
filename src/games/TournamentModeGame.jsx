@@ -478,9 +478,10 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
     };
 
     // Handle power-up activation
-    const handlePowerUp = (pu) => {
-        if (!purchasePowerUp(pu, DiamondEngine)) return;
-        onScoreUpdate?.(DiamondEngine.getBalance());
+    const handlePowerUp = async (pu) => {
+        const purchase = await purchasePowerUp(pu, DiamondEngine);
+        if (!purchase.success) return;
+        if (Number.isFinite(purchase.balance)) onScoreUpdate?.(purchase.balance);
         setUsedPowerUps(prev => new Set([...prev, pu.id]));
         if (pu.id === 'STREAK_FREEZE') { setStreakFreezeAvailable(true); setActivePowerUp('STREAK_FREEZE'); }
         else if (pu.id === 'HINT_REVEAL' && currentChallenge) {
@@ -525,8 +526,9 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
             // Award diamonds for winning
             const diamondsEarned = playerWon ? Math.round((5 + Math.abs(eloChange) / 10)) : 0;
             if (diamondsEarned > 0 && DiamondEngine) {
-                DiamondEngine.award(diamondsEarned);
-                onScoreUpdate?.(DiamondEngine.getBalance());
+                void DiamondEngine.award(diamondsEarned).then(newBalance => {
+                    if (Number.isFinite(newBalance)) onScoreUpdate?.(newBalance);
+                });
             }
 
             if (playerWon) {
@@ -579,7 +581,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     accuracy,
                     timeTaken: 0,
                     diamondsSpent: 0,
-                    diamondsEarned,
+                    diamondsEarned: 0,
                     completed: true
                 }).then(sessionResult => {
                     console.debug('[Tournament] Session recorded:', sessionResult);
@@ -594,7 +596,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     timeTaken: 0,
                     level: 1,
                     gameMode,
-                    totalDiamonds: DiamondEngine?.getBalance() || 0,
+                    totalDiamonds: 0,
                     aiScenariosCompleted: 0,
                     currentStreak: playerWon ? 1 : 0,
                     modesPlayed: [gameMode]

@@ -1,12 +1,11 @@
-import React from 'react';
-
 export default function ComboPopup({
-comboName, C
+    comboName,
+    multiplier = 1,
 }) {
     return (
-        <div style={styles.comboOverlay}>
-                        <div style={styles.comboText}>{comboName}</div>
-                        <div style={styles.multiplierText}>{multiplier}x MULTIPLIER</div>
-                    </div>
+        <div className="preflop-combo-popup" role="status" aria-live="polite">
+            <div>{comboName}</div>
+            <span>{multiplier}× multiplier</span>
+        </div>
     );
 }

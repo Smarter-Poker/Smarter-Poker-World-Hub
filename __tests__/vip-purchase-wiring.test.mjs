@@ -38,7 +38,7 @@ test('the three plans are actually RENDERED, not merely imported', () => {
 
 test('the subscribe control exists and is wired to the handler', () => {
   assert.match(STORE, /onClick=\{handleVIPSubscribe\}/, 'no control calls handleVIPSubscribe');
-  assert.match(STORE, /subscribe-button\.png/, 'the subscribe button artwork is not rendered');
+  assert.match(STORE, /subscribe-button\.webp/, 'the subscribe button artwork is not rendered');
   assert.match(STORE, /\{isProcessing \? 'Processing\.\.\.' : vipSubscribeLabel\}/,
     'the plan-aware caption must render — the button image is a static $19.99/month picture');
 });

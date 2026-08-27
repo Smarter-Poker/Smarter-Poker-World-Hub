@@ -5,7 +5,29 @@ const ACTION_COLORS_REF = {
     fold: { bg: 'rgba(100, 116, 139, 0.2)', border: '#64748B', label: 'Fold', textColor: '#94A3B8' },
     '3bet': { bg: 'rgba(168, 85, 247, 0.3)', border: '#A855F7', label: '3-Bet', textColor: '#C4B5FD' },
     allin: { bg: 'rgba(251, 191, 36, 0.3)', border: '#FBBF24', label: 'All-In', textColor: '#FDE68A' },
+    all_in: { bg: 'rgba(251, 191, 36, 0.3)', border: '#FBBF24', label: 'All-In', textColor: '#FDE68A' },
+    raise_small: { bg: 'rgba(249, 115, 22, 0.3)', border: '#F97316', label: 'Raise Small', textColor: '#FDBA74' },
+    raise_big: { bg: 'rgba(168, 85, 247, 0.3)', border: '#A855F7', label: 'Raise Big', textColor: '#C4B5FD' },
 };
+
+const REVIEW_RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+
+function getReviewHandName(row, col) {
+    if (row === col) return REVIEW_RANKS[row] + REVIEW_RANKS[col];
+    if (row < col) return REVIEW_RANKS[row] + REVIEW_RANKS[col] + 's';
+    return REVIEW_RANKS[col] + REVIEW_RANKS[row] + 'o';
+}
+
+function normalizeReviewAction(action) {
+    const normalized = String(action || '').toLowerCase().replace(/[-\s]/g, '_');
+    if (normalized.startsWith('raise_small')) return 'raise_small';
+    if (normalized.startsWith('raise_big')) return 'raise_big';
+    if (normalized.startsWith('all_in') || normalized.startsWith('allin') || normalized.startsWith('jam')) return 'all_in';
+    if (normalized.startsWith('raise') || normalized.startsWith('3bet') || normalized.startsWith('4bet')) return 'raise';
+    if (normalized.startsWith('call') || normalized.startsWith('complete')) return 'call';
+    if (normalized.startsWith('fold') || normalized.startsWith('check')) return 'fold';
+    return normalized.replace(/\d+$/, '');
+}
 
 function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, onAskJarvis, onCoachAnalysis }) {
     const [reviewTab, setReviewTab] = useState('overview');
@@ -16,16 +38,12 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
 
     const solution = scenario.solution || {};
     const allHands = [];
-    const RANKS_LOCAL = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-
     // Build hand-by-hand breakdown
     for (let r = 0; r < 13; r++) {
         for (let c = 0; c < 13; c++) {
-            const hand = r === c ? `${RANKS_LOCAL[r]}${RANKS_LOCAL[c]}` :
-                r < c ? `${RANKS_LOCAL[r]}${RANKS_LOCAL[c]}s` :
-                    `${RANKS_LOCAL[c]}${RANKS_LOCAL[r]}o`;
+            const hand = getReviewHandName(r, c);
             const userAction = userGrid[hand] || null;
-            const correctAction = solution[hand] || null;
+            const correctAction = solution[hand] ? normalizeReviewAction(solution[hand]) : null;
             const isCorrect = correctAction ? (userAction === correctAction) : (!userAction || userAction === 'fold');
             const isMissed = correctAction && (!userAction || userAction === 'fold');
             const isExtra = !correctAction && userAction && userAction !== 'fold';
@@ -274,16 +292,16 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
 
                     {/* Mini Grid — Solution View */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 'min(0.4vw, 2px)', maxWidth: 500, margin: '0 auto' }}>
-                        {RANKS.map((_, row) => (
-                            RANKS.map((_, col) => {
-                                const hand = getHandName(row, col);
+                        {REVIEW_RANKS.map((_, row) => (
+                            REVIEW_RANKS.map((_, col) => {
+                                const hand = getReviewHandName(row, col);
                                 const source = showSolution ? solution : userGrid;
-                                const action = source[hand];
+                                const action = source[hand] ? normalizeReviewAction(source[hand]) : null;
                                 const ref = action ? ACTION_COLORS_REF[action] : null;
 
                                 // Highlight differences
                                 const userAct = userGrid[hand];
-                                const solAct = solution[hand];
+                                const solAct = solution[hand] ? normalizeReviewAction(solution[hand]) : null;
                                 const isDifferent = showSolution && (
                                     (solAct && (!userAct || userAct === 'fold')) ||
                                     (!solAct && userAct && userAct !== 'fold') ||

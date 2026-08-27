@@ -115,7 +115,11 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                 setGameState('success');
                 SoundEngine.play('levelUp');
                 const diamondReward = Math.floor(score / 50) + 10;
-                if (DiamondEngine) { const newBalance = DiamondEngine.award(diamondReward); onScoreUpdate?.(newBalance); }
+                if (DiamondEngine) {
+                    void DiamondEngine.award(diamondReward).then(newBalance => {
+                        if (Number.isFinite(newBalance)) onScoreUpdate?.(newBalance);
+                    });
+                }
                 { const acc = newHandsCompleted > 0 ? Math.round(((correctCount + 1) / newHandsCompleted) * 100) : 0; const g = acc >= 95 ? 'S' : acc >= 85 ? 'A' : acc >= 70 ? 'B' : acc >= 50 ? 'C' : 'D'; savePersonalBest('pressure-cooker', score, g); if (g === 'S' || g === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
                 recordSessionWeakness('pressure-cooker', mistakesRef.current, newHandsCompleted);
                 if (userId) {
@@ -123,7 +127,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                     gameSessionService.recordSession(userId, {
                         gameMode: 'pressure_cooker', level, scenarioId: currentHand?.scenario?.title,
                         score, accuracy, timeTaken: Math.round((INITIAL_TIME - timeRemaining) / 1000),
-                        diamondsSpent: 0, diamondsEarned: diamondReward, completed: true
+                        diamondsSpent: 0, diamondsEarned: 0, completed: true
                     }).catch(e => console.warn('[PressureCooker] Session failed:', e));
                     achievementService.checkAndUnlock(userId, {
                         gamesPlayed: 1, accuracy, level, gameMode: 'pressure_cooker',
@@ -170,11 +174,12 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
         return () => window.removeEventListener('keydown', handleKey);
     }, [gameState, handleAnswer, startGame, onExit]);
 
-    const handlePowerUp = useCallback((powerUp) => {
+    const handlePowerUp = useCallback(async (powerUp) => {
         if (!DiamondEngine || usedPowerUps.has(powerUp.id)) return;
-        if (!purchasePowerUp(powerUp, DiamondEngine)) return;
+        const purchase = await purchasePowerUp(powerUp, DiamondEngine);
+        if (!purchase.success) return;
         setUsedPowerUps(prev => new Set([...prev, powerUp.id]));
-        onScoreUpdate?.(DiamondEngine.getBalance());
+        if (Number.isFinite(purchase.balance)) onScoreUpdate?.(purchase.balance);
 
         if (powerUp.id === 'TIME_BOOST') {
             setTimeRemaining(prev => Math.min(prev + 10000, 60000));

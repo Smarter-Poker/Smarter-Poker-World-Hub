@@ -282,9 +282,11 @@ export default async function handler(req, res) {
               });
           }
 
-          const newBalance = typeof deductResult?.balance === 'number'
-              ? deductResult.balance
-              : currentBalance - diamondCost;
+          const newBalance = typeof deductResult?.new_balance === 'number'
+              ? deductResult.new_balance
+              : (typeof deductResult?.balance === 'number'
+                  ? deductResult.balance
+                  : currentBalance - diamondCost);
 
           // Create order record
           const { error: orderErr } = await getSupabase().from('merchandise_orders').insert({
@@ -303,7 +305,7 @@ export default async function handler(req, res) {
               await releaseStock('order insert failed');
               // Compensate: the user was charged but no order exists for fulfillment —
               // refund the diamonds instead of silently swallowing the purchase.
-              const { error: refundErr } = await getSupabase().rpc('add_diamonds_to_balance', {
+              const { data: refundResult, error: refundErr } = await getSupabase().rpc('add_diamonds_to_balance', {
                   p_user_id: user.id,
                   p_amount: diamondCost,
                   p_type: 'refund',
@@ -314,8 +316,9 @@ export default async function handler(req, res) {
                   // the `:refund` suffix in the two VIP diamond endpoints.
                   p_reference_id: `${purchaseRef}:refund`
               });
-              if (refundErr) {
-                  console.warn('[DiamondPurchase] Refund after failed order insert ALSO failed:', refundErr);
+              const refundFailed = refundErr || (refundResult && refundResult.success === false);
+              if (refundFailed) {
+                  console.warn('[DiamondPurchase] Refund after failed order insert ALSO failed:', refundErr || refundResult);
                   return res.status(500).json({ success: false, error: 'Purchase failed while recording your order. Please contact support.' });
               }
               return res.status(500).json({ success: false, error: 'Purchase failed — your diamonds have been refunded. Please try again.' });
