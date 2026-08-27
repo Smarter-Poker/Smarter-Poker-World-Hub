@@ -34,7 +34,7 @@ async function fireConfetti(opts) {
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { Eye, TrendingUp, Trophy, MapPin, ExternalLink, Bookmark, BookmarkCheck, Share2, Twitter, Facebook, LinkIcon, CheckCircle, ChevronUp, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock, Mail, Calendar, PlayCircle } from 'lucide-react';
+import { Eye, TrendingUp, Trophy, MapPin, ExternalLink, Bookmark, BookmarkCheck, Share2, Twitter, Facebook, LinkIcon, CheckCircle, ChevronUp, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock, Mail, Calendar, PlayCircle, Search, X } from 'lucide-react';
 
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -186,6 +186,12 @@ export default function NewsHub() {
     const [searchFocused, setSearchFocused] = useState(false);
     const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(-1);
     const [focusedArticleIdx, setFocusedArticleIdx] = useState(-1);
+    const [storySort, setStorySort] = useState('latest');
+
+    useEffect(() => {
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('news_story_sort') : null;
+        if (saved === 'latest' || saved === 'popular') setStorySort(saved);
+    }, []);
 
     // Phase 4: Persist viewMode
     const handleViewModeChange = useCallback((mode) => {
@@ -194,6 +200,16 @@ export default function NewsHub() {
             localStorage.setItem('news_view_mode', mode);
         }
     }, []);
+
+    const handleStorySortChange = useCallback((sort) => {
+        if (sort !== 'latest' && sort !== 'popular') return;
+        setStorySort(sort);
+        if (typeof window !== 'undefined') localStorage.setItem('news_story_sort', sort);
+
+        const { sort: _sort, ...restQuery } = router.query;
+        const query = sort === 'popular' ? { ...restQuery, sort } : restQuery;
+        router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+    }, [router]);
 
     // Phase 5: Track last visit for "NEW" badges.
     // Capture the PREVIOUS visit timestamp once, then write "now" exactly once per visit —
@@ -536,6 +552,10 @@ export default function NewsHub() {
             const normalize = (s) => s.replace(/[^a-z]/gi, '').toLowerCase();
             const match = VALID_SOURCES.find(s => normalize(s) === normalize(raw));
             setSourceFilters(prev => ({ ...prev, [match || raw]: true }));
+        }
+        if (router.query.sort === 'latest' || router.query.sort === 'popular') {
+            setStorySort(router.query.sort);
+            if (typeof window !== 'undefined') localStorage.setItem('news_story_sort', router.query.sort);
         }
         // ?tab / ?filter are each consumed ONCE. toggleSource/clearFeedFilter keep
         // unrelated query params when they router.replace, so re-applying on every
@@ -1022,10 +1042,15 @@ export default function NewsHub() {
     });
 
     // Remaining stories = articles not in the top 6 boxes, with optional source filtering
-    const remainingStories = filteredNews.filter(a => {
+    const unsortedRemainingStories = filteredNews.filter(a => {
         if (topArticleIds.includes(a.id)) return false;
         if (activeSourceFilters.length > 0 && !activeSourceFilters.includes(a.source_name)) return false;
         return true;
+    });
+    const remainingStories = [...unsortedRemainingStories].sort((a, b) => {
+        const publishedDelta = new Date(b.published_at || 0) - new Date(a.published_at || 0);
+        if (storySort === 'popular') return ((b.views || 0) - (a.views || 0)) || publishedDelta;
+        return publishedDelta;
     });
 
     // Read Later queue, resolved to renderable articles (shared contract 2).
@@ -1422,13 +1447,14 @@ export default function NewsHub() {
 
                             <div className="wire-sr-only" role="status" aria-live="polite" aria-atomic="true">
                                 {activeSection === 'news'
-                                    ? `${filteredNews.length} news ${filteredNews.length === 1 ? 'story' : 'stories'} shown${activeSourceFilters.length ? ` from ${activeSourceFilters.join(', ')}` : ''}${searchQuery ? ` matching ${searchQuery}` : ''}.`
+                                    ? `${filteredNews.length} news ${filteredNews.length === 1 ? 'story' : 'stories'} shown, ordered by ${storySort === 'popular' ? 'most read' : 'latest'}${activeSourceFilters.length ? ` from ${activeSourceFilters.join(', ')}` : ''}${searchQuery ? ` matching ${searchQuery}` : ''}.`
                                     : `${activeSection === 'later' ? 'Read later' : activeSection} section selected.`}
                             </div>
 
                             {/* Phase 3: Search Bar + View Toggle Row */}
                             <div className="search-view-row">
                                 <div className="search-wrapper">
+                                    <Search className="search-leading-icon" size={14} aria-hidden="true" />
                                     <input
                                         type="text"
                                         className="news-search-input"
@@ -1461,6 +1487,17 @@ export default function NewsHub() {
                                             }
                                         }}
                                     />
+                                    {searchQuery && (
+                                        <button
+                                            type="button"
+                                            className="search-clear-button"
+                                            aria-label="Clear article search"
+                                            onMouseDown={(event) => event.preventDefault()}
+                                            onClick={() => { setSearchQuery(''); setActiveSuggestionIdx(-1); }}
+                                        >
+                                            <X size={14} aria-hidden="true" />
+                                        </button>
+                                    )}
                                     {searchFocused && searchSuggestions.length > 0 && (
                                         <div className="search-dropdown" id="news-search-listbox" role="listbox">
                                             {searchSuggestions.map((a, i) => (
@@ -1491,6 +1528,35 @@ export default function NewsHub() {
                                     {bookmarks.length > 0 && (
                                         <span className="bookmark-counter"><BookmarkCheck size={12} /> {bookmarks.length}</span>
                                     )}
+                                </div>
+                            </div>
+
+                            <div className="story-signal-bar">
+                                <div className="story-signal-readout" aria-hidden="true">
+                                    <span className="story-signal-pulse" />
+                                    <span>Story signal</span>
+                                    <strong>{filteredNews.length}{newsHasMore ? '+' : ''}</strong>
+                                    <span className="story-signal-copy">
+                                        {storySort === 'popular' ? 'ranked by audience reads' : 'sequenced newest first'}
+                                    </span>
+                                </div>
+                                <div className="story-sort-toggle" role="group" aria-label="Order more stories">
+                                    <button
+                                        type="button"
+                                        className={storySort === 'latest' ? 'active' : ''}
+                                        aria-pressed={storySort === 'latest'}
+                                        onClick={() => handleStorySortChange('latest')}
+                                    >
+                                        Latest
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={storySort === 'popular' ? 'active' : ''}
+                                        aria-pressed={storySort === 'popular'}
+                                        onClick={() => handleStorySortChange('popular')}
+                                    >
+                                        <TrendingUp size={12} aria-hidden="true" /> Most Read
+                                    </button>
                                 </div>
                             </div>
 
@@ -1577,7 +1643,7 @@ export default function NewsHub() {
                                                     let lastGroup = '';
                                                     return remainingStories.map((article, storyIndex) => {
                                                         const group = getTimeGroup(article.published_at);
-                                                        const showHeader = group !== lastGroup;
+                                                        const showHeader = storySort === 'latest' && group !== lastGroup;
                                                         lastGroup = group;
                                                         const isKeyFocused = focusedArticleIdx === topArticles.length + storyIndex;
                                                         return (
@@ -2023,6 +2089,7 @@ export default function NewsHub() {
                                 exit={{ opacity: 0, scale: 0.5 }}
                                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                                 title="Back to Top"
+                                aria-label="Back to top"
                             >
                                 <ChevronUp size={22} />
                             </motion.button>

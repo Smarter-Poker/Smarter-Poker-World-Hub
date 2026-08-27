@@ -265,6 +265,8 @@ export default function LiveWireStyles() {
 
             .live-wire .news-search-input {
                 min-height: 32px;
+                padding-left: 34px;
+                padding-right: 38px;
                 border: 1px solid #29495b;
                 border-radius: 0;
                 background: #02070a;
@@ -278,7 +280,41 @@ export default function LiveWireStyles() {
                 box-shadow: 0 0 0 2px rgba(49, 194, 255, 0.12);
             }
 
+            .live-wire .search-leading-icon {
+                position: absolute;
+                top: 50%;
+                left: 11px;
+                z-index: 2;
+                transform: translateY(-50%);
+                color: #6f8998;
+                pointer-events: none;
+            }
+
+            .live-wire .search-clear-button {
+                position: absolute;
+                top: 50%;
+                right: 4px;
+                z-index: 3;
+                display: grid;
+                width: 30px;
+                height: 30px;
+                padding: 0;
+                place-items: center;
+                transform: translateY(-50%);
+                border: 0;
+                background: transparent;
+                color: #8da2ad;
+                cursor: pointer;
+            }
+
+            .live-wire .search-clear-button:hover,
+            .live-wire .search-clear-button:focus-visible {
+                color: var(--wire-blue);
+            }
+
             .live-wire .view-toggle {
+                width: auto;
+                flex: 0 0 auto;
                 border-radius: 0;
                 background: #02070a;
             }
@@ -286,6 +322,91 @@ export default function LiveWireStyles() {
             .live-wire .view-toggle button,
             .live-wire .bookmark-counter {
                 border-radius: 0;
+            }
+
+            .live-wire .story-signal-bar {
+                display: flex;
+                align-items: stretch;
+                justify-content: space-between;
+                min-height: 40px;
+                margin: -3px 0 12px;
+                border: 1px solid #29495b;
+                background:
+                    linear-gradient(90deg, rgba(49, 194, 255, 0.08), transparent 44%),
+                    #02070a;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                text-transform: uppercase;
+            }
+
+            .live-wire .story-signal-readout {
+                display: flex;
+                min-width: 0;
+                align-items: center;
+                gap: 9px;
+                padding: 0 12px;
+                color: #8297a3;
+                font-size: 8px;
+                font-weight: 700;
+                letter-spacing: 0.11em;
+            }
+
+            .live-wire .story-signal-readout strong {
+                color: var(--wire-blue);
+                font-size: 12px;
+                font-weight: 800;
+            }
+
+            .live-wire .story-signal-pulse {
+                width: 6px;
+                height: 6px;
+                flex: 0 0 auto;
+                border-radius: 50%;
+                background: var(--wire-blue);
+                box-shadow: 0 0 9px rgba(49, 194, 255, 0.85);
+            }
+
+            .live-wire .story-signal-copy {
+                color: #506976;
+                white-space: nowrap;
+            }
+
+            .live-wire .story-sort-toggle {
+                display: flex;
+                flex: 0 0 auto;
+                border-left: 1px solid #29495b;
+            }
+
+            .live-wire .story-sort-toggle button {
+                display: inline-flex;
+                min-width: 88px;
+                min-height: 38px;
+                padding: 0 13px;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+                border: 0;
+                border-right: 1px solid #172f3c;
+                background: #030b10;
+                color: #718994;
+                font: 800 8px ui-monospace, monospace;
+                letter-spacing: 0.09em;
+                text-transform: uppercase;
+                cursor: pointer;
+            }
+
+            .live-wire .story-sort-toggle button:last-child {
+                border-right: 0;
+            }
+
+            .live-wire .story-sort-toggle button:hover,
+            .live-wire .story-sort-toggle button:focus-visible {
+                color: var(--wire-ice);
+            }
+
+            .live-wire .story-sort-toggle button.active {
+                background: linear-gradient(180deg, #102432, #041018);
+                box-shadow: inset 0 -2px var(--wire-blue);
+                color: #fff;
             }
 
             .live-wire .reading-stats-bar,
@@ -778,6 +899,39 @@ export default function LiveWireStyles() {
                     padding: 6px;
                 }
 
+                .live-wire .news-search-input {
+                    min-height: 44px;
+                }
+
+                .live-wire .search-clear-button {
+                    width: 42px;
+                    height: 42px;
+                    right: 1px;
+                }
+
+                .live-wire .view-toggle button {
+                    width: 44px;
+                    height: 44px;
+                }
+
+                .live-wire .story-signal-bar {
+                    min-height: 44px;
+                }
+
+                .live-wire .story-signal-readout {
+                    padding: 0 9px;
+                }
+
+                .live-wire .story-signal-copy {
+                    display: none;
+                }
+
+                .live-wire .story-sort-toggle button {
+                    min-width: 82px;
+                    min-height: 44px;
+                    padding: 0 9px;
+                }
+
                 .live-wire .news-section {
                     width: 100% !important;
                     margin: 0 !important;
@@ -965,6 +1119,10 @@ export default function LiveWireStyles() {
 
                 .live-wire .view-toggle .bookmark-counter {
                     display: none;
+                }
+
+                .live-wire .story-sort-toggle button {
+                    min-width: 78px;
                 }
 
                 .live-wire .list-thumb {
