@@ -26,7 +26,7 @@ const MAX_AGE_MS = 15 * 60 * 1000;       // 15 minutes
 const MAX_CACHE_KEYS = 50;               // LRU eviction cap
 const COMPRESS_THRESHOLD = 10 * 1024;    // Compress payloads > 10KB
 const BATCH_DELAY_MS = 100;              // Batch writes every 100ms
-const CACHE_VERSION = 'v2';              // Bump on breaking cache shape changes
+const CACHE_VERSION = process.env.NEXT_PUBLIC_BUILD_ID || 'v2'; // Bump on breaking cache shape changes
 const VERSION_KEY = 'swr_auto_version';
 
 /** Keys that must never be written to persistent storage */
