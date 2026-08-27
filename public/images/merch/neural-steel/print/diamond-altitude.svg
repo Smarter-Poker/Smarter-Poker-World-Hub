@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="3600" height="4800" viewBox="0 0 3600 4800" role="img" aria-labelledby="title desc">
+  <title id="title">Diamond Altitude</title>
+  <desc id="desc">A precision-cut blue diamond climbs through five stacked poker-table contours toward a spade.</desc>
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#586674"/><stop offset="0.24" stop-color="#f4f8fb"/>
+      <stop offset="0.5" stop-color="#8998a6"/><stop offset="0.72" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#4c5966"/>
+    </linearGradient>
+    <linearGradient id="dark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#172330"/><stop offset="0.55" stop-color="#05080d"/><stop offset="1" stop-color="#111a24"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e6fbff"/><stop offset="0.24" stop-color="#78e5ff"/>
+      <stop offset="0.55" stop-color="#0088ff"/><stop offset="1" stop-color="#082c75"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <path id="table" d="M1800 0 L2980 620 L2720 1410 L1800 1840 L880 1410 L620 620 Z"/>
+    <path id="spade" d="M1800 210 C1580 450 1435 590 1435 820 C1435 1015 1595 1120 1770 1030 C1730 1200 1650 1295 1520 1370 H2080 C1950 1295 1870 1200 1830 1030 C2005 1120 2165 1015 2165 820 C2165 590 2020 450 1800 210 Z"/>
+  </defs>
+
+  <g transform="translate(0 620)">
+    <g transform="translate(0 2300) scale(1 .72)"><use xlink:href="#table" fill="url(#dark)" stroke="#07111e" stroke-width="190"/><use xlink:href="#table" fill="none" stroke="url(#steel)" stroke-width="86"/><use xlink:href="#table" fill="none" stroke="#00a8ff" stroke-width="24"/></g>
+    <g transform="translate(0 1780) scale(.92 .68)"><use xlink:href="#table" fill="url(#dark)" stroke="#07111e" stroke-width="190"/><use xlink:href="#table" fill="none" stroke="url(#steel)" stroke-width="86"/><use xlink:href="#table" fill="none" stroke="#00a8ff" stroke-width="24"/></g>
+    <g transform="translate(0 1280) scale(.83 .64)"><use xlink:href="#table" fill="url(#dark)" stroke="#07111e" stroke-width="190"/><use xlink:href="#table" fill="none" stroke="url(#steel)" stroke-width="86"/><use xlink:href="#table" fill="none" stroke="#00a8ff" stroke-width="24"/></g>
+    <g transform="translate(0 820) scale(.73 .60)"><use xlink:href="#table" fill="url(#dark)" stroke="#07111e" stroke-width="190"/><use xlink:href="#table" fill="none" stroke="url(#steel)" stroke-width="86"/><use xlink:href="#table" fill="none" stroke="#00a8ff" stroke-width="24"/></g>
+    <g transform="translate(0 410) scale(.62 .56)"><use xlink:href="#table" fill="url(#dark)" stroke="#07111e" stroke-width="190"/><use xlink:href="#table" fill="none" stroke="url(#steel)" stroke-width="86"/><use xlink:href="#table" fill="none" stroke="#00a8ff" stroke-width="24"/></g>
+  </g>
+
+  <g fill="none" stroke="#00a8ff" stroke-width="30" stroke-linecap="square" filter="url(#glow)">
+    <path d="M1160 3320 H840 V2810 H560 V2280 H400"/><path d="M2440 3320 H2760 V2810 H3040 V2280 H3200"/>
+    <path d="M1320 2470 H1040 V1940 H760 V1410 H620"/><path d="M2280 2470 H2560 V1940 H2840 V1410 H2980"/>
+    <path d="M1510 1680 V1120 H1320 V720"/><path d="M2090 1680 V1120 H2280 V720"/>
+  </g>
+  <g fill="#e6fbff" stroke="#00a8ff" stroke-width="18">
+    <circle cx="400" cy="2280" r="36"/><circle cx="3200" cy="2280" r="36"/>
+    <circle cx="620" cy="1410" r="36"/><circle cx="2980" cy="1410" r="36"/>
+    <circle cx="1320" cy="720" r="36"/><circle cx="2280" cy="720" r="36"/>
+  </g>
+
+  <use xlink:href="#spade" fill="#05080d" stroke="#07111e" stroke-width="170"/>
+  <use xlink:href="#spade" fill="url(#dark)" stroke="url(#steel)" stroke-width="80"/>
+  <use xlink:href="#spade" fill="none" stroke="#00a8ff" stroke-width="24"/>
+
+  <g stroke-linejoin="miter">
+    <path d="M1800 1130 L2460 2340 L1800 3490 L1140 2340 Z" fill="url(#blue)" stroke="#07111e" stroke-width="190"/>
+    <path d="M1800 1130 L2460 2340 L1800 3490 L1140 2340 Z" fill="url(#blue)" stroke="#e7faff" stroke-width="68" filter="url(#glow)"/>
+    <path d="M1800 1130 L1800 3490 M1140 2340 H2460 M1800 1130 L1470 2340 L1800 3490 L2130 2340 Z" fill="none" stroke="#e7faff" stroke-width="28" opacity="0.88"/>
+  </g>
+  <path d="M1800 3490 V4490 M1560 3820 H1800 M2040 4020 H1800" fill="none" stroke="#00a8ff" stroke-width="42" filter="url(#glow)"/>
+  <g fill="#e7faff" stroke="#00a8ff" stroke-width="18"><circle cx="1560" cy="3820" r="38"/><circle cx="2040" cy="4020" r="38"/><circle cx="1800" cy="4490" r="38"/></g>
+</svg>
