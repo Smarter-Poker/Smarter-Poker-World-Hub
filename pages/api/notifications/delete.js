@@ -53,11 +53,17 @@ export default async function handler(req, res) {
         }
 
         // Delete only notifications belonging to this user
-        const { error } = await getSupabase()
+        // .select() so the response can report what was ACTUALLY deleted.
+        // `deleted: deleteIds.length` below reported the count the caller ASKED
+        // for -- so passing ids belonging to another user (which the
+        // .eq('user_id') filter correctly refuses to touch) still came back as
+        // "deleted: N". The number was never a fact, just an echo of the input.
+        const { data: deletedRows, error } = await getSupabase()
             .from('notifications')
             .delete()
             .eq('user_id', userId)
-            .in('id', deleteIds);
+            .in('id', deleteIds)
+            .select('id');
 
         if (error) {
             console.warn('[Notifications Delete] Error:', error);
@@ -68,7 +74,11 @@ export default async function handler(req, res) {
         invalidateFeedCache(userId);
         invalidateUnreadCache(userId);
 
-        return res.status(200).json({ success: true, deleted: deleteIds.length });
+        return res.status(200).json({
+            success: true,
+            deleted: deletedRows?.length ?? 0,
+            requested: deleteIds.length,
+        });
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
