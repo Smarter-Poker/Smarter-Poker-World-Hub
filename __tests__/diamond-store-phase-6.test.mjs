@@ -84,3 +84,11 @@ test('wide merchandise purchase controls preserve an accessibility-safe height',
   const fallbackArea = MERCH.slice(MERCH.indexOf('{usingFallback && loadError && ('), MERCH.indexOf('{loading && ('));
   assert.match(fallbackArea, /minHeight:\s*46/);
 });
+
+test('authenticated Club Shop controls preserve the 44-pixel target at every viewport', () => {
+  assert.match(STORE, /className=\{shellStyles\.clubShopSurface\}/);
+  assert.match(
+    SHELL_CSS,
+    /\.clubShopSurface :is\(button, \[role='button'\]\) \{[\s\S]*?min-height:\s*44px;/
+  );
+});

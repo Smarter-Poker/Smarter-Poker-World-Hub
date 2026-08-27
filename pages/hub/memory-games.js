@@ -1203,8 +1203,15 @@ export default function MemoryGamesPage() {
         return '#ff4444';
     };
 
-    // Get level scenarios count
-    const getLevelScenarios = (level) => getScenariosByLevel(level).length;
+    const activeScenarioFilterCount = Object.values(scenarioFilters || {}).filter(Boolean).length;
+    const filteredScenarioCount = filterScenarios(ALL_TRAINING_SCENARIOS, scenarioFilters).length;
+    const masteredLevelCount = memoryDashboard?.mastered_levels_count
+        ?? memoryDashboard?.per_level_mastery?.filter((level) => level.mastered).length
+        ?? 0;
+    const nextLockedLevelIndex = LEVELS.findIndex((_, idx) => idx > 0 && consecutivePasses < (idx * 5));
+    const masteryGateProgress = nextLockedLevelIndex === -1
+        ? 5
+        : Math.max(0, Math.min(5, consecutivePasses - ((nextLockedLevelIndex - 1) * 5)));
 
     return (
         <PageTransition>
@@ -2022,38 +2029,98 @@ export default function MemoryGamesPage() {
                                         />
                                     )}
 
+                                    <div className="preflop-circuit-status" aria-label="Range progression status">
+                                        <div className="preflop-circuit-label">
+                                            <span>PROGRESSION CIRCUIT</span>
+                                            <strong>Training path online</strong>
+                                        </div>
+                                        <div className="preflop-circuit-stat is-current">
+                                            <Target size={16} aria-hidden />
+                                            <span>
+                                                <small>Current station</small>
+                                                <strong>Level {currentLevel}</strong>
+                                            </span>
+                                        </div>
+                                        <div className="preflop-circuit-stat is-mastery">
+                                            <ShieldCheck size={16} aria-hidden />
+                                            <span>
+                                                <small>Next mastery gate</small>
+                                                <strong>{masteryGateProgress}/5 <em>· {masteredLevelCount} mastered</em></strong>
+                                            </span>
+                                        </div>
+                                        <div className={`preflop-circuit-stat is-pool${activeScenarioFilterCount > 0 ? ' has-filters' : ''}`}>
+                                            <Filter size={15} aria-hidden />
+                                            <span>
+                                                <small>Practice pool</small>
+                                                <strong>{filteredScenarioCount}/{ALL_TRAINING_SCENARIOS.length} <em>· {activeScenarioFilterCount > 0 ? `${activeScenarioFilterCount} active` : 'Full range'}</em></strong>
+                                            </span>
+                                        </div>
+                                    </div>
+
                                     <div className="preflop-level-grid">
                                         {LEVELS.map((level, idx) => {
-                                            const scenarioCount = getLevelScenarios(level.level);
+                                            const levelScenarios = getScenariosByLevel(level.level);
+                                            const scenarioCount = levelScenarios.length;
+                                            const matchingScenarioCount = activeScenarioFilterCount > 0
+                                                ? filterScenarios(levelScenarios, scenarioFilters).length
+                                                : scenarioCount;
                                             const levelConfig = getLevelConfig(level.level) || { timer: 90, gridSize: 13, maxHands: 20, diamondMultiplier: 1.0 };
                                             const isUnlocked = idx === 0 || consecutivePasses >= (idx * 5);
+                                            const isCurrent = level.level === currentLevel;
+                                            const mastery = memoryDashboard?.per_level_mastery?.find(x => x.level === level.level);
+                                            const isMastered = Boolean(mastery?.mastered);
+                                            const hasMatchingScenarios = matchingScenarioCount > 0;
+                                            const isAvailable = isUnlocked && hasMatchingScenarios;
+                                            const levelState = !isUnlocked
+                                                ? 'locked'
+                                                : !hasMatchingScenarios
+                                                    ? 'no-match'
+                                                    : isMastered
+                                                        ? 'mastered'
+                                                        : isCurrent
+                                                            ? 'current'
+                                                            : 'ready';
+                                            const levelStateLabel = {
+                                                locked: 'Locked',
+                                                'no-match': 'No matches',
+                                                mastered: 'Mastered',
+                                                current: 'Current',
+                                                ready: 'Ready',
+                                            }[levelState];
 
                                             return (
                                                 <div
                                                     key={level.level}
-                                                    onClick={() => isUnlocked && scenarioCount > 0 && startGame(level.level)}
-                                                    className={`preflop-level-card${idx === 0 ? ' is-current' : ''}${!isUnlocked || scenarioCount === 0 ? ' is-locked' : ''}`}
+                                                    onClick={() => isAvailable && startGame(level.level)}
+                                                    className={`preflop-level-card${isCurrent ? ' is-current' : ''}${isMastered ? ' is-mastered' : ''}${!isUnlocked ? ' is-locked' : ''}${isUnlocked && !hasMatchingScenarios ? ' is-no-match' : ''}`}
                                                     style={{ '--level-index': idx }}
+                                                    data-level-state={levelState}
                                                     role="button"
-                                                    tabIndex={isUnlocked && scenarioCount > 0 ? 0 : -1}
+                                                    tabIndex={isAvailable ? 0 : -1}
                                                     onKeyDown={(event) => {
-                                                        if ((event.key === 'Enter' || event.key === ' ') && isUnlocked && scenarioCount > 0) {
+                                                        if ((event.key === 'Enter' || event.key === ' ') && isAvailable) {
                                                             event.preventDefault();
                                                             startGame(level.level);
                                                         }
                                                     }}
-                                                    aria-disabled={!isUnlocked || scenarioCount === 0}
+                                                    aria-current={isCurrent ? 'step' : undefined}
+                                                    aria-disabled={!isAvailable}
                                                 >
                                                     <div className="preflop-level-node" aria-hidden="true"><span>{level.level}</span></div>
                                                     <div className="preflop-level-copy">
-                                                        <div className="preflop-level-number">Level {level.level}</div>
+                                                        <div className="preflop-level-heading">
+                                                            <div className="preflop-level-number">Level {level.level}</div>
+                                                            <span className={`preflop-level-state is-${levelState}`}>{levelStateLabel}</span>
+                                                        </div>
                                                         <h3>{level.name}</h3>
                                                         <p>{level.focus}</p>
                                                     </div>
                                                     <div className="preflop-level-meta">
                                                         <span>{levelConfig.timer}s</span>
                                                         <span><Gem size={13} aria-hidden />×{levelConfig.diamondMultiplier}</span>
-                                                        <span>{scenarioCount} scenario{scenarioCount !== 1 ? 's' : ''}</span>
+                                                        <span className={activeScenarioFilterCount > 0 ? 'is-filtered-count' : ''}>
+                                                            {matchingScenarioCount} {activeScenarioFilterCount > 0 ? 'matching' : `scenario${matchingScenarioCount !== 1 ? 's' : ''}`}
+                                                        </span>
                                                         <div className="preflop-level-locks">
                                                             {level.level > 3 && isVIP === false && (
                                                                 <span className="preflop-level-cost"><Gem size={11} aria-hidden />10</span>
@@ -2066,46 +2133,24 @@ export default function MemoryGamesPage() {
                                                     </div>
                                                     {/* 2026-05-07 — real progress from memoryDashboard.per_level_mastery */}
                                                     {(() => {
-                                                        const m = memoryDashboard?.per_level_mastery?.find(x => x.level === level.level);
+                                                        const m = mastery;
                                                         if (!m || m.attempts === 0) return null;
                                                         const pct = Math.max(0, Math.min(100, m.best_accuracy));
                                                         return (
                                                             <div className="preflop-level-progress">
-                                                                <div style={{
-                                                                    display: 'flex',
-                                                                    justifyContent: 'space-between',
-                                                                    alignItems: 'center',
-                                                                    fontSize: 10,
-                                                                    color: 'rgba(255,255,255,0.55)',
-                                                                    marginBottom: 4,
-                                                                }}>
+                                                                <div className="preflop-level-progress-label">
                                                                     <span>Best {pct}%</span>
                                                                     {m.mastered && (
-                                                                        <span style={{
-                                                                            display: 'inline-flex',
-                                                                            alignItems: 'center',
-                                                                            gap: 3,
-                                                                            color: '#22C55E',
-                                                                            fontWeight: 600,
-                                                                        }}>
+                                                                        <span className="preflop-level-mastered-label">
                                                                             <ShieldCheck size={10} aria-hidden /> Mastered
                                                                         </span>
                                                                     )}
                                                                 </div>
-                                                                <div style={{
-                                                                    height: 4,
-                                                                    background: 'rgba(255,255,255,0.06)',
-                                                                    borderRadius: 999,
-                                                                    overflow: 'hidden',
-                                                                }} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-                                                                    <div style={{
-                                                                        height: '100%',
-                                                                        width: pct + '%',
-                                                                        background: m.mastered
-                                                                            ? 'linear-gradient(90deg, #22C55E, #00D4FF)'
-                                                                            : 'linear-gradient(90deg, #00D4FF, #A855F7)',
-                                                                        transition: 'width 0.4s ease',
-                                                                    }} />
+                                                                <div className="preflop-level-progress-track" role="progressbar" aria-label={`Level ${level.level} best accuracy`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                                                                    <div
+                                                                        className={`preflop-level-progress-fill${m.mastered ? ' is-mastered' : ''}`}
+                                                                        style={{ '--level-progress': `${pct}%` }}
+                                                                    />
                                                                 </div>
                                                             </div>
                                                         );

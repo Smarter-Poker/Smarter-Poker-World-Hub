@@ -165,4 +165,24 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     );
     expect(undersized).toEqual([]);
   });
+
+  test('wide authenticated Club Shop controls retain the 44-pixel target', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/hub/club-shop', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1200);
+
+    const clubShopViews = page.getByRole('group', { name: 'Club Shop Views' });
+    // The production-authenticated fixture exposes this surface. If an
+    // environment has no club, the static contract above still guards it.
+    if (await clubShopViews.count()) {
+      const clubShop = clubShopViews.locator('..');
+      const undersized = await clubShop.locator('button, [role="button"]').evaluateAll((elements) =>
+        elements.map((element) => {
+          const rect = element.getBoundingClientRect();
+          return { text: (element.textContent || '').trim(), width: rect.width, height: rect.height };
+        }).filter((item) => item.width > 0 && item.height > 0 && (item.width < 44 || item.height < 44))
+      );
+      expect(undersized).toEqual([]);
+    }
+  });
 });

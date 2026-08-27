@@ -63,6 +63,13 @@
   min-width: 0;
 }
 
+/* Club Shop renders authenticated controls from several independent views.
+   Keep every one of those controls usable at pointer sizes without changing
+   the locked Universal Header or altering any purchase/admin behavior. */
+.clubShopSurface :is(button, [role='button']) {
+  min-height: 44px;
+}
+
 .dialogBackdrop {
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
     max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
