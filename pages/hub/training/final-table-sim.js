@@ -251,7 +251,20 @@ export default function FinalTableSimulator() {
                   Players often make deals using ICM numbers. If everyone agreed to chop the prize
                   pool right now based on skill equity:
                 </p>
-                <button type="button" aria-label="Generate chip-chop deal proposal" style={styles.dealBtn}>Generate Deal Proposal</button>
+                {/* 2026-08-27: had no onClick. A chop proposal is a real number a
+                    player might act on at a real final table, so an inert button is
+                    worse here than in most places. Disabled and labelled until the
+                    ICM chop is actually computed from the stacks and payout ladder
+                    already on this page. */}
+                <button
+                  type="button"
+                  disabled
+                  aria-label="Chip-chop deal proposal is not available yet"
+                  title="Deal Proposals Are Not Available Yet"
+                  style={{ ...styles.dealBtn, opacity: 0.5, cursor: 'not-allowed' }}
+                >
+                  Deal Proposal Coming Soon
+                </button>
               </div>
             </div>
           </div>

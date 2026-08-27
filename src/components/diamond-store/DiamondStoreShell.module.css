@@ -30,7 +30,7 @@
   letter-spacing: 0.08em;
 }
 
-.root :is(button, a[href], input, select, summary, [role='button']):focus-visible {
+.root :is(button, a[href], input, select, summary, [role='button'], [tabindex]:not([tabindex='-1'])):focus-visible {
   outline: 2px solid var(--store-focus) !important;
   outline-offset: 3px !important;
 }

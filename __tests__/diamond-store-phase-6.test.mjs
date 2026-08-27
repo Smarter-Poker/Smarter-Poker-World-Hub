@@ -12,6 +12,9 @@ const DIALOG_CSS = read('src/components/store/MerchPurchaseDialog.module.css');
 const STATUS_PANEL = read('src/components/diamond-store/CheckoutStatusPanel.jsx');
 const SHOWCASE = read('src/components/diamond-store/SmarterStoreShowcase.jsx');
 const SHELL_CSS = read('src/components/diamond-store/DiamondStoreShell.module.css');
+const CLUB_PURCHASE = read('pages/api/club-arena/marketplace-purchase.js');
+const MERCH_PURCHASE = read('pages/api/store/purchase-with-diamonds.js');
+const TOAST = read('src/components/store/StoreToast.jsx');
 
 test('merch diamond purchases use a branded accessible confirmation instead of window.confirm', () => {
   assert.doesNotMatch(MERCH, /window\.confirm/);
@@ -91,4 +94,59 @@ test('authenticated Club Shop controls preserve the 44-pixel target at every vie
     SHELL_CSS,
     /\.clubShopSurface :is\(button, \[role='button'\]\) \{[\s\S]*?min-height:\s*44px;/
   );
+});
+
+test('live merchandise variants keep their labels, prices, stock, and selection after hydration', () => {
+  assert.match(MERCH, /const composedLabel = \[color, size\]\.filter\(Boolean\)\.join\('\s*\/\s*'\)/);
+  assert.match(MERCH, /priceUsd,[\s\S]*?priceDiamonds,[\s\S]*?stock,[\s\S]*?inStock/);
+  assert.match(MERCH, /const defaultVariant = product\.variants\.find\(v => v\.inStock\)/);
+  assert.match(MERCH, /const variant = product\.variants\.find\(v => v\.key === variantKey\) \|\| defaultVariant/);
+  assert.match(MERCH, /variant\?\.priceUsd, product\.priceUsd/);
+  assert.match(MERCH, /variant\?\.priceDiamonds,[\s\S]*?product\.priceDiamonds/);
+  assert.match(MERCH, /product\.source !== 'catalog'/);
+  assert.match(MERCH, /Options Temporarily Unavailable/);
+});
+
+test('store purchase controls close synchronous double-submit gaps', () => {
+  assert.match(MERCH, /const busyRef = useRef\(false\)/);
+  assert.match(MERCH, /if \(busyRef\.current\) return/);
+  assert.match(STORE, /const clubShopProcessingRef = useRef\(false\)/);
+  assert.match(STORE, /if \(!clubShopBuyTarget \|\| !clubShopClubId \|\| clubShopProcessingRef\.current\) return/);
+  assert.match(STORE, /purchaseRequestId: createCheckoutRequestId/);
+  assert.match(STORE, /const idempotencyKey = clubShopBuyTarget\.purchaseRequestId/);
+});
+
+test('Club Shop currency, ownership, refresh, failure, and stock rollback match the API contract', () => {
+  assert.match(STORE, /Spend Diamonds On Time Banks/);
+  assert.match(STORE, /Price In Diamonds/);
+  assert.match(STORE, /clubDiamondBalance/);
+  assert.match(STORE, /listenBroadcast\('smarter_poker_diamond_sync'/);
+  assert.match(STORE, /\.filter\(\(purchase\) => !purchase\.refunded_at\)/);
+  assert.match(STORE, /item\.stackable[\s\S]*?purchaseLimit > 0 && purchasedCount >= purchaseLimit/);
+  assert.match(STORE, /Retry Club Shop/);
+  const claimIndex = CLUB_PURCHASE.indexOf('stockClaimed = avail.stock_claimed === true');
+  const balanceIndex = CLUB_PURCHASE.indexOf('if (balance < price)');
+  const releaseIndex = CLUB_PURCHASE.indexOf('await releaseStock();', balanceIndex);
+  assert.ok(claimIndex > -1 && claimIndex < balanceIndex && releaseIndex > balanceIndex);
+});
+
+test('diamond merch returns the locked RPC balance and verifies refund business results', () => {
+  assert.match(MERCH_PURCHASE, /typeof deductResult\?\.new_balance === 'number'/);
+  assert.match(MERCH_PURCHASE, /data: refundResult, error: refundErr/);
+  assert.match(MERCH_PURCHASE, /refundResult && refundResult\.success === false/);
+});
+
+test('store feedback and dialogs remain accessible under failure and reverse-tab navigation', () => {
+  assert.match(TOAST, /role=\{toast\.type === 'error' \? 'alert' : 'status'\}/);
+  assert.match(TOAST, /aria-live=\{toast\.type === 'error' \? 'assertive' : 'polite'\}/);
+  assert.match(TOAST, /aria-label="Dismiss Store Message"/);
+  assert.match(TOAST, /type === 'error' \|\| type === 'warning' \? 8000 : 4500/);
+  assert.match(STORE, /document\.activeElement === first \|\| document\.activeElement === dialog/);
+  assert.match(DIALOG, /document\.activeElement === first \|\| document\.activeElement === dialog/);
+});
+
+test('store metadata and content render without a client-only transition boundary', () => {
+  assert.match(STORE, /import PageTransition from '..\/..\/src\/components\/transitions\/PageTransition'/);
+  assert.match(STORE, /<Head>[\s\S]*?<StoreToast \/>[\s\S]*?<PageTransition disableInitialAnimation>/);
+  assert.doesNotMatch(STORE, /<meta name="viewport"/);
 });

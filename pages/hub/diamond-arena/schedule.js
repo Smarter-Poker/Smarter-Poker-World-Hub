@@ -24,51 +24,34 @@ export default function DiamondArenaSchedule() {
     const setFilter = (val) => setFilterState('filter', val);
     const setGameType = (val) => setFilterState('gameType', val);
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // TIER 3 REALTIME: Diamond Arena Events Live Updates
-    // ═══════════════════════════════════════════════════════════════════════════
+    /* ═══════════════════════════════════════════════════════════════════════
+     *  2026-08-27: THIS PAGE NO LONGER INVENTS TOURNAMENTS
+     * ═══════════════════════════════════════════════════════════════════════
+     * It used to `setTournaments([...])` with two hardcoded events behind a
+     * `// TODO: Fetch tournaments from API` — a "Daily Diamond Freeroll" and a
+     * "Sunday Million" with a 50,000 prize pool, a 100-Diamond buy-in and
+     * "234/500 registered". Beside each sat a Register button with no onClick
+     * of any kind. So a player could read a real-looking buy-in in a currency
+     * they actually own, press Register, and have nothing happen at all.
+     *
+     * There is no schedule to fetch. `diamond_arena_events` — the table the old
+     * realtime subscription watched — is a PER-USER RESULTS LOG (score,
+     * correct_count, won, prize_awarded, diamonds_delta), not a list of
+     * scheduled events, and it currently holds zero rows. No table on the
+     * platform holds a Diamond Arena schedule. The subscription was therefore
+     * watching something that could never carry the data it was refreshing for.
+     *
+     * Until a schedule backend exists, the honest thing is the empty state this
+     * page already renders. An invented tournament with a real price on it is
+     * worse than no tournament: it is a quote for something nobody can sell.
+     *
+     * TO FINISH THIS: create the schedule table (name, game_type, buy_in_
+     * diamonds, prize_pool, starts_at, max_players), fetch it here, and give
+     * the Register button a handler that debits diamonds through the same
+     * server-priced path the store uses. Do not re-add client-side constants.
+     */
     useEffect(() => {
-        const scheduleChannel = supabase
-            .channel(`diamond-arena-schedule-${Date.now()}`)
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'diamond_arena_events'
-            }, () => {
-                // Trigger schedule refresh when events change
-                window.dispatchEvent(new CustomEvent('diamond-arena-schedule-refresh'));
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(scheduleChannel);
-        };
-    }, []);
-
-    useEffect(() => {
-        // TODO: Fetch tournaments from API
-        setTournaments([
-            {
-                id: 1,
-                name: 'Daily Diamond Freeroll',
-                buyIn: 0,
-                prize: 1000,
-                startTime: new Date(Date.now() + 3600000).toISOString(),
-                gameType: 'nlh',
-                registered: 47,
-                maxPlayers: 100
-            },
-            {
-                id: 2,
-                name: 'Sunday Million',
-                buyIn: 100,
-                prize: 50000,
-                startTime: new Date(Date.now() + 86400000).toISOString(),
-                gameType: 'nlh',
-                registered: 234,
-                maxPlayers: 500
-            }
-        ]);
+        setTournaments([]);
     }, []);
 
     const filteredTournaments = tournaments.filter(t => {
@@ -182,18 +165,25 @@ export default function DiamondArenaSchedule() {
                                         </div>
                                     </div>
 
+                                    {/* A Register button with no handler reads as a working
+                                        purchase flow. Until registration exists server-side it
+                                        is disabled and says so, rather than accepting a click
+                                        and doing nothing. */}
                                     <button
+                                        type="button"
+                                        disabled
+                                        title="Registration Is Not Open Yet"
                                         style={{
-                                            background: '#10b981',
-                                            border: 'none',
-                                            color: '#fff',
+                                            background: 'rgba(255,255,255,0.06)',
+                                            border: '1px solid rgba(255,255,255,0.12)',
+                                            color: '#9ca3af',
                                             padding: '12px 24px',
                                             borderRadius: '8px',
-                                            cursor: 'pointer',
+                                            cursor: 'not-allowed',
                                             fontWeight: 'bold'
                                         }}
                                     >
-                                        Register
+                                        Registration Not Open
                                     </button>
                                 </div>
                             ))}

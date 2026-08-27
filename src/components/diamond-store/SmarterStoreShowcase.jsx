@@ -8,7 +8,7 @@ const TAB_LABELS = [
   ['vip', 'VIP Membership'],
   ['merch', 'Merch'],
   ['rewards', 'Smarter Rewards'],
-  ['club-shop', 'Club Arena'],
+  ['club-shop', 'Club Shop'],
 ];
 
 const TAB_ROUTES = {
@@ -41,9 +41,9 @@ const SECTION_COPY = {
     body: 'Earn Diamonds Through Play, Study Streaks, Referrals, And Community Contributions.',
   },
   'club-shop': {
-    eyebrow: 'Club Arena',
+    eyebrow: 'Club Shop',
     title: 'Your Game. Your Rules.',
-    body: 'Manage Tables, Players, Rewards, And Club Operations From One Command Center.',
+    body: 'Spend Diamonds On Time Banks, Table Skins, Throwables, Emotes, And Club Exclusives.',
   },
 };
 

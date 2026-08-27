@@ -42,8 +42,6 @@ class LeaderboardService {
 
             if (level !== null) {
                 query = query.eq('level', level);
-            } else {
-                query = query.is('level', null);
             }
 
             const { data, error } = await query;
@@ -71,13 +69,11 @@ class LeaderboardService {
         try {
             let query = this.supabase
                 .from('memory_leaderboards')
-                .select('score')
+                .select('user_id, score')
                 .eq('game_mode', gameMode);
 
             if (level !== null) {
                 query = query.eq('level', level);
-            } else {
-                query = query.is('level', null);
             }
 
             const { data, error } = await query.order('score', { ascending: false });

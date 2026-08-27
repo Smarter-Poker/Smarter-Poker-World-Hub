@@ -37,14 +37,14 @@ const pageVariantsReduced = {
     exit:    { opacity: 0, transition: { duration: 0.1  } },
 };
 
-export default function PageTransition({ children, className = '' }) {
+export default function PageTransition({ children, className = '', disableInitialAnimation = false }) {
     // useReducedMotion returns true when window.matchMedia('(prefers-reduced-motion: reduce)') matches.
     const reduce = useReducedMotion();
     const variants = reduce ? pageVariantsReduced : pageVariantsFull;
 
     return (
         <motion.div
-            initial="initial"
+            initial={disableInitialAnimation ? false : 'initial'}
             animate="animate"
             exit="exit"
             variants={variants}

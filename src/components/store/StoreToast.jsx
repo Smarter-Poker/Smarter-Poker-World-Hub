@@ -18,7 +18,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { CheckCircle, XCircle, Info, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 // ── Helper function (usable from any module) ──
 export function showStoreToast(type, message) {
@@ -66,11 +66,13 @@ export default function StoreToast() {
         const id = Date.now() + Math.random();
         setToasts(prev => [...prev.slice(-4), { id, type, message }]); // Max 5 visible
 
-        // Auto-remove after 3.5 seconds (timer tracked so unmount can clear it)
+        // Errors and warnings need enough time to be read and acted on. Every
+        // toast also has a keyboard-operable dismiss control below.
+        const timeoutMs = type === 'error' || type === 'warning' ? 8000 : 4500;
         const timerId = setTimeout(() => {
             timersRef.current.delete(timerId);
             setToasts(prev => prev.filter(t => t.id !== id));
-        }, 3500);
+        }, timeoutMs);
         timersRef.current.add(timerId);
     }, []);
 
@@ -119,7 +121,9 @@ export default function StoreToast() {
                     return (
                         <div
                             key={toast.id}
-                            onClick={() => removeToast(toast.id)}
+                            role={toast.type === 'error' ? 'alert' : 'status'}
+                            aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
+                            aria-atomic="true"
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -127,13 +131,13 @@ export default function StoreToast() {
                                 padding: '14px 20px',
                                 background: s.bg,
                                 border: `1px solid ${s.border}`,
-                                borderRadius: 14,
+                                borderRadius: 0,
                                 boxShadow: `0 4px 24px ${s.glow}, 0 0 40px ${s.glow}`,
                                 backdropFilter: 'blur(12px)',
                                 animation: 'storeToastIn 0.35s ease-out',
-                                cursor: 'pointer',
                                 pointerEvents: 'auto',
                                 width: '100%',
+                                textTransform: 'capitalize',
                             }}
                         >
                             <span style={{
@@ -144,7 +148,7 @@ export default function StoreToast() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                borderRadius: '50%',
+                                borderRadius: 0,
                                 background: 'rgba(255,255,255,0.15)',
                                 flexShrink: 0,
                             }}>
@@ -161,6 +165,26 @@ export default function StoreToast() {
                             }}>
                                 {toast.message}
                             </span>
+                            <button
+                                type="button"
+                                onClick={() => removeToast(toast.id)}
+                                aria-label="Dismiss Store Message"
+                                style={{
+                                    width: 44,
+                                    minWidth: 44,
+                                    height: 44,
+                                    display: 'grid',
+                                    placeItems: 'center',
+                                    padding: 0,
+                                    border: '1px solid rgba(255,255,255,0.45)',
+                                    borderRadius: 0,
+                                    background: 'rgba(0,0,0,0.16)',
+                                    color: '#fff',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <X size={18} aria-hidden="true" />
+                            </button>
                         </div>
                     );
                 })}
