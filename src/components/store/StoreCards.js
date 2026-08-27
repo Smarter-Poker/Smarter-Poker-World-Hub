@@ -93,7 +93,7 @@ export function VIPCard({ plan, isSelected, onSelect }) {
                 padding: 0, color: 'inherit', textAlign: 'left', font: 'inherit',
       }}
         >
-            <img src="/images/vip-card.png" alt={plan.name}
+            <img src="/images/vip-card.webp" alt={plan.name} width={1024} height={1024}
                 style={{ width: '100%', display: 'block', borderRadius: 14 }}
                 draggable={false} loading="lazy" />
             <div style={{

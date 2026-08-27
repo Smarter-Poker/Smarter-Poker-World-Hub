@@ -212,7 +212,8 @@ const styles = {
     },
     link: {
         color: '#00D4FF',
-        textDecoration: 'none',
+        textDecoration: 'underline',
+        textUnderlineOffset: 3,
     },
     // YELLOW BALL REWARD SYSTEM STYLES
     rewardSystem: {
@@ -535,7 +536,7 @@ const styles = {
         padding: 20,
         textAlign: 'center',
         transition: 'all 0.3s ease',
-        cursor: 'pointer',
+        cursor: 'default',
     },
     eggIcon: {
         fontSize: 48,

@@ -64,7 +64,9 @@ test('the merch page server-renders a static lineup while refreshing the live ca
   assert.doesNotMatch(STORE, /dynamic\(\(\) => import\('\.\.\/\.\.\/src\/components\/store\/MerchStore'\), \{\s*ssr: false/);
   assert.match(MERCH, /const STATIC_PRODUCTS = MERCHANDISE/);
   assert.match(MERCH, /useState\(\(\) => STATIC_PRODUCTS\)/);
-  assert.doesNotMatch(MERCH, /setLoading\(true\)/);
+  assert.match(MERCH, /setLoading\(true\)/);
+  assert.match(MERCH, /Verifying Live Prices, Options, And Stock/);
+  assert.doesNotMatch(MERCH, /\{!loading && sections\.map/);
   assert.match(MERCH, /catalog_fallback/);
   assert.match(MERCH, /width: 44, minWidth: 44, height: 44/);
 });

@@ -53,7 +53,7 @@ test('exposes rewards, club filters, fields, and status changes semantically', (
     'Search Club Shop Items',
     'Sort Club Shop Items',
     'Item Name',
-    'Price In Chips',
+    'Price In Diamonds',
     'Item Description',
     'Item Category',
     'Item Image URL',
