@@ -5,6 +5,17 @@
 
 import { supabase } from '../lib/supabase';
 
+export const DEFAULT_MEMORY_GAME_PREFERENCES = Object.freeze({
+    soundEffects: true,
+    keyboardShortcuts: true,
+    showTimer: true,
+    visualHints: false,
+});
+
+export function normalizeMemoryGamePreferences(preferences) {
+    return { ...DEFAULT_MEMORY_GAME_PREFERENCES, ...(preferences || {}) };
+}
+
 /**
  * Get user's memory games preferences
  * @param {string} userId - User ID
@@ -12,7 +23,7 @@ import { supabase } from '../lib/supabase';
  */
 export async function getMemoryGamesPreferences(userId) {
     if (!userId) {
-        return { soundEffects: true, keyboardShortcuts: true, showTimer: true, visualHints: false };
+        return { ...DEFAULT_MEMORY_GAME_PREFERENCES };
     }
 
     try {
@@ -24,10 +35,10 @@ export async function getMemoryGamesPreferences(userId) {
 
         if (error) throw error;
 
-        return data?.memory_games_preferences || { soundEffects: true, keyboardShortcuts: true, showTimer: true, visualHints: false };
+        return normalizeMemoryGamePreferences(data?.memory_games_preferences);
     } catch (error) {
         console.warn('Error fetching memory games preferences:', error);
-        return { soundEffects: true, keyboardShortcuts: true, showTimer: true, visualHints: false };
+        return { ...DEFAULT_MEMORY_GAME_PREFERENCES };
     }
 }
 

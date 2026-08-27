@@ -1,246 +1,80 @@
-/**
- * Preflop Charts - Achievements
- * Wired to Supabase with real achievement tracking
- */
-
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Award, Check, LockKeyhole, RefreshCw, ShieldCheck } from 'lucide-react';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useRouter } from 'next/router';
-import { createClient } from '@supabase/supabase-js';
-import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import PageTransition from '../../../src/components/transitions/PageTransition';
+import PreflopSubpageShell from '../../../src/components/memory-games/PreflopSubpageShell';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import { supabase } from '../../../src/lib/supabase';
 
-// Initialize Supabase — GUARD: Must not run during SSG (no localStorage on server)
-const supabase = (typeof window !== 'undefined')
-    ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-    : null;
-
-// Achievement categories for filtering
 const CATEGORIES = [
-    { key: 'all', label: 'All' },
-    { key: 'basics', label: 'Basics' },
-    { key: 'mastery', label: 'Mastery' },
-    { key: 'speed', label: 'Speed' },
-    { key: 'progress', label: 'Progress' },
-    { key: 'consistency', label: 'Streaks' },
-    { key: 'economy', label: 'Economy' },
-    { key: 'games', label: 'Games' },
-    { key: 'ai', label: 'AI' },
-    { key: 'challenges', label: 'Challenges' },
+  ['all', 'All'], ['basics', 'Basics'], ['mastery', 'Mastery'], ['speed', 'Speed'], ['progress', 'Progress'], ['consistency', 'Streaks'], ['economy', 'Economy'], ['games', 'Games'], ['ai', 'AI'], ['challenges', 'Challenges'],
 ];
 
-// Fallback achievements if database not ready
-const FALLBACK_ACHIEVEMENTS = [
-    { key: 'first_game', name: 'First Match', description: 'Complete Your First Preflop Charts Game', icon: '⭐', category: 'basics', unlocked: false },
-    { key: 'perfect_memory', name: 'Perfect Range', description: 'Complete a Game with 100% Accuracy', icon: '💯', category: 'mastery', unlocked: false },
-    { key: 'speed_demon', name: 'Speed Demon', description: 'Complete a Speed Drill in Under 60 Seconds', icon: '⚡', category: 'speed', unlocked: false },
-    { key: 'level_5', name: 'Halfway There', description: 'Reach Level 5', icon: '📈', category: 'progress', unlocked: false },
-    { key: 'level_10', name: 'Level Master', description: 'Complete Level 10', icon: '🎯', category: 'progress', unlocked: false },
-    { key: 'streak_7', name: 'Week Warrior', description: 'Play 7 Days in a Row', icon: '💪', category: 'consistency', unlocked: false },
-    { key: 'diamond_1000', name: 'Diamond Hunter', description: 'Earn 1,000 Diamonds from Training', icon: '💰', category: 'economy', unlocked: false },
-    { key: 'games_100', name: 'Range Veteran', description: 'Complete 100 Preflop Training Sessions', icon: '🏅', category: 'games', unlocked: false },
-    { key: 'grok_25', name: 'Grok Genius', description: 'Complete 25 AI-generated Scenarios', icon: '🧠', category: 'ai', unlocked: false },
+const ACHIEVEMENT_CATALOG = [
+  { key: 'first_game', name: 'First Signal', description: 'Complete your first Preflop Charts drill.', code: '01', category: 'basics' },
+  { key: 'perfect_memory', name: 'Exact Range', description: 'Complete a range with 100% accuracy.', code: 'AA', category: 'mastery' },
+  { key: 'speed_demon', name: 'Fast Fold', description: 'Complete a Speed Drill in under 60 seconds.', code: '60', category: 'speed' },
+  { key: 'level_5', name: 'Mid Circuit', description: 'Master and open Level 5.', code: 'L5', category: 'progress' },
+  { key: 'level_10', name: 'Full Circuit', description: 'Master and open Level 10.', code: 'LX', category: 'progress' },
+  { key: 'streak_7', name: 'Seven-Day Read', description: 'Train for seven consecutive days.', code: '7D', category: 'consistency' },
+  { key: 'diamond_1000', name: 'Diamond Run', description: 'Earn 1,000 diamonds from training.', code: '1K', category: 'economy' },
+  { key: 'games_100', name: 'Range Veteran', description: 'Complete 100 verified training sessions.', code: 'C', category: 'games' },
+  { key: 'grok_25', name: 'Solver Channel', description: 'Complete 25 deterministic solver scenarios.', code: 'AI', category: 'ai' },
 ];
 
 export default function MemoryGamesAchievements() {
-    const bus = useTrainingBus('preflop-charts-achievements');
-    const router = useRouter();
-    const { user } = useAvatar();
-    const [achievements, setAchievements] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedCategory, setSelectedCategory] = useState('all');
+  useTrainingBus('preflop-charts-achievements');
+  const { user } = useAvatar();
+  const [achievements, setAchievements] = useState(ACHIEVEMENT_CATALOG);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-    // Fetch achievements
-    useEffect(() => {
-        fetchAchievements();
-    }, [user]);
+  const fetchAchievements = useCallback(async () => {
+    setLoading(true); setError('');
+    if (!user?.id) { setAchievements(ACHIEVEMENT_CATALOG); setLoading(false); return; }
+    try {
+      const { data, error: rpcError } = await supabase.rpc('get_user_achievements', { p_user_id: user.id });
+      if (rpcError) throw rpcError;
+      const rows = Array.isArray(data) ? data : [];
+      const byKey = new Map(rows.map((item) => [item.key || item.achievement_key, item]));
+      const catalogKeys = new Set(ACHIEVEMENT_CATALOG.map((item) => item.key));
+      setAchievements([
+        ...ACHIEVEMENT_CATALOG.map((item) => ({ ...item, ...(byKey.get(item.key) || {}) })),
+        ...rows.filter((item) => !catalogKeys.has(item.key || item.achievement_key)),
+      ]);
+    } catch (fetchError) {
+      console.warn('[PreflopAchievements] Fetch failed:', fetchError?.message || fetchError);
+      setAchievements(ACHIEVEMENT_CATALOG);
+      setError('Unlock status could not be synchronized. The achievement catalog is still available.');
+    } finally { setLoading(false); }
+  }, [user?.id]);
 
-    const fetchAchievements = async () => {
-        setLoading(true);
-        try {
-            if (user?.id) {
-                // Try to get user achievements from Supabase
-                const { data, error } = await supabase.rpc('get_user_achievements', {
-                    p_user_id: user.id
-                });
+  useEffect(() => { fetchAchievements(); }, [fetchAchievements]);
+  const filtered = selectedCategory === 'all' ? achievements : achievements.filter((item) => item.category === selectedCategory);
+  const unlocked = achievements.filter((item) => item.unlocked).length;
+  const percent = achievements.length ? Math.round((unlocked / achievements.length) * 100) : 0;
+  const nextLocked = achievements.find((item) => !item.unlocked);
 
-                if (error) {
-                    console.warn('[Achievements] RPC error:', error);
-                    setAchievements(FALLBACK_ACHIEVEMENTS);
-                } else {
-                    setAchievements(data || FALLBACK_ACHIEVEMENTS);
-                }
-            } else {
-                setAchievements(FALLBACK_ACHIEVEMENTS);
-            }
-        } catch (err) {
-            console.warn('[Achievements] Fetch error:', err);
-            setAchievements(FALLBACK_ACHIEVEMENTS);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Filter achievements by category
-    const filteredAchievements = selectedCategory === 'all'
-        ? achievements
-        : achievements.filter(a => a.category === selectedCategory);
-
-    // Stats
-    const unlockedCount = achievements.filter(a => a.unlocked).length;
-    const totalCount = achievements.length;
-    const progressPercent = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
-
-    return (
-        <>
-            <SEOHead
-                title="Preflop Charts Achievements"
-                description="Track Your Preflop Range Training Achievements And Progress."
-                canonical="/hub/preflop-charts/achievements"
-            />
-
-            <PageTransition>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0e1a' }}>
-                    <UniversalHeader pageDepth={2} />
-
-                    <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-
-
-                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '20px' }}>
-                            🏆 Preflop Charts Achievements
-                        </h1>
-
-                        {/* Progress Banner */}
-                        <div style={{
-                            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2))',
-                            border: '1px solid rgba(139, 92, 246, 0.3)',
-                            borderRadius: '16px',
-                            padding: '24px',
-                            marginBottom: '24px'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                <div>
-                                    <div style={{ color: '#fff', fontSize: '24px', fontWeight: 700 }}>
-                                        {unlockedCount} / {totalCount} Unlocked
-                                    </div>
-                                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
-                                        {progressPercent}% Complete
-                                    </div>
-                                </div>
-                                <div style={{ fontSize: '48px' }}>
-                                    {progressPercent >= 100 ? '👑' : progressPercent >= 50 ? '🔥' : '⭐'}
-                                </div>
-                            </div>
-                            <div style={{
-                                background: 'rgba(0,0,0,0.3)',
-                                borderRadius: '10px',
-                                height: '12px',
-                                overflow: 'hidden'
-                            }}>
-                                <div style={{
-                                    background: 'linear-gradient(90deg, #8b5cf6, #ec4899)',
-                                    height: '100%',
-                                    width: `${progressPercent}%`,
-                                    transition: 'width 0.5s ease'
-                                }} />
-                            </div>
-                        </div>
-
-                        {/* Category Filter */}
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
-                            {CATEGORIES.map(cat => (
-                                <button
-                                    key={cat.key}
-                                    onClick={() => setSelectedCategory(cat.key)}
-                                    style={{
-                                        padding: '8px 16px',
-                                        borderRadius: '20px',
-                                        border: selectedCategory === cat.key
-                                            ? '1px solid #8b5cf6'
-                                            : '1px solid rgba(255,255,255,0.15)',
-                                        background: selectedCategory === cat.key
-                                            ? 'rgba(139, 92, 246, 0.2)'
-                                            : 'rgba(255,255,255,0.05)',
-                                        color: selectedCategory === cat.key ? '#8b5cf6' : 'rgba(255,255,255,0.7)',
-                                        cursor: 'pointer',
-                                        fontSize: '13px',
-                                        fontWeight: 500,
-                                    }}
-                                >
-                                    {cat.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Achievements Grid */}
-                        {loading ? (
-                            <div style={{ textAlign: 'center', padding: '60px', color: 'rgba(255,255,255,0.5)' }}>
-                                Loading achievements...
-                            </div>
-                        ) : (
-                            <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-                                {filteredAchievements.map(achievement => (
-                                    <div
-                                        key={achievement.key}
-                                        style={{
-                                            background: achievement.unlocked
-                                                ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.15))'
-                                                : 'rgba(255,255,255,0.03)',
-                                            border: `1px solid ${achievement.unlocked ? 'rgba(139, 92, 246, 0.4)' : 'rgba(255,255,255,0.1)'}`,
-                                            borderRadius: '16px',
-                                            padding: '20px',
-                                            display: 'flex',
-                                            gap: '16px',
-                                            alignItems: 'center',
-                                            opacity: achievement.unlocked ? 1 : 0.6,
-                                            transition: 'all 0.2s ease',
-                                        }}
-                                    >
-                                        <div style={{
-                                            fontSize: '42px',
-                                            filter: achievement.unlocked ? 'none' : 'grayscale(100%)',
-                                            minWidth: '50px',
-                                            textAlign: 'center'
-                                        }}>
-                                            {achievement.icon}
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{
-                                                color: achievement.unlocked ? '#fff' : 'rgba(255,255,255,0.7)',
-                                                fontWeight: 700,
-                                                marginBottom: '4px',
-                                                fontSize: '16px'
-                                            }}>
-                                                {achievement.name}
-                                            </div>
-                                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>
-                                                {achievement.description}
-                                            </div>
-                                            {achievement.unlocked && achievement.unlocked_at && (
-                                                <div style={{ color: '#10b981', fontSize: '11px', marginTop: '6px' }}>
-                                                    Unlocked {new Date(achievement.unlocked_at).toLocaleDateString()}
-                                                </div>
-                                            )}
-                                        </div>
-                                        {achievement.unlocked && (
-                                            <div style={{
-                                                color: '#10b981',
-                                                fontSize: '24px',
-                                            }}>
-                                                ✓
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-                  <BottomNavBar />
-    </PageTransition>
-        </>
-    );
+  return (
+    <>
+      <SEOHead title="Preflop Charts Achievements" description="Track verified Preflop Charts milestones and mastery awards." canonical="/hub/preflop-charts/achievements" />
+      <PreflopSubpageShell eyebrow="AWARD VAULT // PLAYER MILESTONES" title="Range distinctions" description="Permanent records for precision, consistency, speed, and progression." metric={`${percent}%`}>
+        <section className="preflop-award-progress" aria-label={`${unlocked} of ${achievements.length} achievements unlocked`}>
+          <ShieldCheck size={28} aria-hidden /><div><small>VAULT COMPLETION</small><strong>{unlocked} / {achievements.length} unlocked</strong><div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><i style={{ '--award-progress': `${percent}%` }} /></div></div>{nextLocked && <span>Next target<strong>{nextLocked.name}</strong></span>}
+        </section>
+        {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchAchievements}><RefreshCw size={15} aria-hidden /> Retry</button></div>}
+        <div className="preflop-mode-rail" role="tablist" aria-label="Achievement category">
+          {CATEGORIES.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={selectedCategory === key} onClick={() => setSelectedCategory(key)}>{label}</button>)}
+        </div>
+        {loading ? <div className="preflop-subpage-loading">Synchronizing award vault…</div> : <section className="preflop-award-grid" aria-label="Achievements">
+          {filtered.map((item, index) => <article key={item.key || `${item.name}-${index}`} data-unlocked={item.unlocked || undefined}>
+            <div className="preflop-award-code"><span>{item.code || String(index + 1).padStart(2, '0')}</span>{item.unlocked ? <Check size={15} aria-label="Unlocked" /> : <LockKeyhole size={14} aria-label="Locked" />}</div>
+            <Award size={19} aria-hidden /><small>{(item.category || 'achievement').toUpperCase()}</small><h2>{item.name}</h2><p>{item.description}</p>
+            {item.unlocked_at && <time dateTime={item.unlocked_at}>Unlocked {new Date(item.unlocked_at).toLocaleDateString()}</time>}
+          </article>)}
+        </section>}
+      </PreflopSubpageShell>
+    </>
+  );
 }
