@@ -82,8 +82,30 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await page.goto('/hub/diamond-store?canceled=true', { waitUntil: 'domcontentloaded' });
     const status = page.locator('[data-checkout-status="canceled"]');
     await expect(status).toBeVisible();
+    await expect(status).toBeFocused();
     await expect(status).toContainText('No Payment Was Made');
     await expect(page).toHaveURL(/\/hub\/diamond-store$/);
+    const mainSections = await page.locator('main > section').evaluateAll((sections) =>
+      sections.map((section) => section.getAttribute('data-checkout-status') || section.className)
+    );
+    expect(mainSections[0]).toBe('canceled');
+  });
+
+  test('mobile purchase rails expose labels, focus, and keyboard scrolling', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/hub/diamond-store', { waitUntil: 'domcontentloaded' });
+
+    const packageRail = page.getByRole('region', { name: 'Diamond Packages' });
+    await expect(packageRail).toHaveAttribute('tabindex', '0');
+    await expect(packageRail).toHaveAttribute('aria-describedby', 'diamond-package-scroll-hint');
+    await packageRail.focus();
+    await packageRail.press('ArrowRight');
+    await expect.poll(() => packageRail.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+
+    await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('region', { name: 'VIP Membership Plans' })).toHaveAttribute('tabindex', '0');
+    await expect(page.getByRole('heading', { level: 2, name: 'Everything Included With VIP' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: 'Frequently Asked Questions' })).toBeVisible();
   });
 
   test('store controls meet the 44-pixel target and legal text remains readable', async ({ page }) => {
