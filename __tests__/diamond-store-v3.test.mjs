@@ -45,8 +45,23 @@ test('uses the dedicated cinematic artwork and sharp-corner treatment', () => {
 });
 
 test('keeps every redesign rule outside the locked global header', () => {
-  assert.match(page, /<UniversalHeader pageDepth=\{1\} \/>\s*<main className="store-redesign-content">/);
+  assert.match(
+    page,
+    /<UniversalHeader pageDepth=\{1\} \/>\s*<main className="store-redesign-content">/
+  );
   assert.doesNotMatch(page, /\.diamond-store-page button/);
   assert.doesNotMatch(page, /\.diamond-store-page a,/);
   assert.match(page, /\.store-redesign-content button/);
+});
+
+test('ships a purpose-built mobile layout instead of a stacked desktop grid', () => {
+  assert.match(component, /scrollIntoView/);
+  assert.match(component, /prefers-reduced-motion: reduce/);
+  assert.match(component, /Swipe To Compare Packages/);
+  assert.match(styles, /@media \(max-width: 640px\)/);
+  assert.match(styles, /\.packageGrid\s*\{[^}]*display:\s*flex/s);
+  assert.match(styles, /\.packageGrid\s*\{[^}]*scroll-snap-type:\s*x mandatory/s);
+  assert.match(styles, /\.packageCard\s*\{[^}]*flex:\s*0 0 min\(86vw, 360px\)/s);
+  assert.match(styles, /\.packageCard button\s*\{[^}]*min-height:\s*50px/s);
+  assert.doesNotMatch(styles, /background-position-x:\s*72%/);
 });
