@@ -5,6 +5,15 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import {
+    Check,
+    Layers3,
+    MapPin,
+    RotateCcw,
+    SlidersHorizontal,
+    Table2,
+    X,
+} from 'lucide-react';
 
 // Filter options
 const POSITION_OPTIONS = [
@@ -63,95 +72,145 @@ export default function ScenarioFilterPanel({
         onFilterChange({});
     };
 
-    const hasFilters = position || stackDepth || format;
+    const hasFilters = Boolean(position || stackDepth || format);
+    const appliedPosition = currentFilters.position || '';
+    const appliedStackDepth = Number(currentFilters.stackDepth) || 0;
+    const appliedFormat = currentFilters.format || '';
+    const isDirty = position !== appliedPosition
+        || stackDepth !== appliedStackDepth
+        || format !== appliedFormat;
+    const activeFilterCount = [position, stackDepth, format].filter(Boolean).length;
+
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        handleApply();
+    };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: -20 }}
+        <motion.section
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            style={styles.container}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="scenario-filter-console"
+            aria-labelledby="scenario-filter-title"
+            aria-describedby="scenario-filter-description"
+            data-filter-state={isDirty ? 'draft' : hasFilters ? 'active' : 'idle'}
         >
-            <div style={styles.header}>
-                <h3 style={styles.title}>🔍 Filter Scenarios</h3>
-                <button onClick={onClose} style={styles.closeButton}>✕</button>
-            </div>
-
-            <div style={styles.filterGrid}>
-                {/* Position Filter */}
-                <div style={styles.filterGroup}>
-                    <label style={styles.filterLabel}>Position</label>
-                    <select
-                        value={position}
-                        onChange={(e) => setPosition(e.target.value)}
-                        style={styles.select}
-                    >
-                        {POSITION_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
+            <div className="scenario-filter-header">
+                <div className="scenario-filter-heading">
+                    <span className="scenario-filter-kicker">
+                        <SlidersHorizontal size={13} aria-hidden /> Range tuner
+                    </span>
+                    <h3 id="scenario-filter-title">Build a practice pool</h3>
+                    <p id="scenario-filter-description">
+                        Choose the table conditions you want to drill.
+                    </p>
                 </div>
-
-                {/* Stack Depth Filter */}
-                <div style={styles.filterGroup}>
-                    <label style={styles.filterLabel}>Stack Depth</label>
-                    <select
-                        value={stackDepth}
-                        onChange={(e) => setStackDepth(parseInt(e.target.value))}
-                        style={styles.select}
-                    >
-                        {STACK_DEPTH_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* Format Filter */}
-                <div style={styles.filterGroup}>
-                    <label style={styles.filterLabel}>Format</label>
-                    <select
-                        value={format}
-                        onChange={(e) => setFormat(e.target.value)}
-                        style={styles.select}
-                    >
-                        {FORMAT_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            {/* Filter Stats */}
-            <div style={styles.statsRow}>
-                <span style={styles.statsText}>
-                    {hasFilters ? (
-                        <>
-                            <span style={{ color: '#00D4FF', fontWeight: 700 }}>{filteredCount}</span>
-                            <span> of {availableScenarios} scenarios match</span>
-                        </>
-                    ) : (
-                        <span>{availableScenarios} scenarios available</span>
-                    )}
-                </span>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={styles.buttonRow}>
                 <button
-                    onClick={handleReset}
-                    style={styles.resetButton}
-                    disabled={!hasFilters}
+                    type="button"
+                    onClick={onClose}
+                    className="scenario-filter-close"
+                    aria-label="Close scenario filters"
                 >
-                    ↺ Reset
-                </button>
-                <button
-                    onClick={handleApply}
-                    style={styles.applyButton}
-                >
-                    ✓ Apply Filters
+                    <X size={18} aria-hidden />
                 </button>
             </div>
-        </motion.div>
+
+            <form onSubmit={handleSubmit}>
+                <div className="scenario-filter-grid">
+                    <div className="scenario-filter-field">
+                        <label htmlFor="scenario-filter-position">
+                            <MapPin size={14} aria-hidden /> Position
+                        </label>
+                        <span className="scenario-filter-field-note">Where you are seated</span>
+                        <div className="scenario-filter-select-wrap">
+                            <select
+                                id="scenario-filter-position"
+                                value={position}
+                                onChange={(event) => setPosition(event.target.value)}
+                            >
+                                {POSITION_OPTIONS.map(option => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="scenario-filter-field">
+                        <label htmlFor="scenario-filter-stack-depth">
+                            <Layers3 size={14} aria-hidden /> Stack depth
+                        </label>
+                        <span className="scenario-filter-field-note">Effective big blinds</span>
+                        <div className="scenario-filter-select-wrap">
+                            <select
+                                id="scenario-filter-stack-depth"
+                                value={stackDepth}
+                                onChange={(event) => setStackDepth(parseInt(event.target.value, 10))}
+                            >
+                                {STACK_DEPTH_OPTIONS.map(option => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="scenario-filter-field">
+                        <label htmlFor="scenario-filter-format">
+                            <Table2 size={14} aria-hidden /> Format
+                        </label>
+                        <span className="scenario-filter-field-note">Table size and structure</span>
+                        <div className="scenario-filter-select-wrap">
+                            <select
+                                id="scenario-filter-format"
+                                value={format}
+                                onChange={(event) => setFormat(event.target.value)}
+                            >
+                                {FORMAT_OPTIONS.map(option => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="scenario-filter-readout">
+                    <div className="scenario-filter-meter" aria-hidden="true">
+                        <span>Practice pool</span>
+                        <strong>{isDirty ? '—' : filteredCount}</strong>
+                        <small>/ {availableScenarios}</small>
+                    </div>
+                    <div className="scenario-filter-summary">
+                        <span className={position ? 'is-selected' : ''}>{position || 'Any position'}</span>
+                        <span className={stackDepth ? 'is-selected' : ''}>{stackDepth ? `${stackDepth}BB` : 'Any stack'}</span>
+                        <span className={format ? 'is-selected' : ''}>
+                            {FORMAT_OPTIONS.find(option => option.value === format)?.label || 'Any format'}
+                        </span>
+                    </div>
+                    <p className="scenario-filter-status" aria-live="polite">
+                        {isDirty
+                            ? `${activeFilterCount || 'No'} filter${activeFilterCount === 1 ? '' : 's'} ready to apply`
+                            : hasFilters
+                                ? `${filteredCount} of ${availableScenarios} scenarios match`
+                                : `${availableScenarios} scenarios available`}
+                    </p>
+                </div>
+
+                <div className="scenario-filter-actions">
+                    <button
+                        type="button"
+                        onClick={handleReset}
+                        className="scenario-filter-reset"
+                        disabled={!hasFilters}
+                    >
+                        <RotateCcw size={15} aria-hidden /> Reset
+                    </button>
+                    <button type="submit" className="scenario-filter-apply">
+                        <Check size={16} aria-hidden /> Apply filters
+                    </button>
+                </div>
+            </form>
+        </motion.section>
     );
 }
 
@@ -199,111 +258,3 @@ export function filterScenarios(scenarios, filters = {}) {
         return true;
     });
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// STYLES
-// ═══════════════════════════════════════════════════════════════════════════
-const styles = {
-    container: {
-        background: 'linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 10, 30, 0.95))',
-        border: '2px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 20,
-        backdropFilter: 'blur(10px)',
-    },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#fff',
-        margin: 0,
-    },
-    closeButton: {
-        width: 32,
-        height: 32,
-        borderRadius: '50%',
-        background: 'rgba(255, 255, 255, 0.1)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontSize: 16,
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    filterGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 16,
-        marginBottom: 16,
-    },
-    filterGroup: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-    },
-    filterLabel: {
-        fontSize: 11,
-        fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    select: {
-        padding: '10px 12px',
-        background: 'rgba(0, 0, 0, 0.4)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        borderRadius: 8,
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 500,
-        cursor: 'pointer',
-        outline: 'none',
-        appearance: 'none',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`,
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'right 10px center',
-        paddingRight: 32,
-    },
-    statsRow: {
-        textAlign: 'center',
-        marginBottom: 16,
-    },
-    statsText: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-    },
-    buttonRow: {
-        display: 'flex',
-        gap: 12,
-    },
-    resetButton: {
-        flex: 1,
-        padding: '12px 20px',
-        background: 'rgba(255, 255, 255, 0.1)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        borderRadius: 25,
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: 'pointer',
-    },
-    applyButton: {
-        flex: 2,
-        padding: '12px 20px',
-        background: 'linear-gradient(135deg, #00D4FF, #0088dd)',
-        border: 'none',
-        borderRadius: 25,
-        color: '#000',
-        fontSize: 14,
-        fontWeight: 700,
-        cursor: 'pointer',
-        boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
-    },
-};
