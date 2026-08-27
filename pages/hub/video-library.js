@@ -223,8 +223,10 @@ export default function VideoLibraryPage() {
     }, [router.query, allVideos]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showReelsModal, setShowReelsModal] = useState(false);
-    const modalRef = useRef(null);
+    const searchInputRef = useRef(null);
     const modalOverlayRef = useRef(null); // ref for native fullscreen
+    const modalCloseButtonRef = useRef(null);
+    const videoTriggerRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
     const [iframeKey, setIframeKey] = useState(0); // bump to force iframe remount (guarantees autoplay)
     // BUG-K FIX: store unmute timer IDs so we can clear them if modal closes before 1200ms
@@ -517,6 +519,12 @@ export default function VideoLibraryPage() {
 
     // Navigate to a specific video in the current filtered list
     const handleOpenVideo = useCallback(async (video) => {
+        if (!currentWatchingVideoRef.current && typeof document !== 'undefined') {
+            const activeElement = document.activeElement;
+            videoTriggerRef.current = activeElement instanceof HTMLElement && activeElement !== document.body
+                ? activeElement
+                : null;
+        }
         savedScrollY.current = typeof window !== 'undefined' ? window.scrollY : 0;
         watchStartTimeRef.current = Date.now();
         currentWatchingVideoRef.current = video;
@@ -562,18 +570,30 @@ export default function VideoLibraryPage() {
         }
     }, []);
 
+    const restoreVideoTriggerFocus = useCallback(() => {
+        if (typeof window === 'undefined') return;
+        requestAnimationFrame(() => {
+            const trigger = videoTriggerRef.current;
+            if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+            videoTriggerRef.current = null;
+        });
+    }, []);
+
 
     // Handle closing a video - save watch duration
     const handleCloseVideo = useCallback(async () => {
         // BUG-J FIX: guard against double-save (Escape + close button simultaneously).
         // Null the refs BEFORE the await so a concurrent call exits immediately.
         if (!watchStartTimeRef.current || !currentWatchingVideoRef.current || !userId) {
+            watchStartTimeRef.current = null;
+            currentWatchingVideoRef.current = null;
             setSelectedVideo(null);
             setVlHudVisible(false);
             clearTimeout(vlHudTimer.current);
             if (typeof window !== 'undefined' && savedScrollY.current > 0) {
                 requestAnimationFrame(() => window.scrollTo({ top: savedScrollY.current, behavior: 'instant' }));
             }
+            restoreVideoTriggerFocus();
             return;
         }
         const startTime = watchStartTimeRef.current;
@@ -667,7 +687,8 @@ export default function VideoLibraryPage() {
         if (typeof window !== 'undefined' && savedScrollY.current > 0) {
             requestAnimationFrame(() => window.scrollTo({ top: savedScrollY.current, behavior: 'instant' }));
         }
-    }, [userId, watchProgress]);
+        restoreVideoTriggerFocus();
+    }, [userId, watchProgress, restoreVideoTriggerFocus]);
 
     // Share a video — copy deep-link to clipboard and show toast
     const handleShareVideo = useCallback((video) => {
@@ -742,6 +763,62 @@ export default function VideoLibraryPage() {
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
     }, [selectedVideo, handleCloseVideo, handleNextVideo, handlePrevVideo, handleFullscreen]);
+
+    // Slash is the command shortcut for search when no overlay is active.
+    useEffect(() => {
+        const handleSearchShortcut = (event) => {
+            if (selectedVideo || menuOpen || showReelsModal || showPlaylistModal) return;
+            if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
+
+            const target = event.target;
+            const isTyping = target instanceof HTMLInputElement ||
+                target instanceof HTMLTextAreaElement ||
+                target instanceof HTMLSelectElement ||
+                target?.isContentEditable;
+            if (isTyping) return;
+
+            event.preventDefault();
+            searchInputRef.current?.focus();
+        };
+
+        window.addEventListener('keydown', handleSearchShortcut);
+        return () => window.removeEventListener('keydown', handleSearchShortcut);
+    }, [selectedVideo, menuOpen, showReelsModal, showPlaylistModal]);
+
+    // Treat the full-screen viewer as a true modal: lock background scrolling,
+    // place focus on Close, and keep keyboard focus inside until it is dismissed.
+    useEffect(() => {
+        if (!selectedVideo) return undefined;
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        const focusFrame = requestAnimationFrame(() => modalCloseButtonRef.current?.focus());
+
+        const containFocus = (event) => {
+            if (event.key !== 'Tab' || !modalOverlayRef.current) return;
+            const focusable = [...modalOverlayRef.current.querySelectorAll(
+                'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])'
+            )].filter(element => element.getClientRects().length > 0 && !element.closest('[aria-hidden="true"]'));
+            if (focusable.length === 0) return;
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+
+        document.addEventListener('keydown', containFocus);
+        return () => {
+            cancelAnimationFrame(focusFrame);
+            document.removeEventListener('keydown', containFocus);
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [selectedVideo]);
 
     // Get YouTube thumbnail
     const getThumbnail = (videoId) => `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
@@ -914,7 +991,7 @@ export default function VideoLibraryPage() {
                         <h1 className="vl-rail-title">Video <span>Library</span></h1>
 
                     {/* Type, sort, and format filters */}
-                    <div className="vl-type-toggle-row" style={{
+                    <div className="vl-type-toggle-row" role="group" aria-label="Browse and sort videos" style={{
                         display: 'flex',
                         gap: 8,
                         marginBottom: 16,
@@ -923,6 +1000,7 @@ export default function VideoLibraryPage() {
                         flexWrap: 'wrap',
                         rowGap: 8,
                     }}>
+                        <span className="vl-filter-group-label">Browse</span>
                         {[
                             { id: 'ALL',        name: 'All Videos' },
                             { id: 'cash',       name: 'Cash Games' },
@@ -971,6 +1049,7 @@ export default function VideoLibraryPage() {
                         })}
 
                         {/* Sort Mode Buttons */}
+                        <span className="vl-filter-group-label">Order</span>
                         {[
                             { id: 'default',   label: 'Latest' },
                             { id: 'trending',  label: '🔥 Trending' },
@@ -1014,6 +1093,7 @@ export default function VideoLibraryPage() {
                         })}
 
                         {/* Reels Button — opens TikTok doom-scroll */}
+                        <span className="vl-filter-group-label">Format</span>
                         <button
                             type="button"
                             id="vl-reels-tab-btn"
@@ -1067,12 +1147,20 @@ export default function VideoLibraryPage() {
                             flexBasis: 220,
                         }}>
                             <input
+                                ref={searchInputRef}
                                 type="text"
                                 aria-label="Search the poker video library"
+                                aria-keyshortcuts="/"
                                 aria-controls="video-library-grid"
                                 placeholder="Search Videos..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Escape' && searchQuery) {
+                                        event.stopPropagation();
+                                        setSearchQuery('');
+                                    }
+                                }}
                                 style={{
                                     width: '100%',
                                     padding: '10px 14px 10px 38px',
@@ -1097,6 +1185,19 @@ export default function VideoLibraryPage() {
                                     <path d="m21 21-4.35-4.35" />
                                 </svg>
                             </span>
+                            {searchQuery ? (
+                                <button
+                                    type="button"
+                                    className="vl-search-clear"
+                                    aria-label="Clear video search"
+                                    onClick={() => {
+                                        setSearchQuery('');
+                                        searchInputRef.current?.focus();
+                                    }}
+                                >×</button>
+                            ) : (
+                                <kbd className="vl-search-shortcut" aria-hidden="true">/</kbd>
+                            )}
                         </div>
                     </div>
 
@@ -1207,6 +1308,7 @@ export default function VideoLibraryPage() {
                                                         transition: 'filter 0.25s',
                                                     }}
                                                     loading="lazy"
+                                                    decoding="async"
                                                 />
                                             ) : (
                                                 <span className={source.id === 'ALL' ? 'vl-source-all-mark' : undefined} style={{
@@ -1313,7 +1415,7 @@ export default function VideoLibraryPage() {
                                             <img
                                                 src={getThumbnail(video.videoId)}
                                                 alt={video.title}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />
                                             {/* Resume play button */}
                                             <div style={{
                                                 position: 'absolute',
@@ -1397,7 +1499,7 @@ export default function VideoLibraryPage() {
                                     onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
                                 >
                                     <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
-                                        <img src={getThumbnail(video.videoId)} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                        <img src={getThumbnail(video.videoId)} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />
                                         <div style={{ position: 'absolute', top: 6, left: 6, background: '#00D4FF', color: '#fff', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, letterSpacing: '0.5px' }}>NEW</div>
                                         {video.duration && (
                                             <div style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.8)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{video.duration}</div>
@@ -1431,7 +1533,7 @@ export default function VideoLibraryPage() {
                             </div>
                         </div>
                     ))}
-                    {dbLoaded && videos.slice(0, Math.min(displayedCount, videos.length)).map(video => (
+                    {dbLoaded && videos.slice(0, Math.min(displayedCount, videos.length)).map((video, index) => (
                         <div
                             key={video.id}
                             className="metal-frame video-card-metal vl-video-card"
@@ -1454,6 +1556,9 @@ export default function VideoLibraryPage() {
                                 <img
                                     src={getThumbnail(video.videoId)}
                                     alt={video.title}
+                                    loading={index === 0 ? 'eager' : 'lazy'}
+                                    fetchpriority={index === 0 ? 'high' : 'auto'}
+                                    decoding="async"
                                     style={{
                                         width: '100%',
                                         height: '100%',
@@ -1700,6 +1805,10 @@ export default function VideoLibraryPage() {
             {selectedVideo && (
                 <div
                     ref={modalOverlayRef}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="vl-viewer-title"
+                    aria-describedby="vl-viewer-help"
                     style={{
                         position: 'fixed',
                         top: 0,
@@ -1732,8 +1841,13 @@ export default function VideoLibraryPage() {
                         }
                     }}
                 >
+                    <p id="vl-viewer-help" className="vl-sr-only">
+                        Use the arrow keys for the previous or next video, F for fullscreen, and Escape to close.
+                    </p>
                     {/* Close button — positioned top-right, clear of YouTube's title bar */}
                     <button
+                        ref={modalCloseButtonRef}
+                        type="button"
                         onClick={handleCloseVideo}
                         className="vl-modal-close"
                         aria-label="Close video"
@@ -1765,7 +1879,9 @@ export default function VideoLibraryPage() {
                     {!isTouchDevice && (
                       <>
                         <button
+                            type="button"
                             onClick={handlePrevVideo}
+                            aria-label="Play previous video"
                             title="Previous video (←)"
                             style={{
                                 position: 'absolute',
@@ -1791,7 +1907,9 @@ export default function VideoLibraryPage() {
                             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
                         >‹</button>
                         <button
+                            type="button"
                             onClick={handleNextVideo}
+                            aria-label="Play next video"
                             title="Next video (→)"
                             style={{
                                 position: 'absolute',
@@ -1885,6 +2003,7 @@ export default function VideoLibraryPage() {
                         {/* Right-side HUD — Heart / Share / Save */}
                         <div
                             className={`vl-hud ${vlHudVisible ? 'vl-hud--visible' : ''}`}
+                            aria-hidden={!isTouchDevice && !vlHudVisible}
                             style={{
                                 position: 'absolute',
                                 right: 12,
@@ -1903,6 +2022,9 @@ export default function VideoLibraryPage() {
                         >
                             {/* Heart / Like */}
                             <button
+                                type="button"
+                                aria-label={favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Remove video from favorites' : 'Add video to favorites'}
+                                aria-pressed={favorites.has(selectedVideo?.id || selectedVideo?.videoId)}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (!userId || !selectedVideo) return;
@@ -1949,6 +2071,8 @@ export default function VideoLibraryPage() {
 
                             {/* Share */}
                             <button
+                                type="button"
+                                aria-label="Copy video link"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (selectedVideo) handleShareVideo(selectedVideo);
@@ -1979,6 +2103,9 @@ export default function VideoLibraryPage() {
 
                             {/* Save / Watch Later */}
                             <button
+                                type="button"
+                                aria-label={watchLater.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Remove video from watch later' : 'Save video to watch later'}
+                                aria-pressed={watchLater.has(selectedVideo?.id || selectedVideo?.videoId)}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (!userId || !selectedVideo) return;
@@ -2082,7 +2209,7 @@ export default function VideoLibraryPage() {
                     }}>
                         {/* Info Row */}
                         <div style={{ padding: '10px 20px 8px' }}>
-                            <h2 style={{
+                            <h2 id="vl-viewer-title" style={{
                                 color: 'white',
                                 fontSize: 15,
                                 fontWeight: 700,
@@ -2102,7 +2229,7 @@ export default function VideoLibraryPage() {
                                 }}>
                                     {SOURCES.find(s => s.id === selectedVideo.source)?.logo && (
                                         <img src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
-                                            alt="" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'contain' }} />
+                                            alt="" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'contain' }} decoding="async" />
                                     )}
                                     {selectedVideo.source.replace('_', ' ')}
                                 </span>
@@ -2211,6 +2338,7 @@ export default function VideoLibraryPage() {
                                                     alt={v.title}
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                     loading="lazy"
+                                                    decoding="async"
                                                 />
                                                 {v.duration && (
                                                     <div style={{
