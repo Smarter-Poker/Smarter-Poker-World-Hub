@@ -17,3 +17,1139 @@ body.world-memory-games {
     --world-surface-elevated: rgba(15, 50, 85, 0.8);
     --world-border: rgba(0, 191, 255, 0.3);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PREFLOP CHARTS — COMPACT COMMAND DECK
+   Visual layer only. Gameplay state and interactions remain in the page.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-preflop-charts .preflop-command-deck {
+    --pc-ink: #03070d;
+    --pc-panel: #07111c;
+    --pc-panel-2: #0a1826;
+    --pc-line: rgba(102, 217, 255, 0.34);
+    --pc-line-strong: rgba(102, 217, 255, 0.72);
+    --pc-cobalt: #20a8ff;
+    --pc-cyan: #66d9ff;
+    --pc-violet: #9b6cff;
+    --pc-gold: #f4c44e;
+    --pc-silver: #d9e4ee;
+    --pc-muted: #8193a5;
+    background:
+        radial-gradient(circle at 50% 8%, rgba(19, 107, 181, 0.18), transparent 30rem),
+        linear-gradient(180deg, #02050a 0%, #050a12 48%, #02050a 100%) !important;
+    color: var(--pc-silver);
+    isolation: isolate;
+}
+
+body.world-preflop-charts .preflop-command-deck::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(76, 174, 236, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(76, 174, 236, 0.025) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, black, transparent 86%);
+}
+
+body.world-preflop-charts .preflop-menu {
+    max-width: 1180px;
+    margin: 18px auto 42px;
+}
+
+body.world-preflop-charts .preflop-menu button {
+    font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body.world-preflop-charts .preflop-hero,
+body.world-preflop-charts .preflop-smart-practice,
+body.world-preflop-charts .preflop-suggestions,
+body.world-preflop-charts .preflop-level-toolbar,
+body.world-preflop-charts .preflop-mastery-gate,
+body.world-preflop-charts .preflop-vip-panel {
+    position: relative;
+    border: 1px solid var(--pc-line);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 38%),
+        linear-gradient(180deg, rgba(10, 24, 38, 0.97), rgba(3, 10, 18, 0.98));
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.025),
+        inset 0 1px 24px rgba(70, 174, 255, 0.045),
+        0 14px 36px rgba(0, 0, 0, 0.3);
+}
+
+body.world-preflop-charts .preflop-hero::before,
+body.world-preflop-charts .preflop-smart-practice::before,
+body.world-preflop-charts .preflop-suggestions::before,
+body.world-preflop-charts .preflop-level-toolbar::before,
+body.world-preflop-charts .preflop-mastery-gate::before,
+body.world-preflop-charts .preflop-vip-panel::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.035);
+    pointer-events: none;
+}
+
+body.world-preflop-charts .preflop-hero {
+    min-height: 286px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+    align-items: stretch;
+    overflow: hidden;
+    margin-bottom: 16px;
+    border-color: var(--pc-line-strong);
+    background:
+        linear-gradient(90deg, rgba(2, 7, 14, 0.99) 0%, rgba(3, 11, 20, 0.95) 46%, rgba(4, 15, 29, 0.76) 100%);
+}
+
+body.world-preflop-charts .preflop-hero::after {
+    content: '';
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--pc-cobalt), var(--pc-cyan), transparent);
+    box-shadow: 0 0 15px rgba(32, 168, 255, 0.85);
+}
+
+body.world-preflop-charts .preflop-hero-copy {
+    position: relative;
+    z-index: 2;
+    align-self: center;
+    padding: 34px 28px 34px 42px;
+}
+
+body.world-preflop-charts .preflop-eyebrow,
+body.world-preflop-charts .preflop-panel-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--pc-cyan);
+}
+
+body.world-preflop-charts .preflop-hero h1 {
+    margin: 12px 0 8px;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: clamp(34px, 5vw, 60px);
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.04em;
+    color: #f3f7fb;
+    text-shadow: 0 0 28px rgba(65, 177, 255, 0.28);
+}
+
+body.world-preflop-charts .preflop-hero-copy > p {
+    max-width: 480px;
+    margin: 16px 0 0;
+    color: #a6b5c4;
+    font-size: clamp(14px, 1.8vw, 18px);
+    line-height: 1.6;
+}
+
+body.world-preflop-charts .preflop-grade-chip,
+body.world-preflop-charts .preflop-cost-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    margin-top: 14px;
+    padding: 7px 12px;
+    border: 1px solid rgba(83, 197, 255, 0.28);
+    background: rgba(2, 10, 20, 0.7);
+    color: #a8bfd2;
+    font-size: 12px;
+}
+
+body.world-preflop-charts .preflop-grade-chip {
+    display: flex;
+    width: fit-content;
+    flex-wrap: wrap;
+}
+
+body.world-preflop-charts .preflop-grade-chip span:first-child,
+body.world-preflop-charts .preflop-cost-chip svg {
+    color: var(--pc-cyan);
+}
+
+body.world-preflop-charts .preflop-grade-chip span:first-child {
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-weight: 800;
+}
+
+body.world-preflop-charts .preflop-cost-chip {
+    color: var(--pc-cyan);
+    font-weight: 700;
+}
+
+body.world-preflop-charts .preflop-hero-visual {
+    position: relative;
+    min-height: 286px;
+    overflow: hidden;
+}
+
+body.world-preflop-charts .preflop-hero-visual::before,
+body.world-preflop-charts .preflop-hero-visual::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+body.world-preflop-charts .preflop-hero-visual::before {
+    width: 420px;
+    height: 130px;
+    right: -20px;
+    bottom: 10px;
+    border: 1px solid rgba(54, 172, 255, 0.62);
+    box-shadow:
+        0 0 0 12px rgba(33, 144, 234, 0.07),
+        0 0 0 28px rgba(33, 144, 234, 0.045),
+        inset 0 0 45px rgba(35, 162, 255, 0.22),
+        0 0 42px rgba(28, 151, 255, 0.2);
+    transform: perspective(420px) rotateX(65deg);
+}
+
+body.world-preflop-charts .preflop-hero-visual::after {
+    width: 280px;
+    height: 280px;
+    right: 18px;
+    top: 0;
+    background: radial-gradient(circle, rgba(42, 165, 255, 0.24), transparent 66%);
+    filter: blur(6px);
+}
+
+body.world-preflop-charts .preflop-range-matrix {
+    position: absolute;
+    top: 28px;
+    right: 16px;
+    width: 185px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 2px;
+    opacity: 0.42;
+    transform: perspective(500px) rotateY(-12deg);
+}
+
+body.world-preflop-charts .preflop-range-matrix span {
+    aspect-ratio: 1;
+    border: 1px solid rgba(77, 185, 255, 0.38);
+    background: rgba(11, 86, 138, 0.16);
+}
+
+body.world-preflop-charts .preflop-range-matrix span:nth-child(-n + 6),
+body.world-preflop-charts .preflop-range-matrix span:nth-child(7n + 1) {
+    background: rgba(29, 164, 255, 0.28);
+}
+
+body.world-preflop-charts .preflop-diamond-stage {
+    position: absolute;
+    z-index: 2;
+    right: 96px;
+    bottom: 14px;
+    width: 230px;
+    height: 230px;
+    display: grid;
+    place-items: center;
+}
+
+body.world-preflop-charts .preflop-diamond-stage img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: saturate(1.22) contrast(1.08) drop-shadow(0 0 13px rgba(74, 185, 255, 0.88));
+    animation: preflop-diamond-float 5s ease-in-out infinite;
+}
+
+body.world-preflop-charts .preflop-smart-practice {
+    display: grid;
+    grid-template-columns: 116px minmax(0, 1fr) minmax(230px, 0.48fr);
+    align-items: center;
+    gap: 24px;
+    min-height: 158px;
+    margin: 0 0 12px;
+    padding: 20px 24px;
+    border-color: rgba(155, 108, 255, 0.44);
+    background:
+        radial-gradient(circle at 10% 50%, rgba(116, 73, 219, 0.2), transparent 22%),
+        linear-gradient(110deg, rgba(16, 11, 36, 0.98), rgba(4, 12, 22, 0.98));
+}
+
+body.world-preflop-charts .preflop-jarvis-medallion {
+    position: relative;
+    width: 104px;
+    height: 104px;
+    overflow: hidden;
+    border: 1px solid rgba(155, 108, 255, 0.72);
+    border-radius: 50%;
+    background: #050711;
+    box-shadow:
+        0 0 0 6px rgba(155, 108, 255, 0.055),
+        0 0 26px rgba(128, 77, 232, 0.3),
+        inset 0 0 28px rgba(77, 48, 170, 0.24);
+}
+
+body.world-preflop-charts .preflop-jarvis-medallion img {
+    width: 148%;
+    height: 148%;
+    object-fit: contain;
+    transform: translate(-16%, -18%);
+}
+
+body.world-preflop-charts .preflop-smart-copy h2 {
+    margin: 6px 0 4px;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #f0f4fb;
+}
+
+body.world-preflop-charts .preflop-smart-copy > p {
+    margin: 0;
+    color: #9eacc0;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+body.world-preflop-charts .preflop-smart-practice .preflop-panel-kicker,
+body.world-preflop-charts .preflop-suggestions-title {
+    color: #b897ff;
+}
+
+body.world-preflop-charts .preflop-weak-spots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+body.world-preflop-charts .preflop-weak-label {
+    width: 100%;
+    color: #7e91a4;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+body.world-preflop-charts .preflop-weak-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border: 1px solid rgba(155, 108, 255, 0.2);
+    background: rgba(0, 0, 0, 0.26);
+    color: #d5c8ff;
+    font-size: 11px;
+}
+
+body.world-preflop-charts .preflop-weak-row span:last-child {
+    color: #74869b;
+}
+
+body.world-preflop-charts .preflop-primary-cta {
+    min-height: 54px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 13px 20px;
+    border: 1px solid #64c8ff;
+    border-radius: 2px;
+    background:
+        linear-gradient(180deg, rgba(53, 144, 255, 0.92), rgba(17, 70, 168, 0.96));
+    box-shadow:
+        inset 0 0 18px rgba(119, 215, 255, 0.26),
+        0 0 22px rgba(42, 131, 255, 0.32);
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
+}
+
+body.world-preflop-charts .preflop-primary-cta:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.12);
+    box-shadow: inset 0 0 20px rgba(119, 215, 255, 0.34), 0 8px 30px rgba(42, 131, 255, 0.42);
+}
+
+body.world-preflop-charts .preflop-primary-cta:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+body.world-preflop-charts .preflop-suggestions {
+    margin-bottom: 14px;
+    padding: 16px 18px 18px;
+    border-color: rgba(155, 108, 255, 0.34);
+}
+
+body.world-preflop-charts .preflop-suggestions-title {
+    margin-bottom: 10px;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+body.world-preflop-charts .preflop-suggestions-list {
+    display: grid;
+    gap: 7px;
+}
+
+body.world-preflop-charts .preflop-suggestion-row {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 9px 12px;
+    border: 1px solid rgba(169, 135, 255, 0.18);
+    background: rgba(0, 0, 0, 0.28);
+    color: #c7d2de;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 160ms ease, background 160ms ease;
+}
+
+body.world-preflop-charts .preflop-suggestion-row:hover {
+    border-color: rgba(169, 135, 255, 0.58);
+    background: rgba(78, 48, 147, 0.16);
+}
+
+body.world-preflop-charts .preflop-suggestion-row > span:last-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    color: #b897ff;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+body.world-preflop-charts .preflop-mode-rail {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 7px;
+    margin-bottom: 8px;
+}
+
+body.world-preflop-charts .preflop-mode-card {
+    position: relative;
+    min-width: 0;
+    min-height: 112px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 12px 7px 11px;
+    overflow: hidden;
+    border: 1px solid rgba(109, 137, 163, 0.28);
+    border-radius: 2px;
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent 46%),
+        linear-gradient(180deg, rgba(11, 23, 37, 0.96), rgba(5, 11, 19, 0.98));
+    color: #a7b4c2;
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+body.world-preflop-charts .preflop-mode-card::after {
+    content: '';
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    bottom: 0;
+    height: 2px;
+    background: var(--mode-accent);
+    box-shadow: 0 0 12px var(--mode-accent);
+    opacity: 0;
+}
+
+body.world-preflop-charts .preflop-mode-card:hover,
+body.world-preflop-charts .preflop-mode-card.is-active {
+    transform: translateY(-2px);
+    border-color: var(--mode-accent);
+    color: var(--mode-accent);
+    box-shadow: inset 0 0 26px color-mix(in srgb, var(--mode-accent) 12%, transparent), 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+
+body.world-preflop-charts .preflop-mode-card.is-active::after {
+    opacity: 1;
+}
+
+body.world-preflop-charts .preflop-mode-icon {
+    height: 29px;
+    display: grid;
+    place-items: center;
+    color: currentColor;
+}
+
+body.world-preflop-charts .preflop-mode-label {
+    max-width: 100%;
+    overflow: hidden;
+    color: #dbe4ec;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.world-preflop-charts .preflop-mode-desc {
+    min-height: 24px;
+    color: #6f8092;
+    font-size: 9px;
+    line-height: 1.25;
+}
+
+body.world-preflop-charts .preflop-quick-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 22px;
+}
+
+body.world-preflop-charts .preflop-quick-button,
+body.world-preflop-charts .preflop-tool-button {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid rgba(121, 151, 178, 0.28);
+    border-radius: 2px;
+    background: linear-gradient(180deg, rgba(13, 26, 41, 0.98), rgba(4, 11, 19, 0.98));
+    color: #8595a7;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+body.world-preflop-charts .preflop-quick-button:hover,
+body.world-preflop-charts .preflop-quick-button.is-active {
+    border-color: var(--mode-accent);
+    color: var(--mode-accent);
+    box-shadow: inset 0 0 20px color-mix(in srgb, var(--mode-accent) 10%, transparent);
+}
+
+body.world-preflop-charts .preflop-level-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 8px 0 10px;
+    padding: 15px 18px;
+}
+
+body.world-preflop-charts .preflop-level-toolbar h3 {
+    margin: 4px 0 0;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #eef4f8;
+}
+
+body.world-preflop-charts .preflop-level-actions {
+    display: flex;
+    gap: 7px;
+}
+
+body.world-preflop-charts .preflop-tool-button {
+    padding: 8px 13px;
+}
+
+body.world-preflop-charts .preflop-tool-button:hover,
+body.world-preflop-charts .preflop-tool-button.is-active {
+    border-color: var(--pc-cyan);
+    color: var(--pc-cyan);
+}
+
+body.world-preflop-charts .preflop-tool-button.is-gold {
+    border-color: var(--pc-gold);
+    color: var(--pc-gold);
+}
+
+body.world-preflop-charts .preflop-filter-count {
+    min-width: 19px;
+    height: 19px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--pc-cyan);
+    color: #00111d;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+body.world-preflop-charts .preflop-level-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 9px;
+    margin-bottom: 16px;
+}
+
+body.world-preflop-charts .preflop-level-card {
+    position: relative;
+    min-height: 196px;
+    display: flex;
+    flex-direction: column;
+    padding: 15px 13px 12px;
+    overflow: hidden;
+    border: 1px solid rgba(91, 125, 154, 0.34);
+    border-radius: 2px;
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent 38%),
+        linear-gradient(180deg, rgba(10, 21, 34, 0.98), rgba(3, 9, 16, 0.99));
+    color: #d5e1e9;
+    cursor: pointer;
+    box-shadow: inset 0 0 24px rgba(72, 152, 211, 0.035);
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+body.world-preflop-charts .preflop-level-card::after {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.025);
+    pointer-events: none;
+}
+
+body.world-preflop-charts .preflop-level-card:hover:not(.is-locked),
+body.world-preflop-charts .preflop-level-card:focus-visible {
+    transform: translateY(-3px);
+    border-color: var(--pc-cyan);
+    outline: none;
+    box-shadow: inset 0 0 25px rgba(35, 159, 239, 0.1), 0 0 22px rgba(31, 147, 226, 0.14);
+}
+
+body.world-preflop-charts .preflop-level-card.is-current {
+    border-color: var(--pc-cyan);
+    box-shadow: inset 0 0 28px rgba(35, 159, 239, 0.11), 0 0 22px rgba(31, 147, 226, 0.2);
+}
+
+body.world-preflop-charts .preflop-level-card.is-locked {
+    cursor: not-allowed;
+    opacity: 0.56;
+    filter: saturate(0.55);
+}
+
+body.world-preflop-charts .preflop-level-node {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 12px;
+    border: 1px solid rgba(82, 190, 255, 0.72);
+    background: linear-gradient(135deg, rgba(20, 96, 158, 0.72), rgba(3, 15, 28, 0.94));
+    color: #dff6ff;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    transform: rotate(45deg);
+    box-shadow: 0 0 18px rgba(38, 162, 240, 0.26), inset 0 0 12px rgba(75, 188, 255, 0.18);
+}
+
+body.world-preflop-charts .preflop-level-node > span {
+    transform: rotate(-45deg);
+    text-shadow: 0 0 9px rgba(102, 217, 255, 0.8);
+}
+
+body.world-preflop-charts .preflop-level-copy {
+    min-width: 0;
+}
+
+body.world-preflop-charts .preflop-level-number {
+    margin-bottom: 5px;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    color: var(--pc-cyan);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+body.world-preflop-charts .preflop-level-copy h3 {
+    margin: 0 0 5px;
+    overflow: hidden;
+    color: #edf3f7;
+    font-size: 15px;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+}
+
+body.world-preflop-charts .preflop-level-copy p {
+    min-height: 30px;
+    margin: 0;
+    color: #728397;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+body.world-preflop-charts .preflop-level-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 6px;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(125, 157, 184, 0.14);
+    color: #8ea0b3;
+    font-size: 10px;
+}
+
+body.world-preflop-charts .preflop-level-meta > span,
+body.world-preflop-charts .preflop-level-locks,
+body.world-preflop-charts .preflop-level-cost,
+body.world-preflop-charts .preflop-level-vip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+body.world-preflop-charts .preflop-level-meta > span:nth-child(3) {
+    grid-column: 1 / -1;
+}
+
+body.world-preflop-charts .preflop-level-locks {
+    position: absolute;
+    top: 13px;
+    right: 11px;
+}
+
+body.world-preflop-charts .preflop-level-cost,
+body.world-preflop-charts .preflop-level-vip {
+    padding: 3px 6px;
+    border: 1px solid rgba(244, 196, 78, 0.62);
+    background: rgba(89, 61, 4, 0.28);
+    color: var(--pc-gold);
+    font-size: 9px;
+    font-weight: 800;
+}
+
+body.world-preflop-charts .preflop-level-vip {
+    border-color: rgba(102, 217, 255, 0.55);
+    background: rgba(18, 102, 155, 0.2);
+    color: var(--pc-cyan);
+}
+
+body.world-preflop-charts .preflop-level-progress {
+    margin-top: 9px;
+}
+
+body.world-preflop-charts .preflop-mastery-gate {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 84px;
+    margin-bottom: 14px;
+    padding: 16px 18px;
+    border-color: rgba(73, 209, 174, 0.36);
+    background: linear-gradient(110deg, rgba(4, 30, 29, 0.92), rgba(4, 16, 27, 0.98));
+}
+
+body.world-preflop-charts .preflop-mastery-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    border: 1px solid rgba(102, 217, 255, 0.48);
+    background: rgba(11, 94, 122, 0.16);
+    color: var(--pc-cyan);
+    box-shadow: inset 0 0 18px rgba(53, 185, 229, 0.11);
+}
+
+body.world-preflop-charts .preflop-mastery-title {
+    margin-bottom: 4px;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    color: #6ee7b7;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+body.world-preflop-charts .preflop-mastery-desc {
+    color: #8193a5;
+    font-size: 12px;
+}
+
+body.world-preflop-charts .preflop-vip-panel {
+    min-height: 98px;
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    padding: 16px 18px;
+    border-color: rgba(244, 196, 78, 0.55);
+    background:
+        radial-gradient(circle at 7% 50%, rgba(224, 166, 41, 0.18), transparent 18%),
+        linear-gradient(110deg, rgba(30, 22, 6, 0.98), rgba(8, 11, 16, 0.98));
+}
+
+body.world-preflop-charts .preflop-vip-seal {
+    width: 62px;
+    height: 62px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(244, 196, 78, 0.68);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(125, 82, 10, 0.58), rgba(18, 12, 2, 0.96));
+    color: var(--pc-gold);
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 17px;
+    font-weight: 900;
+    box-shadow: 0 0 18px rgba(224, 166, 41, 0.18), inset 0 0 16px rgba(244, 196, 78, 0.12);
+}
+
+body.world-preflop-charts .preflop-vip-copy > div {
+    color: var(--pc-gold);
+    font-size: 19px;
+    font-weight: 800;
+}
+
+body.world-preflop-charts .preflop-vip-copy p {
+    margin: 5px 0 0;
+    color: #a89d86;
+    font-size: 12px;
+}
+
+body.world-preflop-charts .preflop-vip-panel > button {
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 11px 18px;
+    border: 1px solid #ffdc72;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #d69d21, #78500b);
+    color: #fff7db;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: inset 0 0 15px rgba(255, 230, 153, 0.17), 0 0 18px rgba(203, 144, 23, 0.2);
+}
+
+body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visible {
+    outline: 2px solid var(--pc-cyan);
+    outline-offset: 3px;
+}
+
+@keyframes preflop-diamond-float {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-8px) scale(1.02); }
+}
+
+@media (max-width: 900px) {
+    body.world-preflop-charts .preflop-hero {
+        grid-template-columns: minmax(0, 1fr) 310px;
+    }
+
+    body.world-preflop-charts .preflop-smart-practice {
+        grid-template-columns: 86px minmax(0, 1fr);
+    }
+
+    body.world-preflop-charts .preflop-jarvis-medallion {
+        width: 82px;
+        height: 82px;
+    }
+
+    body.world-preflop-charts .preflop-primary-cta {
+        grid-column: 1 / -1;
+    }
+
+    body.world-preflop-charts .preflop-mode-rail {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 1px 1px 10px;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: thin;
+        scrollbar-color: var(--pc-cobalt) rgba(255, 255, 255, 0.06);
+    }
+
+    body.world-preflop-charts .preflop-mode-card {
+        flex: 0 0 118px;
+        scroll-snap-align: start;
+    }
+
+    body.world-preflop-charts .preflop-level-grid {
+        position: relative;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding-left: 3px;
+    }
+
+    body.world-preflop-charts .preflop-level-grid::before {
+        content: '';
+        position: absolute;
+        left: 30px;
+        top: 30px;
+        bottom: 30px;
+        width: 2px;
+        background: linear-gradient(to bottom, #53c8ff, rgba(32, 168, 255, 0.18));
+        box-shadow: 0 0 12px rgba(32, 168, 255, 0.58);
+    }
+
+    body.world-preflop-charts .preflop-level-card {
+        min-height: 86px;
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr) minmax(190px, auto);
+        align-items: center;
+        gap: 12px;
+        padding: 12px 13px 12px 8px;
+        overflow: visible;
+    }
+
+    body.world-preflop-charts .preflop-level-node {
+        position: relative;
+        z-index: 2;
+        width: 42px;
+        height: 42px;
+        margin: 0;
+    }
+
+    body.world-preflop-charts .preflop-level-copy p {
+        min-height: 0;
+    }
+
+    body.world-preflop-charts .preflop-level-meta {
+        grid-template-columns: repeat(3, auto) minmax(38px, auto);
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        white-space: nowrap;
+    }
+
+    body.world-preflop-charts .preflop-level-meta > span:nth-child(3) {
+        grid-column: auto;
+    }
+
+    body.world-preflop-charts .preflop-level-locks {
+        position: static;
+    }
+
+    body.world-preflop-charts .preflop-level-progress {
+        grid-column: 2 / -1;
+        margin-top: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    body.world-preflop-charts .preflop-command-deck {
+        padding: 8px 8px 92px !important;
+    }
+
+    body.world-preflop-charts .preflop-menu {
+        margin-top: 8px;
+    }
+
+    body.world-preflop-charts .preflop-hero {
+        min-height: 228px;
+        display: block;
+    }
+
+    body.world-preflop-charts .preflop-hero-copy {
+        padding: 26px 18px 24px;
+    }
+
+    body.world-preflop-charts .preflop-hero h1 {
+        max-width: 72%;
+        margin-top: 8px;
+        font-size: clamp(34px, 10.6vw, 48px);
+    }
+
+    body.world-preflop-charts .preflop-hero-copy > p {
+        max-width: 62%;
+        margin-top: 11px;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    body.world-preflop-charts .preflop-hero-visual {
+        position: absolute;
+        inset: 0 0 0 42%;
+        min-height: 0;
+        opacity: 0.78;
+        pointer-events: none;
+    }
+
+    body.world-preflop-charts .preflop-range-matrix {
+        top: 32px;
+        right: -6px;
+        width: 130px;
+    }
+
+    body.world-preflop-charts .preflop-diamond-stage {
+        right: -7px;
+        bottom: 12px;
+        width: 155px;
+        height: 155px;
+    }
+
+    body.world-preflop-charts .preflop-hero-visual::before {
+        width: 240px;
+        height: 90px;
+        right: -70px;
+    }
+
+    body.world-preflop-charts .preflop-grade-chip {
+        max-width: 62%;
+        font-size: 10px;
+    }
+
+    body.world-preflop-charts .preflop-cost-chip {
+        min-height: 30px;
+        margin-top: 11px;
+        padding: 5px 8px;
+        font-size: 11px;
+    }
+
+    body.world-preflop-charts .preflop-smart-practice {
+        grid-template-columns: 70px minmax(0, 1fr);
+        gap: 12px;
+        min-height: 0;
+        padding: 15px 13px;
+    }
+
+    body.world-preflop-charts .preflop-jarvis-medallion {
+        width: 66px;
+        height: 66px;
+    }
+
+    body.world-preflop-charts .preflop-smart-copy h2 {
+        font-size: 17px;
+    }
+
+    body.world-preflop-charts .preflop-smart-copy > p {
+        font-size: 12px;
+    }
+
+    body.world-preflop-charts .preflop-primary-cta {
+        min-height: 48px;
+    }
+
+    body.world-preflop-charts .preflop-suggestions {
+        padding: 14px 12px;
+    }
+
+    body.world-preflop-charts .preflop-suggestion-row {
+        align-items: flex-start;
+        min-height: 48px;
+        font-size: 11px;
+    }
+
+    body.world-preflop-charts .preflop-suggestion-row > span:last-child {
+        max-width: 42%;
+        text-align: right;
+    }
+
+    body.world-preflop-charts .preflop-mode-card {
+        flex-basis: 105px;
+        min-height: 108px;
+    }
+
+    body.world-preflop-charts .preflop-level-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 13px;
+    }
+
+    body.world-preflop-charts .preflop-level-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.world-preflop-charts .preflop-level-card {
+        grid-template-columns: 50px minmax(0, 1fr);
+        gap: 9px;
+        padding-right: 10px;
+    }
+
+    body.world-preflop-charts .preflop-level-copy h3 {
+        font-size: 13px;
+    }
+
+    body.world-preflop-charts .preflop-level-copy p {
+        font-size: 9px;
+    }
+
+    body.world-preflop-charts .preflop-level-meta {
+        grid-column: 2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px 11px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(125, 157, 184, 0.1);
+        font-size: 9px;
+    }
+
+    body.world-preflop-charts .preflop-level-progress {
+        grid-column: 2;
+    }
+
+    body.world-preflop-charts .preflop-level-locks {
+        margin-left: auto;
+    }
+
+    body.world-preflop-charts .preflop-mastery-gate {
+        align-items: flex-start;
+        padding: 14px;
+    }
+
+    body.world-preflop-charts .preflop-mastery-title {
+        font-size: 14px;
+    }
+
+    body.world-preflop-charts .preflop-vip-panel {
+        grid-template-columns: 52px minmax(0, 1fr);
+        gap: 11px;
+        padding: 14px;
+    }
+
+    body.world-preflop-charts .preflop-vip-seal {
+        width: 48px;
+        height: 48px;
+        font-size: 13px;
+    }
+
+    body.world-preflop-charts .preflop-vip-copy > div {
+        font-size: 15px;
+    }
+
+    body.world-preflop-charts .preflop-vip-copy p {
+        font-size: 10px;
+        line-height: 1.4;
+    }
+
+    body.world-preflop-charts .preflop-vip-panel > button {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.world-preflop-charts .preflop-diamond-stage img {
+        animation: none;
+    }
+
+    body.world-preflop-charts .preflop-menu *,
+    body.world-preflop-charts .preflop-menu *::before,
+    body.world-preflop-charts .preflop-menu *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
