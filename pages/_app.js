@@ -11,6 +11,10 @@ import '../src/index.css';
 import '../src/styles/premium.css';
 import '../src/styles/global-tokens.css';
 import '../src/styles/worlds/club-arena.css';
+// The shared poker-table skin. Global CSS can only be imported here in Next,
+// so this is what lets any of the six table implementations opt in by adding
+// `ca-table` classes rather than inventing a seventh look.
+import '../src/styles/club-arena-table.css';
 import '../src/styles/worlds/diamond-arena.css';
 import '../src/styles/worlds/social-hub.css';
 import '../src/styles/worlds/training.css';

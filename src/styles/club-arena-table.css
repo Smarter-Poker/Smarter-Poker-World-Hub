@@ -1,0 +1,382 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CLUB ARENA TABLE SKIN — one felt for every table in the World Hub
+   ═══════════════════════════════════════════════════════════════════════════════
+
+   WHY THIS FILE EXISTS
+
+   The World Hub grew six independent poker-table implementations, and none of
+   them agreed on what a poker table looks like:
+
+     LivePokerTable.jsx        Facebook greys (#B0B3B8 / #E4E6EB / #65676B),
+                               greens (#4ade80, #22c55e, #4caf50), one purple
+     TrainingGameTable.jsx     cyan neon sci-fi: blue felt, perspective grid,
+                               chrome rail, Orbitron numerals
+     PokerGame.tsx             its own thing again
+     PremiumPokerTable.jsx     and again
+     SandboxPokerTable.jsx     and again
+     club-arena/PokerTableView so did the one already named after Club Arena
+
+   Meanwhile the REAL Club Arena table -- the one players actually play on at
+   /hub/club-arena -- looks like none of them.
+
+   WHAT THE CLUB ARENA TABLE ACTUALLY IS
+
+   Worth stating plainly, because it is not what you would guess from the CSS
+   of any of the six above: the Club Arena table is a PHOTOGRAPH, not a
+   gradient. `src/pages/TablePage.css` says so in as many words --
+
+       "The gold rim and bevel come from .table-art (the PNG). No outer glow
+        here: it would bleed over the painted rail."
+       "whatever is painted IS the table."
+
+   The felt, the rail, the bevel and the gold trim are all one pre-cropped
+   transparent PNG on a 605x1000 canvas. CSS positions a transparent
+   `.table-surface` onto the artwork's painted felt window and puts the seats
+   around it. Nothing draws an oval.
+
+   So "make it look like Club Arena" cannot be done with a colour swap. It
+   needs the artwork. This file carries it, plus the exact geometry that lands
+   content on the painted felt rather than beside it.
+
+   THE NUMBERS ARE MEASURED, NOT CHOSEN
+   Every percentage below is copied from TablePage.css, where it was derived by
+   an alpha/pixel scan of the artwork. Do not round them for tidiness -- they
+   are the difference between a chip landing on the felt and a chip landing on
+   the rail.
+
+   SCOPE: PRESENTATION ONLY. No layout engine, no seat maths, no game state.
+   Each table keeps its own DOM and its own behaviour; this only changes how
+   the pixels look. Anything that would move a hit target belongs in the
+   individual component, not here.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   TOKENS
+   Lifted from club-arena/src/styles/design-tokens.css so the two estates read
+   the same values. Scoped to .ca-table rather than :root so importing this
+   file cannot restyle a page that merely contains a table.
+   ───────────────────────────────────────────────────────────────────────────── */
+.ca-table {
+  /* Surfaces */
+  --ca-bg-primary: #0a0e17;
+  --ca-bg-secondary: #111827;
+  --ca-bg-surface: #1a2234;
+  --ca-bg-elevated: #1f2937;
+  --ca-bg-overlay: rgba(0, 0, 0, 0.6);
+
+  /* Text */
+  --ca-text: #f3f4f6;
+  --ca-text-dim: #9ca3af;
+  --ca-text-muted: #6b7280;
+
+  /* Lines */
+  --ca-line: rgba(255, 255, 255, 0.08);
+  --ca-line-active: rgba(255, 255, 255, 0.15);
+  --ca-line-strong: rgba(255, 255, 255, 0.25);
+
+  /* The two accents the Club Arena table actually uses. Gold is the rail and
+     the pot; cyan is the interactive/live accent. */
+  --ca-gold: #ffd700;
+  --ca-accent: #00d4ff;
+  --ca-danger: #ef4444;
+
+  /* Felt colour, for anywhere the artwork has not loaded yet. */
+  --ca-felt: #0f5132;
+
+  /* The artwork. Copied to a STABLE path on purpose: the same PNG also ships
+     inside public/hub/club-arena/assets/, but with a Vite content hash in its
+     filename that changes on every Club Arena sync. Pointing at that would
+     break this skin the next time somebody rebuilt an unrelated repo. */
+  --ca-felt-art: url('/table-skins/club-arena-felt.png');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   THE PAGE BEHIND THE TABLE
+   Radial vignette over a three-stop vertical gradient, verbatim from
+   TablePage.css `.table-page`. The vignette is what stops the felt looking
+   like a sticker on a flat background.
+   ───────────────────────────────────────────────────────────────────────────── */
+.ca-table {
+  background:
+    radial-gradient(ellipse 120% 100% at 50% 60%, transparent 30%, rgba(0, 0, 0, 0.4) 100%),
+    linear-gradient(180deg, var(--ca-bg-primary) 0%, var(--ca-bg-secondary) 40%, #080d15 100%);
+  color: var(--ca-text);
+  /* Touch behaviour from the Club Arena table. A poker table that text-selects
+     or shows a tap highlight when you jab at a seat feels broken on a phone. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  overscroll-behavior: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   THE TABLE ITSELF
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* The aspect-locked box the artwork and the seat ring share. 605/1000 is the
+   canvas every skin was cropped on, so any other ratio moves the painted felt
+   out from under the seats. */
+.ca-table__scaler {
+  position: relative;
+  aspect-ratio: 605 / 1000;
+  transform-origin: center center;
+  margin-inline: auto;
+  max-height: 100%;
+}
+
+/* The artwork. `object-fit: fill` and not `cover`, because the PNG is already
+   cropped to the canvas -- cover would re-crop it and shift the felt window. */
+.ca-table__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  z-index: 0;
+}
+
+/* For tables that cannot take an <img> element, the same artwork as a
+   background. Identical geometry, so the two are interchangeable. */
+.ca-table__art--css {
+  background-image: var(--ca-felt-art);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* The painted felt window, measured off the artwork by alpha scan:
+   source felt x 20.3-79.6% / y 8.9-89.2% against crop x [9.5%, 90.5%]
+   -> left (20.3-9.5)/81 = 13.3%, width 73.2%.
+   This element is deliberately TRANSPARENT. It exists to give board cards,
+   the pot and dealer chips a coordinate space that matches the picture. */
+.ca-table__felt {
+  position: absolute;
+  left: 13.3%;
+  top: 8.9%;
+  width: 73.2%;
+  height: 80.3%;
+  z-index: 1;
+  border-radius: 9999px; /* resolves to a true stadium at any size */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  box-shadow: none;
+}
+
+/* Landscape tables. The six implementations are not all portrait, and forcing
+   them to 605/1000 would be a layout change rather than a skin. This keeps the
+   artwork's look on a wide table by painting the felt directly, using the same
+   colours the photograph resolves to. */
+.ca-table__felt--wide {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 44%, #1d7a4f 0%, #12603c 38%, #0d4a2e 68%, #08301e 100%);
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(255, 215, 0, 0.18);
+}
+
+/* The gold rail, for the wide case where there is no photographed one. */
+.ca-table__rail {
+  border-radius: 50%;
+  padding: 12px;
+  background: linear-gradient(
+    145deg,
+    #6b5320 0%,
+    #a8842f 12%, #4a3a16 34%, #d4af37 52%, #3d2f12 72%, #b8912f 88%, #5a4519 100%
+  );
+  box-shadow:
+    0 28px 55px rgba(0, 0, 0, 0.78),
+    inset 0 2px 3px rgba(255, 255, 255, 0.34),
+    inset 0 -6px 10px rgba(0, 0, 0, 0.82);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SEATS
+   ───────────────────────────────────────────────────────────────────────────── */
+.ca-table__seat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 15;
+}
+
+.ca-table__avatar-ring {
+  border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(145deg, var(--ca-gold), #7a5f1c 45%, #2a2010 72%, var(--ca-gold));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.68);
+}
+
+/* The seat whose turn it is. Cyan, not gold -- gold is structural here (rail,
+   pot), so using it for "act now" too would make the live seat invisible. */
+.ca-table__seat--active .ca-table__avatar-ring {
+  background: linear-gradient(145deg, var(--ca-accent), #0a6b80 45%, #06323c 72%, var(--ca-accent));
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 212, 255, 0.55);
+}
+
+.ca-table__seat--hero .ca-table__avatar-ring {
+  box-shadow: 0 9px 24px rgba(0, 0, 0, 0.7), 0 0 18px rgba(255, 215, 0, 0.45);
+}
+
+.ca-table__seat--folded {
+  opacity: 0.42;
+  filter: grayscale(0.65);
+}
+
+.ca-table__avatar {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--ca-bg-surface);
+}
+
+/* Name/stack plate. Rounded and gold-edged, matching the Club Arena rail --
+   the square cyan plates the training table used read as a HUD, not a felt. */
+.ca-table__plate {
+  margin-top: -4px;
+  padding: 3px 8px 4px;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--ca-bg-elevated), #060b14);
+  text-align: center;
+  box-shadow: 0 7px 16px rgba(0, 0, 0, 0.62), inset 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.ca-table__plate-name {
+  display: block;
+  color: var(--ca-text);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ca-table__plate-stack {
+  display: block;
+  margin-top: 2px;
+  color: var(--ca-gold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CARDS, POT, DEALER BUTTON
+   ───────────────────────────────────────────────────────────────────────────── */
+.ca-table__card {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+}
+
+.ca-table__card img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.ca-table__pot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 215, 0, 0.45);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--ca-gold);
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.ca-table__dealer {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid #8a6d1f;
+  background: linear-gradient(145deg, #fff, #d8c07a);
+  color: #2a2010;
+  font-weight: 900;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ACTION BAR
+   Rounded and gold-edged. The square neon buttons the training table shipped
+   were the single loudest thing separating it from the Club Arena felt.
+   ───────────────────────────────────────────────────────────────────────────── */
+.ca-table__actions {
+  border-top: 1px solid var(--ca-line);
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(8, 13, 21, 0.99));
+  box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.55);
+}
+
+.ca-table__action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--ca-line-active);
+  background: linear-gradient(180deg, var(--ca-bg-elevated), #070c15);
+  color: var(--ca-text);
+  cursor: pointer;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.14), 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.ca-table__action:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.ca-table__action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ca-table__action--fold {
+  border-color: rgba(239, 68, 68, 0.55);
+  background: linear-gradient(180deg, #4a1f24, #1a0b0e);
+}
+
+.ca-table__action--call {
+  border-color: rgba(0, 212, 255, 0.6);
+}
+
+.ca-table__action--raise {
+  border-color: rgba(255, 215, 0, 0.6);
+  background: linear-gradient(180deg, #4a3a16, #171108);
+}
+
+.ca-table__action--allin {
+  border-color: var(--ca-gold);
+  background: linear-gradient(180deg, #5a4519, #1c1508);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MOTION
+   Honoured, not decorative: a poker table animates constantly, and someone who
+   has asked their OS for less of that must not be handed a felt that pulses.
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ca-table *,
+  .ca-table *::before,
+  .ca-table *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

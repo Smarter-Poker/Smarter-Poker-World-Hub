@@ -443,7 +443,7 @@ export default function SandboxPokerTable({
                 zIndex: 0,
                 isolation: 'isolate',
                 touchAction: 'pan-y',
-                background: 'radial-gradient(ellipse at 50% 45%, #1f2a24 0%, #18191A 70%)',
+                background: 'radial-gradient(ellipse at 50% 45%, #1d7a4f 0%, #12603c 38%, #0d4a2e 70%, #08301e 100%)',
                 borderRadius: R.lg,
             }}>
             <style>{`
