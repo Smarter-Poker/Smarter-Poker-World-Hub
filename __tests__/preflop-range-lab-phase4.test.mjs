@@ -12,6 +12,10 @@ const GENERATE_API = read('pages/api/gto/generate-scenario.js');
 const POWER_UPS = read('src/utils/powerUps.js');
 const COMBO = read('src/components/memory-games/modals/ComboPopup.js');
 const REVIEW = read('src/components/memory-games/EnhancedReviewPanel.jsx');
+const ACHIEVEMENTS = read('src/services/AchievementService.js');
+const ELO_SERVICE = read('src/games/ELOService.js');
+const ELO_API = read('pages/api/memory/elo.js');
+const ELO_MATH = read('src/lib/memoryElo.js');
 const MODES = [
     'SpeedDrillGame.js',
     'PressureCookerGame.js',
@@ -93,4 +97,15 @@ test('review and combo components have self-contained render contracts', () => {
     assert.match(REVIEW, /function getReviewHandName/);
     assert.match(REVIEW, /normalizeReviewAction/);
     assert.doesNotMatch(REVIEW, /\bRANKS\.map|\bgetHandName\(/);
+});
+
+test('authenticated achievement and ELO persistence run through server-owned contracts', () => {
+    assert.match(ACHIEVEMENTS, /authedFetch\('\/api\/training\/achievements'/);
+    assert.doesNotMatch(ACHIEVEMENTS, /supabase\.rpc\('unlock_achievement'/);
+    assert.match(ELO_SERVICE, /authedFetch\('\/api\/memory\/elo'/);
+    assert.doesNotMatch(ELO_SERVICE, /\.from\('profiles'\)/);
+    assert.match(ELO_API, /getServerUserWithFallback\(req, supabase\)/);
+    assert.match(ELO_API, /\.eq\('id', user\.id\)/);
+    assert.doesNotMatch(ELO_API, /req\.body\?\.userId|req\.body\.userId/);
+    assert.match(ELO_MATH, /export function calculateNewELO/);
 });
