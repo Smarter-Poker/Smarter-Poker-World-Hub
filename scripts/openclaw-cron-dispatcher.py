@@ -341,7 +341,31 @@ ALL_CRONS = [
     ('/api/cron/vip-diamond-stipend',             dict(day=1, hour=0, minute=5)),  # monthly, 1st @ 00:05 UTC
     ('/api/cron/collusion-scan',                  dict(minute='*/30')),       # every 30 min — 4-pattern detector incl. TIMING_CORRELATION (x67c)
     ('/api/cron/chip-supply-snapshot',            dict(minute=0)),           # hourly — M4 chip-conservation series. fn_snapshot_chip_supply existed but was never scheduled: ONE row (2026-08-08), so deltas stayed NULL and nothing ever reconciled.
-    ('/api/cron/solver-watchdog',                 dict(minute=20)),          # hourly - the v2 backfill died 2026-08-15 and nothing surfaced it for 3 days
+    # ('/api/cron/solver-watchdog', dict(minute=20)) — RETIRED 2026-08-27.
+    #
+    # It ran hourly and returned HTTP 500 on 222 of its last 224 runs. Last
+    # success 2026-08-18 02:12; nothing alerted on nine days of failure, which
+    # is a pointed thing to be true of a watchdog.
+    #
+    # It never worked in its new home. The route moved to smarter-poker-workers
+    # in Phase 2B, and its recording leg writes cron_health_log — a table NO
+    # workers route has ever successfully written to. Every one of the fifteen
+    # crons currently writing there is a World Hub monolith route under
+    # pages/api/cron/. The route fails hard on that write by design ("a monitor
+    # whose recording leg can fail silently is not a monitor"), so it 500s every
+    # hour instead. solver_status compounds it: RLS enabled, ZERO policies, so
+    # any client that is not service_role reads no machines at all.
+    #
+    # THE STALL IT WATCHED IS REAL AND STILL RUNNING — World Hub issue #820:
+    # 6,633,013 v2 spots outstanding and no v2 solve since 2026-08-15
+    # 09:57. That is recorded as an issue rather than left to a messenger that
+    # cannot deliver. The solver runs on LAN machines this codebase cannot
+    # reach, so the watchdog could never have fixed it either.
+    #
+    # To bring it back: give the workers service a client that can write
+    # cron_health_log (service_role bypasses RLS; the single policy there is
+    # admin-only and there is no service_role policy), add a policy to
+    # solver_status, and re-add this line. Do not re-add it before that.
 
     # ══ WAVE 4 — Live Streaming Infrastructure (2026-04-28) ═══════════════════
     # Zombie cleanup: marks stale live streams (>6h) as ended, cleans viewers.
@@ -552,7 +576,7 @@ WORKERS_PREFERRED = {
     #     uses hyphen instead of slash; value-side mapping handles it)
     '/api/cron/collusion-scan':                '/cron/collusion-scan',
     '/api/cron/chip-supply-snapshot':          '/cron/chip-supply-snapshot',
-    '/api/cron/solver-watchdog':               '/cron/solver-watchdog',
+    # '/api/cron/solver-watchdog' — retired 2026-08-27, see the schedule block above.
     '/api/cron/commander-daily-aggregate':     '/cron/commander-daily-aggregate',
     '/api/cron/daily-challenges':              '/cron/daily-challenges',
     '/api/cron/freeroll-qualification-sync':   '/cron/freeroll-qualification-sync',
