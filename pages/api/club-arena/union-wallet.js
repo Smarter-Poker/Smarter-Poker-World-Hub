@@ -412,13 +412,21 @@ export default async function handler(req, res) {
         }
         const releaseClaim = async () => {
           if (claimRowId) {
+            // This releases the idempotency claim after a FAILED payout. If it
+            // matches zero rows the claim row survives, and the duplicate guard
+            // above answers 409 "already processed" to every legitimate retry --
+            // so a BBJ payout that failed once can never be made again. The row
+            // count is the only way to see that happen.
             await supabaseAdmin
               .from('union_wallet_transactions')
               .delete()
               .eq('id', claimRowId)
-              .then(({ error: relErr }) => {
+              .select('id')
+              .then(({ data: released, error: relErr }) => {
                 if (relErr)
-                  console.warn('[union-wallet] BBJ claim release failed:', relErr.message);
+                  console.error('[union-wallet] CRITICAL: BBJ claim release failed — this payout is now permanently blocked by its own claim row:', relErr.message, 'claimRowId:', claimRowId);
+                else if (!released || released.length === 0)
+                  console.error('[union-wallet] CRITICAL: BBJ claim release matched ZERO rows — retries will be refused as duplicates. claimRowId:', claimRowId);
               });
           }
         };

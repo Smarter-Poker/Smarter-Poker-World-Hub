@@ -102,14 +102,23 @@ export default async function handler(req, res) {
           }
 
           // Delete the post using admin client (bypasses RLS)
-          const { error: deleteError } = await supabaseAdmin
+          // .select() so a post that was already gone is reported as gone
+          // rather than as freshly deleted. The client removes the card from the
+          // feed on success, so a zero-row match here produced a post that
+          // vanished from the UI and stayed in the database until reload.
+          const { data: deletedPost, error: deleteError } = await supabaseAdmin
               .from('social_posts')
               .delete()
-              .eq('id', postId);
+              .eq('id', postId)
+              .select('id');
 
           if (deleteError) {
               console.warn('[Delete Post] Error:', deleteError);
               return res.status(500).json({ success: false, error: 'Failed to delete post', details: deleteError.message });
+          }
+
+          if (!deletedPost || deletedPost.length === 0) {
+              return res.status(404).json({ success: false, error: 'That post no longer exists.' });
           }
 
           return res.status(200).json({ success: true, deletedBy: isGodMode ? 'god' : 'owner' });

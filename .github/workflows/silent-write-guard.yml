@@ -1,0 +1,68 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# SILENT WRITE GUARD
+#
+# PostgREST answers an UPDATE or DELETE that matches ZERO ROWS with
+# { data: null, error: null }. A caller that checks only `if (error)` then
+# reports success having changed nothing.
+#
+# This is not theoretical. In the two days before this guard was written it had
+# produced, in production code:
+#
+#   - a Stripe VIP grant that could take payment and grant nothing, and answer
+#     200 so Stripe never retried;
+#   - a diamond VIP purchase that deducted diamonds, failed to grant, and
+#     skipped its own refund branch because that branch keys on `error`;
+#   - a review DELETE that removed the row from the UI and wrote an
+#     admin_audit_log entry for a deletion that never happened;
+#   - a BBJ payout permanently blocked by its own un-released claim row;
+#   - rake silently dropped whenever an optimistic lock lost twice;
+#   - "Ticket Marked Resolved" on a ticket that stayed open.
+#
+# The fix is always the same: `.select(...)` and check the length.
+#
+# The baseline can only go DOWN. Raising a number in
+# scripts/ci/silent-writes-baseline.json needs a reason in the PR that says why
+# a write which may have changed nothing is safe to report as success.
+#
+# A genuinely fire-and-forget write is exempted in place with a
+# `silent-write-ok:` comment AND A REASON, not by moving the baseline.
+# ═══════════════════════════════════════════════════════════════════════════
+name: Silent Write Guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: silent-write-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # Named explicitly: a bare `check` job produces a status context that
+    # collides with every other bare `check` job in this repo.
+    name: No New Silent Writes
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        # `npm ci` alone is NOT safe in this repo: package-lock.json is
+        # currently out of sync with package.json on main -- npm 11 refuses it
+        # with "Invalid: lock file's ajv@6.15.0 does not satisfy ajv@8.20.0".
+        # build-safety-gate.yml and e2e-tests.yml already carry this same
+        # fallback for the same reason. A new guard must not be the thing that
+        # turns a pre-existing lockfile problem into a red required check.
+        run: npm ci --prefer-offline --no-audit 2>/dev/null || npm install --no-audit --no-fund
+        env:
+          HUSKY: '0'
+
+      - name: Check for new silent writes
+        run: node scripts/ci/check-silent-writes.mjs --ci

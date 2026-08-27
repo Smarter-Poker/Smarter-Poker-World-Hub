@@ -158,6 +158,10 @@ export default async function handler(req, res) {
           // outlive a handler that actually succeeded.
           if (event?.id) {
               try {
+                  // silent-write-ok: best-effort claim release inside a failure
+                  // path. If the row is already gone the retry proceeds anyway,
+                  // which is the outcome this is reaching for; a real failure is
+                  // caught and logged as CRITICAL below.
                   await getSupabase().from('stripe_webhook_events').delete().eq('event_id', event.id);
               } catch (releaseErr) {
                   console.error(`[stripe-webhook] FAILED TO RELEASE claim on ${event.id} — retries will be skipped:`, releaseErr?.message || releaseErr);
@@ -219,11 +223,19 @@ async function handleCheckoutCompleted(session) {
                     // failed webhooks for ~3 days with exponential backoff, so the
                     // credit will eventually succeed instead of being silently lost.
                     try {
-                        const { error: err_diamond_purchases_26t3a } = await getSupabase()
+                        // The row count matters more here than almost anywhere
+                        // else on the platform. This rollback is what releases the
+                        // idempotency lock; if it matches zero rows the purchase
+                        // stays 'completed', every Stripe retry is dismissed as a
+                        // duplicate, and the customer has paid for diamonds they
+                        // will never receive. Silence is not an option.
+                        const { data: rolledBack, error: err_diamond_purchases_26t3a } = await getSupabase()
                           .from('diamond_purchases')
                           .update({ status: 'pending', completed_at: null })
-                            .eq('id', metadata.purchase_id);
-                        if (err_diamond_purchases_26t3a) console.warn('[Supabase] Silent mutation failed in diamond_purchases:', err_diamond_purchases_26t3a.message);
+                            .eq('id', metadata.purchase_id)
+                            .select('id');
+                        if (err_diamond_purchases_26t3a) console.error('[stripe-webhook] CRITICAL: rollback to pending FAILED for purchase', metadata.purchase_id, '- diamonds paid for and not credited:', err_diamond_purchases_26t3a.message);
+                        else if (!rolledBack || rolledBack.length === 0) console.error('[stripe-webhook] CRITICAL: rollback to pending MATCHED ZERO ROWS for purchase', metadata.purchase_id, '- the idempotency lock is stuck completed, retries will be dismissed, and the customer paid for diamonds they will never receive.');
                     } catch (rollbackErr) {
                         console.warn('[stripe-webhook] Rollback to pending failed for purchase', metadata.purchase_id, rollbackErr?.message || rollbackErr);
                     }
@@ -303,15 +315,23 @@ async function handleCheckoutCompleted(session) {
                 };
             }
 
-            const { error: err_merchandise_orders_16ujp } = await getSupabase()
+            // A paid order that is never marked paid is never fulfilled, and a
+            // zero-row match here returns 200 so Stripe stops retrying.
+            const { data: paidOrder, error: err_merchandise_orders_16ujp } = await getSupabase()
               .from('merchandise_orders')
               .update(orderUpdate)
-                .eq('id', metadata.order_id);
+                .eq('id', metadata.order_id)
+                .select('id');
             if (err_merchandise_orders_16ujp) {
                 // Paid order must not be silently lost — throw so the webhook
                 // returns 500 and Stripe retries the event.
                 console.warn('[stripe-webhook] merchandise order update failed for order', metadata.order_id, '— Stripe will retry:', err_merchandise_orders_16ujp.message);
                 throw err_merchandise_orders_16ujp;
+            }
+            if (!paidOrder || paidOrder.length === 0) {
+                const msg = `[stripe-webhook] PAID ORDER ${metadata.order_id} MATCHED ZERO ROWS — the customer has paid and the order was never marked paid, so it will never be fulfilled. Throwing so Stripe retries.`;
+                console.error(msg);
+                throw new Error(msg);
             }
 
         }
@@ -350,7 +370,19 @@ async function handleCheckoutCompleted(session) {
                     ? new Date(periodEnd * 1000).toISOString()
                     : new Date(Date.now() + (tier === 'annual' || tier === 'yearly' ? 365 : 31) * 86400000).toISOString();
 
-                const { error: err_profiles_yhokl } = await getSupabase()
+                // .select() so a ZERO-ROW match is distinguishable from a
+                // successful grant. This filters on metadata.user_id; if that id
+                // is wrong, stale, or belongs to a deleted profile, PostgREST
+                // returns { data: null, error: null } -- the error branch below
+                // never fires, the handler returns 200, and Stripe NEVER RETRIES.
+                // The customer paid and is granted nothing, permanently.
+                //
+                // This is also the ONLY place profiles.stripe_customer_id gets
+                // written from a webhook, so a miss here strands every later
+                // renewal and cancellation too: those filter on
+                // stripe_customer_id, which stays null forever. As this was
+                // written, 0 of 1022 profiles had one.
+                const { data: grantedRows, error: err_profiles_yhokl } = await getSupabase()
                   .from('profiles')
                   .update({
                         stripe_customer_id: customer,
@@ -359,11 +391,18 @@ async function handleCheckoutCompleted(session) {
                         vip_expires_at: expiresAt,
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', metadata.user_id);
+                    .eq('id', metadata.user_id)
+                    .select('id');
                 if (err_profiles_yhokl) {
                     // Paid VIP grant must not be silently lost — throw so Stripe retries.
                     console.warn('[stripe-webhook] VIP profile grant failed for user', metadata.user_id, '— Stripe will retry:', err_profiles_yhokl.message);
                     throw err_profiles_yhokl;
+                }
+                if (!grantedRows || grantedRows.length === 0) {
+                    const msg = `[stripe-webhook] VIP GRANT MATCHED ZERO ROWS for user ${metadata.user_id} (customer ${customer}). `
+                        + 'Payment succeeded and NOTHING was granted. Throwing so Stripe retries.';
+                    console.error(msg);
+                    throw new Error(msg);
                 }
 
             }
@@ -389,7 +428,9 @@ async function handleSubscriptionUpdate(subscription) {
     }
 
     // Get user ID from customer
-    const { data: profile } = await getSupabase()
+    // `let`, not `const`: the !profile branch below can recover the profile
+    // through Stripe customer metadata and reassign it.
+    let { data: profile } = await getSupabase()
         .from('profiles')
         // vip_tier is read so a renewal cannot silently downgrade an annual
         // subscriber to 'monthly' when Stripe metadata does not carry the tier.
@@ -398,8 +439,48 @@ async function handleSubscriptionUpdate(subscription) {
         .maybeSingle();
 
     if (!profile) {
-        console.warn(`Profile not found for customer ${customer}`);
-        return;
+        // This returned 200 having done nothing, so Stripe never retried and the
+        // renewal was lost in silence.
+        //
+        // The lookup filters profiles.stripe_customer_id, which is written in
+        // exactly two places: create-checkout-session and the checkout-completed
+        // handler above. If either missed, this is null forever and EVERY
+        // renewal for that customer lands here. As this was written, 0 of 1022
+        // profiles had a stripe_customer_id, so this branch was the norm rather
+        // than the exception.
+        //
+        // Recover through Stripe itself: customers are created with
+        // metadata.smarter_poker_id, so the customer object can identify the
+        // user even when our column is empty. Backfill the column while we are
+        // here, so the next renewal takes the fast path.
+        let recovered = null;
+        try {
+            const stripeCustomer = await stripe.customers.retrieve(customer);
+            const recoveredUserId = stripeCustomer?.metadata?.smarter_poker_id;
+            if (recoveredUserId) {
+                const { data: backfilled } = await getSupabase()
+                    .from('profiles')
+                    .update({ stripe_customer_id: customer, updated_at: new Date().toISOString() })
+                    .eq('id', recoveredUserId)
+                    .select('id, vip_expires_at, vip_tier');
+                if (backfilled && backfilled.length) {
+                    recovered = backfilled[0];
+                    console.warn(`[stripe-webhook] recovered customer ${customer} -> profile ${recovered.id} via Stripe metadata and backfilled stripe_customer_id`);
+                }
+            }
+        } catch (recoverErr) {
+            console.warn(`[stripe-webhook] customer recovery failed for ${customer}:`, recoverErr?.message || recoverErr);
+        }
+
+        if (!recovered) {
+            // Genuinely unresolvable. Throw rather than return so the webhook
+            // 500s and Stripe retries -- a subscription event that changes a
+            // paying customer's entitlement must not be dropped on the floor.
+            const msg = `[stripe-webhook] no profile for customer ${customer} and Stripe metadata could not resolve one — subscription update DROPPED.`;
+            console.error(msg);
+            throw new Error(msg);
+        }
+        profile = recovered;
     }
 
     // Upsert subscription record
@@ -437,7 +518,7 @@ async function handleSubscriptionUpdate(subscription) {
         // written too, so a plan change (monthly -> annual) is reflected rather
         // than leaving the profile on a stale tier.
         const renewalExpiry = new Date(current_period_end * 1000).toISOString();
-        const { error: vipSyncErr } = await getSupabase()
+        const { data: vipSyncRows, error: vipSyncErr } = await getSupabase()
             .from('profiles')
             .update({
                 is_vip: true,
@@ -445,16 +526,32 @@ async function handleSubscriptionUpdate(subscription) {
                 vip_expires_at: renewalExpiry,
                 updated_at: new Date().toISOString(),
             })
-            .eq('id', profile.id);
+            .eq('id', profile.id)
+            .select('id');
         if (vipSyncErr) console.warn('[stripe-webhook] Failed to sync is_vip=true for', profile.id, vipSyncErr.message);
+        else if (!vipSyncRows || vipSyncRows.length === 0) {
+            // A renewal that writes nothing leaves vip_expires_at in the past,
+            // and /api/vip/check-status reads that as lapsed. The subscriber is
+            // paying and gated out. Throw so Stripe retries rather than 200.
+            const msg = `[stripe-webhook] VIP RENEWAL MATCHED ZERO ROWS for profile ${profile.id} — paying subscriber will read as lapsed.`;
+            console.error(msg);
+            throw new Error(msg);
+        }
     } else {
         const hasActiveDailyPass = profile.vip_expires_at && new Date(profile.vip_expires_at) > new Date();
         if (!hasActiveDailyPass) {
-            const { error: vipSyncErr } = await getSupabase()
+            const { data: revokedSync, error: vipSyncErr } = await getSupabase()
                 .from('profiles')
                 .update({ is_vip: false, updated_at: new Date().toISOString() })
-                .eq('id', profile.id);
+                .eq('id', profile.id)
+                .select('id');
             if (vipSyncErr) console.warn('[stripe-webhook] Failed to sync is_vip=false for', profile.id, vipSyncErr.message);
+            else if (!revokedSync || revokedSync.length === 0) {
+                // Not fatal -- the entitlement gate also checks vip_expires_at,
+                // so a stale is_vip alone does not grant access. Still logged,
+                // because it means the profile vanished mid-handler.
+                console.warn('[stripe-webhook] is_vip=false sync matched zero rows for', profile.id);
+            }
         }
     }
 }
@@ -513,10 +610,20 @@ async function handleSubscriptionCanceled(subscription) {
             console.info(`[stripe-webhook] subscription ${id} cancelled but customer ${customer} keeps VIP until ${profile.vip_expires_at || 'lifetime'}`);
         }
 
-        const { error: err_profiles_odw9b } = await getSupabase()
+        // Filters stripe_customer_id, which is empty on every profile as this
+        // was written -- so this revoke matched zero rows every time and a
+        // cancelled subscriber kept VIP indefinitely. That is a revenue leak
+        // that no log would ever have shown.
+        const { data: revokedRows, error: err_profiles_odw9b } = await getSupabase()
           .from('profiles')
           .update(profileUpdate)
-            .eq('stripe_customer_id', customer);
+            .eq('stripe_customer_id', customer)
+            .select('id');
+        if (!err_profiles_odw9b && (!revokedRows || revokedRows.length === 0)) {
+            const msg = `[stripe-webhook] VIP REVOKE MATCHED ZERO ROWS for customer ${customer} — a cancelled subscriber may still hold VIP. Throwing so Stripe retries.`;
+            console.error(msg);
+            throw new Error(msg);
+        }
         if (err_profiles_odw9b) {
             console.warn('[stripe-webhook] profile VIP revoke failed for customer', customer, '— Stripe will retry:', err_profiles_odw9b.message);
             throw err_profiles_odw9b;
@@ -552,7 +659,11 @@ async function handleInvoicePaymentFailed(invoice) {
                     updated_at: new Date().toISOString()
                 })
                 .eq('stripe_subscription_id', subscription);
-            if (err_commander_subscriptions_20wa8) console.warn('[Supabase] Silent mutation failed in commander_subscriptions:', err_commander_subscriptions_20wa8.message);
+            // silent-write-ok: bookkeeping record, not the entitlement. The gate
+    // that actually grants or revokes access is handled separately above;
+    // a miss here leaves the subscription ledger stale, which is worth
+    // seeing but must not 500 a webhook and trigger three days of retries.
+    if (err_commander_subscriptions_20wa8) console.error('[stripe-webhook] commander_subscriptions past_due write failed:', err_commander_subscriptions_20wa8.message);
             return;
         }
 
@@ -566,7 +677,11 @@ async function handleInvoicePaymentFailed(invoice) {
             })
             .eq('stripe_subscription_id', subscription);
 
-        if (err_vip_subscriptions_gg0nj) console.warn('[Supabase] Silent mutation failed in vip_subscriptions:', err_vip_subscriptions_gg0nj.message);
+        // silent-write-ok: bookkeeping record, not the entitlement. The gate
+    // that actually grants or revokes access is handled separately above;
+    // a miss here leaves the subscription ledger stale, which is worth
+    // seeing but must not 500 a webhook and trigger three days of retries.
+    if (err_vip_subscriptions_gg0nj) console.error('[stripe-webhook] vip_subscriptions past_due write failed:', err_vip_subscriptions_gg0nj.message);
     }
 }
 
@@ -630,11 +745,17 @@ async function handleRefund(charge) {
                 // Roll back the status='refunded' lock so the next Stripe webhook
                 // retry can re-process. Throw to bubble up a 500 — Stripe retries.
                 try {
-                    const { error: err_diamond_purchases_7qh4q } = await getSupabase()
+                    // Same idempotency-lock reasoning as the purchase rollback
+                    // above: if this misses, the row stays 'refunded', the retry
+                    // is dismissed as a duplicate, and the diamonds are never
+                    // deducted for a refund the customer already received.
+                    const { data: refundRolledBack, error: err_diamond_purchases_7qh4q } = await getSupabase()
                       .from('diamond_purchases')
                       .update({ status: 'completed', refunded_at: null })
-                        .eq('id', purchase.id);
-                    if (err_diamond_purchases_7qh4q) console.warn('[Supabase] Silent mutation failed in diamond_purchases:', err_diamond_purchases_7qh4q.message);
+                        .eq('id', purchase.id)
+                        .select('id');
+                    if (err_diamond_purchases_7qh4q) console.error('[stripe-webhook] CRITICAL: refund rollback FAILED for purchase', purchase.id, err_diamond_purchases_7qh4q.message);
+                    else if (!refundRolledBack || refundRolledBack.length === 0) console.error('[stripe-webhook] CRITICAL: refund rollback MATCHED ZERO ROWS for purchase', purchase.id, '- lock stuck refunded, retries will be dismissed, diamonds never deducted for a refund already paid out.');
                 } catch (rollbackErr) {
                     console.warn('[stripe-webhook] Refund rollback failed for purchase', purchase.id, rollbackErr?.message || rollbackErr);
                 }
@@ -731,17 +852,32 @@ async function handleCommanderSubscriptionUpdate(subscription) {
       .update(updatePayload)
         .eq('stripe_subscription_id', id);
 
-    if (err_commander_subscriptions_0z48c) console.warn('[Supabase] Silent mutation failed in commander_subscriptions:', err_commander_subscriptions_0z48c.message);
+    // silent-write-ok: bookkeeping record, not the entitlement. The gate
+    // that actually grants or revokes access is handled separately above;
+    // a miss here leaves the subscription ledger stale, which is worth
+    // seeing but must not 500 a webhook and trigger three days of retries.
+    if (err_commander_subscriptions_0z48c) console.error('[stripe-webhook] commander_subscriptions update write failed:', err_commander_subscriptions_0z48c.message);
 
     if (status === 'active' || status === 'trialing') {
-        const { error: err_poker_venues_egixx } = await getSupabase()
+        // This is the paid feature gate itself. A zero-row match means the
+        // venue is being billed and Commander was never switched on.
+        const { data: enabledVenue, error: err_poker_venues_egixx } = await getSupabase()
           .from('poker_venues')
           .update({
                 commander_enabled: true,
                 commander_tier: metadata.tier || 'home_game'
             })
-            .eq('id', venueId);
-        if (err_poker_venues_egixx) console.warn('[Supabase] Silent mutation failed in poker_venues:', err_poker_venues_egixx.message);
+            .eq('id', venueId)
+            .select('id');
+        if (err_poker_venues_egixx) {
+            console.error('[stripe-webhook] Commander enable FAILED for venue', venueId, '- venue is billed but the feature is off:', err_poker_venues_egixx.message);
+            throw err_poker_venues_egixx;
+        }
+        if (!enabledVenue || enabledVenue.length === 0) {
+            const msg = `[stripe-webhook] Commander enable MATCHED ZERO ROWS for venue ${venueId} — the venue is being billed and the feature was never switched on. Throwing so Stripe retries.`;
+            console.error(msg);
+            throw new Error(msg);
+        }
     }
 }
 
@@ -760,14 +896,27 @@ async function handleCommanderSubscriptionCanceled(subscription) {
         })
         .eq('stripe_subscription_id', id);
 
-    if (err_commander_subscriptions_d4cvb) console.warn('[Supabase] Silent mutation failed in commander_subscriptions:', err_commander_subscriptions_d4cvb.message);
+    // silent-write-ok: bookkeeping record, not the entitlement. The gate
+    // that actually grants or revokes access is handled separately above;
+    // a miss here leaves the subscription ledger stale, which is worth
+    // seeing but must not 500 a webhook and trigger three days of retries.
+    if (err_commander_subscriptions_d4cvb) console.error('[stripe-webhook] commander_subscriptions cancellation write failed:', err_commander_subscriptions_d4cvb.message);
 
     if (venueId) {
-        const { error: err_poker_venues_27pnr } = await getSupabase()
+        // Mirror of the enable above. A miss here leaves a cancelled venue
+        // holding a paid feature indefinitely, which no log would have shown.
+        const { data: disabledVenue, error: err_poker_venues_27pnr } = await getSupabase()
           .from('poker_venues')
           .update({ commander_enabled: false })
-            .eq('id', venueId);
-        if (err_poker_venues_27pnr) console.warn('[Supabase] Silent mutation failed in poker_venues:', err_poker_venues_27pnr.message);
+            .eq('id', venueId)
+            .select('id');
+        if (err_poker_venues_27pnr) {
+            console.error('[stripe-webhook] Commander disable FAILED for venue', venueId, '- cancelled venue may retain the paid feature:', err_poker_venues_27pnr.message);
+            throw err_poker_venues_27pnr;
+        }
+        if (!disabledVenue || disabledVenue.length === 0) {
+            console.error('[stripe-webhook] Commander disable MATCHED ZERO ROWS for venue', venueId, '- a cancelled venue may still hold the paid feature.');
+        }
     }
 }
 

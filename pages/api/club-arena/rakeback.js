@@ -264,11 +264,21 @@ export default async function handler(req, res) {
           //
           // RakebackSettlerService remains the single writer of per-player
           // rakeback. This action now only closes the administrative marker.
-          const { error: err_rakeback_periods_tvtud } = await getSupabase()
+          // The response below reports periodClosed: openPeriod.id, so the row
+          // count has to back that claim up rather than be assumed from the
+          // absence of an error.
+          const { data: closedPeriod, error: err_rakeback_periods_tvtud } = await getSupabase()
             .from('rakeback_periods')
             .update({ status: 'closed', period_end: new Date().toISOString() })
-            .eq('id', openPeriod.id);
-          if (err_rakeback_periods_tvtud) console.warn('[Supabase] Silent mutation failed in rakeback_periods:', err_rakeback_periods_tvtud.message);
+            .eq('id', openPeriod.id)
+            .select('id');
+          if (err_rakeback_periods_tvtud) {
+            console.error('[rakeback] period close failed:', err_rakeback_periods_tvtud.message);
+            return res.status(500).json({ success: false, error: `Could not close the period: ${err_rakeback_periods_tvtud.message}` });
+          }
+          if (!closedPeriod || closedPeriod.length === 0) {
+            return res.status(409).json({ success: false, error: 'That period was already closed or no longer exists.' });
+          }
 
           const responseObj = {
             success: true,
@@ -323,11 +333,22 @@ export default async function handler(req, res) {
           if (debitErr) {
             // Rollback period status
             const ids = pending.map(p => p.id);
-            const { error: err_rakeback_periods_b5mtd } = await getSupabase()
+            // The treasury debit was REFUSED, so these periods must go back to
+            // 'closed' or they stay marked paid for money that never moved --
+            // and the next settlement run would skip them, or worse, a retry
+            // would pay them a second time. A zero-row match here is the
+            // difference between a clean rollback and a silent double-payout
+            // window, so the count is checked rather than assumed.
+            const { data: revertedPeriods, error: err_rakeback_periods_b5mtd } = await getSupabase()
               .from('rakeback_periods')
               .update({ status: 'closed' })
-              .in('id', ids);
-            if (err_rakeback_periods_b5mtd) console.warn('[Supabase] Silent mutation failed in rakeback_periods:', err_rakeback_periods_b5mtd.message);
+              .in('id', ids)
+              .select('id');
+            if (err_rakeback_periods_b5mtd) {
+              console.error('[rakeback] CRITICAL: period rollback FAILED after a refused treasury debit — periods may read as paid for money that never moved:', err_rakeback_periods_b5mtd.message, 'ids:', ids);
+            } else if ((revertedPeriods?.length || 0) !== ids.length) {
+              console.error(`[rakeback] CRITICAL: period rollback reverted ${revertedPeriods?.length || 0} of ${ids.length} periods after a refused treasury debit. The remainder still read as paid for money that never moved.`, ids);
+            }
             throw debitErr;
           }
 

@@ -1,0 +1,7 @@
+{
+  "note": "Counts may only go DOWN. Raising a number here needs a reason in the PR.",
+  "generated": "2026-08-27",
+  "counts": {
+    "silent-write": 605
+  }
+}

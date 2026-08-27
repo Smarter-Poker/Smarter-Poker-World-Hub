@@ -218,12 +218,32 @@ export default async function handler(req, res) {
                   });
                   customerId = customer.id;
 
-                  // Save customer ID to profile
-                  const { error: err_profiles_epk3c } = await getSupabase()
+                  // Save customer ID to profile.
+                  //
+                  // THIS WRITE IS LORE-BEARING and it used to fail in silence.
+                  // Every later subscription webhook -- renewal, cancellation,
+                  // payment failure -- finds the user by
+                  // profiles.stripe_customer_id. If it is not persisted here the
+                  // link never exists, those handlers match zero rows, and they
+                  // answered 200 so Stripe never retried. The observable result
+                  // was 0 of 1022 profiles carrying a stripe_customer_id.
+                  //
+                  // .select() makes a zero-row match visible, and a miss is now
+                  // fatal to the checkout rather than something the customer
+                  // discovers a month later when their renewal does not apply.
+                  const { data: linkedRows, error: err_profiles_epk3c } = await getSupabase()
                     .from('profiles')
                     .update({ stripe_customer_id: customerId })
-                      .eq('id', user.id);
-                  if (err_profiles_epk3c) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_epk3c.message);
+                      .eq('id', user.id)
+                      .select('id');
+                  if (err_profiles_epk3c) {
+                      console.error('[Checkout] FAILED to persist stripe_customer_id for user', user.id, '- every future subscription webhook for this customer will match zero rows:', err_profiles_epk3c.message);
+                      throw new Error('Could not link your account to the payment provider. No charge was made. Please try again.');
+                  }
+                  if (!linkedRows || linkedRows.length === 0) {
+                      console.error('[Checkout] stripe_customer_id write MATCHED ZERO ROWS for user', user.id, '- profile missing or not visible to this client.');
+                      throw new Error('Could not link your account to the payment provider. No charge was made. Please try again.');
+                  }
               } catch (customerError) {
                   console.warn('[Checkout] Failed to create Stripe customer:', {
                       type: customerError.type,

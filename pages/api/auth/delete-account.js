@@ -29,6 +29,40 @@ function getSupabase() {
     return _supabase;
 }
 
+
+/**
+ * GDPR ERASURE, HONESTLY REPORTED.
+ *
+ * Every erasure step below used to be its own `const { error: err_xxx } = ...`
+ * followed by a console.warn, and then the handler returned
+ * "Account has been permanently deleted" regardless. So a failed erasure --
+ * PII left behind on a user who asked to be forgotten -- was a line in a log
+ * nobody reads and a 200 to the user saying it was done. The auth user is then
+ * HARD deleted, so there is no account left to retry from and no owner to
+ * trace the leftovers back to.
+ *
+ * A ZERO-ROW match is NOT an error here and is deliberately not treated as
+ * one: most users have no MFA factors, no promo redemptions, no friendships.
+ * Nothing to erase is a successful erasure.
+ *
+ * A real error IS a compliance failure, so it is collected and reported.
+ */
+async function eraseFrom(sb, table, applyFilters, failures) {
+    try {
+        const { error } = await applyFilters(sb.from(table).delete());
+        if (error) {
+            console.error(`[delete-account] ERASURE FAILED for ${table}:`, error.message);
+            failures.push({ table, error: error.message });
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.error(`[delete-account] ERASURE THREW for ${table}:`, e?.message || e);
+        failures.push({ table, error: e?.message || String(e) });
+        return false;
+    }
+}
+
 export default async function handler(req, res) {
   const rl = rateLimit(req, { max: 3, windowMs: 3600000 }); // 3 per hour
   if (!rl.ok) return res.status(429).json({ error: 'Too many requests', retryAfter: rl.retryAfter });
@@ -143,96 +177,98 @@ export default async function handler(req, res) {
               });
           }
 
+          // Collected across every erasure step so the response can tell the
+          // truth about what was actually removed.
+          const erasureFailures = [];
+
           // ── 0c. Cancel any pending cashout requests ──
+          // Money in flight. If this fails the account is erased with a pending
+          // cashout still open against a player_id that no longer exists, and
+          // nothing will ever resolve it. A zero-row match is fine and normal --
+          // most users have no pending cashout -- but an ERROR is not.
           const { error: err_cashout_requests_0c2tx } = await getSupabase()
             .from('cashout_requests')
             .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), agent_note: 'Account deleted' })
               .eq('player_id', userId)
               .eq('status', 'pending');
-          if (err_cashout_requests_0c2tx) console.warn('[Supabase] Silent mutation failed in cashout_requests:', err_cashout_requests_0c2tx.message);
+          if (err_cashout_requests_0c2tx) {
+            console.error('[delete-account] CRITICAL: could not cancel pending cashouts before erasure:', err_cashout_requests_0c2tx.message);
+            return res.status(500).json({
+              success: false,
+              error: 'Could not close your pending cashout requests, so the account was NOT deleted. Nothing has been removed. Please contact support.',
+            });
+          }
 
           // ── 0d. Remove club memberships (zero-balance only at this point) ──
-          const { error: err_club_members_1g5q6 } = await getSupabase()
-            .from('club_members')
-            .delete()
-              .eq('user_id', userId);
-          if (err_club_members_1g5q6) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_1g5q6.message);
+          await eraseFrom(getSupabase(), 'club_members', (q) => q.eq('user_id', userId), erasureFailures);
 
           // ── 1. Delete user profile data ──
           // Remove diamond balance
-          const { error: err_user_diamond_balance_ckxzy } = await getSupabase()
-            .from('user_diamond_balance')
-            .delete()
-              .eq('user_id', userId);
-          if (err_user_diamond_balance_ckxzy) console.warn('[Supabase] Silent mutation failed in user_diamond_balance:', err_user_diamond_balance_ckxzy.message);
+          await eraseFrom(getSupabase(), 'user_diamond_balance', (q) => q.eq('user_id', userId), erasureFailures);
 
           // Remove diamond reward claims
-          const { error: err_diamond_reward_claims_1a4v3 } = await getSupabase()
-            .from('diamond_reward_claims')
-            .delete()
-              .eq('user_id', userId);
-          if (err_diamond_reward_claims_1a4v3) console.warn('[Supabase] Silent mutation failed in diamond_reward_claims:', err_diamond_reward_claims_1a4v3.message);
+          await eraseFrom(getSupabase(), 'diamond_reward_claims', (q) => q.eq('user_id', userId), erasureFailures);
 
           // Remove diamond transactions
-          const { error: err_diamond_transactions_3zlok } = await getSupabase()
-            .from('diamond_transactions')
-            .delete()
-              .eq('user_id', userId);
-          if (err_diamond_transactions_3zlok) console.warn('[Supabase] Silent mutation failed in diamond_transactions:', err_diamond_transactions_3zlok.message);
+          await eraseFrom(getSupabase(), 'diamond_transactions', (q) => q.eq('user_id', userId), erasureFailures);
 
           // Remove promo code redemptions
-          const { error: err_promo_code_redemptions_ugm44 } = await getSupabase()
-            .from('promo_code_redemptions')
-            .delete()
-              .eq('user_id', userId);
-          if (err_promo_code_redemptions_ugm44) console.warn('[Supabase] Silent mutation failed in promo_code_redemptions:', err_promo_code_redemptions_ugm44.message);
+          await eraseFrom(getSupabase(), 'promo_code_redemptions', (q) => q.eq('user_id', userId), erasureFailures);
 
           // Remove MFA factors
-          const { error: err_user_mfa_factors_pnfzp } = await getSupabase()
-            .from('user_mfa_factors')
-            .delete()
-              .eq('user_id', userId);
-          if (err_user_mfa_factors_pnfzp) console.warn('[Supabase] Silent mutation failed in user_mfa_factors:', err_user_mfa_factors_pnfzp.message);
+          await eraseFrom(getSupabase(), 'user_mfa_factors', (q) => q.eq('user_id', userId), erasureFailures);
 
           // Remove active sessions
-          const { error: err_user_sessions_7emf7 } = await getSupabase()
-            .from('user_sessions')
-            .delete()
-              .eq('user_id', userId);
-          if (err_user_sessions_7emf7) console.warn('[Supabase] Silent mutation failed in user_sessions:', err_user_sessions_7emf7.message);
+          await eraseFrom(getSupabase(), 'user_sessions', (q) => q.eq('user_id', userId), erasureFailures);
 
           // Remove notifications
-          const { error: err_notifications_vgtnc } = await getSupabase()
-            .from('notifications')
-            .delete()
-              .eq('user_id', userId);
-          if (err_notifications_vgtnc) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_vgtnc.message);
+          await eraseFrom(getSupabase(), 'notifications', (q) => q.eq('user_id', userId), erasureFailures);
 
           // Remove friendships (both directions)
-          const { error: err_friendships_9qtq5 } = await getSupabase()
-            .from('friendships')
-            .delete()
-              .eq('user_id', userId);
-          if (err_friendships_9qtq5) console.warn('[Supabase] Silent mutation failed in friendships:', err_friendships_9qtq5.message);
-          const { error: err_friendships_cxnd7 } = await getSupabase()
-            .from('friendships')
-            .delete()
-              .eq('friend_id', userId);
-          if (err_friendships_cxnd7) console.warn('[Supabase] Silent mutation failed in friendships:', err_friendships_cxnd7.message);
+          await eraseFrom(getSupabase(), 'friendships', (q) => q.eq('user_id', userId), erasureFailures);
+          await eraseFrom(getSupabase(), 'friendships', (q) => q.eq('friend_id', userId), erasureFailures);
 
           // Remove the profile (must be after dependent records)
+          // The profile is the anchor record. If it survives while the auth user
+          // is hard-deleted, the row becomes ORPHANED PII: still holding the
+          // person's name, email and username, with no account left to trace it
+          // to and no way for them to ask again. Stop before that happens.
           const { error: err_profiles_2sqi2 } = await getSupabase()
             .from('profiles')
             .delete()
               .eq('id', userId);
-          if (err_profiles_2sqi2) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_2sqi2.message);
+          if (err_profiles_2sqi2) {
+              console.error('[delete-account] CRITICAL: profile delete FAILED — refusing to hard-delete the auth user, which would orphan this PII:', err_profiles_2sqi2.message);
+              return res.status(500).json({
+                  success: false,
+                  error: 'Your profile could not be removed, so the deletion was stopped before your login was destroyed. Your account still exists. Please contact support.',
+                  failedTables: [...erasureFailures.map((f) => f.table), 'profiles'],
+              });
+          }
 
           // ── 2. Delete the auth user (hard delete via admin API) ──
           const { error: deleteError } = await getSupabase().auth.admin.deleteUser(userId);
 
           if (deleteError) {
-              console.warn('[delete-account] Auth user deletion error:', deleteError);
-              // Profile data is already gone — log but don't block
+              console.error('[delete-account] CRITICAL: auth user deletion failed AFTER profile data was removed — the login still exists with no profile behind it:', deleteError.message);
+              return res.status(500).json({
+                  success: false,
+                  error: 'Your data was removed but your login could not be deleted. Please contact support so this can be completed.',
+                  dataRemoved: true,
+                  loginRemoved: false,
+              });
+          }
+
+          // Only now is "permanently deleted" a true statement -- and only for
+          // the tables that actually succeeded.
+          if (erasureFailures.length > 0) {
+              console.error('[delete-account] PARTIAL ERASURE — account deleted but these tables still hold data:', erasureFailures);
+              return res.status(200).json({
+                  success: true,
+                  partial: true,
+                  message: 'Your account has been deleted, but some records could not be removed and have been escalated.',
+                  failedTables: erasureFailures.map((f) => f.table),
+              });
           }
 
           console.info('[delete-account] Account deletion completed successfully.');

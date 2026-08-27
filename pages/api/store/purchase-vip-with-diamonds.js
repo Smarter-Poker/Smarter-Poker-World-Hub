@@ -300,14 +300,30 @@ export default async function handler(req, res) {
           const newRank = TIER_RANK[plan.key] || 0;
           const finalTier = activeRank > newRank ? activeTier : plan.key;
 
-          const { error: updateError } = await getSupabase()
+          // .select() so a ZERO-ROW match is distinguishable from a real grant.
+          //
+          // The diamonds have ALREADY been deducted at this point -- that is why
+          // the compensation block below exists. But it only fired on
+          // `updateError`, and PostgREST returns { data: null, error: null } when
+          // an UPDATE matches nothing. So a miss here meant: diamonds taken, VIP
+          // not granted, no refund, and a 200 telling the user it worked.
+          const { data: grantedRows, error: rawUpdateError } = await getSupabase()
               .from('profiles')
               .update({
                   is_vip: true,
                   vip_tier: finalTier,
                   vip_expires_at: newExpiresAt.toISOString()
               })
-              .eq('id', user.id);
+              .eq('id', user.id)
+              .select('id');
+
+          // A zero-row match is treated as an activation failure, which routes it
+          // into the same refund path a hard error takes. That is the only
+          // outcome that leaves the user whole.
+          const updateError = rawUpdateError
+              || ((!grantedRows || grantedRows.length === 0)
+                  ? new Error(`VIP activation matched zero rows for user ${user.id}`)
+                  : null);
 
           if (updateError) {
               console.warn('[Purchase VIP Diamonds] Profile update failed:', updateError);

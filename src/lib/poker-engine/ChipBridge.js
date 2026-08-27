@@ -173,6 +173,10 @@ async function unlockChips(clubId, userId, tableId, cashoutAmount) {
     // SUCCESS: clear in-memory lock only after confirmed DB unlock
     _activeLocks.delete(key);
 
+    // silent-write-ok: deliberately fire-and-forget. The authoritative unlock
+    // already succeeded via RPC above; this only tidies the escrow mirror, and
+    // a zero-row match means there was nothing to tidy. Blocking an unlock on
+    // it would strand a player's chips for a bookkeeping row.
     // Clear chip_escrow record (non-blocking, Phase 48f: resilient)
     // Real schema (see the mapping note in lockChips): held -> released.
     resilientMutation(sb, () => sb.from('chip_escrow_holds')
@@ -269,10 +273,18 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
         const { data: fresh } = await resilientQuery(sb, () => sb.from('clubs').select('total_rake, hands_played').eq('id', clubId).maybeSingle());
         if (fresh) {
           const freshRake = fresh.total_rake || 0;
-          await resilientMutation(sb, () => sb.from('clubs').update({
+          // The first attempt above selects and checks !upd?.length, which is
+          // what makes the optimistic lock work. The retry did neither, so when
+          // it ALSO lost the race the rake for that hand was dropped on the
+          // floor -- clubs.total_rake quietly under-counts under exactly the
+          // concurrency the retry exists to handle. Now it says so.
+          const { data: retryUpd } = await resilientMutation(sb, () => sb.from('clubs').update({
             total_rake: freshRake + rakeAmount,
             hands_played: (fresh.hands_played || 0) + 1,
-          }).eq('id', clubId).eq('total_rake', freshRake), { critical: true }); // optimistic lock on retry too
+          }).eq('id', clubId).eq('total_rake', freshRake).select('id'), { critical: true }); // optimistic lock on retry too
+          if (!retryUpd?.length) {
+            console.error(`[ChipBridge] rake LOST for club ${clubId}: optimistic lock lost twice, ${rakeAmount} not recorded in clubs.total_rake`);
+          }
         }
       }
     }
@@ -328,10 +340,15 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
               const { data: freshA } = await resilientQuery(sb, () => sb.from('agents').select('weekly_rake_generated').eq('id', agent.id).maybeSingle());
               if (freshA) {
                 const freshWeekly = freshA.weekly_rake_generated || 0;
-                await resilientMutation(sb, () => sb.from('agents').update({
+                // Same as the clubs retry above: a second lost race silently
+                // dropped the agent's rake, which feeds commission.
+                const { data: retryAgent } = await resilientMutation(sb, () => sb.from('agents').update({
                   weekly_rake_generated: freshWeekly + rakeGenerated,
                   last_active_at: new Date().toISOString(),
-                }).eq('id', agent.id).eq('weekly_rake_generated', freshWeekly)); // optimistic lock on retry
+                }).eq('id', agent.id).eq('weekly_rake_generated', freshWeekly).select('id')); // optimistic lock on retry
+                if (!retryAgent?.length) {
+                  console.error(`[ChipBridge] agent rake LOST for agent ${agent.id}: optimistic lock lost twice, ${rakeGenerated} not recorded — commission will under-pay`);
+                }
               }
             }
           }
