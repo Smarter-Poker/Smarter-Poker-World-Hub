@@ -59,12 +59,13 @@ export async function addVideoFavorite(userId, videoId, videoData = {}) {
 /**
  * Remove a video from favorites
  */
-export async function removeVideoFavorite(userId, videoId) {
+export async function removeVideoFavorite(userId, videoId, aliases = []) {
+    const videoIds = [...new Set([videoId, ...aliases].filter(Boolean))];
     const { error } = await supabase
         .from('video_favorites')
         .delete()
         .eq('user_id', userId)
-        .eq('video_id', videoId);
+        .in('video_id', videoIds);
 
     if (error) {
         console.warn('Error removing video favorite:', error);

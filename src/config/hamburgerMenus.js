@@ -640,7 +640,6 @@ export const MENU_CONFIGS = {
             createMenuItem.divider(),
             createMenuItem.section('Settings'),
             createMenuItem.toggle('Autoplay', state.autoplay !== false, handlers.setAutoplay),
-            createMenuItem.toggle('HD Quality', state.hdQuality !== false, handlers.setHdQuality),
             createMenuItem.toggle('Captions', state.captions || false, handlers.setCaptions)
         ],
         bottomLinks: [
