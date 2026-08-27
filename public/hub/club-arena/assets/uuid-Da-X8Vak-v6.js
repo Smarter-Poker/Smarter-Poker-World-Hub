@@ -1,0 +1,2 @@
+function i(){const o=globalThis.crypto;if(o&&typeof o.randomUUID=="function")return o.randomUUID();const t=new Uint8Array(16);if(o&&typeof o.getRandomValues=="function")o.getRandomValues(t);else for(let e=0;e<16;e++)t[e]=Math.floor(Math.random()*256);t[6]=t[6]&15|64,t[8]=t[8]&63|128;const n=[...t].map(e=>e.toString(16).padStart(2,"0")).join("");return`${n.slice(0,8)}-${n.slice(8,12)}-${n.slice(12,16)}-${n.slice(16,20)}-${n.slice(20)}`}export{i as u};
+//# sourceMappingURL=uuid-Da-X8Vak-v6.js.map
