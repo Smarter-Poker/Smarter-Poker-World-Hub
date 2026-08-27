@@ -192,8 +192,81 @@
       ]
     },
     {
+      "source": "/api/news/source-boxes",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=60, stale-while-revalidate=300" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/news/articles",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=60, stale-while-revalidate=300" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/news/videos",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/news/reels",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/news/leaderboard",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/news/events",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/poker/leaderboards",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/poker/checkins/global-leaderboard",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/poker/checkins/streak-leaderboard",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
       "source": "/_next/static/(.*)",
       "headers": [
+
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"

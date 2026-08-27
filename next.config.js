@@ -822,6 +822,16 @@ const nextConfig = {
         destination: '/hub/preflop-charts/:path*',
         permanent: true,
       },
+      // ── Marketplace → Diamond Store (edge-level 308, replaces client-side JS redirect) ──
+      // /hub/marketplace previously used a React component with router.replace() costing
+      // 2-3 round-trips (HTML download + JS parse + client navigate). A build-time permanent
+      // redirect serves a 308 from the edge with zero JS overhead.
+      { source: '/hub/marketplace', destination: '/hub/diamond-store', permanent: true },
+      {
+        source: '/hub/marketplace/:path*',
+        destination: '/hub/diamond-store/:path*',
+        permanent: true,
+      },
       // ── Poker Near Me URL Migration (April 2026) ────────────────────────────────────────
       // Old lobby URL → new canonical lobby sub-route (301 permanent redirect)
       {
