@@ -15,6 +15,7 @@ const settlement = read('supabase/migrations/20260827231000_trivia_phase6_settle
 const retireBiasedV2 = read('supabase/migrations/20260827231500_trivia_phase6_retire_biased_v2.sql');
 const serverOwnedStats = read('supabase/migrations/20260827232000_trivia_phase6_server_owned_stats.sql');
 const tournamentInvoker = read('supabase/migrations/20260827232500_trivia_phase6_tournament_view_invoker.sql');
+const staleTournamentCleanup = read('supabase/migrations/20260827233000_trivia_phase6_cancel_empty_stale_tournaments.sql');
 const submit = read('pages/api/trivia/session-submit.js');
 const answer = read('pages/api/trivia/session-answer.js');
 const legacySubmit = read('pages/api/trivia/submit.js');
@@ -111,4 +112,10 @@ test('public tournament catalogue is invoker-safe and carries no question roster
     assert.match(tournamentInvoker, /'\[\]'::jsonb AS questions/);
     assert.match(tournamentInvoker, /REVOKE ALL PRIVILEGES ON public\.trivia_tournaments FROM anon, authenticated/);
     assert.doesNotMatch(tournamentInvoker, /GRANT SELECT \([^)]*questions/s);
+});
+
+test('stale tournament cleanup cannot touch funded or entered events', () => {
+    assert.match(staleTournamentCleanup, /COALESCE\(prize_pool,0\) = 0/);
+    assert.match(staleTournamentCleanup, /NOT EXISTS/);
+    assert.match(staleTournamentCleanup, /trivia_tournament_entries/);
 });
