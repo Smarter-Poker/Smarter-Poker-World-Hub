@@ -139,12 +139,28 @@ export default async function handler(req, res) {
             // `avg_rating_sample_size` say exactly what the number was built
             // from. venue_reviews holds 0 rows in production today, so the
             // cap is not currently reached.
+            //
+            // FILTERED COUNT, 2026-08-27. `total` is what the UI builds
+            // "Page X of N" from, but it was counted over the WHOLE table
+            // while the listing above is filtered by venue_id / rating /
+            // flagged. With "flagged only" on, the pager offered pages that
+            // did not exist and every one of them rendered empty. The
+            // unfiltered figures are still returned separately, because the
+            // header tiles legitimately want the whole-table numbers.
             const AVG_SAMPLE_CAP = 10000;
-            const [totalRes, flaggedRes, ratingsRes] = await Promise.all([
+            const applyFilters = (q) => {
+                if (venue_id) q = q.eq('venue_id', String(venue_id));
+                if (rating) q = q.eq('rating', parseInt(rating, 10));
+                if (flagged === 'true') q = q.eq('is_flagged', true);
+                return q;
+            };
+            const [totalRes, flaggedRes, ratingsRes, filteredRes] = await Promise.all([
                 getSupabase().from('venue_reviews').select('id', { count: 'exact', head: true }),
                 getSupabase().from('venue_reviews').select('id', { count: 'exact', head: true }).eq('is_flagged', true),
                 getSupabase().from('venue_reviews').select('rating').not('rating', 'is', null).limit(AVG_SAMPLE_CAP),
+                applyFilters(getSupabase().from('venue_reviews').select('id', { count: 'exact', head: true })),
             ]);
+            if (filteredRes.error) console.warn('[Admin Reviews GET] filtered count error:', filteredRes.error.message || filteredRes.error);
 
             if (totalRes.error) console.warn('[Admin Reviews GET] total count error:', totalRes.error.message || totalRes.error);
             if (flaggedRes.error) console.warn('[Admin Reviews GET] flagged count error:', flaggedRes.error.message || flaggedRes.error);
@@ -168,6 +184,11 @@ export default async function handler(req, res) {
                 stats: {
                     total: totalCount,
                     flagged: flaggedCount,
+                    // The count under the CURRENT filters. This is what the
+                    // pager must divide by; `total` is the whole table and is
+                    // what the header tile shows. Using `total` for both meant
+                    // "flagged only" offered pages that did not exist.
+                    filtered_total: filteredRes.count ?? null,
                     avg_rating: avgRating,
                     // True when the average was computed from a capped sample
                     // rather than every row, so the number is not presented as

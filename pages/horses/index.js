@@ -2112,21 +2112,28 @@ export default function HorsesAdmin() {
 
                 <h3 style={{ marginTop: 24 }}>Club Management</h3>
                 <div className={styles.warnBanner}>
-                  These three actions are not implemented server-side yet. The endpoint now
-                  returns an explicit error instead of reporting success, because it used to
-                  claim it had added horses and granted chips without touching the database.
+                  These four actions are not implemented server-side, so they are disabled
+                  rather than left clickable. The endpoint returns an explicit 501 instead of
+                  reporting success, because it used to claim it had added horses and granted
+                  chips without touching the database. Seating horses and moving chips is real
+                  money movement and is not being implemented speculatively. Use Fleet Launch,
+                  which is wired and works.
                 </div>
                 <div className={styles.clubActions}>
-                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('add_to_club', 'shark_club')} disabled={grinderLoading}>
+                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('add_to_club', 'shark_club')} disabled
+                    title="Not implemented server-side. /api/horses/grinder-stats returns 501 for this action.">
                     Add All Horses To Shark Club
                   </button>
-                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('add_to_club', 'club_jaqk')} disabled={grinderLoading}>
+                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('add_to_club', 'club_jaqk')} disabled
+                    title="Not implemented server-side. /api/horses/grinder-stats returns 501 for this action.">
                     Add All Horses To Club JAQK
                   </button>
-                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('start')} disabled={grinderLoading}>
+                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('start')} disabled
+                    title="Not implemented server-side. /api/horses/grinder-stats returns 501 for this action.">
                     Start Auto-Join
                   </button>
-                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('stop')} disabled={grinderLoading}>
+                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('stop')} disabled
+                    title="Not implemented server-side. /api/horses/grinder-stats returns 501 for this action.">
                     Stop All Horses
                   </button>
                 </div>
@@ -2253,9 +2260,10 @@ export default function HorsesAdmin() {
                     returns 501 now instead of a fabricated success, but until
                     it is implemented the only way to learn that was to click. */}
                 <div className={styles.warnBanner}>
-                  The content pipeline is not implemented server-side yet. These four
-                  actions return an explicit error rather than reporting a run that did
-                  not happen.
+                  The content pipeline is not implemented server-side, so these four actions
+                  are disabled rather than left clickable. The endpoint returns an explicit
+                  501 rather than reporting a run that did not happen -- it previously logged
+                  a pipeline_runs row for work it never did, which made the lie durable.
                 </div>
                 <div className={styles.actionButtons}>
                   {[
@@ -2265,7 +2273,8 @@ export default function HorsesAdmin() {
                     ['publish', 'Publish Due', 'Post Scheduled'],
                   ].map(([type, label, desc]) => (
                     <button
-                      key={type} onClick={() => triggerPipeline(type)} disabled={pipelineBusy}
+                      key={type} onClick={() => triggerPipeline(type)} disabled
+                      title="Not implemented server-side. /api/horses/trigger-pipeline returns 501."
                       className={`${styles.actionBtn} ${type === 'daily' ? styles.featured : ''}`}
                     >
                       <span className={styles.label}>{label}</span>
@@ -4665,8 +4674,15 @@ export default function HorsesAdmin() {
                     disabled={reviewsPage === 0 || reviewsLoading}>Previous</button>
                   <span className={styles.pageInfo}>
                     Page {reviewsPage + 1}
-                    {reviewsStats.total !== null && reviewsStats.total !== undefined
-                      ? ` of ${Math.max(1, Math.ceil(reviewsStats.total / REVIEWS_PER_PAGE))}` : ''}
+                    {/* filtered_total, not total. The pager has to divide by the
+                        count under the CURRENT filters -- dividing by the whole
+                        table offered pages that did not exist whenever a filter
+                        was on. Falls back to total for an older cached route. */}
+                    {(() => {
+                      const pageBasis = reviewsStats.filtered_total ?? reviewsStats.total;
+                      return pageBasis !== null && pageBasis !== undefined
+                        ? ` of ${Math.max(1, Math.ceil(pageBasis / REVIEWS_PER_PAGE))}` : '';
+                    })()}
                     {' '}— showing {num(visibleReviews.length)} of {num(reviewsData.length)} on this page
                   </span>
                   <button onClick={() => setReviewsPage((p) => p + 1)}
