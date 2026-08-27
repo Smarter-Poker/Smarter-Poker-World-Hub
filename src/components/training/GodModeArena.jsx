@@ -13431,7 +13431,7 @@ function GodModeArenaInner({
                           letterSpacing: 0.5,
                         }}
                       >
-                        {levelDef.name} — {levelDef.tier}
+                        {levelDef.name} — {String(levelDef.tier || '').toLowerCase()}
                       </div>
                     ) : null;
                   })()}
@@ -13797,6 +13797,7 @@ function GodModeArenaInner({
 
                 {/* START BUTTON */}
                 <motion.div
+                  className="sp-arena-lobby__launch"
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.45 }}

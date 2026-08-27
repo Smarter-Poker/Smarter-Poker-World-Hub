@@ -180,7 +180,7 @@ body.world-training .sp-arena-lobby__back {
 
     body.world-training .sp-arena-lobby__content {
         width: 100% !important;
-        padding: 16px 12px 20px !important;
+        padding: 16px 12px 108px !important;
     }
 
     body.world-training .sp-arena-lobby__heading {
@@ -193,6 +193,23 @@ body.world-training .sp-arena-lobby__back {
 
     body.world-training .sp-arena-lobby__mode-option {
         min-height: 58px;
+    }
+
+    body.world-training .sp-arena-lobby__launch {
+        position: fixed;
+        z-index: 30;
+        right: 14px;
+        bottom: max(10px, env(safe-area-inset-bottom));
+        left: 14px;
+        padding: 4px;
+        border: 1px solid rgba(164, 228, 248, 0.28);
+        background: rgba(2, 10, 16, 0.88);
+        box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.62);
+        backdrop-filter: blur(10px);
+    }
+
+    body.world-training .sp-arena-lobby__launch .sp-arena-lobby__start {
+        min-height: 56px;
     }
 }
 
