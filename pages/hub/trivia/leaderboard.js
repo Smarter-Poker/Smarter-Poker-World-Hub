@@ -83,6 +83,7 @@ export default function TriviaLeaderboard() {
                         total_questions,
                         play_date
                     `)
+                    .eq('server_verified', true)
                     .order('score', { ascending: false })
                     .limit(FETCH_WINDOW);
 

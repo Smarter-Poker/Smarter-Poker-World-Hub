@@ -137,6 +137,8 @@ const SEEDED_QUALITY_SCORE = 7;
 
 /** Wall-clock budget, leaving headroom under maxDuration. */
 const RUN_BUDGET_MS = 240000;
+/** Reserve the final 90 seconds for roster maintenance and content audit. */
+const GENERATION_BUDGET_MS = 150000;
 
 /** Generation model. grok-3-mini is ~10x cheaper and passes the same gate. */
 const MODEL = process.env.TRIVIA_GEN_MODEL || 'grok-3-mini';
@@ -345,6 +347,10 @@ const CATEGORIES = [
 ];
 
 const STRATEGY_KINDS = new Set(['strategy']);
+// Solver/chart-derived deterministic generation owns strategy inventory. An
+// unconstrained language model remains useful for fact discovery, but it must
+// not mint paywalled strategic advice into the live pool.
+const GENERATION_CATEGORIES = CATEGORIES.filter(category => !STRATEGY_KINDS.has(category.kind));
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SUPABASE — service role only. The archived job fell back to the ANON key,
@@ -549,7 +555,6 @@ function parseGrokJson(content) {
  */
 function buildRow(q, category, difficulty, topic) {
     const options = q.options.map(o => String(o).trim());
-    const correctText = options[q.correct_index];
     const pairs = options.map((text, i) => ({ text, wasCorrect: i === q.correct_index }));
     shuffleInPlace(pairs);
     const newIndex = pairs.findIndex(p => p.wasCorrect);
@@ -569,7 +574,10 @@ function buildRow(q, category, difficulty, topic) {
             model: MODEL,
             topic,
             citation: typeof q.citation === 'string' ? q.citation.slice(0, 300) : null,
-            original_correct_answer: correctText,
+            // Never persist an answer-bearing copy in metadata. Metadata was
+            // historically browser-readable and this field bypassed the
+            // correct_index lockdown entirely.
+            answer_schema: 'correct_index_server_only',
             generated_at: new Date().toISOString(),
         },
         created_at: new Date().toISOString(),
@@ -973,8 +981,8 @@ async function buildDepthReport(supabase) {
  *          neediest. `measured:false` means every count failed — callers keep
  *          the original rotation order and base quotas.
  */
-async function planAdaptiveQuotas(supabase, baseQuota) {
-    const counts = await Promise.all(CATEGORIES.map(async (cat) => {
+async function planAdaptiveQuotas(supabase, baseQuota, categories = GENERATION_CATEGORIES) {
+    const counts = await Promise.all(categories.map(async (cat) => {
         const { count, error } = await supabase
             .from('trivia_questions')
             .select('id', { count: 'exact', head: true })
@@ -1013,7 +1021,7 @@ async function planAdaptiveQuotas(supabase, baseQuota) {
 
     // Shortest categories first. Unmeasured categories keep a neutral ratio of
     // 1 so they sort behind every genuinely short category.
-    const ordered = CATEGORIES.slice().sort(
+    const ordered = categories.slice().sort(
         (a, b) => (plan.get(a.id)?.fillRatio ?? 1) - (plan.get(b.id)?.fillRatio ?? 1)
     );
     return { plan, ordered, measured: anyMeasured };
@@ -1153,17 +1161,31 @@ async function selfAuditQuestions(supabase, grok, deadline) {
         }
         const nowIso = new Date().toISOString();
 
-        // Structurally unauditable rows are stamped and skipped rather than
-        // burning two model calls on garbage.
+        const priorMeta = q.engine_metadata && typeof q.engine_metadata === 'object'
+            ? q.engine_metadata
+            : {};
+        const auditAttempts = Math.max(0, Number(priorMeta.audit_attempts) || 0) + 1;
+
+        // Structurally unauditable rows are removed from service immediately
+        // rather than stamped as though they had passed an audit.
         if (
             typeof q.question !== 'string'
             || !Array.isArray(q.options) || q.options.length !== 4
             || !Number.isInteger(q.correct_index) || q.correct_index < 0 || q.correct_index > 3
         ) {
             await supabase.from('trivia_questions')
-                .update({ last_audited_at: nowIso })
+                .update({
+                    quality_score: AUDIT_DEMOTED_QUALITY,
+                    daily_date: null,
+                    last_audited_at: nowIso,
+                    engine_metadata: {
+                        ...priorMeta,
+                        audit_attempts: auditAttempts,
+                        audit: { result: 'invalid_structure', at: nowIso },
+                    },
+                })
                 .eq('id', q.id);
-            out.inconclusive += 1;
+            out.demoted += 1;
             continue;
         }
 
@@ -1183,7 +1205,11 @@ async function selfAuditQuestions(supabase, grok, deadline) {
 
         let update;
         if (bothMatchStored) {
-            update = { audit_verified: true, last_audited_at: nowIso };
+            update = {
+                audit_verified: true,
+                last_audited_at: nowIso,
+                engine_metadata: { ...priorMeta, audit_attempts: 0, audit_last_attempt_at: nowIso },
+            };
             out.verified += 1;
         } else if (bothAgreeWrong) {
             update = {
@@ -1193,7 +1219,8 @@ async function selfAuditQuestions(supabase, grok, deadline) {
                 // report-question's demotion semantics.
                 daily_date: null,
                 engine_metadata: {
-                    ...(q.engine_metadata && typeof q.engine_metadata === 'object' ? q.engine_metadata : {}),
+                    ...priorMeta,
+                    audit_attempts: auditAttempts,
                     audit: {
                         cold_answers: answers,
                         stored_correct_index: q.correct_index,
@@ -1204,8 +1231,27 @@ async function selfAuditQuestions(supabase, grok, deadline) {
             };
             out.demoted += 1;
         } else {
-            update = { last_audited_at: nowIso };
+            // A transient model/API failure is not an audit result. Retry it
+            // on later cron runs; after three inconclusive attempts, fail
+            // closed and remove the row from gameplay for human review.
+            update = auditAttempts >= 3 ? {
+                quality_score: AUDIT_DEMOTED_QUALITY,
+                daily_date: null,
+                last_audited_at: nowIso,
+                engine_metadata: {
+                    ...priorMeta,
+                    audit_attempts: auditAttempts,
+                    audit: { result: 'inconclusive_after_retries', cold_answers: answers, at: nowIso },
+                },
+            } : {
+                engine_metadata: {
+                    ...priorMeta,
+                    audit_attempts: auditAttempts,
+                    audit_last_attempt_at: nowIso,
+                },
+            };
             out.inconclusive += 1;
+            if (auditAttempts >= 3) out.demoted += 1;
         }
 
         const { error: updErr } = await supabase
@@ -1231,6 +1277,7 @@ async function handler(req, res) {
 
         const started = Date.now();
         const deadline = started + RUN_BUDGET_MS;
+        const generationDeadline = started + GENERATION_BUDGET_MS;
         const supabase = getSupabase();
 
         // ─── Which Chicago day(s) are we building for? ───────────────────
@@ -1256,8 +1303,8 @@ async function handler(req, res) {
         const dayNumber = Math.floor(Date.parse(`${todayCST}T00:00:00Z`) / 86400000);
         const requestedCursor = parseInt(req.query.cursor, 10);
         const startCursor = Number.isFinite(requestedCursor)
-            ? ((requestedCursor % CATEGORIES.length) + CATEGORIES.length) % CATEGORIES.length
-            : ((dayNumber % CATEGORIES.length) + CATEGORIES.length) % CATEGORIES.length;
+            ? ((requestedCursor % GENERATION_CATEGORIES.length) + GENERATION_CATEGORIES.length) % GENERATION_CATEGORIES.length
+            : ((dayNumber % GENERATION_CATEGORIES.length) + GENERATION_CATEGORIES.length) % GENERATION_CATEGORIES.length;
 
         const summary = {
             ok: true,
@@ -1299,8 +1346,8 @@ async function handler(req, res) {
             // resumable cursor now indexes into THIS ordering; depth barely
             // moves between a run and its immediate ?cursor= retry, so the
             // resume point stays meaningful.
-            const adaptive = await planAdaptiveQuotas(supabase, perCategoryQuota);
-            const orderedCats = adaptive.measured ? adaptive.ordered : CATEGORIES;
+            const adaptive = await planAdaptiveQuotas(supabase, perCategoryQuota, GENERATION_CATEGORIES);
+            const orderedCats = adaptive.measured ? adaptive.ordered : GENERATION_CATEGORIES;
             summary.generation.adaptive = Object.fromEntries(
                 [...adaptive.plan.entries()].map(([id, p]) => [id, {
                     servable: p.servable,
@@ -1310,7 +1357,7 @@ async function handler(req, res) {
                 }])
             );
             const plannedTotal = [...adaptive.plan.values()].reduce((s, p) => s + p.quota, 0)
-                || perCategoryQuota * CATEGORIES.length;
+                || perCategoryQuota * GENERATION_CATEGORIES.length;
 
             // Cheap idempotency guard: if this run already produced its daily
             // quota (retry, duplicate cron delivery, manual re-trigger), do not
@@ -1337,7 +1384,7 @@ async function handler(req, res) {
                 if (grok) {
                     for (let i = 0; i < orderedCats.length; i++) {
                         const category = orderedCats[(startCursor + i) % orderedCats.length];
-                        if (Date.now() > deadline) {
+                        if (Date.now() > generationDeadline) {
                             summary.timedOut = true;
                             summary.nextCursor = (startCursor + i) % orderedCats.length;
                             summary.warnings.push(
@@ -1347,7 +1394,7 @@ async function handler(req, res) {
                         }
                         // FEAT(adaptive-volume): per-category quota from the plan.
                         const catQuota = adaptive.plan.get(category.id)?.quota ?? perCategoryQuota;
-                        const r = await generateForCategory(supabase, grok, category, catQuota, deadline);
+                        const r = await generateForCategory(supabase, grok, category, catQuota, generationDeadline);
                         summary.generation.inserted += r.inserted;
                         summary.generation.rejectedQuality += r.rejectedQuality;
                         summary.generation.rejectedDuplicate += r.rejectedDuplicate;

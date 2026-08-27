@@ -53,8 +53,18 @@ const HEADERS = {
     'Content-Type': 'application/json',
 };
 
+async function fetchReadWithRetry(url, options) {
+    let response;
+    for (let attempt = 0; attempt < 3; attempt++) {
+        response = await fetch(url, options);
+        if (response.ok || ![429, 500, 502, 503, 504].includes(response.status)) return response;
+        await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+    }
+    return response;
+}
+
 async function supabaseQuery(table, params = '', extraHeaders = {}) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
+    const res = await fetchReadWithRetry(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
         headers: { ...HEADERS, ...extraHeaders },
     });
     if (!res.ok) {
@@ -101,9 +111,13 @@ async function supabaseInsert(table, rows) {
 }
 
 async function supabaseCount(table, filter = '') {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id${filter}&limit=1`, {
+    const res = await fetchReadWithRetry(`${SUPABASE_URL}/rest/v1/${table}?select=id${filter}&limit=1`, {
         headers: { ...HEADERS, 'Prefer': 'count=exact' },
     });
+    if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Count ${table} ${res.status}: ${body.slice(0, 200)}`);
+    }
     const cr = res.headers.get('content-range') || '';
     return cr ? parseInt(cr.split('/')[1] || '0', 10) : 0;
 }
@@ -165,6 +179,18 @@ function hashSeed(str) {
     return Math.abs(h);
 }
 
+/** Mulberry32: deterministic without the low-bit modulo bias of the old LCG. */
+function deterministicRandom(seed) {
+    let state = seed >>> 0;
+    return () => {
+        state = (state + 0x6d2b79f5) >>> 0;
+        let t = state;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
 /**
  * Build a deterministic question from a solved_spots_gold row.
  * Mirrors DeterministicGTOEngine.buildQuestionFromScenario.
@@ -172,7 +198,13 @@ function hashSeed(str) {
  * Returns null if scenario has no usable strategy data.
  */
 function buildQuestionFromScenario(scenario, questionIndex) {
-    const sm = scenario.strategy_matrix || {};
+    // Prefer the rebuilt v2 solver matrix whenever it is populated. The
+    // canonical training engine already does this; Trivia must not answer the
+    // same scenario from an older matrix.
+    const v2 = scenario.strategy_matrix_v2 || {};
+    const sm = Array.isArray(v2.actions) && v2.actions.length > 0
+        ? v2
+        : (scenario.strategy_matrix || {});
     const actions = sm.actions || [];
     const frequencies = sm.frequencies || {};
     const handEVs = sm.hand_evs || {};
@@ -207,6 +239,23 @@ function buildQuestionFromScenario(scenario, questionIndex) {
         }
     });
     if (!optimalAction || validActions.length === 0) return null;
+
+    // Solver exports are not guaranteed to arrive pre-normalized (some v2
+    // rows store independently rounded action weights). Normalize the hand's
+    // action vector before difficulty, explanations or metadata use it. The
+    // old path could literally teach "Check 84%, Bet 48%" and classify a
+    // 132%-total vector as a pure/easy spot.
+    const rawActionTotal = validActions.reduce((sum, action) => sum + (handActions[action] || 0), 0);
+    if (!(rawActionTotal > 0)) return null;
+    optimalAction = null;
+    maxFreq = -1;
+    validActions.forEach(action => {
+        handActions[action] = handActions[action] / rawActionTotal;
+        if (handActions[action] > maxFreq) {
+            maxFreq = handActions[action];
+            optimalAction = action;
+        }
+    });
 
     // GTO frequencies normalized to 100
     const gtoFrequencies = {};
@@ -285,10 +334,10 @@ function buildQuestionFromScenario(scenario, questionIndex) {
     let optSeed = 0;
     const hashStr = String(scenario.scenario_hash || heroHand || '');
     for (let i = 0; i < hashStr.length; i++) optSeed = (optSeed * 31 + hashStr.charCodeAt(i)) & 0x7fffffff;
+    const optionRandom = deterministicRandom(optSeed);
     const pickNext = () => {
         if (!candidatePool.length) return null;
-        optSeed = (optSeed * 1103515245 + 12345) & 0x7fffffff;
-        return candidatePool.splice(optSeed % candidatePool.length, 1)[0];
+        return candidatePool.splice(Math.floor(optionRandom() * candidatePool.length), 1)[0];
     };
     while (options.length < 4) {
         const fa = pickNext();
@@ -300,8 +349,7 @@ function buildQuestionFromScenario(scenario, questionIndex) {
     // Finally: shuffle, so position carries no information. correctIndex is
     // computed AFTER this (see below), against the shuffled array.
     for (let i = options.length - 1; i > 0; i--) {
-        optSeed = (optSeed * 1103515245 + 12345) & 0x7fffffff;
-        const j = optSeed % (i + 1);
+        const j = Math.floor(optionRandom() * (i + 1));
         [options[i], options[j]] = [options[j], options[i]];
     }
 
@@ -409,6 +457,14 @@ function buildQuestionFromChart(chart, questionIndex) {
         { id: 'minraise', text: 'Min-raise to 2BB', frequency: 0 },
         { id: 'limp', text: 'Limp (call 1BB)', frequency: 0 },
     ];
+
+    // Stable option permutation. The old chart path always placed Push at A
+    // and Fold at B, leaking that the answer could never be C or D.
+    const optionRandom = deterministicRandom(hashSeed(`${chart.chart_id}:${heroHand}:${questionIndex}:options`));
+    for (let i = options.length - 1; i > 0; i--) {
+        const j = Math.floor(optionRandom() * (i + 1));
+        [options[i], options[j]] = [options[j], options[i]];
+    }
 
     const explanation = correctAction === 'push'
         ? `ICM push/fold chart: ${heroHand} pushes ${gtoFrequencies.push}% of the time from ${heroPos} at ${stackDepth}BB effective. At this depth the hand carries enough raw equity and enough fold equity that shoving beats every alternative line.`
@@ -521,6 +577,9 @@ function validateTriviaRow(row, errors) {
     const distinct = new Set(optTexts).size;
     if (distinct !== optTexts.length) errors.push('Duplicate option texts');
     if (!row.explanation || row.explanation.length < 20) errors.push('Short explanation');
+    const frequencyTotal = Object.values(row.engine_metadata?.gto_frequencies || {})
+        .reduce((sum, value) => sum + (Number(value) || 0), 0);
+    if (frequencyTotal !== 100) errors.push(`GTO frequencies total ${frequencyTotal}, expected 100`);
     if (errors.length > 0) return false;
 
     const qa = validateQuestion(row);
@@ -542,9 +601,25 @@ function buildTriviaRow(question, category, difficulty) {
         options: optionTexts,
         correct_index: question.correctIndex,
         explanation: question.explanation,
-        // Source tag in subcategory until engine_metadata column ships
-        subcategory: `det:${question.scenarioHash || question.chartId || 'unknown'}:${question.heroHand}`,
+        subcategory: `det3:${question.scenarioHash || question.chartId || 'unknown'}:${question.heroHand}`,
         quality_score: question.maxFreq >= 0.95 ? 10 : question.maxFreq >= 0.70 ? 8 : 6,
+        source: 'deterministic',
+        engine_metadata: {
+            engine: 'trivia-deterministic-seed',
+            engine_version: 3,
+            scenario_hash: question.scenarioHash || null,
+            scenario_id: question.scenarioId || null,
+            chart_id: question.chartId || null,
+            hero_hand: question.heroHand || null,
+            hero_position: question.heroPos || null,
+            villain_position: question.villainPos || null,
+            street: question.street || null,
+            stack_depth: question.stackDepth || null,
+            game_type: question.gameType || null,
+            gto_frequencies: question.gtoFrequencies || null,
+            correct_action: question.correctAction || null,
+            mixed_strategy: question.isMixedStrategy === true,
+        },
     };
 }
 
@@ -567,6 +642,32 @@ async function loadExistingSubcategorySet(category) {
     return existing;
 }
 
+function normalizeQuestion(text) {
+    return String(text || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+let servableQuestionsCache = null;
+async function loadServableQuestionSet() {
+    if (servableQuestionsCache) return servableQuestionsCache;
+    const existing = new Set();
+    let offset = 0;
+    while (true) {
+        const rows = await supabaseQuery(
+            'trivia_questions',
+            `?quality_score=gte.6&select=question&limit=1000&offset=${offset}`
+        );
+        if (!rows || rows.length === 0) break;
+        for (const row of rows) {
+            const norm = normalizeQuestion(row.question);
+            if (norm) existing.add(norm);
+        }
+        if (rows.length < 1000) break;
+        offset += 1000;
+    }
+    servableQuestionsCache = existing;
+    return servableQuestionsCache;
+}
+
 // ─── MAIN PER-CATEGORY DRIVER ─────────────────────────────────────────────
 
 async function seedCategory(category, target) {
@@ -580,7 +681,13 @@ async function seedCategory(category, target) {
     // Current counts per difficulty
     const before = {};
     for (const d of ['easy', 'medium', 'hard']) {
-        before[d] = await supabaseCount('trivia_questions', `&category=eq.${category}&difficulty=eq.${d}`);
+        // Retired/failed-audit rows do not count toward live inventory. The
+        // old total-row count made the seeder declare victory immediately
+        // after thousands of legacy deterministic rows were quarantined.
+        before[d] = await supabaseCount(
+            'trivia_questions',
+            `&category=eq.${category}&difficulty=eq.${d}&quality_score=gte.6`
+        );
     }
     console.log(`   current: easy=${before.easy} medium=${before.medium} hard=${before.hard}`);
 
@@ -604,6 +711,11 @@ async function seedCategory(category, target) {
 
     // Load dedupe cache
     const existingSubcats = await loadExistingSubcategorySet(category);
+    // Fingerprints are globally unique across the servable pool, not merely
+    // inside a category. Share one global cache across this whole run so two
+    // category aliases cannot build the same scenario and make an entire
+    // PostgREST insert batch roll back.
+    const existingQuestions = await loadServableQuestionSet();
     console.log(`   existing subcat tags: ${existingSubcats.size}`);
 
     const generated = { easy: [], medium: [], hard: [] };
@@ -620,7 +732,7 @@ async function seedCategory(category, target) {
         try {
             const select = source.table === 'memory_charts_gold'
                 ? 'chart_id,game_type,stack_depth,hero_position,villain_action,hand_matrix'
-                : 'id,scenario_hash,street,stack_depth,game_type,strategy_matrix';
+                : 'id,scenario_hash,street,stack_depth,game_type,strategy_matrix,strategy_matrix_v2';
             pool = await supabaseQueryPaginated(source.table,
                 `?select=${select}${source.filter}`, POOL_SIZE, ARG_OFFSET);
             console.log(`   pool from ${source.table}${source.filter}: ${pool.length} rows`
@@ -640,7 +752,7 @@ async function seedCategory(category, target) {
                 : buildQuestionFromScenario(scenario, variant);
             if (!q) continue;
 
-            const subcatTag = `det:${q.scenarioHash || q.chartId || 'unknown'}:${q.heroHand}`;
+            const subcatTag = `det3:${q.scenarioHash || q.chartId || 'unknown'}:${q.heroHand}`;
             if (existingSubcats.has(subcatTag)) continue;
             existingSubcats.add(subcatTag);
 
@@ -648,11 +760,14 @@ async function seedCategory(category, target) {
             if (generated[diff].length >= need[diff]) continue;
 
             const row = buildTriviaRow(q, category, diff);
+            const questionNorm = normalizeQuestion(row.question);
+            if (!questionNorm || existingQuestions.has(questionNorm)) continue;
             const errs = [];
             if (!validateTriviaRow(row, errs)) {
                 validatorRejections.push({ id: subcatTag, errs });
                 continue;
             }
+            existingQuestions.add(questionNorm);
             generated[diff].push(row);
 
             if (generated.easy.length >= need.easy &&
@@ -663,13 +778,23 @@ async function seedCategory(category, target) {
 
     const total = generated.easy.length + generated.medium.length + generated.hard.length;
     console.log(`   built: easy=${generated.easy.length} medium=${generated.medium.length} hard=${generated.hard.length} (total ${total})`);
+    const rows = [...generated.easy, ...generated.medium, ...generated.hard];
+    const answerPositions = rows.reduce((counts, row) => {
+        counts[row.correct_index] = (counts[row.correct_index] || 0) + 1;
+        return counts;
+    }, [0, 0, 0, 0]);
+    console.log(`   answer positions: A=${answerPositions[0]} B=${answerPositions[1]} C=${answerPositions[2]} D=${answerPositions[3]}`);
+    if (total >= 40 && Math.max(...answerPositions) / total > 0.45) {
+        const error = `answer-position bias gate failed: ${answerPositions.join('/')}`;
+        console.error(`   ❌ ${error}`);
+        return { category, generated: 0, error, before, need };
+    }
     if (validatorRejections.length > 0) {
         console.log(`   validator rejected: ${validatorRejections.length}`);
         if (VERBOSE) console.log(`   sample rejection: ${JSON.stringify(validatorRejections[0])}`);
     }
 
     if (IS_LIVE && total > 0) {
-        const rows = [...generated.easy, ...generated.medium, ...generated.hard];
         const BATCH = 250;
         for (let i = 0; i < rows.length; i += BATCH) {
             const slice = rows.slice(i, i + BATCH);

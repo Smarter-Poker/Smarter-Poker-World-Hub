@@ -159,26 +159,31 @@ const MIN_ACCOUNT_AGE_MS = 24 * 60 * 60 * 1000;
 
 /**
  * SAFEGUARD 0 — did this user actually complete today's daily trivia?
- * Accepts either write path (the hub pages write daily_trivia_plays directly;
- * the submit API writes trivia_scores).
+ * Only a server-verified daily score linked to a submitted owned session is
+ * proof. Legacy play rows and unverified scores were client-writable and are
+ * not reward entitlements.
  */
 async function hasCompletedTodaysTrivia(supabase, userId, today) {
-    const [{ data: play }, { data: scoreRow }] = await Promise.all([
-        supabase
-            .from('daily_trivia_plays')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('played_date', today)
-            .maybeSingle(),
-        supabase
-            .from('trivia_scores')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('play_date', today)
-            .limit(1)
-            .maybeSingle(),
-    ]);
-    return !!play || !!scoreRow;
+    const { data: scoreRow } = await supabase
+        .from('trivia_scores')
+        .select('id, session_id')
+        .eq('user_id', userId)
+        .eq('mode', 'daily')
+        .eq('play_date', today)
+        .eq('server_verified', true)
+        .not('session_id', 'is', null)
+        .limit(1)
+        .maybeSingle();
+    if (!scoreRow?.session_id) return false;
+    const { data: session } = await supabase
+        .from('trivia_sessions')
+        .select('id')
+        .eq('id', scoreRow.session_id)
+        .eq('user_id', userId)
+        .eq('mode', 'daily')
+        .eq('status', 'submitted')
+        .maybeSingle();
+    return Boolean(session);
 }
 
 export default async function handler(req, res) {

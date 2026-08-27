@@ -44,7 +44,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
-import { safeAward } from '../../../src/lib/rewards/awardGuard';
 
 // ───────────────────────────────────────────────────────────────────────────
 // TUNABLES
@@ -215,43 +214,29 @@ function nowIso() {
 }
 
 /**
- * Move diamonds with award_diamonds_v2, tolerating the "already applied"
- * dedup response (reason='duplicate'). Returns { ok, deduped, balance, error }.
- *
- * NOTE: tournament prizes are UNCAPPED (monthly_diamond_cap = NULL in catalog);
- * the 2.5M platform circuit breaker still applies because the call now flows
- * through award_diamonds_v2.
+ * Move an exact tournament amount through the canonical wallet ledger.
+ * Tournament pools/refunds are conserved escrow, so profile reward
+ * multipliers must never inflate them.
  */
-async function moveDiamonds(sb, { userId, amount, type, description, referenceId, tournamentId }) {
-    // Build a target_id that satisfies the catalog's once_per_target = true guard
-    // (one prize per tournament placement per user).
-    const targetId = tournamentId ? `${tournamentId}_${userId}` : referenceId;
-    const { ok, data, error } = await safeAward(sb, {
+async function moveDiamonds(sb, { userId, amount, type, description, referenceId }) {
+    const { data, error } = await sb.rpc('add_diamonds_to_balance', {
         p_user_id: userId,
-        p_action_key: 'tournament_prize',
+        p_amount: amount,
+        p_type: type,
+        p_description: description,
         p_reference_id: referenceId,
-        p_target_id: targetId,
-        p_metadata: {
-            prize_diamonds: amount,
-            placement_type: type,
-            description,
-            tournament_id: tournamentId || null,
-            _source: 'api/trivia/tournament-lifecycle',
-        },
     });
-    if (!ok) {
-        // safeAward never throws. Treat migrationMissing as a retriable error.
+    if (error) {
         return { ok: false, deduped: false, error: error?.message || String(error) };
     }
     const result = data && typeof data === 'object' ? data : {};
-    if (result.reason === 'duplicate') {
-        // Already paid — exactly the outcome we want on a retry.
-        return { ok: true, deduped: true, balance: result.balance_after, error: 'deduped' };
+    if (result.duplicate === true) {
+        return { ok: true, deduped: true, balance: result.new_balance, error: 'deduped' };
     }
     if (!result.success) {
-        return { ok: false, deduped: false, error: result.reason || 'award_failed' };
+        return { ok: false, deduped: false, error: result.error || 'award_failed' };
     }
-    return { ok: true, deduped: false, balance: result.balance_after };
+    return { ok: true, deduped: false, balance: result.new_balance };
 }
 
 /**

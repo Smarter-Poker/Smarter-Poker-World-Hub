@@ -157,6 +157,15 @@ class DiamondEngineSupabase {
             const token = await this._accessToken();
             if (!token) return { success: false, error: 'Not signed in' };
 
+            // Every charge gets a stable operation id that callers can retain
+            // across retries. The spend endpoint namespaces it by user and the
+            // database ledger has a unique (user, reference) constraint, so a
+            // network replay cannot debit the same lifeline/entry twice.
+            const referenceId = metadata.referenceId || (
+                globalThis.crypto?.randomUUID?.()
+                || `op_${Date.now()}_${Math.random().toString(36).slice(2)}`
+            );
+
             const res = await fetch('/api/diamonds/spend', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -164,6 +173,7 @@ class DiamondEngineSupabase {
                     amount,
                     source,
                     description: metadata.description || source,
+                    referenceId,
                 }),
             });
 
