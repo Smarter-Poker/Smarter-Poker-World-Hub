@@ -33,7 +33,9 @@
 #     Fast grep pass that runs in <100ms before full Babel parse.
 #     (the May 12, 2026 incident: the exact root cause of check 12)
 #
-# INSTALL: Run `bash scripts/install-hooks.sh` from the project root
+# WIRED VIA: .husky/pre-push (core.hooksPath .husky — issue #625). The old
+# copy-into-.git/hooks installer is gone; install-hooks.sh now only repairs
+# hooksPath and modes.
 # ═══════════════════════════════════════════════════════════════════════════
 
 RED='\033[0;31m'

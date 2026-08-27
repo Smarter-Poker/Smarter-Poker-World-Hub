@@ -1,53 +1,37 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════
-# INSTALL GIT HOOKS
+# ENSURE THE TRACKED HOOKS RUN (issue #625, closed 2026-08-27)
 # ═══════════════════════════════════════════════════════════════════════════
-# Installs the pre-push safety gate and pre-commit combined hook.
-# Run automatically via `npm install` (postinstall script) or manually:
+# This script used to be the PROBLEM this issue describes: it UNSET
+# core.hooksPath and copied untracked hook files into .git/hooks/, so twelve
+# checks written from real production incidents protected exactly one machine
+# and died on every fresh clone — and running it by hand put a repaired clone
+# BACK on the legacy hooks. The tracked .husky/ hooks are the union of
+# everything that ever ran here (see .husky/pre-commit's header); this script
+# now has one job: make git use them, idempotently.
+#
+# Run automatically via `npm install` (postinstall) or manually:
 #   bash scripts/install-hooks.sh
 # ═══════════════════════════════════════════════════════════════════════════
+set -e
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
+# Not a git checkout (Vercel build, tarball install): nothing to do.
+git rev-parse --git-dir >/dev/null 2>&1 || exit 0
 
-# Ensure .git/hooks directory exists
-if [ ! -d "$HOOKS_DIR" ]; then
-    echo "ERROR: .git/hooks directory not found at $HOOKS_DIR"
-    echo "Are you running this from the project root?"
-    exit 1
-fi
+git config core.hooksPath .husky
 
-# Disable husky's core.hooksPath override so our native hooks are used
-git config --unset core.hooksPath 2>/dev/null || true
+# A hook committed non-executable is silently SKIPPED by git (the estate lost
+# months of guard coverage to exactly this — see AGENT-PLAYBOOK.md §5b).
+BAD_MODE=0
+for f in .husky/pre-commit .husky/pre-push .husky/pre-rebase \
+         .husky/commit-msg .husky/post-checkout .husky/reference-transaction; do
+    if [ -f "$f" ] && [ ! -x "$f" ]; then
+        chmod +x "$f"
+        echo "install-hooks: repaired mode on $f (was not executable — git skips those silently)"
+        BAD_MODE=1
+    fi
+done
 
-# Copy pre-push hook (syntax validation + corruption detection)
-if [ -f "$SCRIPT_DIR/pre-push-hook.sh" ]; then
-    cp "$SCRIPT_DIR/pre-push-hook.sh" "$HOOKS_DIR/pre-push"
-    chmod +x "$HOOKS_DIR/pre-push"
-    echo "✓ Pre-push safety gate installed (CHECK 1-12)"
-fi
-
-# Copy pre-commit hook (Club Arena + Supabase auth)
-if [ -f "$SCRIPT_DIR/pre-commit-hook.sh" ]; then
-    cp "$SCRIPT_DIR/pre-commit-hook.sh" "$HOOKS_DIR/pre-commit"
-    chmod +x "$HOOKS_DIR/pre-commit"
-    echo "✓ Pre-commit combined hook installed (Arena + Auth)"
-fi
-
-echo ""
-echo "Pre-push checks:"
-echo "  1. Unused hook imports        5. Babel/node-c JSX-aware syntax"
-echo "  2. SSG-unsafe browser APIs    6. Auth route canonicalization"
-echo "  3. No .single() calls         7. Unauth'd API fetch calls"
-echo "  4. No raw Supabase imports    8. Broken import resolution"
-echo "  9. Catch-block corruption     10. TypeScript new-error gate"
-echo "  11. Vercel/Next.js config     12. JSX comment expression guard"
-echo ""
-echo "Pre-commit checks:"
-echo "  A. Club Arena build enforcement"
-echo "  B. ★ Merge/stash conflict marker detection (prevents Vercel 'Module parse failed')"
-echo "  C. Dangerous Supabase auth pattern detection"
-echo ""
-echo "To bypass in an emergency: git push --no-verify"
-echo ""
+echo "install-hooks: core.hooksPath -> .husky (tracked hooks active)"
+[ "$BAD_MODE" = "1" ] && echo "install-hooks: NOTE — repaired modes are local; commit the fix so every clone gets it."
+exit 0
