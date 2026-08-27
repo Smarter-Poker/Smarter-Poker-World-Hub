@@ -14,7 +14,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Gem, Percent, SkipForward, Clock, Check } from 'lucide-react';
 import useVIP from '../../hooks/useVIP';
-import { supabase } from '../../lib/supabase';
 
 const HINTS = [
     {
@@ -42,27 +41,6 @@ const HINTS = [
         color: '#31a24c'
     }
 ];
-
-/**
- * Skip telemetry (phase 54). `increment_trivia_skipped` has existed and been
- * granted to `authenticated` since migration 20260505_phase54, but nothing ever
- * called it — so `trivia_questions.skipped_count` was permanently 0 and the
- * quality pipeline that reads it had no signal to work with. Fire-and-forget:
- * a failed telemetry write must never block or undo a hint the player paid for.
- */
-function recordSkip(questionId) {
-    if (!questionId) return;
-    try {
-        const p = supabase.rpc('increment_trivia_skipped', { p_question_id: questionId });
-        if (p && typeof p.then === 'function') {
-            p.then(({ error } = {}) => {
-                if (error) console.warn('[HintButtons] skip telemetry failed:', error.message || error);
-            }, (e) => console.warn('[HintButtons] skip telemetry failed:', e?.message || e));
-        }
-    } catch (e) {
-        console.warn('[HintButtons] skip telemetry failed:', e?.message || e);
-    }
-}
 
 function HintButtons({
     userDiamonds = 0,
@@ -105,7 +83,6 @@ function HintButtons({
             onNeedDiamonds?.(hint);
             return;
         }
-        if (hint.id === 'skip') recordSkip(questionId);
         onUseHint?.(hint);
     };
 

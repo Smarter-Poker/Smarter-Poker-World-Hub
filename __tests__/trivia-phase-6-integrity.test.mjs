@@ -13,6 +13,7 @@ const contentSecurity = read('supabase/migrations/20260827230000_trivia_phase6_c
 const atomicEconomy = read('supabase/migrations/20260827230500_trivia_phase6_atomic_economy.sql');
 const settlement = read('supabase/migrations/20260827231000_trivia_phase6_settlement_replay.sql');
 const retireBiasedV2 = read('supabase/migrations/20260827231500_trivia_phase6_retire_biased_v2.sql');
+const serverOwnedStats = read('supabase/migrations/20260827232000_trivia_phase6_server_owned_stats.sql');
 const submit = read('pages/api/trivia/session-submit.js');
 const answer = read('pages/api/trivia/session-answer.js');
 const legacySubmit = read('pages/api/trivia/submit.js');
@@ -21,6 +22,9 @@ const diamondEngine = read('src/services/DiamondEngine.js');
 const deterministicSeeder = read('scripts/trivia-deterministic-seed.js');
 const endless = read('pages/hub/trivia/endless.js');
 const survival = read('pages/hub/trivia/survival-game.js');
+const pvpPage = read('pages/hub/trivia/pvp.js');
+const pvpSettlement = read('pages/api/trivia/pvp-settle-match.js');
+const modePage = read('pages/hub/trivia/[mode].js');
 
 test('validator rejects duplicate dealt cards and impossible action order', () => {
     const duplicateCard = checkLogic({
@@ -86,4 +90,17 @@ test('browser diamond spends carry an idempotency reference', () => {
     assert.match(diamondEngine, /referenceId,/);
     assert.match(endless, /trivia_lifeline:\$\{serverRun\.sessionId\}:\$\{currentQuestion\?\.id\}:skip/);
     assert.match(survival, /trivia_lifeline:\$\{serverRun\.sessionId\}:\$\{currentQuestion\?\.id\}:skip/);
+});
+
+test('streak and PvP statistics are owned by verified server settlement', () => {
+    assert.match(serverOwnedStats, /CREATE OR REPLACE FUNCTION public\.record_trivia_pvp_stats_v2/);
+    assert.match(serverOwnedStats, /stats_recorded_at IS NOT NULL/);
+    assert.match(serverOwnedStats, /REVOKE EXECUTE ON FUNCTION public\.fn_trivia_pvp_record_result/);
+    assert.match(serverOwnedStats, /REVOKE EXECUTE ON FUNCTION public\.update_trivia_streak/);
+    assert.match(serverOwnedStats, /REVOKE EXECUTE ON FUNCTION public\.increment_trivia_skipped/);
+    assert.match(serverOwnedStats, /REVOKE EXECUTE ON FUNCTION public\.get_diamond_balance/);
+    assert.match(pvpSettlement, /record_trivia_pvp_stats_v2/);
+    assert.match(pvpSettlement, /settlement_kind: decision\.kind/);
+    assert.doesNotMatch(pvpPage, /fn_trivia_pvp_record_result/);
+    assert.doesNotMatch(modePage, /supabase\.rpc\('update_trivia_streak'/);
 });

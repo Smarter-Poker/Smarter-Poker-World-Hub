@@ -239,6 +239,16 @@ async function moveDiamonds(sb, { userId, amount, type, description, referenceId
     }
 }
 
+/** Record display stats from the completed match exactly once. */
+async function recordPvpStats(sb, matchId) {
+    const { data, error } = await sb.rpc('record_trivia_pvp_stats_v2', { p_match_id: matchId });
+    if (error || (data && data.success === false)) {
+        console.error('[pvp-settle-match] stats record failed:', matchId, error?.message || data?.error || 'unknown');
+        return false;
+    }
+    return true;
+}
+
 /** A row already in its terminal state - report it without touching money. */
 function summarizeComplete(match) {
     // A completed row cannot distinguish tie from abandoned-refund; both read
@@ -268,7 +278,10 @@ function summarizeComplete(match) {
 export async function settlePvpMatch(sb, match, { force = false } = {}) {
     const { stake, totalPot, rakeAmount, winnerPayout } = pvpPotMath(match.stake_amount);
 
-    if (match.status === 'complete') return summarizeComplete(match);
+    if (match.status === 'complete') {
+        await recordPvpStats(sb, match.id);
+        return summarizeComplete(match);
+    }
 
     // Horse detection is a server-side profile fact, never a client claim.
     let p2IsHorse = false;
@@ -398,6 +411,7 @@ export async function settlePvpMatch(sb, match, { force = false } = {}) {
         .from('trivia_pvp_matches')
         .update({
             status: 'complete',
+            settlement_kind: decision.kind,
             winner_id: decision.winnerId || null,
             player1_score: p1.submitted ? p1.correct : null,
             player2_score: p2.submitted ? p2.correct : null,
@@ -409,6 +423,8 @@ export async function settlePvpMatch(sb, match, { force = false } = {}) {
         // Credits landed; the sweep's retry will converge the status. Report
         // settled so the player sees their (already paid) result.
         console.error('[pvp-settle-match] final status write failed (money already settled):', match.id, doneErr.message);
+    } else {
+        await recordPvpStats(sb, match.id);
     }
 
     return {
