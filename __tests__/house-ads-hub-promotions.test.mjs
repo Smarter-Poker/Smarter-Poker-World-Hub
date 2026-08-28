@@ -161,3 +161,28 @@ test('no emoji in either source file', () => {
         assert.ok(!emoji.test(read(f)), `${f} contains an emoji`);
     }
 });
+
+test('the admin rollup counts in Postgres, per slot, with no silent ceiling', () => {
+    /* The route used to read `.from('ad_event').select(...).limit(50000)` and
+       tally in JavaScript. Two problems:
+
+       - The limit was a ceiling with no signal. This table logs an impression
+         per ad per page load, so 50,000 arrives; PostgREST returns the first
+         50,000 and the route reports the total with complete confidence,
+         under-counting a little more every day and never saying so.
+       - The tally was keyed on ad_id alone, which was right when one slot
+         existed. bbj_running now runs on four surfaces, and one blended number
+         cannot tell an operator which of them is working. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /rpc\('fn_ad_stats'\)/);
+    /* Comments first. The comment above that RPC call quotes the old
+       `.limit(50000)` line to explain why it went, so a naive substring search
+       finds the explanation and fails on it. Strip the prose and read the
+       code. */
+    const code = route.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.ok(!code.includes('limit(50000)'), 'the 50,000-row ceiling is still there');
+    assert.match(route, /statsBySlot/);
+    // null still means COULD NOT COUNT, never zero.
+    assert.match(route, /let stats = null;/);
+    assert.match(route, /let statsBySlot = null;/);
+});
