@@ -95,16 +95,32 @@ function stripEmoji(value) {
  * leaving another running. Every multi-slot placement in production was
  * written by an agent in a migration.
  *
- * These normalise the three fields a placement actually carries. Unknown
- * values fall back rather than 400, because the panel only ever sends values
- * from its own selects - a bad one is a bug in the caller, and defaulting is
- * kinder than a save that fails on a field the operator cannot see.
+ * These read the three fields a placement actually carries.
+ *
+ * AN UNKNOWN SLOT IS REFUSED, NOT DEFAULTED. The first version of this file
+ * fell back to 'lobby_strip' and 'all', on the reasoning that the panel only
+ * ever sends values from its own selects, so defaulting was kinder than a save
+ * that fails on a field the operator cannot see. That reasoning is wrong, and
+ * on PATCH it is dangerous: a request naming a slot this server does not know
+ * would MOVE A LIVE PLACEMENT TO A SURFACE NOBODY ASKED FOR, answer "Saved",
+ * and show the operator a panel that disagrees with the database. Silently
+ * writing something other than what was asked for is the single failure shape
+ * this estate keeps paying for.
+ *
+ * The kindness argument also had it backwards. A refusal names the field and
+ * the value; a default is discovered weeks later as an advert on the wrong
+ * screen. If the panel ever does send a bad value, a 400 is how we find out.
+ *
+ * Returning null for "not acceptable" keeps the two callers honest, because
+ * null cannot be written to a NOT NULL column by accident.
  */
-function normaliseSlot(value) {
-    return SLOTS.has(String(value)) ? String(value) : 'lobby_strip';
+function readSlot(value) {
+    const s = String(value);
+    return SLOTS.has(s) ? s : null;
 }
-function normaliseAudience(value) {
-    return AUDIENCES.has(String(value)) ? String(value) : 'all';
+function readAudience(value) {
+    const s = String(value);
+    return AUDIENCES.has(s) ? s : null;
 }
 /** A cap of 0 means nothing. NULL means uncapped; a positive integer caps. */
 function normaliseDailyCap(value) {
@@ -363,6 +379,36 @@ export default async function handler(req, res) {
                 }
             }
 
+            /* RETENTION, BECAUSE A DELETE NOBODY CAN SEE IS NOT A POLICY.
+             *
+             * fn_prune_ad_events has existed since 20260828100000 with no
+             * caller: a loaded delete, unscheduled and unpreviewable. It could
+             * not be scheduled either - CLAUDE.md section 11 makes Open Claw
+             * the only sanctioned scheduler, and 11.3 fails CI on a net-new
+             * pages/api/cron/ file - so it goes in the operator's hands
+             * instead, with the blast radius shown BEFORE the button.
+             *
+             * Same null rule as everything else here: null is "could not
+             * read", never "nothing to prune". */
+            let retention = null;
+            const { data: retRows, error: retErr } =
+                await getSupabase().rpc('fn_ad_retention_status');
+            if (retErr) {
+                console.warn('[house-ads] retention read failed:', retErr.message);
+            } else {
+                const r = (retRows || [])[0];
+                if (r) {
+                    retention = {
+                        retentionDays: Number(r.retention_days) || 0,
+                        cutoff: r.cutoff || null,
+                        totalEvents: Number(r.total_events) || 0,
+                        prunableEvents: Number(r.prunable_events) || 0,
+                        oldestEvent: r.oldest_event || null,
+                        newestEvent: r.newest_event || null,
+                    };
+                }
+            }
+
             return res.status(200).json({
                 success: true,
                 ads: ads || [],
@@ -382,6 +428,7 @@ export default async function handler(req, res) {
                             : null,
                 },
                 conversions, // { adId: { slot: { clicks, clicksFollowedBy, conversionRule } } }
+                retention, // { retentionDays, cutoff, totalEvents, prunableEvents, ... }
             });
         }
 
@@ -420,13 +467,31 @@ export default async function handler(req, res) {
                 return res.status(404).json({ success: false, error: 'That ad no longer exists' });
             }
 
+            /* Refuse before writing. A placement whose slot this server does
+               not recognise cannot be resolved by fn_resolve_ads either, so
+               accepting one only produces an invisible advert. */
+            const newSlot = readSlot(b.slot);
+            if (!newSlot) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Not A Known Slot: ${clean(b.slot, 40) || '(empty)'}`,
+                });
+            }
+            const newAudience = readAudience(b.audience);
+            if (!newAudience) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Not A Known Audience: ${clean(b.audience, 40) || '(empty)'}`,
+                });
+            }
+
             const { data: placed, error: plErr } = await getSupabase()
                 .from('ad_placement')
                 .insert({
                     ad_id: adId,
-                    slot: normaliseSlot(b.slot),
+                    slot: newSlot,
                     club_id: clean(b.club_id, 64) || null,
-                    audience: normaliseAudience(b.audience),
+                    audience: newAudience,
                     daily_cap: normaliseDailyCap(b.daily_cap),
                     is_active: b.is_active !== false,
                 })
@@ -463,8 +528,29 @@ export default async function handler(req, res) {
             if (!id) return res.status(400).json({ success: false, error: 'Which placement?' });
 
             const patch = {};
-            if (b.slot !== undefined) patch.slot = normaliseSlot(b.slot);
-            if (b.audience !== undefined) patch.audience = normaliseAudience(b.audience);
+            /* The dangerous pair. Defaulting either one here would relocate a
+               live placement to a surface the operator never named and report
+               success, so both refuse instead. */
+            if (b.slot !== undefined) {
+                const slot = readSlot(b.slot);
+                if (!slot) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Not A Known Slot: ${clean(b.slot, 40) || '(empty)'}`,
+                    });
+                }
+                patch.slot = slot;
+            }
+            if (b.audience !== undefined) {
+                const audience = readAudience(b.audience);
+                if (!audience) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Not A Known Audience: ${clean(b.audience, 40) || '(empty)'}`,
+                    });
+                }
+                patch.audience = audience;
+            }
             if (b.daily_cap !== undefined) patch.daily_cap = normaliseDailyCap(b.daily_cap);
             if (b.is_active !== undefined) patch.is_active = b.is_active === true;
             if (b.club_id !== undefined) patch.club_id = clean(b.club_id, 64) || null;
@@ -541,6 +627,31 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, orphaned });
         }
 
+        if (req.method === 'POST' && String(req.query.kind) === 'prune') {
+            /* THE ONLY CALLER fn_prune_ad_events WILL EVER HAVE.
+               It deletes ad_event rows older than the retention policy. The
+               panel shows the exact count first and asks, because a delete
+               whose size you learn afterwards is not a policy, it is an
+               accident waiting for a slow afternoon.
+               The function reads the policy itself - there is deliberately no
+               "how many days" parameter on this route, so the number in the
+               confirmation and the number the delete uses cannot diverge. */
+            const { data: pruned, error: pruneErr } =
+                await getSupabase().rpc('fn_prune_ad_events');
+            if (pruneErr) {
+                console.warn('[house-ads] prune failed:', pruneErr.message);
+                return res
+                    .status(500)
+                    .json({ success: false, error: 'Could not prune those events' });
+            }
+            const row = (pruned || [])[0] || {};
+            return res.status(200).json({
+                success: true,
+                deleted: Number(row.deleted) || 0,
+                cutoff: row.cutoff || null,
+            });
+        }
+
         if (req.method === 'POST') {
             const b = req.body || {};
             const adKey = clean(b.ad_key, 64)?.toLowerCase().replace(/[^a-z0-9_]/g, '_');
@@ -556,6 +667,32 @@ export default async function handler(req, res) {
             const weight = Number.isFinite(Number(b.weight))
                 ? Math.max(0, Math.min(1000, Math.round(Number(b.weight))))
                 : 100;
+
+            /* THE PLACEMENT IS VALIDATED BEFORE THE AD IS WRITTEN.
+               Absent means "use the default" and is fine - an ad with no
+               placement runs nowhere, which is the commonest way to publish
+               something and see nothing happen. Present-but-unknown is a
+               refusal, for the same reason as the placement routes above.
+               It has to be checked HERE rather than beside the placement
+               insert forty lines down: refusing after ad_catalog has been
+               written would leave a live ad row with no placement and hand
+               the operator a 400 for a campaign that was in fact half
+               created. */
+            const slot = b.slot === undefined ? 'lobby_strip' : readSlot(b.slot);
+            if (!slot) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Not A Known Slot: ${clean(b.slot, 40) || '(empty)'}`,
+                });
+            }
+            const audience = b.audience === undefined ? 'all' : readAudience(b.audience);
+            if (!audience) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Not A Known Audience: ${clean(b.audience, 40) || '(empty)'}`,
+                });
+            }
+            const dailyCap = normaliseDailyCap(b.daily_cap);
 
             const { data: created, error: insErr } = await getSupabase()
                 .from('ad_catalog')
@@ -587,13 +724,8 @@ export default async function handler(req, res) {
                 return res.status(500).json({ success: false, error: 'Could not create that ad' });
             }
 
-            // An ad with no placement runs nowhere, which is the commonest way
-            // to "publish" something and see nothing happen. Default it into
-            // the lobby strip unless the caller says otherwise.
-            const slot = normaliseSlot(b.slot);
-            const audience = normaliseAudience(b.audience);
-            const dailyCap = normaliseDailyCap(b.daily_cap);
-
+            // slot, audience and dailyCap were read and validated above, before
+            // ad_catalog was written.
             const { error: plInsErr } = await getSupabase().from('ad_placement').insert({
                 ad_id: created.id,
                 slot,
