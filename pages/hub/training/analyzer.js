@@ -481,6 +481,7 @@ function AggregateStats({ hands }) {
       {/* Position Breakdown */}
       <div style={{ marginBottom: 12 }}>
         <div
+          className="sp-training-analysis-header"
           style={{
             fontSize: 9,
             fontWeight: 700,
@@ -661,6 +662,7 @@ export default function HandAnalyzer() {
       </Head>
 
       <div
+        className="sp-training-tool sp-training-tool--analysis sp-analysis-hand-history"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
@@ -712,12 +714,13 @@ export default function HandAnalyzer() {
         </div>
 
         {/* Main Content */}
-        <div style={{ padding: '20px 24px', maxWidth: 900, margin: '0 auto' }}>
+        <div className="sp-training-analysis-main" style={{ padding: '20px 24px', maxWidth: 900, margin: '0 auto' }}>
           {!isParsed || parsedHands.length === 0 ? (
             /* Upload / Paste Area */
             <div>
               {/* File Upload */}
               <div
+                className="sp-training-analysis-dropzone"
                 style={{
                   border: '2px dashed rgba(0,212,255,0.2)',
                   borderRadius: 12,
@@ -786,6 +789,7 @@ export default function HandAnalyzer() {
               {/* Actions */}
               <div style={{ display: 'flex', gap: 10 }}>
                 <motion.button
+                  className="sp-analysis-primary-action"
                   onClick={handleParse}
                   disabled={!rawText.trim()}
                   whileHover={{ scale: 1.02 }}

@@ -529,8 +529,8 @@ export default function HandComparison() {
         />
       </Head>
 
-      <div style={container}>
-        <div style={{ maxWidth: 680, margin: '0 auto' }}>
+      <div className="sp-training-tool sp-training-tool--analysis sp-analysis-comparison" style={container}>
+        <div className="sp-training-analysis-main" style={{ maxWidth: 680, margin: '0 auto' }}>
           {/* BACK NAV */}
           <div
             style={{
@@ -574,7 +574,7 @@ export default function HandComparison() {
           </div>
 
           {/* HEADER */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <div className="sp-training-analysis-header sp-training-analysis-header--inline" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
             <div
               style={{
                 width: 44,
@@ -612,6 +612,7 @@ export default function HandComparison() {
 
           {/* HAND A */}
           <div
+            className="sp-analysis-data-panel sp-analysis-data-panel--a"
             style={{
               background: 'rgba(34,197,94,0.05)',
               border: '1px solid rgba(34,197,94,0.2)',
@@ -653,6 +654,7 @@ export default function HandComparison() {
 
           {/* HAND B */}
           <div
+            className="sp-analysis-data-panel sp-analysis-data-panel--b"
             style={{
               background: 'rgba(0,212,255,0.05)',
               border: '1px solid rgba(0,212,255,0.2)',
@@ -694,6 +696,7 @@ export default function HandComparison() {
 
           {/* BOARD */}
           <div
+            className="sp-analysis-data-panel sp-analysis-data-panel--board"
             style={{
               background: 'rgba(255,255,255,0.02)',
               border: '1px solid rgba(255,255,255,0.08)',

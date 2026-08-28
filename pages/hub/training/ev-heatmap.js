@@ -125,6 +125,7 @@ export default function EvHeatmapPage() {
         <title>EV Heatmap | Smarter.Poker Training</title>
       </Head>
       <div
+        className="sp-training-tool sp-training-tool--analysis sp-analysis-ev-heatmap"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -135,6 +136,7 @@ export default function EvHeatmapPage() {
       >
         {/* Header */}
         <div
+          className="sp-training-analysis-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -167,9 +169,10 @@ export default function EvHeatmapPage() {
           </div>
         </div>
 
-        <div style={{ padding: '20px 16px', maxWidth: 800, margin: '0 auto' }}>
+        <div className="sp-training-analysis-main" style={{ padding: '20px 16px', maxWidth: 800, margin: '0 auto' }}>
           {/* Format Filter */}
           <div
+            className="sp-analysis-filter-rail"
             style={{
               display: 'flex',
               gap: 8,
