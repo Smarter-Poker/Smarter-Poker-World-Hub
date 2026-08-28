@@ -175,14 +175,14 @@ export default function TrainingAchievements() {
         canonical="/hub/training/achievements"
       />
 
-      <div style={styles.container}>
+      <div className="sp-training-journey sp-training-journey--achievements" style={styles.container}>
         <UniversalHeader pageDepth={2} />
 
-        <div style={styles.content}>
+        <div className="sp-journey-main" style={styles.content}>
           {/* TRAIN-ACHIEVEMENTS-A11Y-1: semantic h1 with SVG medal icon replaces
               the prior bare '★ Training Achievements' string. Icon has
               aria-hidden so the heading reads cleanly as 'Training Achievements'. */}
-          <h1 style={styles.title}>
+          <h1 className="sp-journey-title" style={styles.title}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
               <MedalIcon size={26} />
               Training Achievements
@@ -190,8 +190,8 @@ export default function TrainingAchievements() {
           </h1>
 
           {/* Stats Overview */}
-          <div style={styles.statsRow}>
-            <div style={styles.statBox}>
+          <div className="sp-journey-stat-grid sp-journey-stat-grid--compact" style={styles.statsRow}>
+            <div className="sp-journey-stat-card" style={styles.statBox}>
               {/* TRAIN-ACHIEVEMENTS-A11Y-1: role=status so screen readers
                   announce unlock-count updates after SESSION_END refetch. */}
               <div style={styles.statValue} role="status" aria-label={`${unlockedCount} of ${achievements.length} achievements unlocked`}>
@@ -199,14 +199,14 @@ export default function TrainingAchievements() {
               </div>
               <div style={styles.statLabel}>Unlocked</div>
             </div>
-            <div style={styles.statBox}>
+            <div className="sp-journey-stat-card" style={styles.statBox}>
               <div style={{ ...styles.statValue, color: '#00E0FF' }} role="status" aria-label={`${totalDiamonds} diamonds earned`}>{totalDiamonds}</div>
               <div style={styles.statLabel}>Diamonds Earned</div>
             </div>
           </div>
 
           {/* Category Filter */}
-          <div style={styles.filters} role="tablist" aria-label="Filter achievements by category">
+          <div className="sp-journey-filter-rail" style={styles.filters} role="tablist" aria-label="Filter achievements by category">
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -219,10 +219,10 @@ export default function TrainingAchievements() {
               >
                 {/* TRAIN-ACHIEVEMENTS-A11Y-1: SVG CategoryIcon replaces emoji
                     map. Label remains the uppercase category name. */}
-                {cat === 'all' ? 'ALL' : (
+                {cat === 'all' ? 'All' : (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                     <CategoryIcon kind={cat} size={12} />
-                    {cat.toUpperCase()}
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
                   </span>
                 )}
               </button>
@@ -240,10 +240,11 @@ export default function TrainingAchievements() {
               <SkeletonLoader variant="rows" rows={6} />
             </div>
           ) : (
-            <div style={styles.grid}>
+            <div className="sp-journey-achievement-grid" style={styles.grid}>
               {filteredAchievements.map((ach, i) => (
                 <div
                   key={ach.id}
+                  className="sp-journey-achievement-card"
                   style={{
                     ...styles.achCard,
                     opacity: ach.unlocked ? 1 : 0.5,
@@ -261,7 +262,7 @@ export default function TrainingAchievements() {
                     <div style={styles.achName}>{ach.name}</div>
                     <div style={styles.achDesc}>{ach.description}</div>
                     <div style={{ ...styles.achRarity, color: RARITY_COLORS[ach.rarity] }}>
-                      {ach.rarity?.toUpperCase()}
+                      {ach.rarity ? ach.rarity.charAt(0).toUpperCase() + ach.rarity.slice(1) : ''}
                     </div>
                   </div>
                   <div style={styles.reward}>

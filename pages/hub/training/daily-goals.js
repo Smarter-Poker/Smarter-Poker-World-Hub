@@ -248,6 +248,7 @@ export default function DailyGoalsPage() {
         <title>Daily Goals | Smarter.Poker Training</title>
       </Head>
       <div
+        className="sp-training-journey sp-training-journey--daily-goals"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -256,6 +257,7 @@ export default function DailyGoalsPage() {
         }}
       >
         <div
+          className="sp-journey-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -292,7 +294,7 @@ export default function DailyGoalsPage() {
           </div>
         </div>
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {loading && (
             <div style={{ padding: '20px 0' }} role="status" aria-label="Loading daily goals">
               <SkeletonLoader variant="rows" rows={4} />
@@ -426,7 +428,7 @@ export default function DailyGoalsPage() {
                     {streakDays}
                   </div>
                   <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                    day streak
+                    Day Streak
                   </div>
                 </div>
               </div>
