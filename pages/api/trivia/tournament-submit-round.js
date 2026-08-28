@@ -6,7 +6,7 @@
  * ── WHAT WAS WRONG BEFORE (all fixed here) ──────────────────────────────────
  *  1. ANSWER KEY WAS PUBLIC. Grading compared the client's `selected` against
  *     `tournament.questions[i].correct_index` — a column the client had already
- *     downloaded (trivia_tournaments is `SELECT USING (true)`). The honest
+ *     downloaded before the public-view lockdown. The honest
  *     client literally posted the correct_index back when it graded itself
  *     right. Anyone could POST a perfect score. Now the key is read server-side
  *     from `trivia_questions` with the service-role client, and the companion
@@ -24,8 +24,9 @@
  *     source of idempotency.
  *  4. LOST-UPDATE RACE. The matchups JSONB was read, mutated in JS and written
  *     back wholesale, so two concurrent submissions erased each other. The write
- *     now goes through fn_trivia_round_set_matchup_score(), a SECURITY DEFINER
- *     function that locks the round row and patches the single matchup element.
+ *     now goes through fn_trivia_round_submit_verified_v3(), a SECURITY DEFINER
+ *     function that locks the round row, patches the matchup, and records the
+ *     verified per-question results in the same database transaction.
  *  5. CUMULATIVE-vs-ROUND SCORING. Matchup slots were filled with the running
  *     tournament total, so from round 2 on the head-to-head compared career
  *     scores. Slots now hold the PER-ROUND score and time; only
@@ -41,17 +42,11 @@
  *   {
  *     round_id: uuid,
  *     answers: [
- *       // preferred (matches /tournament-round-questions output):
+ *       // required (matches /tournament-round-questions output):
  *       { question_id: uuid, display_index: int },
- *       // legacy (tournaments.js pre-update): index in ORIGINAL option order
- *       { question_id: uuid, selected: int }
  *     ]
  *   }
  * Auth: Bearer token (authenticated user).
- *
- * Set TRIVIA_TOURNAMENT_STRICT_GRADING=1 once tournaments.js is migrated to the
- * display_index payload — the legacy `selected` shape is then hard-rejected and
- * the self-grading vector is closed entirely, without a code deploy.
  *
  * Returns:
  *   200 { success, score, score_added, answered, time_spent, matchup }
@@ -71,7 +66,6 @@ import {
     resolveRoundRoster,
     deterministicOptionOrder,
     optionOrderSeed,
-    coinFlip,
     notify
 } from './tournament-lifecycle';
 
@@ -85,19 +79,12 @@ const MIN_SEC_PER_Q = 2;
 const MAX_SEC_PER_Q = 40;
 const HARD_TIME_CAP = 1800;
 
-// The live client has submitted display_index since phase 5. Keeping the
-// legacy selected-index branch behind an unset environment flag left a
-// self-grading bypass enabled in every deployment.
-const STRICT_GRADING = true;
-
 /**
  * Build question_id -> correct_index from the SERVER-ONLY source.
  *
  * Primary source is the trivia_questions table read with the service-role key.
- * The tournament's questions JSONB is only used as a fallback for legacy
- * tournaments whose snapshot is not backed by live rows — it is a weaker source
- * because that JSONB is world-readable, which is exactly the RLS problem the DB
- * fixer is being asked to close.
+ * The tournament's now-server-only questions JSONB is used only for legacy
+ * snapshots whose source rows no longer exist.
  */
 async function loadAnswerKey(sb, roster) {
     const key = new Map();
@@ -134,152 +121,36 @@ async function loadAnswerKey(sb, roster) {
 }
 
 /**
- * Atomically claim this player's matchup slot.
- *
- * Preferred path is the SECURITY DEFINER RPC, which locks the round row and
- * patches exactly one element of the matchups array inside one statement.
- *
- * If the RPC does not exist yet (the DB migration lands after this code), we
- * fall back to a bounded compare-and-set loop: re-read, abort if our slot has
- * been filled in the meantime, write, verify. That narrows but does not fully
- * close the lost-update window, so it logs loudly — treat the warning as an
- * alarm that the migration is missing.
- *
- * Returns { applied, matchup, winnerDecided, viaFallback, error }.
+ * Atomically claim this player's matchup slot and record verified analytics.
+ * The combined RPC is intentionally fail-closed: falling back to independent
+ * HTTP transactions could commit a bracket score without its result events,
+ * or let two concurrent submissions disagree about which answers were counted.
  */
-async function claimMatchupSlot(sb, { round, userId, roundScore, roundTime }) {
+async function claimMatchupSlot(sb, { round, userId, roundScore, roundTime, verifiedResults }) {
     try {
-        const { data, error } = await sb.rpc('fn_trivia_round_set_matchup_score', {
+        const { data, error } = await sb.rpc('fn_trivia_round_submit_verified_v3', {
             p_round_id: round.id,
             p_user_id: userId,
             p_score: roundScore,
-            p_time: roundTime
+            p_time: roundTime,
+            p_results: verifiedResults
         });
-        if (!error) {
-            const applied = data?.applied !== false;
-            return {
-                applied,
-                matchup: data?.matchup || null,
-                winnerDecided: data?.winner_decided === true,
-                viaFallback: false
-            };
+        if (error) {
+            console.error('[tournament-submit-round] atomic submission failed:', error.message);
+            return { applied: false, matchup: null, winnerDecided: false, error: 'atomic_submission_failed' };
         }
-        const missing =
-            error.code === 'PGRST202' ||
-            error.code === '42883' ||
-            /function .*fn_trivia_round_set_matchup_score/i.test(error.message || '');
-        if (!missing) {
-            return { applied: false, matchup: null, winnerDecided: false, viaFallback: false, error: error.message };
-        }
-        console.error(
-            '[tournament-submit-round] fn_trivia_round_set_matchup_score MISSING — ' +
-                'falling back to compare-and-set. Apply the tournament matchup migration.'
-        );
+        return {
+            applied: data?.applied === true,
+            matchup: data?.matchup || null,
+            winnerDecided: data?.winner_decided === true,
+            entryScore: Number.isFinite(Number(data?.entry_score)) ? Number(data.entry_score) : null,
+            entryTime: Number.isFinite(Number(data?.entry_time)) ? Number(data.entry_time) : null,
+            error: data?.error || null
+        };
     } catch (e) {
-        console.warn('[tournament-submit-round] matchup RPC threw:', e?.message || e);
+        console.error('[tournament-submit-round] atomic submission threw:', e?.message || e);
+        return { applied: false, matchup: null, winnerDecided: false, error: 'atomic_submission_failed' };
     }
-
-    // ── Fallback: bounded compare-and-set ───────────────────────────────
-    for (let attempt = 0; attempt < 3; attempt++) {
-        const { data: fresh, error: readErr } = await sb
-            .from('trivia_tournament_rounds')
-            .select('id, matchups, status')
-            .eq('id', round.id)
-            .maybeSingle();
-        if (readErr || !fresh) {
-            return { applied: false, matchup: null, winnerDecided: false, viaFallback: true, error: 'round_reread_failed' };
-        }
-        const list = Array.isArray(fresh.matchups) ? fresh.matchups : [];
-        const idx = list.findIndex(m => m && (m.player1_id === userId || m.player2_id === userId));
-        if (idx === -1) {
-            return { applied: false, matchup: null, winnerDecided: false, viaFallback: true, error: 'not_in_round' };
-        }
-        const m = list[idx];
-        const isP1 = m.player1_id === userId;
-        if ((isP1 ? m.player1_score : m.player2_score) != null) {
-            // Already claimed (by a duplicate request of ours, or a retry).
-            return { applied: false, matchup: m, winnerDecided: false, viaFallback: true };
-        }
-
-        const updated = isP1
-            ? { ...m, player1_score: roundScore, player1_time: roundTime }
-            : { ...m, player2_score: roundScore, player2_time: roundTime };
-
-        const oppScore = isP1 ? updated.player2_score : updated.player1_score;
-        const oppTime = isP1 ? updated.player2_time : updated.player1_time;
-        const oppId = isP1 ? updated.player2_id : updated.player1_id;
-        let winnerDecided = false;
-        if (oppScore != null && oppId) {
-            if (roundScore > oppScore) updated.winner_id = userId;
-            else if (oppScore > roundScore) updated.winner_id = oppId;
-            else if (oppTime != null && roundTime !== oppTime) updated.winner_id = roundTime < oppTime ? userId : oppId;
-            else updated.winner_id = coinFlip(userId, oppId, round.id);
-            winnerDecided = true;
-        }
-
-        const next = list.slice();
-        next[idx] = updated;
-
-        const { error: writeErr } = await sb
-            .from('trivia_tournament_rounds')
-            .update({ matchups: next })
-            .eq('id', round.id)
-            .eq('status', 'active');
-        if (writeErr) {
-            console.warn('[tournament-submit-round] fallback write failed:', writeErr.message);
-            continue;
-        }
-
-        // Verify our slot survived (detects a concurrent overwrite).
-        const { data: verify } = await sb
-            .from('trivia_tournament_rounds')
-            .select('matchups')
-            .eq('id', round.id)
-            .maybeSingle();
-        const vList = Array.isArray(verify?.matchups) ? verify.matchups : [];
-        const vm = vList[idx];
-        const survived = vm && (isP1 ? vm.player1_score : vm.player2_score) != null;
-        if (survived) {
-            return { applied: true, matchup: vm, winnerDecided, viaFallback: true };
-        }
-        console.warn('[tournament-submit-round] fallback write was clobbered — retrying', attempt + 1);
-    }
-    return { applied: false, matchup: null, winnerDecided: false, viaFallback: true, error: 'matchup_write_contended' };
-}
-
-/** Add to the entry's cumulative totals, preferring an atomic RPC. */
-async function addEntryTotals(sb, entry, scoreAdded, timeAdded) {
-    try {
-        const { error } = await sb.rpc('fn_trivia_tournament_add_entry_score', {
-            p_entry_id: entry.id,
-            p_score: scoreAdded,
-            p_time: timeAdded
-        });
-        if (!error) return { ok: true, score: (entry.score || 0) + scoreAdded };
-        const missing =
-            error.code === 'PGRST202' ||
-            error.code === '42883' ||
-            /function .*fn_trivia_tournament_add_entry_score/i.test(error.message || '');
-        if (!missing) {
-            console.warn('[tournament-submit-round] entry score RPC failed:', error.message);
-        }
-    } catch (e) {
-        console.warn('[tournament-submit-round] entry score RPC threw:', e?.message || e);
-    }
-
-    // Fallback. Safe against double-credit because the matchup slot claim above
-    // already gated this to exactly one submission per (entrant, round).
-    const newScore = (Number(entry.score) || 0) + scoreAdded;
-    const newTime = (Number(entry.time_spent) || 0) + timeAdded;
-    const { error } = await sb
-        .from('trivia_tournament_entries')
-        .update({ score: newScore, time_spent: newTime, completed_at: new Date().toISOString() })
-        .eq('id', entry.id);
-    if (error) {
-        console.error('[tournament-submit-round] entry update failed:', error.message);
-        return { ok: false, score: entry.score || 0 };
-    }
-    return { ok: true, score: newScore, time: newTime };
 }
 
 export default async function handler(req, res) {
@@ -314,6 +185,13 @@ export default async function handler(req, res) {
         }
         if (answers.length > MAX_ANSWERS) {
             return res.status(400).json({ success: false, error: 'too_many_answers' });
+        }
+        if (answers.some(a => a && a.display_index == null && a.selected != null)) {
+            return res.status(400).json({
+                success: false,
+                error: 'legacy_answer_shape_rejected',
+                hint: 'submit display_index from /api/trivia/tournament-round-questions'
+            });
         }
 
         // ─── 3. LOAD round + tournament + entry ─────────────────────────
@@ -392,19 +270,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'no_questions' });
         }
 
-        // Legacy payloads come from a client that plays `questions.slice(0, 20)`
-        // for EVERY round and has no idea a per-round roster exists. Rejecting
-        // them outright would silently zero every round-2+ score, so for the
-        // legacy shape we widen the accepted set to the whole tournament pool.
-        // The anti-inflation guarantees are unaffected: answers are still
-        // deduplicated by question_id and the score is still capped at the
-        // round's question count. Strict per-round roster enforcement applies to
-        // the display_index payload (and to everything once STRICT_GRADING is on).
-        const legacyPayload = answers.some(a => a && a.display_index == null && a.selected != null);
-        const gradeSet = (legacyPayload && !STRICT_GRADING
-            ? (Array.isArray(tournament.questions) ? tournament.questions.filter(Boolean) : roster)
-            : roster
-        ).slice(0, 500);
+        const gradeSet = roster.slice(0, 500);
 
         const allowedIds = new Set(gradeSet.map(q => String(q?.id)).filter(k => k && k !== 'undefined'));
         const optionCounts = new Map();
@@ -415,10 +281,20 @@ export default async function handler(req, res) {
 
         // ─── 6. GRADE (dedup + roster-bound + capped) ───────────────────
         const seen = new Set();
+        const verifiedResults = new Map(
+            roster
+                .filter(q => q?.id != null)
+                .map(q => [String(q.id), {
+                    question_id: String(q.id),
+                    display_index: null,
+                    original_index: null,
+                    was_correct: null,
+                    was_skipped: false
+                }])
+        );
         let scoreAdded = 0;
         let answeredCount = 0;
         let rejected = 0;
-        let usedLegacyShape = false;
 
         for (const a of answers) {
             if (!a || a.question_id == null) { rejected += 1; continue; }
@@ -446,31 +322,18 @@ export default async function handler(req, res) {
                     const order = deterministicOptionOrder(n, optionOrderSeed(userId, round.id, a.question_id));
                     originalIndex = order[d];
                 }
-            } else if (a.selected != null && Number.isInteger(Number(a.selected))) {
-                usedLegacyShape = true;
-                originalIndex = Number(a.selected);
             }
 
+            verifiedResults.set(qid, {
+                question_id: qid,
+                display_index: a.display_index != null ? Number(a.display_index) : null,
+                original_index: originalIndex,
+                was_correct: originalIndex == null ? null : originalIndex === correct,
+                was_skipped: a.display_index != null && Number(a.display_index) < 0
+            });
             if (originalIndex == null) continue; // timed out / unanswered
             answeredCount += 1;
             if (originalIndex === correct) scoreAdded += 1;
-        }
-
-        if (usedLegacyShape) {
-            if (STRICT_GRADING) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'legacy_answer_shape_rejected',
-                    hint: 'submit display_index from /api/trivia/tournament-round-questions'
-                });
-            }
-            // The legacy shape lets a modified client post the answer index it
-            // already knows. Bounded by dedup + roster + cap, but not closed.
-            console.warn(
-                '[tournament-submit-round] legacy self-graded payload accepted for user',
-                userId,
-                '— migrate tournaments.js to display_index and set TRIVIA_TOURNAMENT_STRICT_GRADING=1'
-            );
         }
 
         // Hard cap: never more than one point per roster question.
@@ -493,14 +356,17 @@ export default async function handler(req, res) {
             Math.max(roster.length * MIN_SEC_PER_Q, Math.min(rawSec, roster.length * MAX_SEC_PER_Q))
         );
 
-        // ─── 8. ATOMIC MATCHUP CLAIM (the idempotency gate) ─────────────
+        // ─── 8. ATOMIC MATCHUP + ANALYTICS CLAIM ────────────────────────
         // Per-ROUND score/time go into the slot, never the cumulative total, so
         // the head-to-head compares this round's performance in every round.
+        // The same DB transaction owns immutable answer events, mastery,
+        // question usage, and skip telemetry; either all of it lands or none.
         const claim = await claimMatchupSlot(sb, {
             round,
             userId,
             roundScore: scoreAdded,
-            roundTime: timeSpentSec
+            roundTime: timeSpentSec,
+            verifiedResults: [...verifiedResults.values()]
         });
         if (!claim.applied) {
             if (claim.matchup) {
@@ -516,15 +382,7 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: claim.error || 'matchup_write_failed' });
         }
 
-        // ─── 9. CUMULATIVE ENTRY TOTALS ─────────────────────────────────
-        const totals = await addEntryTotals(sb, entry, scoreAdded, timeSpentSec);
-        if (!totals.ok) {
-            // The matchup (which decides the bracket) is already durable; the
-            // running total is cosmetic and recomputable. Surface, do not fail.
-            console.error('[tournament-submit-round] entry totals not persisted for entry', entry.id);
-        }
-
-        // ─── 10. NOTIFY on matchup completion ───────────────────────────
+        // ─── 9. NOTIFY on matchup completion ────────────────────────────
         // The notifications table + polling banner in tournaments.js already
         // existed but nothing ever wrote to it. winnerDecided is true only on the
         // submission that completes the matchup, so this fires exactly once.
@@ -554,12 +412,12 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-            score: totals.score,
+            score: claim.entryScore,
             score_added: scoreAdded,
             answered: answeredCount,
             rejected,
             round_time: timeSpentSec,
-            time_spent: totals.time != null ? totals.time : (entry.time_spent || 0) + timeSpentSec,
+            time_spent: claim.entryTime,
             matchup: finalMatchup
         });
     } catch (e) {

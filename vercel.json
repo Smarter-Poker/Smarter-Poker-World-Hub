@@ -674,6 +674,10 @@
       "schedule": "30 13 * * *"
     },
     {
+      "path": "/api/cron/trivia-economy-audit",
+      "schedule": "45 13 * * *"
+    },
+    {
       "path": "/api/cron/trivia-tournament-tick",
       "schedule": "0,15,30,45 * * * *"
     },

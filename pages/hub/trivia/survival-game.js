@@ -681,13 +681,6 @@ export default function SurvivalGamePage() {
             correctCountRef.current = serverCorrect;
             setCorrectCount(serverCorrect);
 
-            // questionId -> wasCorrect from the server's per-question
-            // verdicts, for the history phase below.
-            const verdictMap = {};
-            (Array.isArray(settled.perQuestion) ? settled.perQuestion : []).forEach(pq => {
-                if (pq && typeof pq.questionId === 'string') verdictMap[pq.questionId] = pq.wasCorrect === true;
-            });
-
             // Phase 2: Upsert survival progress (pass only; only if not
             // already updated). Non-fatal: `survival_progress` is created by
             // no migration in this repo - throwing here would trap a player
@@ -713,38 +706,9 @@ export default function SurvivalGamePage() {
                 savePhaseRef.current = 2;
             }
 
-            // Phase 3: Record question history (only if not already recorded)
-            // for the questions actually answered, with was_correct taken
-            // from the server's per-question verdicts - the client has no
-            // answer key to compare against. Runs for failed levels too, so
-            // the 60-day non-repeat guarantee holds on the most-played path.
-            if (savePhaseRef.current < 3) {
-                if (userId) {
-                    const historyRecords = sessionAnswersRef.current
-                        .filter(a => a && a.questionId != null)
-                        .map(a => ({
-                            user_id: userId,
-                            question_id: a.questionId,
-                            was_correct: verdictMap[a.questionId] === true,
-                            seen_at: new Date().toISOString(),
-                            mode: 'survival'
-                        }));
-                    if (historyRecords.length > 0) {
-                        // ignoreDuplicates:true => ON CONFLICT DO NOTHING.
-                        // trivia_user_question_history has SELECT + INSERT RLS
-                        // policies but NO UPDATE policy, so ignoreDuplicates:false
-                        // failed the ENTIRE batch whenever any question had been
-                        // seen before — silently dropping the whole level's history.
-                        const { error: historyErr } = await supabase
-                            .from('trivia_user_question_history')
-                            .upsert(historyRecords, { onConflict: 'user_id,question_id', ignoreDuplicates: true });
-                        if (historyErr) {
-                            console.warn('[Survival] History upsert failed (non-fatal):', historyErr.message);
-                        }
-                    }
-                }
-                savePhaseRef.current = 3;
-            }
+            // Settlement atomically finalized history, mastery and skip
+            // telemetry from the binding server answers.
+            savePhaseRef.current = Math.max(savePhaseRef.current, 3);
 
             // Phase 4: session-submit persisted the verified score atomically.
             if (savePhaseRef.current < 4) {

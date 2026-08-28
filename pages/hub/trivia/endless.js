@@ -650,13 +650,6 @@ export default function EndlessModePage() {
             setDiamondsEarned(serverCorrect);
             diamondsEarnedRef.current = serverCorrect;
 
-            // questionId -> wasCorrect from the server's per-question
-            // verdicts, for the history phase below.
-            const verdictMap = {};
-            (Array.isArray(settled.perQuestion) ? settled.perQuestion : []).forEach(pq => {
-                if (pq && typeof pq.questionId === 'string') verdictMap[pq.questionId] = pq.wasCorrect === true;
-            });
-
             // Phase 2: Update high score (only if not already updated).
             //
             // Downgraded from throw to warn: `endless_high_scores` is created by
@@ -684,42 +677,9 @@ export default function EndlessModePage() {
                 savePhaseRef.current = 2;
             }
 
-            // Phase 3: Record question history (only if not already recorded),
-            // for the questions actually answered, with was_correct taken from
-            // the server's per-question verdicts - the client has no answer
-            // key to compare against.
-            if (savePhaseRef.current < 3) {
-                const historyRecords = sessionAnswersRef.current
-                    .filter(a => a && a.questionId != null)
-                    .map(a => ({
-                        user_id: userId,
-                        question_id: a.questionId,
-                        was_correct: verdictMap[a.questionId] === true,
-                        seen_at: new Date().toISOString(),
-                        mode: 'endless'
-                    }));
-                if (historyRecords.length > 0) {
-                    // ignoreDuplicates:true => INSERT ... ON CONFLICT DO NOTHING.
-                    // trivia_user_question_history has SELECT + INSERT RLS
-                    // policies but NO UPDATE policy, so the previous
-                    // ignoreDuplicates:false (which UPDATEs on conflict) was
-                    // rejected by RLS and failed the ENTIRE batch whenever any
-                    // question in the run had been seen before — silently
-                    // dropping the whole run's history and eroding the 60-day
-                    // non-repeat guarantee.
-                    const { error: historyErr } = await supabase
-                        .from('trivia_user_question_history')
-                        .upsert(historyRecords, {
-                            onConflict: 'user_id,question_id',
-                            ignoreDuplicates: true
-                        });
-                    if (historyErr) {
-                        // Non-fatal: Phase 4 still records the score.
-                        console.warn('[Endless] History upsert failed (non-fatal):', historyErr.message);
-                    }
-                }
-                savePhaseRef.current = 3;
-            }
+            // Settlement atomically finalized history, mastery and skip
+            // telemetry from the binding server answers.
+            savePhaseRef.current = Math.max(savePhaseRef.current, 3);
 
             // Phase 4: session-submit persisted the verified score atomically.
             if (savePhaseRef.current < 4) {

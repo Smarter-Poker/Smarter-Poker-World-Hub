@@ -1464,6 +1464,26 @@ async function handler(req, res) {
             summary.warnings.push(`self-audit failed: ${String(e?.message || e).slice(0, 200)}`);
         }
 
+        // The audit can demote a just-tagged question and clears daily_date.
+        // Previously that happened AFTER Phase B, leaving today's roster short
+        // while the response still reported the pre-audit roster as complete.
+        // Reconcile the final state after every audit run (cheap count/top-up
+        // queries; no Grok calls), then refresh depth because demotions change
+        // the servable totals too.
+        summary.roster = [];
+        for (const day of daysToTag) {
+            summary.roster.push(await tagRosterForDay(
+                supabase,
+                day,
+                Date.now() + 30000
+            ));
+        }
+        try {
+            summary.depth = await buildDepthReport(supabase);
+        } catch (e) {
+            summary.warnings.push(`final depth refresh failed: ${String(e?.message || e).slice(0, 200)}`);
+        }
+
         const rosterShortfall = summary.roster.reduce((s, r) => s + (r.shortfall || 0), 0);
         summary.elapsedMs = Date.now() - started;
         summary.ok = rosterShortfall === 0;

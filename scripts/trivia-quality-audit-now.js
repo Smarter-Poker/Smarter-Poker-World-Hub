@@ -2,8 +2,8 @@
 /**
  * TRIVIA FACTUAL QUALITY AUDIT (one-shot)
  * ═══════════════════════════════════════════════════════════════════════════
- * Runs the factual-accuracy audit directly via the pg pooler so it can fire NOW
- * rather than waiting on a deploy and a cron tick.
+ * Runs the factual-accuracy audit directly through the service-role API so it
+ * can fire NOW rather than waiting on a deploy and a cron tick.
  *
  * Usage:
  *   node scripts/trivia-quality-audit-now.js --limit=200
@@ -14,6 +14,8 @@
  * Flags:
  *   --limit=N          questions to audit this run (default 20)
  *   --category=X       restrict to one category
+ *   --source=X         restrict to one exact generator source (useful for
+ *                      auditing a newly inserted batch before it is served)
  *   --min-quality=N    only audit rows at or above this quality_score
  *   --re-audit=DAYS    also re-audit rows last audited more than DAYS ago
  *                      (use when running a better model than the original)
@@ -22,8 +24,8 @@
  *   --concurrency=N    parallel Grok calls (default 5)
  *   --dry-run          score but write nothing
  *
- * Env: SUPABASE_DB_PASSWORD, XAI_API_KEY (required)
- *      SUPABASE_DB_HOST / _USER / _PORT / _NAME / _CA (optional)
+ * Env: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, XAI_API_KEY
+ *      (all required)
  *
  * SCORING (see the note on the "uncertain" tier below):
  *   verified=true  & confidence >= 0.85 -> quality_score 9
@@ -37,8 +39,9 @@
  *     set no source at all, the bootstrap API sets 'grok-bootstrap', and the
  *     other seeding scripts set none either. Only trivia-grok-parallel-fill.js
  *     rows were ever audited, so the bulk of the AI-generated pool permanently
- *     escaped fact-checking. The filter now covers every generated source plus
- *     legacy NULL-source rows tagged 'grok:%' in subcategory.
+ *     escaped fact-checking. The default now covers every unaudited row; the
+ *     optional --source flag narrows a targeted batch without weakening the
+ *     full-pool default.
  *   - POOL SHRINK. The "uncertain" branch set quality_score = 5 for everything
  *     that was not (verified && conf>=0.85) and not (!verified && conf>=0.70) —
  *     INCLUDING questions the verifier marked verified=TRUE at 0.70-0.84
@@ -52,28 +55,24 @@
  *     times faster, which is what makes auditing a 15,000-row backlog viable.
  * ═══════════════════════════════════════════════════════════════════════════
  */
-import pg from '../node_modules/pg/lib/index.js';
+const { createClient } = require('@supabase/supabase-js');
 
-const PG_PASSWORD = process.env.SUPABASE_DB_PASSWORD;
 const XAI_KEY = process.env.XAI_API_KEY;
-if (!PG_PASSWORD || !XAI_KEY) { console.error('Missing SUPABASE_DB_PASSWORD or XAI_API_KEY'); process.exit(1); }
-
-// Connection topology from env, with the current production values as defaults.
-const DB_HOST = process.env.SUPABASE_DB_HOST || 'aws-0-us-west-2.pooler.supabase.com';
-const DB_USER = process.env.SUPABASE_DB_USER || 'postgres.kuklfnapbkmacvwxktbh';
-const DB_PORT = parseInt(process.env.SUPABASE_DB_PORT || '6543', 10);
-const DB_NAME = process.env.SUPABASE_DB_NAME || 'postgres';
-
-/** TLS on. SUPABASE_DB_CA is for a private root, not for disabling checks. */
-function buildSslConfig(env = process.env) {
-  const ca = env.SUPABASE_DB_CA;
-  return ca ? { rejectUnauthorized: true, ca } : { rejectUnauthorized: true };
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SUPABASE_URL || !SERVICE_KEY || !XAI_KEY) {
+  console.error('Missing NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or XAI_API_KEY');
+  process.exit(1);
 }
+const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
 const args = process.argv.slice(2);
 const LIMIT = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '20', 10);
 const MODEL = args.find(a => a.startsWith('--model='))?.split('=')[1] || 'grok-3-mini'; // mini works, full = better
 const CATEGORY = args.find(a => a.startsWith('--category='))?.split('=')[1] || null;
+const SOURCE = args.find(a => a.startsWith('--source='))?.split('=')[1] || null;
 const MIN_QUALITY = args.find(a => a.startsWith('--min-quality='))
   ? parseInt(args.find(a => a.startsWith('--min-quality=')).split('=')[1], 10)
   : null;
@@ -136,41 +135,58 @@ function describeQuestion(q, index) {
 }
 
 async function callGrok(userPayload) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 120000);
-  try {
-    const payload = {
-      model: MODEL,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: JSON.stringify(userPayload) },
-      ],
-      temperature: 0.0,
-      // Scales with batch size — a fixed 600 truncated multi-question replies.
-      max_tokens: 400 * userPayload.length + 200,
-      response_format: { type: 'json_object' },
-    };
-    if (MODEL.includes('mini')) payload.reasoning_effort = 'low';
-    const res = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${XAI_KEY}` },
-      signal: ctrl.signal,
-      body: JSON.stringify(payload),
-    });
-    clearTimeout(t);
-    if (!res.ok) {
-      const errBody = await res.text();
-      throw new Error(`Grok ${res.status}: ${errBody.slice(0, 200)}`);
+  const payload = {
+    model: MODEL,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: JSON.stringify(userPayload) },
+    ],
+    temperature: 0.0,
+    // Scales with batch size — a fixed 600 truncated multi-question replies.
+    max_tokens: 400 * userPayload.length + 200,
+    response_format: { type: 'json_object' },
+  };
+  if (MODEL.includes('mini')) payload.reasoning_effort = 'low';
+
+  let lastError;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 120000);
+    try {
+      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${XAI_KEY}` },
+        signal: ctrl.signal,
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errBody = await res.text();
+        const error = new Error(`Grok ${res.status}: ${errBody.slice(0, 200)}`);
+        error.status = res.status;
+        if (attempt < 3 && (res.status === 429 || (res.status >= 500 && res.status <= 526))) {
+          lastError = error;
+          await new Promise(resolve => setTimeout(resolve, Math.min(10000, 1000 * (2 ** attempt))));
+          continue;
+        }
+        throw error;
+      }
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      const usage = data.usage || {};
+      const inputCost = (usage.prompt_tokens || 0) / 1e6 * (MODEL.includes('mini') ? 0.30 : 5.00);
+      const outputCost = (usage.completion_tokens || 0) / 1e6 * (MODEL.includes('mini') ? 0.50 : 15.00);
+      return { content, costUsd: inputCost + outputCost };
+    } catch (error) {
+      lastError = error;
+      if (attempt >= 3 || (error?.status && !(error.status === 429 || (error.status >= 500 && error.status <= 526)))) {
+        throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, Math.min(10000, 1000 * (2 ** attempt))));
+    } finally {
+      clearTimeout(timeout);
     }
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content || '';
-    const usage = data.usage || {};
-    const inputCost = (usage.prompt_tokens || 0) / 1e6 * (MODEL.includes('mini') ? 0.30 : 5.00);
-    const outputCost = (usage.completion_tokens || 0) / 1e6 * (MODEL.includes('mini') ? 0.50 : 15.00);
-    return { content, costUsd: inputCost + outputCost };
-  } finally {
-    clearTimeout(t);
   }
+  throw lastError || new Error('Grok audit request failed before receiving a response');
 }
 
 /**
@@ -181,52 +197,11 @@ async function callGrok(userPayload) {
  * shrank the usable pool the 60-day guarantee depends on — deleting correct
  * questions from rotation for the crime of being slightly less certain.
  */
-export function scoreVerdict(verified, confidence, currentScore) {
+function scoreVerdict(verified, confidence, currentScore) {
   if (verified && confidence >= 0.85) return { newQS: 9, tier: 'verified' };
   if (verified) return { newQS: Math.max(currentScore || 0, VERIFIED_UNCERTAIN_SCORE), tier: 'verified-soft' };
   if (confidence >= 0.70) return { newQS: 2, tier: 'flagged' };
   return { newQS: 5, tier: 'uncertain' };
-}
-
-/** Build the candidate-selection SQL from the CLI flags. */
-function buildSelectionQuery() {
-  const params = [];
-  const where = [];
-
-  // Every generated source, plus legacy NULL-source rows that were tagged
-  // 'grok:...' in subcategory by the old trivia-grok-seed.js row builder.
-  where.push(`(
-        source IN ('grok-3-mini','grok-3','grok-bootstrap','manual-seed','strategy-starter')
-        OR source LIKE 'grok-seed:%'
-        OR source LIKE 'cron-generate:%'
-        OR (source IS NULL AND subcategory LIKE 'grok:%')
-        OR source IS NULL
-      )`);
-
-  if (RE_AUDIT_DAYS !== null && Number.isFinite(RE_AUDIT_DAYS)) {
-    params.push(RE_AUDIT_DAYS);
-    where.push(`(last_audited_at IS NULL OR last_audited_at < NOW() - ($${params.length}::int * INTERVAL '1 day'))`);
-  } else {
-    where.push('last_audited_at IS NULL');
-  }
-
-  if (CATEGORY) {
-    params.push(CATEGORY);
-    where.push(`category = $${params.length}`);
-  }
-  if (MIN_QUALITY !== null && Number.isFinite(MIN_QUALITY)) {
-    params.push(MIN_QUALITY);
-    where.push(`quality_score >= $${params.length}`);
-  }
-
-  params.push(LIMIT);
-  const sql = `SELECT id, category, subcategory, difficulty, question, options, correct_index,
-                      explanation, source, quality_score
-               FROM trivia_questions
-               WHERE ${where.join('\n                 AND ')}
-               ORDER BY created_at ASC
-               LIMIT $${params.length}`;
-  return { sql, params };
 }
 
 /** Run tasks with bounded concurrency. */
@@ -243,34 +218,56 @@ async function runPool(items, limit, worker) {
   return results;
 }
 
-const { Client } = pg.default || pg;
+async function loadCandidates() {
+  const rows = [];
+  const pageSize = 1000; // Hosted PostgREST's default maximum response size.
+  const cutoff = RE_AUDIT_DAYS !== null && Number.isFinite(RE_AUDIT_DAYS)
+    ? new Date(Date.now() - RE_AUDIT_DAYS * 86400000).toISOString()
+    : null;
+
+  while (rows.length < LIMIT) {
+    let q = supabase
+      .from('trivia_questions')
+      .select('id, category, subcategory, difficulty, question, options, correct_index, explanation, source, quality_score');
+    q = cutoff
+      ? q.or(`last_audited_at.is.null,last_audited_at.lt.${cutoff}`)
+      : q.is('last_audited_at', null);
+    if (CATEGORY) q = q.eq('category', CATEGORY);
+    if (SOURCE) q = q.eq('source', SOURCE);
+    if (MIN_QUALITY !== null && Number.isFinite(MIN_QUALITY)) q = q.gte('quality_score', MIN_QUALITY);
+
+    const want = Math.min(pageSize, LIMIT - rows.length);
+    const from = rows.length;
+    const { data, error } = await q
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, from + want - 1);
+    if (error) throw new Error(`candidate query failed: ${error.message}`);
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < want) break;
+  }
+  return rows;
+}
 
 async function main() {
   const t0 = Date.now();
-  const c = new Client({
-    host: DB_HOST, port: DB_PORT,
-    user: DB_USER, password: PG_PASSWORD,
-    database: DB_NAME, ssl: buildSslConfig(),
-  });
-  await c.connect();
+  const rows = await loadCandidates();
 
-  const { sql, params } = buildSelectionQuery();
-  const r = await c.query(sql, params);
-
-  if (r.rows.length === 0) {
+  if (rows.length === 0) {
     console.log('No questions match the selection criteria.');
-    await c.end();
     return;
   }
 
-  console.log(`Auditing ${r.rows.length} questions with ${MODEL}` +
+  console.log(`Auditing ${rows.length} questions with ${MODEL}` +
     ` (batch ${BATCH}, concurrency ${CONCURRENCY})${DRY_RUN ? ' [DRY RUN]' : ''}` +
     `${CATEGORY ? ` — category ${CATEGORY}` : ''}` +
+    `${SOURCE ? ` — source ${SOURCE}` : ''}` +
     `${RE_AUDIT_DAYS !== null ? ` — re-auditing rows older than ${RE_AUDIT_DAYS} days` : ''}\n`);
 
   // Chunk into Grok batches.
   const chunks = [];
-  for (let i = 0; i < r.rows.length; i += BATCH) chunks.push(r.rows.slice(i, i + BATCH));
+  for (let i = 0; i < rows.length; i += BATCH) chunks.push(rows.slice(i, i + BATCH));
 
   let totalCost = 0;
   const counts = { verified: 0, 'verified-soft': 0, flagged: 0, uncertain: 0 };
@@ -339,17 +336,29 @@ async function main() {
 
       if (!DRY_RUN) {
         try {
-          await c.query(
-            `INSERT INTO trivia_quality_audits
-             (question_id, verifier_model, verified, confidence, reasoning, failure_modes, corrected_answer_text, previous_quality_score, new_quality_score, cost_usd)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-            [q.id, MODEL, verified, confidence, reasoning, failureModes, correctedAns,
-             q.quality_score, newQS, result.costUsd / chunk.length],
-          );
-          await c.query(
-            'UPDATE trivia_questions SET quality_score = $1, last_audited_at = NOW(), audit_verified = $2, audit_confidence = $3 WHERE id = $4',
-            [newQS, verified, confidence, q.id],
-          );
+          const { error: auditError } = await supabase.from('trivia_quality_audits').insert({
+            question_id: q.id,
+            verifier_model: MODEL,
+            verified,
+            confidence,
+            reasoning,
+            failure_modes: failureModes,
+            corrected_answer_text: correctedAns,
+            previous_quality_score: q.quality_score,
+            new_quality_score: newQS,
+            cost_usd: result.costUsd / chunk.length,
+          });
+          if (auditError) throw auditError;
+          const { error: questionError } = await supabase
+            .from('trivia_questions')
+            .update({
+              quality_score: newQS,
+              last_audited_at: new Date().toISOString(),
+              audit_verified: verified,
+              audit_confidence: confidence,
+            })
+            .eq('id', q.id);
+          if (questionError) throw questionError;
           updated++;
         } catch (e) {
           errors++;
@@ -361,13 +370,11 @@ async function main() {
     console.log(`  batch ${chunkIndex + 1}/${chunks.length} done | cost $${totalCost.toFixed(4)}`);
   });
 
-  await c.end();
-
   const stillPlayable = counts.verified + counts['verified-soft'];
   const demoted = counts.flagged + counts.uncertain;
 
   console.log('\n=== AUDIT SUMMARY ===');
-  console.log(`  audited:        ${r.rows.length}`);
+  console.log(`  audited:        ${rows.length}`);
   console.log(`  verified (9):   ${counts.verified}`);
   console.log(`  verified soft:  ${counts['verified-soft']}  (kept at >= ${VERIFIED_UNCERTAIN_SCORE}, still playable)`);
   console.log(`  flagged (2):    ${counts.flagged}  (below the gameplay floor of ${QUALITY_FLOOR})`);

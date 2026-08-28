@@ -206,10 +206,8 @@ const nextConfig = {
   // StrictMode doubles renders/effects in dev, which doubles memory pressure on 952 pages.
   // Keep it ON for production builds where it helps catch bugs; OFF for dev stability.
   reactStrictMode: process.env.NODE_ENV === 'production',
-  eslint: { ignoreDuringBuilds: true },
-  // NOTE: `eslint` top-level key removed — deprecated in Next.js 16. ESLint is
-  // ignored at build time via the `ignoreDuringBuilds` flag which is now controlled
-  // per the Next.js 16 docs. TypeScript errors are silenced in `typescript` below.
+  // Next.js 16 removed the top-level `eslint` build option; linting is run as
+  // an independent CI/test concern. TypeScript handling remains below.
   compress: true, // Enable gzip compression for all responses
 
   // ─── Serverless Bundle Slimming ──────────────────────────────────────────────
@@ -383,9 +381,8 @@ const nextConfig = {
   },
 
   // ─── TypeScript Build Config ──────────────────────────────────────────────────
-  // ignoreDuringBuilds (eslint) is already set above. Redeclaring it silently
-  // overrode the compress flag's ordering in pre-Next-14.1. Keep just typescript
-  // here since the eslint one was a duplicate.
+  // Next.js 16 no longer accepts an eslint build option. Keep TypeScript's
+  // independently supported build-error setting here.
   typescript: {
     ignoreBuildErrors: true,
   },

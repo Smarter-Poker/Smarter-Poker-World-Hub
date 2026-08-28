@@ -74,17 +74,16 @@ const LOBBY_IMAGES = {
     arcade: '/images/trivia/lobby-arcade.jpg',
 };
 
-// Modes this page runs through the server-authoritative grading flow
-// (session-start / session-answer / session-submit) instead of the
-// client-keyed correct_index flow. This set ships EMPTY because the
-// server-graded arcade path has NOT yet been validated by a live
-// play-through: the routes, the migration and the RPC are all
-// production-verified, but no end-to-end browser round has ever been
-// played, so the path stays dark until someone plays one run at
-// /hub/trivia/arcade?serverGrading=1. Flip this to ['arcade'] once that
-// passes. The explicit ?serverGrading=1 query escape hatch stays
-// available for modes not yet flipped.
-const SERVER_GRADED_PAGE_MODES = new Set(['arcade', 'daily', 'history', 'rules', 'pro']);
+// Every mode rendered by this dynamic page must use the server-authoritative
+// session flow. Keeping a mode out of this set is not a safe fallback: answer
+// columns are no longer browser-readable and verified score persistence
+// deliberately rejects locally graded results. Standalone routes (mixed,
+// endless, survival, time-attack, PvP and tournaments) own their separate
+// server-authoritative adapters.
+const SERVER_GRADED_PAGE_MODES = new Set([
+    'arcade', 'daily', 'history', 'rules', 'pro',
+    'mtt', 'cash', 'icm', 'gto'
+]);
 
 // Yesterday in America/Chicago as YYYY-MM-DD (streak-continuation check)
 function getYesterdayCST() {
@@ -99,11 +98,10 @@ export default function TriviaModePage() {
     const { mode } = router.query;
     const { user: avatarUser, loading: authLoading } = useAvatar();
 
-    // Server-authoritative grading (dark until SERVER_GRADED_PAGE_MODES is
-    // flipped). The hook owns the session lifecycle; this flag picks which
-    // branch the page runs — it must never half-adopt (see the hook's docs).
+    // The hook owns the session lifecycle and the explicit allow-list prevents
+    // an ad-hoc query parameter from half-enabling an unsupported mode.
     const serverRun = useServerGradedRun(mode);
-    const serverGraded = serverRun.isEnabled && (SERVER_GRADED_PAGE_MODES.has(mode) || router.query.serverGrading === '1');
+    const serverGraded = serverRun.isEnabled && SERVER_GRADED_PAGE_MODES.has(mode);
 
     // ── AUDIT FIX (C1) ───────────────────────────────────────────────
     // 'survival' exists in TRIVIA_MODES (diamondCost: 10) but this page has
@@ -162,14 +160,13 @@ export default function TriviaModePage() {
     // sessionSeenIdsRef went with it - the bonus draw was its only reader.
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
-    const savePhaseRef = useRef(0); // 0=none, 1=score, 2=diamonds, 3=history, 4=mastery, 5=daily
+    const savePhaseRef = useRef(0); // 0=none, 1=verified score, 2=payout synced, 5=server projections finalized
 
     // The per-run idempotency key chain (gameRunIdRef / newGameRunId /
     // getIdempotencyKey) is gone: it existed only to build p_reference_id
     // values for browser-side diamond credits, and this page no longer makes
     // any. Server payouts carry their own idempotent references
     // (award_trivia_run uses trivia_session_<id>).
-    const masteryCacheRef = useRef(null);
     // id of THIS run's trivia_scores row — the prize wheel's server-side token.
     const scoreIdRef = useRef(null);
     // Caches the daily-cap-clamped reward so a saving_error retry doesn't
@@ -646,7 +643,6 @@ export default function TriviaModePage() {
         try {
         savePhaseRef.current = 0;
         cappedRewardRef.current = null;
-        masteryCacheRef.current = null;
         firstDailyTodayRef.current = null;
         scoreIdRef.current = null;
         setWheelPrize(null);
@@ -830,7 +826,7 @@ export default function TriviaModePage() {
             }
         }
 
-        // Daily trivia: award 10 diamonds for finishing all 20 questions (once per day).
+        // Daily trivia: award 10 diamonds for finishing all 10 questions (once per day).
         // AUDIT FIX (M1): gate on the SERVED question count, not on
         // `totalQuestions` — TriviaGame excludes bought skips from
         // totalQuestions (19 after one skip), so paying for a Skip hint used
@@ -903,148 +899,18 @@ export default function TriviaModePage() {
                     savePhaseRef.current = 2;
                 }
 
-                // AUDIT FIX (M2): only questions the player actually REACHED
-                // may be recorded. After a cash-out at question 6 (or an
-                // arcade timer expiry) the old code recorded all 20 loaded
-                // questions: ~14 never-displayed questions were burned from
-                // the 60-day pool AND counted as WRONG in category mastery
-                // (answers[idx] === undefined never equals correct_index).
-                // Skip/timeout sentinels (negative answers) are scored
-                // neutral by TriviaGame, so they persist as was_correct:null
-                // and are excluded from mastery accuracy below.
-                const servedQuestions = Array.isArray(answers)
-                    ? (questions || []).slice(0, answers.length)
-                    : (questions || []);
-                const answeredIndex = (idx) => {
-                    const a = Array.isArray(answers) ? answers[idx] : undefined;
-                    return typeof a === 'number' && a >= 0 ? a : null; // null = skip/timeout/unanswered
-                };
-                // Server verdict lookup (questionId -> wasCorrect) for the
-                // history and mastery phases: with server grading the client
-                // has no correct_index to compare against.
-                const serverVerdictMap = {};
-                if (useServerPayout && Array.isArray(serverResult.perQuestion)) {
-                    serverResult.perQuestion.forEach(pq => {
-                        if (pq && typeof pq.questionId === 'string') {
-                            serverVerdictMap[pq.questionId] = pq.wasCorrect === true;
-                        }
-                    });
+                // Question history, category mastery, skip telemetry and the
+                // one-per-day play row are finalized inside the same database
+                // transaction that stores settlement_result. Browsers retain
+                // read-only access to those projections and never replay or
+                // manufacture analytics writes.
+                if (mode === 'daily' && firstDailyToday) {
+                    setUserStreak(newStreak);
+                    setLastPlayDate(today);
+                    const appliedBest = Math.max(newStreak, bestStreak);
+                    if (appliedBest > bestStreak) setBestStreak(appliedBest);
                 }
-
-                // Phase 3: Record question history (only if not already recorded)
-                if (savePhaseRef.current < 3) {
-                    if (servedQuestions.length > 0) {
-                        const historyRecords = servedQuestions.map((q, idx) => ({
-                            user_id: userId,
-                            question_id: q.id,
-                            was_correct: answeredIndex(idx) != null
-                                ? (useServerPayout
-                                    ? (serverVerdictMap[q.id] ?? null)
-                                    : answeredIndex(idx) === q.correct_index)
-                                : null,
-                            seen_at: new Date().toISOString(),
-                            mode
-                        }));
-
-                        // Use upsert to handle potential duplicates
-                        const { error: err_trivia_user_question_history_g7wxv } = await supabase.from('trivia_user_question_history').upsert(historyRecords, {
-                                onConflict: 'user_id,question_id',
-                                ignoreDuplicates: false
-                            });
-                        if (err_trivia_user_question_history_g7wxv) console.warn('[Supabase] Silent mutation failed in trivia_user_question_history:', err_trivia_user_question_history_g7wxv.message);
-                    }
-                    savePhaseRef.current = 3;
-                }
-
-                // Phase 4: Update category mastery (only if not already updated)
-                if (savePhaseRef.current < 4) {
-                    const categoryStats = {};
-                    // AUDIT FIX (M2): iterate only SERVED questions, and skip
-                    // neutral entries (bought skips / timeouts, sentinel < 0)
-                    // entirely — they must not count as answered-wrong.
-                    servedQuestions.forEach((q, idx) => {
-                        const a = answeredIndex(idx);
-                        if (a == null) return; // neutral: excluded from accuracy
-                        // Server-graded: correctness comes from the verdict
-                        // map; an entry the server never graded is excluded
-                        // rather than guessed at.
-                        if (useServerPayout && serverVerdictMap[q.id] === undefined) return;
-                        const cat = q.category || 'general';
-                        if (!categoryStats[cat]) {
-                            categoryStats[cat] = { answered: 0, correct: 0 };
-                        }
-                        categoryStats[cat].answered++;
-                        if (useServerPayout ? serverVerdictMap[q.id] : (a === q.correct_index)) {
-                            categoryStats[cat].correct++;
-                        }
-                    });
-
-                    const categoryKeys = Object.keys(categoryStats || {});
-                    
-                    let existingMap = masteryCacheRef.current;
-                    if (!existingMap) {
-                        // Batch-read existing mastery for all categories only once per completion
-                        const { data: existingMastery } = await supabase
-                            .from('trivia_category_mastery')
-                            .select('category, total_answered, correct_count')
-                            .eq('user_id', userId)
-                            .in('category', categoryKeys);
-
-                        existingMap = {};
-                        (existingMastery || []).forEach(m => { existingMap[m.category] = m; });
-                        masteryCacheRef.current = existingMap; // Cache it for idempotency on retries
-                    }
-
-                    // Build batch upsert records
-                    const masteryRecords = categoryKeys.map(category => {
-                        const stats = categoryStats[category];
-                        const existing = existingMap[category];
-                        const newTotal = (existing?.total_answered || 0) + stats.answered;
-                        const newCorrect = (existing?.correct_count || 0) + stats.correct;
-                        const accuracy = newTotal > 0 ? newCorrect / newTotal : 0;
-                        const newLevel = Math.min(10, Math.max(1, Math.floor(accuracy * 10) + 1));
-                        return {
-                            user_id: userId,
-                            category,
-                            total_answered: newTotal,
-                            correct_count: newCorrect,
-                            mastery_level: newLevel,
-                            updated_at: new Date().toISOString()
-                        };
-                    });
-
-                    // AUDIT FIX (M2): with neutral-only runs categoryStats can
-                    // now legitimately be empty — don't upsert an empty batch.
-                    if (masteryRecords.length > 0) {
-                        const { error: masteryError } = await supabase.from('trivia_category_mastery')
-                            .upsert(masteryRecords, { onConflict: 'user_id,category', ignoreDuplicates: false });
-                        if (masteryError) console.warn('[Trivia] Category mastery upsert failed:', masteryError);
-                    }
-                    savePhaseRef.current = 4;
-                }
-
-                // Phase 5: Record daily play (only ONCE per CST day — replays
-                // must not insert extra rows or re-bump the streak)
-                if (savePhaseRef.current < 5) {
-                    if (mode === 'daily' && firstDailyToday) {
-                        const { error: err_daily_trivia_plays_ccqx1 } = await supabase.from('daily_trivia_plays').insert({
-                            user_id: userId,
-                            played_date: today,
-                            was_correct: correctCount > 0,
-                            streak_at_time: newStreak
-                        });
-                        if (err_daily_trivia_plays_ccqx1) console.warn('[Supabase] Silent mutation failed in daily_trivia_plays:', err_daily_trivia_plays_ccqx1.message);
-
-                        // award_trivia_run_v2 already updated the streak from
-                        // durably bound, server-graded answers. Keep the local
-                        // display optimistic until the normal data refresh.
-                        setUserStreak(newStreak);
-                        setLastPlayDate(today);
-                        const appliedBest = Math.max(newStreak, bestStreak);
-                        if (appliedBest > bestStreak) setBestStreak(appliedBest);
-                    }
-                    savePhaseRef.current = 5;
-                }
+                savePhaseRef.current = 5;
             } catch (err) {
                 console.warn('[mode] Failed to save data:', err);
                 setSaveErrorPayload(gameResult);
@@ -1166,10 +1032,18 @@ export default function TriviaModePage() {
             return;
         }
         try {
-            const { data, error: spinErr } = await supabase.rpc('fn_trivia_prize_wheel_spin', {
-                p_score_id: scoreId
+            const response = await fetch('/api/trivia/prize-wheel-spin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ scoreId })
             });
-            if (spinErr) throw spinErr;
+            const data = await response.json().catch(() => null);
+            if (!response.ok) {
+                const spinErr = new Error(data?.error || `wheel_request_failed_${response.status}`);
+                spinErr.code = data?.error;
+                throw spinErr;
+            }
             if (!data || data.success === false) {
                 setWheelError(
                     data?.error === 'spin_window_expired'
@@ -1184,8 +1058,10 @@ export default function TriviaModePage() {
             });
             setShowPrizeWheel(true);
         } catch (e) {
-            console.warn('[PrizeWheel] spin RPC failed:', e?.message || e);
-            setWheelError('Could not start the prize wheel. Please try again.');
+            console.warn('[PrizeWheel] spin request failed:', e?.message || e);
+            setWheelError(e?.code === 'spin_window_expired'
+                ? 'This spin has expired.'
+                : 'Could not start the prize wheel. Please try again.');
         }
     };
 
@@ -1201,7 +1077,6 @@ export default function TriviaModePage() {
         scoreIdRef.current = null;
         setWheelPrize(null);
         setWheelError(null);
-        masteryCacheRef.current = null; // Reset mastery cache
         cappedRewardRef.current = null; // Reset daily-cap cache
         firstDailyTodayRef.current = null; // Reset first-daily-today cache
         // Phase 55 fix: previously NOT reset here. If a prior game's save errored

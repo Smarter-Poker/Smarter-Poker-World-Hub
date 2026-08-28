@@ -291,50 +291,9 @@ export default function TimeAttackPage() {
                 }
                 setDailyDiamondsEarned(prev => Math.min(DAILY_DIAMOND_CAP, prev + awarded));
 
-                // Phase 3: Record question history (only if not already
-                // recorded), for the questions actually answered, with
-                // was_correct taken from the server's per-question verdicts.
-                if (savePhaseRef.current < 3) {
-                    const verdictMap = {};
-                    (Array.isArray(settled.perQuestion) ? settled.perQuestion : []).forEach(pq => {
-                        if (pq && typeof pq.questionId === 'string') verdictMap[pq.questionId] = pq.wasCorrect === true;
-                    });
-                    // Phase 59: filter out rows with no question_id (would
-                    // FK-violate on trivia_user_question_history.question_id
-                    // → trivia_questions.id) and capture upsert errors that
-                    // were previously silently swallowed.
-                    const historyRecords = sessionAnswersRef.current
-                        .filter(a => a && a.questionId != null)
-                        .map(a => ({
-                            user_id: userId,
-                            question_id: a.questionId,
-                            was_correct: verdictMap[a.questionId] === true,
-                            seen_at: new Date().toISOString(),
-                            mode: 'time-attack'
-                        }));
-
-                    if (historyRecords.length > 0) {
-                        // ignoreDuplicates:true => ON CONFLICT DO NOTHING.
-                        // trivia_user_question_history has SELECT + INSERT RLS
-                        // policies but NO UPDATE policy, so the previous
-                        // ignoreDuplicates:false (an UPDATE on conflict) failed
-                        // the ENTIRE batch whenever any question had been seen
-                        // before — silently dropping the run's history and
-                        // eroding the 60-day non-repeat guarantee.
-                        const { error: historyErr } = await supabase
-                            .from('trivia_user_question_history')
-                            .upsert(historyRecords, {
-                                onConflict: 'user_id,question_id',
-                                ignoreDuplicates: true
-                            });
-                        if (historyErr) {
-                            // Non-fatal: score + diamonds already saved at
-                            // this point, history is best-effort.
-                            console.warn('[TimeAttack] History upsert failed (non-fatal):', historyErr.message);
-                        }
-                    }
-                    savePhaseRef.current = 3;
-                }
+                // Settlement atomically finalized history, mastery and skip
+                // telemetry from the binding server answers.
+                savePhaseRef.current = Math.max(savePhaseRef.current, 3);
 
                 // Done saving — reset phase tracker for next game
                 setGameState('complete');
