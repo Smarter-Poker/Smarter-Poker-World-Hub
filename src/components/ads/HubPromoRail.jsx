@@ -35,21 +35,56 @@
  */
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { resolveAds, logImpression, logClick } from '../../services/adService';
+import { useRouter } from 'next/router';
+import {
+    resolveHubAds,
+    logHubImpression,
+    logHubClick,
+    logHubAdEvent,
+    isSafeHubDestination,
+    leavesTheNextRouter,
+} from '../../lib/hubAds';
 
 const SLOT = 'hub_promotions';
 
 export default function HubPromoRail({ limit = 3 }) {
+    const router = useRouter();
     const [ads, setAds] = useState([]);
 
     const handleDismiss = (e, adId) => {
         e.preventDefault();
         e.stopPropagation();
-        import('../../services/adService').then(({ logDismiss }) => {
-            logDismiss(adId, SLOT);
-        });
+        logHubAdEvent(adId, 'dismiss');
         setAds((prev) => prev.filter((a) => a.adId !== adId));
+    };
+
+    /**
+     * A CARD IS NOT A LINK, BECAUSE HALF THESE DESTINATIONS ARE NOT PAGES.
+     *
+     * This rail used `<Link href={ad.targetUrl}>`. Two of the six live Hub
+     * placements point at `/hub/club-arena/`, which is a static Vite SPA and
+     * not a Next page: the client router strips the trailing slash, matches
+     * nothing, and falls through to `pages/hub/[orbId].js`, which renders
+     * "Unknown World - This World is Being Built".
+     *
+     * That was observed in production on 2026-08-28 from the sibling strip
+     * (ad_event id 173 logged the click, and the player landed on a Coming
+     * Soon page) and fixed there; this rail carried the same defect until the
+     * two clients were merged.
+     *
+     * The click is still logged BEFORE navigating either way - losing the
+     * event to the unmount is how a working click path ends up looking like
+     * nobody ever clicked.
+     */
+    const activate = (e, ad) => {
+        e.preventDefault();
+        logHubClick(ad.adId);
+        if (!isSafeHubDestination(ad.targetUrl)) return;
+        if (leavesTheNextRouter(ad.targetUrl)) {
+            window.location.assign(ad.targetUrl);
+            return;
+        }
+        router.push(ad.targetUrl);
     };
 
     useEffect(() => {
@@ -57,7 +92,7 @@ export default function HubPromoRail({ limit = 3 }) {
         (async () => {
             // Targeting, flight dates and the 24h frequency cap are all decided
             // by fn_resolve_ads. Nothing is filtered here.
-            const rows = await resolveAds(SLOT, null, limit);
+            const rows = await resolveHubAds(limit);
             if (!cancelled) setAds(rows);
         })();
         return () => {
@@ -65,9 +100,9 @@ export default function HubPromoRail({ limit = 3 }) {
         };
     }, [limit]);
 
-    // One impression per ad per page-load, de-duplicated inside the service.
+    // One impression per ad per page-load, de-duplicated inside the client.
     useEffect(() => {
-        ads.forEach((ad) => logImpression(ad.adId, SLOT));
+        ads.forEach((ad) => logHubImpression(ad.adId));
     }, [ads]);
 
     if (ads.length === 0) return null;
@@ -75,11 +110,14 @@ export default function HubPromoRail({ limit = 3 }) {
     return (
         <section className="promo-rail" aria-label="From Smarter Poker">
             {ads.map((ad) => {
-                const href = ad.targetUrl || '/hub';
+                const href = isSafeHubDestination(ad.targetUrl) ? ad.targetUrl : '/hub';
                 return (
                     <div key={ad.adId} className="promo-card-wrapper">
-                    <Link href={href} legacyBehavior>
-                        <a className="promo-card" onClick={() => logClick(ad.adId, SLOT)}>
+                    {/* A real href so the card is a link to a screen reader,
+                        to middle-click and to "copy link address" - but the
+                        navigation itself goes through activate(), because
+                        next/link cannot reach the Club Arena SPA. */}
+                    <a className="promo-card" href={href} onClick={(e) => activate(e, ad)}>
                             <span className="promo-glyph" aria-hidden="true">
                                 {ad.glyph || '◆'}
                             </span>
@@ -89,8 +127,7 @@ export default function HubPromoRail({ limit = 3 }) {
                                 {ad.body ? <span className="promo-sub">{ad.body}</span> : null}
                             </span>
                             {ad.ctaLabel ? <span className="promo-cta">{ad.ctaLabel}</span> : null}
-                        </a>
-                    </Link>
+                    </a>
                     <button
                         type="button"
                         className="promo-dismiss"
