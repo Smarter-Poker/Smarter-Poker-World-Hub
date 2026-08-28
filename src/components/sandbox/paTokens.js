@@ -84,6 +84,7 @@ export function btn(variant = 'primary', opts = {}) {
         ghost: { background: 'transparent', color: T.textMuted, borderColor: 'transparent' },
         danger: { background: T.dangerSoft, color: T.danger, borderColor: 'rgba(255,107,122,0.4)' },
         success: { background: T.successSoft, color: T.success, borderColor: 'rgba(77,224,165,0.4)' },
+        purple: { background: T.purpleSoft, color: T.purple, borderColor: 'rgba(185,167,255,0.4)' },
     }[variant] || {};
     const dis = opts.disabled ? { opacity: 0.45, cursor: 'not-allowed', pointerEvents: 'none' } : null;
     return { ...base, ...v, ...dis };

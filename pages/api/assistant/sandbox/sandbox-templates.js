@@ -9,6 +9,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -44,8 +45,15 @@ export default async function handler(req, res) {
                 .order('created_at', { ascending: false })
                 .limit(20);
 
-            if (error) return res.status(500).json({ error: 'Internal server error' });
-            return res.status(200).json({ templates: data || [] });
+            if (error) {
+                if (error.code === '42P01') return res.status(503).json(persistenceFailure(
+                    'Templates are temporarily unavailable.',
+                    'storage_unavailable',
+                    { templates: [] },
+                ));
+                return res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+            return res.status(200).json({ success: true, persisted: true, templates: data || [] });
         }
 
         if (req.method === 'POST') {
@@ -88,7 +96,7 @@ export default async function handler(req, res) {
                 return res.status(500).json({ error: 'Internal server error' });
             }
 
-            return res.status(201).json({ template: data });
+            return res.status(201).json(persistedResult(data, { template: data }));
         }
 
         if (req.method === 'DELETE') {
@@ -103,8 +111,14 @@ export default async function handler(req, res) {
                 .eq('id', id)
                 .eq('user_id', user.id);
 
-            if (error) return res.status(500).json({ error: 'Internal server error' });
-            return res.status(200).json({ success: true });
+            if (error) {
+                if (error.code === '42P01') return res.status(503).json(persistenceFailure(
+                    'Templates are temporarily unavailable. Nothing was deleted.',
+                    'storage_unavailable',
+                ));
+                return res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+            return res.status(200).json(persistedResult({ id: String(id) }));
         }
 
         return res.status(405).json({ error: 'Method not allowed' });

@@ -7,6 +7,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -52,12 +53,14 @@ export default async function handler(req, res) {
               });
 
               if (error) {
-                  // If table doesn't exist, silently succeed (quiz works client-side)
                   console.warn('Quiz save error:', error);
-                  return res.status(200).json({ success: true, persisted: false });
+                  return res.status(error.code === '42P01' ? 503 : 500).json(persistenceFailure(
+                      'Quiz progress could not be saved. Your current score remains on this device.',
+                      error.code === '42P01' ? 'storage_unavailable' : 'write_failed',
+                  ));
               }
 
-              return res.status(200).json({ success: true });
+              return res.status(200).json(persistedResult());
           } catch (err) {
               console.warn('Quiz API error:', err);
               return res.status(500).json({ error: 'Internal server error' });
@@ -75,9 +78,13 @@ export default async function handler(req, res) {
                   .limit(100);
 
               if (error) {
-                  // If table doesn't exist, return empty stats (quiz works client-side)
                   console.warn('Quiz fetch error:', error);
-                  return res.status(200).json({ total: 0, correct: 0, accuracy: 0, streak: 0 });
+                  return res.status(error.code === '42P01' ? 503 : 500).json({
+                      success: false,
+                      persisted: false,
+                      reason: error.code === '42P01' ? 'storage_unavailable' : 'read_failed',
+                      error: 'Quiz history is temporarily unavailable.',
+                  });
               }
 
               const total = data?.length || 0;
@@ -91,7 +98,7 @@ export default async function handler(req, res) {
                   else break;
               }
 
-              return res.status(200).json({ total, correct, accuracy, streak });
+              return res.status(200).json({ success: true, persisted: true, reason: null, total, correct, accuracy, streak });
           } catch (err) {
               console.warn('Quiz stats error:', err);
               return res.status(500).json({ error: 'Internal server error' });

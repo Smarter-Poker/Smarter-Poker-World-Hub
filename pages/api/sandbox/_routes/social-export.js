@@ -8,6 +8,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -79,15 +80,19 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              // Graceful fallback if social_posts table doesn't exist yet on this env
+              // A missing table is not a successful post. Returning 200 here
+              // made both share surfaces tell the player their post was live.
               if (error.code === '42P01') {
-                  return res.status(200).json({ success: true, dummy: true, message: 'Simulated post (social_posts table pending Phase 14)' });
+                  return res.status(503).json(persistenceFailure(
+                      'Posting is temporarily unavailable. Your report was not published.',
+                      'storage_unavailable',
+                  ));
               }
               console.warn('[social-export] Insert error:', error.message);
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
-          return res.status(200).json({ success: true, post: data });
+          return res.status(200).json(persistedResult(data, { post: data }));
       } catch (err) {
           console.warn('[social-export] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });

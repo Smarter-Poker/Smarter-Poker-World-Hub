@@ -9,12 +9,16 @@
  * of a silent empty folder list, duplicate-name folding, an optional note and a
  * success toast that says where the scenario went.
  */
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { Save, FolderPlus } from 'lucide-react';
 import { getAccessToken } from '../../lib/authUtils';
+import { readPersistenceResponse, persistenceMessage } from '../../lib/personal-assistant/persistenceContract';
 import { T, F, S, R, btn } from './paTokens';
-import { BottomSheet, PAStyles, Skeleton, SignInState, ErrorState } from './paKit';
+import {
+    BottomSheet, PAStyles, Skeleton, SignInState, ErrorState,
+    useAbortableFetch, isAbortError,
+} from './paKit';
 
 const inputStyle = {
     width: '100%', minHeight: 44, padding: '10px 12px', boxSizing: 'border-box',
@@ -34,8 +38,13 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
     const [loadError, setLoadError] = useState(null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
+    const folderRequestId = useRef(0);
+    const requestFolders = useAbortableFetch();
+
+    useEffect(() => () => { folderRequestId.current += 1; }, []);
 
     const fetchFolders = useCallback(async () => {
+        const requestId = ++folderRequestId.current;
         setLoading(true);
         setAuthError(false);
         setLoadError(null);
@@ -44,12 +53,15 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
             const headers = {};
             if (token) headers.Authorization = `Bearer ${token}`;
 
-            const res = await fetch('/api/sandbox/saved-hands', { headers });
+            const res = await requestFolders('/api/sandbox/saved-hands', { headers });
+            if (requestId !== folderRequestId.current) return;
             if (res.status === 401) {
                 setAuthError(true);
                 return;
             }
-            const json = await res.json().catch(() => null);
+            const result = await readPersistenceResponse(res);
+            if (requestId !== folderRequestId.current) return;
+            const json = result.json;
             if (!res.ok || !json?.success) {
                 setLoadError('Could not load your existing folders.');
                 return;
@@ -58,12 +70,13 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
             setExistingFolders(folders);
             if (folders.length > 0) setFolder(prev => prev || folders[0]);
         } catch (err) {
+            if (isAbortError(err) || requestId !== folderRequestId.current) return;
             console.warn('[SaveHandModal] folder fetch error:', err?.message || err);
             setLoadError('Could not load your existing folders.');
         } finally {
-            setLoading(false);
+            if (requestId === folderRequestId.current) setLoading(false);
         }
-    }, []);
+    }, [requestFolders]);
 
     useEffect(() => { fetchFolders(); }, [fetchFolders]);
 
@@ -104,20 +117,21 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
             };
 
             const res = await fetch('/api/sandbox/save-hand', { method: 'POST', headers, body: JSON.stringify(payload) });
-            const json = await res.json().catch(() => null);
+            const result = await readPersistenceResponse(res);
+            const json = result.json;
 
             if (res.status === 401) {
                 setError('Sign in to save scenarios.');
                 return;
             }
-            if (res.ok && json?.success) {
+            if (result.success && result.persisted) {
                 window.dispatchEvent(new CustomEvent('sandbox-hand-saved', { detail: { hand: json.hand } }));
                 toast.success(`Saved to "${resolvedFolder}"`);
                 onSaveComplete?.(json.hand);
                 onClose?.();
                 return;
             }
-            setError('Could not save that scenario. Please try again.');
+            setError(persistenceMessage(result, 'Could not save that scenario. Please try again.'));
         } catch (err) {
             console.warn('[SaveHandModal] save error:', err?.message || err);
             setError('Could not save that scenario. Check your connection.');

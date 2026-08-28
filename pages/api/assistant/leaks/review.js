@@ -405,7 +405,7 @@ async function handleGet(req, res, userId) {
     // Signed-out callers get the same empty, non-persisting shape a missing
     // table produces — the review surface renders instead of erroring.
     if (!userId) {
-        return res.status(200).json({ success: true, records: [], persisted: false, authenticated: false });
+        return res.status(200).json({ success: true, records: [], persisted: false, reason: 'guest', authenticated: false });
     }
 
     const nowMs = Date.now();
@@ -439,11 +439,11 @@ async function handleGet(req, res, userId) {
         if (error) {
             if (isMissingSchema(error)) {
                 console.warn(`[leaks/review] ${TABLE} not deployed — serving empty review state`);
-                return res.status(200).json({ success: true, records: [], persisted: false, tableMissing: true });
+                return res.status(200).json({ success: true, records: [], persisted: false, reason: 'storage_unavailable', tableMissing: true });
             }
             console.warn('[leaks/review] GET failed:', error.message);
             // Read failures degrade too: an empty list keeps the drill usable.
-            return res.status(200).json({ success: true, records: [], persisted: false, partial: true });
+            return res.status(200).json({ success: true, records: [], persisted: false, reason: 'read_failed', partial: true });
         }
 
         const records = (data || []).map((row) => mapRow(row, nowMs)).filter(Boolean);
@@ -455,7 +455,7 @@ async function handleGet(req, res, userId) {
         });
     } catch (err) {
         console.warn('[leaks/review] GET threw:', err?.message || err);
-        return res.status(200).json({ success: true, records: [], persisted: false });
+        return res.status(200).json({ success: true, records: [], persisted: false, reason: 'read_failed' });
     }
 }
 
@@ -541,7 +541,7 @@ async function handlePost(req, res, userId) {
 
     if (!tableAvailable) {
         console.warn(`[leaks/review] ${TABLE} not deployed — returning computed state unpersisted`);
-        return res.status(200).json({ success: true, persisted: false, tableMissing: true, state: responseState });
+        return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, state: responseState });
     }
 
     // 3. Ownership. Unknown or foreign leaks are computed but never written.
@@ -648,11 +648,11 @@ async function handlePost(req, res, userId) {
         if (error) {
             if (isMissingSchema(error)) {
                 console.warn(`[leaks/review] ${TABLE} not deployed — returning computed state unpersisted`);
-                return res.status(200).json({ success: true, persisted: false, tableMissing: true, state: responseState });
+                return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, state: responseState });
             }
             console.warn('[leaks/review] persist failed:', error.message);
             // The drill is already over; a write failure must not undo it.
-            return res.status(200).json({ success: true, persisted: false, state: responseState });
+            return res.status(200).json({ success: true, persisted: false, reason: 'write_failed', state: responseState });
         }
 
         // When the mastery columns are absent, mapRow simply omits them and the
@@ -668,6 +668,6 @@ async function handlePost(req, res, userId) {
         });
     } catch (err) {
         console.warn('[leaks/review] persist threw:', err?.message || err);
-        return res.status(200).json({ success: true, persisted: false, state: responseState });
+        return res.status(200).json({ success: true, persisted: false, reason: 'write_failed', state: responseState });
     }
 }

@@ -22,6 +22,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Zap, Check, X, Flame, RotateCcw, AlertTriangle, CalendarDays } from 'lucide-react';
 import { getAccessToken } from '../../lib/authUtils';
+import { readPersistenceResponse } from '../../lib/personal-assistant/persistenceContract';
 import { gradeReview, migrateRecord, SCHEMA_VERSION as REVIEW_SCHEMA_VERSION } from '../../lib/sandbox/leakReview';
 import { T, F, S, R, btn, pill, numeric } from './paTokens';
 import {
@@ -300,19 +301,25 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             evDelta: null,
             source: 'quick-drill',
         };
+        let persisted = false;
         try {
             const token = getAccessToken();
             const headers = { 'Content-Type': 'application/json' };
             if (token) headers.Authorization = `Bearer ${token}`;
-            await fetch('/api/sandbox/coach-result', {
+            const response = await fetch('/api/sandbox/coach-result', {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(payload),
             });
+            const result = await readPersistenceResponse(response);
+            persisted = result.success && result.persisted;
+            if (!persisted && result.reason !== 'guest') {
+                console.warn('[QuickSpotDrill] Result not persisted:', result.error || result.reason);
+            }
         } catch (e) {
             console.warn('[QuickSpotDrill] Save error:', e?.message || e);
         } finally {
-            if (typeof window !== 'undefined') {
+            if (persisted && typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('sandbox-coach-result-saved', {
                     detail: { isCorrect: !!isCorrect, evDelta: null, source: 'quick-drill' },
                 }));

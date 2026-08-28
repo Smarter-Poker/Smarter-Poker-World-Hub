@@ -13,6 +13,7 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { availabilityFailure, persistedResult } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -157,6 +158,13 @@ export default async function handler(req, res) {
 
         // Combine both sources
         const allLeaks = [...legacyLeaks, ...trainingLeaks];
+        if (failedSources.length === 2) {
+          return res.status(503).json(availabilityFailure(
+            'Leak history is temporarily unavailable.',
+            undefined,
+            { failedSources },
+          ));
+        }
         const partialFlags = failedSources.length > 0
           ? { partial: true, failedSources }
           : {};
@@ -242,10 +250,7 @@ export default async function handler(req, res) {
           if (error) throw error;
         }
 
-        return res.status(200).json({
-          success: true,
-          leak: data
-        });
+        return res.status(200).json(persistedResult(data, { leak: data }));
 
       } catch (error) {
         console.warn('Save leak error:', error);
@@ -300,6 +305,7 @@ export default async function handler(req, res) {
         }
 
         // 🚀 NEW BUG #12 FIX: Sync Global PA Stats on Status Change
+        let statsSynced = true;
         if (updates.status) {
           const { data: updatedLeaks } = await getSupabase()
             .from('user_leaks')
@@ -318,13 +324,17 @@ export default async function handler(req, res) {
               updated_at: new Date().toISOString()
             }, { onConflict: 'user_id' });
 
-          if (err_user_assistant_stats_s6z72) console.warn('[Supabase] Silent mutation failed in user_assistant_stats:', err_user_assistant_stats_s6z72.message);
+          if (err_user_assistant_stats_s6z72) {
+            statsSynced = false;
+            console.warn('[Supabase] Secondary stats sync failed in user_assistant_stats:', err_user_assistant_stats_s6z72.message);
+          }
         }
 
-        return res.status(200).json({
-          success: true,
-          leak: data
-        });
+        return res.status(200).json(persistedResult(data, {
+          leak: data,
+          partial: !statsSynced,
+          statsSynced,
+        }));
 
       } catch (error) {
         console.warn('Update leak error:', error);

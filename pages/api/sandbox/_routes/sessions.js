@@ -14,6 +14,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { availabilityFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -301,10 +302,10 @@ export default async function handler(req, res) {
               .limit(50);
 
           if (error) {
-              // Table may not exist on every environment — the client falls back
-              // to its IndexedDB copy, so an empty list is the graceful answer.
               if (error.code === '42P01') {
-                  return res.status(200).json({ success: true, sessions: [] });
+                  return res.status(503).json(availabilityFailure(
+                      'Cloud session history is temporarily unavailable.',
+                  ));
               }
               console.warn('[sessions] Query error:', error.message);
               return res.status(500).json({ success: false, error: 'Internal server error' });

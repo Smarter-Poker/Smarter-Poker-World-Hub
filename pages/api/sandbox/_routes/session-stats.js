@@ -14,6 +14,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { availabilityFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -76,8 +77,13 @@ export default async function handler(req, res) {
                   .limit(ROW_CAP),
           ]);
 
-          if (summaryRes?.error) console.warn('[session-stats] View error:', summaryRes.error.message);
-          if (rowsRes?.error) console.warn('[session-stats] Results query error:', rowsRes.error.message);
+          const readError = summaryRes?.error || rowsRes?.error;
+          if (readError) {
+              console.warn('[session-stats] Read error:', readError.message);
+              return res.status(readError.code === '42P01' ? 503 : 500).json(availabilityFailure(
+                  'Session analytics are temporarily unavailable.',
+              ));
+          }
 
           const summary = summaryRes?.data || null;
           const rows = rowsRes?.data || [];

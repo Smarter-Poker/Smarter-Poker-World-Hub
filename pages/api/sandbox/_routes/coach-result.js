@@ -6,6 +6,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { ephemeralResult, persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -97,7 +98,7 @@ export default async function handler(req, res) {
 
           // Guest submissions are allowed but not stored
           if (!userId) {
-              return res.status(200).json({ success: true, stored: false, reason: 'guest' });
+              return res.status(200).json(ephemeralResult('guest', null, { stored: false }));
           }
 
           // Identity comes from the verified Bearer token above and nowhere
@@ -153,12 +154,16 @@ export default async function handler(req, res) {
           if (error) {
               console.warn('[coach-result] Insert error:', error.message);
               if (error.code === '42P01') {
-                  return res.status(200).json({ success: true, stored: false, reason: 'table_missing' });
+                  return res.status(503).json(persistenceFailure(
+                      'Coach progress could not be saved. Try again shortly.',
+                      'storage_unavailable',
+                      { stored: false },
+                  ));
               }
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
-          return res.status(200).json({ success: true, id: data?.id });
+          return res.status(200).json(persistedResult(data || null, { id: data?.id, stored: true }));
       } catch (err) {
           console.warn('[coach-result] Handler error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });

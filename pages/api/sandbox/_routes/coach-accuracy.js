@@ -6,6 +6,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { availabilityFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -71,11 +72,12 @@ export default async function handler(req, res) {
                   .limit(5),
           ]);
 
-          if (summaryRes?.error) {
-              console.warn('[coach-accuracy] View error:', summaryRes.error.message);
-          }
-          if (leaksRes?.error) {
-              console.warn('[coach-accuracy] Leaks query error:', leaksRes.error.message);
+          const readError = summaryRes?.error || leaksRes?.error;
+          if (readError) {
+              console.warn('[coach-accuracy] Read error:', readError.message);
+              return res.status(readError.code === '42P01' ? 503 : 500).json(availabilityFailure(
+                  'Coach accuracy is temporarily unavailable.',
+              ));
           }
 
           return res.status(200).json({

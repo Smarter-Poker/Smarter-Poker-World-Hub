@@ -9,6 +9,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { availabilityFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -53,7 +54,9 @@ export default async function handler(req, res) {
 
           if (error) {
               if (error.code === '42P01') {
-                  return res.status(200).json({ success: true, insufficientData: true, total: 0 });
+                  return res.status(503).json(availabilityFailure(
+                      'Macro analysis history is temporarily unavailable.',
+                  ));
               }
               throw error;
           }

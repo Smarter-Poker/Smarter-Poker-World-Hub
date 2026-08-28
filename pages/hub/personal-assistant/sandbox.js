@@ -1,7 +1,7 @@
 /**
  * Virtual Sandbox — GTO Theoretical Lab (v3.0, mobile-first)
  * ═══════════════════════════════════════════════════════════════════════════
- * PA_DESIGN_SPEC v1 "Neon Slate". Designed at 375x667 FIRST.
+ * PA_DESIGN_SPEC v2 "Jarvis Command Deck". Designed at 375x667 FIRST.
  *
  * Layout (<=768px, the primary target):
  *   1. status strip  (hand class, equity, live pot, SPR, accuracy, streak, due)
@@ -99,7 +99,8 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { findBestGames } from '../../../src/utils/videoToTrainingMapper';
-import { PAStyles as SharedPAStyles } from '../../../src/components/sandbox/paKit';
+import { PAStyles as SharedPAStyles, useAbortableFetch, isAbortError } from '../../../src/components/sandbox/paKit';
+import { readPersistenceResponse, persistenceMessage } from '../../../src/lib/personal-assistant/persistenceContract';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -884,7 +885,7 @@ function SetupSheet({
 // The old sidebar rendered "No recent sessions." while the fetch was still in
 // flight — a false empty state on every open. isLoading is now honoured.
 // ═══════════════════════════════════════════════════════════════
-function SessionsSheet({ isOpen, onClose, onLoad, leaderboardEntries, onLeakStats }) {
+function SessionsSheet({ isOpen, onClose, onLoad, leaderboardEntries, leaderboardLoading, leaderboardError, onLeakStats }) {
   const { user, initializing: authInitializing } = useAvatar();
   const authState = { userId: user?.id, ready: !authInitializing };
   const {
@@ -974,7 +975,11 @@ function SessionsSheet({ isOpen, onClose, onLoad, leaderboardEntries, onLeakStat
       )}
 
       <div style={{ marginTop: S.lg }}>
-        <LeaderboardCard entries={leaderboardEntries || []} />
+        <LeaderboardCard
+          entries={leaderboardEntries || []}
+          loading={leaderboardLoading}
+          error={leaderboardError}
+        />
       </div>
     </BottomSheet>
   );
@@ -1032,7 +1037,7 @@ function TemplatesSheet({ isOpen, onClose, templates, status, error, onReload, o
           icon={<BookOpen size={24} strokeWidth={2} aria-hidden="true" />}
           title="Sign in to save templates"
           body="Templates are tied to your account so they follow you across devices."
-          action={<a className="pa-btn" href="/auth/signin" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
+          action={<a className="pa-btn" href="/auth/login" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
         />
       ) : templates.length === 0 ? (
         <EmptyState
@@ -1090,7 +1095,7 @@ function AnalyticsSheet({ isOpen, onClose, status, stats, error, onRetry }) {
           icon={<Trophy size={24} strokeWidth={2} aria-hidden="true" />}
           title="Sign in to track your study stats"
           body="Accuracy, position distribution and insights are tied to your account."
-          action={<a className="pa-btn" href="/auth/signin" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
+          action={<a className="pa-btn" href="/auth/login" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
         />
       )}
 
@@ -1211,8 +1216,16 @@ export default function VirtualSandbox() {
   useArchetypes();
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
   const { studySessions } = useStudyDeck(20, assistantAuth);
-  const { entries: leaderboardEntries } = useQuizLeaderboard(10, assistantAuth);
+  const {
+    entries: leaderboardEntries,
+    isLoading: leaderboardLoading,
+    error: leaderboardError,
+  } = useQuizLeaderboard(10, assistantAuth);
   const [studyIndex, setStudyIndex] = useState(0);
+  const requestWeeklySpot = useAbortableFetch();
+  const requestSessions = useAbortableFetch();
+  const requestTemplates = useAbortableFetch();
+  const requestAnalytics = useAbortableFetch();
 
   // ━━━ SCENARIO STATE ━━━
   const [heroHand, setHeroHand] = useState({ card1: null, card2: null });
@@ -1732,12 +1745,12 @@ export default function VirtualSandbox() {
   // ═══════════════════════════════════════════════════════════
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/assistant/sandbox/weekly-spot')
+    requestWeeklySpot('/api/assistant/sandbox/weekly-spot')
       .then(r => (r.ok ? r.json() : null))
       .then(data => { if (!cancelled && data?.spot) setWeeklySpot(data.spot); })
-      .catch(e => console.warn('[Sandbox] weekly spot unavailable:', e?.message || e));
+      .catch(e => { if (!isAbortError(e)) console.warn('[Sandbox] weekly spot unavailable:', e?.message || e); });
     return () => { cancelled = true; };
-  }, []);
+  }, [requestWeeklySpot]);
 
   const loadWeeklySpot = useCallback((spot) => {
     if (!spot?.scenario_json) return;
@@ -1786,18 +1799,19 @@ export default function VirtualSandbox() {
         return;
       }
       const token = getAccessToken();
-      const res = await fetch('/api/sandbox/sessions', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const res = await requestSessions('/api/sandbox/sessions', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success && Array.isArray(json.sessions)) mergeSessions(json.sessions, 'server');
     } catch (err) {
+      if (isAbortError(err)) return;
       console.warn('[Sandbox] session fetch error (falling back to IDB):', err?.message || err);
       try {
         const offline = (await idbLoadSessionLog()) || [];
         if (offline.length) mergeSessions(offline, 'local');
       } catch (idbErr) { console.warn('[Sandbox] IDB fallback error:', idbErr?.message || idbErr); }
     }
-  }, [mergeSessions]);
+  }, [mergeSessions, requestSessions]);
 
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
@@ -1810,7 +1824,7 @@ export default function VirtualSandbox() {
       if (!getAuthUser()) { setTemplatesStatus('signed-out'); return; }
       setTemplatesStatus('loading');
       const token = getAccessToken();
-      const r = await fetch('/api/assistant/sandbox/sandbox-templates', {
+      const r = await requestTemplates('/api/assistant/sandbox/sandbox-templates', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!r.ok) throw new Error(`Request failed (${r.status})`);
@@ -1818,11 +1832,12 @@ export default function VirtualSandbox() {
       setTemplates(json.templates || []);
       setTemplatesStatus('ready');
     } catch (e) {
+      if (isAbortError(e)) return;
       console.warn('[Templates] Load error:', e?.message || e);
       setTemplatesError(e?.message || 'Unknown error');
       setTemplatesStatus('error');
     }
-  }, []);
+  }, [requestTemplates]);
 
   const saveAsTemplate = useCallback(async (name) => {
     const label = String(name || '').trim()
@@ -1841,7 +1856,11 @@ export default function VirtualSandbox() {
       // The API really does return 409/413 — the old code toasted success blindly.
       if (r.status === 409) { toast.error('Template limit reached (30) — delete one first'); return; }
       if (r.status === 413) { toast.error('Scenario too large to save as a template'); return; }
-      if (!r.ok) { toast.error(`Could not save template (${r.status})`); return; }
+      const result = await readPersistenceResponse(r);
+      if (!result.success || !result.persisted) {
+        toast.error(persistenceMessage(result, `Could not save template (${r.status})`));
+        return;
+      }
       toast.success('Template saved');
       loadTemplates();
     } catch (e) {
@@ -1860,7 +1879,8 @@ export default function VirtualSandbox() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id }),
       });
-      if (!r.ok) throw new Error(`Request failed (${r.status})`);
+      const result = await readPersistenceResponse(r);
+      if (!result.success || !result.persisted) throw new Error(persistenceMessage(result, `Request failed (${r.status})`));
       toast.success('Template deleted');
     } catch (e) {
       console.warn('[Templates] Delete error:', e?.message || e);
@@ -1875,18 +1895,19 @@ export default function VirtualSandbox() {
       if (!getAuthUser()) { setLeakStatsStatus('signed-out'); return; }
       setLeakStatsStatus('loading');
       const token = getAccessToken();
-      const r = await fetch('/api/assistant/sandbox/sandbox-analytics', {
+      const r = await requestAnalytics('/api/assistant/sandbox/sandbox-analytics', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!r.ok) throw new Error(`Request failed (${r.status})`);
       setLeakStats(await r.json());
       setLeakStatsStatus('ready');
     } catch (e) {
+      if (isAbortError(e)) return;
       console.warn('[LeakStats] Load error:', e?.message || e);
       setLeakStatsError(e?.message || 'Unknown error');
       setLeakStatsStatus('error');
     }
-  }, []);
+  }, [requestAnalytics]);
 
   const openAnalytics = useCallback(() => { setShowLeakStats(true); setLeakStatsStatus('loading'); loadLeakStats(); }, [loadLeakStats]);
 
@@ -1895,7 +1916,7 @@ export default function VirtualSandbox() {
       if (!getAuthUser()) return;
       const optimalLabel = freshData?.optimalAction?.label || null;
       const token = getAccessToken();
-      fetch('/api/assistant/sandbox/sandbox-analytics', {
+      const response = await fetch('/api/assistant/sandbox/sandbox-analytics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -1906,7 +1927,12 @@ export default function VirtualSandbox() {
           isCorrect: pickedAction && optimalLabel ? gradeAction(pickedAction, optimalLabel) : null,
           handStrength: handStrength?.label || null,
         }),
-      }).catch(e => console.warn('[Sandbox] analytics post failed:', e?.message || e));
+      });
+      const result = await readPersistenceResponse(response);
+      if (!result.success || !result.persisted) {
+        console.warn('[Sandbox] analytics not persisted:', result.error || result.reason);
+        toast.error('Analysis completed, but study progress did not sync.', { id: 'pa-progress-sync' });
+      }
     } catch (e) { console.warn('[Sandbox] analytics error:', e?.message || e); }
   }, [heroPosition, currentStreet, gameType, handStrength]);
 
@@ -2249,7 +2275,7 @@ export default function VirtualSandbox() {
       try {
         const accessToken = getAccessToken();
         if (accessToken && snapEquity !== null) {
-          await fetch('/api/sandbox/equity-snapshot', {
+          const response = await fetch('/api/sandbox/equity-snapshot', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
             body: JSON.stringify({
@@ -2260,6 +2286,10 @@ export default function VirtualSandbox() {
               boardCards: snapBoard || null,
             }),
           });
+          const result = await readPersistenceResponse(response);
+          if (!result.success || !result.persisted) {
+            console.warn('[Sandbox] equity snapshot not persisted:', result.error || result.reason);
+          }
         }
       } catch (e) { console.warn('[Sandbox] equity snapshot failed:', e?.message || e); }
     })();
@@ -2368,7 +2398,7 @@ export default function VirtualSandbox() {
         const sessionId = /^[A-Za-z0-9_-]{1,64}$/.test(normalizedSessionId)
           ? normalizedSessionId
           : null;
-        await fetch('/api/sandbox/coach-result', {
+        const response = await fetch('/api/sandbox/coach-result', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
           body: JSON.stringify({
@@ -2378,8 +2408,12 @@ export default function VirtualSandbox() {
             ...(sessionId ? { sessionId } : {}),
           }),
         });
-        if (typeof window !== 'undefined') {
+        const result = await readPersistenceResponse(response);
+        if (result.success && result.persisted && typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('sandbox-coach-result-saved', { detail: { isCorrect, evDelta: delta } }));
+        } else if (!result.success || result.reason !== 'guest') {
+          console.warn('[Sandbox] coach result not persisted:', result.error || result.reason);
+          toast.error('Coach result is visible here, but did not sync.', { id: 'pa-progress-sync' });
         }
       } catch (e) { console.warn('[Sandbox] coach result post failed:', e?.message || e); }
     })();
@@ -2502,6 +2536,11 @@ export default function VirtualSandbox() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ scenarioHash: hash, userAction: guess, correctAction: correctLabel, isCorrect, spotId: activeSpot?.id || null }),
+      }).then(readPersistenceResponse).then(result => {
+        if (!result.success || !result.persisted) {
+          console.warn('[Sandbox] quiz result not persisted:', result.error || result.reason);
+          toast.error('Quiz score updated here, but did not sync.', { id: 'pa-progress-sync' });
+        }
       }).catch(e => console.warn('[Sandbox] quiz post failed:', e?.message || e));
     } catch (e) { console.warn('[Sandbox] quiz error:', e?.message || e); }
   }, [resultsOverride, results, activeSpot, board, heroHand, heroPosition, currentStreet, scheduleReview]);
@@ -2707,13 +2746,21 @@ export default function VirtualSandbox() {
         label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} on ${board.flop.join('') || 'preflop'}`,
         created_at: new Date().toISOString(),
       };
-      if (!user) { setSaveStatus(saveBookmarkLocally(payload) ? 'saved' : 'error'); return; }
+      if (!user) {
+        const local = saveBookmarkLocally(payload);
+        setSaveStatus(local ? 'saved' : 'error');
+        if (local) toast('Saved on this device only. Sign in to sync it.');
+        return;
+      }
       const { error: dbError } = await supabase.from('sandbox_bookmarks').insert(payload);
       if (dbError) {
         console.warn('[Sandbox] Bookmark save error (table may not exist yet):', dbError.message);
-        setSaveStatus(saveBookmarkLocally(payload) ? 'saved' : 'error');
+        const local = saveBookmarkLocally(payload);
+        setSaveStatus(local ? 'saved' : 'error');
+        if (local) toast('Cloud sync failed. Bookmark saved on this device only.');
       } else {
         setSaveStatus('saved');
+        toast.success('Bookmark synced');
         if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pa-data-updated'));
       }
     } catch (err) {
@@ -2934,7 +2981,7 @@ export default function VirtualSandbox() {
 
         {/* ── Leak practice hand-off from the Leak Finder ── */}
         {practiceFocus && (
-          <div style={{
+          <div className="sandbox-practice-banner" style={{
             ...cardCompact, background: T.warnSoft, border: `1px solid rgba(255,198,109,0.3)`,
             display: 'flex', alignItems: 'center', gap: S.md, marginTop: S.md,
           }}>
@@ -2962,20 +3009,22 @@ export default function VirtualSandbox() {
         )}
 
         {/* ── Always-visible progress + live numbers ── */}
-        <StatusStrip
-          quizScore={quizScore}
-          coachStreak={coachStreak}
-          equity={equity?.heroEquity}
-          pot={tablePot}
-          spr={tableSpr}
-          handClass={handStrength?.label || null}
-          dueCount={dueItems.length}
-          onDue={() => setShowDue(true)}
-        />
+        <div className="sandbox-status-row">
+          <StatusStrip
+            quizScore={quizScore}
+            coachStreak={coachStreak}
+            equity={equity?.heroEquity}
+            pot={tablePot}
+            spr={tableSpr}
+            handClass={handStrength?.label || null}
+            dueCount={dueItems.length}
+            onDue={() => setShowDue(true)}
+          />
+        </div>
 
         {/* ── Board texture chip (moved OFF the felt where it never fit) ── */}
         {(textureLabel || equity?.refining) && (
-          <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="sandbox-texture-row" style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap', alignItems: 'center' }}>
             {textureLabel && (
               <button
                 type="button" className="pa-btn"
@@ -3345,6 +3394,8 @@ export default function VirtualSandbox() {
         isOpen={showSessions}
         onClose={() => setShowSessions(false)}
         leaderboardEntries={leaderboardEntries}
+        leaderboardLoading={leaderboardLoading}
+        leaderboardError={leaderboardError}
         onLeakStats={openAnalytics}
         onLoad={(session) => {
           const flop = session.board_flop
@@ -4066,7 +4117,7 @@ export default function VirtualSandbox() {
         )}
       </BottomSheet>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .sandbox-page { min-height: 100vh; min-height: 100dvh; }
         .sandbox-page {
           background-image:
@@ -4095,10 +4146,33 @@ export default function VirtualSandbox() {
         @media (min-width: 769px) {
           .deck-grid-only { display: block; }
           .deck-steps-only { display: none; }
-          .sandbox-workspace { padding-top: 24px !important; gap: 18px !important; }
-          .sandbox-table-wrap { width: min(100%, 720px) !important; margin-inline: auto; }
+          .sandbox-workspace {
+            max-width: 1180px !important;
+            padding-top: 24px !important;
+            gap: 18px 28px !important;
+            display: grid !important;
+            grid-template-columns: 400px minmax(0, 1fr);
+            align-items: start;
+          }
+          .sandbox-workspace > * { grid-column: 2; min-width: 0; }
+          .sandbox-practice-banner,
+          .sandbox-status-row { grid-column: 1 / -1 !important; }
+          .sandbox-table-wrap {
+            grid-column: 1 !important;
+            grid-row: auto / span 14;
+            width: 100% !important;
+            margin-inline: auto;
+            position: sticky;
+            top: 84px;
+            align-self: start;
+          }
+          .sandbox-texture-row { min-height: 44px; }
+          .pa-action-presets {
+            flex-wrap: wrap;
+            overflow-x: visible !important;
+          }
           .sandbox-command-bar {
-            left: 50% !important; right: auto !important; width: min(860px, calc(100% - 48px));
+            left: 50% !important; right: auto !important; width: min(1120px, calc(100% - 48px));
             transform: translateX(-50%); bottom: 72px !important;
             border: 1px solid ${T.borderHi}; border-radius: 4px;
             box-shadow: inset 0 1px 0 rgba(216,251,255,.14), 0 14px 30px rgba(0,0,0,.56);
@@ -4115,7 +4189,7 @@ export default function VirtualSandbox() {
             scroll-behavior: auto !important;
           }
         }
-      `}</style>
+      ` }} />
 
       <BottomNavBar />
     </div>

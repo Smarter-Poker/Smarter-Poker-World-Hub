@@ -27,6 +27,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -134,12 +135,20 @@ async function handleCreate(req, res, supabase) {
             console.warn('[create-share] sandbox_shared_scenarios table missing — run migration to restore');
         }
         console.warn('[create-share] Insert error:', lastError.message);
-        return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        return res.status(lastError.code === '42P01' ? 503 : 500).json(persistenceFailure(
+            lastError.code === '42P01'
+                ? 'Share links are temporarily unavailable. No link was created.'
+                : 'The share link could not be created.',
+            lastError.code === '42P01' ? 'storage_unavailable' : 'write_failed',
+        ));
     }
 
     // `revocable` tells the client whether a Revoke control is worth showing:
     // guest-created rows have a null creator_id and can never be taken back.
-    return res.status(200).json({ success: true, shareId: data?.id, revocable: !!userId });
+    return res.status(200).json(persistedResult(data || null, {
+        shareId: data?.id,
+        revocable: !!userId,
+    }));
 }
 
 // ── GET: list the caller's links ───────────────────────────────────────────
@@ -165,8 +174,11 @@ async function handleList(req, res, supabase) {
         if (!error) { rows = data || []; lastError = null; break; }
         lastError = error;
         if (error.code === '42P01') {
-            // Table not deployed — an empty list is the truthful answer.
-            return res.status(200).json({ success: true, shares: [] });
+            return res.status(503).json(persistenceFailure(
+                'Share-link history is temporarily unavailable.',
+                'storage_unavailable',
+                { shares: [] },
+            ));
         }
         if (error.code !== '42703') break; // only column-missing errors justify retrying
     }
@@ -227,7 +239,7 @@ async function handleRevoke(req, res, supabase) {
         return res.status(404).json({ success: false, error: 'Share link not found' });
     }
 
-    return res.status(200).json({ success: true, revoked: data[0]?.id || shareId });
+    return res.status(200).json(persistedResult({ id: data[0]?.id || shareId }, { revoked: data[0]?.id || shareId }));
 }
 
 // ── PATCH: view beacon ─────────────────────────────────────────────────────

@@ -16,8 +16,12 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import toast from 'react-hot-toast';
 import { FolderOpen, Play, Trash2, Search, RotateCcw } from 'lucide-react';
 import { getAccessToken } from '../../lib/authUtils';
+import { readPersistenceResponse, persistenceMessage } from '../../lib/personal-assistant/persistenceContract';
 import { T, F, S, R, btn, pill, numeric } from './paTokens';
-import { BottomSheet, PAStyles, Skeleton, EmptyState, ErrorState, SignInState } from './paKit';
+import {
+    BottomSheet, PAStyles, Skeleton, EmptyState, ErrorState, SignInState,
+    useAbortableFetch, isAbortError,
+} from './paKit';
 
 const PAGE_SIZE = 20;
 
@@ -61,8 +65,13 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
 
     const confirmTimer = useRef(null);
     const parseCache = useRef(new Map());
+    const fetchRequestId = useRef(0);
+    const requestHands = useAbortableFetch();
 
-    useEffect(() => () => { if (confirmTimer.current) clearTimeout(confirmTimer.current); }, []);
+    useEffect(() => () => {
+        fetchRequestId.current += 1;
+        if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    }, []);
 
     const stateFor = useCallback((hand) => {
         const key = hand?.id ?? JSON.stringify(hand?.state_json || {}).slice(0, 64);
@@ -72,6 +81,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
     }, []);
 
     const fetchHands = useCallback(async () => {
+        const requestId = ++fetchRequestId.current;
         setLoading(true);
         setAuthError(false);
         setFetchError(null);
@@ -80,13 +90,15 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
             const headers = {};
             if (token) headers.Authorization = `Bearer ${token}`;
 
-            const res = await fetch('/api/sandbox/saved-hands', { headers });
+            const res = await requestHands('/api/sandbox/saved-hands', { headers });
+            if (requestId !== fetchRequestId.current) return;
             if (res.status === 401) {
                 setAuthError(true);
                 setHands([]);
                 return;
             }
             const json = await res.json().catch(() => null);
+            if (requestId !== fetchRequestId.current) return;
             if (!res.ok || !json?.success) {
                 setFetchError('Could not reach your saved scenarios.');
                 return;
@@ -100,12 +112,13 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                 setActiveFolder(null);
             }
         } catch (err) {
+            if (isAbortError(err) || requestId !== fetchRequestId.current) return;
             console.warn('[StudyFolders] fetch error:', err?.message || err);
             setFetchError('Could not reach your saved scenarios.');
         } finally {
-            setLoading(false);
+            if (requestId === fetchRequestId.current) setLoading(false);
         }
-    }, []);
+    }, [requestHands]);
 
     useEffect(() => {
         fetchHands();
@@ -129,12 +142,12 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                     state_json: parseState(hand.state_json),
                 }),
             });
-            const json = await res.json().catch(() => null);
-            if (res.ok && json?.success) {
+            const result = await readPersistenceResponse(res);
+            if (result.success && result.persisted) {
                 toast.success('Scenario restored');
                 fetchHands();
             } else {
-                toast.error('Could not restore that scenario');
+                toast.error(persistenceMessage(result, 'Could not restore that scenario'));
             }
         } catch (e) {
             console.warn('[StudyFolders] restore error:', e?.message || e);
@@ -157,8 +170,8 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                 headers,
                 body: JSON.stringify({ id }),
             });
-            const json = await res.json().catch(() => null);
-            if (res.ok && json?.success) {
+            const result = await readPersistenceResponse(res);
+            if (result.success && result.persisted) {
                 // The active folder can vanish with its last hand — the effect
                 // below re-points it once `folders` recomputes.
                 setHands(prev => prev.filter(h => h.id !== id));
@@ -179,7 +192,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
             } else if (res.status === 401) {
                 toast.error('Sign in again to delete saved hands');
             } else {
-                toast.error('Could not delete that scenario');
+                toast.error(persistenceMessage(result, 'Could not delete that scenario'));
             }
         } catch (err) {
             console.warn('[StudyFolders] Delete error:', err);

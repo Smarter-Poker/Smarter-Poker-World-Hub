@@ -8,6 +8,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -62,11 +63,14 @@ export default async function handler(req, res) {
 
             if (error) {
                 console.warn('[Analytics] Log error:', error.message);
-                if (error.code === '42P01') return res.status(201).json({ success: true, persisted: false });
+                if (error.code === '42P01') return res.status(503).json(persistenceFailure(
+                    'Study analytics could not be saved. Try again shortly.',
+                    'storage_unavailable',
+                ));
                 return res.status(500).json({ error: 'Internal server error' });
             }
 
-            return res.status(201).json({ success: true });
+            return res.status(201).json(persistedResult());
         }
 
         if (req.method === 'GET') {
@@ -94,6 +98,20 @@ export default async function handler(req, res) {
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', user.id),
             ]);
+
+            const queryError = posRes?.error || accuracyRes?.error || countRes?.error;
+            if (queryError) {
+                console.warn('[Analytics] Read error:', queryError.message);
+                const unavailable = queryError.code === '42P01';
+                return res.status(unavailable ? 503 : 500).json({
+                    success: false,
+                    persisted: false,
+                    reason: unavailable ? 'storage_unavailable' : 'read_failed',
+                    error: unavailable
+                        ? 'Study analytics are temporarily unavailable.'
+                        : 'Study analytics could not be loaded.',
+                });
+            }
 
             const posData = posRes?.data || [];
             const accuracyData = accuracyRes?.data || [];
@@ -127,6 +145,7 @@ export default async function handler(req, res) {
             }
 
             return res.status(200).json({
+                success: true,
                 totalAnalyses: count,
                 positionDistribution: posCounts,
                 accuracy: total > 0 ? Math.round(correct / total * 100) : null,
