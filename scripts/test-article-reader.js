@@ -52,6 +52,15 @@ async function runTest() {
         // Step 2: Wait for posts to load
         console.log('2. Waiting for posts to load...');
         await new Promise(r => setTimeout(r, 5000));
+        // The install prompt shares the same fixed/z-index visual vocabulary as
+        // the reader. Dismiss it so it cannot be mistaken for the article modal
+        // or intercept a card click in a fresh browser profile.
+        await page.evaluate(() => {
+            const installPrompt = document.querySelector(
+                '[role="dialog"][aria-label="Install Smarter Poker"]'
+            );
+            installPrompt?.querySelector('button')?.click();
+        });
 
         // Step 3 & 4: Find and click article card
         console.log('3. Looking for and clicking article card...');
@@ -59,17 +68,16 @@ async function runTest() {
         await new Promise(r => setTimeout(r, 1000));
 
         let cardPos = await page.evaluate(() => {
-            // Look for article card by text content
-            const cards = Array.from(document.querySelectorAll('div'));
-            for (const card of cards) {
-                const text = card.innerText || '';
-                if (text.includes('Click to read full article') ||
-                    text.includes('POKERNEWS.COM') ||
-                    text.includes('POKERFUSE.COM')) {
-                    // Find the clickable container
-                    const clickable = card.closest('[style*="cursor: pointer"]') || card;
+            // Start from the smallest matching text node. Scanning broad divs
+            // can select the entire feed and click its center instead of the card.
+            const labels = Array.from(document.querySelectorAll('div, span, p'))
+                .filter((el) => el.children.length === 0);
+            for (const label of labels) {
+                const text = label.innerText || '';
+                if (text.includes('Click to read full article')) {
+                    const clickable = label.closest('[style*="cursor: pointer"]');
                     // Ensure it has some size
-                    if (clickable.offsetHeight > 50) {
+                    if (clickable?.offsetHeight > 50) {
                         clickable.scrollIntoView({ behavior: 'instant', block: 'center' });
                         const rect = clickable.getBoundingClientRect();
                         return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
@@ -91,10 +99,11 @@ async function runTest() {
 
             // Try one more time
             cardPos = await page.evaluate(() => {
-                const elements = document.querySelectorAll('div');
+                const elements = document.querySelectorAll('div, span, p');
                 for (const el of elements) {
-                    if (el.innerText?.includes('Click to read full article')) {
-                        const clickable = el.closest('[style*="cursor: pointer"]') || el;
+                    if (el.children.length === 0 && el.innerText?.includes('Click to read full article')) {
+                        const clickable = el.closest('[style*="cursor: pointer"]');
+                        if (!clickable) continue;
                         clickable.scrollIntoView({ behavior: 'instant', block: 'center' });
                         const rect = clickable.getBoundingClientRect();
                         return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
@@ -115,13 +124,12 @@ async function runTest() {
         // Step 5: Check if modal opened
         console.log('5. Checking for modal...');
         const modalOpen = await page.evaluate(() => {
-            // Check for modal by looking for fixed overlay covering the screen
-            const modal = document.querySelector('div[style*="position: fixed"][style*="bottom: 0px"], div[style*="position: fixed"][style*="inset: 0px"], div[style*="position: fixed"][style*="top: 0px"]');
-            if (modal && modal.style.zIndex >= 9999 && modal.innerText.includes('Back')) {
-                const backBtn = Array.from(modal.querySelectorAll('button')).find(b => b.innerText.includes('Back'));
-                return { hasModal: true, hasBackButton: !!backBtn, html: modal.outerHTML.substring(0, 200) };
-            }
-            return { hasModal: !!modal };
+            const iframe = document.querySelector('iframe[src*="/api/proxy"], iframe[src*="youtube.com/embed"]');
+            const modal = iframe?.closest('div[style*="position: fixed"]');
+            const backBtn = modal
+                ? Array.from(modal.querySelectorAll('button')).find(b => b.innerText.includes('Back'))
+                : null;
+            return { hasModal: !!modal, hasBackButton: !!backBtn };
         });
 
         if (modalOpen.hasModal) {
@@ -145,7 +153,8 @@ async function runTest() {
                 }
             }
             // Dump the modal HTML if iframe not found
-            const modal = document.querySelector('div[style*="position: fixed"][style*="z-index: 9999"]');
+            const modal = document.querySelector('iframe[src*="/api/proxy"], iframe[src*="youtube.com/embed"]')
+                ?.closest('div[style*="position: fixed"]');
             return modal ? 'HTML: ' + modal.outerHTML.substring(0, 500) : 'No modal found';
         });
 
@@ -159,14 +168,14 @@ async function runTest() {
         // Step 7: Click Back button
         console.log('7. Clicking Back button...');
         const backBtnPos = await page.evaluate(() => {
-            const buttons = document.querySelectorAll('button');
-            for (const btn of buttons) {
-                if (btn.innerText.includes('Back')) {
-                    const rect = btn.getBoundingClientRect();
-                    return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-                }
-            }
-            return null;
+            const iframe = document.querySelector('iframe[src*="/api/proxy"], iframe[src*="youtube.com/embed"]');
+            const modal = iframe?.closest('div[style*="position: fixed"]');
+            const btn = modal
+                ? Array.from(modal.querySelectorAll('button')).find((candidate) => candidate.innerText.includes('Back'))
+                : null;
+            if (!btn) return null;
+            const rect = btn.getBoundingClientRect();
+            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
         });
 
         if (backBtnPos) {
@@ -180,13 +189,9 @@ async function runTest() {
         // Step 8: Verify modal closed
         console.log('8. Verifying modal closed...');
         const modalClosed = await page.evaluate(() => {
-            const modals = document.querySelectorAll('div[style*="position: fixed"][style*="bottom: 0px"], div[style*="position: fixed"][style*="inset: 0px"], div[style*="position: fixed"][style*="top: 0px"]');
-            for (const modal of modals) {
-                if (modal.style.zIndex >= 9999 && modal.innerText.includes('Back')) {
-                    return false;
-                }
-            }
-            return true;
+            return !document.querySelector(
+                'iframe[src*="/api/proxy"], iframe[src*="youtube.com/embed"]'
+            );
         });
 
         if (modalClosed) {
