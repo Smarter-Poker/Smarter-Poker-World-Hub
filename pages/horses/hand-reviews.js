@@ -200,6 +200,16 @@ export default function HorseHandReviews() {
   const [telemetry, setTelemetry] = useState([]);
   const [telemetryError, setTelemetryError] = useState(null);
   const [telemetryOpen, setTelemetryOpen] = useState(false);
+  // 2026-08-28: the two feeds this panel was missing - the nightly league
+  // card (the A/B measurements every strategy decision hangs on) and the
+  // leak-tag RATE trend (raw counts mislead when fleet volume moves; the
+  // 2026-08-27 false-spike incident was exactly that).
+  const [league, setLeague] = useState([]);
+  const [leagueError, setLeagueError] = useState(null);
+  const [leagueOpen, setLeagueOpen] = useState(false);
+  const [tagTrends, setTagTrends] = useState([]);
+  const [tagTrendsError, setTagTrendsError] = useState(null);
+  const [trendsOpen, setTrendsOpen] = useState(false);
 
   const [filters, setFilters] = useState({ horse: '', variant: '', format: '', tag: '', win: '' });
   const [rows, setRows] = useState([]);
@@ -266,6 +276,27 @@ export default function HorseHandReviews() {
     } else {
       setTelemetryError(null);
       setTelemetry(tData || []);
+    }
+    // Same error discipline as telemetry: a failed read must LOOK failed.
+    const { data: lgData, error: lgErr } = await supabase.rpc('ca_horse_league_card', {
+      p_runs: 3,
+    });
+    if (lgErr) {
+      setLeagueError(lgErr.message);
+      setLeague([]);
+    } else {
+      setLeagueError(null);
+      setLeague(lgData || []);
+    }
+    const { data: ttData, error: ttErr } = await supabase.rpc('ca_horse_tag_trends', {
+      p_days: 7,
+    });
+    if (ttErr) {
+      setTagTrendsError(ttErr.message);
+      setTagTrends([]);
+    } else {
+      setTagTrendsError(null);
+      setTagTrends(ttData || []);
     }
   }, []);
 
@@ -438,6 +469,133 @@ export default function HorseHandReviews() {
                 </table>
               </div>
             )}
+          </div>
+
+          {/* 2026-08-28: League Card - the nightly A/B card, the referee for
+              every strategy change. Significant = |bb100| > 2*stderr. */}
+          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
+            <div
+              onClick={() => setLeagueOpen(!leagueOpen)}
+              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center' }}
+            >
+              <span style={{ fontWeight: 700 }}>League Card</span>
+              <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+                Nightly Duplicate-Deal A/B Per Strategy Layer. Significant Means The Edge Beats Twice Its Own Noise.
+              </span>
+              <span style={{ marginLeft: 'auto', color: POSITIVE, fontSize: '0.8rem' }}>
+                {leagueError ? 'Read Failed' : league.length > 0 ? `${league.length} rows` : 'No Data Yet'}
+              </span>
+            </div>
+            {leagueOpen && (
+              <div style={{ overflowX: 'auto', marginTop: 6 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ color: MUTED, textAlign: 'left' }}>
+                      <th style={{ padding: '0.3rem' }}>Run</th>
+                      <th style={{ padding: '0.3rem' }}>Matchup</th>
+                      <th style={{ padding: '0.3rem' }}>bb/100</th>
+                      <th style={{ padding: '0.3rem' }}>Stderr</th>
+                      <th style={{ padding: '0.3rem' }}>Verdict</th>
+                      <th style={{ padding: '0.3rem' }}>Illegal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {league.map((m) => {
+                      const sig = Math.abs(Number(m.bb100)) > 2 * Number(m.stderr);
+                      const pos = Number(m.bb100) > 0;
+                      return (
+                        <tr key={`${m.run_date}-${m.matchup}`} style={{ borderTop: `1px solid ${BORDER}` }}>
+                          <td style={{ padding: '0.3rem', whiteSpace: 'nowrap' }}>{m.run_date}</td>
+                          <td style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{m.matchup}</td>
+                          <td style={{ padding: '0.3rem', fontWeight: 600, color: sig ? (pos ? POSITIVE : RED) : TEXT }}>
+                            {m.bb100}
+                          </td>
+                          <td style={{ padding: '0.3rem', color: MUTED }}>{m.stderr}</td>
+                          <td style={{ padding: '0.3rem', color: sig ? (pos ? POSITIVE : RED) : MUTED }}>
+                            {sig ? (pos ? 'Significant Positive' : 'Significant Negative') : 'Not Resolved'}
+                          </td>
+                          <td style={{ padding: '0.3rem', color: Number(m.illegal_actions) > 0 ? RED : MUTED }}>
+                            {m.illegal_actions}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {league.length === 0 && (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '0.4rem', color: MUTED }}>
+                          {leagueError
+                            ? `The league read FAILED (${leagueError}). Fix the read before drawing conclusions.`
+                            : 'No league runs recorded yet.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* 2026-08-28: Leak-Tag Rates - per 1,000 captured hands, so fleet
+              growth cannot masquerade as a regression. */}
+          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
+            <div
+              onClick={() => setTrendsOpen(!trendsOpen)}
+              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center' }}
+            >
+              <span style={{ fontWeight: 700 }}>Leak-Tag Rates</span>
+              <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+                Tags Per 1,000 Captured Hands, Last 7 Days. Rates, Not Raw Counts.
+              </span>
+              <span style={{ marginLeft: 'auto', color: POSITIVE, fontSize: '0.8rem' }}>
+                {tagTrendsError ? 'Read Failed' : tagTrends.length > 0 ? 'Loaded' : 'No Data Yet'}
+              </span>
+            </div>
+            {trendsOpen && (() => {
+              const daysList = [...new Set(tagTrends.map((t) => t.day))].sort();
+              const byTag = {};
+              for (const t of tagTrends) {
+                if (!byTag[t.tag]) byTag[t.tag] = {};
+                byTag[t.tag][t.day] = Number(t.hands) > 0 ? (Number(t.n) * 1000) / Number(t.hands) : 0;
+              }
+              const rows = Object.entries(byTag)
+                .map(([tag, byDay]) => ({ tag, byDay, latest: byDay[daysList[daysList.length - 1]] || 0 }))
+                .sort((a, b) => b.latest - a.latest);
+              return (
+                <div style={{ overflowX: 'auto', marginTop: 6 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                    <thead>
+                      <tr style={{ color: MUTED, textAlign: 'left' }}>
+                        <th style={{ padding: '0.3rem' }}>Tag</th>
+                        {daysList.map((d) => (
+                          <th key={d} style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{String(d).slice(5)}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr key={r.tag} style={{ borderTop: `1px solid ${BORDER}` }}>
+                          <td style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{r.tag}</td>
+                          {daysList.map((d) => (
+                            <td key={d} style={{ padding: '0.3rem', fontFamily: 'monospace', color: r.byDay[d] == null ? MUTED : TEXT }}>
+                              {r.byDay[d] == null ? '-' : r.byDay[d].toFixed(1)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                      {rows.length === 0 && (
+                        <tr>
+                          <td colSpan={1 + daysList.length} style={{ padding: '0.4rem', color: MUTED }}>
+                            {tagTrendsError
+                              ? `The trends read FAILED (${tagTrendsError}). Fix the read before drawing conclusions.`
+                              : 'No tagged hands in the window.'}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
           </div>
 
           {audits.map((a) => {
