@@ -676,32 +676,48 @@ export default function useGTOTrainer(
     async (questionId, selectedAnswer, isCorrect, spotMeta = {}) => {
       if (!userId || !gameId) return;
 
+      const submissionId = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${questionId}:${Date.now()}:${selectedAnswer}`;
       try {
         const token = getSessionToken();
-        await fetch('/api/training/record-question', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            userId,
-            gameId,
-            questionId,
-            selectedAnswer,
-            isCorrect,
-            level,
-            // ═══ PHASE 14: Spot metadata for weak-spot targeting ═══
-            heroPosition: spotMeta.heroPosition || null,
-            villainPosition: spotMeta.villainPosition || null,
-            street: spotMeta.street || null,
-            classification: spotMeta.classification || null,
-            evLoss: spotMeta.evLoss || 0,
-            spotType: spotMeta.spotType || null,
-          }),
-        });
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const response = await fetch('/api/training/record-question', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              userId,
+              gameId,
+              questionId,
+              submissionId,
+              selectedAnswer,
+              isCorrect,
+              level,
+              // ═══ PHASE 14: Spot metadata for weak-spot targeting ═══
+              heroPosition: spotMeta.heroPosition || null,
+              villainPosition: spotMeta.villainPosition || null,
+              street: spotMeta.street || null,
+              classification: spotMeta.classification || null,
+              evLoss: spotMeta.evLoss || 0,
+              spotType: spotMeta.spotType || null,
+            }),
+          });
+          if (response.ok) return true;
+
+          let detail = '';
+          try { detail = (await response.json())?.error || ''; } catch (_) { /* response may be empty */ }
+          const retryable = response.status === 429 || response.status >= 500;
+          if (!retryable || attempt === 2) {
+            throw new Error(detail || `Answer persistence failed (${response.status})`);
+          }
+          await new Promise(resolve => setTimeout(resolve, 250 * (2 ** attempt)));
+        }
       } catch (err) {
-        console.warn('[App] Handled exception:', err?.message || err);
+        console.warn('[Training] Answer evidence was not persisted:', err?.message || err);
+        return false;
       }
     },
     [userId, gameId, level]
@@ -1343,7 +1359,7 @@ export default function useGTOTrainer(
       updateWeakSpotMap(heroPos, streetName, spotType, moveResult.classification);
 
       // Record to backend (async, non-blocking) — now with spot metadata
-      recordAnswer(currentQuestion.id, selectedOptionId, isCorrect, {
+      void recordAnswer(currentQuestion.id, selectedOptionId, isCorrect, {
         heroPosition: heroPos,
         villainPosition: scenario.villainPosition || 'BB',
         street: streetName,

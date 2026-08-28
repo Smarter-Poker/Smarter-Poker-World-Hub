@@ -48,7 +48,8 @@ export function analyzeHand(hand) {
     }
 
     const classifications = decisions.map(d => d.classification);
-    const correct = classifications.filter(c => c === 'correct').length;
+    const priced = decisions.filter(d => d.classification !== 'unpriced');
+    const correct = priced.filter(d => d.classification === 'correct').length;
     const total = decisions.length;
 
     return {
@@ -57,8 +58,10 @@ export function analyzeHand(hand) {
         decisions,
         summary: {
             totalDecisions: total,
+            pricedDecisions: priced.length,
+            unpricedDecisions: total - priced.length,
             correctDecisions: correct,
-            accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+            accuracy: priced.length > 0 ? Math.round((correct / priced.length) * 100) : null,
             totalEVLoss: Math.round(totalEVLoss * 100) / 100,
             worstDecision: decisions.reduce((worst, d) =>
                 d.evLoss > (worst?.evLoss || 0) ? d : worst, null),
@@ -67,6 +70,7 @@ export function analyzeHand(hand) {
                 inaccuracy: classifications.filter(c => c === 'inaccuracy').length,
                 mistake: classifications.filter(c => c === 'mistake').length,
                 blunder: classifications.filter(c => c === 'blunder').length,
+                unpriced: classifications.filter(c => c === 'unpriced').length,
             },
         },
     };
@@ -98,9 +102,13 @@ function analyzeDecision(point, hand) {
     let evLossResult = null;
 
     if (street === 'preflop') {
-        // Preflop: use solver ranges (simplified)
-        gtoStrategy = { action: isPFR ? 'raise' : 'call', reason: 'Preflop solver range' };
-        evLossResult = { evLoss: 0, classification: 'correct' }; // Simplified for preflop
+        // This synchronous analyzer has no stack/position/action-node chart
+        // lookup. Claiming every preflop action was correct hid the platform's
+        // most important leaks. The server-side solver audit prices these from
+        // memory_charts_gold/training questions; this fallback is honest about
+        // what it cannot determine.
+        gtoStrategy = { action: null, reason: 'Requires server solver-range match' };
+        evLossResult = { evLoss: 0, actionUnavailable: true };
     } else if (board.length >= 3) {
         // Postflop: use PostflopStrategyEngine
         const potSize = _estimatePotSize(hand, street);
@@ -180,19 +188,21 @@ export function analyzeSession(hands) {
     const allDecisions = analyzed.flatMap(a => a.decisions);
 
     // Aggregate statistics
+    const pricedDecisions = allDecisions.filter(d => d.classification !== 'unpriced');
     const totalDecisions = allDecisions.length;
-    const totalEVLoss = allDecisions.reduce((a, d) => a + d.evLoss, 0);
+    const totalEVLoss = pricedDecisions.reduce((a, d) => a + d.evLoss, 0);
 
     const classifications = {
         correct: allDecisions.filter(d => d.classification === 'correct').length,
         inaccuracy: allDecisions.filter(d => d.classification === 'inaccuracy').length,
         mistake: allDecisions.filter(d => d.classification === 'mistake').length,
         blunder: allDecisions.filter(d => d.classification === 'blunder').length,
+        unpriced: allDecisions.filter(d => d.classification === 'unpriced').length,
     };
 
     // Per-street breakdown
     const streetStats = {};
-    for (const d of allDecisions) {
+    for (const d of pricedDecisions) {
         if (!streetStats[d.street]) {
             streetStats[d.street] = { decisions: 0, evLoss: 0, correct: 0 };
         }
@@ -212,7 +222,7 @@ export function analyzeSession(hands) {
 
     // Per-position breakdown
     const positionStats = {};
-    for (const d of allDecisions) {
+    for (const d of pricedDecisions) {
         const pos = d.position || 'unknown';
         if (!positionStats[pos]) {
             positionStats[pos] = { decisions: 0, evLoss: 0, correct: 0 };
@@ -229,23 +239,25 @@ export function analyzeSession(hands) {
     }
 
     // Top mistakes (highest EV loss decisions)
-    const topMistakes = [...allDecisions]
+    const topMistakes = [...pricedDecisions]
         .sort((a, b) => b.evLoss - a.evLoss)
         .slice(0, 10);
 
-    const gtoScore = totalDecisions > 0
-        ? Math.round((classifications.correct / totalDecisions) * 100)
-        : 0;
+    const gtoScore = pricedDecisions.length > 0
+        ? Math.round((classifications.correct / pricedDecisions.length) * 100)
+        : null;
 
     return {
         hands: analyzed,
         report: {
             handsAnalyzed: hands.length,
             totalDecisions,
+            pricedDecisions: pricedDecisions.length,
+            unpricedDecisions: totalDecisions - pricedDecisions.length,
             gtoScore,
             totalEVLoss: Math.round(totalEVLoss * 100) / 100,
-            avgEVLossPerDecision: totalDecisions > 0
-                ? Math.round((totalEVLoss / totalDecisions) * 100) / 100
+            avgEVLossPerDecision: pricedDecisions.length > 0
+                ? Math.round((totalEVLoss / pricedDecisions.length) * 100) / 100
                 : 0,
             classifications,
             streetStats,

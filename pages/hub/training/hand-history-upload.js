@@ -19,8 +19,7 @@ import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authU
 import Card from '../../../src/components/training/Card';
 // ── Phase 5 Engines: Hand History Analysis Pipeline ──────────────────────
 import { parseHandHistory as engineParseHandHistory, detectSite } from '../../../src/engines/HandHistoryParser';
-import { analyzeHand, analyzeSession } from '../../../src/engines/HandAnalyzer';
-import { detectLeaks, generateDrillRecommendations } from '../../../src/engines/LeakDetector';
+import { analyzeHand } from '../../../src/engines/HandAnalyzer';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-7b — adoption: shared empty-state primitive
 
@@ -331,6 +330,13 @@ function _flattenActions(hand) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const GRADE_TIERS = {
+  UNPRICED: {
+    label: 'Not priced',
+    icon: '—',
+    color: 'var(--sp-fg-dim)',
+    bg: 'rgba(148,163,184,0.07)',
+    border: 'rgba(148,163,184,0.18)',
+  },
   BEST: {
     label: 'Best',
     icon: '◆',
@@ -369,12 +375,76 @@ const GRADE_TIERS = {
 };
 
 function gradeHand(hand) {
+  // Server-side audit uses the exact canonical questions/ranges served by the
+  // Training Arena. Only verified decisions enter the score; unmatched nodes
+  // remain visible as unpriced rather than being silently called correct.
+  if (hand?._solverAudit?.decisions?.length) {
+    const verified = hand._solverAudit.decisions.filter(d => d.solverVerified);
+    if (verified.length > 0) {
+      const correct = verified.filter(d => ['best', 'correct'].includes(d.classification)).length;
+      const score = Math.round((correct / verified.length) * 100);
+      const evLoss = verified.reduce((sum, d) => sum + (d.evLossMeasured ? Number(d.evLoss) || 0 : 0), 0);
+      let gradeName, tier;
+      if (score >= 90) { gradeName = 'BEST'; tier = GRADE_TIERS.BEST; }
+      else if (score >= 75) { gradeName = 'CORRECT'; tier = GRADE_TIERS.CORRECT; }
+      else if (score >= 55) { gradeName = 'INACCURACY'; tier = GRADE_TIERS.INACCURACY; }
+      else if (score >= 30) { gradeName = 'MISTAKE'; tier = GRADE_TIERS.MISTAKE; }
+      else { gradeName = 'BLUNDER'; tier = GRADE_TIERS.BLUNDER; }
+      return {
+        grade: gradeName,
+        tier,
+        color: tier.color,
+        evLoss: +evLoss.toFixed(3),
+        score,
+        position: hand._engineHand?.hero?.position || deriveHeroPosition(hand),
+        street: verified[verified.length - 1]?.street || 'preflop',
+        solverVerified: true,
+        verifiedDecisions: verified.length,
+        correctDecisions: correct,
+        mistakeDecisions: verified.length - correct,
+        tips: verified.map(d => ({
+          text: `${d.street}: ${d.playerAction} — ${d.classification}${d.solverAction ? ` | Solver: ${d.solverAction}` : ''}${d.evLossMeasured ? ` (${Number(d.evLoss).toFixed(2)} BB)` : ' (EV not exposed)'}`,
+          type: ['best', 'correct'].includes(d.classification) ? 'good' : 'warning',
+        })),
+      };
+    }
+    return {
+      grade: 'N/A',
+      tier: GRADE_TIERS.UNPRICED,
+      color: GRADE_TIERS.UNPRICED.color,
+      evLoss: 0,
+      score: null,
+      position: hand._engineHand?.hero?.position || deriveHeroPosition(hand),
+      street: hand._solverAudit.decisions.at(-1)?.street || 'preflop',
+      solverVerified: false,
+      verifiedDecisions: 0,
+      tips: [{
+        text: 'No exact shared solver node matched this hand. No GTO grade or EV loss was assigned.',
+        type: 'info',
+      }],
+    };
+  }
+
   // ── ENGINE PATH: Use HandAnalyzer for structured engine-parsed hands ──
   if (hand?._engineHand) {
     try {
       const analysis = analyzeHand(hand._engineHand);
       if (analysis && analysis.summary) {
         const s = analysis.summary;
+        if (!s.pricedDecisions) {
+          return {
+            grade: 'N/A',
+            tier: GRADE_TIERS.UNPRICED,
+            color: GRADE_TIERS.UNPRICED.color,
+            evLoss: 0,
+            score: null,
+            position: hand._engineHand.hero?.position || deriveHeroPosition(hand),
+            street: analysis.decisions.at(-1)?.street || 'preflop',
+            solverVerified: false,
+            verifiedDecisions: 0,
+            tips: [{ text: 'This hand has no priced decisions. It is excluded from solver accuracy and leak detection.', type: 'info' }],
+          };
+        }
         const score = s.accuracy || 0;
         let gradeName, tier;
         if (score >= 90) { gradeName = 'BEST'; tier = GRADE_TIERS.BEST; }
@@ -398,6 +468,8 @@ function gradeHand(hand) {
           position: hand._engineHand.hero?.position || deriveHeroPosition(hand),
           street: analysis.decisions.length > 0 ? analysis.decisions[analysis.decisions.length - 1].street : 'preflop',
           _engineAnalysis: analysis,
+          solverVerified: false,
+          estimated: true,
         };
       }
     } catch (e) {
@@ -420,6 +492,7 @@ function gradeHand(hand) {
         tips: [],
         position: 'UNK',
         street: 'preflop',
+        solverVerified: false,
       };
 
     const folds = heroActions.filter((a) => a.action === 'folds').length;
@@ -652,18 +725,21 @@ function gradeHand(hand) {
       score,
       position: heroPos,
       street,
+      solverVerified: false,
+      estimated: true,
     };
   } catch (err) {
     console.warn('[HH Analyzer] gradeHand error:', err);
     return {
-      grade: 'CORRECT',
-      tier: GRADE_TIERS.CORRECT,
-      color: GRADE_TIERS.CORRECT.color,
+      grade: 'N/A',
+      tier: GRADE_TIERS.UNPRICED,
+      color: GRADE_TIERS.UNPRICED.color,
       evLoss: 0,
       tips: [{ text: 'Analysis unavailable for this hand', type: 'info' }],
-      score: 75,
+      score: null,
       position: 'UNK',
       street: 'preflop',
+      solverVerified: false,
     };
   }
 }
@@ -711,7 +787,15 @@ function LeakReport({ hands }) {
   const validHands = hands.filter((h) => h && typeof h === 'object');
   if (validHands.length === 0) return null;
 
-  const graded = validHands.map((h) => gradeHand(h));
+  const graded = validHands.map((h) => gradeHand(h)).filter(g => g?.solverVerified);
+  if (graded.length === 0) {
+    return (
+      <div role="status" style={{ marginBottom: 20, padding: '16px 20px', borderRadius: 14, background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.2)', color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.6 }}>
+        <strong style={{ color: 'var(--sp-accent-blue)' }}>No verified solver leak score yet.</strong>{' '}
+        These hands remain available for replay, but unmatched or ambiguous decisions are excluded from GTO accuracy, EV loss, and Leak Finder evidence.
+      </div>
+    );
+  }
   const counts = { BEST: 0, CORRECT: 0, INACCURACY: 0, MISTAKE: 0, BLUNDER: 0, 'N/A': 0 };
   let totalEVLoss = 0;
   const streetLeaks = {
@@ -736,11 +820,12 @@ function LeakReport({ hands }) {
     }
   });
 
-  const total = validHands.length;
-  const denominator = Math.max(total - (counts['N/A'] || 0), 1);
+  const total = graded.reduce((sum, grade) => sum + (grade.verifiedDecisions || 0), 0);
+  const correctDecisionCount = graded.reduce((sum, grade) => sum + (grade.correctDecisions || 0), 0);
+  const denominator = Math.max(total, 1);
   const accuracy = Math.min(
     100,
-    Math.max(0, Math.round(((counts.BEST + counts.CORRECT) / denominator) * 100))
+    Math.max(0, Math.round((correctDecisionCount / denominator) * 100))
   );
   const sortedStreets = Object.entries(streetLeaks || {}).sort((a, b) => b[1].evLoss - a[1].evLoss);
   const worstStreet = sortedStreets[0] || ['preflop', { count: 0, evLoss: 0 }];
@@ -777,7 +862,7 @@ function LeakReport({ hands }) {
         }}
       >
         <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-fg)'}}> GTO Leak Report</div>
-        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>{total} hands analyzed</div>
+        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>{total} verified decisions</div>
       </div>
 
       {/* Grade Distribution Bar */}
@@ -882,7 +967,7 @@ function LeakReport({ hands }) {
           <div
             style={{ fontSize: 9, fontWeight: 600, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}
           >
-            Total EV Loss ($)
+            Measured EV Loss (BB)
           </div>
         </div>
         <div
@@ -894,7 +979,7 @@ function LeakReport({ hands }) {
           }}
         >
           <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--sp-accent-orange)' }}>
-            {counts.MISTAKE + counts.BLUNDER}
+            {graded.reduce((sum, grade) => sum + (grade.mistakeDecisions || 0), 0)}
           </div>
           <div
             style={{ fontSize: 9, fontWeight: 600, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}
@@ -990,7 +1075,7 @@ function AnalyzedHandRow({ hand, index }) {
   const heroActions = hand.actions.filter((a) => a.isHero);
   const heroActionSummary = heroActions.map((a) => a.action).join(' → ') || 'N/A';
   const coaching = gradeHand(hand);
-  const tier = coaching.tier || GRADE_TIERS.CORRECT;
+  const tier = coaching.tier || GRADE_TIERS.UNPRICED;
 
   return (
     <motion.div
@@ -1159,7 +1244,7 @@ function AnalyzedHandRow({ hand, index }) {
               ))}
             </div>
 
-            {/* GTO Coaching Panel — 5-Tier */}
+            {/* Solver audit or clearly-labelled heuristic preview */}
             <div
               style={{
                 padding: '10px 12px',
@@ -1190,11 +1275,14 @@ function AnalyzedHandRow({ hand, index }) {
                     -{(Number.isFinite(Number(coaching.evLoss)) ? Number(coaching.evLoss) : 0).toFixed(2)} EV
                   </div>
                 )}
-                {coaching.score !== undefined && (
+                {Number.isFinite(coaching.score) && (
                   <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginLeft: 'auto' }}>
                     Score: {coaching.score}/100
                   </div>
                 )}
+              </div>
+              <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                {coaching.solverVerified ? 'Verified shared solver audit' : coaching.estimated ? 'Heuristic preview — excluded from Leak Finder' : 'Unpriced — excluded from Leak Finder'}
               </div>
               {coaching.tips.map((tip, i) => (
                 <div
@@ -1267,6 +1355,16 @@ export default function HandHistoryUploadPage() {
   // Save session to Supabase and localStorage
   const saveAnalyzedSession = useCallback(async (hands) => {
     if (!hands || hands.length === 0) return;
+    const auditedDecisions = hands.flatMap(h => h?._solverAudit?.decisions || []);
+    const verifiedDecisions = auditedDecisions.filter(d => d.solverVerified);
+    const correctDecisions = verifiedDecisions.filter(d => ['best', 'correct'].includes(d.classification));
+    const mistakeDecisions = verifiedDecisions.filter(d => !['best', 'correct'].includes(d.classification));
+    const measuredEVLoss = verifiedDecisions.reduce(
+      (sum, d) => sum + (d.evLossMeasured ? Number(d.evLoss) || 0 : 0), 0
+    );
+    const solverAccuracy = verifiedDecisions.length > 0
+      ? Math.round((correctDecisions.length / verifiedDecisions.length) * 100)
+      : 0;
     const sessionData = {
       id: `hh-${Date.now()}`,
       game_id: 'hand-history-review',
@@ -1276,6 +1374,10 @@ export default function HandHistoryUploadPage() {
       withShowdown: hands.filter((h) => h.board.length >= 3).length,
       avgPot: hands.reduce((s, h) => s + h.pot, 0) / hands.length,
       site: hands[0]?.site || 'Unknown',
+      solverVerifiedDecisions: verifiedDecisions.length,
+      solverAccuracy,
+      measuredEVLoss: +measuredEVLoss.toFixed(3),
+      mistakeCount: mistakeDecisions.length,
     };
 
     // Save to localStorage
@@ -1295,20 +1397,16 @@ export default function HandHistoryUploadPage() {
           body: JSON.stringify({
             gameId: 'hand-history-review',
             gameName: `Hand History Review (${sessionData.totalHands} hands)`,
-            gtowScore: Math.round(
-              (sessionData.withShowdown / Math.max(sessionData.totalHands, 1)) * 100
-            ),
-            totalEVLoss: 0,
-            handsPlayed: sessionData.totalHands,
-            mistakeCount: 0,
-            accuracy: Math.round(
-              (sessionData.withShowdown / Math.max(sessionData.totalHands, 1)) * 100
-            ),
-            correctCount: sessionData.withShowdown,
+            gtowScore: sessionData.solverAccuracy,
+            totalEVLoss: sessionData.measuredEVLoss,
+            handsPlayed: verifiedDecisions.length,
+            mistakeCount: sessionData.mistakeCount,
+            accuracy: sessionData.solverAccuracy,
+            correctCount: correctDecisions.length,
             bestStreak: 0,
-            levelPassed: true,
+            levelPassed: verifiedDecisions.length > 0 && sessionData.solverAccuracy >= 70,
             level: 1,
-            handHistory: [],
+            handHistory: auditedDecisions.slice(0, 500),
           }),
         });
       }
@@ -1327,40 +1425,45 @@ export default function HandHistoryUploadPage() {
 
     // Emit GTO coaching aggregate for dashboard/leak-finder reactivity
     if (typeof eventBus !== 'undefined' && eventBus.emit && hands && hands.length > 0) {
-      const coachingAggregate = { gto: 0, ok: 0, leak: 0, total: hands.length };
+      const coachingAggregate = { gto: 0, ok: 0, leak: 0, total: 0, unpriced: 0, source: 'solver_engine' };
       hands.forEach((h) => {
         try {
-          const { grade } = gradeHand(h);
+          const { grade, solverVerified } = gradeHand(h);
+          if (!solverVerified) {
+            coachingAggregate.unpriced++;
+            return;
+          }
+          coachingAggregate.total++;
           if (grade === 'BEST') coachingAggregate.gto++;
-          else if (grade === 'CORRECT' || grade === 'N/A') coachingAggregate.ok++;
+          else if (grade === 'CORRECT') coachingAggregate.ok++;
           else coachingAggregate.leak++;
         } catch {
-          coachingAggregate.ok++;
+          coachingAggregate.unpriced++;
         }
       });
       eventBus?.emit?.('training:coaching-summary', coachingAggregate, 'HandHistoryUpload');
-
-      // ── Engine Leak Detection: run on hands with engine analysis ──
-      try {
-        const engineHands = hands.filter(h => h._engineHand);
-        if (engineHands.length > 0) {
-          const sessionReport = analyzeSession(engineHands.map(h => h._engineHand));
-          if (sessionReport) {
-            const leaks = detectLeaks(sessionReport);
-            const drills = generateDrillRecommendations(leaks);
-            eventBus?.emit?.('training:leaks-detected', { leaks, drills, report: sessionReport }, 'HandHistoryUpload');
-          }
-        }
-      } catch (e) {
-        console.warn('[HH] Engine leak detection failed:', e.message);
-      }
     }
   }, []);
 
   const handleFile = useCallback(async (file) => {
     if (!file) return [];
     const text = await file.text();
-    return parseHandHistory(text);
+    const parsed = parseHandHistory(text);
+    try {
+      const token = await getAccessToken();
+      if (!token || parsed.length === 0) return parsed;
+      const response = await authedFetch('/api/training/audit-hand-history', {
+        method: 'POST',
+        body: JSON.stringify({ handHistoryText: text }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) throw new Error(payload.error || 'Solver audit failed');
+      const byId = new Map((payload.analyses || []).map(a => [String(a.handId), a]));
+      return parsed.map(hand => ({ ...hand, _solverAudit: byId.get(String(hand.id)) || null }));
+    } catch (error) {
+      console.warn('[HH] Verified solver audit unavailable:', error.message);
+      return parsed;
+    }
   }, []);
 
   const handleFiles = useCallback(

@@ -11,8 +11,8 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
  */
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { getGrokClient } from '../../../../src/lib/grokClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { aggregateSolverLeaks, gradeSolverDecision } from '../../../../src/lib/training/solverDecisionEvidence';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -29,40 +29,12 @@ function getSupabase() {
 /**
  * Generate AI-powered personalized fix suggestion for a leak
  */
-async function generateLeakFix(leak) {
-  try {
-    const grok = getGrokClient();
-
-    const prompt = `You are a poker coach. A player has this leak:
-
-LEAK: ${leak.situation_class}
-Current Frequency: ${leak.current_frequency}%
-Optimal Range: ${leak.optimal_frequency}%
-Avg EV Loss: ${leak.avg_ev_loss_bb} bb per occurrence
-
-Provide a concise, actionable fix in 2-3 sentences. Focus on specific adjustments they can make.`;
-
-    // Bound the call: up to three of these run inside the request path, so an
-    // unbounded Grok response can push POST /api/assistant/leaks/detect past the
-    // serverless limit and turn an already-persisted detection into a 504.
-    let timeoutHandle;
-    const response = await Promise.race([
-      grok.chat.completions.create({
-        model: 'grok-3', // Grok-3
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.5,
-        max_tokens: 150,
-      }),
-      new Promise((_, reject) => {
-        timeoutHandle = setTimeout(() => reject(new Error('Grok request timed out')), 15000);
-      }),
-    ]).finally(() => { if (timeoutHandle) clearTimeout(timeoutHandle); });
-
-    return response?.choices?.[0]?.message?.content || null;
-  } catch (error) {
-    console.warn('[LeakDetect] AI fix generation failed:', error.message);
-    return null;
+function generateLeakFix(leak) {
+  const drill = leak.recommended_drill ? ` Open the ${leak.recommended_drill} drill` : ' Open the matching focused drill';
+  if (['training_solver', 'solver_engine'].includes(leak.source_system)) {
+    return `Review the exact ${String(leak.leak_category || 'solver').toLowerCase()} node, then repeat it until your solver-graded error rate is below ${leak.optimal_frequency}%.${drill} and compare every mixed action to its range frequency before answering.`;
   }
+  return `Review the opportunities behind this frequency before changing your strategy.${drill}, then rerun detection after a fresh sample to confirm the adjustment.`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -231,7 +203,7 @@ async function getPlayerStats(supabase, userId) {
   // absent so patternIsMeasured skips those patterns — the house rule that a
   // number which was never measured is never presented as if it was.
   try {
-    const { data: rpcStats, error: rpcErr } = await getSupabase().rpc('ca_player_stats_full', {
+    const { data: rpcStats, error: rpcErr } = await supabase.rpc('ca_player_stats_full', {
       p_user: userId,
     });
     if (rpcErr) {
@@ -259,7 +231,7 @@ async function getPlayerStats(supabase, userId) {
   // 1. Try to get aggregated stats from live hand history
   const { data: stats, error } = finalStats
     ? { data: null, error: null }
-    : await getSupabase().from('player_stats').select('*').eq('user_id', userId).maybeSingle();
+    : await supabase.from('player_stats').select('*').eq('user_id', userId).maybeSingle();
 
   if (error) console.warn('[LeakDetect] player_stats query failed:', error.message);
 
@@ -269,7 +241,7 @@ async function getPlayerStats(supabase, userId) {
     finalStats = normalizeStats(stats);
   } else {
     // Try alternative stats table
-    const { data: altStats, error: altErr } = await getSupabase()
+    const { data: altStats, error: altErr } = await supabase
       .from('user_poker_stats')
       .select('*')
       .eq('user_id', userId)
@@ -281,9 +253,9 @@ async function getPlayerStats(supabase, userId) {
       finalStats = normalizeStats(altStats);
     } else {
       // Try to compute from live hand history — only fetch what we read
-      const { data: hands, error: handsErr } = await getSupabase()
+      const { data: hands, error: handsErr } = await supabase
         .from('hand_history')
-        .select('actions, created_at')
+        .select('actions, players, summary, created_at')
         // 2026-08-15 CHECK 13: hand_history has no user_id column — membership
         // lives in the players jsonb ([{userId,...}]); containment matches it.
         .contains('players', [{ userId }])
@@ -293,136 +265,12 @@ async function getPlayerStats(supabase, userId) {
       if (handsErr) console.warn('[LeakDetect] hand_history query failed:', handsErr.message);
 
       if (hands && hands.length > 0) {
-        finalStats = computeStatsFromHands(hands);
+        finalStats = computeStatsFromHands(hands, userId);
       }
     }
   }
 
-  // 2. FETCH OVERLAY: Fetch training arena / play mode sessions
-  const trainingStats = await getTrainingStats(supabase, userId);
-
-  // If we have both, combine them (Training metrics augment live tendencies)
-  if (finalStats && trainingStats) {
-    return combineLiveAndTrainingStats(finalStats, trainingStats);
-  }
-
-  // If only one exists, return it
-  return finalStats || trainingStats || null;
-}
-
-// ─── DATA BRIDGE FOR TRAINING SESSIONS ─────────────────────────────────────────
-async function getTrainingStats(supabase, userId) {
-  const { data: sessions, error } = await getSupabase()
-    .from('training_sessions')
-    .select('classification_counts, mistake_count, hands_played, total_ev_loss')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  if (error) console.warn('[LeakDetect] training_sessions query failed:', error.message);
-  if (!sessions || sessions.length === 0) return null;
-
-  let totalTrainingHands = 0;
-  let combinedClassifications = {};
-
-  sessions.forEach(session => {
-    totalTrainingHands += (session.hands_played || 0);
-
-    const cc = session.classification_counts || {};
-    Object.keys(cc || {}).forEach(key => {
-      combinedClassifications[key] = (combinedClassifications[key] || 0) + cc[key];
-    });
-  });
-
-  // Translate Training Classifications into Detect.js expected variables
-  // Note: Since training records absolute mistake counts, we approximate frequencies based on total hands played
-  // A mistake counts as deviating from optimal.
-  const getMistakeFreq = (keyName) => {
-    if (totalTrainingHands === 0) return 0;
-    const count = combinedClassifications[keyName] || 0;
-    // Frequency of this mistake occurring across ALL training hands
-    return (count / totalTrainingHands) * 100;
-  };
-
-  // Opportunity counts are only real if the training-session writers stored
-  // them inside classification_counts; otherwise 0 so sample-gated patterns
-  // simply don't fire from training-only data.
-  const getOppCount = (keyName) => combinedClassifications[keyName] || 0;
-
-  return {
-    handsPlayed: totalTrainingHands,
-    _isTrainingDominant: true,
-    // Purely live stats — not derivable from training mistake counts, so left
-    // unmeasured (null) and their patterns are skipped by the measured guard.
-    vpip: null,
-    pfr: null,
-    limpFreq: getMistakeFreq('limp'),
-    coldCallFreq: getMistakeFreq('cold_call_wide'),
-    threeBetFreq: Math.max(0, 8 - getMistakeFreq('three_bet_tight')),
-    foldToCbet: 50 + getMistakeFreq('fold_to_cbet_over'), // Adding mistake rate to baseline optimal
-    cbetsFaced: getOppCount('fold_to_cbet_opps'),
-    cbetFreq: 60 - getMistakeFreq('missed_cbet_value'),
-    cbetOpps: getOppCount('cbet_opps'),
-    checkRaiseFreq: 10 - getMistakeFreq('missed_check_raise'),
-    checkRaiseOpps: getOppCount('check_raise_opps'),
-    turnBarrelFreq: 60 - getMistakeFreq('missed_turn_barrel'),
-    turnBarrelOpps: getOppCount('turn_barrel_opps'),
-    turnFoldFreq: 40 + getMistakeFreq('turn_overfold'),
-    turnFaced: getOppCount('turn_faced_opps'),
-    riverBluffFreq: 15 - getMistakeFreq('missed_river_bluff'),
-    riverBluffOpps: getOppCount('river_bluff_opps'),
-    riverFoldFreq: 45 + getMistakeFreq('river_overfold'),
-    riverFaced: getOppCount('river_faced_opps'),
-    riverValueBetFreq: 55 - getMistakeFreq('missed_thin_value'),
-    riverBetOpps: getOppCount('river_bet_opps'),
-    aggFactor: null,
-    wtsd: null,
-  };
-}
-
-function combineLiveAndTrainingStats(live, train) {
-  // Weighted average based on hand volume
-  const liveWt = live.handsPlayed / (live.handsPlayed + train.handsPlayed);
-  const trainWt = train.handsPlayed / (live.handsPlayed + train.handsPlayed);
-
-  // Null-aware weighting: an unmeasured (null) side never fabricates a value
-  const weighted = (key) => {
-    const l = live[key];
-    const t = train[key];
-    if (l === null || l === undefined) {
-      return (t === null || t === undefined) ? null : t;
-    }
-    if (t === null || t === undefined) return l;
-    return l * liveWt + t * trainWt;
-  };
-
-  return {
-    handsPlayed: live.handsPlayed + train.handsPlayed,
-    _isTrainingDominant: trainWt > 0.5,
-    vpip: live.vpip ?? train.vpip, // Mostly rely on live for foundational
-    pfr: live.pfr ?? train.pfr,
-    limpFreq: weighted('limpFreq'),
-    coldCallFreq: weighted('coldCallFreq'),
-    threeBetFreq: weighted('threeBetFreq'),
-    foldToCbet: weighted('foldToCbet'),
-    cbetsFaced: (live.cbetsFaced || 0) + (train.cbetsFaced || 0),
-    cbetFreq: weighted('cbetFreq'),
-    cbetOpps: (live.cbetOpps || 0) + (train.cbetOpps || 0),
-    checkRaiseFreq: weighted('checkRaiseFreq'),
-    checkRaiseOpps: (live.checkRaiseOpps || 0) + (train.checkRaiseOpps || 0),
-    turnBarrelFreq: weighted('turnBarrelFreq'),
-    turnBarrelOpps: (live.turnBarrelOpps || 0) + (train.turnBarrelOpps || 0),
-    turnFoldFreq: weighted('turnFoldFreq'),
-    turnFaced: (live.turnFaced || 0) + (train.turnFaced || 0),
-    riverBluffFreq: weighted('riverBluffFreq'),
-    riverBluffOpps: (live.riverBluffOpps || 0) + (train.riverBluffOpps || 0),
-    riverFoldFreq: weighted('riverFoldFreq'),
-    riverFaced: (live.riverFaced || 0) + (train.riverFaced || 0),
-    riverValueBetFreq: weighted('riverValueBetFreq'),
-    riverBetOpps: (live.riverBetOpps || 0) + (train.riverBetOpps || 0),
-    aggFactor: weighted('aggFactor'),
-    wtsd: weighted('wtsd'),
-  };
+  return finalStats;
 }
 
 function normalizeStats(stats) {
@@ -503,13 +351,58 @@ function normalizeStats(stats) {
   };
 }
 
-function computeStatsFromHands(hands) {
+function computeStatsFromHands(hands, userId) {
+  return computeStatsFromAuditHands(hands, userId);
+}
+
+function parseHandSummary(summary) {
+  if (!summary) return null;
+  if (typeof summary === 'object') return summary;
+  if (typeof summary !== 'string') return null;
+  try { return JSON.parse(summary); } catch (_) { return null; }
+}
+
+function normalizeAuditHand(row, userId) {
+  const summary = parseHandSummary(row?.summary);
+  const playerRows = summary?.players || row?.players || [];
+  const hero = playerRows.find(p => String(p?.userId ?? p?.id ?? p?.playerId) === String(userId));
+  const heroId = hero?.userId ?? hero?.id ?? hero?.playerId ?? userId;
+
+  let actions = Array.isArray(row?.actions) ? row.actions : [];
+  if (actions.length === 0 && summary?.streets) {
+    actions = [];
+    for (const street of ['preflop', 'flop', 'turn', 'river']) {
+      for (const action of summary.streets?.[street]?.actions || []) {
+        actions.push({ ...action, street });
+      }
+    }
+  }
+
+  return {
+    ...row,
+    actions: actions.map(action => {
+      const actionPlayerId = action?.playerId ?? action?.userId ?? action?.player_id;
+      const actionName = action?.player ?? action?.username ?? action?.name;
+      return {
+        ...action,
+        action: String(action?.action || action?.type || '').replace('all_in', 'allin').toLowerCase(),
+        street: String(action?.street || 'preflop').toLowerCase(),
+        is_hero: action?.is_hero === true || action?.isHero === true
+          || String(actionPlayerId) === String(heroId)
+          || (!!hero?.displayName && actionName === hero.displayName)
+          || (!!hero?.username && actionName === hero.username),
+      };
+    }),
+  };
+}
+
+function computeStatsFromAuditHands(hands, userId) {
   // Stat computation from raw hands — everything here is genuinely derived
   // from the actions arrays; stats we can't derive are returned as null so
   // the measured-stat guard skips their patterns.
   const total = hands.length;
 
-  const isHero = (a) => a.player === 'hero' || a.is_hero;
+  const isHero = (a) => a.player === 'hero' || a.is_hero || a.isHero;
   const act = (a) => (a.action || '').toLowerCase();
   const isAggressive = (a) => ['bet', 'raise'].includes(act(a));
 
@@ -544,8 +437,9 @@ function computeStatsFromHands(hands) {
     return { faced: false, folded: false };
   };
 
-  hands.forEach(hand => {
-    const actions = Array.isArray(hand.actions) ? hand.actions : [];
+  hands.forEach(rawHand => {
+    const hand = normalizeAuditHand(rawHand, userId);
+    const actions = hand.actions;
     const pre = actions.filter(a => a.street === 'preflop');
     const flop = actions.filter(a => a.street === 'flop');
     const turn = actions.filter(a => a.street === 'turn');
@@ -737,6 +631,112 @@ function generateExplanation(leakType, currentValue, optimalRange) {
   return explanations[leakType] || `Your frequency of ${currentValue}% deviates from optimal (${optMin}-${optMax}%).`;
 }
 
+function canonicalSpotType(question, fallback) {
+  const scenario = question?.scenario || {};
+  return scenario.spotType || scenario.nodeType || scenario.potType || question?.spotType || fallback || 'general';
+}
+
+async function fetchCanonicalQuestionMap(db, rows) {
+  const ids = [...new Set((rows || []).map(r => r.question_id).filter(Boolean))];
+  const map = new Map();
+  for (let i = 0; i < ids.length; i += 100) {
+    const batch = ids.slice(i, i + 100);
+    const { data, error } = await db
+      .from('training_question_cache')
+      .select('question_id, game_id, question_data')
+      .in('question_id', batch)
+      .limit(100);
+    if (error) throw error;
+    for (const row of data || []) {
+      map.set(String(row.question_id), { question: row.question_data, gameId: row.game_id });
+      if (row.question_data?.id) map.set(String(row.question_data.id), { question: row.question_data, gameId: row.game_id });
+    }
+  }
+  return map;
+}
+
+async function getSolverTrainingEvidence(db, userId) {
+  const modernColumns = 'game_id, question_id, answer_id, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured';
+  const legacyColumns = 'game_id, question_id, answer_id, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at';
+  let result = await db
+    .from('training_answers')
+    .select(modernColumns)
+    .eq('user_id', userId)
+    .order('answered_at', { ascending: false })
+    .limit(2000);
+
+  // Safe during a rolling migration. Legacy rows are regraded from canonical
+  // cache data below; no client-provided classification becomes solver proof.
+  if (result.error?.code === '42703' || /column .* does not exist/i.test(result.error?.message || '')) {
+    result = await db
+      .from('training_answers')
+      .select(legacyColumns)
+      .eq('user_id', userId)
+      .order('answered_at', { ascending: false })
+      .limit(2000);
+  }
+  if (result.error) {
+    console.warn('[LeakDetect] training_answers evidence query failed:', result.error.message);
+    return { available: false, decisions: [], leaks: [] };
+  }
+
+  const rows = result.data || [];
+  const decisions = [];
+  if (rows.length > 0) {
+    let canonical;
+    try {
+      canonical = await fetchCanonicalQuestionMap(db, rows);
+    } catch (error) {
+      console.warn('[LeakDetect] canonical question lookup failed:', error.message);
+      return { available: false, decisions: [], leaks: [] };
+    }
+
+    for (const row of rows) {
+      const cached = canonical.get(String(row.question_id));
+      if (!cached?.question) continue;
+      const grade = gradeSolverDecision(cached.question, row.answer_id);
+      if (!grade.solverVerified) continue;
+      const scenario = cached.question.scenario || {};
+      decisions.push({
+        ...row,
+        game_id: cached.gameId || row.game_id,
+        hero_position: scenario.heroPosition || scenario.position || row.hero_position,
+        villain_position: scenario.villainPosition || row.villain_position,
+        street: scenario.street || row.street,
+        spot_type: canonicalSpotType(cached.question, row.spot_type),
+        classification: grade.classification,
+        ev_loss: grade.evLoss,
+        solver_verified: true,
+        solver_source: grade.solverSource,
+        selected_frequency: grade.selectedFrequency,
+        optimal_frequency: grade.optimalFrequency,
+        ev_loss_measured: grade.evLossMeasured,
+      });
+    }
+  }
+
+  const auditResult = await db
+    .from('hand_audit_decisions')
+    .select('game_id, question_id, hero_position, villain_position, street, classification, ev_loss, spot_type, audited_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured')
+    .eq('user_id', userId)
+    .eq('solver_verified', true)
+    .order('audited_at', { ascending: false })
+    .limit(2000);
+  const auditAvailable = !auditResult.error;
+  if (auditResult.error && auditResult.error.code !== '42P01') {
+    console.warn('[LeakDetect] hand_audit_decisions query failed:', auditResult.error.message);
+  }
+  for (const row of auditResult.data || []) {
+    decisions.push({ ...row, answered_at: row.audited_at });
+  }
+
+  return {
+    available: auditAvailable,
+    decisions,
+    leaks: aggregateSolverLeaks(decisions),
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // API HANDLER
 // ═══════════════════════════════════════════════════════════════════════
@@ -765,14 +765,21 @@ export default async function handler(req, res) {
     }
 
     try {
-      // Get player stats
-      const stats = await getPlayerStats(getSupabase(), userId);
+      // Live tendencies and solver-graded training decisions are separate
+      // evidence sets. They must never be blended into one invented frequency.
+      const [stats, solverEvidence] = await Promise.all([
+        getPlayerStats(getSupabase(), userId),
+        getSolverTrainingEvidence(getSupabase(), userId),
+      ]);
+      const liveHands = stats?.handsPlayed || 0;
+      const solverDecisions = solverEvidence.decisions.length;
 
-      if (!stats || stats.handsPlayed < 100) {
+      if (liveHands < 100 && solverDecisions < 8) {
         return res.status(200).json({
           success: true,
-          message: 'Need more hands to detect leaks (minimum 100)',
-          handsAnalyzed: stats?.handsPlayed || 0,
+          message: 'Need more evidence to detect leaks (100 live hands or 8 server-verified solver decisions)',
+          handsAnalyzed: liveHands,
+          solverDecisionsAnalyzed: solverDecisions,
           leaksDetected: 0,
           leaks: [],
         });
@@ -784,7 +791,10 @@ export default async function handler(req, res) {
         .select('*')
         .eq('user_id', userId)
         .limit(100);
-      if (existingErr) console.warn('[LeakDetect] existing user_leaks query failed:', existingErr.message);
+      if (existingErr) {
+        console.warn('[LeakDetect] existing user_leaks query failed:', existingErr.message);
+        return res.status(503).json({ success: false, error: 'Leak history is temporarily unavailable. No changes were made.' });
+      }
 
       const existingLeakMap = {};
       (existingLeaks || []).forEach(leak => {
@@ -796,6 +806,7 @@ export default async function handler(req, res) {
       const now = new Date().toISOString();
 
       for (const [leakType, pattern] of Object.entries(LEAK_PATTERNS || {})) {
+        if (!stats || liveHands < 100) continue;
         // Skip patterns whose inputs were not genuinely measured
         if (!patternIsMeasured(stats, leakType)) continue;
 
@@ -817,10 +828,15 @@ export default async function handler(req, res) {
             leak_category: pattern.category,
             situation_class: pattern.name,
             status,
-            source_system: stats._isTrainingDominant ? 'training_arena' : 'live_play',
+            source_system: 'live_play',
             confidence: stats.handsPlayed > 1000 ? 'high' : stats.handsPlayed > 500 ? 'medium' : 'low',
             avg_ev_loss_bb: scaledEvLoss,
-            occurrence_count: existingLeak ? existingLeak.occurrence_count + 1 : 1,
+            // Aggregate patterns do not expose individual mistake rows. Keep
+            // the actual opportunity window stable rather than incrementing on
+            // every rerun of the same data.
+            occurrence_count: pattern.category === 'preflop'
+              ? stats.handsPlayed
+              : (stats[PATTERN_STAT_KEYS[leakType]?.find(k => /Opps|Faced/.test(k))] || existingLeak?.occurrence_count || 1),
             optimal_frequency: pattern.optimalRange[0],
             current_frequency: currentValue,
             first_detected_at: existingLeak?.first_detected_at || now,
@@ -832,6 +848,25 @@ export default async function handler(req, res) {
 
           detectedLeaks.push(leak);
         }
+      }
+
+      // Append solver-derived leaks. Their occurrence count is the number of
+      // actual mistaken decisions, their denominator is the situation group's
+      // sample count, and BB loss is zero unless exact per-action EVs exist.
+      for (const solverLeak of solverEvidence.leaks) {
+        const { _sample_count, _mistake_count, _ev_measured_count, ...persistableSolverLeak } = solverLeak;
+        const existingLeak = existingLeakMap[solverLeak.leak_type];
+        const currentValue = solverLeak.current_frequency;
+        const optimalRange = [0, solverLeak.optimal_frequency];
+        detectedLeaks.push({
+          ...persistableSolverLeak,
+          user_id: userId,
+          status: classifyLeakStatus(existingLeak, currentValue, optimalRange) || solverLeak.status,
+          first_detected_at: existingLeak?.first_detected_at || now,
+          last_detected_at: now,
+          trend_data: updateTrendData(existingLeak?.trend_data, currentValue),
+          suggested_fix: existingLeak?.suggested_fix || generateLeakFix(solverLeak),
+        });
       }
 
       // Save detected leaks and link hand examples
@@ -864,14 +899,14 @@ export default async function handler(req, res) {
           await linkHandExamples(userId, leaksWithIds);
         }
 
-        // Phase 3: Grok AI fix suggestions for the top 3 leaks by EV impact.
-        // Failures degrade to null inside generateLeakFix — never fatal.
+        // Deterministic fixes keep detection fast, repeatable and independent
+        // of an LLM request. Existing personalized notes are preserved.
         const topLeaks = [...detectedLeaks]
           .sort((a, b) => (b.avg_ev_loss_bb || 0) - (a.avg_ev_loss_bb || 0))
           .slice(0, 3);
-        await Promise.all(topLeaks.map(async (l) => {
-          l.suggested_fix = await generateLeakFix(l);
-        }));
+        topLeaks.forEach(l => {
+          l.suggested_fix = l.suggested_fix || existingLeakMap[l.leak_type]?.suggested_fix || generateLeakFix(l);
+        });
 
         // Persist suggestions (requires user_leaks.suggested_fix column;
         // degrade gracefully if it doesn't exist yet)
@@ -893,8 +928,8 @@ export default async function handler(req, res) {
       // leak types, and never resolve a leak we simply couldn't measure.
       const resolvedIds = Object.entries(existingLeakMap || {})
         .filter(([leakType, existingLeak]) =>
-          LEAK_PATTERNS[leakType] &&
-          patternIsMeasured(stats, leakType) &&
+          ((LEAK_PATTERNS[leakType] && stats && patternIsMeasured(stats, leakType)) ||
+            (['training_solver', 'solver_engine'].includes(existingLeak.source_system) && solverEvidence.available)) &&
           !detectedLeaks.find(l => l.leak_type === leakType) &&
           existingLeak.status !== 'resolved'
         )
@@ -934,7 +969,7 @@ export default async function handler(req, res) {
         .from('user_assistant_stats')
         .upsert({
           user_id: userId,
-          total_hands_analyzed: Math.max(currentHands, stats.handsPlayed),
+          total_hands_analyzed: Math.max(currentHands, liveHands + solverDecisions),
           active_leaks_count: activeLeaks,
           resolved_leaks_count: resolvedLeaksCount,
           updated_at: new Date().toISOString()
@@ -943,7 +978,12 @@ export default async function handler(req, res) {
 
       return res.status(200).json({
         success: true,
-        handsAnalyzed: stats.handsPlayed,
+        handsAnalyzed: liveHands,
+        solverDecisionsAnalyzed: solverDecisions,
+        evidenceSources: {
+          livePlay: liveHands > 0,
+          trainingSolver: solverEvidence.available,
+        },
         leaksDetected: detectedLeaks.length,
         leaks: detectedLeaks,
         persisted,
@@ -990,7 +1030,9 @@ function getCurrentValue(stats, leakType) {
 }
 
 function updateTrendData(existingTrend, currentValue) {
-  const trend = existingTrend || [];
+  const trend = Array.isArray(existingTrend)
+    ? existingTrend.map(point => ({ ...point }))
+    : [];
   const now = new Date();
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
@@ -1085,7 +1127,7 @@ async function linkHandExamples(userId, leaksWithIds) {
       // services/supabase/handHistory.ts. Select it raw and pick the hero's
       // entry below; aliasing the whole map to `hero_cards` would have put
       // every player's shown cards into the example.
-      .select('id, actions, hole_cards, board, button_seat, pot_size, created_at')
+      .select('id, actions, players, summary, hole_cards, board, button_seat, pot_size, created_at')
       .contains('players', [{ userId }])
       .order('created_at', { ascending: false })
       .limit(100);
@@ -1100,7 +1142,11 @@ async function linkHandExamples(userId, leaksWithIds) {
 
     for (const leak of leaksWithIds) {
       let count = 0;
-      for (const hand of hands) {
+      for (const rawHand of hands) {
+        const hand = normalizeAuditHand(rawHand, userId);
+        const summary = parseHandSummary(rawHand.summary);
+        const summaryHero = (summary?.players || []).find(p =>
+          String(p?.id ?? p?.userId ?? p?.playerId) === String(userId));
         const leakMatch = checkHandForLeak(hand, leak.leak_type);
         if (!leakMatch) continue;
 
@@ -1127,10 +1173,10 @@ async function linkHandExamples(userId, leaksWithIds) {
             // hero mucked — mucked cards are deliberately never persisted.
             // Both normalised to "Ah"-style codes — see toCardCode() above for
             // why the raw engine shapes could not be stored as-is.
-            hero_cards: toCardCodes(hand.hole_cards?.[userId]),
-            board: toCardCodes(hand.board),
-            button_seat: hand.button_seat ?? null,
-            pot_size: hand.pot_size,
+            hero_cards: toCardCodes(rawHand.hole_cards?.[userId] || summaryHero?.holeCards),
+            board: toCardCodes(rawHand.board || summary?.communityCards),
+            button_seat: rawHand.button_seat ?? summary?.buttonSeat ?? null,
+            pot_size: rawHand.pot_size ?? (summary?.pots || []).reduce((sum, p) => sum + (Number(p?.amount) || 0), 0),
             leak_action: leakMatch.action,
             street: leakMatch.street,
           },
@@ -1186,7 +1232,7 @@ function checkHandForLeak(hand, leakType) {
   const actions = Array.isArray(hand.actions) ? hand.actions : [];
   if (actions.length === 0) return null;
 
-  const isHero = (a) => a.player === 'hero' || a.is_hero;
+  const isHero = (a) => a.player === 'hero' || a.is_hero || a.isHero;
   const act = (a) => (a.action || '').toLowerCase();
   const isAggressive = (a) => ['bet', 'raise'].includes(act(a));
   const onStreet = (s) => actions.filter(a => a.street === s);

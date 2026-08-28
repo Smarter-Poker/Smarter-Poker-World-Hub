@@ -9,6 +9,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { gradeSolverDecision } from '../../../src/lib/training/solverDecisionEvidence';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -20,6 +21,30 @@ function getSupabase() {
     );
   }
   return _supabase;
+}
+
+async function getCanonicalQuestion(questionId, gameId) {
+  const db = getSupabase();
+  const byQuestionId = await db
+    .from('training_question_cache')
+    .select('question_id, question_data')
+    .eq('question_id', questionId)
+    .eq('game_id', gameId)
+    .maybeSingle();
+  if (!byQuestionId.error && byQuestionId.data?.question_data) return byQuestionId.data.question_data;
+
+  // A handful of old cache writers prefixed the row's question_id while the
+  // client received question_data.id. JSON containment finds those rows without
+  // trusting a solver snapshot supplied by the browser.
+  const byPayloadId = await db
+    .from('training_question_cache')
+    .select('question_id, question_data')
+    .eq('game_id', gameId)
+    .contains('question_data', { id: questionId })
+    .limit(1)
+    .maybeSingle();
+  if (!byPayloadId.error && byPayloadId.data?.question_data) return byPayloadId.data.question_data;
+  return null;
 }
 export default async function handler(req, res) {
   try {
@@ -59,10 +84,10 @@ export default async function handler(req, res) {
     // `training_answers.answer_id` (NOT NULL) populates.
     const answerId = req.body.answerId ?? req.body.selectedAnswer ?? null;
 
-    if (!userId || !gameId || !questionId) {
+    if (!userId || !gameId || !questionId || answerId === null || answerId === undefined || answerId === '') {
       return res
         .status(400)
-        .json({ success: false, error: 'userId, gameId, and questionId required' });
+        .json({ success: false, error: 'userId, gameId, questionId, and answerId required' });
     }
 
     try {
@@ -97,6 +122,7 @@ export default async function handler(req, res) {
       // it is what powers smart-practice weak-spot targeting and the
       // position/street/mistake breakdowns in analytics.js.
       const {
+        submissionId = null,
         heroPosition = null,
         villainPosition = null,
         street = null,
@@ -104,31 +130,79 @@ export default async function handler(req, res) {
         evLoss = 0,
         spotType = null,
       } = req.body || {};
-      const insertResult = await withRetry(
-        () =>
-          getSupabase().from('training_answers').insert({
-            user_id: userId,
-            game_id: gameId,
-            question_id: questionId,
-            answer_id: answerId,
-            is_correct: isCorrect,
-            level: level,
-            answered_at: new Date().toISOString(),
-            hero_position: typeof heroPosition === 'string' ? heroPosition.slice(0, 10) : null,
-            villain_position: typeof villainPosition === 'string' ? villainPosition.slice(0, 10) : null,
-            street: typeof street === 'string' ? street.slice(0, 12) : null,
-            classification: typeof classification === 'string' ? classification.slice(0, 32) : null,
-            ev_loss: typeof evLoss === 'number' && isFinite(evLoss) ? evLoss : 0,
-            spot_type: typeof spotType === 'string' ? spotType.slice(0, 40) : null,
-          }),
+      const canonicalQuestion = await getCanonicalQuestion(String(questionId), String(gameId));
+      const canonicalGrade = canonicalQuestion
+        ? gradeSolverDecision(canonicalQuestion, String(answerId))
+        : null;
+      const verified = canonicalGrade?.solverVerified === true;
+
+      // The browser's classification is useful for legacy/scenario analytics,
+      // but it is never accepted as solver evidence. When a canonical cached
+      // question exists the server recomputes every graded field from it.
+      const persistedClassification = verified
+        ? canonicalGrade.classification
+        : (typeof classification === 'string' ? classification.slice(0, 32) : null);
+      const persistedEVLoss = verified && canonicalGrade.evLossMeasured
+        ? canonicalGrade.evLoss
+        : (typeof evLoss === 'number' && isFinite(evLoss) ? evLoss : 0);
+
+      const baseRow = {
+        user_id: userId,
+        game_id: String(gameId).slice(0, 100),
+        question_id: String(questionId).slice(0, 180),
+        answer_id: String(answerId).slice(0, 100),
+        is_correct: verified ? canonicalGrade.isCorrect : !!isCorrect,
+        level: Math.min(12, Math.max(1, Number(level) || 1)),
+        answered_at: new Date().toISOString(),
+        hero_position: typeof heroPosition === 'string' ? heroPosition.slice(0, 10) : null,
+        villain_position: typeof villainPosition === 'string' ? villainPosition.slice(0, 10) : null,
+        street: typeof street === 'string' ? street.slice(0, 12) : null,
+        classification: persistedClassification,
+        ev_loss: persistedEVLoss,
+        spot_type: typeof spotType === 'string' ? spotType.slice(0, 40) : null,
+      };
+      const evidenceRow = {
+        ...baseRow,
+        submission_id: typeof submissionId === 'string' ? submissionId.slice(0, 180) : null,
+        solver_verified: verified,
+        solver_source: verified ? String(canonicalGrade.solverSource || 'solver').slice(0, 60) : null,
+        selected_frequency: verified ? canonicalGrade.selectedFrequency : null,
+        optimal_frequency: verified ? canonicalGrade.optimalFrequency : null,
+        ev_loss_measured: verified ? canonicalGrade.evLossMeasured : false,
+        evidence_metadata: verified ? {
+          optimalAction: canonicalGrade.optimalAction,
+          dataQuality: canonicalQuestion.dataQuality || null,
+        } : { reason: canonicalQuestion ? 'question_not_solver_verified' : 'canonical_question_not_found' },
+      };
+
+      let insertResult = await withRetry(
+        () => submissionId
+          ? getSupabase().from('training_answers').upsert(evidenceRow, { onConflict: 'user_id,submission_id' })
+          : getSupabase().from('training_answers').insert(evidenceRow),
         { label: 'RecordQuestion:insert' }
       );
+      // Rolling deploy safety: the application may arrive a few seconds before
+      // the additive migration. Preserve the answer using the old shape, but it
+      // remains ineligible for solver-grade leak evidence until the columns land.
+      if (insertResult?.error?.code === '42703' || /column .* does not exist/i.test(insertResult?.error?.message || '')) {
+        insertResult = await withRetry(
+          () => getSupabase().from('training_answers').insert(baseRow),
+          { label: 'RecordQuestion:legacy-insert' }
+        );
+      }
       if (insertResult?.error) {
         console.warn('[RecordQuestion] training_answers insert failed:', insertResult.error);
         return res.status(500).json({ success: false, error: 'Failed to record answer' });
       }
 
-      return res.status(200).json({ success: true });
+      return res.status(200).json({
+        success: true,
+        evidence: {
+          solverVerified: verified,
+          classification: persistedClassification,
+          evLossMeasured: verified ? canonicalGrade.evLossMeasured : false,
+        },
+      });
     } catch (error) {
       console.warn('Record question error:', error);
       return res.status(500).json({ success: false, error: 'Internal server error' });

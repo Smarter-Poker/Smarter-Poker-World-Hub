@@ -115,7 +115,7 @@ export function detectLeaks(report) {
     }
 
     // Check overall accuracy leak
-    if (report.gtoScore < 70) {
+    if (report.pricedDecisions >= 8 && Number.isFinite(report.gtoScore) && report.gtoScore < 70) {
         leaks.push({
             type: 'overall_accuracy',
             severity: report.gtoScore < 50 ? 'critical' : 'major',
@@ -130,10 +130,10 @@ export function detectLeaks(report) {
     }
 
     // Check blunder rate
-    const blunderRate = report.totalDecisions > 0
-        ? report.classifications.blunder / report.totalDecisions
+    const blunderRate = report.pricedDecisions > 0
+        ? report.classifications.blunder / report.pricedDecisions
         : 0;
-    if (blunderRate > 0.08) {
+    if (report.pricedDecisions >= 8 && blunderRate > 0.08) {
         leaks.push({
             type: 'high_blunder_rate',
             severity: blunderRate > 0.15 ? 'critical' : 'major',
@@ -156,7 +156,7 @@ export function detectLeaks(report) {
 
 function _checkStreetLeaks(streetStats, leaks) {
     // Flop accuracy
-    if (streetStats.flop) {
+    if (streetStats.flop?.decisions >= 5) {
         const flopAcc = streetStats.flop.accuracy;
         if (flopAcc < 65) {
             leaks.push({
@@ -175,7 +175,7 @@ function _checkStreetLeaks(streetStats, leaks) {
     }
 
     // Turn accuracy
-    if (streetStats.turn) {
+    if (streetStats.turn?.decisions >= 5) {
         const turnAcc = streetStats.turn.accuracy;
         if (turnAcc < 60) {
             leaks.push({
@@ -194,7 +194,7 @@ function _checkStreetLeaks(streetStats, leaks) {
     }
 
     // River accuracy
-    if (streetStats.river) {
+    if (streetStats.river?.decisions >= 5) {
         const riverAcc = streetStats.river.accuracy;
         if (riverAcc < 55) {
             leaks.push({

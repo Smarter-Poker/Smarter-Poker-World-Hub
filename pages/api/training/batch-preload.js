@@ -468,6 +468,37 @@ export default async function handler(req, res) {
               return qData;
           }).filter(Boolean); // Remove null entries
 
+          // A live deterministic question must become canonical before it can
+          // be answered. record-question regrades against this server-side row;
+          // without this write, cache-miss questions could only produce
+          // browser-asserted telemetry and the Leak Finder could not trust them.
+          if (solverQuestions.length > 0) {
+              const generatedIds = new Set(solverQuestions.map(q => q?.question_data?.id).filter(Boolean));
+              const generatedRows = enrichedBatch
+                  .filter(q => generatedIds.has(q.id))
+                  .map(q => ({
+                      question_id: String(q.id).slice(0, 180),
+                      game_id: gameId,
+                      engine_type: String(gameId).startsWith('psy-') ? 'SCENARIO'
+                          : pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO',
+                      game_type: String(gameId).startsWith('mtt-') ? 'tournament'
+                          : String(gameId).startsWith('spins-') ? 'sng' : 'cash',
+                      level: gameLevel,
+                      question_data: q,
+                      times_used: 1,
+                  }));
+              if (generatedRows.length > 0) {
+                  const { error: cacheWriteErr } = await getSupabase()
+                      .from('training_question_cache')
+                      .upsert(generatedRows, { onConflict: 'question_id', ignoreDuplicates: true });
+                  if (cacheWriteErr) {
+                      // Serving still succeeds, but record-question will mark
+                      // the answer unverified rather than laundering it.
+                      console.warn('[BatchPreload] Could not canonicalize generated questions:', cacheWriteErr.message);
+                  }
+              }
+          }
+
 
           return res.status(200).json({
               success: true,

@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
+import { getSessionToken } from '../../lib/authUtils';
 
 // ●●● SITE DETECTION PATTERNS ●●●
 const SITE_PATTERNS = [
@@ -48,6 +49,15 @@ function parseHandHistory(text) {
   }
 }
 
+function stableHandId(text) {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `hand_${(hash >>> 0).toString(36)}`;
+}
+
 function parseOneHand(block) {
   try {
     const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
@@ -67,7 +77,7 @@ function parseOneHand(block) {
     if (!heroCards && !board && actions.length === 0) return null;
 
     return {
-      id: handId || `hand_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      id: handId || stableHandId(block),
       stakes,
       players,
       heroName,
@@ -160,40 +170,6 @@ function extractWinner(text) {
   return null;
 }
 
-// ●●● SOLVER ANALYSIS STUB ●●●
-function analyzeHand(hand) {
-  try {
-    if (!hand.heroCards || !hand.actions.length) return null;
-
-    const heroActions = hand.actions.filter(a =>
-      a.player === hand.heroName || a.player === 'Hero'
-    );
-
-    const decisions = heroActions.map((action, i) => {
-      // Simulated solver comparison
-      const isAggressiveAction = ['raises', 'bets', 'all-in'].includes(action.action);
-      const solverAgrees = Math.random() > 0.35;
-      const evLoss = solverAgrees ? 0 : (Math.random() * 0.8).toFixed(2);
-
-      return {
-        action: action.action,
-        amount: action.amount,
-        solverRecommendation: solverAgrees ? action.action : (isAggressiveAction ? 'check' : 'raise'),
-        solverFrequency: solverAgrees ? (70 + Math.random() * 30).toFixed(0) : (Math.random() * 30).toFixed(0),
-        evLoss: parseFloat(evLoss),
-        grade: solverAgrees ? 'correct' : evLoss > 0.5 ? 'mistake' : 'inaccuracy',
-      };
-    });
-
-    const totalEVLoss = decisions.reduce((sum, d) => sum + d.evLoss, 0);
-    const mistakes = decisions.filter(d => d.grade === 'mistake').length;
-
-    return { decisions, totalEVLoss: totalEVLoss.toFixed(2), mistakes };
-  } catch {
-    return null;
-  }
-}
-
 // ●●● CARD DISPLAY HELPER ●●●
 function CardDisplay({ cards }) {
   if (!cards) return null;
@@ -228,8 +204,9 @@ export default function HandHistoryImporter() {
   const [detectedSite, setDetectedSite] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyses, setAnalyses] = useState({});
+  const [analysisError, setAnalysisError] = useState('');
 
-  const handleParse = useCallback(() => {
+  const handleParse = useCallback(async () => {
     if (!inputText.trim()) return;
 
     // Detect site
@@ -241,15 +218,45 @@ export default function HandHistoryImporter() {
 
     if (hands.length > 0) {
       setSelectedHand(0);
-      // Run analysis on all hands
       setAnalyzing(true);
-      const results = {};
-      hands.forEach((hand, i) => {
-        const analysis = analyzeHand(hand);
-        if (analysis) results[i] = analysis;
-      });
-      setAnalyses(results);
-      setAnalyzing(false);
+      setAnalysisError('');
+      try {
+        const token = getSessionToken();
+        if (!token) throw new Error('Sign in to run the verified solver audit.');
+        const response = await fetch('/api/training/audit-hand-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ handHistoryText: inputText }),
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.success) throw new Error(payload.error || 'Solver audit failed');
+        const byId = new Map((payload.analyses || []).map(a => [String(a.handId), a]));
+        const results = {};
+        hands.forEach((hand, i) => {
+          const audit = byId.get(String(hand.id));
+          if (!audit) return;
+          results[i] = {
+            decisions: (audit.decisions || []).map(d => ({
+              action: d.playerAction,
+              solverRecommendation: d.solverAction || 'Not priced',
+              solverFrequency: d.selectedFrequency,
+              evLoss: d.evLossMeasured ? d.evLoss : null,
+              grade: d.solverVerified ? d.classification : 'unpriced',
+              solverVerified: d.solverVerified,
+            })),
+            totalEVLoss: Number(audit.summary?.measuredEVLoss || 0).toFixed(2),
+            mistakes: audit.summary?.mistakes || 0,
+            verifiedDecisions: audit.summary?.verifiedDecisions || 0,
+          };
+        });
+        setAnalyses(results);
+        if (!payload.persisted) setAnalysisError('Analysis completed, but the audit record could not be saved.');
+      } catch (error) {
+        setAnalyses({});
+        setAnalysisError(error?.message || 'Solver audit failed');
+      } finally {
+        setAnalyzing(false);
+      }
     }
   }, [inputText]);
 
@@ -287,7 +294,7 @@ export default function HandHistoryImporter() {
           <div style={sectionStyle}>
             <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>
               Paste hand history text from PokerStars, GGPoker, WPN/ACR, 888poker, partypoker, or iPoker.
-              Multiple hands supported.
+              Exact shared-solver auditing currently supports PokerStars, GGPoker, and 888; other formats can still be parsed for replay.
             </div>
             <textarea
               value={inputText}
@@ -303,13 +310,13 @@ export default function HandHistoryImporter() {
           </div>
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <button onClick={handleParse} disabled={!inputText.trim()} style={{
+            <button onClick={handleParse} disabled={!inputText.trim() || analyzing} style={{
               padding: '10px 24px', borderRadius: 8, border: 'none', cursor: 'pointer',
               background: inputText.trim() ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)' : 'rgba(255,255,255,0.06)',
               color: inputText.trim() ? '#fff' : '#475569', fontSize: 14, fontWeight: 700,
               opacity: inputText.trim() ? 1 : 0.5,
             }}>
-              Parse & Analyze
+              {analyzing ? 'Matching Solver Ranges…' : 'Parse & Analyze'}
             </button>
 
             <label style={{
@@ -322,9 +329,14 @@ export default function HandHistoryImporter() {
             </label>
 
             <div style={{ color: '#64748b', fontSize: 11 }}>
-              Supports: PokerStars, GGPoker, WPN/ACR, 888, partypoker, iPoker
+              Solver audit: PokerStars, GGPoker, 888
             </div>
           </div>
+          {analysisError && (
+            <div role="alert" style={{ marginTop: 12, color: '#fbbf24', fontSize: 12 }}>
+              {analysisError}
+            </div>
+          )}
         </div>
       ) : (
         /* ●●● RESULTS MODE ●●● */
@@ -349,13 +361,19 @@ export default function HandHistoryImporter() {
               <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>Mistakes</div>
               <div style={{ color: totalMistakes > 3 ? '#ef4444' : '#f59e0b', fontSize: 14, fontWeight: 700 }}>{totalMistakes}</div>
             </div>
-            <button onClick={() => { setParsedHands([]); setSelectedHand(null); setAnalyses({}); }} style={{
+            <button onClick={() => { setParsedHands([]); setSelectedHand(null); setAnalyses({}); setAnalysisError(''); }} style={{
               marginLeft: 'auto', padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
               background: 'rgba(255,255,255,0.06)', color: '#94a3b8', fontSize: 12, fontWeight: 600,
             }}>
               Import More
             </button>
           </div>
+
+          {analysisError && (
+            <div role="alert" style={{ ...sectionStyle, color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' }}>
+              {analysisError} No unverified result was counted as solver evidence.
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 16 }}>
             {/* Hand List */}
@@ -491,10 +509,16 @@ export default function HandHistoryImporter() {
                               {dec && (
                                 <span style={{
                                   marginLeft: 'auto', padding: '1px 6px', borderRadius: 3, fontSize: 10, fontWeight: 700,
-                                  background: dec.grade === 'correct' ? 'rgba(34,197,94,0.15)' : dec.grade === 'mistake' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                                  color: dec.grade === 'correct' ? '#22c55e' : dec.grade === 'mistake' ? '#ef4444' : '#f59e0b',
+                                  background: ['best', 'correct'].includes(dec.grade) ? 'rgba(34,197,94,0.15)' : ['wrong', 'blunder'].includes(dec.grade) ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
+                                  color: ['best', 'correct'].includes(dec.grade) ? '#22c55e' : ['wrong', 'blunder'].includes(dec.grade) ? '#ef4444' : '#f59e0b',
                                 }}>
-                                  {dec.grade === 'correct' ? 'GTO' : `-${dec.evLoss}bb`}
+                                  {['best', 'correct'].includes(dec.grade)
+                                    ? 'GTO'
+                                    : dec.grade === 'unpriced'
+                                      ? 'Not priced'
+                                      : dec.evLoss === null
+                                        ? dec.grade
+                                        : `-${dec.evLoss}bb`}
                                 </span>
                               )}
                             </div>
@@ -505,7 +529,7 @@ export default function HandHistoryImporter() {
                       {/* Analysis Summary */}
                       {analysis && (
                         <div style={{ ...sectionStyle, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)' }}>
-                          <div style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Solver Analysis</div>
+                          <div style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Verified Solver Audit</div>
                           <div style={{ display: 'flex', gap: 16 }}>
                             <div>
                               <div style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase' }}>EV Lost</div>
@@ -516,6 +540,10 @@ export default function HandHistoryImporter() {
                             <div>
                               <div style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase' }}>Decisions</div>
                               <div style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 700 }}>{analysis.decisions.length}</div>
+                            </div>
+                            <div>
+                              <div style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase' }}>Verified</div>
+                              <div style={{ color: '#22c55e', fontSize: 16, fontWeight: 700 }}>{analysis.verifiedDecisions}</div>
                             </div>
                             <div>
                               <div style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase' }}>Mistakes</div>

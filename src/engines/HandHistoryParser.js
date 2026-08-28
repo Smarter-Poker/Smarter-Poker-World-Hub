@@ -115,8 +115,10 @@ function _parsePSHand(block, heroName) {
         id: headerMatch[1],
         site: 'pokerstars',
         gameType: headerMatch[3].includes('No') ? 'NL' : headerMatch[3].includes('Pot') ? 'PL' : 'FL',
+        format: /tournament/i.test(block) ? 'tournament' : 'cash',
         stakes: '',
         tableSize: 0,
+        buttonSeat: null,
         players: [],
         hero: null,
         streets: { preflop: { actions: [] }, flop: null, turn: null, river: null },
@@ -131,6 +133,11 @@ function _parsePSHand(block, heroName) {
     let currentStreet = 'preflop';
 
     for (const line of lines) {
+        const buttonMatch = line.match(/Seat\s+#?(\d+)\s+is the button/i);
+        if (buttonMatch) {
+            hand.buttonSeat = parseInt(buttonMatch[1], 10);
+            continue;
+        }
         // Seat line: "Seat 1: PlayerName ($100.50 in chips)"
         const seatMatch = line.match(/^Seat\s+(\d+):\s+(.+?)\s+\(\$?([\d.]+)/);
         if (seatMatch) {
@@ -188,12 +195,12 @@ function _parsePSHand(block, heroName) {
         }
 
         // Action lines: "PlayerName: raises $5 to $7"
-        const actionMatch = line.match(/^(.+?):\s+(folds|checks|calls|bets|raises)\s*\$?([\d.]*)/);
+        const actionMatch = line.match(/^(.+?):\s+(folds|checks|calls|bets|raises)(?:\s+\$?([\d.]+))?(?:\s+to\s+\$?([\d.]+))?/i);
         if (actionMatch && hand.streets[currentStreet]) {
             hand.streets[currentStreet].actions.push({
                 player: actionMatch[1],
                 action: _normalizeAction(actionMatch[2]),
-                amount: parseFloat(actionMatch[3]) || 0,
+                amount: parseFloat(actionMatch[4] || actionMatch[3]) || 0,
                 isHero: actionMatch[1] === heroName,
             });
             continue;
@@ -274,8 +281,10 @@ function _parse888Hand(block, heroName) {
         id: `888_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         site: '888poker',
         gameType: 'NL',
+        format: /tournament|sit\s*&?\s*go/i.test(block) ? 'tournament' : 'cash',
         stakes: '',
         tableSize: 0,
+        buttonSeat: null,
         players: [],
         hero: null,
         streets: { preflop: { actions: [] }, flop: null, turn: null, river: null },
@@ -285,6 +294,8 @@ function _parse888Hand(block, heroName) {
     let currentStreet = 'preflop';
 
     for (const line of lines) {
+        const buttonMatch = line.match(/Seat\s+#?(\d+)\s+is the button/i);
+        if (buttonMatch) hand.buttonSeat = parseInt(buttonMatch[1], 10);
         const seatMatch = line.match(/^Seat\s+(\d+):\s+(.+?)\s+\(\s*\$?([\d.]+)/);
         if (seatMatch) {
             hand.players.push({
@@ -319,12 +330,12 @@ function _parse888Hand(block, heroName) {
             hand.streets.river = { card: cardMatch ? _normalizeCard(cardMatch[2]) : '', actions: [] };
         }
 
-        const actionMatch = line.match(/^(.+?)\s+(folds|checks|calls|bets|raises)\s*\[?\$?([\d.]*)/i);
+        const actionMatch = line.match(/^(.+?)\s+(folds|checks|calls|bets|raises)(?:\s*\[?\$?([\d.]+)\]?)?(?:\s+to\s+\$?([\d.]+))?/i);
         if (actionMatch && hand.streets[currentStreet] && !line.startsWith('Seat') && !line.startsWith('**')) {
             hand.streets[currentStreet].actions.push({
                 player: actionMatch[1].trim(),
                 action: _normalizeAction(actionMatch[2]),
-                amount: parseFloat(actionMatch[3]) || 0,
+                amount: parseFloat(actionMatch[4] || actionMatch[3]) || 0,
                 isHero: actionMatch[1].trim() === (hand.hero?.name || heroName),
             });
         }
@@ -379,15 +390,26 @@ function _assignPositions(hand) {
     if (!hand.players || hand.players.length === 0) return;
 
     const n = hand.players.length;
-    const positions = n === 2 ? ['BTN', 'BB']
+    const fromButton = n === 2 ? ['BTN', 'BB']
         : n === 3 ? ['BTN', 'SB', 'BB']
-        : n === 4 ? ['CO', 'BTN', 'SB', 'BB']
-        : n === 5 ? ['MP', 'CO', 'BTN', 'SB', 'BB']
-        : ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+        : n === 4 ? ['BTN', 'SB', 'BB', 'CO']
+        : n === 5 ? ['BTN', 'SB', 'BB', 'UTG', 'CO']
+        : n === 6 ? ['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO']
+        : n === 7 ? ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'HJ', 'CO']
+        : n === 8 ? ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'HJ', 'CO']
+        : ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO'];
 
-    // Simple assignment by seat order (button detection would require more context)
-    for (let i = 0; i < Math.min(hand.players.length, positions.length); i++) {
-        hand.players[i].position = positions[i];
+    const ordered = [...hand.players].sort((a, b) => a.seat - b.seat);
+    const buttonIndex = ordered.findIndex(p => Number(p.seat) === Number(hand.buttonSeat));
+    if (buttonIndex < 0) {
+        // Seat order without the actual button is not a poker position. Leave
+        // it unknown so downstream solver matching cannot grade the wrong node.
+        for (const player of hand.players) player.position = '';
+    } else {
+        const clockwise = [...ordered.slice(buttonIndex), ...ordered.slice(0, buttonIndex)];
+        for (let i = 0; i < clockwise.length; i++) {
+            clockwise[i].position = fromButton[i] || '';
+        }
     }
 
     // Set hero position
@@ -423,8 +445,29 @@ export function getHeroDecisionPoints(hand) {
         const streetData = hand.streets[streetName];
         if (!streetData) continue;
 
-        for (const action of streetData.actions) {
+        for (let actionIndex = 0; actionIndex < streetData.actions.length; actionIndex++) {
+            const action = streetData.actions[actionIndex];
             if (action.isHero) {
+                const prior = streetData.actions.slice(0, actionIndex);
+                const priorRaises = prior.filter(a => a.action === 'raise' || a.action === 'bet');
+                const heroPriorRaises = priorRaises.filter(a => a.isHero);
+                const callsAfterRaise = priorRaises.length > 0
+                    ? prior.slice(prior.lastIndexOf(priorRaises[priorRaises.length - 1]) + 1)
+                        .filter(a => a.action === 'call' && !a.isHero).length
+                    : 0;
+                let nodeClass;
+                if (streetName === 'preflop') {
+                    if (priorRaises.length === 0) nodeClass = 'preflop_open';
+                    else if (heroPriorRaises.length > 0) nodeClass = 'preflop_4bet';
+                    else if (callsAfterRaise > 0) nodeClass = 'preflop_squeeze';
+                    else nodeClass = 'preflop_facing_raise';
+                } else {
+                    const lastHeroIndex = prior.map(a => a.isHero).lastIndexOf(true);
+                    const sinceHero = prior.slice(lastHeroIndex + 1);
+                    nodeClass = sinceHero.some(a => !a.isHero && (a.action === 'bet' || a.action === 'raise'))
+                        ? 'hero_faces_bet'
+                        : 'hero_bets_or_checks';
+                }
                 points.push({
                     street: streetName,
                     board: getBoardAtStreet(hand, streetName),
@@ -432,6 +475,7 @@ export function getHeroDecisionPoints(hand) {
                     action: action.action,
                     amount: action.amount,
                     position: hand.hero.position,
+                    nodeClass,
                 });
             }
         }

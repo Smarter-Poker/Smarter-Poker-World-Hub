@@ -595,12 +595,13 @@ function ConfidenceBadge({ confidence }) {
 
 function SourceBadge({ source }) {
   const isTraining = source === 'training_arena';
+  const isSolver = source === 'solver_engine' || source === 'training_solver';
   return (
-    <span style={pill(isTraining ? 'accent' : 'purple')}>
-      {isTraining
+    <span style={pill(isTraining || isSolver ? 'accent' : 'purple')}>
+      {isTraining || isSolver
         ? <GraduationCap size={12} strokeWidth={2} aria-hidden="true" />
         : <Zap size={12} strokeWidth={2} aria-hidden="true" />}
-      {isTraining ? 'Training Arena' : 'Live Play'}
+      {isSolver ? 'Verified Solver' : isTraining ? 'Training Arena' : 'Live Play'}
     </span>
   );
 }
