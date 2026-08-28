@@ -262,3 +262,15 @@ test('the route reports reach in people, and admits a partial list', () => {
     // null when nothing was cut, a number only when the list really is short.
     assert.match(route, /adsTotal != null && \(ads \|\| \[\]\)\.length < adsTotal \? adsTotal : null/);
 });
+
+test('the route carries a trend, because a lifetime total cannot show decay', () => {
+    /* Every other figure is a lifetime number, so a campaign that worked for
+       three weeks and has done nothing since reads the same as one working
+       today. lastEventAt catches a surface that stopped dead; it says nothing
+       about one quietly halving. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /rpc\('fn_ad_daily', \{ p_days: 14 \}\)/);
+    assert.match(route, /let daily = null;/);
+    // Oldest first, so a caller can read it left to right.
+    assert.match(route, /series\.sort\(\(a, b\) => String\(a\.day\)\.localeCompare\(String\(b\.day\)\)\)/);
+});

@@ -274,6 +274,43 @@ export default async function handler(req, res) {
                 }
             }
 
+            /* A CAMPAIGN CAN DECAY AND EVERY LIFETIME TOTAL STAYS FINE
+             * (2026-08-28).
+             *
+             * Everything else here is a lifetime figure, so a campaign that
+             * worked for three weeks and has done nothing since looks the same
+             * as one working today - the averages absorb the decline, and the
+             * longer it runs the more inertia its own history gives it.
+             * `lastEventAt` catches a surface that stopped dead; it says
+             * nothing about one that is quietly halving.
+             *
+             * Fourteen days is enough to see a direction without turning the
+             * response into a report. Same null-means-could-not-count rule. */
+            let daily = null;
+            const { data: dayRows, error: dayErr } =
+                await getSupabase().rpc('fn_ad_daily', { p_days: 14 });
+            if (dayErr) {
+                console.warn('[house-ads] daily read failed:', dayErr.message);
+            } else {
+                daily = {};
+                for (const r of dayRows || []) {
+                    const perAd = (daily[r.ad_id] ||= {});
+                    const perSlot = (perAd[r.slot] ||= []);
+                    perSlot.push({
+                        day: r.day,
+                        impressions: Number(r.impressions) || 0,
+                        clicks: Number(r.clicks) || 0,
+                        viewers: Number(r.viewers) || 0,
+                    });
+                }
+                // Oldest first, so a caller can read it left to right.
+                for (const perAd of Object.values(daily)) {
+                    for (const series of Object.values(perAd)) {
+                        series.sort((a, b) => String(a.day).localeCompare(String(b.day)));
+                    }
+                }
+            }
+
             return res.status(200).json({
                 success: true,
                 ads: ads || [],
@@ -284,6 +321,7 @@ export default async function handler(req, res) {
                 /* null where the count could not be read; a number only when
                    the list really is a subset. The panel says so rather than
                    presenting a partial catalog as the whole one. */
+                daily, // { adId: { slot: [ { day, impressions, clicks, viewers } ] } }
                 truncated: {
                     ads: adsTotal != null && (ads || []).length < adsTotal ? adsTotal : null,
                     placements:
