@@ -2108,7 +2108,7 @@ export default function NewsHub() {
                         </main>
 
                         {/* Right Sidebar */}
-                        <aside className="sidebar">
+                        <aside className="sidebar" aria-label="News intelligence">
                             {/* MSPT News & Updates - Dedicated Box */}
                             <div className="widget mspt">
                                 <h4><Trophy size={14} /> MSPT News & Updates{msptNews[0]?.is_fallback && <span className="sample-tag">Sample</span>}</h4>
@@ -2341,7 +2341,8 @@ export default function NewsHub() {
                         }
 
                         .layout {
-                            display: block !important;
+                            display: flex !important;
+                            flex-direction: column !important;
                             padding: 0 !important;
                             max-width: 100vw !important;
                             width: 100% !important;
@@ -2376,7 +2377,12 @@ export default function NewsHub() {
                         }
 
                         .sidebar {
-                            display: none !important;
+                            display: grid !important;
+                            grid-template-columns: minmax(0, 1fr) !important;
+                            order: -1 !important;
+                            width: 100% !important;
+                            padding: 0 12px 4px !important;
+                            gap: 12px !important;
                         }
                     }
 
@@ -3160,6 +3166,12 @@ export default function NewsHub() {
                             grid-template-columns: 1fr;
                         }
                         .sidebar {
+                            display: grid;
+                            grid-template-columns: repeat(3, minmax(0, 1fr));
+                            order: -1;
+                            align-items: stretch;
+                        }
+                        .sidebar > .widget:not(.leaderboard):not(.events):not(.newsletter) {
                             display: none;
                         }
                     }
@@ -4077,7 +4089,8 @@ export default function NewsHub() {
 
                         /* === LAYOUT === */
                         .layout {
-                            display: block !important;
+                            display: flex !important;
+                            flex-direction: column !important;
                             padding: 0 !important;
                             max-width: 100vw !important;
                             width: 100% !important;
@@ -4106,7 +4119,12 @@ export default function NewsHub() {
                         }
 
                         .sidebar {
-                            display: none !important;
+                            display: grid !important;
+                            grid-template-columns: minmax(0, 1fr) !important;
+                            order: -1 !important;
+                            width: 100% !important;
+                            padding: 0 12px 4px !important;
+                            gap: 12px !important;
                         }
 
                         /* === NEWS GRID === */

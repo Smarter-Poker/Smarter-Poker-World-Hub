@@ -1,6 +1,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { BLOCKED_VIDEO_LIBRARY_IDS, isVideoLibraryVideoAllowed } from '../../../src/lib/videoLibraryAvailability';
 
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 60;
@@ -83,6 +84,8 @@ export default async function handler(req, res) {
             .from('video_library_videos')
             .select(VIDEO_FIELDS, { count: 'exact' });
 
+        query = query.not('youtube_video_id', 'in', `(${BLOCKED_VIDEO_LIBRARY_IDS.join(',')})`);
+
         if (source && source !== 'ALL') query = query.eq('source_id', source);
         if (type === 'cash' || type === 'tournament') query = query.eq('type', type);
         if (ids.length > 0) query = query.in('youtube_video_id', ids);
@@ -107,7 +110,7 @@ export default async function handler(req, res) {
         const { data, error, count } = await query.range(offset, offset + limit - 1);
         if (error) throw error;
 
-        const videos = (data || []).map(normaliseVideo);
+        const videos = (data || []).map(normaliseVideo).filter(isVideoLibraryVideoAllowed);
         const total = Number.isFinite(count) ? count : offset + videos.length;
         res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
         return res.status(200).json({

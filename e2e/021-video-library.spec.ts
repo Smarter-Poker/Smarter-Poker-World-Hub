@@ -27,6 +27,13 @@ const VIDEO_B = {
   tags: ['tournament'],
 };
 
+const BLOCKED_VIDEO = {
+  ...VIDEO_B,
+  id: '524_3UypGkU',
+  videoId: '524_3UypGkU',
+  title: 'Legacy Non-Embeddable Video',
+};
+
 function watchForCrashes(page: Page): string[] {
   const crashes: string[] = [];
   page.on('pageerror', error => crashes.push(String(error?.message || error)));
@@ -98,6 +105,45 @@ test.describe('21. Video Library command system', () => {
 
     await expect(page.getByRole('button', { name: 'Retry Catalog' })).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('.vl-video-card').first()).toBeVisible();
+    expect(crashes).toEqual([]);
+  });
+
+  test('rejects a blocked video from a stale API response and old bookmark', async ({ page }) => {
+    await page.unroute('**/api/video-library/catalog**');
+    await page.route('**/api/video-library/catalog**', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: [BLOCKED_VIDEO, VIDEO_A],
+        pagination: { limit: 30, offset: 0, total: 2, hasMore: false },
+      }),
+    }));
+    const crashes = watchForCrashes(page);
+    await page.goto(`/hub/video-library?v=${BLOCKED_VIDEO.videoId}`, { waitUntil: 'commit' });
+
+    await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('.vl-card-title', { hasText: BLOCKED_VIDEO.title })).toHaveCount(0);
+    await expect(page.locator('#youtube-player')).toHaveCount(0);
+    expect(crashes).toEqual([]);
+  });
+
+  test('stale filters and a dropped catalog use only the audited fallback', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('sp-filters-video-library', JSON.stringify({
+        __v: { selectedSource: 'TRITON', selectedType: 'ALL' },
+        __exp: Date.now() + 86_400_000,
+      }));
+    });
+    await page.unroute('**/api/video-library/catalog**');
+    await page.route('**/api/video-library/catalog**', route => route.abort('connectionfailed'));
+    const crashes = watchForCrashes(page);
+    await page.goto(`/hub/video-library?v=${BLOCKED_VIDEO.videoId}`, { waitUntil: 'commit' });
+
+    await expect(page.getByRole('button', { name: 'Retry Catalog' })).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('.vl-card-title', { hasText: '10 Years of Triton Poker' })).toBeVisible();
+    await expect(page.locator('#youtube-player')).toHaveCount(0);
+    expect(await page.locator('body').innerHTML()).not.toContain(BLOCKED_VIDEO.videoId);
     expect(crashes).toEqual([]);
   });
 

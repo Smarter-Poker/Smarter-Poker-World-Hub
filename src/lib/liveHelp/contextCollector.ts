@@ -46,7 +46,6 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
         // Get recent training activity (last 5 sessions)
         const { data: recentSessions } = await supabase
             .from('training_sessions')
-            // 2026-08-15 CHECK 13: real columns are gtow_score/created_at
             .select('game_id, gtow_score, created_at')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })

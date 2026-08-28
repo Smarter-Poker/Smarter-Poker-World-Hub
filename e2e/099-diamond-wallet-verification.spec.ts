@@ -6,6 +6,8 @@ test.describe('Diamond Wallet Premium Visual & Functional Verification', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test('Verify Diamond Wallet Title Case, No Focus Blue Box, and White Colors', async ({ page }) => {
+    const testUserPassword = process.env.TEST_USER_PASSWORD || '';
+    test.skip(!testUserPassword, 'TEST_USER_PASSWORD is required for the authenticated wallet check');
     // 1. Navigate to the login page on localhost
     console.log('[Test] Navigating to login...');
     await page.goto('/login', { waitUntil: 'networkidle' });
@@ -13,7 +15,7 @@ test.describe('Diamond Wallet Premium Visual & Functional Verification', () => {
     // 2. Perform authentic login
     console.log('[Test] Performing authentication...');
     await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
-    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
+    await page.fill('input[type="password"]', testUserPassword);
     await page.click('button[type="submit"]');
 
     // 3. Wait for hub page load
