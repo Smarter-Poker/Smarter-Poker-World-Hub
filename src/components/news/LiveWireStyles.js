@@ -868,7 +868,14 @@ export default function LiveWireStyles() {
                 }
 
                 .live-wire .sidebar {
-                    display: none !important;
+                    display: grid !important;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    order: -1;
+                    align-items: stretch;
+                }
+
+                .live-wire .sidebar > .widget:not(.leaderboard):not(.events):not(.newsletter) {
+                    display: none;
                 }
             }
 
@@ -881,11 +888,21 @@ export default function LiveWireStyles() {
                 }
 
                 .live-wire .layout {
-                    display: block !important;
+                    display: flex !important;
+                    flex-direction: column !important;
                     width: calc(100% - 20px) !important;
                     max-width: calc(100% - 20px) !important;
                     margin: 0 auto !important;
                     padding: 12px 0 20px !important;
+                }
+
+                .live-wire .sidebar {
+                    display: grid !important;
+                    grid-template-columns: minmax(0, 1fr) !important;
+                    order: -1 !important;
+                    width: 100% !important;
+                    padding: 0 0 4px !important;
+                    gap: 12px !important;
                 }
 
                 .live-wire .news-desk-masthead {
