@@ -16,6 +16,7 @@ import { reapStaleCaches } from '../../src/lib/cacheReaper';
 import { CardCustomizerPanel } from '../../src/world/components/CardCustomizerPanel';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import BottomNavBar, { BOTTOM_NAV_CLEARANCE } from '../../src/components/ui/BottomNavBar';
+import HubPromoStrip from '../../src/components/ui/HubPromoStrip';
 
 // Dynamic import with SSR disabled to prevent hydration mismatches from R3F/WebGL
 // Error handling on the dynamic import itself catches module-level init failures
@@ -142,6 +143,17 @@ export default function HubPage() {
                 menuItems={menuConfig.menuItems}
                 bottomLinks={menuConfig.bottomLinks}
             />
+            {/* House promotions (2026-08-28). The `hub_promotions` slot was
+                declared in Phase 1 and wired to nothing; the World Hub had no
+                ad surface at all. It renders in normal flow right under the
+                sticky header, which lands it in the empty band above the 3D
+                carousel — the carousel is position:fixed, so nothing moves.
+                Error-bounded: an advert must never take the Hub down with it,
+                and must never render an error where a promotion goes. */}
+            <HubErrorBoundary name="Hub Promotions" fallback={<></>}>
+                <HubPromoStrip />
+            </HubErrorBoundary>
+
             {/* Card Visibility Customizer Panel — isolated in its own error boundary */}
             <HubErrorBoundary name="Card Customizer" fallback={<></>}>
                 <CardCustomizerPanel
