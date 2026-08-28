@@ -263,7 +263,15 @@ function rowsFromCatalogBody(body) {
     return [];
 }
 
-const CATEGORY_LABELS = { apparel: 'Apparel', accessories: 'Accessories', merch: 'More Gear' };
+const CATEGORY_LABELS = {
+    apparel: 'Shirts And Hoodies',
+    headwear: 'Hats And Headwear',
+    eyewear: 'Sunglasses',
+    tabletop: 'Poker Table Gear',
+    accessories: 'Accessories',
+    lifestyle: 'Lifestyle Gear',
+    merch: 'More Gear',
+};
 const categoryLabel = (key) => CATEGORY_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1));
 const STATIC_PRODUCTS = MERCHANDISE.map((row, index) => normalizeProduct(row, index, 'static')).filter(Boolean);
 
@@ -361,7 +369,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
             ? `You Need ${fmt(shortBy)} More Diamonds`
             : null;
 
-    const Icon = product.category === 'apparel' ? Shirt : Package;
+    const Icon = product.category === 'apparel' || product.category === 'headwear' ? Shirt : Package;
 
     return (
         <article aria-labelledby={titleId} style={{
@@ -398,7 +406,7 @@ function MerchProductCard({ product, balance, hasUser, busyKey, onBuyCard, onBuy
                         position: 'absolute', top: 10, left: 10,
                         background: 'rgba(255, 95, 109, 0.9)', color: '#12151c',
                         fontSize: 10, fontWeight: 800, letterSpacing: '0.6px',
-                        padding: '4px 9px', borderRadius: 8, textTransform: 'uppercase',
+                        padding: '4px 9px', borderRadius: 0, textTransform: 'uppercase',
                     }}>{availabilityReason}</div>
                 )}
                 {product.madeToOrder && (
@@ -685,9 +693,11 @@ export default function MerchStore({ user = null }) {
             if (!map.has(p.category)) { map.set(p.category, []); order.push(p.category); }
             map.get(p.category).push(p);
         }
-        // Keep Apparel / Accessories first, matching the previous layout.
+        // Keep the wearable collection first, then dedicated poker and
+        // lifestyle categories. Unknown future categories follow safely.
         order.sort((a, b) => {
-            const rank = (k) => (k === 'apparel' ? 0 : k === 'accessories' ? 1 : 2);
+            const ranks = { apparel: 0, headwear: 1, eyewear: 2, tabletop: 3, accessories: 4, lifestyle: 5 };
+            const rank = (k) => ranks[k] ?? 99;
             return rank(a) - rank(b);
         });
         return order.map(key => ({ key, label: categoryLabel(key), items: map.get(key) }));
@@ -921,8 +931,8 @@ export default function MerchStore({ user = null }) {
             <div style={styles.intro}>
                 <h2 style={styles.merchTitle}>Official Merch</h2>
                 <p style={styles.introText}>
-                    Neural Steel Apparel Is Printed Or Embroidered After Purchase, Then Packed And Shipped
-                    Directly By Our Fulfillment Partner. We Never Hold Or Ship Inventory.
+                    Neural Steel Apparel, Headwear, Table Gear, And Lifestyle Products Are Created After Purchase,
+                    Then Packed And Shipped Directly By A Fulfillment Partner. We Never Hold Or Ship Inventory.
                 </p>
 
                 {user?.id && (
@@ -930,7 +940,7 @@ export default function MerchStore({ user = null }) {
                         display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 14,
                         background: 'rgba(0, 212, 255, 0.1)',
                         border: '1px solid rgba(0, 212, 255, 0.3)',
-                        borderRadius: 20, padding: '8px 16px',
+                        borderRadius: 0, padding: '8px 16px',
                         fontSize: 13, fontWeight: 700, color: TEXT,
                     }}>
                         <Gem size={15} color={CYAN} />
@@ -943,7 +953,7 @@ export default function MerchStore({ user = null }) {
                 <div role="alert" style={{
                     display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
                     margin: '0 0 24px',
-                    padding: '12px 16px', borderRadius: 12,
+                    padding: '12px 16px', borderRadius: 0,
                     background: 'rgba(255, 215, 0, 0.08)',
                     border: '1px solid rgba(255, 215, 0, 0.35)',
                     color: '#FFD700', fontSize: 12, fontWeight: 600,
@@ -960,7 +970,7 @@ export default function MerchStore({ user = null }) {
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             minHeight: 46,
                             background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
-                            color: TEXT, borderRadius: 8, padding: '5px 10px',
+                            color: TEXT, borderRadius: 0, padding: '5px 10px',
                             fontSize: 11, fontWeight: 700, cursor: 'pointer',
                         }}
                     >
@@ -979,7 +989,7 @@ export default function MerchStore({ user = null }) {
             {!loading && products.length === 0 && (
                 <div role="status" style={{
                     textAlign: 'center', padding: '48px 20px',
-                    background: CARD_BG, border: CARD_BORDER, borderRadius: 12,
+                    background: CARD_BG, border: CARD_BORDER, borderRadius: 0,
                     color: MUTED, fontSize: 14,
                 }}>
                     <Package size={28} color="#a8b2d1" />
