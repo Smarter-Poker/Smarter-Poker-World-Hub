@@ -75,6 +75,15 @@ function Select({ label, children, ...props }) {
   );
 }
 
+function ProductThumbnail({ item, Icon }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [item.image_url]);
+
+  if (!item.image_url || failed) return <Icon size={25} aria-hidden="true" />;
+  return <img src={item.image_url} alt="" loading="lazy" onError={() => setFailed(true)} />;
+}
+
 function VariantRow({ variant, busy, onSave, onArchive }) {
   const [draft, setDraft] = useState(() => ({
     id: variant.id,
@@ -358,7 +367,7 @@ export default function MerchCatalogAdmin({ authFetch }) {
                   onClick={() => selectItem(item)}
                 >
                   <div className={styles.productImage}>
-                    {item.image_url ? <img src={item.image_url} alt="" loading="lazy" /> : <ProductIcon size={25} />}
+                    <ProductThumbnail item={item} Icon={ProductIcon} />
                   </div>
                   <div className={styles.productSummary}>
                     <strong>{item.name}</strong>

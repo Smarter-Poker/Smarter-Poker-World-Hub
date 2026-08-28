@@ -77,6 +77,8 @@ test('Stable Admin and storefront are wired to the editable expanded catalog', a
   assert.match(admin, /\/api\/horses\/merch-catalog-admin/);
   assert.match(admin, /Archive Product/);
   assert.match(admin, /Printful Sync Variant ID/);
+  assert.match(admin, /function ProductThumbnail/);
+  assert.match(admin, /onError=\{\(\) => setFailed\(true\)\}/);
   assert.match(store, /headwear: 'Hats And Headwear'/);
   assert.match(store, /eyewear: 'Sunglasses'/);
   assert.match(store, /tabletop: 'Poker Table Gear'/);
