@@ -55,6 +55,9 @@ export default async function handler(req, res) {
               amount: w.amount ?? 0,
             }))
           : [];
+        if (!players.some(p => String(p.userId) === String(user.id))) {
+          return res.status(403).json({ ok: false, error: 'Authenticated player is not part of this hand' });
+        }
         const { error: err_hand_history_8sdl8 } = await getSupabase().from('hand_history').insert({
           table_id: tableId,
           hand_number: hand.handNumber ?? hand.hand_number ?? null,
@@ -69,7 +72,10 @@ export default async function handler(req, res) {
           started_at: hand.startedAt || new Date().toISOString(),
           ended_at: hand.endedAt || new Date().toISOString(),
         });
-        if (err_hand_history_8sdl8) console.warn('[Supabase] Silent mutation failed in hand_history:', err_hand_history_8sdl8.message);
+        if (err_hand_history_8sdl8) {
+          console.warn('[hand-history] Insert failed:', err_hand_history_8sdl8.message);
+          return res.status(500).json({ ok: false, error: 'Failed to save hand' });
+        }
         return res.status(200).json({ ok: true });
       } catch (err) {
         console.warn('[hand-history] POST error:', err);
@@ -93,6 +99,7 @@ export default async function handler(req, res) {
         .from('hand_history')
         .select('*', { count: 'exact' })
         .eq('table_id', tableId)
+        .contains('players', [{ userId: user.id }])
         .order('created_at', { ascending: false })
         .range(offset, offset + lim - 1);
 
@@ -101,14 +108,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Failed to fetch hand history' });
       }
 
-      // Filter to only include hands where this player participated
-      const playerHands = (data || []).filter(h => {
-        const players = h.players || [];
-        return players.some(p => String(p.userId) === String(user.id) || String(p.id) === String(user.id) || String(p.playerId) === String(user.id));
-      });
-
       return res.status(200).json({
-        hands: playerHands,
+        hands: data || [],
         total: count || 0,
         page: parseInt(page),
         limit: lim,

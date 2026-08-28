@@ -25,6 +25,7 @@ import {
     deriveStreetAccuracy,
     deriveEVSummary,
 } from '../lib/sessionAnalytics';
+import { classifyFrequencyDecision } from '../lib/training/solverDecisionEvidence';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION CONSTANTS
@@ -322,10 +323,13 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
         };
     }
 
-    // ═══ MIXED STRATEGY CLASSIFICATION (Real Solver Logic) ═══
-    // GTO Wizard treats any action with significant frequency as valid.
-    // Classification is PURELY frequency-based — EV is only for display.
-    let classification;
+    // Trainer feedback, answer persistence, imported-hand auditing and Leak
+    // Finder share this one frequency classifier, preventing tier drift.
+    const classification = classifyFrequencyDecision(
+        gtoFrequencies,
+        selectedAnswer,
+        correctAnswer
+    ).classification;
 
     // A question whose declared correctAnswer the solver plays 0% of the time is
     // internally inconsistent — the feedback banner said "Best Move" with a
@@ -333,36 +337,6 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
     // question's fault, not the player's: keep them marked correct, but do not
     // award the top tier on a number the panel contradicts.
     const inconsistentQuestion = selectedNorm === correctNorm && selectedFreq === 0 && maxFreq > 0;
-
-    if (inconsistentQuestion) {
-        classification = MOVE_CLASSIFICATIONS.CORRECT;
-    } else if (selectedNorm === correctNorm) {
-        // Chose the highest-frequency action — always BEST
-        classification = MOVE_CLASSIFICATIONS.BEST;
-    } else if (selectedFreq >= 20) {
-        // Major part of the mix (e.g., 38% check when 62% bet) — still BEST
-        classification = MOVE_CLASSIFICATIONS.BEST;
-    } else if (selectedFreq >= 5) {
-        // Minor but valid part of the mix — CORRECT
-        classification = MOVE_CLASSIFICATIONS.CORRECT;
-    } else if (selectedFreq >= 1) {
-        // Marginal frequency — INACCURACY (technically in solver strategy but rare)
-        classification = MOVE_CLASSIFICATIONS.INACCURACY;
-    } else {
-        // 0% frequency — WRONG or BLUNDER
-        // Distinguish by checking how many valid actions exist and the correctFreq:
-        // - If the solver is "pure" (one action >= 90%) and player chose something else → BLUNDER
-        // - If multiple actions have decent frequency (mixed strategy) → WRONG (less egregious)
-        const nonZeroActions = Object.values(gtoFrequencies || {}).filter(f => f > 0).length;
-        const isPureStrategy = correctFreq >= 80;
-        if (isPureStrategy || nonZeroActions <= 1) {
-            // Solver overwhelmingly prefers one action — choosing 0% is a BLUNDER
-            classification = MOVE_CLASSIFICATIONS.BLUNDER;
-        } else {
-            // Multiple valid actions exist — choosing 0% is wrong but less severe
-            classification = MOVE_CLASSIFICATIONS.WRONG;
-        }
-    }
 
     // Calculate EV loss — prefer real PIO data, fall back to simulation
     // GTO Wizard uses FREQUENCY as the primary classification signal,
