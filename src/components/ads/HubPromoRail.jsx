@@ -43,6 +43,15 @@ const SLOT = 'hub_promotions';
 export default function HubPromoRail({ limit = 3 }) {
     const [ads, setAds] = useState([]);
 
+    const handleDismiss = (e, adId) => {
+        e.preventDefault();
+        e.stopPropagation();
+        import('../../services/adService').then(({ logDismiss }) => {
+            logDismiss(adId, SLOT);
+        });
+        setAds((prev) => prev.filter((a) => a.adId !== adId));
+    };
+
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -68,7 +77,8 @@ export default function HubPromoRail({ limit = 3 }) {
             {ads.map((ad) => {
                 const href = ad.targetUrl || '/hub';
                 return (
-                    <Link key={ad.adId} href={href} legacyBehavior>
+                    <div key={ad.adId} className="promo-card-wrapper">
+                    <Link href={href} legacyBehavior>
                         <a className="promo-card" onClick={() => logClick(ad.adId, SLOT)}>
                             <span className="promo-glyph" aria-hidden="true">
                                 {ad.glyph || '◆'}
@@ -81,6 +91,15 @@ export default function HubPromoRail({ limit = 3 }) {
                             {ad.ctaLabel ? <span className="promo-cta">{ad.ctaLabel}</span> : null}
                         </a>
                     </Link>
+                    <button
+                        type="button"
+                        className="promo-dismiss"
+                        aria-label="Dismiss promotion"
+                        onClick={(e) => handleDismiss(e, ad.adId)}
+                    >
+                        ✕
+                    </button>
+                </div>
                 );
             })}
 
@@ -99,7 +118,12 @@ export default function HubPromoRail({ limit = 3 }) {
                         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
                     }
                 }
+                .promo-card-wrapper {
+                    position: relative;
+                    display: flex;
+                }
                 .promo-card {
+                    flex: 1;
                     display: flex;
                     align-items: flex-start;
                     gap: 12px;
@@ -157,6 +181,31 @@ export default function HubPromoRail({ limit = 3 }) {
                     -webkit-line-clamp: 2;
                     -webkit-box-orient: vertical;
                     overflow: hidden;
+                }
+                .promo-dismiss {
+                    position: absolute;
+                    top: -8px;
+                    right: -8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 24px;
+                    height: 24px;
+                    padding: 0;
+                    border: 1px solid #dadde1;
+                    background: #ffffff;
+                    color: #8892a4;
+                    font-size: 14px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    transition: color 0.15s ease, background 0.15s ease;
+                    z-index: 2;
+                }
+                .promo-dismiss:hover, .promo-dismiss:focus-visible {
+                    color: #050505;
+                    background: #f7f8fa;
+                    outline: none;
                 }
                 .promo-cta {
                     flex: 0 0 auto;
