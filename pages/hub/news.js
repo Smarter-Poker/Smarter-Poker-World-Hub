@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Features:
- * - 6 Source-Specific News Boxes (PokerNews, MSPT, CardPlayer, WSOP, Poker.org, Pokerfuse)
+ * - Source-Specific News Boxes (PokerNews, MSPT, CardPlayer, WSOP, Poker.org, Pokerfuse, PokerStars Blog)
  * - Latest Videos tab with auto-scraped content
  * - Category filtering
  * - Trending sidebar
@@ -73,20 +73,6 @@ const getFallbackNews = () => [
     { id: '8', title: "WPT Championship Final Table Set", content: "Six players remain for the $10M prize pool", image_url: "https://images.unsplash.com/photo-1609743522653-52354461eb27?w=400&q=80", category: "tournament", read_time: 5, views: 7800, published_at: new Date(Date.now() - 25200000).toISOString(), source_name: "PokerNews" }
 ].map(a => ({ ...a, is_fallback: true }));
 
-const FALLBACK_POY = [
-    { player_name: "Alex F.", points: 2850, rank: 1 },
-    { player_name: "Thomas B.", points: 2720, rank: 2 },
-    { player_name: "Chad E.", points: 2580, rank: 3 },
-    { player_name: "Stephen C.", points: 2410, rank: 4 },
-    { player_name: "Daniel N.", points: 2290, rank: 5 }
-];
-
-const FALLBACK_EVENTS = [
-    { id: '1', name: "EPT Barcelona", event_date: "2026-08-17" },
-    { id: '2', name: "WSOP Circuit Vegas", event_date: "2026-10-08" },
-    { id: '3', name: "WPT Championship", event_date: "2026-12-01" }
-];
-
 // MSPT (Mid-States Poker Tour) Fallback Data
 const FALLBACK_MSPT = [
     { id: 'mspt1', title: "MSPT Venetian $1,600 Main Event Kicks Off", source_url: "https://msptpoker.com", published_at: new Date().toISOString(), prize_pool: "$2M GTD" },
@@ -128,7 +114,7 @@ const FALLBACK_IMAGES = {
 // NewsBox, VideoCard, ReelCard, MSPTBox, SourcePlaceholderBox — extracted to src/components/news/
 
 // Sources that appear in the "More Stories" feed and the filter chips
-const VALID_SOURCES = ['PokerNews', 'MSPT', 'Card Player', 'WSOP', 'Poker.org', 'Pokerfuse'];
+const VALID_SOURCES = ['PokerNews', 'MSPT', 'Card Player', 'WSOP', 'Poker.org', 'Pokerfuse', 'PokerStars Blog'];
 // Sections reachable via ?tab= (hamburger menu deep links). 'bookmarks' and 'later'
 // are reached via ?filter= instead and are handled separately.
 const SECTION_TABS = ['news', 'reels', 'videos', 'events'];
@@ -142,7 +128,8 @@ const SOURCE_COLORS = {
     'Card Player': '#43a047',
     'WSOP': '#f9a825',
     'Poker.org': '#7b1fa2',
-    'Pokerfuse': '#00897b'
+    'Pokerfuse': '#00897b',
+    'PokerStars Blog': '#d81e45'
 };
 
 function normalizeSourceName(value) {
@@ -301,6 +288,45 @@ export default function NewsHub() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab]);
 
+    const [nearbyLocation, setNearbyLocation] = useState(null);
+    const [locationStatus, setLocationStatus] = useState('idle');
+    const [locationMessage, setLocationMessage] = useState('');
+
+    const enableNearbyEvents = useCallback(() => {
+        if (typeof navigator === 'undefined' || !navigator.geolocation) {
+            setLocationStatus('unsupported');
+            setLocationMessage('Location is not available in this browser.');
+            return;
+        }
+        setLocationStatus('locating');
+        setLocationMessage('');
+        navigator.geolocation.getCurrentPosition(
+            ({ coords }) => {
+                setNearbyLocation({ lat: coords.latitude, lng: coords.longitude });
+                setLocationStatus('ready');
+            },
+            (error) => {
+                setNearbyLocation(null);
+                setLocationStatus(error?.code === 1 ? 'denied' : 'error');
+                setLocationMessage(error?.code === 1
+                    ? 'Location access is off. Showing upcoming tournaments instead.'
+                    : 'Could not determine your location. Showing upcoming tournaments.');
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+        );
+    }, []);
+
+    useEffect(() => {
+        // Do not trigger a permission prompt on arrival. Reuse an existing
+        // grant; otherwise the visitor opts in with the button in the widget.
+        if (typeof navigator === 'undefined' || !navigator.permissions) return;
+        navigator.permissions.query({ name: 'geolocation' })
+            .then((permission) => {
+                if (permission.state === 'granted') enableNearbyEvents();
+            })
+            .catch(() => {});
+    }, [enableNearbyEvents]);
+
     // SWR-backed static data — cached 60s, survive navigation
     const { data: sourceBoxesData, error: sourceBoxesError } = useSWR('/api/news/source-boxes', fetchNewsJson);
     const rawSourceBoxes = (sourceBoxesData?.success && sourceBoxesData.data?.length) ? sourceBoxesData.data : [];
@@ -322,14 +348,15 @@ export default function NewsHub() {
     const { data: reelsData, error: reelsError, isLoading: reelsLoading, mutate: refreshReels } = useSWR('/api/news/reels?limit=20&sort=recent', fetchNewsJson);
     const reels = (reelsData?.success && reelsData.data?.length) ? reelsData.data : [];
 
-    const { data: leaderboardData } = useSWR('/api/news/leaderboard?limit=5', fetchNewsJson);
-    const leaderboard = (leaderboardData?.success && leaderboardData.data?.length) ? leaderboardData.data : (typeof FALLBACK_POY !== 'undefined' ? FALLBACK_POY : []);
+    const { data: leaderboardData, error: leaderboardError, isLoading: leaderboardLoading } = useSWR('/api/news/leaderboard?limit=5', fetchNewsJson);
+    const leaderboard = (leaderboardData?.success && Array.isArray(leaderboardData.data)) ? leaderboardData.data : [];
 
-    const { data: eventsData, error: eventsError, isLoading: eventsLoading, mutate: refreshEvents } = useSWR('/api/news/events?limit=25', fetchNewsJson);
+    const eventsKey = nearbyLocation
+        ? `/api/news/events?limit=25&radius=100&lat=${encodeURIComponent(nearbyLocation.lat)}&lng=${encodeURIComponent(nearbyLocation.lng)}`
+        : '/api/news/events?limit=25';
+    const { data: eventsData, error: eventsError, isLoading: eventsLoading, mutate: refreshEvents } = useSWR(eventsKey, fetchNewsJson);
     const events = (eventsData?.success && eventsData.data?.length) ? eventsData.data : [];
-    // The sidebar keeps the established, explicitly labelled sample preview when
-    // there are no scheduled rows. The dedicated Events section stays truthful.
-    const sidebarEvents = events.length > 0 ? events.slice(0, 3) : FALLBACK_EVENTS;
+    const sidebarEvents = events.slice(0, 3);
 
     const { data: msptData } = useSWR('/api/news/articles?search=MSPT&limit=10', fetchNewsJson);
     const msptNews = (msptData?.success && msptData.data?.length)
@@ -634,7 +661,6 @@ export default function NewsHub() {
     const [subscribing, setSubscribing] = useState(false);
     const [subscribeError, setSubscribeError] = useState('');
     const [subscribeMessage, setSubscribeMessage] = useState('');
-
     // UI State
     const [bookmarks, setBookmarks] = useState([]);
     // Read Later (shared contract 2) — article ids, newest first. This is a SAVED
@@ -1675,7 +1701,7 @@ export default function NewsHub() {
 
                             {activeSection === 'news' && (
                                 <>
-                                    {/* News Grid - 6 Source-Specific Boxes */}
+                                    {/* News Grid - source-specific intelligence boxes */}
                                     <section className="news-section">
                                         {feedFilter === 'bookmarks' && topArticles.length === 0 && remainingStories.length === 0 ? (
                                             <div className="no-results">
@@ -2157,39 +2183,70 @@ export default function NewsHub() {
 
                             {/* Player of the Year */}
                             <div className="widget leaderboard">
-                                <h4><Trophy size={14} /> Player Of The Year{!(leaderboardData?.success && leaderboardData.data?.length) && <span className="sample-tag">Sample</span>}</h4>
-                                <ul>
-                                    {leaderboard.map((player, i) => (
-                                        <li key={player.id || i}>
-                                            <span className={`medal medal-${i + 1}`}>{i + 1}</span>
-                                            <span className="name">{player.player_name}</span>
-                                            <span className="points">{(player.points || 0).toLocaleString()}</span>
-                                        </li>
-                                    ))}
-                                </ul>
+                                <h4>
+                                    <Trophy size={14} /> Player Of The Year
+                                    {leaderboardData?.updated_at && <span className="live-tag">GPI</span>}
+                                </h4>
+                                {leaderboard.length > 0 ? (
+                                    <>
+                                        <ul>
+                                            {leaderboard.map((player, i) => (
+                                                <li key={player.id || i}>
+                                                    <span className={`medal medal-${i + 1}`}>{player.rank || i + 1}</span>
+                                                    <span className="name">{player.player_name}</span>
+                                                    <span className="points">{Number(player.points || 0).toLocaleString()}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <a className="widget-source" href="https://www.globalpokerindex.com/player-of-the-year/" target="_blank" rel="noopener noreferrer">
+                                            Global Poker Index <ExternalLink size={11} />
+                                        </a>
+                                    </>
+                                ) : (
+                                    <div className="widget-empty" role="status">
+                                        {leaderboardLoading ? 'Loading current standings…' : leaderboardError ? 'Standings are temporarily unavailable.' : 'Licensed GPI standings are not connected yet.'}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Upcoming Events */}
-                            <Link href="/hub/poker-near-me/lobby">
-                                <div className="widget events">
-                                    <h4><MapPin size={14} /> Poker Near Me{!(eventsData?.success && eventsData.data?.length) && <span className="sample-tag">Sample</span>}</h4>
+                            <div className="widget events">
+                                    <h4>
+                                        <MapPin size={14} /> Poker Near Me
+                                        {nearbyLocation && <span className="live-tag">Within 100 mi</span>}
+                                    </h4>
+                                    {!nearbyLocation && (
+                                        <button type="button" className="location-enable" onClick={enableNearbyEvents} disabled={locationStatus === 'locating'}>
+                                            <MapPin size={13} />
+                                            {locationStatus === 'locating' ? 'Finding tournaments…' : 'Use my location'}
+                                        </button>
+                                    )}
+                                    {locationMessage && <p className="location-note" role="status">{locationMessage}</p>}
                                     <ul className="events-list">
                                         {sidebarEvents.map(event => (
                                             <li key={event.id}>
-                                                <span>{event.name}</span>
+                                                <span>
+                                                    {event.name}
+                                                    {event.distance_miles != null && <small>{event.distance_miles} mi · {event.location}</small>}
+                                                </span>
                                                 <span className="date">{formatEventDate(event.event_date)}</span>
                                             </li>
                                         ))}
                                     </ul>
-                                    <div className="view-all">
+                                    {eventsLoading && <div className="widget-empty" role="status">Loading tournaments…</div>}
+                                    {!eventsLoading && !eventsError && sidebarEvents.length === 0 && (
+                                        <div className="widget-empty">No tournaments found{nearbyLocation ? ' within 100 miles' : ''}.</div>
+                                    )}
+                                    {eventsError && <div className="widget-empty">Tournament feed is temporarily unavailable.</div>}
+                                    <Link href="/hub/poker-near-me/lobby" className="view-all">
                                         View All Events <ExternalLink size={12} />
-                                    </div>
-                                </div>
-                            </Link>
+                                    </Link>
+                            </div>
 
                             {/* Newsletter Signup */}
                             <div className="widget newsletter">
-                                <h4><Mail size={14} /> Newsletter</h4>
+                                <h4><Mail size={14} /> Newsletter <span className="live-tag">Weekly Wire</span></h4>
+                                <p className="newsletter-promise">The sharpest stories from the live wire. One concise dispatch, easy unsubscribe.</p>
                                 {subscribed ? (
                                     <div className="subscribed">
                                         <CheckCircle size={16} /> {subscribeMessage || 'Subscribed!'}
@@ -3477,17 +3534,42 @@ export default function NewsHub() {
                         color: #2374E1;
                     }
 
-                    /* "Sample" tag shown when a widget is rendering fallback data */
-                    .sample-tag {
+                    .live-tag {
                         margin-left: auto;
                         padding: 1px 6px;
-                        background: rgba(255, 255, 255, 0.12);
+                        background: rgba(94, 245, 240, 0.12);
+                        border: 1px solid rgba(94, 245, 240, 0.28);
                         border-radius: 6px;
                         font-size: 9px;
                         font-weight: 700;
                         letter-spacing: 0.5px;
                         text-transform: uppercase;
-                        color: rgba(255, 255, 255, 0.65);
+                        color: #5ef5f0;
+                    }
+
+                    .widget-empty {
+                        padding: 14px 4px;
+                        color: #8fa3b8;
+                        font-size: 12px;
+                        line-height: 1.5;
+                    }
+
+                    .widget-source {
+                        display: flex;
+                        align-items: center;
+                        justify-content: flex-end;
+                        gap: 5px;
+                        margin-top: 10px;
+                        color: #5ef5f0;
+                        font-size: 10px;
+                        text-decoration: none;
+                    }
+
+                    .newsletter-promise {
+                        margin: 0 0 12px;
+                        color: #91a5bb;
+                        font-size: 11px;
+                        line-height: 1.45;
                     }
 
                     /* Newsletter Widget */
@@ -3754,7 +3836,7 @@ export default function NewsHub() {
 
                     /* Events Widget */
                     .events {
-                        cursor: pointer;
+                        cursor: default;
                         transition: all 0.2s;
                     }
 
@@ -3783,6 +3865,8 @@ export default function NewsHub() {
                     .events-list li {
                         display: flex;
                         justify-content: space-between;
+                        align-items: flex-start;
+                        gap: 8px;
                         padding: 10px 0;
                         border-bottom: 1px solid #3E4042;
                         font-size: 12px;
@@ -3790,6 +3874,47 @@ export default function NewsHub() {
 
                     .events-list li:last-child {
                         border-bottom: none;
+                    }
+
+                    .events-list li > span:first-child {
+                        min-width: 0;
+                        line-height: 1.4;
+                    }
+
+                    .events-list small {
+                        display: block;
+                        margin-top: 3px;
+                        color: #7f93a8;
+                        font-size: 9px;
+                    }
+
+                    .location-enable {
+                        width: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 7px;
+                        margin: 0 0 8px;
+                        padding: 9px 11px;
+                        border: 1px solid rgba(94, 245, 240, 0.35);
+                        border-radius: 8px;
+                        background: rgba(94, 245, 240, 0.07);
+                        color: #5ef5f0;
+                        font-size: 11px;
+                        font-weight: 700;
+                        cursor: pointer;
+                    }
+
+                    .location-enable:disabled {
+                        opacity: 0.6;
+                        cursor: wait;
+                    }
+
+                    .location-note {
+                        margin: 0 0 8px;
+                        color: #8fa3b8;
+                        font-size: 10px;
+                        line-height: 1.4;
                     }
 
                     .events-list .date {

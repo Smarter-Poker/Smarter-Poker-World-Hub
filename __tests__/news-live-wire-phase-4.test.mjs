@@ -86,12 +86,13 @@ test('modal scroll locking and list action names remain accessible', () => {
   assert.doesNotMatch(PAGE, /news-intro-seen/);
 });
 
-test('events API normalizes real database fields into the News UI contract', () => {
-  assert.match(EVENTS_API, /name: e\.event_name \|\| 'Poker Event'/);
-  assert.match(EVENTS_API, /event_date: e\.start_date/);
-  assert.match(EVENTS_API, /location: \[e\.venue_name, \[e\.city, e\.state\]/);
-  assert.match(EVENTS_API, /query = query\.eq\('is_special_event', true\)/);
-  assert.doesNotMatch(EVENTS_API, /\.eq\('is_featured', true\)/);
+test('events API uses canonical geocoded tournament data without retaining location', () => {
+  assert.match(EVENTS_API, /from\('unified_events_calendar'\)/);
+  assert.match(EVENTS_API, /function haversineMiles/);
+  assert.match(EVENTS_API, /distance_miles:/);
+  assert.match(EVENTS_API, /location_stored: false/);
+  assert.match(EVENTS_API, /Valid latitude and longitude are required/);
+  assert.doesNotMatch(EVENTS_API, /from\('poker_events'\)/);
   assert.match(PAGE, /new Date\(event\.event_date\)\.getUTCDate\(\)/);
 });
 
@@ -100,18 +101,19 @@ test('public secondary feeds expose explicit allowlisted payloads', () => {
     assert.match(api, /\.select\('id, author_id, caption, thumbnail_url, video_url, view_count, created_at'\)/);
     assert.doesNotMatch(api, /from\('social_reels'\)[\s\S]{0,100}\.select\('\*'\)/);
   }
-  assert.match(EVENTS_API, /\.select\('id, event_name, start_date, start_time, venue_name, city, state, buy_in, guarantee, online_registration_url, is_special_event'\)/);
-  assert.doesNotMatch(EVENTS_API, /from\('poker_events'\)[\s\S]{0,100}\.select\('\*'\)/);
+  assert.match(EVENTS_API, /\.select\('source,native_id,venue_id,venue_name,event_name,start_time,buy_in,guaranteed,game_type,day_of_week,specific_date,is_recurring,city,state,latitude,longitude'\)/);
+  assert.doesNotMatch(EVENTS_API, /from\('unified_events_calendar'\)[\s\S]{0,100}\.select\('\*'\)/);
   assert.doesNotMatch(REELS_API, /\.\.\.reel/);
 });
 
 test('secondary feed failures are errors while legitimate empty feeds remain empty successes', () => {
-  for (const api of [EVENTS_API, REELS_API, VIDEOS_API]) {
+  for (const api of [REELS_API, VIDEOS_API]) {
     assert.match(api, /if \(error\) \{\s*throw error;/);
     assert.match(api, /if \(!data\?\.length\) \{[\s\S]{0,160}return res\.status\(200\)\.json\(\{ success: true, data: \[\] \}\);/);
     assert.match(api, /return res\.status\(500\)\.json\(\{ success: false, error:/);
     assert.doesNotMatch(api, /fallback: true/);
   }
+  assert.match(EVENTS_API, /return res\.status\(503\)\.json\(\{ success: false, error: 'Tournament feed unavailable' \}\)/);
 });
 
 test('News sections surface loading, failure, retry and true-empty states', () => {
@@ -126,7 +128,8 @@ test('News sections surface loading, failure, retry and true-empty states', () =
   assert.match(PAGE, /Events are temporarily unavailable\./);
   assert.match(PAGE, /onClick=\{\(\) => refreshVideos\(\)\}/);
   assert.match(PAGE, /onClick=\{\(\) => refreshEvents\(\)\}/);
-  assert.match(PAGE, /const sidebarEvents = events\.length > 0 \? events\.slice\(0, 3\) : FALLBACK_EVENTS/);
+  assert.match(PAGE, /const sidebarEvents = events\.slice\(0, 3\)/);
+  assert.doesNotMatch(PAGE, /FALLBACK_EVENTS|FALLBACK_POY/);
 });
 
 test('reel playback accepts every supported YouTube form and uses the player bridge', () => {

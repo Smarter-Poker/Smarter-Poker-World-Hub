@@ -299,6 +299,9 @@ ALL_CRONS = [
     ('/api/cron/cardplayer-scraper',              dict(hour='*/2', minute=5)),
     ('/api/cron/pokernews-videos',                dict(hour='*/3', minute=30)),
     ('/api/cron/poker-news',                      dict(hour='*/4', minute=15)),
+    # Licensed Global Poker Index feed adapter. The normal /api/news path is
+    # deliberate: policy forbids adding a net-new pages/api/cron route.
+    ('/api/news/sync-poy',                         dict(hour=12, minute=15)),
     # Content generation (upserts daily challenge/question rows; safely re-generatable)
     ('/api/cron/trivia-daily-generator',          dict(hour=5, minute=59)),
     ('/api/cron/memory-matrix-daily-challenge',   dict(hour=6, minute=0)),
