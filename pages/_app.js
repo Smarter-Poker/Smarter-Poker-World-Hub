@@ -10,6 +10,7 @@ import '../src/lib/hmr-reconnect-guard'; // Client-side HMR death loop preventio
 import '../src/index.css';
 import '../src/styles/premium.css';
 import '../src/styles/global-tokens.css';
+import '../vendor/commander-shared/src/components/club-buttons/club-buttons.css';
 import '../src/styles/worlds/club-arena.css';
 // The shared poker-table skin. Global CSS can only be imported here in Next,
 // so this is what lets any of the six table implementations opt in by adding
