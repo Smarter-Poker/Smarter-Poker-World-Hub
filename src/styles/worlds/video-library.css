@@ -126,7 +126,7 @@ body.world-video-library {
 .vl-filter-button {
     position: relative;
     width: 100%;
-    min-height: 43px;
+    min-height: 44px;
     justify-content: flex-start !important;
     padding: 0 14px !important;
     border: 1px solid transparent !important;
@@ -373,6 +373,11 @@ body.world-video-library {
     outline: 2px solid var(--vl-cyan);
     outline-offset: 4px;
     border-color: var(--vl-cyan);
+}
+
+.vl-source-button:hover .vl-source-logo-frame {
+    border-color: rgba(85, 216, 255, 0.7);
+    box-shadow: 0 0 18px rgba(0, 158, 255, 0.2), 0 7px 17px rgba(0, 0, 0, 0.48) !important;
 }
 
 .vl-source-all-mark {
@@ -645,6 +650,16 @@ body.world-video-library {
     background: #061016 !important;
 }
 
+.vl-new-week-card {
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.vl-new-week-card:hover,
+.vl-new-week-card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
 .vl-continuity-card { overflow: hidden; }
 
 .vl-continuity-play {
@@ -709,7 +724,7 @@ body.world-video-library {
     box-shadow: 0 0 22px rgba(0, 158, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.34) !important;
 }
 
-.vl-video-grid > .vl-video-card:first-child {
+.vl-video-grid > .vl-video-card.is-featured {
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: minmax(0, 1.72fr) minmax(265px, 0.72fr);
@@ -719,19 +734,19 @@ body.world-video-library {
     outline-offset: 7px;
 }
 
-.vl-video-grid > .vl-video-card:first-child .vl-video-thumb {
+.vl-video-grid > .vl-video-card.is-featured .vl-video-thumb {
     min-height: 330px;
     aspect-ratio: auto !important;
 }
 
-.vl-video-grid > .vl-video-card:first-child .vl-card-info {
+.vl-video-grid > .vl-video-card.is-featured .vl-card-info {
     display: flex;
     flex-direction: column;
     justify-content: center;
     padding: 27px 24px !important;
 }
 
-.vl-video-grid > .vl-video-card:first-child .vl-card-title {
+.vl-video-grid > .vl-video-card.is-featured .vl-card-title {
     font: 900 clamp(23px, 2.4vw, 34px)/1 var(--vl-display) !important;
     letter-spacing: -0.8px;
 }
@@ -916,6 +931,23 @@ body.world-video-library {
     border-color: rgba(85, 216, 255, 0.46) !important;
 }
 
+.vl-modal-close:hover { background: rgba(0, 0, 0, 0.85) !important; }
+
+.vl-player-nav:hover { background: rgba(255, 255, 255, 0.3) !important; }
+
+.vl-train-spot-button:hover,
+.vl-train-spot-button:focus-visible {
+    background: linear-gradient(135deg, rgba(0, 200, 83, 0.35), rgba(0, 150, 60, 0.35)) !important;
+    box-shadow: 0 0 20px rgba(0, 200, 83, 0.45) !important;
+    animation: none !important;
+}
+
+.vl-up-next-card:hover,
+.vl-up-next-card:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
 .vl-video-count {
     margin-top: 26px !important;
     padding: 13px 15px;
@@ -1011,6 +1043,10 @@ body.world-video-library {
 }
 
 .vl-catalog-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
     max-width: 1400px;
     margin: 0 auto 14px;
     padding: 10px 13px;
@@ -1019,6 +1055,130 @@ body.world-video-library {
     background: rgba(83, 50, 7, 0.22);
     font: 700 11px/1.45 var(--vl-utility);
     letter-spacing: 0.25px;
+}
+
+.vl-catalog-notice button,
+.vl-sync-panel button {
+    min-height: 44px;
+    padding: 0 15px;
+    border: 1px solid currentColor;
+    border-radius: 0;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.04);
+    font: 900 9px/1 var(--vl-utility);
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.vl-sync-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: -7px 0 18px;
+    padding: 13px 15px;
+    border: 1px solid rgba(85, 216, 255, 0.28);
+    color: #dff8ff;
+    background: rgba(4, 25, 35, 0.78);
+}
+
+.vl-sync-panel > div {
+    display: grid;
+    gap: 4px;
+}
+
+.vl-sync-panel strong {
+    font: 900 11px/1.2 var(--vl-utility);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
+.vl-sync-panel span {
+    color: rgba(220, 244, 252, 0.66);
+    font: 500 11px/1.4 var(--vl-body);
+}
+
+.vl-sync-panel.is-loading {
+    justify-content: flex-start;
+}
+
+.vl-sync-panel.is-error {
+    border-color: rgba(255, 184, 76, 0.42);
+    color: #ffe2ad;
+    background: rgba(83, 50, 7, 0.2);
+}
+
+.vl-sync-pulse {
+    width: 10px;
+    height: 10px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--vl-cyan);
+    box-shadow: 0 0 0 0 rgba(85, 216, 255, 0.5);
+    animation: vl-sync-pulse 1.4s ease-out infinite;
+}
+
+@keyframes vl-sync-pulse {
+    70% { box-shadow: 0 0 0 9px rgba(85, 216, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(85, 216, 255, 0); }
+}
+
+.vl-video-skeleton {
+    min-height: 300px;
+    padding: 0 0 17px;
+    overflow: hidden;
+    border: 1px solid rgba(137, 216, 249, 0.15);
+    background: #061016;
+}
+
+.vl-skeleton-media,
+.vl-skeleton-line {
+    display: block;
+    background: linear-gradient(100deg, rgba(255, 255, 255, 0.035) 20%, rgba(85, 216, 255, 0.1) 42%, rgba(255, 255, 255, 0.035) 64%);
+    background-size: 240% 100%;
+    animation: vl-skeleton-scan 1.5s linear infinite;
+}
+
+.vl-skeleton-media {
+    aspect-ratio: 16 / 9;
+    margin-bottom: 17px;
+}
+
+.vl-skeleton-line {
+    width: 52%;
+    height: 10px;
+    margin: 9px 16px 0;
+}
+
+.vl-skeleton-line.is-wide { width: 78%; }
+
+@keyframes vl-skeleton-scan {
+    to { background-position: -140% 0; }
+}
+
+.vl-media-failed {
+    display: grid;
+    place-items: center;
+}
+
+.vl-media-failed::before {
+    content: "Preview unavailable";
+    color: rgba(220, 244, 252, 0.55);
+    font: 900 9px/1 var(--vl-utility);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.vl-load-more-sentinel { width: 100%; height: 24px; }
+
+.vl-load-more-status {
+    padding: 16px;
+    color: rgba(220, 244, 252, 0.58);
+    text-align: center;
+    font: 900 9px/1 var(--vl-utility);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
 }
 
 /* Full-screen supporting surfaces use the same broadcast-hardware language. */
@@ -1183,7 +1343,7 @@ body.world-video-library {
     .vl-command-layout { grid-template-columns: 218px minmax(0, 1fr); }
     .vl-command-main { padding-left: 23px; }
     .vl-video-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-    .vl-video-grid > .vl-video-card:first-child { grid-column: 1 / -1; }
+    .vl-video-grid > .vl-video-card.is-featured { grid-column: 1 / -1; }
 }
 
 /* Tablet bridge: keep the command rail while giving feature cards usable width. */
@@ -1196,12 +1356,12 @@ body.world-video-library {
     .vl-search-wrap { width: 100% !important; }
     .vl-video-grid { grid-template-columns: minmax(0, 1fr) !important; }
 
-    .vl-video-grid > .vl-video-card:first-child {
+    .vl-video-grid > .vl-video-card.is-featured {
         display: block;
         min-height: 0;
     }
 
-    .vl-video-grid > .vl-video-card:first-child .vl-video-thumb {
+    .vl-video-grid > .vl-video-card.is-featured .vl-video-thumb {
         min-height: 0;
         aspect-ratio: 16 / 9 !important;
     }
@@ -1257,6 +1417,8 @@ body.world-video-library {
         scroll-snap-type: x mandatory;
         scrollbar-width: none;
         padding-right: 28px;
+        -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 13px, #000 calc(100% - 28px), transparent 100%);
+        mask-image: linear-gradient(90deg, transparent 0, #000 13px, #000 calc(100% - 28px), transparent 100%);
     }
 
     .vl-type-toggle-row::-webkit-scrollbar { display: none; }
@@ -1339,6 +1501,17 @@ body.world-video-library {
         padding: 12px 0 14px !important;
         border-top: 1px solid rgba(137, 217, 250, 0.18);
         padding-right: 28px !important;
+        -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%);
+        mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%);
+    }
+
+    .vl-empty-state button,
+    .vl-search-wrap input { min-height: 44px; }
+
+    .vl-sync-panel,
+    .vl-catalog-notice {
+        align-items: stretch;
+        flex-direction: column;
     }
 
     .vl-active-view {
@@ -1420,31 +1593,31 @@ body.world-video-library {
     .vl-video-grid { display: block !important; }
     .vl-video-card { margin-top: -1px; }
 
-    .vl-video-grid > .vl-video-card:first-child {
+    .vl-video-grid > .vl-video-card.is-featured {
         display: block;
         min-height: 0;
         margin: 7px 7px 27px;
         outline-offset: 6px;
     }
 
-    .vl-video-grid > .vl-video-card:first-child .vl-video-thumb {
+    .vl-video-grid > .vl-video-card.is-featured .vl-video-thumb {
         min-height: 0;
         aspect-ratio: 16 / 10 !important;
     }
 
-    .vl-video-grid > .vl-video-card:first-child .vl-card-info {
+    .vl-video-grid > .vl-video-card.is-featured .vl-card-info {
         display: block;
         padding: 17px 15px 18px !important;
     }
 
-    .vl-video-grid > .vl-video-card:first-child .vl-card-title {
+    .vl-video-grid > .vl-video-card.is-featured .vl-card-title {
         min-height: 0;
         margin-bottom: 14px !important;
         font-size: 24px !important;
         line-height: 1.02 !important;
     }
 
-    .vl-video-grid > .vl-video-card:not(:first-child) {
+    .vl-video-grid > .vl-video-card:not(.is-featured) {
         display: grid;
         grid-template-columns: 132px minmax(0, 1fr);
         min-height: 112px;
@@ -1456,12 +1629,12 @@ body.world-video-library {
         contain-intrinsic-size: 112px;
     }
 
-    .vl-video-grid > .vl-video-card:not(:first-child) .vl-video-thumb {
+    .vl-video-grid > .vl-video-card:not(.is-featured) .vl-video-thumb {
         min-height: 112px;
         aspect-ratio: auto !important;
     }
 
-    .vl-video-grid > .vl-video-card:not(:first-child) .vl-card-info {
+    .vl-video-grid > .vl-video-card:not(.is-featured) .vl-card-info {
         align-self: stretch;
         display: flex;
         flex-direction: column;
@@ -1469,7 +1642,7 @@ body.world-video-library {
         padding: 9px 10px !important;
     }
 
-    .vl-video-grid > .vl-video-card:not(:first-child) .vl-card-title {
+    .vl-video-grid > .vl-video-card:not(.is-featured) .vl-card-title {
         min-height: 0;
         margin-bottom: 7px !important;
         font-size: 12px !important;
@@ -1477,14 +1650,14 @@ body.world-video-library {
         -webkit-line-clamp: 3 !important;
     }
 
-    .vl-video-grid > .vl-video-card:not(:first-child) .vl-card-meta {
+    .vl-video-grid > .vl-video-card:not(.is-featured) .vl-card-meta {
         flex-wrap: wrap;
         justify-content: flex-start !important;
         gap: 5px;
     }
 
-    .vl-video-grid > .vl-video-card:not(:first-child) .vl-source-chip-logo { display: none !important; }
-    .vl-video-grid > .vl-video-card:not(:first-child) .vl-card-views { margin-left: 0; }
+    .vl-video-grid > .vl-video-card:not(.is-featured) .vl-source-chip-logo { display: none !important; }
+    .vl-video-grid > .vl-video-card:not(.is-featured) .vl-card-views { margin-left: 0; }
 
     .vl-share-button {
         margin-left: auto;
@@ -1500,12 +1673,12 @@ body.world-video-library {
         background: rgba(1, 13, 19, 0.64) !important;
     }
 
-    .vl-video-card:not(:first-child) .vl-play-button {
+    .vl-video-card:not(.is-featured) .vl-play-button {
         width: 34px !important;
         height: 34px !important;
     }
 
-    .vl-video-card:not(:first-child) .vl-play-button span { font-size: 16px !important; }
+    .vl-video-card:not(.is-featured) .vl-play-button span { font-size: 16px !important; }
 
     .vl-video-count {
         margin-top: 18px !important;
