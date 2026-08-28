@@ -179,12 +179,44 @@ export default async function handler(req, res) {
                 }
             }
 
+            /* WHY A SURFACE IS QUIET (2026-08-28).
+             *
+             * Views and clicks say what happened. They cannot say what did NOT
+             * happen, and a silent surface has three completely different
+             * causes: no placement, no audience match, or everybody already
+             * capped out for the day. Until now those were one silence.
+             *
+             * fn_ad_suppression counts PEOPLE per placement over the rolling
+             * 24h window - reached, and no longer reachable. Its predecessor
+             * counted the caller's own impressions, which is the right unit
+             * for a player debugging their own screen and useless to the only
+             * person who ever asks: this panel is staff-only, so that version
+             * would have answered "is this one staff member capped".
+             *
+             * Same null-means-could-not-count rule as the stats above. */
+            let suppression = null;
+            const { data: supRows, error: supErr } = await getSupabase().rpc('fn_ad_suppression');
+            if (supErr) {
+                console.warn('[house-ads] suppression read failed:', supErr.message);
+            } else {
+                suppression = {};
+                for (const r of supRows || []) {
+                    const perAd = (suppression[r.ad_id] ||= {});
+                    perAd[r.slot] = {
+                        dailyCap: r.daily_cap == null ? null : Number(r.daily_cap),
+                        servedUsers24h: Number(r.served_users_24h) || 0,
+                        cappedUsers24h: Number(r.capped_users_24h) || 0,
+                    };
+                }
+            }
+
             return res.status(200).json({
                 success: true,
                 ads: ads || [],
                 placements: placements || [],
                 stats, // null means "could not count", NOT "zero"
                 statsBySlot, // { adId: { slot: { impressions, clicks, dismisses, lastEventAt } } }
+                suppression, // { adId: { slot: { dailyCap, servedUsers24h, cappedUsers24h } } }
             });
         }
 
