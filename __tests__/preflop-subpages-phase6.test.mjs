@@ -37,6 +37,23 @@ test('advertised deep-link modes and safe accuracy persistence remain wired', ()
   assert.doesNotMatch(SESSION_SERVICE, /accuracy:\s*accuracyToFraction/);
 });
 
+test('all public shorthand and canonical game-mode query aliases resolve', () => {
+  const aliases = {
+    speed: "['speed', 'speed-drill']",
+    pressure: "['pressure', 'pressure-cooker']",
+    pattern: "['pattern', 'pattern-recognition']",
+    mixed: "['mixed', 'mixed-strategy']",
+    spot: "['spot', 'spot-trainer']",
+    tournament: "['tournament', 'tournament']",
+  };
+  for (const [query, mapping] of Object.entries(aliases)) {
+    assert.ok(MAIN.includes(`${query}: ${mapping}`), `?mode=${query} must resolve to ${mapping}`);
+  }
+  for (const canonical of ['speed-drill', 'pressure-cooker', 'pattern-recognition', 'mixed-strategy', 'spot-trainer']) {
+    assert.match(MAIN, new RegExp(`'${canonical}': \\[`), `${canonical} must remain backward compatible`);
+  }
+});
+
 test('stats reads the completed boolean contract and normalizes mixed accuracy units', () => {
   assert.match(STATS, /\.eq\('completed', true\)/);
   assert.doesNotMatch(STATS, /\.eq\('status', 'completed'\)/);
