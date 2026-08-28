@@ -85,15 +85,21 @@ jobs:
           echo "🔍 Looking for QUEUED/BUILDING deployments for branch: $TARGET_BRANCH"
 
           # Fetch all queued deployments for this project
-          RESPONSE=$(curl -sf \
+          RESPONSE_FILE=$(mktemp)
+          trap 'rm -f "$RESPONSE_FILE"' EXIT
+          if ! curl -sf \
             "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&limit=50" \
-            -H "Authorization: Bearer ${VERCEL_TOKEN}" || echo '{"deployments":[]}')
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            -o "$RESPONSE_FILE"; then
+            echo '{"deployments":[]}' > "$RESPONSE_FILE"
+          fi
 
           # Filter to QUEUED/BUILDING for this branch and cancel them
-          echo "$RESPONSE" | python3 - <<'EOF'
+          python3 - "$RESPONSE_FILE" <<'EOF'
           import json, sys, os, urllib.request, urllib.error
 
-          data = json.loads(sys.stdin.read())
+          with open(sys.argv[1], encoding='utf-8') as response_file:
+              data = json.load(response_file)
           token = os.environ['VERCEL_TOKEN']
           team_id = os.environ['VERCEL_TEAM_ID']
           target_branch = os.environ['TARGET_BRANCH']
@@ -136,25 +142,12 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_TEAM_ID: team_SVD8r7AOPH065G3usBxVvrBc
           VERCEL_PROJECT_ID: prj_op66GkZyZcygXQKm76iyycfVFAQx
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🔍 Scanning all QUEUED preview deployments to cancel orphans..."
 
-          # Fetch recent deployments
-          RESPONSE=$(curl -sf \
-            "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&limit=50" \
-            -H "Authorization: Bearer ${VERCEL_TOKEN}" || echo '{"deployments":[]}')
-
-          # Get all current remote branches from GitHub API for cross-reference
-          BRANCHES_RESPONSE=$(curl -sf \
-            "https://api.github.com/repos/${{ github.repository }}/branches?per_page=100" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" || echo '[]')
-
-          echo "$RESPONSE $BRANCHES_RESPONSE" | python3 - <<'EOF'
+          python3 - <<'EOF'
           import json, sys, os, urllib.request, urllib.error
-
-          # Read stdin is split — use env var trick instead
-          import subprocess, shlex
 
           token = os.environ['VERCEL_TOKEN']
           team_id = os.environ['VERCEL_TEAM_ID']
