@@ -104,6 +104,26 @@ test('the click is logged before the navigation that would unmount the strip', (
     assert.ok(click < push, 'the click must be logged BEFORE navigating away');
 });
 
+test('a Club Arena destination gets a real navigation, not a router push', () => {
+    /* Club Arena is a static SPA under public/hub/club-arena/, not a Next
+       page. next/router strips the trailing slash, matches nothing, and falls
+       through to pages/hub/[orbId].js, which renders "Unknown World - This
+       World is Being Built". Observed in production 2026-08-28: the click
+       logged correctly (ad_event id 173) and then landed the player on a
+       Coming Soon page. Two of the six Hub placements point there. */
+    const lib = read(LIB);
+    assert.match(lib, /export function leavesTheNextRouter/);
+    assert.match(lib, /startsWith\('\/hub\/club-arena'\)/);
+
+    const strip = read(STRIP);
+    const click = strip.indexOf('logHubClick(visible.adId)');
+    const assign = strip.indexOf('window.location.assign(visible.targetUrl)');
+    const push = strip.indexOf('router.push(visible.targetUrl)');
+    assert.ok(assign > -1, 'no hard navigation for destinations outside the Next router');
+    assert.ok(click < assign, 'the click must be logged before a full page navigation');
+    assert.ok(assign < push, 'the SPA case must be handled before falling through to router.push');
+});
+
 test('an ad destination is checked before a browser is sent to it', () => {
     const lib = read(LIB);
     assert.match(lib, /export function isSafeHubDestination/);

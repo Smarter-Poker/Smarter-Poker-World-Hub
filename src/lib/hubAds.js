@@ -149,3 +149,24 @@ export function isSafeHubDestination(url) {
     if (url.startsWith('//')) return false;
     return true;
 }
+
+/**
+ * Does this destination live OUTSIDE the Next router?
+ *
+ * Club Arena is a Vite SPA served as static files from `public/hub/club-arena/`.
+ * It is not a Next page, and `next/router` does not know it exists. Pushing
+ * `/hub/club-arena/` through the client router strips the trailing slash,
+ * finds no matching page, and falls through to `pages/hub/[orbId].js`, which
+ * renders "Unknown World - This World is Being Built". Verified in production
+ * on 2026-08-28: the click logged correctly (ad_event id 173) and then landed
+ * the player on a Coming Soon page.
+ *
+ * The trailing slash is not decoration here, it is the difference between a
+ * static directory and a dynamic Next route, so these destinations need a real
+ * browser navigation that honours the server's URL exactly as written. The
+ * server owns the destination; the client's job is to go there, not to
+ * normalise it.
+ */
+export function leavesTheNextRouter(url) {
+    return typeof url === 'string' && url.startsWith('/hub/club-arena');
+}
