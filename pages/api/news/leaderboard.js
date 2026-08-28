@@ -39,24 +39,26 @@ export default async function handler(req, res) {
       try {
           const { data, error } = await getSupabase()
               .from('poy_leaderboard')
-              .select('*')
+              .select('id,player_name,points,rank,year,source,updated_at')
               .eq('year', year)
-              .order('points', { ascending: false })
+              .order('rank', { ascending: true })
               .limit(limit);
 
-          if (error || !data?.length) {
-              // No fabricated standings: return an empty list and let the
-              // frontend render its own clearly-labeled "Sample" fallback.
-              if (error) console.warn('[Leaderboard API] Query error:', error.message);
-              return res.status(200).json({ success: true, data: [], fallback: true });
-          }
+          if (error) throw error;
 
           res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
-          return res.status(200).json({ success: true, data });
+          return res.status(200).json({
+              success: true,
+              data: data || [],
+              year,
+              source: data?.[0]?.source || 'gpi_licensed_feed',
+              updated_at: data?.reduce((latest, row) => row.updated_at > latest ? row.updated_at : latest, '') || null,
+              connected: Boolean(data?.length),
+          });
       } catch (error) {
           try { reportApiError(error, req); } catch (_e) { /* noop */ }
           console.warn('[Leaderboard API] Exception:', error?.message || error);
-          return res.status(200).json({ success: true, data: [], fallback: true });
+          return res.status(503).json({ success: false, data: [], error: 'Standings unavailable' });
       }
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }

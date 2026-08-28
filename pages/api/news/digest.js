@@ -27,6 +27,8 @@
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -42,12 +44,21 @@ function getSupabase() {
 // Admin/maintenance guard: CRON_SECRET bearer (cron jobs) or x-admin-key
 // (operators). Credentials are required in EVERY environment — this route
 // sends real email, so there is deliberately no NODE_ENV escape hatch.
-function isAuthorized(req) {
+async function authorize(req) {
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return true;
+    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return { kind: 'cron', userId: null };
     const adminKey = process.env.ADMIN_API_KEY;
-    if (adminKey && req.headers['x-admin-key'] === adminKey) return true;
-    return false;
+    if (adminKey && req.headers['x-admin-key'] === adminKey) return { kind: 'operator', userId: null };
+
+    const { user } = await getServerUserWithFallback(req, getSupabase());
+    if (!user?.id) return null;
+    const { data: profile } = await getSupabase()
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+    if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) return null;
+    return { kind: 'admin', userId: user.id };
 }
 
 function clampInt(value, fallback, min, max) {
@@ -235,11 +246,14 @@ export default async function handler(req, res) {
   if (!['GET', 'POST'].includes(req.method)) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
-  if (!isAuthorized(req)) {
+  if (!applyRateLimit(req, res, req.method === 'GET' ? LIMITS.read : LIMITS.write)) return;
+  const authorization = await authorize(req);
+  if (!authorization) {
       log('unauthorized', { method: req.method });
       return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
 
+  let campaignId = null;
   try {
       const dryRun = ['1', 'true', 'yes'].includes(String(safeQ(req.query.dryRun) || '').toLowerCase());
       const days = clampInt(safeQ(req.query.days), DEFAULT_WINDOW_DAYS, 1, 30);
@@ -250,7 +264,7 @@ export default async function handler(req, res) {
       // without a key (that is how you verify the recipient count on a machine
       // that has no secrets); the response flags emailConfigured: false so the
       // caller cannot mistake it for a working send path.
-      if (!apiKey) {
+      if (!apiKey && !dryRun) {
           // Degrade gracefully: no crash, no partial send, and the key itself
           // is never echoed back.
           log('not_configured', { reason: 'RESEND_API_KEY missing' });
@@ -363,6 +377,26 @@ export default async function handler(req, res) {
       }
 
       // ── Send ────────────────────────────────────────────────────────────
+      // Claim an auditable campaign row before the first irreversible provider
+      // call. A database failure aborts the send instead of creating untracked
+      // email activity.
+      const { data: campaign, error: campaignError } = await getSupabase()
+          .from('newsletter_campaigns')
+          .insert({
+              subject,
+              status: 'sending',
+              lookback_days: days,
+              article_limit: articleLimit,
+              article_ids: articles.map((article) => article.id),
+              recipient_count: recipients,
+              created_by: authorization.userId,
+          })
+          .select('id')
+          .maybeSingle();
+      if (campaignError) throw campaignError;
+      if (!campaign?.id) throw new Error('Campaign audit row was not created');
+      campaignId = campaign.id;
+
       const resend = new Resend(apiKey);
       let sent = 0;
       let failed = 0;
@@ -394,6 +428,31 @@ export default async function handler(req, res) {
 
       log('sent', { sent, failed, recipients, articles: articles.length, dropped });
 
+      const campaignStatus = failed === 0 ? 'sent' : sent > 0 ? 'partial' : 'failed';
+      const { error: campaignUpdateError } = await getSupabase()
+          .from('newsletter_campaigns')
+          .update({
+              status: campaignStatus,
+              sent_count: sent,
+              failed_count: failed,
+              error_summary: errors.length ? errors.join(' | ').slice(0, 1000) : null,
+              completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+          })
+          .eq('id', campaignId);
+      if (campaignUpdateError) {
+          // Provider activity already happened. Surface the audit failure and
+          // keep the structured log; never pretend the operation is healthy.
+          log('campaign_audit_failed', { campaignId, sent, failed });
+          return res.status(500).json({
+              success: false,
+              sent,
+              failed,
+              recipients,
+              error: 'Email was processed but campaign history could not be finalized.'
+          });
+      }
+
       return res.status(200).json({
           success: failed === 0,
           dryRun: false,
@@ -402,10 +461,24 @@ export default async function handler(req, res) {
           recipients,
           articles: articles.length,
           droppedInvalid: dropped,
+          campaignId,
           subject,
           errors: errors.length ? errors : undefined
       });
   } catch (error) {
+      if (campaignId) {
+          try {
+              await getSupabase()
+                  .from('newsletter_campaigns')
+                  .update({
+                      status: 'failed',
+                      error_summary: String(error?.message || error).slice(0, 1000),
+                      completed_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', campaignId);
+          } catch (_auditError) { /* original failure wins */ }
+      }
       try { reportApiError(error, req); } catch (_e) { /* noop */ }
       console.warn('[News Digest] Error:', error?.message || error);
       return res.status(500).json({ success: false, error: 'Digest failed' });
