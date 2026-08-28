@@ -167,10 +167,15 @@ export default function MemoryGamesPage() {
         if (!router.isReady) return;
         const requested = Array.isArray(router.query.mode) ? router.query.mode[0] : router.query.mode;
         const routeModes = {
+            speed: ['speed', 'speed-drill'],
             'speed-drill': ['speed', 'speed-drill'],
+            pressure: ['pressure', 'pressure-cooker'],
             'pressure-cooker': ['pressure', 'pressure-cooker'],
             pattern: ['pattern', 'pattern-recognition'],
+            'pattern-recognition': ['pattern', 'pattern-recognition'],
             mixed: ['mixed', 'mixed-strategy'],
+            'mixed-strategy': ['mixed', 'mixed-strategy'],
+            spot: ['spot', 'spot-trainer'],
             'spot-trainer': ['spot', 'spot-trainer'],
             tournament: ['tournament', 'tournament'],
         };
