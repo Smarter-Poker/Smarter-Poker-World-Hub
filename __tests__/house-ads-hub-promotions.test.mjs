@@ -186,3 +186,18 @@ test('the admin rollup counts in Postgres, per slot, with no silent ceiling', ()
     assert.match(route, /let stats = null;/);
     assert.match(route, /let statsBySlot = null;/);
 });
+
+test('a click is attention, and the route reports what followed it', () => {
+    /* vip_upsell having clicks says nothing about whether anybody subscribed.
+       fn_ad_conversions asks whether the same player did the thing the
+       campaign promotes within 24 hours - correlation inside a window, not
+       proof of cause, which is why the field is clicksFollowedBy. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /rpc\('fn_ad_conversions'/);
+    assert.match(route, /clicksFollowedBy/);
+    /* NULL, never 0, where no outcome is defined for the campaign. A confident
+       zero reads as "converts nobody" when the truth is "success is undefined
+       here". */
+    assert.match(route, /r\.clicks_followed_by == null \? null : Number\(r\.clicks_followed_by\)/);
+    assert.match(route, /let conversions = null;/);
+});
