@@ -32,7 +32,7 @@ export const FULL_VIDEOS = [
     { id: 'hcl28', videoId: 'FCHdw4wyrhI', source: 'HCL', type: 'cash', title: 'Senor Tilt Plays CRAZY Hand After CRAZY Hand', views: '990K', duration: '16:33' },
 
     // ═══════════════════════════════════════════════════════════════════
-    // THE LODGE LIVE - 20 Premium Episodes
+    // THE LODGE LIVE - 18 embeddable episodes
     // ═══════════════════════════════════════════════════════════════════
     { id: 'lodge1', videoId: 'yJZxw9u7_DU', source: 'LODGE', type: 'cash', title: 'Craziest Straight Flushes of 2025', views: '680K', duration: '18:22' },
     { id: 'lodge2', videoId: 'yIZcxafGzXQ', source: 'LODGE', type: 'cash', title: 'STRAIGHT FLUSH! QUADS! Insane Poker Game!', views: '920K', duration: '22:15' },
@@ -50,34 +50,13 @@ export const FULL_VIDEOS = [
     { id: 'lodge14', videoId: 's8waPVJwsZU', source: 'LODGE', type: 'cash', title: 'BIGGEST POTS OF 2025', views: '950K', duration: '24:18' },
     { id: 'lodge15', videoId: 'cYbuojMWC-8', source: 'LODGE', type: 'cash', title: 'SET OVER SET! Corey Eyring vs Poker Bunny', views: '1.1M', duration: '16:44' },
     { id: 'lodge16', videoId: '0UFWJNZ1eZ0', source: 'LODGE', type: 'cash', title: 'Wow! Genuinely Bad Beat', views: '420K', duration: '10:55' },
-    { id: 'lodge17', videoId: 'FqiS7LaQSsg', source: 'LODGE', type: 'cash', title: 'She is ALL-IN 6 Times In One Game', views: '580K', duration: '18:22' },
     { id: 'lodge18', videoId: 'pqP_8xMOezc', source: 'LODGE', type: 'cash', title: 'Nightmare Day for Corey Eyring', views: '390K', duration: '15:33' },
     { id: 'lodge19', videoId: 'ckArt7M5hbs', source: 'LODGE', type: 'cash', title: 'Luckiest Poker Moments Ever', views: '850K', duration: '20:18' },
-    { id: 'lodge20', videoId: 'vWVwhXeILoX', source: 'LODGE', type: 'cash', title: '2 Royal Flushes Caught on Video', views: '1.4M', duration: '12:44' },
 
     // ═══════════════════════════════════════════════════════════════════
-    // TRITON POKER - 20 Premium Episodes
+    // TRITON POKER - 1 embeddable episode
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'triton1', videoId: '524_3UypGkU', source: 'TRITON', type: 'tournament', title: '$150K NLH 8-Handed Final Table Highlights', views: '1.2M', duration: '32:18' },
-    { id: 'triton2', videoId: '185vMNh9ECc', source: 'TRITON', type: 'tournament', title: '$150K NLH 8-Handed Final Table', views: '890K', duration: '45:22' },
-    { id: 'triton3', videoId: '5wTToeCyu6I', source: 'TRITON', type: 'tournament', title: '$100K NLH Main Event Final Table Highlights', views: '1.5M', duration: '38:45' },
-    { id: 'triton4', videoId: 'CbXDixknmeM', source: 'TRITON', type: 'tournament', title: '$100K NLH Main Event Final Table', views: '980K', duration: '52:18' },
-    { id: 'triton5', videoId: '4441ee7htt0', source: 'TRITON', type: 'tournament', title: '$125K NLH 7-Handed Final Table Highlights', views: '720K', duration: '28:33' },
-    { id: 'triton6', videoId: 'LA4z0Hi0Jf8', source: 'TRITON', type: 'tournament', title: '$125K NLH 7-Handed Final Table', views: '650K', duration: '48:44' },
     { id: 'triton7', videoId: 'jJeZntAfOp4', source: 'TRITON', type: 'tournament', title: '10 Years of Triton Poker | 2026 Gets Bigger', views: '340K', duration: '15:22' },
-    { id: 'triton8', videoId: 'pFbHkHhJO4Y', source: 'TRITON', type: 'tournament', title: '$250K NLH Triton Invitational Final Table Highlights', views: '1.8M', duration: '35:18' },
-    { id: 'triton9', videoId: 'KQRZs6ytdWc', source: 'TRITON', type: 'tournament', title: '$250K NLH Triton Invitational Final Table', views: '1.1M', duration: '58:44' },
-    { id: 'triton10', videoId: 'fzNt4SdBGuQ', source: 'TRITON', type: 'tournament', title: '$100K PLO Main Event Final Table Highlights', views: '680K', duration: '30:22' },
-    { id: 'triton11', videoId: '-rjQT0JOhGA', source: 'TRITON', type: 'tournament', title: '$100K PLO Main Event Final Table', views: '520K', duration: '55:33' },
-    { id: 'triton12', videoId: 'oINUSqHq_ck', source: 'TRITON', type: 'tournament', title: '$75K PLO 6-Handed Final Table Highlights', views: '450K', duration: '26:18' },
-    { id: 'triton13', videoId: 'TXarmUgk02Q', source: 'TRITON', type: 'tournament', title: '$75K PLO 6-Handed Final Table', views: '380K', duration: '48:44' },
-    { id: 'triton14', videoId: 'RpU9bwH-2WI', source: 'TRITON', type: 'tournament', title: 'Largest Poker Pot Ever: Ossi Ketola vs Alex Foxen!', views: '2.4M', duration: '18:55' },
-    { id: 'triton15', videoId: 'JVJrPh0s1JQ', source: 'TRITON', type: 'tournament', title: '$1.36 Million for 1st! Triton ONE Main Event Final', views: '1.6M', duration: '42:18' },
-    { id: 'triton16', videoId: 'OYgw9TiNqZY', source: 'TRITON', type: 'tournament', title: '$564K for 1st! $3K NLH Triton ONE QQPK Genesis', views: '890K', duration: '35:33' },
-    { id: 'triton17', videoId: '9PrLmIWU0mU', source: 'TRITON', type: 'tournament', title: 'Pocket Aces in a $1.1M Pot - Rob Yong Mystery!', views: '1.3M', duration: '16:44' },
-    { id: 'triton18', videoId: 'slTxYV5S5n0', source: 'TRITON', type: 'tournament', title: '3 Mystery Poker Hands with BRUTAL River Runouts', views: '720K', duration: '22:18' },
-    { id: 'triton19', videoId: 'jdiDizWlIz0', source: 'TRITON', type: 'tournament', title: 'Phil Ivey INSANE All-In with Queens Gets Interrupted!', views: '1.9M', duration: '14:55' },
-    { id: 'triton20', videoId: 'pIZW-gmcKio', source: 'TRITON', type: 'tournament', title: 'Jungleman Destroys the Table With a $1.5M Pot!', views: '2.1M', duration: '20:33' },
 
     // ═══════════════════════════════════════════════════════════════════
     // LIVE AT THE BIKE (LATB) - 16 Premium Episodes
@@ -133,7 +112,7 @@ export const FULL_VIDEOS = [
     { id: 'wsop15', videoId: 'FAKEigvh110', source: 'WSOP', type: 'tournament', title: 'Massive Bad Beat - WSOP Main Event 2024', views: '1.6M', duration: '22:18' },
 
     // ═══════════════════════════════════════════════════════════════════
-    // WPT (World Poker Tour) - 15 Tournament Episodes
+    // WPT (World Poker Tour) - 6 embeddable tournament episodes
     // ═══════════════════════════════════════════════════════════════════
     { id: 'wpt1', videoId: '_4nrOGfFssE', source: 'WPT', type: 'tournament', title: 'WPT World Championship $40M GTD Final Table', views: '2.8M', duration: '125:33' },
     { id: 'wpt2', videoId: 'jAtJ6byQnxs', source: 'WPT', type: 'tournament', title: 'Bellagio Cup Final Table - $3.4M Prize Pool', views: '1.9M', duration: '45:22' },
@@ -141,15 +120,6 @@ export const FULL_VIDEOS = [
     { id: 'wpt4', videoId: 'mxB5zK7fRBs', source: 'WPT', type: 'tournament', title: 'WPT Showdown: Over $8.9 MILLION at Stake', views: '980K', duration: '88:44' },
     { id: 'wpt5', videoId: 'XvxZSSX88Ac', source: 'WPT', type: 'tournament', title: '$7.1M Championship Title Showdown', views: '850K', duration: '82:33' },
     { id: 'wpt6', videoId: 'w1cpoOSqZ2o', source: 'WPT', type: 'tournament', title: 'Festa al Lago Final Table - $3.2M Prize', views: '1.1M', duration: '92:18' },
-    { id: 'wpt7', videoId: 'c0RqYhgRxH0', source: 'WPT', type: 'tournament', title: 'WPT L.A. Poker Classic Final Table', views: '920K', duration: '78:44' },
-    { id: 'wpt8', videoId: 'iDPJ3tHK6rA', source: 'WPT', type: 'tournament', title: 'WPT bestbet Bounty Scramble Final Table', views: '680K', duration: '72:22' },
-    { id: 'wpt9', videoId: 'D1lPQFCDRLg', source: 'WPT', type: 'tournament', title: 'WPT Choctaw Final Table - Epic Showdown', views: '1.3M', duration: '85:33' },
-    { id: 'wpt10', videoId: 'bZqKGJz2HoE', source: 'WPT', type: 'tournament', title: 'WPT Bobby Baldwin Classic Final Table', views: '750K', duration: '68:18' },
-    { id: 'wpt11', videoId: 'fQ9Lklp6AuA', source: 'WPT', type: 'tournament', title: 'WPT Borgata Poker Open Final Table', views: '890K', duration: '75:44' },
-    { id: 'wpt12', videoId: 'hA7c3HHFRUE', source: 'WPT', type: 'tournament', title: 'WPT Thunder Valley Final Table', views: '620K', duration: '70:22' },
-    { id: 'wpt13', videoId: 'n0fHHMfvWck', source: 'WPT', type: 'tournament', title: 'WPT Prime Championship Final Table', views: '1.5M', duration: '102:33' },
-    { id: 'wpt14', videoId: 'GH5sEqf5p9Y', source: 'WPT', type: 'tournament', title: 'WPT Montreal Final Table - Canadian Showdown', views: '780K', duration: '65:18' },
-    { id: 'wpt15', videoId: 'aVGVP7Oj8Jg', source: 'WPT', type: 'tournament', title: 'WPT Legends of Poker Final Table', views: '940K', duration: '80:44' },
 
     // ═══════════════════════════════════════════════════════════════════
     // EPT (European Poker Tour) - 12 Tournament Episodes

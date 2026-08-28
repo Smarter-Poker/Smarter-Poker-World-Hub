@@ -19,7 +19,7 @@ const CATALOG_API = readFileSync(new URL('../pages/api/video-library/catalog.js'
 
 test('the playable fallback catalog canonicalizes IDs and rejects placeholder embeds', () => {
   assert.match(PAGE, /STATIC_VIDEO_ALIASES/);
-  assert.match(PAGE, /\.filter\(video => video\.videoId && !String\(video\.videoId\)\.startsWith\('FAKE'\)\)/);
+  assert.match(PAGE, /\.filter\(isVideoLibraryVideoAllowed\)/);
   assert.match(PAGE, /legacyId: video\.id, id: video\.videoId/);
   assert.match(CATALOG_API, /id: row\.youtube_video_id/);
   assert.match(PAGE, /legacyId: STATIC_VIDEO_CANONICAL_ALIASES\.get\(video\.videoId\)/);
