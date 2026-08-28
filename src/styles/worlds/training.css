@@ -2140,3 +2140,320 @@ body.world-training .sp-analysis-filter-rail {
         box-shadow: none;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 9 — LEARNING JOURNEY / PROGRESS VAULT
+   Shared dimensional system for progress, rewards, streaks, and study plans.
+   The global header intentionally remains outside every selector below.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-training .sp-training-journey {
+    --journey-cyan: #55ddff;
+    --journey-blue: #168cff;
+    --journey-steel: #9db8c8;
+    position: relative;
+    isolation: isolate;
+    min-height: calc(100dvh - 52px) !important;
+    overflow-x: clip !important;
+    color: #edfaff !important;
+    background:
+        radial-gradient(circle at 78% 6%, rgba(0, 149, 255, 0.16), transparent 31%),
+        radial-gradient(circle at 9% 41%, rgba(73, 222, 255, 0.08), transparent 26%),
+        linear-gradient(rgba(66, 195, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(66, 195, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(145deg, #02070b 0%, #07131c 48%, #02070a 100%) !important;
+    background-size: auto, auto, 34px 34px, 34px 34px, auto !important;
+    font-family: var(--sp-font-ui, "Rajdhani", "Arial Narrow", sans-serif) !important;
+}
+
+body.world-training .sp-training-journey::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.42;
+    background:
+        repeating-linear-gradient(90deg, transparent 0 3px, rgba(255,255,255,0.012) 3px 4px),
+        linear-gradient(90deg, transparent, rgba(96, 223, 255, 0.05) 50%, transparent);
+}
+
+body.world-training .sp-training-journey :where(h1, h2, h3, p, span, div) {
+    text-shadow: 0 1px 0 rgba(0,0,0,0.88);
+}
+
+body.world-training .sp-training-journey [style*="text-transform"] {
+    text-transform: capitalize !important;
+}
+
+body.world-training .sp-journey-header {
+    position: relative;
+    min-height: 72px;
+    padding: 16px max(18px, calc((100% - 760px) / 2)) 18px !important;
+    border-top: 1px solid rgba(210, 243, 255, 0.32) !important;
+    border-bottom: 1px solid rgba(85, 221, 255, 0.42) !important;
+    background:
+        linear-gradient(180deg, rgba(129, 170, 190, 0.18), rgba(9, 23, 32, 0.94) 17%, rgba(2, 10, 15, 0.98) 78%, rgba(26, 79, 102, 0.45)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.2),
+        inset 0 -1px 0 rgba(0,0,0,0.8),
+        0 12px 30px rgba(0,0,0,0.36);
+}
+
+body.world-training .sp-journey-header::after,
+body.world-training .sp-journey-title::after {
+    content: "";
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: -1px;
+    height: 3px;
+    pointer-events: none;
+    background: linear-gradient(90deg, #d8f6ff 0 4%, #4ee4ff 4% 34%, #177cff 34% 58%, #f2b84b 58% 62%, rgba(62, 184, 231, 0.22) 62% 100%);
+    box-shadow: 0 0 14px rgba(50, 202, 255, 0.58);
+}
+
+body.world-training .sp-journey-header h1,
+body.world-training .sp-journey-header > div > div:first-child,
+body.world-training .sp-journey-header > div > div > div:first-child {
+    color: #f4fbff !important;
+    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-size: clamp(17px, 2.2vw, 23px) !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.015em;
+}
+
+body.world-training .sp-journey-header button {
+    min-width: 42px !important;
+    min-height: 42px !important;
+    border: 1px solid rgba(164, 218, 241, 0.44) !important;
+    border-radius: 0 !important;
+    color: #effbff !important;
+    background: linear-gradient(180deg, #354a57 0%, #14232c 43%, #061017 51%, #152833 100%) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -2px 0 rgba(0,0,0,0.62), 0 4px 10px rgba(0,0,0,0.36);
+}
+
+body.world-training .sp-journey-main {
+    position: relative;
+    width: min(100%, 760px);
+    max-width: 760px !important;
+    margin-inline: auto !important;
+    padding: 28px 18px 56px !important;
+}
+
+body.world-training .sp-training-journey--progress .sp-journey-main,
+body.world-training .sp-training-journey--achievements .sp-journey-main {
+    width: min(100%, 1180px);
+    max-width: 1180px !important;
+}
+
+body.world-training .sp-journey-title {
+    position: relative;
+    margin: 0 0 22px !important;
+    padding: 24px 22px 26px !important;
+    border: 1px solid rgba(152, 222, 250, 0.4);
+    border-radius: 0 !important;
+    color: #f5fbff !important;
+    -webkit-text-fill-color: initial !important;
+    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-size: clamp(25px, 4.2vw, 43px) !important;
+    letter-spacing: 0.015em !important;
+    text-align: left !important;
+    background:
+        linear-gradient(105deg, rgba(105, 183, 220, 0.18), rgba(1, 8, 13, 0.95) 38%, rgba(7, 28, 40, 0.9)) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(0,0,0,0.85), 0 14px 34px rgba(0,0,0,0.3);
+}
+
+body.world-training .sp-journey-stat-grid {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    margin-bottom: 28px !important;
+}
+
+body.world-training .sp-journey-stat-grid--compact {
+    grid-template-columns: repeat(2, minmax(0, 190px)) !important;
+    justify-content: center;
+}
+
+body.world-training .sp-journey-stat-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+body.world-training .sp-journey-stat-card,
+body.world-training .sp-journey-data-card,
+body.world-training .sp-journey-achievement-card,
+body.world-training .sp-journey-spotlight,
+body.world-training .sp-journey-hero-meter {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(137, 210, 239, 0.38) !important;
+    border-radius: 0 !important;
+    color: #eaf8ff !important;
+    background:
+        linear-gradient(180deg, rgba(128, 174, 195, 0.13), rgba(4, 14, 21, 0.95) 22%, rgba(2, 8, 13, 0.98) 78%, rgba(21, 59, 75, 0.5)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(235, 250, 255, 0.18),
+        inset 0 -2px 0 rgba(0,0,0,0.72),
+        0 9px 22px rgba(0,0,0,0.28) !important;
+}
+
+body.world-training .sp-journey-stat-card::before,
+body.world-training .sp-journey-achievement-card::before,
+body.world-training .sp-journey-spotlight::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(226,247,255,0.9), #43dfff 38%, rgba(67,223,255,0.05) 82%);
+}
+
+body.world-training .sp-journey-stat-card {
+    min-height: 124px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 12px !important;
+}
+
+body.world-training .sp-journey-stat-card > div:first-child {
+    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-variant-numeric: tabular-nums;
+}
+
+body.world-training .sp-journey-section {
+    margin-bottom: 22px !important;
+    padding: 18px !important;
+    border: 1px solid rgba(106, 189, 224, 0.28);
+    background: rgba(2, 10, 16, 0.74);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+body.world-training .sp-journey-section h2 {
+    margin: 0 0 15px !important;
+    color: #dff8ff !important;
+    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-size: clamp(17px, 2vw, 22px) !important;
+}
+
+body.world-training .sp-journey-data-card {
+    padding: 15px !important;
+}
+
+body.world-training .sp-journey-data-card--warning {
+    border-color: rgba(255, 174, 71, 0.4) !important;
+}
+
+body.world-training .sp-journey-filter-rail {
+    padding: 7px !important;
+    border: 1px solid rgba(134, 212, 243, 0.35);
+    background: rgba(1, 8, 13, 0.88);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+body.world-training .sp-journey-filter-rail button {
+    min-height: 42px;
+    border-radius: 0 !important;
+    color: #c9e7f2 !important;
+    background: linear-gradient(180deg, #243945, #0c171e 48%, #071015 52%, #172832) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(0,0,0,0.7);
+}
+
+body.world-training .sp-journey-filter-rail button[aria-pressed="true"] {
+    border-color: #9eeeff !important;
+    color: #031018 !important;
+    background: linear-gradient(180deg, #e7fbff 0%, #87e8ff 47%, #27b6df 52%, #8de9ff 100%) !important;
+    box-shadow: inset 0 1px 0 #fff, 0 0 15px rgba(58, 211, 255, 0.36);
+}
+
+body.world-training .sp-journey-achievement-grid {
+    gap: 12px !important;
+}
+
+body.world-training .sp-journey-achievement-card {
+    min-height: 112px;
+    padding: 18px !important;
+}
+
+body.world-training .sp-journey-main > [style*="border-radius"] {
+    border-radius: 0 !important;
+}
+
+@media (max-width: 768px) {
+    body.world-training .sp-journey-header {
+        min-height: 68px;
+        padding: 12px 12px 15px !important;
+    }
+
+    body.world-training .sp-journey-header::after,
+    body.world-training .sp-journey-title::after {
+        left: 12px;
+        right: 12px;
+    }
+
+    body.world-training .sp-journey-main,
+    body.world-training .sp-training-journey--progress .sp-journey-main,
+    body.world-training .sp-training-journey--achievements .sp-journey-main {
+        width: 100%;
+        max-width: 100% !important;
+        padding: 18px 12px 38px !important;
+    }
+
+    body.world-training .sp-journey-title {
+        margin-bottom: 14px !important;
+        padding: 18px 15px 21px !important;
+        font-size: clamp(25px, 8vw, 34px) !important;
+        line-height: 1.06 !important;
+    }
+
+    body.world-training .sp-journey-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        margin-bottom: 18px !important;
+    }
+
+    body.world-training .sp-journey-stat-grid > :nth-child(5):last-child {
+        grid-column: 1 / -1;
+    }
+
+    body.world-training .sp-journey-stat-grid--three {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    body.world-training .sp-journey-stat-grid--three > :nth-child(3):last-child {
+        grid-column: auto;
+    }
+
+    body.world-training .sp-journey-stat-card {
+        min-height: 108px;
+        padding: 14px 8px !important;
+    }
+
+    body.world-training .sp-journey-section {
+        padding: 14px 12px !important;
+    }
+
+    body.world-training .sp-journey-filter-rail {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+    }
+
+    body.world-training .sp-journey-filter-rail > :first-child:last-child,
+    body.world-training .sp-journey-filter-rail > :nth-child(5):last-child {
+        grid-column: 1 / -1;
+    }
+
+    body.world-training .sp-journey-achievement-card {
+        min-height: 104px;
+        padding: 14px 12px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.world-training .sp-journey-header::after,
+    body.world-training .sp-journey-title::after {
+        box-shadow: none;
+    }
+}

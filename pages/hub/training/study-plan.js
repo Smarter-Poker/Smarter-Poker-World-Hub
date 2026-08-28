@@ -549,6 +549,7 @@ export default function StudyPlanPage() {
         <title>Study Plan | Smarter.Poker GTO Training</title>
       </Head>
       <div
+        className="sp-training-journey sp-training-journey--study-plan"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -558,6 +559,7 @@ export default function StudyPlanPage() {
       >
         {/* Header */}
         <div
+          className="sp-journey-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -610,10 +612,11 @@ export default function StudyPlanPage() {
           </motion.button>
         </div>
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchSessions(); }} />
           {/* Progress Overview */}
           <motion.div
+            className="sp-journey-spotlight"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
@@ -643,7 +646,7 @@ export default function StudyPlanPage() {
                     letterSpacing: 1,
                   }}
                 >
-                  WEEK PROGRESS
+                  Week Progress
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--sp-fg)', marginTop: 2 }}>
                   {progress}%
@@ -718,7 +721,7 @@ export default function StudyPlanPage() {
                     marginBottom: 10,
                   }}
                 >
-                  Your Weak Spots (Based on Data)
+                  Your Weak Spots (Based On Data)
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {dataWeaknesses.slice(0, 3).map((w, i) => (

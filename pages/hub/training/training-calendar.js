@@ -198,6 +198,7 @@ export default function TrainingCalendarPage() {
         <title>Training Calendar | Smarter.Poker GTO Training</title>
       </Head>
       <div
+        className="sp-training-journey sp-training-journey--calendar"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -206,6 +207,7 @@ export default function TrainingCalendarPage() {
         }}
       >
         <div
+          className="sp-journey-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -241,7 +243,7 @@ export default function TrainingCalendarPage() {
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your activity heatmap</div>
           </div>
         </div>
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {loading && (
             <div style={{ padding: '20px 0' }} role="status" aria-label="Loading calendar">
               <SkeletonLoader variant="rows" rows={6} />
@@ -252,6 +254,7 @@ export default function TrainingCalendarPage() {
             <>
               {/* Stats Row */}
               <div
+                className="sp-journey-stat-grid sp-journey-stat-grid--three"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr 1fr',
@@ -270,7 +273,7 @@ export default function TrainingCalendarPage() {
                 >
                   <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-cyan)' }} role="status" aria-label={`${streak} day streak`}>{streak}</div>
                   <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                    DAY STREAK
+                    Day Streak
                   </div>
                 </div>
                 <div
@@ -284,7 +287,7 @@ export default function TrainingCalendarPage() {
                 >
                   <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>{totalDays}</div>
                   <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                    ACTIVE DAYS
+                    Active Days
                   </div>
                 </div>
                 <div
@@ -300,7 +303,7 @@ export default function TrainingCalendarPage() {
                     {totalHands}
                   </div>
                   <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                    TOTAL HANDS
+                    Total Hands
                   </div>
                 </div>
               </div>
