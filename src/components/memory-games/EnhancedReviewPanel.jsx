@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 const ACTION_COLORS_REF = {
     raise: { bg: 'rgba(239, 68, 68, 0.3)', border: '#EF4444', label: 'Raise', textColor: '#FCA5A5' },
     call: { bg: 'rgba(34, 197, 94, 0.3)', border: '#22C55E', label: 'Call', textColor: '#86EFAC' },
@@ -11,6 +11,11 @@ const ACTION_COLORS_REF = {
 };
 
 const REVIEW_RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+const REVIEW_TABS = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'mistakes', label: 'Mistakes' },
+    { key: 'solution', label: 'Solution' },
+];
 
 function getReviewHandName(row, col) {
     if (row === col) return REVIEW_RANKS[row] + REVIEW_RANKS[col];
@@ -33,6 +38,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
     const [reviewTab, setReviewTab] = useState('overview');
     const [selectedMistake, setSelectedMistake] = useState(null);
     const [showSolution, setShowSolution] = useState(false);
+    const tabRefs = useRef(new Map());
 
     if (!gradeResult || !scenario) return null;
 
@@ -68,7 +74,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
         : gradeResult.score;
 
     const tabStyle = (active) => ({
-        flex: 1, padding: '10px 0', border: 'none', cursor: 'pointer',
+        flex: 1, minHeight: 44, padding: '10px 0', border: 'none', cursor: 'pointer',
         fontSize: 12, fontWeight: 700, letterSpacing: 0.5,
         background: active ? 'rgba(0, 212, 255, 0.15)' : 'rgba(0,0,0,0.3)',
         color: active ? '#00d4ff' : '#64748b',
@@ -77,19 +83,42 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
     });
 
     return (
-        <div style={{ marginTop: 16 }}>
+        <div className="preflop-review-panel" style={{ marginTop: 16 }}>
             {/* Tab Navigation */}
-            <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <button onClick={() => setReviewTab('overview')} style={tabStyle(reviewTab === 'overview')}>Overview</button>
-                <button onClick={() => setReviewTab('mistakes')} style={tabStyle(reviewTab === 'mistakes')}>
-                    Mistakes {mistakes.length > 0 ? `(${mistakes.length})` : ''}
-                </button>
-                <button onClick={() => setReviewTab('solution')} style={tabStyle(reviewTab === 'solution')}>Solution</button>
+            <div role="tablist" aria-label="Range review section" style={{ display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+                {REVIEW_TABS.map((tab, index) => (
+                    <button
+                        key={tab.key}
+                        ref={(node) => { if (node) tabRefs.current.set(tab.key, node); else tabRefs.current.delete(tab.key); }}
+                        id={`preflop-review-tab-${tab.key}`}
+                        type="button"
+                        role="tab"
+                        aria-selected={reviewTab === tab.key}
+                        aria-controls={`preflop-review-panel-${tab.key}`}
+                        tabIndex={reviewTab === tab.key ? 0 : -1}
+                        onClick={() => setReviewTab(tab.key)}
+                        onKeyDown={(event) => {
+                            let next = null;
+                            if (event.key === 'ArrowRight') next = (index + 1) % REVIEW_TABS.length;
+                            if (event.key === 'ArrowLeft') next = (index - 1 + REVIEW_TABS.length) % REVIEW_TABS.length;
+                            if (event.key === 'Home') next = 0;
+                            if (event.key === 'End') next = REVIEW_TABS.length - 1;
+                            if (next === null) return;
+                            event.preventDefault();
+                            const nextTab = REVIEW_TABS[next];
+                            setReviewTab(nextTab.key);
+                            tabRefs.current.get(nextTab.key)?.focus();
+                        }}
+                        style={tabStyle(reviewTab === tab.key)}
+                    >
+                        {tab.label}{tab.key === 'mistakes' && mistakes.length > 0 ? ` (${mistakes.length})` : ''}
+                    </button>
+                ))}
             </div>
 
             {/* ═══ TAB: OVERVIEW ═══ */}
             {reviewTab === 'overview' && (
-                <div>
+                <div id="preflop-review-panel-overview" role="tabpanel" aria-labelledby="preflop-review-tab-overview" tabIndex={0}>
                     {/* Score Card */}
                     <div style={{
                         background: gradeResult.score >= 85
@@ -166,7 +195,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
 
             {/* ═══ TAB: MISTAKES ═══ */}
             {reviewTab === 'mistakes' && (
-                <div>
+                <div id="preflop-review-panel-mistakes" role="tabpanel" aria-labelledby="preflop-review-tab-mistakes" tabIndex={0}>
                     {mistakes.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 40, color: '#22C55E' }}>
                             <div style={{ fontSize: 48, marginBottom: 12 }}>🎯</div>
@@ -189,15 +218,20 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                                 const userRef = ACTION_COLORS_REF[m.userAction];
 
                                 return (
-                                    <div key={i}
-                                        onClick={() => setSelectedMistake(selectedMistake === i ? null : i)}
+                                    <article key={m.hand}
                                         style={{
                                             background: selectedMistake === i ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
                                             border: `1px solid ${selectedMistake === i ? typeColor + '50' : 'rgba(255,255,255,0.06)'}`,
-                                            borderRadius: 12, padding: 14, cursor: 'pointer', transition: 'all 0.2s ease'
+                                            borderRadius: 12, overflow: 'hidden', transition: 'all 0.2s ease'
                                         }}
                                     >
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <button
+                                            type="button"
+                                            aria-expanded={selectedMistake === i}
+                                            aria-controls={`preflop-mistake-detail-${i}`}
+                                            onClick={() => setSelectedMistake(selectedMistake === i ? null : i)}
+                                            style={{ width: '100%', minHeight: 64, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: 14, border: 0, background: 'transparent', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}
+                                        >
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                 <div style={{
                                                     width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -220,11 +254,11 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                                             <div style={{ fontSize: 10, padding: '4px 8px', borderRadius: 6, background: typeColor + '20', color: typeColor, fontWeight: 700 }}>
                                                 {mistakeType.toUpperCase()}
                                             </div>
-                                        </div>
+                                        </button>
 
                                         {/* Expanded detail */}
                                         {selectedMistake === i && (
-                                            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                            <div id={`preflop-mistake-detail-${i}`} style={{ padding: '12px 14px 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                                                 <div style={{ display: 'flex', gap: 8 }}>
                                                     <div style={{ flex: 1, background: 'rgba(239,68,68,0.1)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
                                                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>YOUR ANSWER</div>
@@ -241,9 +275,9 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                                                 </div>
                                                 {onAskJarvis && (
                                                     <button
-                                                        onClick={(e) => { e.stopPropagation(); onAskJarvis(m.hand, m.correctAction, m.userAction); }}
+                                                        onClick={() => onAskJarvis(m.hand, m.correctAction, m.userAction)}
                                                         style={{
-                                                            marginTop: 10, width: '100%', padding: '10px 16px',
+                                                            marginTop: 10, width: '100%', minHeight: 44, padding: '10px 16px',
                                                             background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(59,130,246,0.2))',
                                                             border: '1px solid rgba(139,92,246,0.4)', borderRadius: 10,
                                                             color: '#A78BFA', fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -255,7 +289,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                                                 )}
                                             </div>
                                         )}
-                                    </div>
+                                    </article>
                                 );
                             })}
                         </div>
@@ -265,13 +299,15 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
 
             {/* ═══ TAB: SOLUTION ═══ */}
             {reviewTab === 'solution' && (
-                <div>
+                <div id="preflop-review-panel-solution" role="tabpanel" aria-labelledby="preflop-review-tab-solution" tabIndex={0}>
                     {/* Toggle: User vs Solution */}
                     <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                         <button
+                            type="button"
+                            aria-pressed={!showSolution}
                             onClick={() => setShowSolution(false)}
                             style={{
-                                flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+                                flex: 1, minHeight: 44, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
                                 background: !showSolution ? 'rgba(0,212,255,0.15)' : 'rgba(0,0,0,0.3)',
                                 color: !showSolution ? '#00d4ff' : '#64748b', fontSize: 12, fontWeight: 700
                             }}
@@ -279,9 +315,11 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                             Your Range
                         </button>
                         <button
+                            type="button"
+                            aria-pressed={showSolution}
                             onClick={() => setShowSolution(true)}
                             style={{
-                                flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+                                flex: 1, minHeight: 44, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
                                 background: showSolution ? 'rgba(34,197,94,0.15)' : 'rgba(0,0,0,0.3)',
                                 color: showSolution ? '#22C55E' : '#64748b', fontSize: 12, fontWeight: 700
                             }}

@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Award, Check, LockKeyhole, RefreshCw, ShieldCheck } from 'lucide-react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import PreflopSubpageShell from '../../../src/components/memory-games/PreflopSubpageShell';
+import PreflopTabRail from '../../../src/components/memory-games/PreflopTabRail';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { supabase } from '../../../src/lib/supabase';
 
 const CATEGORIES = [
-  ['all', 'All'], ['basics', 'Basics'], ['mastery', 'Mastery'], ['speed', 'Speed'], ['progress', 'Progress'], ['consistency', 'Streaks'], ['economy', 'Economy'], ['games', 'Games'], ['ai', 'AI'], ['challenges', 'Challenges'],
+  { key: 'all', label: 'All' }, { key: 'basics', label: 'Basics' }, { key: 'mastery', label: 'Mastery' }, { key: 'speed', label: 'Speed' }, { key: 'progress', label: 'Progress' }, { key: 'consistency', label: 'Streaks' }, { key: 'economy', label: 'Economy' }, { key: 'games', label: 'Games' }, { key: 'ai', label: 'AI' }, { key: 'challenges', label: 'Challenges' },
 ];
 
 const ACHIEVEMENT_CATALOG = [
@@ -61,12 +62,10 @@ export default function MemoryGamesAchievements() {
       <SEOHead title="Preflop Charts Achievements" description="Track verified Preflop Charts milestones and mastery awards." canonical="/hub/preflop-charts/achievements" />
       <PreflopSubpageShell eyebrow="AWARD VAULT // PLAYER MILESTONES" title="Range distinctions" description="Permanent records for precision, consistency, speed, and progression." metric={`${percent}%`}>
         <section className="preflop-award-progress" aria-label={`${unlocked} of ${achievements.length} achievements unlocked`}>
-          <ShieldCheck size={28} aria-hidden /><div><small>VAULT COMPLETION</small><strong>{unlocked} / {achievements.length} unlocked</strong><div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><i style={{ '--award-progress': `${percent}%` }} /></div></div>{nextLocked && <span>Next target<strong>{nextLocked.name}</strong></span>}
+          <ShieldCheck size={28} aria-hidden /><div><small>VAULT COMPLETION</small><strong>{unlocked} / {achievements.length} unlocked</strong><div role="progressbar" aria-label={`Achievement vault completion: ${percent}%`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><i style={{ '--award-progress': `${percent}%` }} /></div></div>{nextLocked && <span>Next target<strong>{nextLocked.name}</strong></span>}
         </section>
         {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchAchievements}><RefreshCw size={15} aria-hidden /> Retry</button></div>}
-        <div className="preflop-mode-rail" role="tablist" aria-label="Achievement category">
-          {CATEGORIES.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={selectedCategory === key} onClick={() => setSelectedCategory(key)}>{label}</button>)}
-        </div>
+        <PreflopTabRail items={CATEGORIES} selected={selectedCategory} onSelect={setSelectedCategory} ariaLabel="Achievement category" />
         {loading ? <div className="preflop-subpage-loading">Synchronizing award vault…</div> : <section className="preflop-award-grid" aria-label="Achievements">
           {filtered.map((item, index) => <article key={item.key || `${item.name}-${index}`} data-unlocked={item.unlocked || undefined}>
             <div className="preflop-award-code"><span>{item.code || String(index + 1).padStart(2, '0')}</span>{item.unlocked ? <Check size={15} aria-label="Unlocked" /> : <LockKeyhole size={14} aria-label="Locked" />}</div>

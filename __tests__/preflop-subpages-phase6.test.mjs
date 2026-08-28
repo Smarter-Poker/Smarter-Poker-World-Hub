@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import './preflop-accessibility-phase7.test.mjs';
 
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
