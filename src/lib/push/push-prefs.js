@@ -120,6 +120,35 @@ const EVENT_ALIASES = {
     late_reg: 'late_reg_closing',
     game_threshold: 'venue_alert',
     geofence_alert: 'venue_alert',
+
+    // THE ONE THAT WAS MISSING (added 2026-08-28).
+    //
+    // The Club Arena engine writes `type: 'waitlist_seat_open'`
+    // (club-arena server/src/services/supabase/seats.ts, notifyWaitlistSeatOpen),
+    // and the DB mirror trigger copies that string straight into
+    // push_outbox.event. Nothing in this file knew the word. Measured over the
+    // fourteen days before this line existed, that was 2,341 of 2,462 outbox
+    // rows -- ninety-five per cent of everything this gate has ever been asked
+    // to judge, and it could not name any of it.
+    //
+    // eventToTypeKey returned null, which is "unknown, allow it", so the
+    // failure was invisible: seat offers went out and nobody filed a bug. What
+    // it actually cost was the two things a null key silently forfeits:
+    //
+    //   1. URGENCY. `seat_open` is in URGENT_TYPES precisely so a seat about to
+    //      be forfeited pierces quiet hours and the daily cap. An unrecognised
+    //      event is never urgent, so the one notification class that must
+    //      survive a quiet-hours window was the one being dropped by it. Held
+    //      seats expire; the player is not told, and the offer is gone.
+    //
+    //   2. CONSENT. The "Seat Available" toggle writes
+    //      push_type_prefs.seat_open. pushTypeAllowed was asked about `null`
+    //      and answered "allow", so switching it off did nothing at all.
+    //
+    // Neither had bitten yet only because no account had set quiet hours, a
+    // daily cap, or that toggle -- there was almost nobody subscribed to push
+    // to set them. Enrolment shipped on 2026-08-27, so both were about to.
+    waitlist_seat_open: 'seat_open',
 };
 
 // Test pushes are never gated by per-type preferences -- if a user clicks
@@ -237,10 +266,29 @@ export function isWithinQuietHours(prefs, now = new Date()) {
     if (start == null || end == null) return false;
     if (start === end) return false; // zero-length window = disabled
 
+    // A WINDOW WITHOUT A TIMEZONE IS NOT A WINDOW (fixed 2026-08-28).
+    //
+    // This used to fall back to `|| 'UTC'`. That reads like a harmless default
+    // and is not one: the comment above this function says the whole point is
+    // to evaluate in the USER'S timezone, and UTC is the one timezone we know
+    // is not theirs -- it is the absence of an answer. A player in Los Angeles
+    // who set 22:00-07:00 without a tz was judged eight hours ahead, so the
+    // window landed on 14:00-23:00 their time. They got silence through the
+    // afternoon and pushes at 3am: exactly backwards, and exactly the failure
+    // this function exists to prevent.
+    //
+    // Unconfigured now means unenforced. Silencing somebody on a guess is
+    // worse than not silencing them, because a missed notification is visible
+    // to them and a wrongly-applied quiet hour is not. Every writer of these
+    // columns should send a tz -- pages/api/notifications/push-types.js
+    // validates one against ICU -- and rows predating that requirement simply
+    // do not get a window until one is set.
+    if (!prefs.quiet_hours_tz) return false;
+
     let hour;
     try {
         hour = Number(new Intl.DateTimeFormat('en-US', {
-            hour: 'numeric', hour12: false, timeZone: prefs.quiet_hours_tz || 'UTC',
+            hour: 'numeric', hour12: false, timeZone: prefs.quiet_hours_tz,
         }).format(now));
         if (Number.isNaN(hour)) return false;
         if (hour === 24) hour = 0; // some ICU builds emit 24 for midnight

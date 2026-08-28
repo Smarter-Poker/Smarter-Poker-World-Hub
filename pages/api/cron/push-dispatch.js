@@ -82,6 +82,12 @@ const DIGEST_LABEL = {
     club_announcement: 'club announcements',
     table_invite: 'table invites',
     tournament_starting: 'tournaments starting',
+    // Keyed on the RAW event string, which is what carrier.event holds -- the
+    // engine writes `waitlist_seat_open`, and the alias to `seat_open` happens
+    // later, inside the gate. Without this entry the commonest notification on
+    // the platform digested to "3 new notifications", which tells a player
+    // nothing and buries the one thing they would have got out of bed for.
+    waitlist_seat_open: 'seats open',
     diamond_received: 'diamond gifts',
 };
 
