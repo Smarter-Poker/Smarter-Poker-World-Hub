@@ -46,6 +46,7 @@ import {
     logHubClick,
     logHubAdEvent,
     isSafeHubDestination,
+    leavesTheNextRouter,
 } from '../../lib/hubAds';
 
 const ROTATE_MS = 7000;
@@ -112,9 +113,15 @@ export default function HubPromoStrip() {
         // the event to the unmount, which is how a click path ends up looking
         // like nobody ever clicked.
         logHubClick(visible.adId);
-        if (isSafeHubDestination(visible.targetUrl)) {
-            router.push(visible.targetUrl);
+        if (!isSafeHubDestination(visible.targetUrl)) return;
+        // Club Arena is a static SPA, not a Next page. The client router would
+        // strip its trailing slash and land the player on "Unknown World".
+        // See leavesTheNextRouter().
+        if (leavesTheNextRouter(visible.targetUrl)) {
+            window.location.assign(visible.targetUrl);
+            return;
         }
+        router.push(visible.targetUrl);
     }, [visible, router]);
 
     const handleDismiss = useCallback(
