@@ -544,7 +544,12 @@ export default async function handler(req, res) {
                       // streak_at_time, created_at). Selecting `score` made the
                       // whole query error out, so hasPlayedToday was always
                       // false for every user. Score comes from trivia_scores.
-                      const [{ data: todayPlay }, { data: todayScoreRow }, { data: streak }] = await Promise.all([
+                      const [
+                          { data: todayPlay },
+                          { data: todayScoreRow },
+                          { data: bestScoreRow },
+                          { data: streak },
+                      ] = await Promise.all([
                           supabase
                               .from('daily_trivia_plays')
                               .select('id, was_correct, streak_at_time')
@@ -562,6 +567,16 @@ export default async function handler(req, res) {
                               .eq('user_id', userId)
                               .eq('mode', 'daily')
                               .eq('play_date', today)
+                              .eq('server_verified', true)
+                              .order('score', { ascending: false })
+                              .limit(1)
+                              .maybeSingle(),
+                          supabase
+                              .from('trivia_scores')
+                              .select('score')
+                              .eq('user_id', userId)
+                              .eq('mode', 'daily')
+                              .eq('server_verified', true)
                               .order('score', { ascending: false })
                               .limit(1)
                               .maybeSingle(),
@@ -575,14 +590,12 @@ export default async function handler(req, res) {
                       hasPlayedToday = !!todayPlay || !!todayScoreRow;
                       todayScore = todayScoreRow?.score ?? null;
 
-                      if (streak) {
-                          userStats = {
-                              totalPlayed: streak.total_games_played || 0,
-                              bestScore: streak.best_streak || 0,
-                              currentStreak: streak.current_streak || 0,
-                              totalCorrect: streak.total_correct || 0
-                          };
-                      }
+                      userStats = {
+                          totalPlayed: streak?.total_games_played || 0,
+                          bestScore: bestScoreRow?.score || 0,
+                          currentStreak: streak?.current_streak || 0,
+                          totalCorrect: streak?.total_correct || 0
+                      };
 
                       // How much of today's roster has this player already
                       // seen in ANY mode inside the no-repeat window? Surfaced

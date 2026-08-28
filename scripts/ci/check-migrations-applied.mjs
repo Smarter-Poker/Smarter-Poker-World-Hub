@@ -101,7 +101,18 @@ function declaredObjects(sql) {
   const clean = sql.replace(/--[^\n]*/g, '');
   const grab = (re) => [...clean.matchAll(re)].map((m) => m[1]);
 
-  const fns = grab(/create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\(/gi);
+  // PostgREST deliberately omits trigger functions from its OpenAPI /rpc paths,
+  // even when they live in `public`. Treating those as missing makes every
+  // migration that creates or replaces a trigger function fail this check after
+  // it has been applied successfully. Only validate functions that can actually
+  // be represented by the live-schema source used below.
+  const fns = [
+    ...clean.matchAll(
+      /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\([\s\S]*?\)\s*returns\s+"?([a-z0-9_.]+)"?/gi
+    ),
+  ]
+    .filter((m) => !/^(?:trigger|event_trigger)$/i.test(m[2]))
+    .map((m) => m[1]);
   const tables = grab(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi);
   const views = grab(
     /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi

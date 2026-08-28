@@ -3,7 +3,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  * 🎯 TRIVIA GROK SEEDER (Track B — fact categories)
  * ═══════════════════════════════════════════════════════════════════════════
- * Generates fact-based trivia questions using Grok-3 with web grounding.
+ * Generates fact-based trivia questions using Grok-3, then routes every row
+ * through deterministic validation and the separate factual-audit pipeline.
  * Targets the 5 fact categories that can't be solver-derived:
  *   poker_history, famous_hands, player_profiles, tournament_facts, rule_knowledge
  *
@@ -65,6 +66,9 @@ const ARG_CATEGORY = args.find(a => a.startsWith('--category='))?.split('=')[1];
 const ARG_TARGET = parseInt(args.find(a => a.startsWith('--target='))?.split('=')[1] || '0', 10);
 const MODEL = args.find(a => a.startsWith('--model='))?.split('=')[1] || 'grok-3-mini';
 const COST_CAP_USD = parseFloat(args.find(a => a.startsWith('--cost-cap='))?.split('=')[1] || '110');
+const CONCURRENCY = Math.max(1, Math.min(4,
+    parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '1', 10) || 1
+));
 
 if (!IS_DRY_RUN && !IS_LIVE) {
     console.error('Usage: node scripts/trivia-grok-seed.js [--dry-run|--live] [--category=X] [--target=N] [--all]');
@@ -80,7 +84,18 @@ const HEADERS = {
 };
 
 async function supabaseQuery(table, params = '') {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, { headers: HEADERS });
+    let res;
+    let lastError;
+    for (let attempt = 0; attempt < 6; attempt++) {
+        try {
+            res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, { headers: HEADERS });
+            if (res.ok || !isRetryableStatus(res.status)) break;
+        } catch (error) {
+            lastError = error;
+        }
+        await new Promise(resolve => setTimeout(resolve, Math.min(10000, 1000 * (2 ** attempt))));
+    }
+    if (!res) throw lastError || new Error(`Query ${table} failed before receiving a response`);
     if (!res.ok) {
         const t = await res.text();
         throw new Error(`Query ${table} ${res.status}: ${t.slice(0, 200)}`);
@@ -89,22 +104,69 @@ async function supabaseQuery(table, params = '') {
 }
 
 async function supabaseInsert(table, rows) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-        method: 'POST',
-        headers: { ...HEADERS, 'Prefer': 'return=minimal' },
-        body: JSON.stringify(rows),
-    });
-    if (!res.ok) {
-        const t = await res.text();
-        throw new Error(`Insert ${table} ${res.status}: ${t.slice(0, 300)}`);
+    let lastError = null;
+    for (let attempt = 0; attempt < 6; attempt++) {
+        try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+                method: 'POST',
+                headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+                body: JSON.stringify(rows),
+            });
+            if (res.ok) return { inserted: rows.length, conflicts: 0 };
+            const t = await res.text();
+            lastError = new Error(`Insert ${table} ${res.status}: ${t.slice(0, 300)}`);
+            lastError.status = res.status;
+            if (!isRetryableStatus(res.status)) break;
+        } catch (e) {
+            lastError = e;
+        }
+        await new Promise(resolve => setTimeout(resolve, Math.min(10000, 1000 * (2 ** attempt))));
     }
-    return true;
+
+    // A single global fingerprint conflict used to roll back every otherwise
+    // valid row in the batch. Salvage rows individually; exact conflicts are
+    // counted, while any other persistent failure still fails closed.
+    if (lastError?.status === 409 && rows.length > 1) {
+        let inserted = 0;
+        let conflicts = 0;
+        for (const row of rows) {
+            try {
+                const result = await supabaseInsert(table, [row]);
+                inserted += result.inserted;
+                conflicts += result.conflicts;
+            } catch (e) {
+                if (e?.status === 409) conflicts++;
+                else throw e;
+            }
+        }
+        return { inserted, conflicts };
+    }
+    throw lastError || new Error(`Insert ${table} failed`);
+}
+
+function isRetryableStatus(status) {
+    return status === 429 || (status >= 500 && status <= 526);
 }
 
 async function supabaseCount(table, filter = '') {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id${filter}&limit=1`, {
-        headers: { ...HEADERS, 'Prefer': 'count=exact' },
-    });
+    let res;
+    let lastError;
+    for (let attempt = 0; attempt < 6; attempt++) {
+        try {
+            res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id${filter}&limit=1`, {
+                headers: { ...HEADERS, 'Prefer': 'count=exact' },
+            });
+            if (res.ok || !isRetryableStatus(res.status)) break;
+        } catch (error) {
+            lastError = error;
+        }
+        await new Promise(resolve => setTimeout(resolve, Math.min(10000, 1000 * (2 ** attempt))));
+    }
+    if (!res) throw lastError || new Error(`Count ${table} failed before receiving a response`);
+    if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Count ${table} ${res.status}: ${body.slice(0, 200)}`);
+    }
     const cr = res.headers.get('content-range') || '';
     return cr ? parseInt(cr.split('/')[1] || '0', 10) : 0;
 }
@@ -129,33 +191,47 @@ async function grokCall(systemPrompt, userPrompt, opts = {}) {
     if (MODEL.includes('mini')) payload.reasoning_effort = 'low';
     if (opts.json) payload.response_format = { type: 'json_object' };
     const body = JSON.stringify(payload);
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), opts.timeoutMs || 60000);
-    try {
-        const res = await fetch('https://api.x.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${XAI_KEY}` },
-            body,
-            signal: ctrl.signal,
-        });
-        clearTimeout(t);
-        if (!res.ok) {
-            const errBody = await res.text();
-            throw new Error(`Grok ${res.status}: ${errBody.slice(0, 200)}`);
+    let lastError;
+    for (let attempt = 0; attempt < 4; attempt++) {
+        const ctrl = new AbortController();
+        const timeout = setTimeout(() => ctrl.abort(), opts.timeoutMs || 60000);
+        try {
+            const res = await fetch('https://api.x.ai/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${XAI_KEY}` },
+                body,
+                signal: ctrl.signal,
+            });
+            if (!res.ok) {
+                const errBody = await res.text();
+                const error = new Error(`Grok ${res.status}: ${errBody.slice(0, 200)}`);
+                error.status = res.status;
+                if (attempt < 3 && isRetryableStatus(res.status)) {
+                    lastError = error;
+                    await new Promise(resolve => setTimeout(resolve, Math.min(10000, 1000 * (2 ** attempt))));
+                    continue;
+                }
+                throw error;
+            }
+            const data = await res.json();
+            const usage = data.usage || {};
+            const inputTok = usage.prompt_tokens || 0;
+            const outputTok = usage.completion_tokens || 0;
+            const callCost = (inputTok / 1e6) * COST_PER_M_INPUT + (outputTok / 1e6) * COST_PER_M_OUTPUT;
+            totalCostUsd += callCost;
+            return {
+                content: data.choices?.[0]?.message?.content || '',
+                inputTok, outputTok, callCost,
+            };
+        } catch (error) {
+            lastError = error;
+            if (attempt >= 3 || (error?.status && !isRetryableStatus(error.status))) throw error;
+            await new Promise(resolve => setTimeout(resolve, Math.min(10000, 1000 * (2 ** attempt))));
+        } finally {
+            clearTimeout(timeout);
         }
-        const data = await res.json();
-        const usage = data.usage || {};
-        const inputTok = usage.prompt_tokens || 0;
-        const outputTok = usage.completion_tokens || 0;
-        const callCost = (inputTok / 1e6) * COST_PER_M_INPUT + (outputTok / 1e6) * COST_PER_M_OUTPUT;
-        totalCostUsd += callCost;
-        return {
-            content: data.choices?.[0]?.message?.content || '',
-            inputTok, outputTok, callCost,
-        };
-    } finally {
-        clearTimeout(t);
     }
+    throw lastError || new Error('Grok request failed before receiving a response');
 }
 
 // ─── PROMPTS PER CATEGORY ─────────────────────────────────────────────────
@@ -250,7 +326,7 @@ const DEDUP_SIMILARITY_THRESHOLD = 0.80;
  * token sets for near-duplicate (Jaccard) comparison, and the RAW texts used to
  * build the anti-duplicate prompt block.
  */
-function createDedupIndex() {
+function createDedupIndex(globalNorms = new Set()) {
     return {
         norms: new Set(),
         tokenSets: [],
@@ -259,7 +335,7 @@ function createDedupIndex() {
         check(text) {
             const norm = normalizeQuestionText(text);
             if (!norm) return 'empty question text';
-            if (this.norms.has(norm)) return 'exact duplicate of existing pool';
+            if (globalNorms.has(norm) || this.norms.has(norm)) return 'exact duplicate of existing pool';
             const ts = tokenSet(text);
             if (ts.size === 0) return null;
             for (const other of this.tokenSets) {
@@ -273,6 +349,7 @@ function createDedupIndex() {
             const norm = normalizeQuestionText(text);
             if (!norm) return;
             this.norms.add(norm);
+            globalNorms.add(norm);
             this.tokenSets.push(tokenSet(text));
             this.rawTexts.push(String(text));
         },
@@ -303,7 +380,7 @@ function validateGrokQuestion(q, category, difficulty, dedup) {
     if (typeof q.question !== 'string' || q.question.length < 15) errors.push('short question');
     if (q.question && q.question.length > 500) errors.push('overlong question');
     if (!Array.isArray(q.options) || q.options.length !== 4) errors.push('need 4 options');
-    if (q.options) {
+    if (Array.isArray(q.options)) {
         const opts = q.options.map(o => String(o).trim().toLowerCase());
         if (new Set(opts).size !== 4) errors.push('duplicate options');
         if (opts.some(o => o.length < 1 || o.length > 200)) errors.push('option length out of range');
@@ -374,15 +451,27 @@ function buildTriviaRow(q, category, difficulty) {
 // ─── DEDUP ────────────────────────────────────────────────────────────────
 
 async function loadExistingDedup(category) {
-    const dedup = createDedupIndex();
+    // The live fingerprint constraint is global across every servable category,
+    // so exact dedup must be global too. Near-duplicate Jaccard comparison stays
+    // category-local to avoid rejecting legitimate questions that teach the
+    // same concept from a different mode.
+    const globalNorms = new Set();
     let offset = 0;
     while (true) {
         const rows = await supabaseQuery('trivia_questions',
-            `?category=eq.${category}&select=question&limit=1000&offset=${offset}`);
+            `?quality_score=gte.6&select=question&limit=1000&offset=${offset}`);
         if (!rows || rows.length === 0) break;
-        for (const r of rows) {
-            if (r.question) dedup.add(r.question);
-        }
+        for (const r of rows) if (r.question) globalNorms.add(normalizeQuestionText(r.question));
+        if (rows.length < 1000) break;
+        offset += 1000;
+    }
+    const dedup = createDedupIndex(globalNorms);
+    offset = 0;
+    while (true) {
+        const rows = await supabaseQuery('trivia_questions',
+            `?category=eq.${category}&quality_score=gte.6&select=question&limit=1000&offset=${offset}`);
+        if (!rows || rows.length === 0) break;
+        for (const r of rows) if (r.question) dedup.add(r.question);
         if (rows.length < 1000) break;
         offset += 1000;
     }
@@ -403,7 +492,10 @@ async function seedCategory(category, target) {
 
     const before = {};
     for (const d of ['easy', 'medium', 'hard']) {
-        before[d] = await supabaseCount('trivia_questions', `&category=eq.${category}&difficulty=eq.${d}`);
+        before[d] = await supabaseCount(
+            'trivia_questions',
+            `&category=eq.${category}&difficulty=eq.${d}&quality_score=gte.6`
+        );
     }
     console.log(`   current: easy=${before.easy} medium=${before.medium} hard=${before.hard}`);
 
@@ -437,95 +529,102 @@ async function seedCategory(category, target) {
         console.log(`   --- ${difficulty} (target ${targetD}) ---`);
 
         let attempts = 0;
-        const MAX_ATTEMPTS = Math.ceil(targetD / BATCH_SIZE) * 3; // 3x overhead for retries
+        // Historical/profile prompts often reject 60–80% of a batch once the
+        // pool is deep. Five-times headroom prevents a category from silently
+        // finishing below target while retaining a hard upper bound.
+        const MAX_ATTEMPTS = Math.ceil(targetD / BATCH_SIZE) * 5;
 
         while (generated[difficulty].length < targetD && attempts < MAX_ATTEMPTS) {
-            attempts++;
-
             // Cost cap
             if (totalCostUsd > COST_CAP_USD) {
                 console.warn(`   ⚠️  cost cap $${COST_CAP_USD} hit — stopping`);
                 break;
             }
 
-            // Anti-duplicate hints must be READABLE question text, and a random
-            // sample so consecutive batches do not all see the same examples.
-            const recentSample = dedup.sample(15);
-            const prompt = buildBatchPrompt(category, BATCH_SIZE, difficulty, recentSample);
-
-            let result;
-            try {
-                result = await grokCall(SYSTEM_PROMPT, prompt, { json: true, maxTokens: 4000, timeoutMs: 90000 });
-            } catch (e) {
-                grokErrors++;
-                console.warn(`   grok call failed (${attempts}): ${e.message}`);
-                if (grokErrors >= 5) {
-                    console.error(`   too many grok failures — aborting category`);
-                    break;
-                }
-                continue;
+            // Multiple independent model calls can run together. Responses are
+            // still validated and inserted serially below so the shared dedup
+            // index remains deterministic and exact conflicts are never raced.
+            const requestCount = Math.min(
+                CONCURRENCY,
+                MAX_ATTEMPTS - attempts,
+                Math.max(1, Math.ceil((targetD - generated[difficulty].length) / BATCH_SIZE))
+            );
+            const requests = [];
+            for (let slot = 0; slot < requestCount; slot++) {
+                attempts++;
+                const attempt = attempts;
+                const recentSample = dedup.sample(15);
+                const prompt = buildBatchPrompt(category, BATCH_SIZE, difficulty, recentSample);
+                requests.push(
+                    grokCall(SYSTEM_PROMPT, prompt, { json: true, maxTokens: 4000, timeoutMs: 90000 })
+                        .then(result => ({ result, attempt }))
+                        .catch(error => ({ error, attempt }))
+                );
             }
 
-            // Parse JSON
-            let parsed;
-            try {
-                // Strip any markdown fence the model may include
-                const cleaned = result.content.replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
-                parsed = JSON.parse(cleaned);
-            } catch (e) {
-                grokErrors++;
-                if (VERBOSE) console.warn(`   JSON parse fail: ${e.message}; raw[0..200]: ${result.content.slice(0, 200)}`);
-                continue;
-            }
-
-            if (!parsed.questions || !Array.isArray(parsed.questions)) {
-                grokErrors++;
-                continue;
-            }
-
-            // Validate this Grok batch: shape + dedup, then the SHARED 5-check
-            // QA validator every other seeding path uses. Only questions that
-            // clear both gates are added to the dedup index and inserted.
-            const batchAccepted = [];
-            for (const q of parsed.questions) {
-                if (generated[difficulty].length + batchAccepted.length >= targetD) break;
-
-                const errs = validateGrokQuestion(q, category, difficulty, dedup);
-                if (errs.length > 0) {
-                    validatorRejections++;
-                    if (VERBOSE) console.warn(`   reject: ${errs.join(', ')} — Q: ${(q.question || '').slice(0, 70)}`);
+            const responses = await Promise.all(requests);
+            for (const response of responses) {
+                if (response.error) {
+                    grokErrors++;
+                    console.warn(`   grok call failed (${response.attempt}): ${response.error.message}`);
                     continue;
                 }
 
-                const row = buildTriviaRow(q, category, difficulty);
-                const qa = validateQuestion(row);
-                if (!qa.valid) {
-                    validatorRejections++;
-                    if (VERBOSE) console.warn(`   QA reject: ${qa.errors.join(' | ')} — Q: ${row.question.slice(0, 70)}`);
-                    continue;
-                }
-
-                // Only registered AFTER both gates pass, so a rejected question
-                // does not poison the dedup index against a later good one.
-                dedup.add(row.question);
-                batchAccepted.push(row);
-            }
-
-            // INCREMENTAL INSERT — write this batch immediately so progress survives timeouts
-            if (IS_LIVE && batchAccepted.length > 0) {
+                const result = response.result;
+                let parsed;
                 try {
-                    await supabaseInsert('trivia_questions', batchAccepted);
-                    generated[difficulty].push(...batchAccepted);
-                    console.log(`   ${difficulty} +${batchAccepted.length} (total ${generated[difficulty].length}/${targetD}, cost $${totalCostUsd.toFixed(3)})`);
+                    const cleaned = result.content.replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
+                    parsed = JSON.parse(cleaned);
                 } catch (e) {
-                    console.error(`   insert failed: ${e.message}`);
-                    // keep going — next batch may succeed
+                    grokErrors++;
+                    if (VERBOSE) console.warn(`   JSON parse fail: ${e.message}; raw[0..200]: ${result.content.slice(0, 200)}`);
+                    continue;
                 }
-            } else if (batchAccepted.length > 0) {
-                generated[difficulty].push(...batchAccepted);
-                if (attempts % 3 === 0 || generated[difficulty].length >= targetD) {
-                    console.log(`   ${difficulty}: ${generated[difficulty].length}/${targetD} (calls=${attempts}, cost=$${totalCostUsd.toFixed(3)})`);
+                if (!parsed.questions || !Array.isArray(parsed.questions)) {
+                    grokErrors++;
+                    continue;
                 }
+
+                const batchAccepted = [];
+                for (const q of parsed.questions) {
+                    if (generated[difficulty].length + batchAccepted.length >= targetD) break;
+                    const errs = validateGrokQuestion(q, category, difficulty, dedup);
+                    if (errs.length > 0) {
+                        validatorRejections++;
+                        if (VERBOSE) console.warn(`   reject: ${errs.join(', ')} — Q: ${(q.question || '').slice(0, 70)}`);
+                        continue;
+                    }
+
+                    const row = buildTriviaRow(q, category, difficulty);
+                    const qa = validateQuestion(row);
+                    if (!qa.valid) {
+                        validatorRejections++;
+                        if (VERBOSE) console.warn(`   QA reject: ${qa.errors.join(' | ')} — Q: ${row.question.slice(0, 70)}`);
+                        continue;
+                    }
+                    dedup.add(row.question);
+                    batchAccepted.push(row);
+                }
+
+                if (IS_LIVE && batchAccepted.length > 0) {
+                    try {
+                        const write = await supabaseInsert('trivia_questions', batchAccepted);
+                        if (write.inserted > 0) generated[difficulty].push(...batchAccepted.slice(0, write.inserted));
+                        console.log(`   ${difficulty} +${write.inserted} (total ${generated[difficulty].length}/${targetD}, cost $${totalCostUsd.toFixed(3)})` +
+                            (write.conflicts ? `, ${write.conflicts} global duplicate(s) skipped` : ''));
+                    } catch (e) {
+                        console.error(`   insert failed: ${e.message}`);
+                    }
+                } else if (batchAccepted.length > 0) {
+                    generated[difficulty].push(...batchAccepted);
+                    if (attempts % 3 === 0 || generated[difficulty].length >= targetD) {
+                        console.log(`   ${difficulty}: ${generated[difficulty].length}/${targetD} (calls=${attempts}, cost=$${totalCostUsd.toFixed(3)})`);
+                    }
+                }
+            }
+            if (grokErrors >= 5) {
+                console.error('   too many grok failures — aborting category');
+                break;
             }
         }
         console.log(`   ${difficulty}: ${generated[difficulty].length} done`);

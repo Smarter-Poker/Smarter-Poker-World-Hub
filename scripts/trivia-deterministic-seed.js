@@ -53,18 +53,24 @@ const HEADERS = {
     'Content-Type': 'application/json',
 };
 
-async function fetchReadWithRetry(url, options) {
+async function fetchWithRetry(url, options) {
     let response;
-    for (let attempt = 0; attempt < 3; attempt++) {
-        response = await fetch(url, options);
-        if (response.ok || ![429, 500, 502, 503, 504].includes(response.status)) return response;
-        await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+    let lastError;
+    for (let attempt = 0; attempt < 6; attempt++) {
+        try {
+            response = await fetch(url, options);
+            if (response.ok || !(response.status === 429 || (response.status >= 500 && response.status <= 526))) return response;
+        } catch (error) {
+            lastError = error;
+        }
+        await new Promise(resolve => setTimeout(resolve, Math.min(10000, 1000 * (2 ** attempt))));
     }
-    return response;
+    if (response) return response;
+    throw lastError || new Error('Supabase request failed before receiving a response');
 }
 
 async function supabaseQuery(table, params = '', extraHeaders = {}) {
-    const res = await fetchReadWithRetry(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
+    const res = await fetchWithRetry(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
         headers: { ...HEADERS, ...extraHeaders },
     });
     if (!res.ok) {
@@ -98,7 +104,7 @@ async function supabaseQueryPaginated(table, baseParams, maxRows = 5000, startOf
 }
 
 async function supabaseInsert(table, rows) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    const res = await fetchWithRetry(`${SUPABASE_URL}/rest/v1/${table}`, {
         method: 'POST',
         headers: { ...HEADERS, 'Prefer': 'return=minimal' },
         body: JSON.stringify(rows),
@@ -111,7 +117,7 @@ async function supabaseInsert(table, rows) {
 }
 
 async function supabaseCount(table, filter = '') {
-    const res = await fetchReadWithRetry(`${SUPABASE_URL}/rest/v1/${table}?select=id${filter}&limit=1`, {
+    const res = await fetchWithRetry(`${SUPABASE_URL}/rest/v1/${table}?select=id${filter}&limit=1`, {
         headers: { ...HEADERS, 'Prefer': 'count=exact' },
     });
     if (!res.ok) {

@@ -15,10 +15,9 @@
  * DEPTH MATH
  *   required(category) = questionsServedPerDay(mode backed by that category)
  *                        x NO_REPEAT_WINDOW_DAYS
- *   Four modes are single-category and serve 20/day => 20 x 60 = 1,200 usable
- *   (quality_score >= 6) rows needed in rule_knowledge, mtt_situations,
- *   cash_game_situations and icm_chip_ev respectively.
- *   Multi-category modes split their 20/day across their categories.
+ *   Dedicated modes serve 20/day, while Daily, Arcade and Mixed add shared
+ *   demand. The category map below therefore budgets 25/day for the four
+ *   dedicated categories and explicit shares for multi-category modes.
  *   Survival draws 200/run from the WHOLE pool => 200 x 60 = 12,000 usable.
  *   Headroom multiplier covers audit attrition (rows demoted below qs 6).
  *
@@ -79,9 +78,9 @@ const DEPTH_HEADROOM = 1.25;
 /**
  * Daily roster TAGGING size per category, written by /api/cron/generate-trivia.
  * FIX(roster-cut): was 20 (the per-player consumption number). generate-trivia
- * now tags only ROSTER_TAG_PER_CATEGORY = 3 rows/category/day (2 served slots
- * — the daily endpoint serves slice(0, 20) across 10 categories — plus 1
- * demotion-headroom slot). Left at 20, this watchdog's rosterComplete check
+ * now tags only ROSTER_TAG_PER_CATEGORY = 3 rows/category/day (1 served slot
+ * — the daily endpoint serves slice(0, 10) across 10 categories — plus 2
+ * demotion-headroom slots). Left at 20, this watchdog's rosterComplete check
  * could never pass and the guard would report unhealthy forever. The 20/day
  * per-player DEMAND model is untouched: it lives in CATEGORY_DAILY_DEMAND
  * above and still drives the depth math. Keep in sync with

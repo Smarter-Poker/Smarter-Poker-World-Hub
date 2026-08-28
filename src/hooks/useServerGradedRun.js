@@ -3,18 +3,13 @@
  * ===========================================================================
  * WHAT THIS IS FOR
  *
- * Solo modes currently receive correct_index, grade themselves, and call the
- * browser-side balance RPC with an amount they chose - a mint button in
- * devtools. /api/trivia/session-start and /api/trivia/session-submit replace
- * that flow. This hook is the client half, so each game page adopts the new
- * flow by swapping its loader + save call rather than by re-implementing the
- * protocol seven times (and drifting seven different ways).
+ * Solo modes use /api/trivia/session-start, /api/trivia/session-answer and
+ * /api/trivia/session-submit so answer keys, grading, settlement and rewards
+ * stay server-owned. This hook is the shared client adapter for that protocol.
  *
- * MIGRATION IS GATED ON PURPOSE - see SERVER_GRADING_ENABLED below: until
- * the trivia_sessions migration is applied, isEnabled() is false and callers
- * MUST keep their existing path. A page should read isEnabled() once and pick
- * a branch; it must never half-adopt (start a server session, then grade
- * locally), because that pays twice.
+ * SERVER_GRADING_ENABLED remains an emergency kill switch. Callers read it
+ * once and pick one complete branch; they must never start a server session
+ * and then grade or pay locally.
  *
  * USAGE (per game page):
  *

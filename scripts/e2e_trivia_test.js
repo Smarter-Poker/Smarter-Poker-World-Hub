@@ -22,8 +22,8 @@
  *     first. Fact checks now match on the full question intent.
  *
  * NEW INVARIANTS (these turn the audit's regressions into red tests):
- *   TEST 2b  every category holds >= 1,200 usable rows (20/day x 60 days)
- *   TEST 2c  today's daily roster has >= 20 rows per category
+ *   TEST 2b  every category covers its cross-mode daily demand for 60 days
+ *   TEST 2c  today's daily roster has >= 3 tagged rows per category
  *   TEST 3b  stored correct_index is spread 15-35% across all four positions
  *   TEST 3c  no duplicate normalized question text inside a category
  * ═══════════════════════════════════════════════════════════════════════════
@@ -59,21 +59,28 @@ const ALL_CATEGORIES = [
 ];
 
 const MODES_NEEDED_QUESTIONS = {
-    daily: 20, history: 20, rules: 20, pro: 20, arcade: 20,
+    daily: 10, history: 20, rules: 20, pro: 20, arcade: 20,
     mtt: 20, cash: 20, icm: 20, gto: 20
 };
 
 // ── 60-day guarantee constants (mirror src/lib/triviaQuestionLoader.js) ──
 const QUALITY_FLOOR = 6;
 const NO_REPEAT_WINDOW_DAYS = 60;
-const QUESTIONS_PER_DAY_DEDICATED = 20;
-const SIXTY_DAY_FLOOR = QUESTIONS_PER_DAY_DEDICATED * NO_REPEAT_WINDOW_DAYS; // 1200
-const ROSTER_PER_CATEGORY = 20;
-
-/** Categories that back a dedicated single-category 20-questions/day mode. */
-const DEDICATED_MODE_CATEGORIES = new Set([
-    'rule_knowledge', 'mtt_situations', 'cash_game_situations', 'icm_chip_ev',
-]);
+const ROSTER_TAG_PER_CATEGORY = 3;
+// Keep synchronized with pages/api/cron/trivia-pool-guard.js. This includes
+// cross-mode demand, not merely each category's dedicated page.
+const CATEGORY_DAILY_DEMAND = {
+    rule_knowledge: 25,
+    mtt_situations: 25,
+    cash_game_situations: 25,
+    icm_chip_ev: 25,
+    poker_history: 12,
+    famous_hands: 12,
+    player_profiles: 12,
+    tournament_facts: 15,
+    gto_theory: 15,
+    gto_scenarios: 15,
+};
 
 let passed = 0;
 let failed = 0;
@@ -166,10 +173,10 @@ function todayCST() {
 
     // ── TEST 2b: the actual 60-day depth requirement ──
     console.log('\n━━━ TEST 2b: 60-Day Pool Depth ━━━');
-    console.log(`  Requirement: ${QUESTIONS_PER_DAY_DEDICATED}/day x ${NO_REPEAT_WINDOW_DAYS} days = ${SIXTY_DAY_FLOOR} usable per dedicated-mode category.`);
+    console.log(`  Requirement: per-category cross-mode demand x ${NO_REPEAT_WINDOW_DAYS} days.`);
     for (const cat of ALL_CATEGORIES) {
         const { usable } = catStats[cat];
-        const required = DEDICATED_MODE_CATEGORIES.has(cat) ? SIXTY_DAY_FLOOR : Math.round(SIXTY_DAY_FLOOR / 2);
+        const required = (CATEGORY_DAILY_DEMAND[cat] || 20) * NO_REPEAT_WINDOW_DAYS;
         const shortfall = Math.max(0, required - usable);
         if (shortfall === 0) {
             ok(`${cat}: ${usable} usable >= ${required} required`);
@@ -188,8 +195,8 @@ function todayCST() {
     let rosterComplete = 0;
     for (const cat of ALL_CATEGORIES) {
         const n = await countRows(q => q.eq('category', cat).eq('daily_date', today).gte('quality_score', QUALITY_FLOOR));
-        if (n >= ROSTER_PER_CATEGORY) { rosterComplete++; ok(`${cat}: ${n} questions tagged for ${today}`); }
-        else fail(`${cat}: only ${n} questions tagged for ${today} (need ${ROSTER_PER_CATEGORY}) — daily generation is not running`);
+        if (n >= ROSTER_TAG_PER_CATEGORY) { rosterComplete++; ok(`${cat}: ${n} questions tagged for ${today}`); }
+        else fail(`${cat}: only ${n} questions tagged for ${today} (need ${ROSTER_TAG_PER_CATEGORY}) — daily generation is not running`);
     }
     console.log(`  roster complete in ${rosterComplete}/${ALL_CATEGORIES.length} categories`);
 
@@ -241,11 +248,22 @@ function todayCST() {
         warn('duplicate scan runs on the full pool only — re-run with --deep for a complete check');
     }
     const perCatSeen = new Map();
+    const allPerCatSeen = new Map();
     const dupExamples = [];
     let dupCount = 0;
+    let quarantinedDupCount = 0;
     for (const q of poolRows) {
         const norm = normalizeQuestionText(q.question);
         if (!norm) continue;
+        if (!allPerCatSeen.has(q.category)) allPerCatSeen.set(q.category, new Set());
+        const allSeen = allPerCatSeen.get(q.category);
+        if (allSeen.has(norm)) quarantinedDupCount++;
+        else allSeen.add(norm);
+
+        // Rows below the quality floor are intentionally quarantined and can
+        // remain for historical score/event foreign keys. They are not part of
+        // any playable pool, so only duplicate SERVABLE rows break rotation.
+        if (Number(q.quality_score) < QUALITY_FLOOR) continue;
         if (!perCatSeen.has(q.category)) perCatSeen.set(q.category, new Set());
         const seen = perCatSeen.get(q.category);
         if (seen.has(norm)) {
@@ -259,6 +277,9 @@ function todayCST() {
     else {
         fail(`${dupCount} duplicate question texts found within categories`);
         dupExamples.forEach(e => console.log(`    dup: ${e}`));
+    }
+    if (quarantinedDupCount > 0 && dupCount === 0) {
+        ok(`${quarantinedDupCount} legacy duplicates are quarantined below the serving floor`);
     }
 
     // ── Sample fact verification ──
@@ -371,12 +392,15 @@ function todayCST() {
     // ═══════════════════════════════════════════════════
     console.log('\n━━━ TEST 8: Diamond Engine Simulation ━━━');
 
-    const freeModes = ['daily', 'history', 'mtt', 'cash', 'icm', 'gto', 'rules', 'pro'];
-    const paidModes = ['arcade'];
+    const freeModes = ['daily', 'history', 'rules', 'pro', 'pvp', 'tournaments'];
+    const paidModes = [
+        'arcade', 'survival', 'mtt', 'cash', 'icm', 'gto',
+        'mixed', 'endless', 'time-attack',
+    ];
     ok(`Free modes (diamondCost: 0): ${freeModes.join(', ')}`);
     ok(`Paid modes (diamondCost: 10): ${paidModes.join(', ')}`);
 
-    const dePaths = ['src/lib/diamondEngine.js', 'src/lib/DiamondEngine.js'];
+    const dePaths = ['src/services/DiamondEngine.js'];
     const foundDe = dePaths.find(p => {
         try { require('fs').accessSync(path.join(process.cwd(), p)); return true; } catch { return false; }
     });
@@ -394,7 +418,7 @@ function todayCST() {
     const factChecks = [
         {
             label: 'WSOP first year',
-            find: q => /first (World Series of Poker|WSOP)/i.test(q.question || '') && /1970|year/i.test(q.question || ''),
+            find: q => /^In what year was the first World Series of Poker held\??$/i.test(q.question || ''),
             expect: a => /1970|Johnny Moss/i.test(a),
             expectLabel: '1970 / Johnny Moss',
         },
@@ -418,15 +442,15 @@ function todayCST() {
         },
         {
             label: 'Best possible hand',
-            find: q => /(strongest|best) (possible )?(five-card )?(hand|holding)/i.test(q.question || ''),
+            find: q => /^What is the strongest possible five-card hand in Texas Hold'em\??$/i.test(q.question || ''),
             expect: a => /royal flush/i.test(a),
             expectLabel: 'Royal Flush',
         },
         {
             label: 'Minimum defence frequency',
-            find: q => /minimum defen[cs]e frequency|MDF/i.test(q.question || ''),
-            expect: a => a.length > 0,
-            expectLabel: 'any non-empty answer',
+            find: q => /^What is the Minimum Defense Frequency \(MDF\) vs a half-pot bet\??$/i.test(q.question || ''),
+            expect: a => /67%|66(?:\.7)?%|two.?thirds/i.test(a),
+            expectLabel: 'approximately 67%',
         },
     ];
 

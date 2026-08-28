@@ -665,40 +665,8 @@ export default function TournamentsPage() {
             }
         }
 
-        // Record question history. Only the SEEN fact is recorded here: with the
-        // answer key server-side the page cannot know per-question correctness,
-        // and inventing `was_correct: false` would understate every player's
-        // accuracy AND poison trivia_questions.times_correct via the usage
-        // trigger. The seen record is what the 60-day no-repeat rule needs.
-        // (Cross-file: if per-question grades are wanted here, the submit route
-        // would have to return them — see the report.)
-        if (userId && questions && questions.length > 0) {
-            try {
-                const historyRecords = questions
-                    .filter(q => q.id)
-                    .map((q) => ({
-                        user_id: userId,
-                        question_id: q.id,
-                        seen_at: new Date().toISOString(),
-                        mode: 'tournament'
-                    }));
-
-                if (historyRecords.length > 0) {
-                    // ignoreDuplicates:true => ON CONFLICT DO NOTHING.
-                    // trivia_user_question_history has SELECT + INSERT RLS
-                    // policies but NO UPDATE policy, so ignoreDuplicates:false
-                    // (an UPDATE on conflict) failed the ENTIRE batch as soon as
-                    // one question had been seen before.
-                    const { error: err_trivia_user_question_history_xzckg } = await supabase.from('trivia_user_question_history').upsert(historyRecords, {
-                            onConflict: 'user_id,question_id',
-                            ignoreDuplicates: true
-                        });
-                    if (err_trivia_user_question_history_xzckg) console.warn('[Supabase] Silent mutation failed in trivia_user_question_history:', err_trivia_user_question_history_xzckg.message);
-                }
-            } catch (e) {
-                console.warn('[Tournaments] Error recording history:', e);
-            }
-        }
+        // The submit route has already persisted server-verified history,
+        // mastery, correctness and skip telemetry under an exact-once round key.
 
         // Refresh bracket data
         await loadBracketData(activeTournament, userId);
