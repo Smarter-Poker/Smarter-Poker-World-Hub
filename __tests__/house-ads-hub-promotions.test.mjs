@@ -243,3 +243,22 @@ test('a click is attention, and the route reports what followed it', () => {
     assert.match(route, /r\.clicks_followed_by == null \? null : Number\(r\.clicks_followed_by\)/);
     assert.match(route, /let conversions = null;/);
 });
+
+test('the route reports reach in people, and admits a partial list', () => {
+    /* IMPRESSIONS ARE NOT PEOPLE. The lobby logs one impression per advert per
+       page load, so a player reloading thirty times is thirty impressions and
+       one person. Production the day this shipped: spins_jackpot had 65
+       impressions on lobby_strip and five viewers. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /viewers: Number\(r\.viewers\) \|\| 0/);
+    assert.match(route, /clickers: Number\(r\.clickers\) \|\| 0/);
+
+    /* THE LAST TWO SILENT CEILINGS. The catalog read stops at 200 rows and
+       placements at 1,000. The limits are fine; presenting a partial list as
+       the whole one is not - the same shape as the 50,000-row stats ceiling
+       that under-counted silently for as long as it existed. */
+    assert.match(route, /\{ count: 'exact' \}/);
+    assert.match(route, /truncated: \{/);
+    // null when nothing was cut, a number only when the list really is short.
+    assert.match(route, /adsTotal != null && \(ads \|\| \[\]\)\.length < adsTotal \? adsTotal : null/);
+});

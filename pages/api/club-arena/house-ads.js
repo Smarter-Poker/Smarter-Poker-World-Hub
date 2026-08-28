@@ -108,9 +108,25 @@ export default async function handler(req, res) {
 
         // ── GET: the catalog, with performance ────────────────────────────
         if (req.method === 'GET') {
-            const { data: ads, error: adsErr } = await getSupabase()
+            /* THE LAST TWO SILENT CEILINGS (2026-08-28).
+             *
+             * The stats read used to carry .limit(50000) and report the total
+             * with complete confidence once it passed it; that one is gone,
+             * counted in Postgres. These two are the same shape, further away:
+             * a catalog of 201 adverts, or a 1001st placement, would simply
+             * stop being mentioned, and the panel would look complete.
+             *
+             * Asking PostgREST for an exact count costs one header and turns a
+             * silent truncation into a stated one. The limits stay - loading
+             * ten thousand rows into an editor helps nobody - but the page now
+             * says when it is showing you a subset instead of pretending it is
+             * everything. */
+            const { data: ads, error: adsErr, count: adsTotal } = await getSupabase()
                 .from('ad_catalog')
-                .select('id, ad_key, category, headline, body, glyph, target_url, cta_label, is_active, starts_at, ends_at, weight, created_at')
+                .select(
+                    'id, ad_key, category, headline, body, glyph, target_url, cta_label, is_active, starts_at, ends_at, weight, created_at',
+                    { count: 'exact' }
+                )
                 .order('weight', { ascending: false })
                 .order('created_at', { ascending: false })
                 .limit(200);
@@ -119,9 +135,11 @@ export default async function handler(req, res) {
                 return res.status(500).json({ success: false, error: 'Could not load the ad catalog' });
             }
 
-            const { data: placements, error: plErr } = await getSupabase()
+            const { data: placements, error: plErr, count: placementsTotal } = await getSupabase()
                 .from('ad_placement')
-                .select('id, ad_id, slot, club_id, audience, daily_cap, is_active')
+                .select('id, ad_id, slot, club_id, audience, daily_cap, is_active', {
+                    count: 'exact',
+                })
                 .limit(1000);
             if (plErr) console.warn('[house-ads] placement read failed:', plErr.message);
 
@@ -174,6 +192,16 @@ export default async function handler(req, res) {
                         impressions: Number(r.impressions) || 0,
                         clicks: Number(r.clicks) || 0,
                         dismisses: Number(r.dismisses) || 0,
+                        /* PEOPLE, NOT EVENTS (2026-08-28). The lobby logs one
+                           impression per advert per page load, so a player who
+                           reloads thirty times is thirty impressions and one
+                           person. Production today: spins_jackpot has 65
+                           impressions on lobby_strip and 5 viewers. Read as
+                           reach, 65 is a campaign doing well; 5 is the truth.
+                           Both are shown, because the ratio between them is
+                           frequency. */
+                        viewers: Number(r.viewers) || 0,
+                        clickers: Number(r.clickers) || 0,
                         lastEventAt: r.last_event_at || null,
                     };
                 }
@@ -253,6 +281,16 @@ export default async function handler(req, res) {
                 stats, // null means "could not count", NOT "zero"
                 statsBySlot, // { adId: { slot: { impressions, clicks, dismisses, lastEventAt } } }
                 suppression, // { adId: { slot: { dailyCap, servedUsers24h, cappedUsers24h } } }
+                /* null where the count could not be read; a number only when
+                   the list really is a subset. The panel says so rather than
+                   presenting a partial catalog as the whole one. */
+                truncated: {
+                    ads: adsTotal != null && (ads || []).length < adsTotal ? adsTotal : null,
+                    placements:
+                        placementsTotal != null && (placements || []).length < placementsTotal
+                            ? placementsTotal
+                            : null,
+                },
                 conversions, // { adId: { slot: { clicks, clicksFollowedBy, conversionRule } } }
             });
         }
