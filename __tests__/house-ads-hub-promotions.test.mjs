@@ -187,6 +187,48 @@ test('the admin rollup counts in Postgres, per slot, with no silent ceiling', ()
     assert.match(route, /let statsBySlot = null;/);
 });
 
+test('there is ONE Hub ad client, and the rail uses it', () => {
+    /* Two clients landed within three minutes of each other on 2026-08-28 -
+       this session's strip and PR #903's rail - and both wrote hub_promotions,
+       so the data could not tell the surfaces apart and the same logic was
+       maintained twice.
+
+       They are one client now. The strip's version won because it carries the
+       destination safety check and leavesTheNextRouter, which the rail needed
+       and did not have. */
+    assert.ok(
+        !existsSync(join(ROOT, 'src/services/adService.js')),
+        'the duplicate Hub ad client is back'
+    );
+    const rail = read('src/components/ads/HubPromoRail.jsx');
+    assert.match(rail, /from '\.\.\/\.\.\/lib\/hubAds'/);
+    assert.ok(!rail.includes('services/adService'), 'the rail still imports the deleted client');
+});
+
+test('the rail does not send a Club Arena destination through the Next router', () => {
+    /* Two of the six live Hub placements point at /hub/club-arena/, a static
+       SPA that next/link cannot reach: the trailing slash is stripped, nothing
+       matches, and pages/hub/[orbId].js renders "Unknown World". The strip hit
+       this in production; the rail carried the identical defect. */
+    const rail = read('src/components/ads/HubPromoRail.jsx');
+    assert.ok(!rail.includes("from 'next/link'"), 'next/link cannot reach the Club Arena SPA');
+    assert.match(rail, /leavesTheNextRouter\(ad\.targetUrl\)/);
+    assert.match(rail, /window\.location\.assign\(ad\.targetUrl\)/);
+
+    const click = rail.indexOf('logHubClick(ad.adId)');
+    const assign = rail.indexOf('window.location.assign(ad.targetUrl)');
+    const push = rail.indexOf('router.push(ad.targetUrl)');
+    assert.ok(click > -1 && click < assign, 'the click must be logged before navigating');
+    assert.ok(assign < push, 'the SPA case must be handled before falling through to router.push');
+});
+
+test('the rail card is still a link, even though it navigates by hand', () => {
+    // A screen reader, a middle click and "copy link address" all want an href.
+    const rail = read('src/components/ads/HubPromoRail.jsx');
+    assert.match(rail, /<a className="promo-card" href=\{href\}/);
+    assert.match(rail, /isSafeHubDestination\(ad\.targetUrl\) \? ad\.targetUrl : '\/hub'/);
+});
+
 test('a click is attention, and the route reports what followed it', () => {
     /* vip_upsell having clicks says nothing about whether anybody subscribed.
        fn_ad_conversions asks whether the same player did the thing the
