@@ -210,6 +210,42 @@ export default async function handler(req, res) {
                 }
             }
 
+            /* DID THE ADVERT WORK (2026-08-28).
+             *
+             * A click is attention, not a result. `vip_upsell` has clicks; did
+             * anybody buy VIP? Until now the panel showed the same two numbers
+             * for a campaign that converts a third of its clicks and one that
+             * converts none, and turning the wrong one off is an easy mistake
+             * to make from a rate alone.
+             *
+             * fn_ad_conversions asks whether the SAME PLAYER did the thing the
+             * campaign promotes within 24 hours of clicking. That is
+             * correlation inside a window and not proof of cause - a player
+             * who was going to subscribe anyway is counted - which is why the
+             * field is called clicksFollowedBy rather than conversions.
+             *
+             * `conversionRule` is null for a campaign with no defined outcome
+             * (bbj_running: reading a jackpot page is not a database event).
+             * Its count is null too, never 0: a confident zero would read as
+             * "converts nobody" when the truth is "success is undefined here". */
+            let conversions = null;
+            const { data: convRows, error: convErr } =
+                await getSupabase().rpc('fn_ad_conversions', { p_window_hours: 24 });
+            if (convErr) {
+                console.warn('[house-ads] conversion read failed:', convErr.message);
+            } else {
+                conversions = {};
+                for (const r of convRows || []) {
+                    const perAd = (conversions[r.ad_id] ||= {});
+                    perAd[r.slot] = {
+                        clicks: Number(r.clicks) || 0,
+                        clicksFollowedBy:
+                            r.clicks_followed_by == null ? null : Number(r.clicks_followed_by),
+                        conversionRule: r.conversion_rule || null,
+                    };
+                }
+            }
+
             return res.status(200).json({
                 success: true,
                 ads: ads || [],
@@ -217,6 +253,7 @@ export default async function handler(req, res) {
                 stats, // null means "could not count", NOT "zero"
                 statsBySlot, // { adId: { slot: { impressions, clicks, dismisses, lastEventAt } } }
                 suppression, // { adId: { slot: { dailyCap, servedUsers24h, cappedUsers24h } } }
+                conversions, // { adId: { slot: { clicks, clicksFollowedBy, conversionRule } } }
             });
         }
 
