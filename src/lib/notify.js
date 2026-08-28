@@ -232,6 +232,20 @@ export function notifyTableInvite(supabase, userId, inviterName, tableName, url)
     });
 }
 
+/**
+ * NOT THE LIVE PRODUCER, and worth knowing before you read a dashboard.
+ *
+ * Every seat offer in production comes from the Club Arena engine instead
+ * (server/src/services/supabase/seats.ts, notifyWaitlistSeatOpen), which
+ * writes `type: 'waitlist_seat_open'`. This helper has no callers and emits
+ * `seat_open`. Both resolve to the same canonical key through EVENT_ALIASES
+ * in src/lib/push/push-prefs.js, so a preference set against one governs the
+ * other -- but push_outbox.event will read `waitlist_seat_open` for real
+ * traffic, and any query that groups on the raw string needs that name.
+ *
+ * Kept rather than deleted because it is correct and a hub-side seat offer is
+ * plausible. If you call it, nothing else has to change.
+ */
 export function notifySeatOpen(supabase, userId, tableName, url) {
     return notify(supabase, {
         userId,

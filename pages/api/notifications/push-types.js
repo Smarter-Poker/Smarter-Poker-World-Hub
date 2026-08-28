@@ -76,8 +76,21 @@ export default async function handler(req, res) {
     }
 
     if (body.push_type_prefs && typeof body.push_type_prefs === 'object') {
+        // The single-key form above 400s on an unknown key. This form used to
+        // `continue` past one and still answer 200 {ok:true}, so a client that
+        // sent a typo, or a key from a newer build, was told its preference
+        // saved when nothing had been written. Silent success is the worst of
+        // the three possible answers: a 400 is fixable and a saved preference
+        // is correct, but "saved" over a no-op is a setting the user believes
+        // they hold and does not.
+        const unknown = Object.keys(body.push_type_prefs).filter((k) => !PUSH_TYPE_KEYS.has(k));
+        if (unknown.length) {
+            return res.status(400).json({
+                error: `Unknown push type${unknown.length > 1 ? 's' : ''}: ${unknown.join(', ')}`,
+                unknownKeys: unknown,
+            });
+        }
         for (const [k, v] of Object.entries(body.push_type_prefs)) {
-            if (!PUSH_TYPE_KEYS.has(k)) continue;
             typeUpdates.push([k, v !== false]);
         }
     }

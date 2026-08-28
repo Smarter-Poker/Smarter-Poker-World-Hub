@@ -22,7 +22,11 @@ import {
     eventToTypeKey, pushTypeAllowed,
     legacyPrefAllowed, LEGACY_PREF_COLUMNS,
     isWithinQuietHours, isUrgentType, isDiagnosticEvent,
-} from './push-prefs';
+} from './push-prefs.js';
+// Extension is REQUIRED, not stylistic. webpack resolves either form, but raw
+// `node --test` does not, so without it this module cannot be imported by a
+// test at all -- which is why the gate had no behavioural coverage while the
+// commonest event on the platform was falling straight through it.
 
 /**
  * Load both preference tables for a set of users in two queries total.
