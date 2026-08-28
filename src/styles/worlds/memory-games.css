@@ -2519,6 +2519,11 @@ body.world-preflop-charts .preflop-lab-grid-scroll {
     overscroll-behavior-x: contain;
 }
 
+body.world-preflop-charts .preflop-lab-grid-scroll:focus-visible {
+    outline: 2px solid #f4c44e;
+    outline-offset: 2px;
+}
+
 body.world-preflop-charts .preflop-lab-grid {
     display: grid;
     grid-template-columns: 30px repeat(13, minmax(44px, 1fr));
@@ -2864,6 +2869,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
         var(--ps-bg);
     background-size: auto, 24px 24px, 24px 24px, auto;
     color: var(--ps-text);
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .preflop-subpage-main {
@@ -2873,7 +2879,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 }
 
 .preflop-subpage-utility {
-    min-height: 34px;
+    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2885,6 +2891,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 }
 
 .preflop-subpage-back {
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -2918,7 +2925,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-subpage-nav a,
 .preflop-mode-rail button {
     min-width: max-content;
-    min-height: 42px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3016,6 +3023,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 }
 
 .preflop-mode-rail button {
+    min-width: 44px;
     border-color: rgba(107, 210, 255, 0.1);
     background: rgba(255, 255, 255, 0.018);
 }
@@ -3048,7 +3056,8 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 
 .preflop-panel-heading button,
 .preflop-subpage-error button {
-    min-height: 38px;
+    min-width: 44px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3106,7 +3115,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-user-rank strong,
 .preflop-daily-signal strong { color: #f1e4b5; font-size: 14px; }
 .preflop-daily-signal span { color: #8da3b1; font-size: 11px; }
-.preflop-daily-signal > a { flex: 1 0 100%; min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(244, 196, 78, 0.35); background: rgba(121, 83, 12, 0.2); color: #f1d57e; font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif; text-decoration: none; text-transform: uppercase; }
+.preflop-daily-signal > a { flex: 1 0 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(244, 196, 78, 0.35); background: rgba(121, 83, 12, 0.2); color: #f1d57e; font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif; text-decoration: none; text-transform: uppercase; }
 
 .preflop-podium {
     display: grid;
@@ -3216,7 +3225,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-award-progress > span strong { color: #c6b987; }
 
 .preflop-award-grid { display: grid; gap: 8px; }
-.preflop-award-grid article { min-height: 200px; display: grid; align-content: start; grid-template-columns: auto 1fr; gap: 8px 10px; padding: 15px; border: 1px solid rgba(107, 210, 255, 0.14); background: rgba(5, 15, 24, 0.92); opacity: 0.6; }
+.preflop-award-grid article { min-height: 148px; display: grid; align-content: start; grid-template-columns: auto 1fr; gap: 8px 10px; padding: 15px; border: 1px solid rgba(107, 210, 255, 0.14); background: rgba(5, 15, 24, 0.92); opacity: 0.6; }
 .preflop-award-grid article[data-unlocked] { border-color: rgba(244, 196, 78, 0.38); background: linear-gradient(145deg, rgba(54, 42, 12, 0.42), rgba(5, 15, 24, 0.96)); opacity: 1; }
 .preflop-award-code { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; }
 .preflop-award-code span { color: var(--ps-gold); font: 800 18px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
@@ -3252,6 +3261,26 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-subpage-cta-row { display: flex; justify-content: center; }
 
 .preflop-subpage :is(a, button):focus-visible { outline: 2px solid var(--ps-gold); outline-offset: 2px; }
+
+body.world-preflop-charts .preflop-review-panel :is(button, [role='tabpanel']):focus-visible {
+    outline: 2px solid #f4c44e;
+    outline-offset: 2px;
+}
+
+/* Mobile-first touch contract for the main command surface and every Range Lab sub-function. */
+body.world-preflop-charts :is(
+    .preflop-quick-button,
+    .preflop-tool-button,
+    .scenario-filter-close,
+    .preflop-game-notice button,
+    .preflop-daily-card > button,
+    .preflop-lab-shape-tools button,
+    .preflop-lab-command-actions button,
+    .preflop-lab-edit-tools button,
+    .preflop-lab-result-actions button
+) {
+    min-height: 44px;
+}
 
 @media (min-width: 720px) {
     .preflop-subpage-main { padding: calc(94px + env(safe-area-inset-top, 0px)) 24px 50px; }

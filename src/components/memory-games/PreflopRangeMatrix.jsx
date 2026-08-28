@@ -40,25 +40,28 @@ function PreflopRangeMatrix({
     <div
       className="preflop-lab-grid-scroll"
       role="region"
+      tabIndex={0}
       aria-label="Scrollable 13 by 13 starting-hand matrix. Use arrow keys to move between hands."
     >
       <div
         className="preflop-lab-grid"
         role="grid"
         aria-label="Starting-hand range"
-        aria-rowcount={ranks.length}
-        aria-colcount={ranks.length}
+        aria-rowcount={ranks.length + 1}
+        aria-colcount={ranks.length + 1}
       >
-        <span className="preflop-lab-axis-corner" aria-hidden="true">RANK</span>
-        {ranks.map((rank) => (
-          <span key={`column-${rank}`} className="preflop-lab-axis is-column" role="columnheader">
-            {rank}
-          </span>
-        ))}
+        <div className="preflop-lab-grid-row is-header" role="row" aria-rowindex={1}>
+          <span className="preflop-lab-axis-corner" role="columnheader" aria-colindex={1}>RANK</span>
+          {ranks.map((rank, col) => (
+            <span key={`column-${rank}`} className="preflop-lab-axis is-column" role="columnheader" aria-colindex={col + 2}>
+              {rank}
+            </span>
+          ))}
+        </div>
 
         {ranks.map((rank, row) => (
-          <div className="preflop-lab-grid-row" role="row" key={`row-${rank}`}>
-            <span className="preflop-lab-axis is-row" role="rowheader">{rank}</span>
+          <div className="preflop-lab-grid-row" role="row" aria-rowindex={row + 2} key={`row-${rank}`}>
+            <span className="preflop-lab-axis is-row" role="rowheader" aria-colindex={1}>{rank}</span>
             {ranks.map((_, col) => {
               const hand = getHandName(row, col);
               const userAction = userGrid[hand];
@@ -92,8 +95,8 @@ function PreflopRangeMatrix({
                     '--cell-fill': actionStyle?.bg || 'rgba(20, 29, 43, 0.82)',
                     '--cell-stroke': actionStyle?.border || 'rgba(129, 167, 194, 0.18)',
                   }}
-                  aria-rowindex={row + 1}
-                  aria-colindex={col + 1}
+                  aria-rowindex={row + 2}
+                  aria-colindex={col + 2}
                   aria-label={`${hand}: ${userAction ? actionColors[userAction]?.label : 'not selected'}${feedbackState !== 'idle' ? `, ${feedbackState}` : ''}`}
                 >
                   {hand}
