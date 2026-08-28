@@ -57,10 +57,11 @@ export default async function handler(req, res) {
     const feedUrl = process.env.GPI_LICENSED_FEED_URL;
     const feedToken = process.env.GPI_LICENSED_FEED_TOKEN;
     if (!feedUrl || !feedToken) {
-        return res.status(503).json({
-            success: false,
+        return res.status(200).json({
+            success: true,
+            skipped: true,
             configured: false,
-            error: 'Licensed GPI feed is not configured. No rankings were changed.',
+            message: 'Licensed GPI feed is not configured. Existing rankings were preserved.',
         });
     }
 
