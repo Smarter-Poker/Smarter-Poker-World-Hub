@@ -297,16 +297,16 @@ export default function TrainingProgress() {
         noindex={true}
       />
 
-      <div style={styles.container}>
+      <div className="sp-training-journey sp-training-journey--progress" style={styles.container}>
         <UniversalHeader pageDepth={2} />
 
-        <div style={styles.content}>
+        <div className="sp-journey-main" style={styles.content}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); loadProgress(); }} />
 
-          <h1 style={styles.title}> Your Training Progress</h1>
+          <h1 className="sp-journey-title" style={styles.title}>Your Training Progress</h1>
 
           {/* Overall Stats */}
-          <div style={styles.statsGrid}>
+          <div className="sp-journey-stat-grid" style={styles.statsGrid}>
             {/* TRAIN-PROGRESS-A11Y-1: emoji icon prop replaced with SVG iconKind */}
             <StatCard
               iconKind="questions"
@@ -336,7 +336,7 @@ export default function TrainingProgress() {
           </div>
 
           {/* Category Breakdown */}
-          <section style={styles.section}>
+          <section className="sp-journey-section" style={styles.section}>
             <h2 style={{ ...styles.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               {/* TRAIN-PROGRESS-A11Y-1: SVG icon (was □) */}
               <StatIcon kind="category" size={20} color="currentColor" />
@@ -360,7 +360,7 @@ export default function TrainingProgress() {
 
           {/* Weak Areas */}
           {stats.weakAreas.length > 0 && (
-            <section style={styles.section}>
+            <section className="sp-journey-section" style={styles.section}>
               <h2 style={{ ...styles.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               {/* TRAIN-PROGRESS-A11Y-1: SVG icon */}
               <StatIcon kind="improve" size={20} color="currentColor" />
@@ -375,7 +375,7 @@ export default function TrainingProgress() {
           )}
 
           {/* Recent Activity */}
-          <section style={styles.section}>
+          <section className="sp-journey-section" style={styles.section}>
             <h2 style={{ ...styles.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               {/* TRAIN-PROGRESS-A11Y-1: SVG icon (was ·) */}
               <StatIcon kind="activity" size={20} color="currentColor" />
@@ -411,7 +411,7 @@ export default function TrainingProgress() {
 // TRAIN-PROGRESS-A11Y-1: iconKind takes precedence; legacy icon accepted for back-compat.
 function StatCard({ iconKind, icon, label, value, color = '#00E0FF' }) {
   return (
-    <motion.div style={styles.statCard} whileHover={{ scale: 1.02 }} transition={{ duration: MOTION.standard }}>
+    <motion.div className="sp-journey-stat-card" style={styles.statCard} whileHover={{ scale: 1.02 }} transition={{ duration: MOTION.standard }}>
       <div style={{ fontSize: '32px', marginBottom: '8px' }}>{icon}</div>
       <div style={{ ...styles.statValue, color }}>{value}</div>
       <div style={styles.statLabel}>{label}</div>
@@ -421,7 +421,7 @@ function StatCard({ iconKind, icon, label, value, color = '#00E0FF' }) {
 
 function CategoryCard({ category, total, correct, accuracy }) {
   return (
-    <div style={styles.categoryCard}>
+    <div className="sp-journey-data-card" style={styles.categoryCard}>
       <div style={styles.categoryHeader}>
         <span style={styles.categoryName}>{category}</span>
         <span style={{ ...styles.categoryAccuracy, color: accuracy >= 70 ? '#31A24C' : '#FFB800' }}>
@@ -446,7 +446,7 @@ function CategoryCard({ category, total, correct, accuracy }) {
 
 function WeakAreaCard({ category, accuracy, total }) {
   return (
-    <div style={styles.weakAreaCard}>
+    <div className="sp-journey-data-card sp-journey-data-card--warning" style={styles.weakAreaCard}>
       <div style={styles.weakAreaHeader}>
         <span>{category}</span>
         <span style={styles.weakAreaAccuracy}>{accuracy}%</span>
@@ -458,7 +458,7 @@ function WeakAreaCard({ category, accuracy, total }) {
 
 function ActivityCard({ date, category, questions, correct, accuracy }) {
   return (
-    <div style={styles.activityCard}>
+    <div className="sp-journey-data-card" style={styles.activityCard}>
       <div style={styles.activityDate}>
         {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
       </div>

@@ -453,6 +453,7 @@ export default function SkillTreePage() {
         <title>Skill Tree | Smarter.Poker GTO Training</title>
       </Head>
       <div
+        className="sp-training-journey sp-training-journey--skill-tree"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -462,6 +463,7 @@ export default function SkillTreePage() {
       >
         {/* Header */}
         <div
+          className="sp-journey-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -527,10 +529,11 @@ export default function SkillTreePage() {
           </div>
         </div>
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchData(); }} />
           {/* Progress Overview */}
           <motion.div
+            className="sp-journey-spotlight"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
@@ -559,7 +562,7 @@ export default function SkillTreePage() {
                   letterSpacing: 1,
                 }}
               >
-                NODES MASTERED
+                Nodes Mastered
               </div>
               <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                 {masteredCount}/{totalNodes}

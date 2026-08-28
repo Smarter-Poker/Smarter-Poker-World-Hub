@@ -460,6 +460,7 @@ export default function MilestonesPage() {
         <title>Milestones | Smarter.Poker GTO Training</title>
       </Head>
       <div
+        className="sp-training-journey sp-training-journey--milestones"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -468,6 +469,7 @@ export default function MilestonesPage() {
         }}
       >
         <div
+          className="sp-journey-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -519,7 +521,7 @@ export default function MilestonesPage() {
           </div>
         </div>
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {loading ? (
             <div style={{ padding: '20px 0' }} role="status" aria-label="Loading milestones">
               <SkeletonLoader variant="card" count={3} />
@@ -529,6 +531,7 @@ export default function MilestonesPage() {
               {/* Next Milestone Spotlight */}
               {nextMilestone && (
                 <motion.div
+                  className="sp-journey-spotlight"
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   style={{
@@ -566,7 +569,7 @@ export default function MilestonesPage() {
                       marginBottom: 12,
                     }}
                   >
-                    UP NEXT
+                    Up Next
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                     <div
@@ -682,7 +685,7 @@ export default function MilestonesPage() {
                       marginBottom: 10,
                     }}
                   >
-                    EARNED
+                    Earned
                   </div>
                   {earned.map((m, i) => (
                     <motion.div

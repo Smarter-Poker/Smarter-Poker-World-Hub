@@ -343,10 +343,10 @@ export default function StreaksPage() {
         noindex={true}
       />
 
-      <div style={styles.container}>
+      <div className="sp-training-journey sp-training-journey--streaks" style={styles.container}>
         <UniversalHeader pageDepth={2} />
 
-        <div style={styles.content}>
+        <div className="sp-journey-main" style={styles.content}>
           <ErrorBanner
             message={swrError ? 'Unable to load streak data.' : null}
             onRetry={() => refreshStreak()}
@@ -404,6 +404,7 @@ export default function StreaksPage() {
 
           {/* Hero Section */}
           <motion.div
+            className="sp-journey-hero-meter"
             style={styles.heroSection}
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
