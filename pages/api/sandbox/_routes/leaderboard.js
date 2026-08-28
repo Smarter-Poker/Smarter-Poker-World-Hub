@@ -9,6 +9,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { availabilityFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -89,7 +90,11 @@ export default async function handler(req, res) {
 
           const { rows, missing } = await fetchWeekRows(supabase, weekStart);
           if (missing) {
-              return res.status(200).json({ success: true, leaderboard: [], userRank: null, weekStart });
+              return res.status(503).json(availabilityFailure(
+                  'The weekly leaderboard is temporarily unavailable.',
+                  undefined,
+                  { leaderboard: [], userRank: null, weekStart },
+              ));
           }
 
           // Aggregate per user

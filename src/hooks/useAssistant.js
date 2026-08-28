@@ -870,16 +870,19 @@ export function useStudyDeck(limit = 20, authState) {
 export function useQuizLeaderboard(limit = 10, authState) {
   const [entries, setEntries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const hasExplicitAuth = authState !== undefined;
   const authReady = !hasExplicitAuth || authState?.ready !== false;
   const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
 
   useEffect(() => {
     let cancelled = false;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
 
     async function fetchLeaderboard() {
       try {
         setIsLoading(true);
+        setError(null);
         if (!authReady) return;
         // Aggregated server-side (service-role) so the browser never reads
         // other users' quiz rows — and so the board isn't just the viewer.
@@ -891,28 +894,37 @@ export function useQuizLeaderboard(limit = 10, authState) {
 
         const response = await fetch(`/api/sandbox/quiz-leaderboard?limit=${encodeURIComponent(limit)}`, {
           headers: { 'Authorization': `Bearer ${token}` },
+          ...(controller ? { signal: controller.signal } : {}),
         });
-        const data = await response.json();
+        const data = await response.json().catch(() => null);
 
-        if (!response.ok || data.success === false) {
-          if (!cancelled) setEntries([]);
+        if (!response.ok || data?.success === false) {
+          if (!cancelled) {
+            setEntries([]);
+            setError(data?.error || `Leaderboard unavailable (${response.status})`);
+          }
           return;
         }
 
-        if (!cancelled) setEntries(Array.isArray(data.entries) ? data.entries : []);
+        if (!cancelled) setEntries(Array.isArray(data?.entries) ? data.entries : []);
       } catch (err) {
+        if (err?.name === 'AbortError' || cancelled) return;
         console.warn('[useQuizLeaderboard] Error:', err);
-        if (!cancelled) setEntries([]);
+        setEntries([]);
+        setError('Leaderboard unavailable');
       } finally {
         if (!cancelled && authReady) setIsLoading(false);
       }
     }
 
     fetchLeaderboard();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      controller?.abort();
+    };
   }, [limit, authReady, authUserId]);
 
-  return { entries, isLoading };
+  return { entries, isLoading, error };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -923,8 +935,14 @@ export function useLeakDetection() {
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionResult, setDetectionResult] = useState(null);
   const [error, setError] = useState(null);
+  const requestIdRef = useRef(0);
+  const abortRef = useRef(null);
 
   const runDetection = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    abortRef.current = controller;
+    const requestId = ++requestIdRef.current;
     try {
       setIsDetecting(true);
       setError(null);
@@ -942,10 +960,17 @@ export function useLeakDetection() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
+        ...(controller ? { signal: controller.signal } : {}),
       });
 
       const data = await response.json();
+      if (requestId !== requestIdRef.current) return { success: false, superseded: true };
+
+      if (!response.ok) {
+        setError(data?.error || `Detection failed (${response.status})`);
+        return { success: false, error: data?.error || `HTTP ${response.status}` };
+      }
 
       if (data.success) {
         setDetectionResult({
@@ -964,12 +989,20 @@ export function useLeakDetection() {
 
       return data;
     } catch (err) {
+      if (err?.name === 'AbortError' || requestId !== requestIdRef.current) {
+        return { success: false, superseded: true };
+      }
       console.warn('Leak detection error:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
-      setIsDetecting(false);
+      if (requestId === requestIdRef.current) setIsDetecting(false);
     }
+  }, []);
+
+  useEffect(() => () => {
+    requestIdRef.current += 1;
+    try { abortRef.current?.abort(); } catch (e) { /* already settled */ }
   }, []);
 
   return { runDetection, isDetecting, detectionResult, error };
@@ -983,9 +1016,11 @@ export function useLeakHandExamples(leakId) {
   const [examples, setExamples] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const requestIdRef = useRef(0);
 
   const fetchExamples = useCallback(async () => {
     if (!leakId) return;
+    const requestId = ++requestIdRef.current;
 
     try {
       setIsLoading(true);
@@ -1009,6 +1044,7 @@ export function useLeakHandExamples(leakId) {
         .limit(10);
 
       if (fetchError) {
+        if (requestId !== requestIdRef.current) return;
         console.warn('Error fetching leak examples:', fetchError);
         setError(fetchError.message);
         return;
@@ -1022,12 +1058,13 @@ export function useLeakHandExamples(leakId) {
         handId: ex.hand_history_id,
       }));
 
-      setExamples(formatted);
+      if (requestId === requestIdRef.current) setExamples(formatted);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       console.warn('Fetch examples error:', err);
       setError(err.message);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
   }, [leakId]);
 
@@ -1035,6 +1072,7 @@ export function useLeakHandExamples(leakId) {
     if (leakId) {
       fetchExamples();
     }
+    return () => { requestIdRef.current += 1; };
   }, [leakId, fetchExamples]);
 
   return { examples, isLoading, error, refetch: fetchExamples };

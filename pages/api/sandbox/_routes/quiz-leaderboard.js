@@ -14,6 +14,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { availabilityFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -49,7 +50,6 @@ async function fetchWeekRows(supabase, weekStart) {
             .range(from, from + PAGE_SIZE - 1);
 
         if (error) {
-            // Table not provisioned yet — behave like "no data" rather than 500.
             if (error.code === '42P01') return { rows: [], missing: true };
             throw error;
         }
@@ -112,7 +112,11 @@ export default async function handler(req, res) {
 
           const { rows, missing } = await fetchWeekRows(supabase, weekStart);
           if (missing) {
-              return res.status(200).json({ success: true, entries: [], weekStart });
+              return res.status(503).json(availabilityFailure(
+                  'The weekly quiz leaderboard is temporarily unavailable.',
+                  undefined,
+                  { entries: [], weekStart },
+              ));
           }
 
           // Aggregate per user, walking rows in chronological order so the best

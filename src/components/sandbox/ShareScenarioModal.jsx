@@ -23,6 +23,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Link2, Copy, Check, Share2, QrCode, Info, Trash2, ShieldAlert } from 'lucide-react';
 import { getAccessToken } from '../../lib/authUtils';
+import { readPersistenceResponse, persistenceMessage } from '../../lib/personal-assistant/persistenceContract';
 import { T, F, S, R, btn } from './paTokens';
 import { BottomSheet, PAStyles, ErrorState, Skeleton } from './paKit';
 
@@ -80,13 +81,14 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                 headers,
                 body: JSON.stringify({ state_json: sandboxState }),
             });
-            const json = await res.json().catch(() => null);
+            const result = await readPersistenceResponse(res);
+            const json = result.json;
 
             if (res.status === 401) {
                 setError('Sign in to create a share link.');
                 return;
             }
-            if (res.ok && json?.success && json.shareId) {
+            if (result.success && result.persisted && json?.shareId) {
                 const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker';
                 setShareUrl(`${origin}/sandbox/${json.shareId}`);
                 setShareId(json.shareId);
@@ -95,7 +97,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                 setRevocable(json.revocable === true);
                 return;
             }
-            setError('Could not create the link. Please try again.');
+            setError(persistenceMessage(result, 'Could not create the link. Please try again.'));
         } catch (err) {
             console.warn('[ShareScenarioModal] create error:', err?.message || err);
             setError('Could not create the link — check your connection.');
@@ -136,10 +138,11 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                 headers: { Authorization: `Bearer ${token}` },
                 ...(ctrl ? { signal: ctrl.signal } : null),
             });
-            const json = await res.json().catch(() => null);
+            const result = await readPersistenceResponse(res);
+            const json = result.json;
             if (!mounted.current) return;
 
-            if (res.ok && json?.success) {
+            if (result.success && result.persisted) {
                 setRevokeResult('revoked');
                 setRevokeStep('idle');
                 setQrUrl(null);
@@ -170,7 +173,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                 return;
             }
             setRevokeStep('confirm');
-            setRevokeError({ body: 'The link could not be revoked. It is still live — please try again.', retry: true });
+            setRevokeError({ body: persistenceMessage(result, 'The link could not be revoked. It is still live — please try again.'), retry: true });
         } catch (e) {
             if (!mounted.current) return;
             console.warn('[ShareScenarioModal] revoke error:', e?.message || e);

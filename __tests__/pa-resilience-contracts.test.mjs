@@ -104,6 +104,8 @@ test('every Personal Assistant destination owns a canonical page title', () => {
 test('sandbox inline CSS cannot hydrate as escaped raw style text', () => {
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
   assert.doesNotMatch(sandbox, /<style>\{`[\s\S]*@import url\(/);
+  assert.match(sandbox, /<style dangerouslySetInnerHTML=\{\{ __html: `/);
+  assert.match(sandbox, /\.sandbox-workspace > \*/);
 });
 
 test('secondary surfaces share the Smarter.Poker command-deck visual system', () => {
@@ -128,7 +130,8 @@ test('secondary charts and desktop workspaces own responsive layouts', () => {
 
   assert.match(sandbox, /className="sandbox-workspace"/);
   assert.match(sandbox, /className="sandbox-command-bar"/);
-  assert.match(sandbox, /\.sandbox-table-wrap \{ width: min\(100%, 720px\)/);
+  assert.match(sandbox, /grid-template-columns: 400px minmax\(0, 1fr\)/);
+  assert.match(sandbox, /\.sandbox-table-wrap \{[\s\S]*position: sticky/);
   assert.match(leaks, /className="leak-insights-grid"/);
   assert.match(leaks, /className="leak-list-grid"/);
   assert.match(leaks, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);

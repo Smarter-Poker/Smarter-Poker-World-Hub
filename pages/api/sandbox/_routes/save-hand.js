@@ -6,6 +6,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
 let _supabase = null;
 function getSupabase() {
@@ -56,16 +57,18 @@ export default async function handler(req, res) {
                   .eq('user_id', userId);
 
               if (delError) {
-                  // Table not provisioned yet — nothing to delete, so report
-                  // success rather than surfacing a server error to the user.
                   if (delError.code === '42P01') {
                       console.warn('[save-hand] sandbox_saved_hands table missing — delete is a no-op');
-                      return res.status(200).json({ success: true, deleted: 0 });
+                      return res.status(503).json(persistenceFailure(
+                          'Study folders are temporarily unavailable. Nothing was deleted.',
+                          'storage_unavailable',
+                          { deleted: 0 },
+                      ));
                   }
                   console.warn('[save-hand] Delete error:', delError.message);
                   return res.status(500).json({ success: false, error: 'Internal server error' });
               }
-              return res.status(200).json({ success: true, deleted: 1, id: String(id) });
+              return res.status(200).json(persistedResult({ id: String(id) }, { deleted: 1, id: String(id) }));
           }
 
           const { folder_name, tags, state_json } = req.body || {};
@@ -102,7 +105,7 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
-          return res.status(200).json({ success: true, hand: data });
+          return res.status(200).json(persistedResult(data, { hand: data }));
       } catch (err) {
           console.warn('[save-hand] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });

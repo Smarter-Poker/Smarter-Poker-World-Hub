@@ -40,7 +40,7 @@ import {
 } from '../../../src/components/sandbox/paTokens';
 import {
   PAStyles, BottomSheet, Skeleton, EmptyState, ErrorState, Segmented,
-  safeStorage, usePrefersReducedMotion,
+  safeStorage, usePrefersReducedMotion, useAbortableFetch, isAbortError,
 } from '../../../src/components/sandbox/paKit';
 import {
   dueQueueAll, reviewStats, leakToDrill, migrateRecord, resolutionProgress,
@@ -1462,8 +1462,18 @@ export default function LeakFinderPage() {
   const [coachAccuracy, setCoachAccuracy] = useState(null);
   const [coachLoading, setCoachLoading] = useState(true);
   const [coachError, setCoachError] = useState(null);
+  const requestCoachAccuracy = useAbortableFetch();
+  const requestReviewSchedule = useAbortableFetch();
+  const coachRequestIdRef = useRef(0);
+  const reviewRequestIdRef = useRef(0);
+
+  useEffect(() => () => {
+    coachRequestIdRef.current += 1;
+    reviewRequestIdRef.current += 1;
+  }, []);
 
   const fetchCoachAccuracy = useCallback(async () => {
+    const requestId = ++coachRequestIdRef.current;
     setCoachLoading(true);
     setCoachError(null);
     try {
@@ -1472,27 +1482,30 @@ export default function LeakFinderPage() {
         setCoachAccuracy(null);
         return;
       }
-      const res = await fetch('/api/sandbox/coach-accuracy', {
+      const res = await requestCoachAccuracy('/api/sandbox/coach-accuracy', {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+      if (requestId !== coachRequestIdRef.current) return;
       const ct = res.headers.get('content-type') || '';
       if (!res.ok || !ct.includes('application/json')) {
         setCoachError(`Coach stats unavailable (HTTP ${res.status})`);
         return;
       }
       const json = await res.json();
+      if (requestId !== coachRequestIdRef.current) return;
       if (json?.success) {
         setCoachAccuracy({ ...(json.accuracy || {}), topLeaks: Array.isArray(json.topLeaks) ? json.topLeaks : [] });
       } else {
         setCoachError(json?.error || 'Coach stats unavailable');
       }
     } catch (e) {
+      if (isAbortError(e) || requestId !== coachRequestIdRef.current) return;
       console.warn('[LeakFinder] coach accuracy failed:', e?.message || e);
       setCoachError('Coach stats unavailable');
     } finally {
-      setCoachLoading(false);
+      if (requestId === coachRequestIdRef.current) setCoachLoading(false);
     }
-  }, []);
+  }, [requestCoachAccuracy]);
 
   useEffect(() => {
     fetchCoachAccuracy();
@@ -1561,6 +1574,7 @@ export default function LeakFinderPage() {
       setDetectionSummary({ type: 'error', text: friendlyDetectionError(e?.message || e) });
       return;
     }
+    if (result?.superseded) return;
     if (result?.success) {
       if (result.message) {
         setDetectionSummary({ type: 'info', text: result.message });
@@ -1799,6 +1813,7 @@ export default function LeakFinderPage() {
   useEffect(() => { refreshLocalReviews(); }, [refreshLocalReviews]);
 
   const fetchReviewSchedule = useCallback(async () => {
+    const requestId = ++reviewRequestIdRef.current;
     setReviewLoading(true);
     setReviewError(null);
     try {
@@ -1808,28 +1823,36 @@ export default function LeakFinderPage() {
         setReviewServerRecords([]);
         return;
       }
-      const res = await fetch('/api/assistant/leaks/review', {
+      const res = await requestReviewSchedule('/api/assistant/leaks/review', {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+      if (requestId !== reviewRequestIdRef.current) return;
       const ct = res.headers.get('content-type') || '';
       if (!res.ok || !ct.includes('application/json')) {
         setReviewError(`Review schedule unavailable (HTTP ${res.status})`);
         return;
       }
       const json = await res.json();
+      if (requestId !== reviewRequestIdRef.current) return;
       if (json?.success) {
         setReviewServerRecords(Array.isArray(json.records) ? json.records : []);
+        if (json.persisted === false && json.reason !== 'guest') {
+          setReviewError('Account sync is unavailable; showing the schedule saved on this device.');
+        }
       } else {
         setReviewError(json?.error || 'Review schedule unavailable');
       }
     } catch (e) {
+      if (isAbortError(e) || requestId !== reviewRequestIdRef.current) return;
       console.warn('[LeakFinder] review schedule failed:', e?.message || e);
       setReviewError('Review schedule unavailable');
     } finally {
-      setReviewLoading(false);
-      setReviewLoaded(true);
+      if (requestId === reviewRequestIdRef.current) {
+        setReviewLoading(false);
+        setReviewLoaded(true);
+      }
     }
-  }, []);
+  }, [requestReviewSchedule]);
 
   useEffect(() => { fetchReviewSchedule(); }, [fetchReviewSchedule, userId]);
 

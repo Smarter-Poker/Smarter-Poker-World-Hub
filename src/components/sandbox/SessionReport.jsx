@@ -17,6 +17,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import toast from 'react-hot-toast';
 import { ClipboardList, Download, Share2, Send } from 'lucide-react';
 import { getAccessToken } from '../../lib/authUtils';
+import { readPersistenceResponse, persistenceMessage } from '../../lib/personal-assistant/persistenceContract';
 import { T, F, S, R, btn, pill, numeric } from './paTokens';
 import { BottomSheet, PAStyles, EmptyState, Segmented } from './paKit';
 import { createHiDPICanvas, exportCanvas, canvasPreviewUrl, wrapText, roundRect } from '../../lib/sandbox/exportCanvas';
@@ -291,8 +292,8 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                     content: `Sandbox session: ${stats.totalHands} hands${stats.scoredHands > 0 ? ` at ${stats.accuracy}% GTO accuracy` : ''}${stats.evCount > 0 ? ` across ${stats.evCount} scored spots` : ''}.`,
                 }),
             });
-            const json = await res.json().catch(() => null);
-            if (res.ok && json?.success) {
+            const result = await readPersistenceResponse(res);
+            if (result.success && result.persisted) {
                 setShareSuccess(true);
                 if (successTimer.current) clearTimeout(successTimer.current);
                 successTimer.current = setTimeout(() => setShareSuccess(false), 5000);
@@ -301,8 +302,8 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
             } else if (res.status === 401) {
                 toast.error('Sign in to post to the hub');
             } else {
-                console.warn('[SessionReport] Post failed:', json?.error || res.status);
-                toast.error('Could not post the report');
+                console.warn('[SessionReport] Post failed:', result.error || result.reason || res.status);
+                toast.error(persistenceMessage(result, 'Could not post the report'));
             }
         } catch (e) {
             console.warn('[SessionReport] Post to Hub error:', e);
