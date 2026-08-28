@@ -553,6 +553,7 @@ export default function PerformanceHeatmapPage() {
         <title>Performance Heatmap | Smarter.Poker GTO Training</title>
       </Head>
       <div
+        className="sp-training-tool sp-training-tool--analysis sp-analysis-performance"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -562,6 +563,7 @@ export default function PerformanceHeatmapPage() {
       >
         {/* Header */}
         <div
+          className="sp-training-analysis-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -596,12 +598,13 @@ export default function PerformanceHeatmapPage() {
           </div>
         </div>
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className="sp-training-analysis-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {/* Time Filter */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
             {TIME_FILTERS.map((f) => (
               <motion.button
                 key={f.id}
+                aria-pressed={timeFilter === f.id}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setTimeFilter(f.id)}
                 style={{

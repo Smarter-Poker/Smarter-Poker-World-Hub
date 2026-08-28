@@ -1911,3 +1911,232 @@ body.world-training .sp-training-tool--tournaments button[aria-pressed='true'] {
         border-top: 1px solid rgba(139, 234, 255, .34);
     }
 }
+
+/* =========================================================================
+   PHASE 8 — analysis suite / solver instrument panel
+   Shared by calculators, analyzers, heatmaps and comparison tools. The
+   diagnostic spectrum rail is functional wayfinding: these are measurement
+   surfaces, distinct from the campaign and gameplay screens.
+   ========================================================================= */
+body.world-training .sp-training-tool--analysis {
+    --sp-analysis-line: rgba(139, 234, 255, 0.42);
+    --sp-analysis-panel: rgba(4, 16, 25, 0.94);
+    min-height: 100dvh !important;
+    background:
+        radial-gradient(circle at 82% 8%, rgba(35, 215, 255, 0.13), transparent 30%),
+        linear-gradient(90deg, rgba(139, 234, 255, 0.035) 1px, transparent 1px) 0 0 / 46px 46px,
+        linear-gradient(rgba(139, 234, 255, 0.025) 1px, transparent 1px) 0 0 / 46px 46px,
+        linear-gradient(180deg, #071520 0%, #020a11 48%, #01060a 100%) !important;
+}
+
+body.world-training .sp-training-analysis-header {
+    position: relative;
+    box-sizing: border-box;
+    min-height: 92px;
+    padding: 22px max(24px, calc((100vw - 1060px) / 2)) 20px !important;
+    border-bottom: 1px solid var(--sp-analysis-line) !important;
+    background:
+        linear-gradient(180deg, rgba(31, 57, 72, 0.94), rgba(5, 17, 26, 0.98) 62%, rgba(1, 8, 14, 0.99)),
+        repeating-linear-gradient(90deg, transparent 0 5px, rgba(255,255,255,0.025) 5px 6px) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(235, 251, 255, 0.28),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.9),
+        0 18px 38px rgba(0, 0, 0, 0.42);
+}
+
+body.world-training .sp-training-analysis-header::after {
+    content: '';
+    position: absolute;
+    left: max(24px, calc((100vw - 1060px) / 2));
+    right: max(24px, calc((100vw - 1060px) / 2));
+    bottom: -1px;
+    height: 4px;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, transparent, #8beaff 20%, #23d7ff 50%, #8beaff 80%, transparent),
+        repeating-linear-gradient(90deg, rgba(139,234,255,0.75) 0 2px, transparent 2px 9px);
+    background-blend-mode: screen;
+    box-shadow: 0 0 18px rgba(35, 215, 255, 0.58);
+    opacity: 0.82;
+}
+
+body.world-training .sp-training-analysis-header--inline {
+    min-height: 0;
+    padding: 15px 16px !important;
+    border: 1px solid var(--sp-analysis-line) !important;
+}
+
+body.world-training .sp-training-analysis-header :where(h1, h2),
+body.world-training .sp-training-analysis-header > div > div:first-child {
+    color: #f3fbff !important;
+    -webkit-text-fill-color: initial !important;
+    background: none !important;
+    text-shadow: 0 2px 0 #000, 0 0 22px rgba(35,215,255,0.32) !important;
+}
+
+body.world-training .sp-training-analysis-main {
+    width: min(100%, 1060px);
+    box-sizing: border-box;
+}
+
+body.world-training .sp-training-tool--analysis :where(button[aria-pressed], [role='tab']) {
+    border: 1px solid rgba(139, 234, 255, 0.32) !important;
+    background: linear-gradient(180deg, rgba(30, 55, 69, 0.92), rgba(4, 14, 22, 0.98)) !important;
+}
+
+body.world-training .sp-training-tool--analysis button[aria-pressed='true'] {
+    color: #03111a !important;
+    background: linear-gradient(180deg, #a7f2ff 0%, #3acbf3 44%, #0a739f 100%) !important;
+    border-color: #bff7ff !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.55) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.9),
+        inset 0 -3px 0 rgba(0, 49, 74, 0.78),
+        0 0 22px rgba(35,215,255,0.24) !important;
+}
+
+body.world-training .sp-analysis-primary-action:not(:disabled) {
+    color: #03111a !important;
+    background: linear-gradient(180deg, #baf6ff 0%, #4bd5f7 42%, #08749f 100%) !important;
+    border: 1px solid #c8f9ff !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.58) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.95),
+        inset 0 -4px 0 rgba(0,42,66,0.8),
+        0 12px 28px rgba(0,0,0,0.38),
+        0 0 24px rgba(35,215,255,0.2) !important;
+}
+
+body.world-training .sp-analysis-primary-action:disabled {
+    background: linear-gradient(180deg, rgba(47,69,80,0.82), rgba(8,20,28,0.94)) !important;
+    color: #7895a4 !important;
+}
+
+body.world-training :where(.sp-analysis-equity, .sp-analysis-icm) .sp-training-analysis-header span {
+    border-radius: 0 !important;
+    color: #9cefff !important;
+    border-color: rgba(139,234,255,0.38) !important;
+    background: rgba(35,215,255,0.08) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 0 16px rgba(35,215,255,0.1);
+}
+
+body.world-training .sp-training-tool--analysis input[type='range'] {
+    min-height: 34px;
+    accent-color: #23d7ff !important;
+    filter: drop-shadow(0 0 5px rgba(35,215,255,0.3));
+}
+
+body.world-training .sp-analysis-control-deck,
+body.world-training .sp-analysis-output-deck > div,
+body.world-training .sp-analysis-data-panel {
+    border-radius: 0 !important;
+    clip-path: none !important;
+    border-color: var(--sp-analysis-line) !important;
+    background:
+        linear-gradient(145deg, rgba(25, 49, 64, 0.92), rgba(3, 12, 20, 0.98) 45%, rgba(10, 29, 40, 0.95)) !important;
+    box-shadow: var(--sp-console-shadow) !important;
+}
+
+body.world-training .sp-analysis-data-panel {
+    position: relative;
+    overflow: hidden;
+}
+
+body.world-training .sp-analysis-data-panel::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(139,234,255,0.7), transparent);
+    pointer-events: none;
+}
+
+body.world-training .sp-training-analysis-dropzone {
+    border-radius: 0 !important;
+    border: 1px solid rgba(139, 234, 255, 0.55) !important;
+    background:
+        linear-gradient(135deg, rgba(35,215,255,0.075), transparent 46%),
+        repeating-linear-gradient(90deg, rgba(139,234,255,0.04) 0 1px, transparent 1px 12px),
+        rgba(3, 14, 23, 0.94) !important;
+    box-shadow: inset 0 0 28px rgba(35,215,255,0.05), 0 16px 34px rgba(0,0,0,0.36);
+}
+
+body.world-training .sp-analysis-filter-rail {
+    padding: 6px;
+    border: 1px solid rgba(139,234,255,0.25);
+    background: rgba(1, 8, 14, 0.76);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+@media (max-width: 768px) {
+    body.world-training .sp-training-tool--analysis {
+        min-height: calc(100dvh - 52px) !important;
+    }
+
+    body.world-training .sp-training-analysis-header,
+    body.world-training .sp-training-analysis-header--inline {
+        min-height: 0;
+        padding: 14px 12px 16px !important;
+    }
+
+    body.world-training .sp-training-analysis-header::after {
+        left: 12px;
+        right: 12px;
+    }
+
+    body.world-training .sp-training-analysis-header > div {
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    body.world-training .sp-training-analysis-header :where(h1, h2) {
+        overflow-wrap: anywhere;
+        font-size: clamp(23px, 7.2vw, 32px) !important;
+    }
+
+    body.world-training .sp-training-analysis-main {
+        width: 100%;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        padding: 18px 12px 34px !important;
+    }
+
+    body.world-training .sp-risk-analysis-layout {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 14px !important;
+    }
+
+    body.world-training .sp-analysis-control-deck {
+        min-width: 0;
+        padding: 20px 16px !important;
+    }
+
+    body.world-training .sp-analysis-output-deck {
+        min-width: 0;
+        width: 100%;
+    }
+
+    body.world-training .sp-analysis-comparison {
+        padding: 12px 10px 40px !important;
+    }
+
+    body.world-training .sp-analysis-comparison .sp-training-analysis-main {
+        padding: 0 !important;
+    }
+
+    body.world-training .sp-analysis-data-panel {
+        padding: 14px 12px !important;
+    }
+
+    body.world-training .sp-analysis-filter-rail {
+        margin-inline: 0;
+        scroll-padding-inline: 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.world-training .sp-training-analysis-header::after {
+        box-shadow: none;
+    }
+}
