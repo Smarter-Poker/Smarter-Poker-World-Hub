@@ -322,3 +322,45 @@ test('the weight floor matches the constraint the database now carries', () => {
     const route = read('pages/api/club-arena/house-ads.js');
     assert.match(route, /patch\.weight = Math\.max\(1, Math\.min\(1000/);
 });
+
+test('an unknown slot is refused, never quietly turned into lobby_strip', () => {
+    /* THIS IS A REGRESSION TEST FOR MY OWN CODE. The first version of the
+       placement routes normalised an unrecognised slot to 'lobby_strip' and an
+       unrecognised audience to 'all', on the reasoning that the panel only
+       sends values from its own selects. On PATCH that reasoning relocates a
+       LIVE placement to a surface nobody named, answers "Saved", and leaves
+       the panel disagreeing with the database - the silent-wrong-write shape
+       this estate keeps paying for. */
+    const route = read('pages/api/club-arena/house-ads.js');
+
+    // The defaulting normalisers must be gone, not merely unused.
+    assert.doesNotMatch(route, /function normaliseSlot/);
+    assert.doesNotMatch(route, /function normaliseAudience/);
+
+    // Their replacements answer null for "not acceptable", which cannot be
+    // written to a NOT NULL column by accident.
+    assert.match(route, /function readSlot\(value\) \{\s*const s = String\(value\);\s*return SLOTS\.has\(s\) \? s : null;/);
+    assert.match(route, /function readAudience\(value\) \{\s*const s = String\(value\);\s*return AUDIENCES\.has\(s\) \? s : null;/);
+
+    // And every caller refuses rather than defaults.
+    const refusals = route.match(/Not A Known Slot/g) || [];
+    assert.ok(refusals.length >= 3, `expected a refusal at all three call sites, found ${refusals.length}`);
+    assert.match(route, /Not A Known Audience/);
+});
+
+test('the create path validates the placement BEFORE it writes the ad', () => {
+    /* Refusing after ad_catalog has been inserted would leave a live ad row
+       with no placement - running nowhere, looking healthy in the list - and
+       hand the operator a 400 for a campaign that was in fact half created. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    const validate = route.indexOf("const slot = b.slot === undefined ? 'lobby_strip' : readSlot(b.slot)");
+    const insert = route.indexOf(".from('ad_catalog')\n                .insert({");
+    assert.ok(validate > -1, 'the create path no longer reads the slot up front');
+    assert.ok(insert > -1, 'could not find the ad_catalog insert');
+    assert.ok(validate < insert, 'the slot is validated AFTER the ad is written, which strands a placement-less ad');
+
+    // Absent still means "use the default" - an ad with no placement runs
+    // nowhere, so the create path must keep defaulting when nothing is sent.
+    assert.match(route, /b\.slot === undefined \? 'lobby_strip'/);
+    assert.match(route, /b\.audience === undefined \? 'all'/);
+});
