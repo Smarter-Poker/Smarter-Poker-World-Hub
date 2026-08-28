@@ -1196,64 +1196,17 @@ export default function UniversalHeader({
                         font-size: 18px;
                     }
                 }
-
-                /* #ClubButtons Hub mode: cleaner depth and restrained energy. */
-                .hub-clubbuttons.universal-header {
-                    background: linear-gradient(180deg, #171b20 0%, #07090c 62%, #030405 100%);
-                    border-bottom: 1px solid #a9afb5;
-                    box-shadow: inset 0 -3px 0 #050607, 0 8px 24px rgba(0,0,0,.46);
-                }
-                .hub-clubbuttons .orb-btn.cb-icon-control,
-                .hub-clubbuttons .hamburger-btn.cb-icon-control {
-                    width: 40px;
-                    min-width: 40px;
-                    height: 40px;
-                    padding: 9px !important;
-                    overflow: visible;
-                    background: var(--club-shell-utility) center / 100% 100% no-repeat !important;
-                }
-                .hub-clubbuttons .orb-btn.cb-icon-control:hover,
-                .hub-clubbuttons .hamburger-btn.cb-icon-control:hover {
-                    opacity: 1;
-                    filter: brightness(1.1) drop-shadow(0 0 6px rgba(0,168,255,.2));
-                }
-                .hub-clubbuttons .header-nav-btn.cb-nav-item,
-                .hub-clubbuttons .header-nav-btn.cb-nav-item:hover {
-                    min-height: 40px;
-                    height: 40px;
-                    min-width: 72px;
-                    padding: 8px 14px;
-                    border: 0;
-                    border-radius: 0;
-                    background: var(--club-shell-nav) center / 100% 100% no-repeat;
-                    box-shadow: none;
-                }
-                @media (max-width: 640px) {
-                    .hub-clubbuttons .orb-btn.cb-icon-control,
-                    .hub-clubbuttons .hamburger-btn.cb-icon-control {
-                        width: 36px;
-                        min-width: 36px;
-                        height: 36px;
-                        padding: 8px !important;
-                    }
-                    .hub-clubbuttons .header-nav-btn.cb-nav-item {
-                        min-height: 36px;
-                        height: 36px;
-                        min-width: 58px;
-                        padding-inline: 10px;
-                    }
-                }
             `,
         }}
       />
 
-      <header className="universal-header cb-surface cb-mode-hub hub-clubbuttons">
+      <header className="universal-header">
         {/* LEFT: Hamburger Menu + Back/Hub Button + "Smarter.Poker" */}
         <div className="header-left">
           {onMenuClick && (
             <button
               onClick={onMenuClick}
-              className="hamburger-btn cb-icon-control"
+              className="hamburger-btn"
               aria-label="Open Menu"
               style={{ padding: 0 }}
             >
@@ -1269,7 +1222,7 @@ export default function UniversalHeader({
               onClick={
                 onBackClick ? onBackClick : pageDepth >= 2 ? handleBack : () => router.push('/hub')
               }
-              className="header-img-btn header-nav-btn cb-nav-item"
+              className="header-img-btn header-nav-btn"
               aria-label={pageDepth >= 2 ? 'Go back' : 'Return to Hub'}
             >
               <span aria-hidden="true">{pageDepth >= 2 ? 'Back' : 'Hub'}</span>
@@ -1347,7 +1300,7 @@ export default function UniversalHeader({
           {/* Diamond Wallet Icon */}
           <button
             onClick={() => setIsWalletOpen(true)}
-            className="orb-btn cb-icon-control"
+            className="orb-btn"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             title="Diamond Wallet"
           >
@@ -1362,7 +1315,7 @@ export default function UniversalHeader({
           {isVipDisplay && (
             <button
               onClick={() => openOverlay('diamond-store')}
-              className="orb-btn cb-icon-control"
+              className="orb-btn"
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               title="VIP Member"
             >
@@ -1380,7 +1333,7 @@ export default function UniversalHeader({
                         "no popup" behaviour the old comment was protecting. */}
           <button
             onClick={() => router.push('/hub/messenger')}
-            className="orb-btn cb-icon-control"
+            className="orb-btn"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             title="Messages"
             aria-label="Messages"
@@ -1415,7 +1368,7 @@ export default function UniversalHeader({
               markAllNotificationsRead();
               openOverlay('notifications');
             }}
-            className="orb-btn cb-icon-control"
+            className="orb-btn"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             title="Notifications"
             aria-label="Notifications"
@@ -1435,7 +1388,7 @@ export default function UniversalHeader({
           {/* Settings - Custom Metallic Gear icon */}
           <button
             onClick={() => (onSettingsClick ? onSettingsClick() : openOverlay('settings'))}
-            className="orb-btn cb-icon-control"
+            className="orb-btn"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             title="Settings"
           >
@@ -1452,7 +1405,7 @@ export default function UniversalHeader({
               console.debug('[UniversalHeader] Live Help button clicked');
               liveHelp.setIsOpen(true);
             }}
-            className="orb-btn cb-icon-control"
+            className="orb-btn"
             aria-label="Live Help"
             style={{
               background: 'none',

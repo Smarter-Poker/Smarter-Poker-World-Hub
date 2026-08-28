@@ -151,7 +151,7 @@ function BottomNavBar({ theme = 'auto', autoHide = 'auto', noSafeArea = false })
   return (
     <nav
       aria-label="Primary"
-      className="bn-nav cb-surface cb-mode-hub hub-bottom-nav"
+      className="bn-nav"
       style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         minHeight: 56,
@@ -179,7 +179,7 @@ function BottomNavBar({ theme = 'auto', autoHide = 'auto', noSafeArea = false })
             key={href}
             href={href}
             prefetch={false}
-            className={`bn-tab cb-nav-item${active ? ' is-active' : ''}`}
+            className="bn-tab"
             aria-label={ariaLabel}
             aria-current={active ? 'page' : undefined}
             onTouchStart={() => warm(href)}
@@ -247,21 +247,6 @@ function BottomNavBar({ theme = 'auto', autoHide = 'auto', noSafeArea = false })
           outline: 2px solid var(--bn-active, #1877f2);
           outline-offset: -2px;
           border-radius: 8px;
-        }
-        .hub-bottom-nav.bn-nav {
-          background: linear-gradient(180deg, #171b20 0%, #07090c 38%, #030405 100%) !important;
-          border-top: 1px solid #a9afb5 !important;
-          box-shadow: inset 0 3px 0 #050607, 0 -8px 24px rgba(0,0,0,.55);
-          padding-top: 3px;
-        }
-        .hub-bottom-nav .bn-tab.cb-nav-item {
-          background: var(--club-shell-nav) center / 100% 90% no-repeat;
-          margin: 0 1px;
-          padding-inline: 2px;
-        }
-        .hub-bottom-nav .bn-tab.cb-nav-item:hover,
-        .hub-bottom-nav .bn-tab.cb-nav-item.is-active {
-          background: var(--club-shell-nav) center / 100% 90% no-repeat;
         }
         @media (prefers-reduced-motion: reduce) {
           .bn-tab, .bn-nav { transition: none !important; }
