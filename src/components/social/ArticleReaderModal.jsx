@@ -17,6 +17,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../hooks/useYouTubeErrorManager';
+import { getYouTubeVideoId } from '../../lib/socialHelpers';
 
 const C = {
     bg: '#000000',
@@ -30,20 +31,7 @@ export default function ArticleReaderModal({ url, title, onClose }) {
     const [error, setError] = useState(false);
 
     // Detect YouTube URLs and extract video ID (must be above useEffects that reference isYouTube)
-    const youtubeVideoId = (() => {
-        if (!url) return null;
-        try {
-            const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
-            if (shortsMatch) return shortsMatch[1];
-            const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
-            if (watchMatch) return watchMatch[1];
-            const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-            if (shortMatch) return shortMatch[1];
-            const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
-            if (embedMatch) return embedMatch[1];
-        } catch (e) { console.warn('[App] Handled exception:', e); }
-        return null;
-    })();
+    const youtubeVideoId = getYouTubeVideoId(url);
 
     const isYouTube = !!youtubeVideoId;
 
@@ -276,8 +264,11 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                             setLoading(false);
                             setError(true);
                         }}
-                        // No sandbox restrictions needed since content comes from our proxy
-                        referrerPolicy="origin-when-cross-origin"
+                        // Proxied third-party markup must never inherit the smarter.poker
+                        // origin. Scripts remain available for article rendering, but the
+                        // omitted allow-same-origin token gives the document an opaque origin.
+                        sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+                        referrerPolicy="no-referrer"
                     />
                 )}
 

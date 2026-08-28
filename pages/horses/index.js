@@ -49,6 +49,7 @@ import { getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
 import { eventBus, EventType } from '../../src/engine/EventBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import PokerBrainLaunchButton from '../../src/components/poker-brain/LaunchButton';
+import MerchCatalogAdmin from '../../src/components/admin/MerchCatalogAdmin';
 import styles from './horses.module.css';
 import { T, num, signed, when, toCsv, downloadCsv, stampedName } from '../../src/lib/horsesAdminTokens';
 
@@ -97,6 +98,7 @@ const TABS = [
   { id: 'pipeline', label: 'Pipeline' },
   { id: 'settings', label: 'Settings' },
   { id: 'stats', label: 'Statistics' },
+  { id: 'merch', label: 'Merch Catalog' },
   { id: 'promo', label: 'Promo Codes' },
   { id: 'economy', label: 'Economy' },
   { id: 'antiabuse', label: 'Anti-Abuse' },
@@ -1834,6 +1836,8 @@ export default function HorsesAdmin() {
         </nav>
 
         <main className={styles.content}>
+          {activeTab === 'merch' && <MerchCatalogAdmin authFetch={authFetch} />}
+
           {/* ─────────────────────────── SOCIAL HORSES ─────────────────────── */}
           {activeTab === 'stable' && (
             <div className={styles.stableView}>

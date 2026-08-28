@@ -240,6 +240,46 @@ function checkMath(q) {
     return errors;
 }
 
+function extractBoardCards(text) {
+    const q = String(text || '');
+    const cards = [];
+    const flop = q.match(/(?:flop(?:\s+is|\s+comes)?|board:)\s*([AKQJT2-9][shdc])(?:[, ]+)([AKQJT2-9][shdc])(?:[, ]+)([AKQJT2-9][shdc])/i);
+    if (flop) cards.push(flop[1], flop[2], flop[3]);
+    for (const street of ['turn', 'river']) {
+        const m = q.match(new RegExp(`\\b${street}(?:\\s+is|:)?\\s*([AKQJT2-9][shdc])\\b`, 'i'));
+        if (m) cards.push(m[1]);
+    }
+    return cards.map(card => card.toLowerCase());
+}
+
+function extractHeroCards(text) {
+    const m = String(text || '').match(/(?:hold|holds|holding|with)\s+([AKQJT2-9][shdc])\s*([AKQJT2-9][shdc])\b/i);
+    return m ? [m[1].toLowerCase(), m[2].toLowerCase()] : [];
+}
+
+function findDuplicateDealtCard(text) {
+    const hero = extractHeroCards(text);
+    const board = extractBoardCards(text);
+    if (hero.length === 0 || board.length === 0) return null;
+    const dealt = [...hero, ...board];
+    return dealt.find((card, index) => dealt.indexOf(card) !== index) || null;
+}
+
+const PREFLOP_ORDER = { UTG: 0, MP: 1, HJ: 2, CO: 3, BTN: 4, SB: 5, BB: 6 };
+
+function impossibleLaterPositionOpen(text) {
+    const q = String(text || '');
+    const hero = q.match(/(?:you are|you(?:'re| are)?|hero)(?:\s+(?:in|on))?\s+(?:the\s+)?(UTG|MP|HJ|CO|BTN|SB|BB)\b/i)
+        || q.match(/\bhero\b[^.]{0,80}?\b(?:in|on)\s+(?:the\s+)?(UTG|MP|HJ|CO|BTN|SB|BB)\b/i);
+    const opener = q.match(/\b(UTG|MP|HJ|CO|BTN|SB|BB)\s+(?:open-?raises|opens)\b/i);
+    if (!hero || !opener) return null;
+    const heroPos = hero[1].toUpperCase();
+    const openerPos = opener[1].toUpperCase();
+    if (PREFLOP_ORDER[openerPos] <= PREFLOP_ORDER[heroPos]) return null;
+    if (/hero\s+(?:opens|raises|limps|calls).*?\b(?:3-bets?|squeezes?)\b/i.test(q)) return null;
+    return `${openerPos} cannot open before ${heroPos} acts`;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CHECK 4: LOGIC VALIDATION — Impossible Options, Action Consistency
 // ═══════════════════════════════════════════════════════════════════════════
@@ -352,6 +392,14 @@ function checkLogic(q) {
             }
         }
     }
+
+    const duplicateCard = findDuplicateDealtCard(q.question);
+    if (duplicateCard)
+        errors.push(`LOGIC-08: Duplicate dealt card ${duplicateCard.toUpperCase()} appears in hero hand and/or board`);
+
+    const actionOrderError = impossibleLaterPositionOpen(q.question);
+    if (actionOrderError)
+        errors.push(`LOGIC-09: Impossible preflop action order (${actionOrderError})`);
 
     return errors;
 }

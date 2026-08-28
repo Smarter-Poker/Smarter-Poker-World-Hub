@@ -375,8 +375,9 @@ export default function ArticlePage() {
                     await removeNewsBookmark(userId, articleId);
                     // Clear any legacy row too, or it would resurrect on reload.
                     await removeLegacyBookmark(userId, articleId);
+                } else {
+                    writeGuestBookmarks(readGuestBookmarks().filter((x) => String(x) !== String(articleId)));
                 }
-                writeGuestBookmarks(readGuestBookmarks().filter((x) => String(x) !== String(articleId)));
                 setIsBookmarked(false);
                 toast.success('Bookmark Removed');
             } else {
@@ -387,10 +388,11 @@ export default function ArticlePage() {
                         source: article.source_name,
                         thumbnail: article.image_url
                     });
-                }
-                const list = readGuestBookmarks();
-                if (!list.some((x) => String(x) === String(articleId))) {
-                    writeGuestBookmarks([...list, articleId]);
+                } else {
+                    const list = readGuestBookmarks();
+                    if (!list.some((x) => String(x) === String(articleId))) {
+                        writeGuestBookmarks([...list, articleId]);
+                    }
                 }
                 setIsBookmarked(true);
                 toast.success('Article Bookmarked');
@@ -681,8 +683,9 @@ export default function ArticlePage() {
                 <style jsx>{`
                     .article-page {
                         min-height: 100vh;
-                        background: #0a0a12;
-                        color: #fff;
+                        padding-bottom: 76px;
+                        background: #000407;
+                        color: #e4edf1;
                         font-family: 'Inter', -apple-system, sans-serif;
                     }
 
@@ -691,11 +694,11 @@ export default function ArticlePage() {
                         align-items: center;
                         justify-content: space-between;
                         padding: 16px 24px;
-                        background: rgba(10, 10, 18, 0.95);
+                        background: rgba(3, 9, 13, 0.96);
                         backdrop-filter: blur(12px);
-                        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+                        border-bottom: 1px solid #345468;
                         position: sticky;
-                        top: 0;
+                        top: 64px;
                         z-index: 100;
                     }
 
@@ -705,14 +708,14 @@ export default function ArticlePage() {
                     }
 
                     .actions button {
-                        width: 36px;
-                        height: 36px;
+                        width: 44px;
+                        height: 44px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         background: rgba(255, 255, 255, 0.05);
                         border: 1px solid rgba(255, 255, 255, 0.1);
-                        border-radius: 8px;
+                        border-radius: 999px;
                         color: #fff;
                         cursor: pointer;
                         transition: all 0.2s;
@@ -725,8 +728,9 @@ export default function ArticlePage() {
 
                     .hero-image {
                         width: 100%;
-                        max-height: 400px;
+                        max-height: 480px;
                         overflow: hidden;
+                        border-bottom: 1px solid #345468;
                     }
 
                     .hero-image img {
@@ -744,9 +748,10 @@ export default function ArticlePage() {
                     .category {
                         display: inline-block;
                         padding: 6px 12px;
-                        background: rgba(0, 212, 255, 0.15);
-                        color: #00d4ff;
-                        border-radius: 6px;
+                        background: #071822;
+                        color: #31c2ff;
+                        border: 1px solid #345468;
+                        border-radius: 4px;
                         font-size: 12px;
                         font-weight: 700;
                         text-transform: uppercase;
@@ -754,6 +759,8 @@ export default function ArticlePage() {
                     }
 
                     .content h1 {
+                        font-family: 'Arial Narrow', Arial, sans-serif;
+                        text-transform: uppercase;
                         font-size: clamp(28px, 5vw, 42px);
                         font-weight: 700;
                         line-height: 1.2;
@@ -803,8 +810,9 @@ export default function ArticlePage() {
                     }
 
                     .related-card {
-                        background: rgba(255, 255, 255, 0.03);
-                        border-radius: 12px;
+                        background: #061018;
+                        border: 1px solid #284758;
+                        border-radius: 4px;
                         overflow: hidden;
                         cursor: pointer;
                         transition: transform 0.2s;
@@ -831,6 +839,17 @@ export default function ArticlePage() {
                         padding: 12px;
                         font-size: 13px;
                         font-weight: 500;
+                    }
+
+                    @media (min-width: 900px) {
+                        .hero-image { width: min(1180px, calc(100% - 48px)); margin: 24px auto 0; border: 1px solid #345468; }
+                        .content { padding-top: 56px; }
+                    }
+
+                    @media (max-width: 640px) {
+                        .header { top: 56px; padding: 10px 14px; }
+                        .content { padding: 28px 18px; }
+                        .meta { gap: 12px; }
                     }
                 `}</style>
             </div>

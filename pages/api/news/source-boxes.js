@@ -38,15 +38,7 @@ const SOURCE_BOXES = [
     { box: 6, source_name: 'Pokerfuse', fallback_image: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800' }
 ];
 
-// Source cards never render a full scraped body or Postgres search vector.
-// Strip both from the above-the-fold response while retaining excerpt/summary,
-// which keeps the visual card contract intact and reduces repeat mobile transfer.
-function toSourceBoxPayload(article) {
-    if (!article || typeof article !== 'object') return article;
-    // eslint-disable-next-line no-unused-vars
-    const { content, search_vector, ...rest } = article;
-    return rest;
-}
+const SOURCE_BOX_SELECT = 'id, title, slug, excerpt, summary, image_url, category, read_time, views, author_name, source_name, source_url, source_box, is_featured, published_at, updated_at';
 
 /**
  * Resolve the latest article for a single source box.
@@ -54,26 +46,28 @@ function toSourceBoxPayload(article) {
  */
 async function resolveBoxArticle(box) {
     // Try by source_box first, then by source_name
-    let { data: article } = await getSupabase()
+    let { data: article, error: boxError } = await getSupabase()
         .from('poker_news')
-        .select('*')
+        .select(SOURCE_BOX_SELECT)
         .eq('source_box', box.box)
         .eq('is_published', true)
         .order('published_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+    if (boxError) throw boxError;
 
     // Fallback: try by source_name if source_box didn't match
     if (!article) {
         const searchNames = box.source_name === 'Card Player' ? ['Card Player', 'CardPlayer'] : [box.source_name];
-        const { data: byName } = await getSupabase()
+        const { data: byName, error: nameError } = await getSupabase()
             .from('poker_news')
-            .select('*')
+            .select(SOURCE_BOX_SELECT)
             .in('source_name', searchNames)
             .eq('is_published', true)
             .order('published_at', { ascending: false })
             .limit(1)
             .maybeSingle();
+        if (nameError) throw nameError;
         article = byName;
     }
 
@@ -85,14 +79,15 @@ async function resolveBoxArticle(box) {
         const articleAge = Date.now() - new Date(article.published_at).getTime();
         const twoHoursMs = 2 * 60 * 60 * 1000;
         if (articleAge > twoHoursMs) {
-            const { data: crossSource } = await getSupabase()
+            const { data: crossSource, error: crossError } = await getSupabase()
                 .from('poker_news')
-                .select('*')
+                .select(SOURCE_BOX_SELECT)
                 .ilike('title', '%MSPT%')
                 .eq('is_published', true)
                 .order('published_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
+            if (crossError) throw crossError;
 
             if (crossSource && new Date(crossSource.published_at) > new Date(article.published_at)) {
                 article = crossSource;
@@ -103,7 +98,7 @@ async function resolveBoxArticle(box) {
     // If we found an article, return it with box number
     if (article) {
         return {
-            ...toSourceBoxPayload(article),
+            ...article,
             _boxNumber: box.box,
             _sourceName: box.source_name
         };

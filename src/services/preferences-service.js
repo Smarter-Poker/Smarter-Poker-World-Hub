@@ -292,10 +292,44 @@ export const savedReelsService = {
                 .order('saved_at', { ascending: false });
 
             if (error) throw error;
-            return data || [];
+            const rows = data || [];
+            const reelIds = rows.filter(row => row.source_type !== 'post').map(row => row.reel_id);
+            const postIds = rows.filter(row => row.source_type === 'post').map(row => row.reel_id);
+            const [reelResult, postResult] = await Promise.all([
+                reelIds.length
+                    ? supabase.from('social_reels')
+                        .select('id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, source_type')
+                        .in('id', reelIds)
+                    : Promise.resolve({ data: [], error: null }),
+                postIds.length
+                    ? supabase.from('social_posts')
+                        .select('id, author_id, content, media_urls, thumbnail_url, like_count, comment_count, created_at')
+                        .in('id', postIds)
+                    : Promise.resolve({ data: [], error: null }),
+            ]);
+            if (reelResult.error) throw reelResult.error;
+            if (postResult.error) throw postResult.error;
+
+            const reelMap = new Map((reelResult.data || []).map(reel => [reel.id, { ...reel, source: 'reels' }]));
+            const postMap = new Map((postResult.data || []).map(post => [post.id, {
+                id: post.id,
+                author_id: post.author_id,
+                caption: post.content || '',
+                video_url: Array.isArray(post.media_urls) ? post.media_urls[0] : null,
+                thumbnail_url: post.thumbnail_url || null,
+                like_count: post.like_count || 0,
+                comment_count: post.comment_count || 0,
+                created_at: post.created_at,
+                source: 'posts',
+            }]));
+
+            return rows.map(row => ({
+                ...row,
+                reel: row.source_type === 'post' ? postMap.get(row.reel_id) : reelMap.get(row.reel_id),
+            })).filter(row => row.reel?.video_url);
         } catch (error) {
             console.warn('[SavedReels] Error getting saved reels:', error);
-            return [];
+            throw error;
         }
     },
 

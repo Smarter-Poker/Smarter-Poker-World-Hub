@@ -154,6 +154,7 @@ async function serveExistingSoloSession(res, sb, userId, session) {
         questions,
         entryCost: session.entry_cost || 0,
         entryState: session.entry_state || 'legacy',
+        expiresAt: session.expires_at || null,
         newBalance: null,
     });
 }
@@ -338,28 +339,9 @@ async function startPvpSession(req, res, sb, userId) {
         }
     }
 
-    // --- STAKE ESCROW (idempotent; before the session exists) --------------
+    // Stake is moved only after a complete roster has been loaded. The atomic
+    // RPC below debits, inserts the session and binds the match in one DB tx.
     const stake = Math.max(0, Math.floor(Number(match.stake_amount) || 0));
-    if (stake > 0) {
-        const { data: charge, error: chargeErr } = await sb.rpc('add_diamonds_to_balance', {
-            p_user_id: userId,
-            p_amount: -stake,
-            p_type: 'pvp_stake',
-            p_description: `PvP stake - ${stake} diamonds entry (match ${match.id})`,
-            p_reference_id: `pvp_stake_${match.id}_${userId}`,
-        });
-        if (chargeErr) {
-            console.warn('[trivia session-start] pvp stake charge failed:', chargeErr.message || chargeErr);
-            return res.status(500).json({ success: false, error: 'stake_charge_failed' });
-        }
-        if (charge && charge.success === false && charge.duplicate !== true) {
-            // The RPC's only non-duplicate rejections are missing profile and
-            // insufficient balance; either way this player cannot fund the pot.
-            return res.status(402).json({ success: false, error: 'insufficient_diamonds' });
-        }
-        // duplicate === true: an earlier attempt charged and then died before
-        // the session/link writes - proceed and finish the job.
-    }
 
     // --- SERVE + PERSIST ----------------------------------------------------
     const picked = await fetchPvpRosterRows(sb, rosterIds);
@@ -387,48 +369,24 @@ async function startPvpSession(req, res, sb, userId) {
         };
     });
 
-    const { error: insertErr } = await sb
-        .from('trivia_sessions')
-        .insert({
-            id: sessionId,
-            user_id: userId,
-            mode: 'pvp',
-            question_ids: picked.map(q => q.id),
-            permutations,
-            status: 'open',
-        });
-    if (insertErr) {
-        console.warn('[trivia session-start] pvp session insert failed:', insertErr.message || insertErr);
-        return res.status(500).json({ success: false, error: 'session_create_failed' });
+    const { data: created, error: createErr } = await sb.rpc('create_trivia_pvp_session_v2', {
+        p_session_id: sessionId,
+        p_match_id: match.id,
+        p_user_id: userId,
+        p_question_ids: picked.map(q => q.id),
+        p_permutations: permutations,
+    });
+    if (createErr || !created || created.success === false) {
+        const code = created?.error || 'session_create_failed';
+        console.warn('[trivia session-start] atomic pvp create failed:', createErr?.message || code);
+        const status = code === 'insufficient_diamonds' ? 402
+            : code === 'match_expired' ? 410
+            : code === 'match_not_active' ? 409
+            : 500;
+        return res.status(status).json({ success: false, error: code });
     }
-
-    // --- LINK (first session is binding) ------------------------------------
-    const { data: linked, error: linkErr } = await sb
-        .from('trivia_pvp_matches')
-        .update({ [linkCol]: sessionId })
-        .eq('id', match.id)
-        .is(linkCol, null)
-        .select('id');
-    if (linkErr || !linked || linked.length === 0) {
-        // Lost a same-player double-start race (or the write failed). Retire
-        // the orphan - it is unlinked, so it must not survive as an open
-        // grading claim - and serve whichever session won the link.
-        await sb
-            .from('trivia_sessions')
-            .update({ status: 'expired', submitted_at: new Date().toISOString() })
-            .eq('id', sessionId)
-            .eq('status', 'open');
-        const { data: fresh } = await sb
-            .from('trivia_pvp_matches')
-            .select('id, stake_amount, challenger_id, opponent_id')
-            .eq('id', match.id)
-            .maybeSingle();
-        const winningId = fresh ? fresh[linkCol] : null;
-        if (winningId) {
-            return servePvpSession(res, sb, userId, { ...match, ...fresh }, winningId, true);
-        }
-        console.warn('[trivia session-start] pvp session link failed:', linkErr?.message || 'no_winning_link');
-        return res.status(500).json({ success: false, error: 'session_link_failed' });
+    if (created.duplicate === true && created.session_id) {
+        return servePvpSession(res, sb, userId, match, created.session_id, true);
     }
 
     // Feed the 60-day no-repeat window. Fire-and-forget.
@@ -505,7 +463,7 @@ export default async function handler(req, res) {
         // retries with the same nonce, which is also the session UUID.
         const { data: existing, error: existingErr } = await sb
             .from('trivia_sessions')
-            .select('id, user_id, mode, status, question_ids, permutations, entry_cost, entry_state')
+            .select('id, user_id, mode, status, question_ids, permutations, entry_cost, entry_state, expires_at')
             .eq('id', startNonce)
             .maybeSingle();
         if (existingErr) {
@@ -649,6 +607,7 @@ export default async function handler(req, res) {
             entryCost: Number(created.entry_cost) || 0,
             entryState: created.entry_state || 'free',
             newBalance: created.new_balance == null ? null : Number(created.new_balance),
+            expiresAt: created.expires_at || null,
         });
     } catch (e) {
         console.warn('[trivia session-start] unexpected:', e);

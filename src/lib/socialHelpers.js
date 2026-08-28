@@ -41,21 +41,28 @@ export const decodeHtmlEntities = (text) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function isYouTubeUrl(url) {
-    if (!url) return false;
-    return url.includes('youtube.com') || url.includes('youtu.be');
+    return Boolean(getYouTubeVideoId(url));
 }
 
 export function getYouTubeVideoId(url) {
-    if (!url) return null;
-    const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
-    if (watchMatch) return watchMatch[1];
-    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-    if (shortMatch) return shortMatch[1];
-    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
-    if (shortsMatch) return shortsMatch[1];
-    const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
-    if (embedMatch) return embedMatch[1];
-    return null;
+    if (!url || typeof url !== 'string') return null;
+    try {
+        const parsed = new URL(url, 'https://smarter.poker');
+        const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+        let candidate = null;
+
+        if (host === 'youtu.be') candidate = parsed.pathname.split('/').filter(Boolean)[0];
+        if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
+            if (parsed.pathname === '/watch') candidate = parsed.searchParams.get('v');
+            else if (/^\/(shorts|embed|live)\//.test(parsed.pathname)) {
+                candidate = parsed.pathname.split('/').filter(Boolean)[1];
+            }
+        }
+
+        return /^[a-zA-Z0-9_-]{11}$/.test(candidate || '') ? candidate : null;
+    } catch {
+        return null;
+    }
 }
 
 export function getYouTubeEmbedUrl(url) {

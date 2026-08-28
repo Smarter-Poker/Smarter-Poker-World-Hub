@@ -316,7 +316,7 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
                     src={imageUrl}
                     alt={title || 'Poker news article'}
                     loading={priority ? 'eager' : 'lazy'}
-                    fetchPriority={priority ? 'high' : 'auto'}
+                    fetchpriority={priority ? 'high' : 'auto'}
                     decoding="async"
                     onError={(e) => {
                         // Try category fallback before giving up

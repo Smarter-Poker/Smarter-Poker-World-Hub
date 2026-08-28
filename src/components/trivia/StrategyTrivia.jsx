@@ -395,31 +395,6 @@ export default function StrategyTrivia({ mode }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [avatarUser?.id, avatarLoading]);
 
-    /**
-     * Attach engine_metadata (Phase 49 JSONB: gtoFrequencies, evData) to the
-     * server-dealt set so the analysis panel can show REAL solver numbers
-     * where they exist. This is DISPLAY-ONLY enrichment: it selects id +
-     * engine_metadata for the 20 ids actually served - never correct_index,
-     * never explanation, so the play path still holds no answer key. Failure
-     * is non-fatal: the panel just omits the EV/frequency sections.
-     */
-    async function withSolverMetadata(rows) {
-        const ids = (rows || []).map(q => q?.id).filter(id => typeof id === 'string');
-        if (ids.length === 0) return rows;
-        try {
-            const { data, error } = await supabase
-                .from('trivia_questions')
-                .select('id, engine_metadata')
-                .in('id', ids);
-            if (error || !data) return rows;
-            const byId = new Map(data.map(r => [r.id, r.engine_metadata]));
-            return rows.map(q => (byId.has(q.id) ? { ...q, engine_metadata: byId.get(q.id) } : q));
-        } catch (e) {
-            console.warn('[StrategyTrivia] metadata fetch skipped:', e?.message || e);
-            return rows;
-        }
-    }
-
     async function loadUserDiamonds(uid) {
         try {
             const { data: profile } = await supabase
@@ -500,8 +475,10 @@ export default function StrategyTrivia({ mode }) {
                 return;
             }
 
-            // 2. Display-only solver metadata for the analysis panel.
-            const set = await withSolverMetadata(served.questions);
+            // Solver metadata is intentionally not fetched before an answer is
+            // locked: it can encode the preferred action. session-answer may
+            // return a safe analysis subset after first-answer-wins commits.
+            const set = served.questions;
             if (Number.isFinite(served.newBalance)) setUserDiamonds(served.newBalance);
             if (served.entryState === 'charged' && served.entryCost > 0) {
                 busEmit.diamondsSpent(served.entryCost, `${config.title} Entry`);
@@ -940,7 +917,11 @@ export default function StrategyTrivia({ mode }) {
                                         reads correctDisplayIndex / wasCorrect /
                                         explanation from session-answer. */}
                                     {showResult && verdict && (() => {
-                                        const solver = readSolverMetadata(currentQuestion);
+                                        const solver = readSolverMetadata(
+                                            verdict.solverMetadata
+                                                ? { engine_metadata: verdict.solverMetadata }
+                                                : currentQuestion
+                                        );
                                         const hasSolverData = solver.confidence != null;
                                         const wasCorrect = verdict.wasCorrect === true;
                                         const correctText = verdict.correctDisplayIndex >= 0
@@ -987,6 +968,7 @@ export default function StrategyTrivia({ mode }) {
                                                         // would reject anyway. Auth falls back to the
                                                         // live supabase session inside the panel.
                                                         questionId={currentQuestion.id}
+                                                        sessionId={serverRun.sessionId}
                                                         category={currentQuestion.category}
                                                     />
                                                 ) : (

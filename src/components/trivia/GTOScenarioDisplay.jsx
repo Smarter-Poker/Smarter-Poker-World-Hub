@@ -199,6 +199,7 @@ export default function GTOScenarioDisplay({
     // Optional: the question this panel describes. Pass the uuid (or the whole
     // row) to enable the "Generate visual card" button.
     questionId,
+    sessionId,
     question,
     category,
     difficulty,
@@ -239,7 +240,7 @@ export default function GTOScenarioDisplay({
         || (question && typeof question === 'object' ? question.category : null);
 
     // Hide the button when we know the route would reject the question anyway.
-    const canGenerateCard = Boolean(resolvedQuestionId)
+    const canGenerateCard = Boolean(resolvedQuestionId && sessionId)
         && (!resolvedCategory || PANEL_CATEGORIES.has(resolvedCategory));
 
     const fetchAiPanel = useCallback(async () => {
@@ -265,8 +266,10 @@ export default function GTOScenarioDisplay({
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                // The route accepts a question id and nothing else.
-                body: JSON.stringify({ question_id: resolvedQuestionId }),
+                body: JSON.stringify({
+                    question_id: resolvedQuestionId,
+                    session_id: sessionId,
+                }),
             });
 
             const data = await response.json().catch(() => ({}));

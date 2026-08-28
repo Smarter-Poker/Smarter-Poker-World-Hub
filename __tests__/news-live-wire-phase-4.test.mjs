@@ -14,6 +14,12 @@ const VIDEOS_API = read('pages/api/news/videos.js');
 const AVATAR_CONTEXT = read('src/contexts/AvatarContext.jsx');
 const NEWS_BOX = read('src/components/news/NewsBox.js');
 const LIVE_WIRE_STYLES = read('src/components/news/LiveWireStyles.js');
+const SOCIAL_HELPERS = read('src/lib/socialHelpers.js');
+const REELS_PAGE = read('pages/hub/reels.js');
+const SAVED_REELS_SERVICE = read('src/services/preferences-service.js');
+const MY_REELS_PAGE = read('pages/hub/reels/my-reels.js');
+const ARTICLE_READER = read('src/components/social/ArticleReaderModal.jsx');
+const PROXY_API = read('pages/api/proxy.js');
 
 test('Most Read is one server-ranked paginated feed, not a loaded-page-only reorder', () => {
   assert.match(ARTICLES_API, /safeQ\(req\.query\.sort\) === 'popular'/);
@@ -65,12 +71,10 @@ test('failed feeds are explicit while successful empty feeds stay truthful', () 
 });
 
 test('hot source-box responses omit unused article bodies and search vectors', () => {
-  const payloadHelper = SOURCE_BOXES_API.slice(
-    SOURCE_BOXES_API.indexOf('function toSourceBoxPayload'),
-    SOURCE_BOXES_API.indexOf('/**\n * Resolve the latest article')
-  );
-  assert.match(payloadHelper, /const \{ content, search_vector, \.\.\.rest \} = article/);
-  assert.match(SOURCE_BOXES_API, /\.\.\.toSourceBoxPayload\(article\)/);
+  assert.match(SOURCE_BOXES_API, /const SOURCE_BOX_SELECT = 'id, title, slug, excerpt, summary,/);
+  assert.doesNotMatch(SOURCE_BOXES_API, /\.select\('\*'\)/);
+  assert.doesNotMatch(SOURCE_BOXES_API, /SOURCE_BOX_SELECT[^;]*content/);
+  assert.doesNotMatch(SOURCE_BOXES_API, /SOURCE_BOX_SELECT[^;]*search_vector/);
 });
 
 test('modal scroll locking and list action names remain accessible', () => {
@@ -122,7 +126,54 @@ test('News sections surface loading, failure, retry and true-empty states', () =
   assert.match(PAGE, /Events are temporarily unavailable\./);
   assert.match(PAGE, /onClick=\{\(\) => refreshVideos\(\)\}/);
   assert.match(PAGE, /onClick=\{\(\) => refreshEvents\(\)\}/);
-  assert.match(PAGE, /const sidebarEvents = events\.length > 0 \? events : FALLBACK_EVENTS/);
+  assert.match(PAGE, /const sidebarEvents = events\.length > 0 \? events\.slice\(0, 3\) : FALLBACK_EVENTS/);
+});
+
+test('reel playback accepts every supported YouTube form and uses the player bridge', () => {
+  assert.match(SOCIAL_HELPERS, /\^\\\/\(shorts\|embed\|live\)\\\//);
+  assert.match(SOCIAL_HELPERS, /searchParams\.get\('v'\)/);
+  assert.match(SOCIAL_HELPERS, /\{11\}/);
+  assert.match(PAGE, /youtube-nocookie\.com\/embed\/\$\{videoId\}/);
+  assert.match(PAGE, /iframeRef: reelYouTubeRef/);
+  assert.match(PAGE, /func: 'addEventListener', args: \['onStateChange'\]/);
+  assert.match(PAGE, /onTouchEnd=/);
+});
+
+test('saved and authored reel collections use the real data contracts', () => {
+  assert.match(MY_REELS_PAGE, /\.eq\('author_id', authUser\.id\)/);
+  assert.doesNotMatch(MY_REELS_PAGE, /\.eq\('user_id', authUser\.id\)/);
+  assert.match(SAVED_REELS_SERVICE, /\.from\('social_reels'\)/);
+  assert.match(SAVED_REELS_SERVICE, /\.from\('social_posts'\)/);
+  assert.match(SAVED_REELS_SERVICE, /reel: row\.source_type === 'post'/);
+});
+
+test('reels pagination and route modes do not skip or ignore requested feeds', () => {
+  assert.match(REELS_PAGE, /standardOffset = 60 \+ \(nextPage - 1\) \* 30/);
+  assert.match(REELS_PAGE, /horseOffset = 60 \+ \(nextPage - 1\) \* 20/);
+  assert.match(REELS_PAGE, /feedMode === 'trending'/);
+  assert.match(REELS_PAGE, /feedMode === 'following'/);
+  assert.match(REELS_PAGE, /const \[muted, setMuted\] = useState\(true\)/);
+  assert.match(REELS_PAGE, /const \[preferencesLoaded, setPreferencesLoaded\] = useState\(false\)/);
+  assert.match(REELS_PAGE, /reelsPreferences\.get\(authUser\?\.id\)/);
+  assert.match(REELS_PAGE, /autoPlay=\{preferencesLoaded && preferences\.autoplay\}/);
+  assert.match(REELS_PAGE, /preferences\.autoplay \? 'loadVideoById' : 'cueVideoById'/);
+  assert.match(REELS_PAGE, /if \(!userGesturedThisLoadRef\.current\) return/);
+  assert.match(REELS_PAGE, /router\.query\.upload !== '1'/);
+  assert.match(REELS_PAGE, /reelsPreferences\.update\(user\?\.id, newPrefs\)/);
+  assert.doesNotMatch(REELS_PAGE, /\{\/\* Back button \*\/\}[\s\S]{0,400}href="\/hub\/social-media"/);
+  assert.match(REELS_PAGE, /duration < 1/);
+  assert.match(REELS_PAGE, /onDurationChange=\{handleNativeVideoMetadata\}/);
+  assert.doesNotMatch(REELS_PAGE, /\n\s+loop\n\s+playsInline/);
+  assert.doesNotMatch(REELS_PAGE, /user-scalable=no/);
+});
+
+test('proxied articles run in an opaque sandbox instead of the app origin', () => {
+  assert.match(ARTICLE_READER, /import \{ getYouTubeVideoId \} from '\.\.\/\.\.\/lib\/socialHelpers'/);
+  assert.match(ARTICLE_READER, /const youtubeVideoId = getYouTubeVideoId\(url\)/);
+  assert.match(ARTICLE_READER, /sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"/);
+  assert.doesNotMatch(ARTICLE_READER, /sandbox="[^"]*allow-same-origin/);
+  assert.match(PROXY_API, /sandbox allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox/);
+  assert.match(PROXY_API, /object-src 'none'/);
 });
 
 test('share dialog traps and restores focus, and expected VIP timeouts stay quiet', () => {

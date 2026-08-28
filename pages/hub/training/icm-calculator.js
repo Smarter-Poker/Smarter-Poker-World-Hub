@@ -487,6 +487,7 @@ export default function ICMCalculatorPage() {
       </Head>
 
       <div
+        className="sp-training-tool sp-training-tool--analysis sp-analysis-icm"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
@@ -496,6 +497,7 @@ export default function ICMCalculatorPage() {
       >
         {/* Header */}
         <div
+          className="sp-training-analysis-header"
           style={{
             padding: '20px 24px 12px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -547,7 +549,7 @@ export default function ICMCalculatorPage() {
           </div>
         </div>
 
-        <div style={{ padding: '16px 24px', maxWidth: 700, margin: '0 auto' }}>
+        <div className="sp-training-analysis-main" style={{ padding: '16px 24px', maxWidth: 700, margin: '0 auto' }}>
           {/* Quick Presets */}
           <div style={{ marginBottom: 14 }}>
             <div
@@ -851,6 +853,7 @@ export default function ICMCalculatorPage() {
           {/* Calculate Button */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             <motion.button
+              className="sp-analysis-primary-action"
               whileTap={{ scale: 0.97 }}
               onClick={calculate}
               disabled={loading}

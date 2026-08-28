@@ -239,6 +239,7 @@ export default function WeaknessScannerPage() {
         <title>Weakness Scanner | Smarter.Poker Training</title>
       </Head>
       <div
+        className="sp-training-tool sp-training-tool--analysis sp-analysis-weakness"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -247,6 +248,7 @@ export default function WeaknessScannerPage() {
         }}
       >
         <div
+          className="sp-training-analysis-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -283,7 +285,7 @@ export default function WeaknessScannerPage() {
           </div>
         </div>
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className="sp-training-analysis-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {/* Time Filter */}
           <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
             {[{ id: '7d', label: 'Last 7 Days' }, { id: '30d', label: 'Last 30 Days' }, { id: 'all', label: 'All Time' }].map(f => (

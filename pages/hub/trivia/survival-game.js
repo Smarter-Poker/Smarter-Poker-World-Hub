@@ -464,7 +464,10 @@ export default function SurvivalGamePage() {
             return false;
         }
         try {
-            const charge = await DiamondEngine.deduct(cost, source);
+            const charge = await DiamondEngine.deduct(cost, source, {
+                description: 'Survival Trivia skip lifeline',
+                referenceId: `trivia_lifeline:${serverRun.sessionId}:${currentQuestion?.id}:skip`,
+            });
             if (!charge.success) {
                 setShowOutOfDiamonds(true);
                 return false;

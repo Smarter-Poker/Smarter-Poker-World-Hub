@@ -359,7 +359,21 @@ export default async function handler(req, res) {
           // Set headers
           res.setHeader('Content-Type', 'text/html; charset=utf-8');
           res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-          res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+          // The proxy serves untrusted publisher markup from a smarter.poker URL.
+          // Force an opaque sandbox even when this endpoint is opened directly;
+          // scripts can render the article but cannot inherit our application origin.
+          res.setHeader('Content-Security-Policy', [
+              "default-src https: data: blob: 'unsafe-inline' 'unsafe-eval'",
+              "img-src https: data: blob:",
+              "media-src https: blob:",
+              "style-src https: 'unsafe-inline'",
+              "font-src https: data:",
+              "frame-src https:",
+              "object-src 'none'",
+              "base-uri https:",
+              "frame-ancestors 'self'",
+              'sandbox allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox',
+          ].join('; '));
           res.setHeader('X-Content-Type-Options', 'nosniff');
           res.setHeader('X-Proxy-Source', targetOrigin);
           res.setHeader('X-Proxy-Success', 'true');

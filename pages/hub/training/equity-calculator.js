@@ -745,6 +745,7 @@ export default function EquityCalculatorPage() {
       </Head>
 
       <div
+        className="sp-training-tool sp-training-tool--analysis sp-analysis-equity"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
@@ -754,6 +755,7 @@ export default function EquityCalculatorPage() {
       >
         {/* Header */}
         <div
+          className="sp-training-analysis-header"
           style={{
             padding: '20px 24px 16px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -806,7 +808,7 @@ export default function EquityCalculatorPage() {
         </div>
 
         {/* Main Content */}
-        <div style={{ padding: '20px 24px', maxWidth: 700, margin: '0 auto' }}>
+        <div className="sp-training-analysis-main" style={{ padding: '20px 24px', maxWidth: 700, margin: '0 auto' }}>
           {/* Player Count */}
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 16 }}>
             <span
@@ -823,6 +825,7 @@ export default function EquityCalculatorPage() {
             {[2, 3, 4].map((n) => (
               <button
                 key={n}
+                aria-pressed={numPlayers === n}
                 onClick={() => changePlayerCount(n)}
                 style={{
                   padding: '6px 14px',
@@ -904,6 +907,7 @@ export default function EquityCalculatorPage() {
           {/* Action Buttons */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
             <button
+              className="sp-analysis-primary-action"
               onClick={calculate}
               disabled={!canCalculate || loading}
               style={{

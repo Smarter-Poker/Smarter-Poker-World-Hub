@@ -115,6 +115,7 @@ export default function RiskAnalyzerPage() {
         <title>Risk Analyzer | Smarter.Poker Training</title>
       </Head>
       <div
+        className="sp-training-tool sp-training-tool--analysis sp-analysis-risk"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: '#0B0D11',
@@ -125,6 +126,7 @@ export default function RiskAnalyzerPage() {
       >
         {/* Header */}
         <div
+          className="sp-training-analysis-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -155,6 +157,7 @@ export default function RiskAnalyzerPage() {
         </div>
 
         <div
+          className="sp-training-analysis-main sp-risk-analysis-layout"
           style={{
             maxWidth: 1000,
             margin: '40px auto',
@@ -166,6 +169,7 @@ export default function RiskAnalyzerPage() {
         >
           {/* Controls */}
           <div
+            className="sp-analysis-control-deck"
             style={{
               flex: '1 1 350px',
               background: 'rgba(255,255,255,0.02)',
@@ -235,6 +239,7 @@ export default function RiskAnalyzerPage() {
             </div>
 
             <motion.button
+              className="sp-analysis-primary-action"
               whileTap={{ scale: 0.96 }}
               onClick={runMonteCarlo}
               disabled={simulating}
@@ -256,7 +261,7 @@ export default function RiskAnalyzerPage() {
           </div>
 
           {/* Output & Chart */}
-          <div style={{ flex: '2 1 450px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className="sp-analysis-output-deck" style={{ flex: '2 1 450px', display: 'flex', flexDirection: 'column', gap: 20 }}>
             {riskOfRuin !== null && !simulating ? (
               <AnimatePresence>
                 <motion.div
