@@ -10,17 +10,17 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { getVideoPlaylists, createPlaylist, addVideoToPlaylist, removeVideoFromPlaylist } from '../../src/services/videoPlaylists';
-import { supabase } from '../../src/lib/supabase';
 import { getAccessToken } from '../../src/lib/authUtils';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import VideoLibraryCommandRail from '../../src/components/video-library/VideoLibraryCommandRail';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 import { getVideoLibraryPreferences, updateVideoLibraryPreferences } from '../../src/services/videoLibraryPreferences';
 import { getVideoFavorites, addVideoFavorite, removeVideoFavorite } from '../../src/services/videoFavorites';
 import { getWatchLater, addToWatchLater, removeFromWatchLater } from '../../src/services/videoWatchLater';
-import { updateWatchDuration, getWatchedVideos, getWatchProgress, getRecentlyWatched, removeFromWatchHistory } from '../../src/services/videoWatchHistory';
+import { updateWatchDuration, flushWatchDuration, getWatchedVideos, getWatchProgress, getRecentlyWatched, removeFromWatchHistory } from '../../src/services/videoWatchHistory';
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
@@ -37,38 +37,6 @@ import {
     FULL_VIDEOS as STATIC_VIDEOS,
     SOURCES
 } from '../../src/data/videoLibraryData';
-
-/** Format a raw view count number into a short human-readable string */
-function formatViews(n) {
-    if (!n || n === 0) return '';
-    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
-    return String(n);
-}
-
-/** Normalise a DB video_library_videos row to match the FULL_VIDEOS shape */
-function normaliseDbVideo(row) {
-    // views_text may be '0' or null for some static-seeded rows — fall back to views_count
-    const viewsText = (row.views_text && row.views_text !== '0')
-        ? row.views_text
-        : formatViews(row.views_count);
-    return {
-        id: row.youtube_video_id,
-        videoId: row.youtube_video_id,
-        source: row.source_id,
-        type: row.type || 'cash',
-        title: row.title,
-        views: viewsText || '',
-        duration: row.duration || '',
-        thumbnail: row.thumbnail_url || `https://img.youtube.com/vi/${row.youtube_video_id}/maxresdefault.jpg`,
-        publishedAt: row.published_at,
-        scrapedAt: row.scraped_at,
-        tags: Array.isArray(row.tags) ? row.tags : (row.tags || []),
-        legacyId: STATIC_VIDEO_CANONICAL_ALIASES.get(row.youtube_video_id) || null,
-        // Sort key: prefer published_at when it's a real date (not today), else use scraped_at
-        _sortKey: row.published_at,
-    };
-}
 
 // Persistence uses YouTube's video ID as the canonical key. The legacy static
 // catalog used display-only aliases (hcl1, lodge1, ...), which orphaned saved
@@ -96,6 +64,7 @@ const LIBRARY_VIEW_OPTIONS = [
     { id: 'favorites', label: 'Favorites', shortLabel: 'Favorites', symbol: '♥' },
     { id: 'watchlater', label: 'Watch Later', shortLabel: 'Watch Later', symbol: '▣' },
     { id: 'history', label: 'Watch History', shortLabel: 'History', symbol: '↺' },
+    { id: 'playlists', label: 'Playlists', shortLabel: 'Playlists', symbol: '≡' },
 ];
 
 const LIBRARY_VIEW_META = {
@@ -119,6 +88,11 @@ const LIBRARY_VIEW_META = {
         title: 'Watch History',
         description: 'Resume recent sessions or revisit videos you have already studied.',
     },
+    playlists: {
+        kicker: 'Personal library · Playlists',
+        title: 'Playlist Videos',
+        description: 'Browse every video organized inside your named study playlists.',
+    },
 };
 
 class VideoLibraryReelsBoundary extends Component {
@@ -133,6 +107,7 @@ class VideoLibraryReelsBoundary extends Component {
 
     componentDidCatch(error, errorInfo) {
         console.warn('[VideoLibraryReelsBoundary]', error, errorInfo);
+        reportVideoLibraryIssue('reels_boundary', error);
     }
 
     render() {
@@ -149,25 +124,6 @@ class VideoLibraryReelsBoundary extends Component {
             </div>
         );
     }
-}
-
-// ─── Pure helpers at module scope (must be here, not inside the component).
-// Placing them inside the component caused a TDZ crash during SSR prerendering:
-// useMemo(trendingScores) references parseViews before its `const` declaration
-// when the minifier reorders declarations, producing "Cannot access 'e8' before
-// initialization" and breaking the /hub/video-library static build step.
-
-/** Parse views string ('1.5K' → 1500, '2.3M' → 2300000, '800' → 800) */
-function parseViews(v) {
-    if (!v) return 0;
-    const s = String(v).trim();
-    const m = s.match(/^([0-9.]+)\s*([KMkm])?/);
-    if (!m) return 0;
-    const num = parseFloat(m[1]) || 0;
-    const suffix = (m[2] || '').toUpperCase();
-    if (suffix === 'M') return Math.round(num * 1_000_000);
-    if (suffix === 'K') return Math.round(num * 1_000);
-    return Math.round(num);
 }
 
 /** Parse duration string (e.g., "18:34" or "1:23:45") to seconds */
@@ -249,7 +205,21 @@ function recoverYouTubeThumbnail(event, videoId) {
         image.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
     } else if (image.src.includes('hqdefault')) {
         image.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+    } else if (event.type === 'error') {
+        image.hidden = true;
+        image.parentElement?.classList.add('vl-media-failed');
     }
+}
+
+function reportVideoLibraryIssue(event, error) {
+    if (typeof window === 'undefined') return;
+    const message = String(error?.message || error || 'Unknown client failure').slice(0, 500);
+    void fetch('/api/video-library/client-error', {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event, message }),
+    }).catch(() => { /* reporting must never interrupt the user flow */ });
 }
 
 export default function VideoLibraryPage() {
@@ -277,53 +247,15 @@ export default function VideoLibraryPage() {
 
     // Local state — initialise with static data instantly, then hydrate from DB
     const [videos, setVideos] = useState(STATIC_CATALOG);
-    const [displayedCount, setDisplayedCount] = useState(30);
+    const [displayedCount, setDisplayedCount] = useState(STATIC_CATALOG.length);
     const [allVideos, setAllVideos] = useState(STATIC_CATALOG); // unfiltered master list
     const [catalogRefreshFailed, setCatalogRefreshFailed] = useState(false);
-
-    // Fetch live videos from Supabase (replaces / extends static list)
-    useEffect(() => {
-        let cancelled = false;
-        const PAGE_SIZE = 1000;
-        let allDbVideos = [];
-
-        async function fetchAllPages() {
-            setCatalogRefreshFailed(false);
-            let from = 0;
-            while (true) {
-                const { data, error } = await supabase
-                    .from('video_library_videos')
-                    .select('youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at, tags')
-                    .order('scraped_at', { ascending: false })
-                    .range(from, from + PAGE_SIZE - 1);
-                if (cancelled) return;
-                if (error) throw error;
-                if (!data || data.length === 0) break;
-                allDbVideos = allDbVideos.concat(data.map(normaliseDbVideo));
-                if (data.length < PAGE_SIZE) break; // last page
-                from += PAGE_SIZE;
-            }
-            if (cancelled) return;
-            // Deduplicate by videoId (DB takes precedence over static)
-            const seen = new Set();
-            const deduped = [];
-            for (const v of allDbVideos) {
-                if (!seen.has(v.videoId)) { seen.add(v.videoId); deduped.push(v); }
-            }
-            const dbIds = seen;
-            // Include any static-only videos not yet in DB (safety net fallback)
-            const staticOnly = STATIC_CATALOG.filter(v => !dbIds.has(v.videoId));
-            const merged = [...deduped, ...staticOnly];
-            setAllVideos(merged);
-            setVideos(merged);
-        }
-
-        fetchAllPages().catch(error => {
-            console.warn('Video catalog refresh failed; using static fallback:', error);
-            if (!cancelled) setCatalogRefreshFailed(true);
-        });
-        return () => { cancelled = true; };
-    }, []);
+    const [catalogLoading, setCatalogLoading] = useState(true);
+    const [catalogLoadingMore, setCatalogLoadingMore] = useState(false);
+    const [catalogTotal, setCatalogTotal] = useState(STATIC_CATALOG.length);
+    const [catalogHasMore, setCatalogHasMore] = useState(false);
+    const catalogAbortRef = useRef(null);
+    const catalogRequestRef = useRef(0);
 
 
     // Handle query parameters for deep linking
@@ -334,16 +266,29 @@ export default function VideoLibraryPage() {
     const handleCloseVideoRef = useRef(null);
     const saveWatchSessionRef = useRef(null);
     const openedQueryVideoRef = useRef(null);
+    const queryVideoFetchRef = useRef(null);
     const hadNavigationQueryRef = useRef(false);
+    const lastNavigationQueryRef = useRef(null);
     useEffect(() => {
         if (!router.isReady) return;
 
-        const hasNavigationQuery = Boolean(router.query.type || router.query.source || router.query.filter);
+        const navigationQueryKey = JSON.stringify({
+            type: router.query.type || '',
+            source: router.query.source || '',
+            filter: router.query.filter || '',
+            q: router.query.q || '',
+            sort: router.query.sort || '',
+        });
+        const navigationQueryChanged = lastNavigationQueryRef.current !== navigationQueryKey;
+        if (navigationQueryChanged) {
+        lastNavigationQueryRef.current = navigationQueryKey;
+        const hasNavigationQuery = Boolean(router.query.type || router.query.source || router.query.filter || router.query.q || router.query.sort);
         if (!hasNavigationQuery && hadNavigationQueryRef.current) {
             setSelectedType('ALL');
             setSelectedSource('ALL');
             setLibraryFilter('ALL');
             setSearchQuery('');
+            setSortMode('default');
         }
         hadNavigationQueryRef.current = hasNavigationQuery;
 
@@ -352,8 +297,9 @@ export default function VideoLibraryPage() {
             if (!router.query.source) setSelectedSource('ALL');
             if (!router.query.filter) {
                 setLibraryFilter('ALL');
-                setSearchQuery('');
             }
+            if (!router.query.q) setSearchQuery('');
+            if (!router.query.sort) setSortMode('default');
         }
 
         if (router.query.type) {
@@ -375,11 +321,22 @@ export default function VideoLibraryPage() {
         if (router.query.filter) {
             const requestedFilter = Array.isArray(router.query.filter) ? router.query.filter[0] : router.query.filter;
             const f = String(requestedFilter).toLowerCase();
-            if (f === 'favorites' || f === 'history' || f === 'watchlater') {
+            if (f === 'favorites' || f === 'history' || f === 'watchlater' || f === 'playlists') {
                 setLibraryFilter(f);
             } else {
                 setSearchQuery(String(requestedFilter));
             }
+        }
+        if (router.query.q) {
+            const requestedSearch = Array.isArray(router.query.q) ? router.query.q[0] : router.query.q;
+            setSearchQuery(String(requestedSearch).slice(0, 80));
+        }
+        if (router.query.sort) {
+            const requestedSort = Array.isArray(router.query.sort) ? router.query.sort[0] : router.query.sort;
+            if (['default', 'trending', 'top_rated'].includes(String(requestedSort))) {
+                setSortMode(String(requestedSort));
+            }
+        }
         }
         // ?v=VIDEO_ID — auto-open a specific video
         if (router.query.v && allVideos.length > 0) {
@@ -394,6 +351,7 @@ export default function VideoLibraryPage() {
         }
     }, [router.isReady, router.query, allVideos]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
     const [showReelsModal, setShowReelsModal] = useState(false);
     const searchInputRef = useRef(null);
     const filterRailRef = useRef(null);
@@ -446,14 +404,28 @@ export default function VideoLibraryPage() {
     const [watchProgress, setWatchProgress] = useState(new Map()); // video_id → { watchedSeconds, watchedAt }
     const watchProgressRef = useRef(new Map());
     const [recentlyWatched, setRecentlyWatched] = useState([]); // Recently watched videos
+    const [librarySyncState, setLibrarySyncState] = useState('idle'); // idle | loading | ready | partial | error
+    const [librarySyncErrors, setLibrarySyncErrors] = useState([]);
+    const refreshUserLibraryRef = useRef(null);
 
     // ── P3: Sort mode — 'default' | 'trending' | 'top_rated' ─────────────────
     const [sortMode, setSortMode] = useState('default');
+
+    const playlistVideoIds = useMemo(() => new Set(
+        playlists.flatMap(playlist => (playlist.items || []).map(item => canonicalStoredVideoId(item.video_id)))
+    ), [playlists]);
 
     const personalViewCounts = {
         favorites: favorites.size,
         watchlater: watchLater.size,
         history: watchedVideos.size,
+        playlists: playlists.length,
+    };
+    const personalSavedVideoCounts = {
+        favorites: favorites.size,
+        watchlater: watchLater.size,
+        history: watchedVideos.size,
+        playlists: playlistVideoIds.size,
     };
     const currentViewMeta = LIBRARY_VIEW_META[libraryFilter] || LIBRARY_VIEW_META.ALL;
 
@@ -477,6 +449,7 @@ export default function VideoLibraryPage() {
         setSelectedType(type);
         setLibraryFilter('ALL');
         setSearchQuery('');
+        setCatalogSearchQuery('');
         replaceNavigationQuery({ type: type === 'ALL' ? null : type, filter: null });
         keepRailButtonInView(button);
     };
@@ -485,6 +458,7 @@ export default function VideoLibraryPage() {
         setSelectedType('ALL');
         setLibraryFilter(filter);
         setSearchQuery('');
+        setCatalogSearchQuery('');
         replaceNavigationQuery({ type: null, filter });
         keepRailButtonInView(button);
     };
@@ -511,25 +485,6 @@ export default function VideoLibraryPage() {
         const activeSource = sourceRailRef.current?.querySelector('[aria-pressed="true"]');
         if (activeSource) keepRailButtonInView(activeSource);
     }, [selectedSource]);
-
-    // ── P3: Trending score — views × recency decay (7-day half-life)
-    // useMemo: stable Map reference — only recomputes when allVideos changes.
-    // CRITICAL: IIFE here would create a new Map every render, triggering the
-    // filter useEffect on every state change (infinite re-render loop in trending mode).
-    const trendingScores = useMemo(() => {
-        const now = Date.now();
-        const HALF_LIFE_MS = 7 * 24 * 3600 * 1000; // 7 days
-        const scores = new Map();
-        allVideos.forEach(v => {
-            const views = parseViews(v.views);
-            const scraped = v.scrapedAt || v.publishedAt;
-            const ageMs = scraped ? now - new Date(scraped).getTime() : HALF_LIFE_MS * 4;
-            const decay = Math.pow(2, -ageMs / HALF_LIFE_MS);
-            scores.set(v.id, views * decay + (ageMs < 3 * 24 * 3600 * 1000 ? 50000 : 0));
-        });
-        return scores;
-    }, [allVideos]); // ← stable dep: only recomputes when the video list changes
-
 
     // Command-status notice for copy, save, favorite, and history feedback.
     const [shareToast, setShareToast] = useState(null); // { message, videoId, tone, kind }
@@ -608,26 +563,7 @@ export default function VideoLibraryPage() {
 
 
     
-    // Infinite scroll observer — created once, uses functional updater so no dep on videos.length
     const loadMoreRef = useRef(null);
-    useEffect(() => {
-        if (displayedCount >= videos.length || !loadMoreRef.current) return;
-        const sentinel = loadMoreRef.current;
-        const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting) {
-                // Use the ref directly to get current videos count, avoiding stale closure
-                setDisplayedCount(prev => prev + 30);
-            }
-        }, { rootMargin: '400px' });
-        observer.observe(sentinel);
-        return () => observer.disconnect();
-    }, [displayedCount, videos.length]);
-
-    // Reset displayed count when filters OR sort mode changes
-    useEffect(() => {
-        setDisplayedCount(30);
-    // BUG-18 FIX: sortMode added — switching Trending/Top-Rated/Latest now resets pagination
-    }, [selectedSource, selectedType, searchQuery, sortMode, libraryFilter]);
 
     // Watch time tracking
     const watchStartTimeRef = useRef(null);
@@ -669,16 +605,24 @@ export default function VideoLibraryPage() {
         if (!userId) {
             setPreferences({ autoplay: true, captions: false });
             clearUserLibrary();
+            setLibrarySyncState('idle');
+            setLibrarySyncErrors([]);
             return undefined;
         }
 
         clearUserLibrary();
+        setLibrarySyncState('loading');
+        setLibrarySyncErrors([]);
 
-        const refreshUserLibrary = async () => {
+        const refreshUserLibrary = async ({ force = false } = {}) => {
             const now = Date.now();
-            if (refreshInFlight || now - lastRefreshAt < 500) return;
+            if (refreshInFlight || (!force && now - lastRefreshAt < 500)) return;
             refreshInFlight = true;
             lastRefreshAt = now;
+            if (force) {
+                setLibrarySyncState('loading');
+                setLibrarySyncErrors([]);
+            }
             const results = await Promise.allSettled([
                 getVideoLibraryPreferences(userId),
                 getVideoFavorites(userId),
@@ -715,11 +659,19 @@ export default function VideoLibraryPage() {
                 }));
             }
             if (playlistResult.status === 'fulfilled') setPlaylists(playlistResult.value);
-            if (results.some(result => result.status === 'rejected')) {
+            const resourceNames = ['settings', 'favorites', 'Watch Later', 'history', 'progress', 'recent sessions', 'playlists'];
+            const failedResources = results
+                .map((result, index) => result.status === 'rejected' ? resourceNames[index] : null)
+                .filter(Boolean);
+            setLibrarySyncErrors(failedResources);
+            setLibrarySyncState(failedResources.length === 0 ? 'ready' : failedResources.length === results.length ? 'error' : 'partial');
+            if (failedResources.length > 0) {
+                reportVideoLibraryIssue('library_sync', new Error(`Failed resources: ${failedResources.join(', ')}`));
                 showActionNotice('Some saved library data could not be refreshed. Try again.', { tone: 'error' });
             }
         };
 
+        refreshUserLibraryRef.current = refreshUserLibrary;
         void refreshUserLibrary();
         const refreshOnVisible = () => {
             if (document.visibilityState === 'visible') void refreshUserLibrary();
@@ -728,6 +680,7 @@ export default function VideoLibraryPage() {
         document.addEventListener('visibilitychange', refreshOnVisible);
         return () => {
             cancelled = true;
+            refreshUserLibraryRef.current = null;
             if (watchSessionUserIdRef.current === userId) {
                 const startTime = watchStartTimeRef.current;
                 const video = currentWatchingVideoRef.current;
@@ -1077,49 +1030,176 @@ export default function VideoLibraryPage() {
         }
     }, [userId, showActionNotice]);
 
-    // Filter videos (runs when any filter changes OR when DB data loads)
+    const personalIdsForFilter = useMemo(() => {
+        if (libraryFilter === 'favorites') return [...favorites];
+        if (libraryFilter === 'watchlater') return [...watchLater];
+        if (libraryFilter === 'history') return [...watchedVideos];
+        if (libraryFilter === 'playlists') return [...playlistVideoIds];
+        return [];
+    }, [libraryFilter, favorites, watchLater, watchedVideos, playlistVideoIds]);
+
+    // Search and order are first-class URL state, just like source/type/library.
+    // A small debounce keeps typing responsive and produces useful back-button
+    // history without issuing a catalog request for every keypress.
     useEffect(() => {
-        let filtered = allVideos;
-        if (selectedType !== 'ALL') {
-            filtered = filtered.filter(v => v.type === selectedType);
-        }
-        if (selectedSource !== 'ALL') {
-            filtered = filtered.filter(v => v.source === selectedSource);
-        }
+        if (!router.isReady) return undefined;
+        const timer = setTimeout(() => {
+            setCatalogSearchQuery(searchQuery);
+            const currentQuery = Array.isArray(router.query.q) ? router.query.q[0] : (router.query.q || '');
+            if (String(currentQuery) !== searchQuery) replaceNavigationQuery({ q: searchQuery || null });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [router.isReady, router.query.q, searchQuery, replaceNavigationQuery]);
 
+    const fetchCatalogPage = useCallback(async ({ append = false, offset = 0 } = {}) => {
         if (libraryFilter !== 'ALL') {
-            const set = libraryFilter === 'favorites' ? favorites
-                : libraryFilter === 'watchlater' ? watchLater
-                : watchedVideos;
-            filtered = filtered.filter(v => set.has(v.id));
+            if (!userId) {
+                catalogAbortRef.current?.abort();
+                setAllVideos([]);
+                setVideos([]);
+                setCatalogTotal(0);
+                setCatalogHasMore(false);
+                setDisplayedCount(0);
+                setCatalogLoading(false);
+                return;
+            }
+            if (librarySyncState === 'loading') return;
+            if (personalIdsForFilter.length === 0) {
+                setAllVideos([]);
+                setVideos([]);
+                setCatalogTotal(0);
+                setCatalogHasMore(false);
+                setDisplayedCount(0);
+                setCatalogLoading(false);
+                return;
+            }
         }
 
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            filtered = filtered.filter(v =>
-                v.title.toLowerCase().includes(q) ||
-                v.source.toLowerCase().includes(q) ||
-                (v.tags && v.tags.some(t => t.toLowerCase().includes(q)))
-            );
+        const requestId = ++catalogRequestRef.current;
+        catalogAbortRef.current?.abort();
+        const controller = new AbortController();
+        catalogAbortRef.current = controller;
+        if (append) setCatalogLoadingMore(true);
+        else {
+            setCatalogLoading(true);
+            setAllVideos([]);
+            setVideos([]);
+            setDisplayedCount(0);
         }
-        // Apply sort mode
-        if (sortMode === 'trending') {
-            filtered = [...filtered].sort((a, b) => (trendingScores.get(b.id) || 0) - (trendingScores.get(a.id) || 0));
-        } else if (sortMode === 'top_rated') {
-            // FIX: was regex-based parser that gave '2.3M' → 23,000,000 (10x wrong)
-            // parseViews() correctly handles decimals: '2.3M' → 2,300,000
-            filtered = [...filtered].sort((a, b) => parseViews(b.views) - parseViews(a.views));
-        } else {
-            // Default: watched videos sink to bottom
-            filtered = [...filtered].sort((a, b) => {
-                const aWatched = watchedVideos.has(a.id);
-                const bWatched = watchedVideos.has(b.id);
-                if (aWatched === bWatched) return 0;
-                return aWatched ? 1 : -1;
+        setCatalogRefreshFailed(false);
+
+        const params = new URLSearchParams({ limit: '30', offset: String(offset) });
+        if (selectedSource !== 'ALL') params.set('source', selectedSource);
+        if (selectedType !== 'ALL') params.set('type', selectedType);
+        if (catalogSearchQuery.trim()) params.set('q', catalogSearchQuery.trim());
+        if (sortMode !== 'default') params.set('sort', sortMode);
+        if (libraryFilter !== 'ALL') params.set('ids', personalIdsForFilter.join(','));
+
+        try {
+            const response = await fetch(`/api/video-library/catalog?${params.toString()}`, {
+                signal: controller.signal,
+                headers: { Accept: 'application/json' },
             });
+            if (!response.ok) throw new Error(`Catalog request failed (${response.status})`);
+            const payload = await response.json();
+            if (!payload?.success || !Array.isArray(payload.data)) throw new Error('Catalog response was invalid');
+            if (requestId !== catalogRequestRef.current) return;
+
+            const pageVideos = payload.data.map(video => ({
+                ...video,
+                legacyId: STATIC_VIDEO_CANONICAL_ALIASES.get(video.videoId) || null,
+            }));
+            const mergePage = previous => {
+                const combined = append ? [...previous, ...pageVideos] : pageVideos;
+                const seen = new Set();
+                return combined.filter(video => {
+                    if (!video?.videoId || seen.has(video.videoId)) return false;
+                    seen.add(video.videoId);
+                    return true;
+                });
+            };
+            setAllVideos(mergePage);
+            setVideos(previous => {
+                const next = mergePage(previous);
+                setDisplayedCount(next.length);
+                return next;
+            });
+            setCatalogTotal(Number(payload.pagination?.total || pageVideos.length));
+            setCatalogHasMore(Boolean(payload.pagination?.hasMore));
+        } catch (error) {
+            if (error?.name === 'AbortError' || requestId !== catalogRequestRef.current) return;
+            console.warn('Video catalog refresh failed; using static fallback:', error);
+            reportVideoLibraryIssue('catalog_load', error);
+            setCatalogRefreshFailed(true);
+            if (!append) {
+                let fallback = STATIC_CATALOG;
+                if (selectedType !== 'ALL') fallback = fallback.filter(video => video.type === selectedType);
+                if (selectedSource !== 'ALL') fallback = fallback.filter(video => video.source === selectedSource);
+                if (libraryFilter !== 'ALL') {
+                    const ids = new Set(personalIdsForFilter);
+                    fallback = fallback.filter(video => ids.has(video.id));
+                }
+                if (catalogSearchQuery.trim()) {
+                    const query = catalogSearchQuery.trim().toLowerCase();
+                    fallback = fallback.filter(video => `${video.title} ${video.source} ${(video.tags || []).join(' ')}`.toLowerCase().includes(query));
+                }
+                setAllVideos(fallback);
+                setVideos(fallback);
+                setDisplayedCount(fallback.length);
+                setCatalogTotal(fallback.length);
+                setCatalogHasMore(false);
+            }
+        } finally {
+            if (requestId === catalogRequestRef.current) {
+                setCatalogLoading(false);
+                setCatalogLoadingMore(false);
+            }
         }
-        setVideos(filtered);
-    }, [selectedSource, selectedType, searchQuery, watchedVideos, allVideos, sortMode, trendingScores, libraryFilter, favorites, watchLater]);
+    }, [libraryFilter, userId, librarySyncState, personalIdsForFilter, selectedSource, selectedType, catalogSearchQuery, sortMode]);
+
+    useEffect(() => {
+        void fetchCatalogPage({ append: false });
+        return () => catalogAbortRef.current?.abort();
+    }, [selectedSource, selectedType, catalogSearchQuery, sortMode, libraryFilter, userId, librarySyncState, personalIdsForFilter, fetchCatalogPage]);
+
+    // A shared video deep link may point beyond the currently paginated page.
+    // Resolve that one catalog row directly rather than downloading the whole
+    // archive or silently leaving the requested video closed.
+    useEffect(() => {
+        if (!router.isReady || !router.query.v || !handleOpenVideoRef.current) return undefined;
+        const requestedVideoId = String(Array.isArray(router.query.v) ? router.query.v[0] : router.query.v);
+        if (openedQueryVideoRef.current === requestedVideoId || allVideos.some(video => video.videoId === requestedVideoId)) return undefined;
+        if (queryVideoFetchRef.current === requestedVideoId) return undefined;
+        queryVideoFetchRef.current = requestedVideoId;
+        const controller = new AbortController();
+        fetch(`/api/video-library/catalog?limit=1&ids=${encodeURIComponent(requestedVideoId)}`, { signal: controller.signal })
+            .then(response => response.ok ? response.json() : Promise.reject(new Error(`Deep-link catalog request failed (${response.status})`)))
+            .then(payload => {
+                const video = payload?.data?.[0];
+                if (!video || openedQueryVideoRef.current === requestedVideoId || !handleOpenVideoRef.current) return;
+                openedQueryVideoRef.current = requestedVideoId;
+                handleOpenVideoRef.current({
+                    ...video,
+                    legacyId: STATIC_VIDEO_CANONICAL_ALIASES.get(video.videoId) || null,
+                });
+            })
+            .catch(error => {
+                if (error?.name !== 'AbortError') reportVideoLibraryIssue('catalog_load', error);
+            });
+        return () => controller.abort();
+    }, [router.isReady, router.query.v, allVideos]);
+
+    // Server-backed infinite pagination. The current response is appended only
+    // if it still belongs to the latest filter/search request.
+    useEffect(() => {
+        if (!catalogHasMore || catalogLoading || catalogLoadingMore || !loadMoreRef.current) return undefined;
+        const sentinel = loadMoreRef.current;
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) void fetchCatalogPage({ append: true, offset: videos.length });
+        }, { rootMargin: '400px' });
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [displayedCount, videos.length, catalogHasMore, catalogLoading, catalogLoadingMore, fetchCatalogPage]);
 
 
     // Keyboard navigation in modal
@@ -1365,9 +1445,20 @@ export default function VideoLibraryPage() {
             pendingFlushRef.current = true;
             const startTime = watchStartTimeRef.current;
             const video = currentWatchingVideoRef.current;
+            const watchedSeconds = Math.floor((Date.now() - startTime) / 1000);
             watchStartTimeRef.current = null;
             currentWatchingVideoRef.current = null;
-            void saveWatchSession(startTime, video, { quiet: true });
+            if (watchedSeconds > 0) {
+                void flushWatchDuration(video.id, watchedSeconds, {
+                    title: video.title,
+                    thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`,
+                    durationSeconds: parseDuration(video.duration),
+                    progressSeconds: playerPositionRef.current,
+                }).catch(error => {
+                    console.warn('[video-library] lifecycle progress flush failed:', error);
+                    reportVideoLibraryIssue('watch_progress_flush', error);
+                });
+            }
             // Reset debounce after 2s
             setTimeout(() => { pendingFlushRef.current = false; }, 2000);
         };
@@ -1386,14 +1477,14 @@ export default function VideoLibraryPage() {
             document.removeEventListener('visibilitychange', onVisibilityChange);
             window.removeEventListener('beforeunload', flushWatchTime);
         };
-    }, [userId, selectedVideo, saveWatchSession]);
+    }, [userId, selectedVideo]);
 
     const activeSourceName = SOURCES.find(source => source?.id === selectedSource)?.name || selectedSource;
     const activeFilterLabels = [
         selectedType !== 'ALL' ? (selectedType === 'cash' ? 'Cash Games' : 'Tournaments') : null,
         selectedSource !== 'ALL' ? activeSourceName : null,
         sortMode !== 'default' ? (sortMode === 'trending' ? 'Trending' : 'Top Rated') : null,
-        libraryFilter !== 'ALL' ? ({ favorites: 'Favorites', history: 'Watch History', watchlater: 'Watch Later' }[libraryFilter] || libraryFilter) : null,
+        libraryFilter !== 'ALL' ? ({ favorites: 'Favorites', history: 'Watch History', watchlater: 'Watch Later', playlists: 'Playlists' }[libraryFilter] || libraryFilter) : null,
         searchQuery ? `Search: “${searchQuery}”` : null,
     ].filter(Boolean);
     const hasActiveFilters = activeFilterLabels.length > 0;
@@ -1412,7 +1503,7 @@ export default function VideoLibraryPage() {
                 copy: userId
                     ? 'Favorite a video in the viewer and it will be waiting here for your next study session.'
                     : 'Sign in through the Hub to load and sync your favorite videos across devices.',
-                action: 'Browse All Videos',
+                action: userId ? 'Browse All Videos' : 'Sign In To Sync',
             }
             : libraryFilter === 'watchlater'
                 ? {
@@ -1421,7 +1512,7 @@ export default function VideoLibraryPage() {
                     copy: userId
                         ? 'Save a video from the viewer to build a focused study queue.'
                         : 'Sign in through the Hub to load and sync your Watch Later queue.',
-                    action: 'Browse All Videos',
+                    action: userId ? 'Browse All Videos' : 'Sign In To Sync',
                 }
                 : libraryFilter === 'history'
                     ? {
@@ -1430,8 +1521,17 @@ export default function VideoLibraryPage() {
                         copy: userId
                             ? 'Start a video and your recent sessions will appear here automatically.'
                             : 'Sign in through the Hub to resume your recent study sessions across devices.',
-                        action: 'Browse All Videos',
+                        action: userId ? 'Browse All Videos' : 'Sign In To Sync',
                     }
+                    : libraryFilter === 'playlists'
+                        ? {
+                            eyebrow: 'Playlists',
+                            title: userId ? 'No Playlist Videos Yet' : 'Playlists Need Your Profile',
+                            copy: userId
+                                ? 'Add a video to a named playlist from the viewer and it will appear here.'
+                                : 'Sign in through the Hub to load and sync your study playlists across devices.',
+                            action: userId ? 'Browse All Videos' : 'Sign In To Sync',
+                        }
                     : {
                         eyebrow: 'Filter complete',
                         title: 'No Videos In This View',
@@ -1441,18 +1541,23 @@ export default function VideoLibraryPage() {
 
     const clearAllFilters = () => {
         setSearchQuery('');
+        setCatalogSearchQuery('');
         setSelectedSource('ALL');
         setSelectedType('ALL');
         setSortMode('default');
         setLibraryFilter('ALL');
-        if (router.query.type || router.query.source || router.query.filter) {
-            const { type: _type, source: _source, filter: _filter, ...nextQuery } = router.query;
+        if (router.query.type || router.query.source || router.query.filter || router.query.q || router.query.sort) {
+            const { type: _type, source: _source, filter: _filter, q: _q, sort: _sort, ...nextQuery } = router.query;
             hadNavigationQueryRef.current = false;
             void router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false });
         }
     };
 
     const handleEmptyStateAction = () => {
+        if (!userId && libraryFilter !== 'ALL' && !searchQuery) {
+            void router.push(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
+            return;
+        }
         const returningFromSearch = Boolean(searchQuery);
         clearAllFilters();
         requestAnimationFrame(() => {
@@ -1508,172 +1613,24 @@ export default function VideoLibraryPage() {
                 </div>
 
                 <div className="vl-command-layout">
-                    <aside className="vl-command-rail" aria-label="Video library filters">
-                        <div className="vl-rail-kicker">Smarter.Poker Hub</div>
-                        <h1 className="vl-rail-title">Video <span>Library</span></h1>
-
-                    {/* Type, sort, and format filters */}
-                    <div ref={filterRailRef} className="vl-type-toggle-row" role="group" aria-label="Browse and sort videos" style={{
-                        display: 'flex',
-                        gap: 8,
-                        marginBottom: 16,
-                        justifyContent: 'flex-start',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        rowGap: 8,
-                    }}>
-                        <span className="vl-filter-group-label">Browse</span>
-                        {[
-                            { id: 'ALL',        name: 'All Videos' },
-                            { id: 'cash',       name: 'Cash Games' },
-                            { id: 'tournament', name: 'Tournaments' },
-                        ].map(type => {
-                            const isActive = selectedType === type.id && libraryFilter === 'ALL';
-                            return (
-                                <button
-                                    type="button"
-                                    key={type.id}
-                                    className={`vl-filter-button${isActive ? ' is-active' : ''}`}
-                                    data-filter-group="type"
-                                    aria-pressed={isActive}
-                                    aria-controls="video-library-grid"
-                                    onClick={(event) => {
-                                        selectBrowseView(type.id, event.currentTarget);
-                                    }}
-                                    style={{
-                                        padding: '9px 22px',
-                                        background: isActive
-                                            ? 'linear-gradient(135deg, #00B4D8 0%, #00D4FF 100%)'
-                                            : 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)',
-                                        border: isActive
-                                            ? '1.5px solid rgba(0,212,255,0.7)'
-                                            : '1.5px solid rgba(255,255,255,0.12)',
-                                        borderRadius: 10,
-                                        color: isActive ? '#fff' : 'rgba(255,255,255,0.75)',
-                                        fontSize: 13,
-                                        fontWeight: isActive ? 700 : 500,
-                                        cursor: 'pointer',
-                                        letterSpacing: '0.3px',
-                                        transition: 'all 0.2s ease',
-                                        transform: isActive ? 'translateY(-1px)' : 'none',
-                                        boxShadow: isActive
-                                            ? '0 0 16px rgba(0,212,255,0.35), 0 4px 12px rgba(0,0,0,0.4)'
-                                            : '0 2px 8px rgba(0,0,0,0.3)',
-                                        whiteSpace: 'nowrap',
-                                    }}
-                                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(0,212,255,0.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
-                                    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)'; e.currentTarget.style.transform = 'none'; } }}
-                                >
-                                    {type.name}
-                                </button>
-                            );
-                        })}
-
-                        <span className="vl-filter-group-label">My Library</span>
-                        {LIBRARY_VIEW_OPTIONS.map(view => {
-                            const isActive = libraryFilter === view.id;
-                            const count = personalViewCounts[view.id];
-                            return (
-                                <button
-                                    type="button"
-                                    key={view.id}
-                                    className={`vl-filter-button vl-library-filter${isActive ? ' is-active' : ''}`}
-                                    data-filter-group="library"
-                                    aria-label={`${view.label}, ${count} ${count === 1 ? 'video' : 'videos'}`}
-                                    aria-pressed={isActive}
-                                    aria-controls="video-library-grid"
-                                    onClick={(event) => selectPersonalView(view.id, event.currentTarget)}
-                                >
-                                    <span className="vl-filter-symbol" aria-hidden="true">{view.symbol}</span>
-                                    <span>{view.shortLabel}</span>
-                                    <span className="vl-filter-count" aria-hidden="true">{count}</span>
-                                </button>
-                            );
-                        })}
-
-                        {/* Sort Mode Buttons */}
-                        <span className="vl-filter-group-label">Order</span>
-                        {[
-                            { id: 'default',   label: 'Latest' },
-                            { id: 'trending',  label: '🔥 Trending' },
-                            { id: 'top_rated', label: '⭐ Top Rated' },
-                        ].map(s => {
-                            const isActive = sortMode === s.id;
-                            return (
-                                <button
-                                    type="button"
-                                    key={s.id}
-                                    className={`vl-filter-button vl-sort-button${isActive ? ' is-active' : ''}`}
-                                    data-filter-group="sort"
-                                    aria-label={`Sort videos by ${s.label.replace(/[🔥⭐]/gu, '').trim()}`}
-                                    aria-pressed={isActive}
-                                    aria-controls="video-library-grid"
-                                    onClick={(event) => {
-                                        setSortMode(s.id);
-                                        keepRailButtonInView(event.currentTarget);
-                                    }}
-                                    style={{
-                                        padding: '9px 18px',
-                                        background: isActive
-                                            ? 'linear-gradient(135deg, rgba(0,212,255,0.25) 0%, rgba(0,180,216,0.25) 100%)'
-                                            : 'rgba(255,255,255,0.04)',
-                                        border: isActive
-                                            ? '1.5px solid rgba(0,212,255,0.7)'
-                                            : '1.5px solid rgba(255,255,255,0.1)',
-                                        borderRadius: 10,
-                                        color: isActive ? '#00D4FF' : 'rgba(255,255,255,0.6)',
-                                        fontSize: 13,
-                                        fontWeight: isActive ? 700 : 500,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        whiteSpace: 'nowrap',
-                                        boxShadow: isActive ? '0 0 12px rgba(0,212,255,0.2)' : 'none',
-                                    }}
-                                >
-                                    {s.label}
-                                </button>
-                            );
-                        })}
-
-                        {/* Reels Button — opens TikTok doom-scroll */}
-                        <span className="vl-filter-group-label">Format</span>
-                        <button
-                            ref={reelsTriggerRef}
-                            type="button"
-                            id="vl-reels-tab-btn"
-                            className="vl-filter-button vl-reels-button"
-                            aria-label="Open the video Reels viewer"
-                            onClick={() => setShowReelsModal(true)}
-                            style={{
-                                padding: '9px 22px',
-                                background: 'linear-gradient(135deg, rgba(0,212,255,0.18) 0%, rgba(0,180,216,0.18) 100%)',
-                                border: '1.5px solid rgba(0,212,255,0.45)',
-                                borderRadius: 10,
-                                color: '#00D4FF',
-                                fontSize: 13,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                letterSpacing: '0.3px',
-                                transition: 'all 0.2s ease',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                whiteSpace: 'nowrap',
-                                boxShadow: '0 0 12px rgba(0,212,255,0.2), 0 2px 8px rgba(0,0,0,0.3)',
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,212,255,0.32) 0%, rgba(0,180,216,0.28) 100%)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(0,212,255,0.4), 0 4px 12px rgba(0,0,0,0.4)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,212,255,0.18) 0%, rgba(0,180,216,0.18) 100%)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 0 12px rgba(0,212,255,0.2), 0 2px 8px rgba(0,0,0,0.3)'; }}
-                        >
-                            <span style={{ fontSize: 15 }}>▶</span> Reels
-                        </button>
-
-                    </div>
-
-                    <div className="vl-rail-count" aria-live="polite">
-                        <strong>{videos.length}</strong>
-                        <span>videos showing</span>
-                    </div>
-                </aside>
+                    <VideoLibraryCommandRail
+                        ref={filterRailRef}
+                        selectedType={selectedType}
+                        libraryFilter={libraryFilter}
+                        sortMode={sortMode}
+                        libraryViews={LIBRARY_VIEW_OPTIONS}
+                        personalViewCounts={personalViewCounts}
+                        visibleCount={catalogLoading ? 0 : videos.length}
+                        onBrowse={selectBrowseView}
+                        onLibrary={selectPersonalView}
+                        onSort={(nextSortMode, button) => {
+                            setSortMode(nextSortMode);
+                            replaceNavigationQuery({ sort: nextSortMode === 'default' ? null : nextSortMode });
+                            keepRailButtonInView(button);
+                        }}
+                        onOpenReels={() => setShowReelsModal(true)}
+                        reelsTriggerRef={reelsTriggerRef}
+                    />
 
                 <main className="vl-command-main">
                     <div className="vl-command-bar">
@@ -1804,8 +1761,6 @@ export default function VideoLibraryPage() {
                                         transition: 'transform 0.2s ease',
                                         transform: isActive ? 'translateY(-5px)' : 'none',
                                     }}
-                                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.transform = 'translateY(-3px)'; }}
-                                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.transform = 'none'; }}
                                     title={source.name}
                                 >
                                     {/* Logo ring — glows cyan when active */}
@@ -1906,11 +1861,31 @@ export default function VideoLibraryPage() {
                                 <p>{currentViewMeta.description}</p>
                             </div>
                             <div className="vl-subview-status">
-                                <strong>{personalViewCounts[libraryFilter]}</strong>
-                                <span>{personalViewCounts[libraryFilter] === 1 ? 'video ready' : 'videos ready'}</span>
+                                <strong>{catalogTotal}</strong>
+                                <span>
+                                    {catalogTotal === 1 ? 'matching video' : 'matching videos'}
+                                    {userId ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
+                                </span>
                                 {!userId && <em>Sign in to sync</em>}
                             </div>
                         </section>
+                    )}
+
+                    {userId && libraryFilter !== 'ALL' && librarySyncState === 'loading' && (
+                        <div className="vl-sync-panel is-loading" role="status" aria-live="polite">
+                            <span className="vl-sync-pulse" aria-hidden="true" />
+                            <div><strong>Syncing your library</strong><span>Loading saved videos and cross-device progress.</span></div>
+                        </div>
+                    )}
+
+                    {userId && (librarySyncState === 'partial' || librarySyncState === 'error') && (
+                        <div className="vl-sync-panel is-error" role="alert">
+                            <div>
+                                <strong>{librarySyncState === 'error' ? 'Your library did not load' : 'Part of your library is offline'}</strong>
+                                <span>{librarySyncErrors.length ? `Retry ${librarySyncErrors.join(', ')}.` : 'Retry the saved-library connection.'}</span>
+                            </div>
+                            <button type="button" onClick={() => void refreshUserLibraryRef.current?.({ force: true })}>Retry Sync</button>
+                        </div>
                     )}
 
                     {hasActiveFilters && (
@@ -2069,19 +2044,17 @@ export default function VideoLibraryPage() {
                                     tabIndex={0}
                                     aria-label={`Play ${video.title}`}
                                     style={{ minWidth: 220, flexShrink: 0, cursor: 'pointer', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', transition: 'transform 0.18s, box-shadow 0.18s' }}
-                                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
                                 >
                                     <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
                                         <img src={getThumbnail(video.videoId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, video.videoId)} onError={event => recoverYouTubeThumbnail(event, video.videoId)} />
-                                        <div style={{ position: 'absolute', top: 6, left: 6, background: '#00D4FF', color: '#fff', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, letterSpacing: '0.5px' }}>NEW</div>
+                                        <div style={{ position: 'absolute', top: 6, left: 6, background: '#00D4FF', color: '#021017', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, letterSpacing: '0.5px' }}>NEW</div>
                                         {video.duration && (
                                             <div style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.8)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{video.duration}</div>
                                         )}
                                     </div>
                                     <div style={{ padding: 10 }}>
                                         <div style={{ color: '#fff', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{video.title}</div>
-                                        <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>{video.source.replace('_', ' ')}</div>
+                                        <div style={{ color: '#b7c4cb', fontSize: 10 }}>{video.source.replace('_', ' ')}</div>
                                     </div>
                                 </div>
                             ))}
@@ -2091,8 +2064,9 @@ export default function VideoLibraryPage() {
 
                 {/* Video Grid */}
                 {catalogRefreshFailed && (
-                    <div className="vl-catalog-notice" role="status">
-                        Live catalog refresh is temporarily unavailable. Showing the verified fallback library.
+                    <div className="vl-catalog-notice" role="alert">
+                        <span>Live catalog refresh is temporarily unavailable. Showing the verified fallback library.</span>
+                        <button type="button" onClick={() => void fetchCatalogPage({ append: false })}>Retry Catalog</button>
                     </div>
                 )}
                 <span className="vl-sr-only" role="status" aria-live="polite">
@@ -2109,14 +2083,22 @@ export default function VideoLibraryPage() {
                     gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
                     gap: 20,
                 }}>
-                    {videos.slice(0, Math.min(displayedCount, videos.length)).map((video, index) => {
+                    {catalogLoading && videos.length === 0 && Array.from({ length: 6 }, (_, index) => (
+                        <div key={`catalog-skeleton-${index}`} className="vl-video-skeleton" aria-hidden="true">
+                            <span className="vl-skeleton-media" />
+                            <span className="vl-skeleton-line is-wide" />
+                            <span className="vl-skeleton-line" />
+                        </div>
+                    ))}
+                    {!catalogLoading && videos.map((video, index) => {
                         const progress = getProgressPercent(video.id, video.duration);
                         const roundedProgress = Math.round(progress);
                         const openLabel = progress > 0 && progress < 95 ? 'Resume' : 'Play';
+                        const isFeatured = index === 0 && !hasActiveFilters && videos.length > 0;
                         return (
                         <div
                             key={video.id}
-                            className="metal-frame video-card-metal vl-video-card"
+                            className={`metal-frame video-card-metal vl-video-card${isFeatured ? ' is-featured' : ''}`}
                             style={{
                                 cursor: 'pointer',
                             }}
@@ -2144,20 +2126,8 @@ export default function VideoLibraryPage() {
                                         height: '100%',
                                         objectFit: 'cover',
                                     }}
-                                    onLoad={(e) => {
-                                        // YouTube returns 120x90 placeholder when maxres not available
-                                        if (e.target.naturalWidth <= 120 && !e.target.src.includes('hqdefault')) {
-                                            e.target.src = `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`;
-                                        }
-                                    }}
-                                    onError={(e) => {
-                                        // Fallback chain: try hqdefault, then mqdefault
-                                        if (e.target.src.includes('maxresdefault')) {
-                                            e.target.src = `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`;
-                                        } else if (e.target.src.includes('hqdefault')) {
-                                            e.target.src = `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`;
-                                        }
-                                    }}
+                                    onLoad={(event) => recoverYouTubeThumbnail(event, video.videoId)}
+                                    onError={(event) => recoverYouTubeThumbnail(event, video.videoId)}
                                 />
                                 {/* Duration badge */}
                                 <div className="vl-duration" style={{
@@ -2347,12 +2317,14 @@ export default function VideoLibraryPage() {
                 </div>
 
                 {/* Infinite Scroll Sentinel */}
-                {displayedCount < videos.length && (
-                    <div ref={loadMoreRef} style={{ height: 20, width: '100%' }} />
+                {catalogHasMore && (
+                    <div ref={loadMoreRef} className="vl-load-more-sentinel" aria-hidden="true" />
                 )}
 
+                {catalogLoadingMore && <div className="vl-load-more-status" role="status">Loading more videos</div>}
+
                 {/* No results */}
-                {videos.length === 0 && (
+                {!catalogLoading && videos.length === 0 && (
                     <div className="vl-empty-state">
                         <div className="vl-empty-signal" aria-hidden="true"><span /></div>
                         <span className="vl-empty-kicker">{emptyState.eyebrow}</span>
@@ -2375,7 +2347,8 @@ export default function VideoLibraryPage() {
                     color: C.textSec,
                     fontSize: 14,
                 }}>
-                    Showing {Math.min(displayedCount, videos.length)} of {videos.length} matching · {allVideos.length} total
+                    Showing {videos.length} of {catalogTotal} matching
+                    {libraryFilter !== 'ALL' ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
                 </div>
                 </main>
                 </div>
@@ -2429,8 +2402,6 @@ export default function VideoLibraryPage() {
                             justifyContent: 'center',
                             transition: 'background 0.2s',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.85)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.65)'; }}
                     >×</button>
 
                     {/* Fullscreen & sound are handled by YouTube's native controls at bottom of iframe */}
@@ -2440,6 +2411,7 @@ export default function VideoLibraryPage() {
                       <>
                         <button
                             type="button"
+                            className="vl-player-nav"
                             onClick={handlePrevVideo}
                             aria-label="Play previous video"
                             title="Previous video (←)"
@@ -2463,11 +2435,10 @@ export default function VideoLibraryPage() {
                                 justifyContent: 'center',
                                 transition: 'background 0.2s',
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
                         >‹</button>
                         <button
                             type="button"
+                            className="vl-player-nav"
                             onClick={handleNextVideo}
                             aria-label="Play next video"
                             title="Next video (→)"
@@ -2491,8 +2462,6 @@ export default function VideoLibraryPage() {
                                 justifyContent: 'center',
                                 transition: 'background 0.2s',
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
                         >›</button>
                       </>
                     )}
@@ -2817,6 +2786,8 @@ export default function VideoLibraryPage() {
                                 {/* ── Train This Spot — in-place overlay ── */}
                                 <button
                                     ref={ttsTriggerRef}
+                                    type="button"
+                                    className="vl-train-spot-button"
                                     onClick={() => {
                                         const tags = Array.isArray(selectedVideo.tags)
                                             ? selectedVideo.tags.filter(t => t && t.trim())
@@ -2862,8 +2833,6 @@ export default function VideoLibraryPage() {
                                         letterSpacing: '0.2px',
                                         animation: 'tts-pulse 2.5s ease-in-out infinite',
                                     }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,200,83,0.35) 0%, rgba(0,150,60,0.35) 100%)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(0,200,83,0.45)'; e.currentTarget.style.animation = 'none'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,200,83,0.2) 0%, rgba(0,150,60,0.2) 100%)'; e.currentTarget.style.boxShadow = '0 0 8px rgba(0,200,83,0.15)'; e.currentTarget.style.animation = 'tts-pulse 2.5s ease-in-out infinite'; }}
                                     title="Open GTO Trainer with AI-matched drills from this video"
                                 >
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -2909,8 +2878,6 @@ export default function VideoLibraryPage() {
                                                 border: '1px solid rgba(255,255,255,0.08)',
                                                 transition: 'transform 0.15s, border-color 0.15s',
                                             }}
-                                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
                                         >
                                             <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
                                                 <img
