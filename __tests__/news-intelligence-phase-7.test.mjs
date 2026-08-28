@@ -11,6 +11,7 @@ const POY_SYNC = read('pages/api/news/sync-poy.js');
 const DIGEST = read('pages/api/news/digest.js');
 const ADMIN_API = read('pages/api/admin/newsletter.js');
 const ADMIN_PAGE = read('pages/admin/newsletter.js');
+const LIVE_WIRE_STYLES = read('src/components/news/LiveWireStyles.js');
 const MIGRATION = read('supabase/migrations/20260828020000_news_intelligence_phase7.sql');
 const DISPATCHER = read('scripts/openclaw-cron-dispatcher.py');
 
@@ -26,6 +27,8 @@ test('mobile keeps the critical intelligence widgets visible and ahead of the fe
   assert.match(PAGE, /aria-label="News intelligence"/);
   assert.match(PAGE, /\.sidebar > \.widget:not\(\.leaderboard\):not\(\.events\):not\(\.newsletter\)/);
   assert.match(PAGE, /\.sidebar \{[\s\S]{0,180}display: grid !important;[\s\S]{0,180}order: -1 !important;/);
+  assert.match(LIVE_WIRE_STYLES, /\.live-wire \.sidebar \{[\s\S]{0,180}display: grid !important;/);
+  assert.doesNotMatch(LIVE_WIRE_STYLES, /\.live-wire \.sidebar \{[\s\S]{0,100}display: none !important;/);
 });
 
 test('nearby tournaments use transient coordinates and canonical event data', () => {
