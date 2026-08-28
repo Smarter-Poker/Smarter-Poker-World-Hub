@@ -22,6 +22,12 @@ test('sidebar never presents invented ranking or tournament records', () => {
   assert.doesNotMatch(LEADERBOARD, /fallback: true/);
 });
 
+test('mobile keeps the critical intelligence widgets visible and ahead of the feed', () => {
+  assert.match(PAGE, /aria-label="News intelligence"/);
+  assert.match(PAGE, /\.sidebar > \.widget:not\(\.leaderboard\):not\(\.events\):not\(\.newsletter\)/);
+  assert.match(PAGE, /\.sidebar \{[\s\S]{0,180}display: grid !important;[\s\S]{0,180}order: -1 !important;/);
+});
+
 test('nearby tournaments use transient coordinates and canonical event data', () => {
   assert.match(PAGE, /navigator\.geolocation\.getCurrentPosition/);
   assert.match(PAGE, /Do not trigger a permission prompt on arrival/);
@@ -34,6 +40,7 @@ test('nearby tournaments use transient coordinates and canonical event data', ()
 test('POY sync is licensed-feed-only, validated and atomically replaced', () => {
   assert.match(POY_SYNC, /GPI_LICENSED_FEED_URL/);
   assert.match(POY_SYNC, /GPI_LICENSED_FEED_TOKEN/);
+  assert.match(POY_SYNC, /success: true,[\s\S]{0,80}skipped: true,[\s\S]{0,80}configured: false/);
   assert.match(POY_SYNC, /Licensed feed failed validation/);
   assert.doesNotMatch(POY_SYNC, /globalpokerindex\.com\/player-of-the-year/);
   assert.match(POY_SYNC, /fn_replace_licensed_poy_rankings/);
