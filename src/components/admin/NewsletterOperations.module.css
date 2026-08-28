@@ -61,7 +61,14 @@
 }
 
 .refresh { margin-top: 8px; padding: 9px 13px; }
-button:disabled { opacity: .45; cursor: not-allowed; }
+.refresh:disabled,
+.previewButton:disabled,
+.sendButton:disabled,
+.rowAction:disabled,
+.pagination button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
 
 .error {
   max-width: 1480px;
