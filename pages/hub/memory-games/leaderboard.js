@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Clock3, Medal, RefreshCw, ShieldCheck, Target } from 'lucide-react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import PreflopSubpageShell from '../../../src/components/memory-games/PreflopSubpageShell';
+import PreflopTabRail from '../../../src/components/memory-games/PreflopTabRail';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { accuracyToPercent } from '../../../src/lib/preflopRangeLab';
@@ -72,9 +73,7 @@ export default function MemoryGamesLeaderboard() {
     <>
       <SEOHead title="Preflop Charts Leaderboard" description="Live Smarter.Poker Preflop Charts rankings by training mode." canonical="/hub/preflop-charts/leaderboard" />
       <PreflopSubpageShell eyebrow="GLOBAL SIGNAL // LIVE RANKINGS" title="Range command ranks" description="Compare verified personal-best results across every Preflop Charts training mode." metric={leaderboard.length ? `TOP ${leaderboard.length}` : 'LIVE'}>
-        <div className="preflop-mode-rail" role="tablist" aria-label="Leaderboard game mode">
-          {GAME_MODES.map((mode) => <button key={mode.key} type="button" role="tab" aria-selected={selectedMode === mode.key} onClick={() => setSelectedMode(mode.key)}>{mode.label}</button>)}
-        </div>
+        <PreflopTabRail items={GAME_MODES} selected={selectedMode} onSelect={setSelectedMode} ariaLabel="Leaderboard game mode" />
 
         {userRank && <div className="preflop-user-rank"><Target size={20} aria-hidden /><span><small>YOUR CURRENT POSITION</small><strong>#{userRank} in {GAME_MODES.find((mode) => mode.key === selectedMode)?.label}</strong></span></div>}
         {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchLeaderboard}><RefreshCw size={15} aria-hidden /> Refresh</button></div>}
