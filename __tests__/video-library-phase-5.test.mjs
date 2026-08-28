@@ -15,12 +15,14 @@ const YOUTUBE_HOOK = readFileSync(new URL('../src/hooks/useYouTubeErrorManager.j
 const PLAYLISTS = readFileSync(new URL('../src/services/videoPlaylists.js', import.meta.url), 'utf8');
 const MIGRATION = readFileSync(new URL('../supabase/migrations/20260827000001_video_library_phase5_reliability.sql', import.meta.url), 'utf8');
 const HARDENING = readFileSync(new URL('../supabase/migrations/20260827000002_video_library_phase6_hardening.sql', import.meta.url), 'utf8');
+const CATALOG_API = readFileSync(new URL('../pages/api/video-library/catalog.js', import.meta.url), 'utf8');
 
 test('the playable fallback catalog canonicalizes IDs and rejects placeholder embeds', () => {
   assert.match(PAGE, /STATIC_VIDEO_ALIASES/);
   assert.match(PAGE, /\.filter\(video => video\.videoId && !String\(video\.videoId\)\.startsWith\('FAKE'\)\)/);
   assert.match(PAGE, /legacyId: video\.id, id: video\.videoId/);
-  assert.match(PAGE, /legacyId: STATIC_VIDEO_CANONICAL_ALIASES\.get\(row\.youtube_video_id\)/);
+  assert.match(CATALOG_API, /id: row\.youtube_video_id/);
+  assert.match(PAGE, /legacyId: STATIC_VIDEO_CANONICAL_ALIASES\.get\(video\.videoId\)/);
   assert.ok((DATA.match(/videoId: 'FAKE/g) || []).length > 0, 'guard must exercise real legacy placeholders');
 });
 
@@ -84,9 +86,9 @@ test('deep links, auth switches, and pagination remounts are guarded', () => {
   assert.match(PAGE, /sessionUserId: userId/);
   assert.match(PAGE, /Some saved library data could not be refreshed/);
   assert.match(PLAYLISTS, /Error fetching playlists:[\s\S]*throw error/);
-  assert.match(PAGE, /\[displayedCount, videos\.length\]/);
+  assert.match(PAGE, /\[displayedCount, videos\.length,/);
   assert.doesNotMatch(PAGE, /dbLoaded/);
-  assert.match(PAGE, /searchQuery, sortMode, libraryFilter/);
+  assert.match(PAGE, /catalogSearchQuery, sortMode, libraryFilter/);
 });
 
 test('supported player settings are wired and the false HD control is retired', () => {

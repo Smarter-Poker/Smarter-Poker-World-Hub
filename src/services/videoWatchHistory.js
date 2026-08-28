@@ -5,6 +5,7 @@
 
 import { supabase } from '../lib/supabase';
 import { claimReward } from '../lib/claimReward';
+import { getAccessToken } from '../lib/authUtils';
 
 // Track which videos already triggered a reward this session (avoids duplicate API calls)
 const terminalRewardClaims = new Set();
@@ -160,6 +161,39 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
         void claimEligibleWatchReward(userId, result?.canonical_video_id || videoId);
     }
     return result || null;
+}
+
+/**
+ * Best-effort persistence for lifecycle events where the page may disappear
+ * before a normal async Supabase request settles. fetch keepalive retains the
+ * Authorization header (unlike sendBeacon) and the API derives the user from
+ * that verified token instead of trusting a body user id.
+ */
+export async function flushWatchDuration(videoId, additionalSeconds, videoData = {}) {
+    const token = getAccessToken();
+    if (!token || !videoId || additionalSeconds <= 0) return false;
+
+    const response = await fetch('/api/video-library/watch-progress', {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            videoId,
+            additionalSeconds,
+            progressSeconds: Number.isFinite(Number(videoData.progressSeconds))
+                ? Math.max(0, Math.floor(Number(videoData.progressSeconds)))
+                : null,
+            durationSeconds: Number(videoData.durationSeconds) || null,
+            title: videoData.title || null,
+            thumbnail: videoData.thumbnail || null,
+        }),
+    });
+
+    if (!response.ok) throw new Error(`Watch progress flush failed (${response.status})`);
+    return true;
 }
 
 /**

@@ -7,6 +7,7 @@ const PAGE = read('../pages/hub/video-library.js');
 const CSS = read('../src/styles/worlds/video-library.css');
 const REELS = read('../src/components/social/Reels.jsx');
 const TRAINING_LOG = read('../pages/api/training/log-request.js');
+const COMMAND_RAIL = read('../src/components/video-library/VideoLibraryCommandRail.jsx');
 
 test('Reels keeps every hook above conditional render exits', () => {
   const progressHook = REELS.indexOf('const updateProgressRef = useRef(null)');
@@ -26,21 +27,22 @@ test('a Reels failure is contained inside the Video Library modal', () => {
   assert.match(CSS, /\.vl-reels-fallback/);
 });
 
-test('Favorites, Watch Later, and History are first-class command-rail views', () => {
+test('Favorites, Watch Later, History, and Playlists are first-class command-rail views', () => {
   assert.match(PAGE, /const LIBRARY_VIEW_OPTIONS = \[/);
   assert.match(PAGE, /id: 'favorites'/);
   assert.match(PAGE, /id: 'watchlater'/);
   assert.match(PAGE, /id: 'history'/);
-  assert.match(PAGE, /data-filter-group="library"/);
-  assert.match(PAGE, /selectPersonalView\(view\.id, event\.currentTarget\)/);
-  assert.match(PAGE, /aria-label={`\$\{view\.label\}, \$\{count\}/);
+  assert.match(PAGE, /id: 'playlists'/);
+  assert.match(COMMAND_RAIL, /data-filter-group="library"/);
+  assert.match(COMMAND_RAIL, /onLibrary\(view\.id, event\.currentTarget\)/);
+  assert.match(COMMAND_RAIL, /aria-label={`\$\{view\.label\}, \$\{count\}/);
 });
 
 test('command-rail selection and shareable query state cannot drift apart', () => {
   assert.match(PAGE, /replaceNavigationQuery\(\{ type: type === 'ALL' \? null : type, filter: null \}\)/);
   assert.match(PAGE, /replaceNavigationQuery\(\{ type: null, filter \}\)/);
   assert.match(PAGE, /source: source === 'ALL' \? null : source,[\s\S]*type: selectedType === 'ALL' \? null : selectedType/);
-  assert.match(PAGE, /selectedType === type\.id && libraryFilter === 'ALL'/);
+  assert.match(COMMAND_RAIL, /selectedType === view\.id && libraryFilter === 'ALL'/);
   assert.match(PAGE, /ref=\{filterRailRef\}/);
   assert.match(PAGE, /ref=\{sourceRailRef\}/);
   assert.match(PAGE, /if \(activeButton\) keepRailButtonInView\(activeButton\)/);
