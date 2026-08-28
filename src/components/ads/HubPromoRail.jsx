@@ -43,6 +43,7 @@ import {
     logHubAdEvent,
     isSafeHubDestination,
     leavesTheNextRouter,
+    isSafeAdImage,
 } from '../../lib/hubAds';
 
 const SLOT = 'hub_promotions';
@@ -50,6 +51,9 @@ const SLOT = 'hub_promotions';
 export default function HubPromoRail({ limit = 3 }) {
     const router = useRouter();
     const [ads, setAds] = useState([]);
+    /* An image that 404s must not leave a broken-image icon in a promo card.
+       Keyed by ad so one bad file does not hide the others' images. */
+    const [imageFailed, setImageFailed] = useState({});
 
     const handleDismiss = (e, adId) => {
         e.preventDefault();
@@ -118,9 +122,22 @@ export default function HubPromoRail({ limit = 3 }) {
                         navigation itself goes through activate(), because
                         next/link cannot reach the Club Arena SPA. */}
                     <a className="promo-card" href={href} onClick={(e) => activate(e, ad)}>
-                            <span className="promo-glyph" aria-hidden="true">
-                                {ad.glyph || '◆'}
-                            </span>
+                            {isSafeAdImage(ad.imageUrl) && !imageFailed[ad.adId] ? (
+                                <img
+                                    className="promo-image"
+                                    src={ad.imageUrl}
+                                    alt=""
+                                    aria-hidden="true"
+                                    loading="lazy"
+                                    onError={() =>
+                                        setImageFailed((f) => ({ ...f, [ad.adId]: true }))
+                                    }
+                                />
+                            ) : (
+                                <span className="promo-glyph" aria-hidden="true">
+                                    {ad.glyph || '◆'}
+                                </span>
+                            )}
                             <span className="promo-body">
                                 <span className="promo-tag">SMARTER.POKER</span>
                                 <span className="promo-headline">{ad.headline}</span>
@@ -182,6 +199,19 @@ export default function HubPromoRail({ limit = 3 }) {
                     outline: 2px solid #1877f2;
                     outline-offset: 2px;
                 }
+                /* Fixed box: a creative of any shape must not change a card's
+                   height and reflow the rail. object-fit crops rather than
+                   distorting, and the glyph takes over when the file is
+                   missing - a broken-image icon is worse than no image. */
+                .promo-image {
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 6px;
+                    object-fit: cover;
+                    flex-shrink: 0;
+                    background: rgba(255, 255, 255, 0.05);
+                }
+
                 .promo-glyph {
                     flex: 0 0 auto;
                     font-size: 18px;

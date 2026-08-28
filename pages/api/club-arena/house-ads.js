@@ -3,10 +3,18 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * ═══════════════════════════════════════════════════════════════════════════
  *  HOUSE ADS — the write path for smarter.poker's own promotions
  * ═══════════════════════════════════════════════════════════════════════════
- * GET    ?stats=1   list the catalog with impression / click rollups
- * POST             create an ad (+ its lobby placement)
- * PATCH            update an ad, or toggle it on and off
- * DELETE ?id=      remove an ad and its placements
+ * GET                      the catalog, its placements, and performance
+ * POST                     create an ad (+ its first placement)
+ * PATCH                    update an ad, or toggle it on and off
+ * DELETE ?id=              remove an ad and its placements
+ * POST   ?kind=placement   add a placement to an existing ad
+ * PATCH  ?kind=placement   change a placement's slot, audience, cap or state
+ * DELETE ?kind=placement&id=  remove one placement, leaving the ad
+ *
+ * The placement verbs were added on 2026-08-28. Before them an advert could be
+ * given one placement at birth and never moved: no second surface, no cap
+ * change, no pausing one surface while another kept running. Every multi-slot
+ * placement in production had been written by an agent in a migration.
  *
  * ── WHY THIS LIVES UNDER /api/club-arena AND NOT /api/admin ────────────────
  * The World Hub's edge middleware requires an MFA session cookie for any
@@ -76,6 +84,50 @@ function stripEmoji(value) {
         /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{1F1E6}-\u{1F1FF}]/gu,
         ''
     );
+}
+
+/**
+ * A PLACEMENT IS WHERE AND TO WHOM, AND UNTIL NOW IT COULD ONLY BE BORN.
+ *
+ * POST created exactly one placement and PATCH never touched ad_placement at
+ * all, so the panel could make a campaign live on one surface and then never
+ * move it: no second surface, no cap change, no pausing one surface while
+ * leaving another running. Every multi-slot placement in production was
+ * written by an agent in a migration.
+ *
+ * These normalise the three fields a placement actually carries. Unknown
+ * values fall back rather than 400, because the panel only ever sends values
+ * from its own selects - a bad one is a bug in the caller, and defaulting is
+ * kinder than a save that fails on a field the operator cannot see.
+ */
+function normaliseSlot(value) {
+    return SLOTS.has(String(value)) ? String(value) : 'lobby_strip';
+}
+function normaliseAudience(value) {
+    return AUDIENCES.has(String(value)) ? String(value) : 'all';
+}
+/** A cap of 0 means nothing. NULL means uncapped; a positive integer caps. */
+function normaliseDailyCap(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+}
+
+/**
+ * AN AD IMAGE IS A URL EVERY VIEWER'S BROWSER WILL FETCH.
+ *
+ * A destination is checked before a browser is sent to it; an image is the
+ * same question one step earlier, and worse, because the fetch happens without
+ * the viewer doing anything. An external host would mean every player's IP and
+ * user agent handed to a third party chosen by whoever typed the URL into this
+ * panel. Same-origin paths only, and the database carries the same CHECK so
+ * this is the courteous refusal rather than the lock.
+ */
+function cleanImageUrl(value) {
+    const url = clean(value, 300);
+    if (!url) return null;
+    if (!url.startsWith('/') || url.startsWith('//')) return null;
+    return url;
 }
 
 export default async function handler(req, res) {
@@ -334,6 +386,161 @@ export default async function handler(req, res) {
         }
 
         // ── POST: create ──────────────────────────────────────────────────
+        /* ── PLACEMENTS ────────────────────────────────────────────────────
+         *
+         * A placement is where a campaign runs and to whom. Until now one
+         * could be created with the advert and never touched again, so the
+         * ordinary operational actions - run this on the Hub too, lower that
+         * cap, stop it in the lobby but leave it on Session Complete - all
+         * required an agent and a migration.
+         *
+         * Addressed by `?kind=placement` rather than a separate route: the
+         * authorization, the rate limit and the service-role client above are
+         * the same, and a second file would be a second place for them to
+         * drift. The GET already returns placements alongside the catalog.
+         */
+        if (req.method === 'POST' && String(req.query.kind) === 'placement') {
+            const b = req.body || {};
+            const adId = clean(b.ad_id, 64);
+            if (!adId) return res.status(400).json({ success: false, error: 'Which ad?' });
+
+            /* The ad must exist. Without this the FK error surfaces as a 500
+               and the operator is told the server broke when they picked a
+               campaign somebody deleted in another tab. */
+            const { data: parent, error: parentErr } = await getSupabase()
+                .from('ad_catalog')
+                .select('id')
+                .eq('id', adId)
+                .maybeSingle();
+            if (parentErr) {
+                console.warn('[house-ads] placement parent read failed:', parentErr.message);
+                return res.status(500).json({ success: false, error: 'Could not check that ad' });
+            }
+            if (!parent) {
+                return res.status(404).json({ success: false, error: 'That ad no longer exists' });
+            }
+
+            const { data: placed, error: plErr } = await getSupabase()
+                .from('ad_placement')
+                .insert({
+                    ad_id: adId,
+                    slot: normaliseSlot(b.slot),
+                    club_id: clean(b.club_id, 64) || null,
+                    audience: normaliseAudience(b.audience),
+                    daily_cap: normaliseDailyCap(b.daily_cap),
+                    is_active: b.is_active !== false,
+                })
+                .select('id')
+                .maybeSingle();
+
+            if (plErr) {
+                /* (ad_id, slot, club_id) is unique. Running the same campaign
+                   twice on one surface is not a thing somebody means to do,
+                   and "already there" is a far more useful answer than 500. */
+                if (String(plErr.code) === '23505') {
+                    return res.status(409).json({
+                        success: false,
+                        error: 'That ad already has a placement on that slot',
+                    });
+                }
+                /* A club_id that is not a club. The foreign key added in
+                   20260828100000 is what turns this from a placement that
+                   silently never resolves into a refusal at the point of
+                   entry. */
+                if (String(plErr.code) === '23503') {
+                    return res.status(400).json({ success: false, error: 'That club does not exist' });
+                }
+                console.warn('[house-ads] placement insert failed:', plErr.message);
+                return res.status(500).json({ success: false, error: 'Could not add that placement' });
+            }
+
+            return res.status(200).json({ success: true, id: placed?.id || null });
+        }
+
+        if (req.method === 'PATCH' && String(req.query.kind) === 'placement') {
+            const b = req.body || {};
+            const id = clean(b.id, 64);
+            if (!id) return res.status(400).json({ success: false, error: 'Which placement?' });
+
+            const patch = {};
+            if (b.slot !== undefined) patch.slot = normaliseSlot(b.slot);
+            if (b.audience !== undefined) patch.audience = normaliseAudience(b.audience);
+            if (b.daily_cap !== undefined) patch.daily_cap = normaliseDailyCap(b.daily_cap);
+            if (b.is_active !== undefined) patch.is_active = b.is_active === true;
+            if (b.club_id !== undefined) patch.club_id = clean(b.club_id, 64) || null;
+            if (Object.keys(patch).length === 0) {
+                return res.status(400).json({ success: false, error: 'Nothing to change' });
+            }
+
+            /* .select() for the same reason as the catalog update: PostgREST
+               answers a zero-row match with { error: null }, so editing a
+               placement deleted in another tab would report "Saved" and change
+               nothing. */
+            const { data: updated, error: updErr } = await getSupabase()
+                .from('ad_placement')
+                .update(patch)
+                .eq('id', id)
+                .select('id');
+            if (updErr) {
+                if (String(updErr.code) === '23505') {
+                    return res.status(409).json({
+                        success: false,
+                        error: 'That ad already has a placement on that slot',
+                    });
+                }
+                if (String(updErr.code) === '23503') {
+                    return res.status(400).json({ success: false, error: 'That club does not exist' });
+                }
+                console.warn('[house-ads] placement update failed:', updErr.message);
+                return res.status(500).json({ success: false, error: 'Could not save that placement' });
+            }
+            if (!updated || updated.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'That placement no longer exists. Reload and try again.',
+                });
+            }
+            return res.status(200).json({ success: true });
+        }
+
+        if (req.method === 'DELETE' && String(req.query.kind) === 'placement') {
+            const id = clean(req.query.id, 64);
+            if (!id) return res.status(400).json({ success: false, error: 'Which placement?' });
+
+            /* Deleting the LAST placement leaves the campaign running nowhere,
+               which is the commonest way to publish something and see nothing
+               happen. It is allowed - an operator may well want exactly that -
+               but the answer says so, and the panel repeats it. */
+            const { data: sibling } = await getSupabase()
+                .from('ad_placement')
+                .select('id, ad_id')
+                .eq('id', id)
+                .maybeSingle();
+
+            const { data: removed, error: delErr } = await getSupabase()
+                .from('ad_placement')
+                .delete()
+                .eq('id', id)
+                .select('id');
+            if (delErr) {
+                console.warn('[house-ads] placement delete failed:', delErr.message);
+                return res.status(500).json({ success: false, error: 'Could not remove that placement' });
+            }
+            if (!removed || removed.length === 0) {
+                return res.status(404).json({ success: false, error: 'That placement was already gone' });
+            }
+
+            let orphaned = false;
+            if (sibling?.ad_id) {
+                const { count } = await getSupabase()
+                    .from('ad_placement')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('ad_id', sibling.ad_id);
+                orphaned = (count || 0) === 0;
+            }
+            return res.status(200).json({ success: true, orphaned });
+        }
+
         if (req.method === 'POST') {
             const b = req.body || {};
             const adKey = clean(b.ad_key, 64)?.toLowerCase().replace(/[^a-z0-9_]/g, '_');
@@ -360,6 +567,8 @@ export default async function handler(req, res) {
                     glyph: stripEmoji(clean(b.glyph, 4)),
                     target_url: clean(b.target_url, 300),
                     cta_label: stripEmoji(clean(b.cta_label, 40)),
+                    image_url: cleanImageUrl(b.image_url),
+                    experiment_key: clean(b.experiment_key, 64),
                     is_active: b.is_active !== false,
                     starts_at: b.starts_at || null,
                     ends_at: b.ends_at || null,
@@ -381,11 +590,9 @@ export default async function handler(req, res) {
             // An ad with no placement runs nowhere, which is the commonest way
             // to "publish" something and see nothing happen. Default it into
             // the lobby strip unless the caller says otherwise.
-            const slot = SLOTS.has(String(b.slot)) ? String(b.slot) : 'lobby_strip';
-            const audience = AUDIENCES.has(String(b.audience)) ? String(b.audience) : 'all';
-            const dailyCap = Number.isFinite(Number(b.daily_cap)) && Number(b.daily_cap) > 0
-                ? Math.round(Number(b.daily_cap))
-                : null;
+            const slot = normaliseSlot(b.slot);
+            const audience = normaliseAudience(b.audience);
+            const dailyCap = normaliseDailyCap(b.daily_cap);
 
             const { error: plInsErr } = await getSupabase().from('ad_placement').insert({
                 ad_id: created.id,
@@ -434,8 +641,14 @@ export default async function handler(req, res) {
                 patch.category = String(b.category);
             }
             if (b.weight !== undefined && Number.isFinite(Number(b.weight))) {
-                patch.weight = Math.max(0, Math.min(1000, Math.round(Number(b.weight))));
+                /* Floor of 1, not 0: weight is the share of voice and the
+                   database now refuses a zero (ad_catalog_weight_positive).
+                   Clamping here means the panel says "1" rather than the save
+                   failing on a constraint the operator cannot see. */
+                patch.weight = Math.max(1, Math.min(1000, Math.round(Number(b.weight))));
             }
+            if (b.image_url !== undefined) patch.image_url = cleanImageUrl(b.image_url);
+            if (b.experiment_key !== undefined) patch.experiment_key = clean(b.experiment_key, 64);
             if (!patch.headline && Object.keys(patch).length === 1) {
                 return res.status(400).json({ success: false, error: 'Nothing to change' });
             }
