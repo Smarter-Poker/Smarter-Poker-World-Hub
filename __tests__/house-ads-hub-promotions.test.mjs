@@ -243,3 +243,82 @@ test('a click is attention, and the route reports what followed it', () => {
     assert.match(route, /r\.clicks_followed_by == null \? null : Number\(r\.clicks_followed_by\)/);
     assert.match(route, /let conversions = null;/);
 });
+
+test('the route reports reach in people, and admits a partial list', () => {
+    /* IMPRESSIONS ARE NOT PEOPLE. The lobby logs one impression per advert per
+       page load, so a player reloading thirty times is thirty impressions and
+       one person. Production the day this shipped: spins_jackpot had 65
+       impressions on lobby_strip and five viewers. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /viewers: Number\(r\.viewers\) \|\| 0/);
+    assert.match(route, /clickers: Number\(r\.clickers\) \|\| 0/);
+
+    /* THE LAST TWO SILENT CEILINGS. The catalog read stops at 200 rows and
+       placements at 1,000. The limits are fine; presenting a partial list as
+       the whole one is not - the same shape as the 50,000-row stats ceiling
+       that under-counted silently for as long as it existed. */
+    assert.match(route, /\{ count: 'exact' \}/);
+    assert.match(route, /truncated: \{/);
+    // null when nothing was cut, a number only when the list really is short.
+    assert.match(route, /adsTotal != null && \(ads \|\| \[\]\)\.length < adsTotal \? adsTotal : null/);
+});
+
+test('the route carries a trend, because a lifetime total cannot show decay', () => {
+    /* Every other figure is a lifetime number, so a campaign that worked for
+       three weeks and has done nothing since reads the same as one working
+       today. lastEventAt catches a surface that stopped dead; it says nothing
+       about one quietly halving. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /rpc\('fn_ad_daily', \{ p_days: 14 \}\)/);
+    assert.match(route, /let daily = null;/);
+    // Oldest first, so a caller can read it left to right.
+    assert.match(route, /series\.sort\(\(a, b\) => String\(a\.day\)\.localeCompare\(String\(b\.day\)\)\)/);
+});
+
+test('a placement can be added, changed and removed through the route', () => {
+    /* POST created the advert plus exactly ONE placement and PATCH never
+       touched ad_placement, so a campaign could be made live on one surface
+       and never moved. Every multi-slot placement in production had been
+       written by an agent in a migration. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /req\.method === 'POST' && String\(req\.query\.kind\) === 'placement'/);
+    assert.match(route, /req\.method === 'PATCH' && String\(req\.query\.kind\) === 'placement'/);
+    assert.match(route, /req\.method === 'DELETE' && String\(req\.query\.kind\) === 'placement'/);
+
+    /* Each failure says what happened rather than 500ing. The unique key and
+       the club foreign key both became reachable from a browser today, so
+       their error codes are the ones an operator will actually hit. */
+    assert.match(route, /already has a placement on that slot/);
+    assert.match(route, /That club does not exist/);
+    assert.match(route, /That placement no longer exists/);
+
+    /* Removing the LAST placement leaves the campaign running nowhere, which
+       looks perfectly healthy in the list. */
+    assert.match(route, /orphaned/);
+});
+
+test('an ad image is same-origin, refused before it is stored and before it renders', () => {
+    /* The fetch happens on render, without the viewer doing anything, so an
+       external host would hand every player's IP and user agent to a third
+       party chosen by whoever typed the URL into the panel. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /function cleanImageUrl/);
+    assert.match(route, /!url\.startsWith\('\/'\) \|\| url\.startsWith\('\/\/'\)/);
+
+    const lib = read('src/lib/hubAds.js');
+    assert.match(lib, /export function isSafeAdImage/);
+    assert.match(lib, /imageUrl: r\.image_url == null \? null : String\(r\.image_url\)/);
+
+    const rail = read('src/components/ads/HubPromoRail.jsx');
+    assert.match(rail, /isSafeAdImage\(ad\.imageUrl\)/);
+    // A broken-image icon in a promotion is worse than no promotion.
+    assert.match(rail, /onError=\{\(\) =>/);
+});
+
+test('the weight floor matches the constraint the database now carries', () => {
+    /* ad_catalog_weight_positive refuses a zero. Clamping to 1 here means the
+       panel says "1" rather than the save failing on a constraint the operator
+       cannot see. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /patch\.weight = Math\.max\(1, Math\.min\(1000/);
+});

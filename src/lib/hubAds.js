@@ -81,6 +81,7 @@ export async function resolveHubAds(limit = 3) {
             glyph: r.glyph == null ? null : String(r.glyph),
             targetUrl: r.target_url == null ? null : String(r.target_url),
             ctaLabel: r.cta_label == null ? null : String(r.cta_label),
+            imageUrl: r.image_url == null ? null : String(r.image_url),
         }));
     } catch (e) {
         console.warn('[hubAds] resolve threw:', e?.message || e);
@@ -169,4 +170,17 @@ export function isSafeHubDestination(url) {
  */
 export function leavesTheNextRouter(url) {
     return typeof url === 'string' && url.startsWith('/hub/club-arena');
+}
+
+/**
+ * AN AD IMAGE IS A URL EVERY VIEWER'S BROWSER FETCHES WITHOUT BEING ASKED.
+ *
+ * The same question as a destination, one step earlier and with less consent -
+ * the fetch happens on render rather than on a tap. An external host would hand
+ * every player's IP and user agent to a third party chosen by whoever typed the
+ * URL into the admin panel. The database has a CHECK and the API refuses one
+ * too; this is the lock at the point that actually protects the player.
+ */
+export function isSafeAdImage(url) {
+    return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//');
 }
