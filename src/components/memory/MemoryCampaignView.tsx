@@ -99,20 +99,21 @@ export default function MemoryCampaignView() {
 
         // Fetch user progress
         const { data: progressData, error: progressError } = await supabase
-            .from('user_level_progress')
-            .select('*')
+            .from('memory_game_sessions')
+            .select('scenario_id, accuracy, completed')
             .eq('user_id', uid);
 
         // Create progress map
         const progressMap = new Map<string, LevelProgress>();
         if (progressData && !progressError) {
-            progressData.forEach((p: any) => {
-                // real row shape: level_id/accuracy/status/attempts
-                progressMap.set(p.level_id, {
-                    chart_id: p.level_id,
-                    best_accuracy: p.accuracy || 0,
-                    is_unlocked: p.status === 'unlocked',
-                    times_played: p.attempts || 0,
+            progressData.forEach((session) => {
+                if (!session.scenario_id) return;
+                const previous = progressMap.get(session.scenario_id);
+                progressMap.set(session.scenario_id, {
+                    chart_id: session.scenario_id,
+                    best_accuracy: Math.max(previous?.best_accuracy || 0, session.accuracy || 0),
+                    is_unlocked: Boolean(previous?.is_unlocked || session.completed),
+                    times_played: (previous?.times_played || 0) + 1,
                 });
             });
         }
@@ -164,21 +165,21 @@ export default function MemoryCampaignView() {
         const passThreshold = Math.min(100, 85 + (activeLevel.levelIndex * 2)) / 100;
         const shouldUnlock = passed && accuracy >= passThreshold;
 
-        // 2026-08-15 CHECK 13: real columns are level_id/accuracy/attempts/
-        // status (PK user_id+level_id). chart_id keys progress on the chart.
-        const { error: err_user_level_progress_3aagg } = await supabase
+        const { error: progressError } = await supabase
 
-          .from('user_level_progress')
+          .from('memory_game_sessions')
 
-          .upsert({
+          .insert({
                 user_id: userId,
-                level_id: activeLevel.chart.chart_id,
-                accuracy: Math.max(activeLevel.bestAccuracy, accuracy),
-                status: shouldUnlock ? 'unlocked' : 'in_progress',
-                attempts: activeLevel.timesPlayed + 1,
+                game_mode: activeLevel.chart.game_type || 'memory_campaign',
+                level: activeLevel.levelIndex + 1,
+                scenario_id: activeLevel.chart.chart_id,
+                score: Math.round(accuracy * 100),
+                accuracy,
+                completed: shouldUnlock,
             });
 
-        if (err_user_level_progress_3aagg) console.warn('[Supabase] Silent mutation failed in user_level_progress:', err_user_level_progress_3aagg.message);
+        if (progressError) console.warn('[Supabase] Memory campaign progress was not saved:', progressError.message);
 
         // Reload campaign data
         loadCampaignData(userId);

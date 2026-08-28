@@ -186,7 +186,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       // after those images settle, otherwise the absolute overlay is briefly
       // the only visible part of the button and produces a false 6px result.
       await page.waitForFunction(() =>
-        Array.from(document.querySelectorAll('main img')).every((image) => image.complete)
+        Array.from(document.querySelectorAll<HTMLImageElement>('main img')).every((image) => image.complete)
       );
       // Let the metal-card entrance animation settle before measuring the
       // rendered hit box. Measuring mid-transform can report 43.x for a
@@ -215,7 +215,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/hub/merch-store', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() =>
-      Array.from(document.querySelectorAll('main img')).every((image) => image.complete)
+      Array.from(document.querySelectorAll<HTMLImageElement>('main img')).every((image) => image.complete)
     );
     await page.waitForTimeout(900);
 

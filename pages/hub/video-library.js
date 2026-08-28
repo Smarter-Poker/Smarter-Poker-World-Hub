@@ -14,6 +14,7 @@ import { getAccessToken } from '../../src/lib/authUtils';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import VideoLibraryCommandRail from '../../src/components/video-library/VideoLibraryCommandRail';
+import { isVideoLibraryVideoAllowed } from '../../src/lib/videoLibraryAvailability';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
@@ -46,7 +47,7 @@ const STATIC_VIDEO_ALIASES = new Map(STATIC_VIDEOS.map(video => [video.id, video
 const STATIC_VIDEO_CANONICAL_ALIASES = new Map(STATIC_VIDEOS.map(video => [video.videoId, video.id]));
 const canonicalStoredVideoId = videoId => STATIC_VIDEO_ALIASES.get(videoId) || videoId;
 const STATIC_CATALOG = STATIC_VIDEOS
-    .filter(video => video.videoId && !String(video.videoId).startsWith('FAKE'))
+    .filter(isVideoLibraryVideoAllowed)
     .map(video => ({ ...video, legacyId: video.id, id: video.videoId, videoId: video.videoId }));
 
 const C = {
@@ -432,14 +433,13 @@ export default function VideoLibraryPage() {
     // Keep the command rail and URL in lockstep so every subview is shareable,
     // back-button safe, and visually reports the state it actually represents.
     const replaceNavigationQuery = useCallback((patch) => {
-        if (!router.isReady) return;
         const nextQuery = { ...router.query };
         Object.entries(patch).forEach(([key, value]) => {
             if (value == null || value === '' || value === 'ALL') delete nextQuery[key];
             else nextQuery[key] = value;
         });
         void router.replace(
-            { pathname: router.pathname, query: nextQuery },
+            { pathname: router.pathname || '/hub/video-library', query: nextQuery },
             undefined,
             { shallow: true, scroll: false }
         );
@@ -867,6 +867,7 @@ export default function VideoLibraryPage() {
 
     // Navigate to a specific video in the current filtered list
     const handleOpenVideo = useCallback(async (video) => {
+        if (!isVideoLibraryVideoAllowed(video)) return;
         const hadActiveSession = Boolean(currentWatchingVideoRef.current);
         if (currentWatchingVideoRef.current?.id === video.id) return;
         if (hadActiveSession && watchStartTimeRef.current) {
@@ -1105,10 +1106,12 @@ export default function VideoLibraryPage() {
             if (!payload?.success || !Array.isArray(payload.data)) throw new Error('Catalog response was invalid');
             if (requestId !== catalogRequestRef.current) return;
 
-            const pageVideos = payload.data.map(video => ({
-                ...video,
-                legacyId: STATIC_VIDEO_CANONICAL_ALIASES.get(video.videoId) || null,
-            }));
+            const pageVideos = payload.data
+                .filter(isVideoLibraryVideoAllowed)
+                .map(video => ({
+                    ...video,
+                    legacyId: STATIC_VIDEO_CANONICAL_ALIASES.get(video.videoId) || null,
+                }));
             const mergePage = previous => {
                 const combined = append ? [...previous, ...pageVideos] : pageVideos;
                 const seen = new Set();
@@ -1168,6 +1171,10 @@ export default function VideoLibraryPage() {
     useEffect(() => {
         if (!router.isReady || !router.query.v || !handleOpenVideoRef.current) return undefined;
         const requestedVideoId = String(Array.isArray(router.query.v) ? router.query.v[0] : router.query.v);
+        if (!isVideoLibraryVideoAllowed(requestedVideoId)) {
+            queryVideoFetchRef.current = requestedVideoId;
+            return undefined;
+        }
         if (openedQueryVideoRef.current === requestedVideoId || allVideos.some(video => video.videoId === requestedVideoId)) return undefined;
         if (queryVideoFetchRef.current === requestedVideoId) return undefined;
         queryVideoFetchRef.current = requestedVideoId;
@@ -1176,7 +1183,7 @@ export default function VideoLibraryPage() {
             .then(response => response.ok ? response.json() : Promise.reject(new Error(`Deep-link catalog request failed (${response.status})`)))
             .then(payload => {
                 const video = payload?.data?.[0];
-                if (!video || openedQueryVideoRef.current === requestedVideoId || !handleOpenVideoRef.current) return;
+                if (!isVideoLibraryVideoAllowed(video) || openedQueryVideoRef.current === requestedVideoId || !handleOpenVideoRef.current) return;
                 openedQueryVideoRef.current = requestedVideoId;
                 handleOpenVideoRef.current({
                     ...video,

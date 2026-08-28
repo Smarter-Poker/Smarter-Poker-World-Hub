@@ -2787,6 +2787,51 @@ export type Database = {
         }
         Relationships: []
       }
+      memory_game_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          game_mode: string
+          level: number
+          scenario_id: string | null
+          score: number | null
+          accuracy: number | null
+          time_taken: number | null
+          diamonds_spent: number
+          diamonds_earned: number
+          completed: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          game_mode: string
+          level: number
+          scenario_id?: string | null
+          score?: number | null
+          accuracy?: number | null
+          time_taken?: number | null
+          diamonds_spent?: number
+          diamonds_earned?: number
+          completed?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          game_mode?: string
+          level?: number
+          scenario_id?: string | null
+          score?: number | null
+          accuracy?: number | null
+          time_taken?: number | null
+          diamonds_spent?: number
+          diamonds_earned?: number
+          completed?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       memory_charts_gold: {
         Row: {
           id: string
@@ -2831,25 +2876,73 @@ export type Database = {
           id: string
           user_id: string
           game_id: string
-          score: number
-          completed_at: string
+          game_name: string | null
+          gtow_score: number
+          total_ev_loss: number
+          hands_played: number
+          mistake_count: number
+          accuracy: number
+          correct_count: number
+          best_streak: number
+          level_passed: boolean
+          level: number
+          hand_history: Json | null
+          position_stats: Json | null
+          classification_counts: Json | null
+          trainer_config: Json | null
+          avg_ev_loss_per_hand: number
+          avg_frequency_diff: number
           created_at: string
+          score_scale: number
+          avg_ev_loss_per_mistake: number
         }
         Insert: {
           id?: string
           user_id: string
           game_id: string
-          score: number
-          completed_at?: string
+          game_name?: string | null
+          gtow_score?: number
+          total_ev_loss?: number
+          hands_played?: number
+          mistake_count?: number
+          accuracy?: number
+          correct_count?: number
+          best_streak?: number
+          level_passed?: boolean
+          level?: number
+          hand_history?: Json | null
+          position_stats?: Json | null
+          classification_counts?: Json | null
+          trainer_config?: Json | null
+          avg_ev_loss_per_hand?: number
+          avg_frequency_diff?: number
           created_at?: string
+          score_scale?: number
+          avg_ev_loss_per_mistake?: number
         }
         Update: {
           id?: string
           user_id?: string
           game_id?: string
-          score?: number
-          completed_at?: string
+          game_name?: string | null
+          gtow_score?: number
+          total_ev_loss?: number
+          hands_played?: number
+          mistake_count?: number
+          accuracy?: number
+          correct_count?: number
+          best_streak?: number
+          level_passed?: boolean
+          level?: number
+          hand_history?: Json | null
+          position_stats?: Json | null
+          classification_counts?: Json | null
+          trainer_config?: Json | null
+          avg_ev_loss_per_hand?: number
+          avg_frequency_diff?: number
           created_at?: string
+          score_scale?: number
+          avg_ev_loss_per_mistake?: number
         }
         Relationships: []
       }
