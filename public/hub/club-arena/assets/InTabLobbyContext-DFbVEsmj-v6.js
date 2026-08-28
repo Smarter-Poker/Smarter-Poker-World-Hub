@@ -1,0 +1,2 @@
+import{r as a,u as s}from"./vendor-react-C2kmzSSi-v6.js";const p=a.createContext(null);function c(){return a.useContext(p)}const i=/^\/tournaments\/([^/?#]+)/;function m(n){var r;const t=typeof n=="string"?n:n.pathname??"";return t?((r=t.match(i))==null?void 0:r[1])??null:null}function b(){const n=s(),t=c();return a.useMemo(()=>t?(e,o)=>{if(typeof e=="number"){n(e);return}const u=m(e);u&&t.openTournament(u)||n(e,o)}:n,[n,t])}export{p as I,b as u};
+//# sourceMappingURL=InTabLobbyContext-DFbVEsmj-v6.js.map
