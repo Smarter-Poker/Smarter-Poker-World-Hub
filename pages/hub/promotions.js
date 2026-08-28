@@ -15,6 +15,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import HubPromoRail from '../../src/components/ads/HubPromoRail';
 
 const C = {
     bg: '#F0F2F5',
@@ -201,6 +202,17 @@ export default function PromotionsPage() {
 
                 {/* Content Area */}
                 <div className="promos-content">
+                    {/* HOUSE PROMOTIONS (2026-08-27). Sits ABOVE the venue /
+                        tour / series feed on purpose: it must still render
+                        when that feed is loading, has failed, or is empty —
+                        those are exactly the states where this page otherwise
+                        shows a player nothing at all. It renders nothing of
+                        its own when there is nothing to say, so it cannot add
+                        an empty frame to an already empty page. Labelled
+                        SMARTER.POKER because everything below it was written
+                        by somebody else. */}
+                    <HubPromoRail limit={3} />
+
                     {loading ? (
                         <div className="state-box">
                             <div className="spinner" />
