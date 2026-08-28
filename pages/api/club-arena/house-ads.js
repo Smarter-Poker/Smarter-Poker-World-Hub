@@ -129,20 +129,53 @@ export default async function handler(req, res) {
                is still usable without numbers, and rendering zeroes would be
                worse than rendering nothing — a confident zero reads as "this
                campaign got no clicks" rather than "we could not count". */
+            /* COUNTED IN POSTGRES, AND BROKEN DOWN BY SLOT (2026-08-28).
+             *
+             * This used to read `.from('ad_event').select(...).limit(50000)`
+             * and tally in JavaScript. Two problems, both of the same species
+             * as everything else this system exists to end.
+             *
+             * The limit was a silent ceiling. This table logs an impression
+             * per ad per page load, so 50,000 arrives; PostgREST would return
+             * the first 50,000 and this route would report the total with
+             * complete confidence, under-counting a little more every day and
+             * never saying so.
+             *
+             * And the tally was keyed on ad_id alone, which was right when one
+             * slot existed. `bbj_running` now runs on four surfaces, so one
+             * blended number told an operator nothing about which of them is
+             * working - and the obvious action on a bad blended number (turn
+             * the campaign off) can be exactly wrong.
+             *
+             * fn_ad_stats does both in the database: no ceiling, and a row per
+             * ad per slot. `last_event_at` is there so a surface that has
+             * STOPPED reporting is as visible as one that never started.
+             *
+             * `stats` stays null on any failure. A confident zero reads as
+             * "this campaign got no clicks" when the truth is "we could not
+             * count", which is the exact class of lie this panel exists to
+             * avoid. */
             let stats = null;
-            const { data: events, error: evErr } = await getSupabase()
-                .from('ad_event')
-                .select('ad_id, event_type')
-                .limit(50000);
+            let statsBySlot = null;
+            const { data: rows, error: evErr } = await getSupabase().rpc('fn_ad_stats');
             if (evErr) {
-                console.warn('[house-ads] event read failed:', evErr.message);
+                console.warn('[house-ads] stats read failed:', evErr.message);
             } else {
                 stats = {};
-                for (const e of events || []) {
-                    const row = (stats[e.ad_id] ||= { impressions: 0, clicks: 0, dismisses: 0 });
-                    if (e.event_type === 'impression') row.impressions += 1;
-                    else if (e.event_type === 'click') row.clicks += 1;
-                    else if (e.event_type === 'dismiss') row.dismisses += 1;
+                statsBySlot = {};
+                for (const r of rows || []) {
+                    const total = (stats[r.ad_id] ||= { impressions: 0, clicks: 0, dismisses: 0 });
+                    total.impressions += Number(r.impressions) || 0;
+                    total.clicks += Number(r.clicks) || 0;
+                    total.dismisses += Number(r.dismisses) || 0;
+
+                    const perAd = (statsBySlot[r.ad_id] ||= {});
+                    perAd[r.slot] = {
+                        impressions: Number(r.impressions) || 0,
+                        clicks: Number(r.clicks) || 0,
+                        dismisses: Number(r.dismisses) || 0,
+                        lastEventAt: r.last_event_at || null,
+                    };
                 }
             }
 
@@ -151,6 +184,7 @@ export default async function handler(req, res) {
                 ads: ads || [],
                 placements: placements || [],
                 stats, // null means "could not count", NOT "zero"
+                statsBySlot, // { adId: { slot: { impressions, clicks, dismisses, lastEventAt } } }
             });
         }
 
