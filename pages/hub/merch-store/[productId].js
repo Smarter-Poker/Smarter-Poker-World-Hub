@@ -6,7 +6,7 @@ import detailStyles from '../../../src/components/store/MarketplaceDetailExperie
 import MerchStore from '../../../src/components/store/MerchStore';
 import { MERCHANDISE } from '../../../src/data/diamondStoreData';
 import { useAuthUser } from '../../../src/lib/authUtils';
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { createClient as createServerClient } from '../../../src/lib/supabaseServerClient';
 
 const LEGACY_IMAGE = '/images/merch/neural-steel/legacy-tabletop-atlas.webp';
 const FALLBACK_IMAGE = '/images/store-v3/merch-hero.webp';
@@ -45,7 +45,7 @@ async function catalogProduct(productId) {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return null;
 
-  const supabase = createClient(url, key);
+  const supabase = createServerClient(url, key);
   const { data: item, error } = await supabase
     .from('merchandise_items')
     .select('id, name, description, category, image_url, price_usd, price_diamonds, stock, has_variants, metadata')
