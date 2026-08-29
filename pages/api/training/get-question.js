@@ -25,6 +25,7 @@ import { sanitizeParam, withTiming, reconcileAnswerKey, selectServedOptions } fr
 import { heroActsFirstPostflop } from '../../../src/engines/positionOrder';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { filterRowsToDeclaredStreet } from '../../../src/lib/training/declaredStreet';
+import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 
 // ── Deterministic hash for seeded fallback data ──
 function hashSeed(str) {
@@ -244,6 +245,15 @@ export default async function handler(req, res) {
           success: false,
           error: 'No questions available',
           message: 'All questions for this game have been completed',
+        });
+      }
+
+      question = enforceTrainingQuestionContract(question);
+      if (!isTrainingQuestionValid(question)) {
+        console.warn('[Training] Question rejected by integrity contract:', question?.questionContract?.issues);
+        return res.status(422).json({
+          success: false,
+          error: 'This question did not pass the training integrity audit.',
         });
       }
 

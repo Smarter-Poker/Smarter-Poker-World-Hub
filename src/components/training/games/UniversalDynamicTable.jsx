@@ -1044,62 +1044,6 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// AUTO-ADVANCE INDICATOR — leaf owner of the 50ms countdown tick
-// ═══════════════════════════════════════════════════════════════════════════
-// PERF: the remaining-ms state used to live at the top of
-// UniversalDynamicTable and was decremented every 50ms, so during every
-// auto-advance window the ENTIRE table tree re-rendered at 20Hz for the sake
-// of a 9px seconds label and a 3px progress bar inside the Next Hand button.
-// The tick now lives here: the parent stores only `autoAdvanceTotal` (set
-// once per feedback window) and the actual advance timeout; this leaf owns
-// the interval and is the only thing that re-renders per tick. Rendering is
-// byte-identical to the inline version, including the final-tick moment
-// where the 0s label and the SPACE hint briefly coexist.
-function AutoAdvanceIndicator({ total, isMultiStreetActive }) {
-    const [remaining, setRemaining] = React.useState(total ?? null);
-    React.useEffect(() => {
-        setRemaining(total ?? null);
-        if (total === null || total === undefined) return;
-        // Tick the countdown every 50ms for smooth visual
-        const tickInterval = setInterval(() => {
-            setRemaining(prev => {
-                if (prev === null || prev <= 0) return 0;
-                return prev - 50;
-            });
-        }, 50);
-        return () => clearInterval(tickInterval);
-    }, [total]);
-    return (
-        <>
-            {remaining !== null && total && (
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginLeft: 8, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                    {Math.max(0, Math.ceil(remaining / 1000))}s
-                </span>
-            )}
-            {!remaining && (
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginLeft: 8, fontWeight: 600 }}>SPACE</span>
-            )}
-            {/* Auto-advance progress bar */}
-            {remaining !== null && total && (
-                <div style={{
-                    position: 'absolute', bottom: 0, left: 0, right: 0,
-                    height: 3, borderRadius: '0 0 10px 10px', overflow: 'hidden',
-                    background: 'rgba(0,0,0,0.3)',
-                }}>
-                    <div style={{
-                        height: '100%',
-                        width: `${Math.max(0, (remaining / total) * 100)}%`,
-                        background: isMultiStreetActive ? 'var(--sp-accent-orange)' : 'var(--sp-accent-green)',
-                        transition: 'width 50ms linear',
-                        borderRadius: '0 0 10px 10px',
-                    }} />
-                </div>
-            )}
-        </>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // DETECT ACTION TYPE — Parse option text to determine poker action type
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1274,90 +1218,95 @@ function FrequencyBar({ frequency, color, show }) {
 // losses are comparable across pot sizes. We computed the pot percentage in
 // the engine (evLossPctPot) and then displayed neither it nor anything else
 // derived from it. `pot` is threaded in so the banner can show both.
-function ClassificationFlashBanner({ classification, evLoss, pot = 0 }) {
+function ClassificationFlashBanner({ classification, evLoss, pot = 0, reduceMotion = false }) {
     const config = CLASSIFICATION_CONFIG[classification];
     if (!config) return null;
 
-    // GTO Wizard uses large, bold, centered classification banners
     const isBestOrCorrect = classification === 'best' || classification === 'correct';
+    const verdict = isBestOrCorrect ? 'Correct' : 'Incorrect';
+    const verdictColor = isBestOrCorrect ? '#53f2a0' : '#ff6670';
+    const verdictBorder = isBestOrCorrect ? 'rgba(83,242,160,.78)' : 'rgba(255,102,112,.82)';
+    const verdictGlow = isBestOrCorrect ? 'rgba(28,222,128,.28)' : 'rgba(255,55,75,.30)';
 
     return (
-            <motion.div
-                key={classification}
-                initial={{ opacity: 0, y: -30, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ type: 'spring', stiffness: 350, damping: 22 }}
-                style={{
-                    width: '100%',
-                    padding: '10px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 10,
-                    background: `linear-gradient(180deg, ${config.bgColor || 'rgba(0,0,0,0.3)'} 0%, rgba(0,0,0,0.02) 100%)`,
-                    borderBottom: `2px solid ${config.borderColor || 'transparent'}`,
-                    zIndex: 100,
-                }}
-            >
-                <ClassificationSVGIcon icon={config.icon} size={20} color={config.color} />
-                <span style={{
-                    fontSize: 16,
-                    fontWeight: 900,
-                    color: config.color,
+        <motion.div
+            key={classification}
+            role="status"
+            aria-live="assertive"
+            aria-atomic="true"
+            initial={reduceMotion ? false : { opacity: 0, y: -18, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -12 }}
+            transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 330, damping: 24 }}
+            style={{
+                width: '100%',
+                minHeight: 76,
+                padding: '10px clamp(12px, 3vw, 28px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexWrap: 'wrap',
+                gap: '8px clamp(12px, 3vw, 24px)',
+                background: `
+                    linear-gradient(180deg, rgba(255,255,255,.12) 0, rgba(255,255,255,0) 18%),
+                    linear-gradient(115deg, rgba(3,8,16,.98), ${config.bgColor || 'rgba(10,20,30,.96)'} 55%, rgba(2,5,11,.98))`,
+                borderTop: `2px solid ${verdictBorder}`,
+                borderBottom: `2px solid ${verdictBorder}`,
+                boxShadow: `inset 0 1px rgba(255,255,255,.2), inset 0 -8px 22px rgba(0,0,0,.45), 0 0 26px ${verdictGlow}`,
+                zIndex: 100,
+            }}
+        >
+            <div style={{
+                width: 42,
+                height: 42,
+                display: 'grid',
+                placeItems: 'center',
+                background: 'linear-gradient(145deg, rgba(255,255,255,.18), rgba(0,0,0,.35))',
+                border: `2px solid ${verdictBorder}`,
+                boxShadow: `inset 0 1px rgba(255,255,255,.3), 0 0 18px ${verdictGlow}`,
+            }}>
+                <ClassificationSVGIcon icon={config.icon} size={25} color={verdictColor} />
+            </div>
+            <div style={{ minWidth: 170, textAlign: 'center' }}>
+                <div style={{
+                    fontSize: 'clamp(22px, 4vw, 34px)',
+                    lineHeight: 1,
+                    fontWeight: 950,
+                    color: verdictColor,
+                    letterSpacing: 3,
+                    textTransform: 'uppercase',
+                    fontFamily: "var(--font-rajdhani), 'Rajdhani', 'Inter', sans-serif",
+                    textShadow: `0 2px 0 rgba(0,0,0,.85), 0 0 18px ${verdictGlow}`,
+                }}>
+                    {verdict}
+                </div>
+                <div style={{
+                    marginTop: 4,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: '#dcebf3',
                     letterSpacing: 1.5,
                     textTransform: 'uppercase',
-                    fontFamily: "'Inter', monospace",
-                    textShadow: `0 0 12px ${config.color}44`,
                 }}>
-                    {config.mark ? `${config.mark} ${config.label}` : config.label}
-                </span>
-                {evLoss > 0 && (
-                    <span style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: 'var(--sp-accent-red)',
-                        background: 'rgba(0,0,0,0.4)',
-                        padding: '3px 10px',
-                        borderRadius: 6,
-                        fontFamily: "'Inter', monospace",
-                    }}>
-                        -{evLoss.toFixed(2)} bb
-                        {pot > 0 && (
-                            <span style={{ opacity: 0.75, marginLeft: 6 }}>
-                                ({((evLoss / pot) * 100).toFixed(1)}% pot)
-                            </span>
-                        )}
-                    </span>
-                )}
-                {evLoss > 0 && (
-                    <span style={{
-                        fontSize: 9,
-                        fontWeight: 600,
-                        color: evLoss >= 0.5 ? 'var(--sp-accent-red)' : evLoss >= 0.2 ? 'var(--sp-accent-amber)' : 'var(--sp-fg-muted)',
-                        fontFamily: "'Inter', sans-serif",
-                        opacity: 0.85,
-                    }}>
-                        {evLoss >= 1.0 ? 'Critical mistake — costs 1+ BB/hand' :
-                         evLoss >= 0.5 ? 'Significant — adds up over many hands' :
-                         evLoss >= 0.2 ? 'Moderate — small leak to fix' :
-                         evLoss >= 0.05 ? 'Minor — close decision' :
-                         'Tiny — negligible difference'}
-                    </span>
-                )}
-                {isBestOrCorrect && evLoss === 0 && (
-                    <span style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: 'var(--sp-accent-green)',
-                        background: 'rgba(34,197,94,0.08)',
-                        padding: '2px 8px',
-                        borderRadius: 6,
-                    }}>
-                        0.00 EV
-                    </span>
-                )}
-            </motion.div>
+                    {config.label} · Review Your Decision Below
+                </div>
+            </div>
+            <div style={{
+                padding: '6px 12px',
+                background: 'linear-gradient(180deg, rgba(255,255,255,.1), rgba(0,0,0,.3))',
+                border: `1px solid ${verdictBorder}`,
+                color: isBestOrCorrect ? verdictColor : '#ffb4ba',
+                fontSize: 11,
+                fontWeight: 850,
+                letterSpacing: .6,
+                fontFamily: "'Inter', monospace",
+                boxShadow: 'inset 0 1px rgba(255,255,255,.14)',
+            }}>
+                {evLoss > 0
+                    ? `EV COST −${evLoss.toFixed(2)} BB${pot > 0 ? ` · ${((evLoss / pot) * 100).toFixed(1)}% POT` : ''}`
+                    : 'NO EV LOSS'}
+            </div>
+        </motion.div>
     );
 }
 
@@ -1640,7 +1589,6 @@ function UniversalDynamicTable({
     const [speedBonusToast, setSpeedBonusToast] = React.useState(null);
     const answerStartTime = useRef(Date.now());
     const prevStreakRef = useRef(streak);
-    const swipeTouchRef = useRef(null);
 
     // ═══ MULTI-STREET TRACKING STATE ═══
     // Track previous board cards to detect new cards dealt on street transitions
@@ -1730,8 +1678,6 @@ function UniversalDynamicTable({
         return question;
     };
 
-    // Phase 3: Study Mode (show frequencies before answering)
-    const [studyMode, setStudyMode] = React.useState(false);
     const [feedbackCollapsed, setFeedbackCollapsed] = React.useState(false);
     // Deep analysis starts CLOSED every hand: play first, study on request.
     const [deepAnalysisOpen, setDeepAnalysisOpen] = React.useState(false);
@@ -2260,30 +2206,6 @@ function UniversalDynamicTable({
         setShowWhyDrawer(false);
         setShowRangeGrid(false);
     }, [decisionKey]);
-
-    // Swipe navigation: swipe left on feedback = Next Hand
-    useEffect(() => {
-        if (!showFeedback) return;
-        const handleTouchStart = (e) => {
-            swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        };
-        const handleTouchEnd = (e) => {
-            if (!swipeTouchRef.current) return;
-            const dx = e.changedTouches[0].clientX - swipeTouchRef.current.x;
-            const dy = Math.abs(e.changedTouches[0].clientY - swipeTouchRef.current.y);
-            // Swipe left with > 60px distance and not vertical
-            if (dx < -60 && dy < 100 && onNextHand) {
-                onNextHand();
-            }
-            swipeTouchRef.current = null;
-        };
-        window.addEventListener('touchstart', handleTouchStart, { passive: true });
-        window.addEventListener('touchend', handleTouchEnd, { passive: true });
-        return () => {
-            window.removeEventListener('touchstart', handleTouchStart);
-            window.removeEventListener('touchend', handleTouchEnd);
-        };
-    }, [showFeedback, onNextHand]);
 
     const handleAnswer = useCallback((answerId) => {
         if (showFeedback) return;
@@ -2904,7 +2826,9 @@ function UniversalDynamicTable({
         try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, isCorrect: resolvedId === gradedAgainst }); } catch (e) { console.warn('[App] Handled exception:', e); }
     }, [showFeedback, selectedAnswer, groupingMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer, rngMode, rngHighLow, rngRoll, rngTargetAction]);
 
-    // Phase 25: Keyboard Shortcuts — UNIFIED handler (1-9, F/C/R, Space/Enter)
+    // Phase 25: Keyboard Shortcuts — UNIFIED answer handler (1-9, F/C/R).
+    // Advancing is deliberately button-only so feedback can never disappear
+    // because of an accidental Space, Enter, or swipe gesture.
     // Uses the SAME displayOptions list + handleAnswerWithGrouping path as the
     // rendered action buttons so keyboard answers can never diverge from clicks.
     useEffect(() => {
@@ -2913,13 +2837,6 @@ function UniversalDynamicTable({
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
             const key = e.key;
-
-            // During feedback: Space/Enter = next hand
-            if (showFeedback && (key === ' ' || key === 'Enter')) {
-                e.preventDefault();
-                if (onNextHand) onNextHand();
-                return;
-            }
 
             // During question: 1-9 = select answer by index (supports variable action count)
             if (!showFeedback && !selectedAnswer) {
@@ -2966,7 +2883,7 @@ function UniversalDynamicTable({
             window.removeEventListener('keydown', handleKeyDown);
             window.__spUnifiedKeyboard = Math.max(0, (window.__spUnifiedKeyboard || 1) - 1);
         };
-    }, [showFeedback, selectedAnswer, onNextHand, displayOptions, handleAnswerWithGrouping]);
+    }, [showFeedback, selectedAnswer, displayOptions, handleAnswerWithGrouping]);
 
     // GTOW parity #38 — while the dice is live it, not the solver's modal
     // action, is what "Best" means for this hand. Every display that used to
@@ -3038,73 +2955,6 @@ function UniversalDynamicTable({
             }
         }
     }, [showFeedback, moveClassification]);
-
-    // Phase 22+: Smart auto-advance with countdown visual
-    // Best/Correct: 2s. Inaccuracy: 4s. Wrong/Blunder: stays until user clicks.
-    // PERF: only the TOTAL lives here (one state write per feedback window).
-    // The 50ms remaining-time tick is owned by AutoAdvanceIndicator so the
-    // table tree no longer re-renders at 20Hz during auto-advance windows.
-    const [autoAdvanceTotal, setAutoAdvanceTotal] = React.useState(null);
-
-    useEffect(() => {
-        if (!showFeedback || !onNextHand || !computedClassification) {
-            setAutoAdvanceTotal(null);
-            return;
-        }
-        // 2026-07-26 UX FIX: this defaulted ON, so correct/best answers flashed
-        // their feedback for 2s and moved on before the explanation could be
-        // read. GTO Wizard waits for the player. Opt-in now.
-        //
-        // roadmap #6 — FEEDBACK RULE. GTO Wizard's most important pacing
-        // control: 'every' pauses after every action, 'mistakes' pauses ONLY on
-        // an error and rolls straight through correct play. We had no
-        // equivalent, so a session was either fully manual or fully automatic.
-        //   'every'    -> never auto-advance; the player clicks every hand.
-        //   'mistakes' -> auto-advance best/correct; stop on inaccuracy+.
-        //   'auto'     -> legacy behaviour, auto-advance everything but blunders.
-        const isMistake = !(computedClassification === 'best' || computedClassification === 'correct');
-        const feedbackRule = trainerConfig?.feedbackRule
-            || (trainerConfig?.autoAdvance === true ? 'auto' : 'every');
-
-        if (feedbackRule === 'every') {
-            setAutoAdvanceTotal(null);
-            return;
-        }
-        if (feedbackRule === 'mistakes' && isMistake) {
-            // The whole point of this mode: stop and make the player read it.
-            setAutoAdvanceTotal(null);
-            return;
-        }
-
-        // roadmap #5 — the delay is configurable. GTOW recommends ~3s.
-        const baseDelay = Number(trainerConfig?.autoAdvanceDelayMs) > 0
-            ? Number(trainerConfig.autoAdvanceDelayMs)
-            : 3000;
-
-        let delay = null;
-        if (computedClassification === 'best' || computedClassification === 'correct') {
-            delay = baseDelay;
-        } else if (computedClassification === 'inaccuracy') {
-            delay = Math.round(baseDelay * 2);
-        }
-        // Wrong/Blunder: never auto-advance — the player should study the feedback
-
-        if (delay) {
-            setAutoAdvanceTotal(delay);
-
-            const timerId = setTimeout(() => {
-                setAutoAdvanceTotal(null);
-                onNextHand();
-            }, delay);
-
-            return () => {
-                clearTimeout(timerId);
-                setAutoAdvanceTotal(null);
-            };
-        } else {
-            setAutoAdvanceTotal(null);
-        }
-    }, [showFeedback, computedClassification, onNextHand, trainerConfig?.autoAdvance]);
 
     // F9: Keyboard shortcuts — REMOVED (consolidated into Phase 25 unified handler above)
     // Do NOT re-add a second keydown listener here.
@@ -3485,6 +3335,10 @@ function UniversalDynamicTable({
                 .sp-club-gto-actions [data-action='allin']:not(:disabled) {
                     background: linear-gradient(180deg,#14df75,#00ad4e 56%,#006d30) !important;
                 }
+                .sp-training-feedback {
+                    scrollbar-color: rgba(83, 242, 160, .6) rgba(0, 0, 0, .28);
+                    scrollbar-width: thin;
+                }
                 @media (max-width: 640px) {
                     .sp-club-gto-question {
                         margin: 4px 6px 3px !important;
@@ -3506,6 +3360,16 @@ function UniversalDynamicTable({
                     .sp-club-gto-actions [data-action] {
                         min-height: 62px !important;
                     }
+                    .sp-training-next-bar {
+                        align-items: stretch !important;
+                        display: grid !important;
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                    }
+                    .sp-training-next-button {
+                        grid-column: 1 / -1;
+                        min-height: 58px;
+                        width: 100%;
+                    }
                 }
             `}</style>
             {/* F11: Streak Toast */}
@@ -3523,6 +3387,7 @@ function UniversalDynamicTable({
                         classification={computedClassification}
                         evLoss={evLoss}
                         pot={displayPot}
+                        reduceMotion={reduceMotion}
                     />
                 )}
             </AnimatePresence>
@@ -3603,15 +3468,6 @@ function UniversalDynamicTable({
                                 {rngTheme.label}
                             </button>
                         )}
-                        <button
-                            data-compact
-                            onClick={() => setStudyMode(v => !v)}
-                            aria-pressed={studyMode}
-                            title={studyMode ? 'Study - GTO frequencies shown before you answer' : 'Train - answer first, GTO after'}
-                            style={{ ...styles.modeButton, ...(studyMode ? styles.modeButtonStudy : null) }}
-                        >
-                            {studyMode ? 'STUDY' : 'TRAIN'}
-                        </button>
                     </div>
                                         {/* Multi-Street Progress Indicator — GTO Wizard style */}
                     {isMultiStreetActive && (
@@ -4754,43 +4610,6 @@ function UniversalDynamicTable({
                 )}
             </AnimatePresence>
 
-            {/* ═══ PRE-DECISION HINTS — Show contextual tips BEFORE user answers ═══ */}
-            {!showFeedback && !selectedAnswer && question && (() => {
-                try {
-                    const sc = question?.scenario || question || {};
-                    const hints = [];
-                    // Key concept reminders
-                    if (getKeyConceptReminders) {
-                        const kcr = getKeyConceptReminders(sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '');
-                        if (kcr && kcr.reminders && kcr.reminders.length > 0) {
-                            hints.push(kcr.reminders[0]);
-                        }
-                    }
-                    // Pre-decision preview
-                    if (getPreDecisionPreview && hints.length === 0) {
-                        const pdp = getPreDecisionPreview(
-                            question?.handCategory || '',
-                            sc.street || 'flop',
-                            sc.nodeType || '',
-                            sc.heroPosition || '',
-                            gtoFrequencies || {}
-                        );
-                        if (pdp && pdp.hint) hints.push(pdp.hint);
-                    }
-                    if (hints.length === 0) return null;
-                    return (
-                        <div style={{
-                            margin: '0 16px 6px', padding: '6px 12px',
-                            background: 'linear-gradient(90deg, rgba(34,211,238,0.08), rgba(14,165,233,0.04))',
-                            borderRadius: 8, border: '1px solid rgba(34,211,238,0.15)',
-                        }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}> Hint</div>
-                            <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', lineHeight: 1.4 }}>{hints[0]}</div>
-                        </div>
-                    );
-                } catch (_) { return null; }
-            })()}
-
             {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
             <div className="sp-club-gto-actions" style={{
                 ...styles.actionBar,
@@ -4999,15 +4818,14 @@ function UniversalDynamicTable({
                                         {betSizeNum} BB
                                     </div>
                                 ) : null}
-                                {(showFeedback || (studyMode && computedFrequencies)) ? (
+                                {showFeedback ? (
                                     <motion.span
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
-                                        transition={{ delay: showFeedback ? 0.3 : 0 }}
+                                        transition={{ delay: 0.3 }}
                                         style={{
                                             ...styles.freqLabel,
                                             fontSize: isCompact ? 9 : 11,
-                                            ...(studyMode && !showFeedback ? { opacity: 0.5, fontSize: 9 } : {}),
                                         }}
                                     >
                                         {freq}%
@@ -5018,7 +4836,7 @@ function UniversalDynamicTable({
                             <FrequencyBar
                                 frequency={freq}
                                 color={ACTION_COLORS[actionType]?.border || 'var(--sp-fg-dim)'}
-                                show={showFeedback || (studyMode && computedFrequencies)}
+                                show={showFeedback}
                             />
                         </div>
                     );
@@ -5229,9 +5047,6 @@ function UniversalDynamicTable({
                             style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
                         >
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                <button onClick={() => setStudyMode(!studyMode)} style={styles.settingsBtn}>
-                                    {studyMode ? 'Study Mode: ON': 'Study Mode: OFF'}
-                                </button>
                                 <button onClick={() => setRngMode(!rngMode)} style={styles.settingsBtn}>
                                     {rngMode ? '◆ RNG Mode: ON': '◆ RNG Mode: OFF'}
                                 </button>
@@ -5261,11 +5076,72 @@ function UniversalDynamicTable({
             {/* INLINE FEEDBACK — Table stays visible, results shown below action bar */}
             {showFeedback && (
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    className="sp-training-feedback"
+                    initial={reduceMotion ? false : { opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+                    transition={reduceMotion ? { duration: 0 } : { type: 'spring', damping: 22, stiffness: 300 }}
                     style={styles.feedbackInline}
                 >
+                    {(() => {
+                        const verdictCorrect = computedClassification === 'best' || computedClassification === 'correct';
+                        const verdictColor = verdictCorrect ? '#53f2a0' : '#ff6670';
+                        const selectedText = options.find(o => o.id === selectedAnswer)?.text || selectedAnswer || 'No Answer';
+                        const correctText = options.find(o => o.id === effectiveCorrectAnswer)?.text || effectiveCorrectAnswer || 'Not Available';
+                        return (
+                            <div
+                                role="status"
+                                aria-live="assertive"
+                                aria-atomic="true"
+                                style={{
+                                    width: '100%',
+                                    padding: '14px clamp(12px, 3vw, 22px)',
+                                    background: 'linear-gradient(145deg, rgba(24,39,52,.98), rgba(5,11,19,.98) 58%, rgba(1,4,8,.98))',
+                                    border: `2px solid ${verdictCorrect ? 'rgba(83,242,160,.72)' : 'rgba(255,102,112,.78)'}`,
+                                    boxShadow: `inset 0 1px rgba(255,255,255,.24), inset 0 -10px 24px rgba(0,0,0,.48), 0 8px 26px ${verdictCorrect ? 'rgba(28,222,128,.18)' : 'rgba(255,55,75,.20)'}`,
+                                }}
+                            >
+                                <div style={{
+                                    color: verdictColor,
+                                    fontFamily: "var(--font-rajdhani), 'Rajdhani', 'Inter', sans-serif",
+                                    fontSize: 'clamp(26px, 5vw, 38px)',
+                                    fontWeight: 950,
+                                    letterSpacing: 3,
+                                    lineHeight: 1,
+                                    textAlign: 'center',
+                                    textShadow: '0 2px 0 #000, 0 0 18px currentColor',
+                                    textTransform: 'uppercase',
+                                }}>
+                                    {verdictCorrect ? 'Correct' : 'Incorrect'}
+                                </div>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                                    gap: 8,
+                                    marginTop: 12,
+                                }}>
+                                    <div style={{
+                                        padding: '9px 11px',
+                                        background: 'rgba(0,0,0,.36)',
+                                        border: `1px solid ${verdictCorrect ? 'rgba(83,242,160,.38)' : 'rgba(255,102,112,.45)'}`,
+                                    }}>
+                                        <div style={{ color: '#9fb3c0', fontSize: 9, fontWeight: 850, letterSpacing: 1.4, textTransform: 'uppercase' }}>Your Answer</div>
+                                        <div style={{ color: verdictColor, fontSize: 14, fontWeight: 850, marginTop: 3 }}>{selectedText}</div>
+                                    </div>
+                                    <div style={{
+                                        padding: '9px 11px',
+                                        background: 'rgba(0,0,0,.36)',
+                                        border: '1px solid rgba(83,242,160,.45)',
+                                    }}>
+                                        <div style={{ color: '#9fb3c0', fontSize: 9, fontWeight: 850, letterSpacing: 1.4, textTransform: 'uppercase' }}>Correct Answer</div>
+                                        <div style={{ color: '#53f2a0', fontSize: 14, fontWeight: 850, marginTop: 3 }}>{correctText}</div>
+                                    </div>
+                                </div>
+                                <div style={{ color: '#c7d7df', fontSize: 10, fontWeight: 700, letterSpacing: .35, marginTop: 10, textAlign: 'center' }}>
+                                    Review The Coaching Below. This Screen Will Stay Open Until You Click Next.
+                                </div>
+                            </div>
+                        );
+                    })()}
                     {/* Collapsible toggle for feedback panel (GAP 9) */}
                     <button
                         onClick={() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)}
@@ -5282,7 +5158,7 @@ function UniversalDynamicTable({
                             textTransform: 'uppercase',
                         }}
                     >
-                        {feedbackCollapsed ? '▼ SHOW GTO DETAILS' : '✕ CLOSE'}
+                        {feedbackCollapsed ? 'Show Coaching Details' : 'Hide Coaching Details'}
                     </button>
 
                     {/* Collapsible feedback body - uses display:none for clean collapse */}
@@ -5377,7 +5253,7 @@ function UniversalDynamicTable({
                         </div>
                     </div>
 
-                    {/* Your Pick + Correct Answer Row */}
+                    {/* Your Answer + Correct Answer Row */}
                     {selectedAnswer && (
                         <div style={{
                             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
@@ -5398,11 +5274,11 @@ function UniversalDynamicTable({
                                 fontSize: 11, fontWeight: 600,
                                 color: feedbackResult === 'correct' ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                             }}>
-                                {feedbackResult === 'correct'? '✓': '✕'} {timeExpired && timeExpired !== 'none' ? 'Clock' : 'You'}: {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
+                                {feedbackResult === 'correct'? '✓': '✕'} {timeExpired && timeExpired !== 'none' ? 'Timed Action' : 'Your Answer'}: {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
                             </span>
                             {selectedAnswer !== effectiveCorrectAnswer && (
                                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-accent-green)' }}>
-                                    ✓ Best: {options.find(o => o.id === effectiveCorrectAnswer)?.text || effectiveCorrectAnswer}
+                                    ✓ Correct Answer: {options.find(o => o.id === effectiveCorrectAnswer)?.text || effectiveCorrectAnswer}
                                 </span>
                             )}
                         </div>
@@ -6419,6 +6295,7 @@ function UniversalDynamicTable({
                         scrolling past the natural inline position. */}
                     {/* Next Hand / Continue Hand buttons — GTOW-style prominent green */}
                     <div
+                        className="sp-training-next-bar"
                         style={{
                             display: 'flex',
                             gap: 8,
@@ -6438,6 +6315,7 @@ function UniversalDynamicTable({
                         {onNextHand ? (
                             <>
                                 <motion.button
+                                    className="sp-training-next-button"
                                     onClick={onNextHand}
                                     initial={{ opacity: 0, y: 5 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -6446,7 +6324,7 @@ function UniversalDynamicTable({
                                     whileTap={{ scale: 0.96 }}
                                     style={{
                                         position: 'relative', overflow: 'hidden',
-                                        padding: '12px 32px', borderRadius: 10,
+                                        padding: '14px 34px', borderRadius: 0,
                                         border: isMultiStreetActive
                                             ? '1.5px solid rgba(251, 146, 60, 0.6)'
                                             : '1.5px solid rgba(34, 197, 94, 0.5)',
@@ -6461,13 +6339,7 @@ function UniversalDynamicTable({
                                             : '0 0 10px rgba(34,197,94,0.12)',
                                     }}
                                 >
-                                    {isMultiStreetActive ? 'Continue Hand →' : 'Next Hand →'}
-                                    {/* PERF: seconds label + progress bar own their 50ms tick
-                                        in AutoAdvanceIndicator (see that component). */}
-                                    <AutoAdvanceIndicator
-                                        total={autoAdvanceTotal}
-                                        isMultiStreetActive={isMultiStreetActive}
-                                    />
+                                    {isMultiStreetActive ? 'Next — Continue Hand →' : 'Next Question →'}
                                 </motion.button>
                                 {!isMultiStreetActive && lastQuestionRef.current && (
                                     <motion.button
@@ -7694,18 +7566,22 @@ const styles = {
     feedbackInline: {
         position: 'relative',
         width: '100%',
-        maxHeight: '40vh',
+        maxHeight: '52vh',
         overflowY: 'auto',
-        background: 'rgba(5,10,20,0.92)',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 12,
+        background: 'linear-gradient(145deg, rgba(22,34,45,.98), rgba(4,9,16,.99) 52%, rgba(1,3,7,.99))',
+        borderTop: '2px solid rgba(150,220,245,.62)',
+        borderRight: '1px solid rgba(77,151,181,.46)',
+        borderBottom: '2px solid rgba(21,92,122,.68)',
+        borderLeft: '1px solid rgba(77,151,181,.46)',
+        borderRadius: 0,
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'flex-start',
         gap: 8,
-        padding: '24px 20px',
+        padding: '16px clamp(10px, 3vw, 22px) 20px',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.20), inset 0 -16px 34px rgba(0,0,0,.45), 0 12px 32px rgba(0,0,0,.48)',
         WebkitOverflowScrolling: 'touch',
         maxWidth: 800,
         marginLeft: 'auto',

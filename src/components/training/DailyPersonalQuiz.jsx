@@ -16,7 +16,7 @@ const QUIZ_CATEGORIES = [
 
 const DAILY_QUESTIONS = [
   { category: 'preflop', difficulty: 'Medium',
-    scenario: 'UTG opens 2.5x at 100bb 6-max. You\'re in the CO with K♠Q♥.',
+    scenario: 'At 100 BB effective in 6-max, action folds to Under The Gun, who raises to 2.5 BB. You are in the Cutoff with K♠Q♥. What is your best action?',
     board: null, pot: null, position: 'CO vs UTG Open',
     options: [
       { action: 'Fold', ev: -0.2, correct: false, explain: 'KQo is strong enough to continue vs UTG. Folding is too tight.' },
@@ -25,7 +25,7 @@ const DAILY_QUESTIONS = [
       { action: '3-Bet to 10bb', ev: 0.6, correct: false, explain: 'Sizing is too large. 3x the open (7.5bb) is standard. 4x bloats the pot unnecessarily.' },
     ] },
   { category: 'cbet', difficulty: 'Hard',
-    scenario: 'You opened BTN, BB called. Flop: J♥ 8♣ 4♠. You have A♠5♠.',
+    scenario: 'You raise first in from the Button and the Big Blind calls. The flop is J♥ 8♣ 4♠, and the Big Blind checks. You hold A♠5♠. What is your best action?',
     board: 'J♥ 8♣ 4♠', pot: '6.5bb', position: 'BTN vs BB SRP',
     options: [
       { action: 'Check', ev: 0.3, correct: false, explain: 'Checking isn\'t bad but misses a profitable c-bet. You have backdoor nut flush and overcard equity.' },
@@ -34,7 +34,7 @@ const DAILY_QUESTIONS = [
       { action: 'Bet 6.5bb (pot)', ev: -0.8, correct: false, explain: 'Way too large. Pot-sized c-bet with A-high is lighting money on fire. You only get called by better.' },
     ] },
   { category: 'barrel', difficulty: 'Hard',
-    scenario: 'You 3-bet BTN from SB, called. Flop K♦9♥3♣, you bet 33%, called. Turn: 6♠. You have A♠Q♠.',
+    scenario: 'You 3-bet from the Small Blind and the Button calls. On K♦9♥3♣, you bet 33% pot and the Button calls. The turn is 6♠. You hold A♠Q♠ and are first to act. What is your best action?',
     board: 'K♦ 9♥ 3♣ 6♠', pot: '22bb', position: 'SB 3BP vs BTN',
     options: [
       { action: 'Check', ev: 0.8, correct: true, explain: 'Correct! AQo missed. The turn brick doesn\'t improve you. Check and reassess. You can bluff some rivers.' },
@@ -43,15 +43,16 @@ const DAILY_QUESTIONS = [
       { action: 'Bet 22bb (pot)', ev: -2.5, correct: false, explain: 'Massively overplaying A-high. This is a disaster bet that only gets called by hands that crush you.' },
     ] },
   { category: 'bluffcatch', difficulty: 'Expert',
-    scenario: 'BTN opens, you call BB. Board: Q♥T♣7♠ 2♦ 5♥. Villain bet flop 33%, turn 66%, river 100%. You have J♥J♣.',
+    scenario: 'Action folds to the Button, who raises; you call from the Big Blind. On Q♥T♣7♠ 2♦ 5♥, the Button bets 33% pot on the flop, 66% on the turn, and 100% on the river. You hold J♥J♣. What is your best action?',
     board: 'Q♥ T♣ 7♠ 2♦ 5♥', pot: '38bb', position: 'BB vs BTN 3-barrel',
     options: [
       { action: 'Fold', ev: 0.4, correct: true, explain: 'Correct! JJ is a fold vs 3-barrel with overbet river. BTN\'s range is polarized — QT+, sets, or bluffs. JJ loses to all value.' },
       { action: 'Call', ev: -3.2, correct: false, explain: 'JJ can\'t beat any value bet on this board. Q7, QT, T7, sets, straights all crush you. Don\'t be a calling station.' },
       { action: 'Raise to 95bb', ev: -8.5, correct: false, explain: 'Raising JJ as a bluff on this runout is suicide. You block nothing and BTN is never folding better.' },
+      { action: 'Min-Raise to 76bb', ev: -6.9, correct: false, explain: 'A small river raise represents very little and gives the Button excellent odds to continue with every value hand.' },
     ] },
   { category: 'sizing', difficulty: 'Medium',
-    scenario: 'You have A♠A♥ on K♣7♦2♠ 9♥ 3♣ vs a tight player. Pot is 15bb. River decision.',
+    scenario: 'You hold A♠A♥ on K♣7♦2♠ 9♥ 3♣ against a tight opponent. The opponent checks to you on the river with 15 BB in the pot. What is your best action?',
     board: 'K♣ 7♦ 2♠ 9♥ 3♣', pot: '15bb', position: 'IP vs tight villain',
     options: [
       { action: 'Check', ev: 0.5, correct: false, explain: 'You\'re leaving value on the table. AA is strong and villain can have Kx, 99, 77 that pay off.' },

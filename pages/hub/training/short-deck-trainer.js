@@ -112,9 +112,9 @@ function generateQuiz(round) {
   // Pick a random question type
   const types = [
     {
-      q: `Is ${hero[0]}${hero[1]} stronger or weaker in Short Deck vs Hold'em?`,
-      correct: isSuited || isPair ? 'stronger' : Math.random() > 0.4 ? 'stronger' : 'weaker',
-      options: ['stronger', 'weaker'],
+      q: `Is ${hero[0]}${hero[1]} stronger in Short Deck than in Hold'em?`,
+      correct: isSuited || isPair ? 'yes' : Math.random() > 0.4 ? 'yes' : 'no',
+      options: ['yes', 'no'],
     },
     {
       q: `Can you make a flush with ${hero[0]}${hero[1]}?`,
@@ -125,12 +125,12 @@ function generateQuiz(round) {
     {
       q: `What is the lowest possible straight in Short Deck?`,
       correct: 'A-6-7-8-9',
-      options: ['A-6-7-8-9', 'A-2-3-4-5', '6-7-8-9-T'],
+      options: ['A-6-7-8-9', 'A-2-3-4-5', '6-7-8-9-T', '7-8-9-T-J'],
     },
     {
       q: `With 36 cards, how many combos does each pocket pair have?`,
       correct: '6',
-      options: ['3', '6', '10'],
+      options: ['3', '6', '10', '12'],
     },
   ];
   const t = types[round % types.length];

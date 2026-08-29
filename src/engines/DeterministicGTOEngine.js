@@ -313,9 +313,9 @@ function extractScenarioContext(scenarioHash, street, heroPosition, villainPosit
         if (potType === '3-Bet Pot') {
             // In a 3-bet pot, one player opened and the other 3-bet
             if (ipPositions.includes(heroPosition) && blinds.includes(villainPosition)) {
-                preflopAction = `${heroPosition} opens, ${villainPosition} 3-bets, ${heroPosition} calls`;
+                preflopAction = `${heroPosition} raises first in, ${villainPosition} 3-bets, and ${heroPosition} calls`;
             } else if (blinds.includes(heroPosition) && ipPositions.includes(villainPosition)) {
-                preflopAction = `${villainPosition} opens, ${heroPosition} 3-bets, ${villainPosition} calls`;
+                preflopAction = `${villainPosition} raises first in, ${heroPosition} 3-bets, and ${villainPosition} calls`;
             } else {
                 preflopAction = `3-bet pot: ${heroPosition} vs ${villainPosition}`;
             }
@@ -326,9 +326,9 @@ function extractScenarioContext(scenarioHash, street, heroPosition, villainPosit
         } else {
             // Standard SRP
             if (ipPositions.includes(heroPosition) && blinds.includes(villainPosition)) {
-                preflopAction = `${heroPosition} opens, ${villainPosition} calls`;
+                preflopAction = `${heroPosition} raises first in and ${villainPosition} calls`;
             } else if (blinds.includes(heroPosition) && ipPositions.includes(villainPosition)) {
-                preflopAction = `${villainPosition} opens, ${heroPosition} calls`;
+                preflopAction = `${villainPosition} raises first in and ${heroPosition} calls`;
             } else if (heroPosition === 'SB' && villainPosition === 'BB') {
                 preflopAction = 'SB completes, BB checks';
             } else {
@@ -549,10 +549,11 @@ export class DeterministicGTOEngine {
                 id: scenarioId,
                 type: 'PIO',
                 source: 'POSTFLOP_ENGINE',
-                question: `${streetLabel} Decision — ${scenario.position} vs ${villainPos}`,
+                question: `${scenario.description || `${streetLabel} decision.`} ${scenario.lastAction ? `${scenario.lastAction}. ` : ''}You are in ${scenario.position} with ${heroStr}. What is your best action?`,
                 scenario: {
                     title: `${streetLabel} Play`,
                     context: contextParts.join(' | '),
+                    description: scenario.description || '',
                     heroPosition: scenario.position,
                     villainPosition: villainPos,
                     // scenario.potSize / effectiveStack are the street-correct
@@ -572,6 +573,7 @@ export class DeterministicGTOEngine {
                     draws: scenario.draws || null,
                     isPFR: scenario.isPFR !== undefined ? scenario.isPFR : true,
                     spotType: scenario.spotType || null,
+                    action: scenario.lastAction || '',
                 },
                 heroCards: scenario.heroCards,
                 boardCards: scenario.board,
@@ -885,11 +887,13 @@ export class DeterministicGTOEngine {
                 spotType: 'rfi',
                 nodeType: 'preflop_open',
                 actionLabels: [
-                    { solver: 'raise', id: 'r', label: 'Raise' },
+                    { solver: 'raise', id: 'r', label: 'Raise To 2.5 BB' },
                     { solver: 'fold', id: 'f', label: 'Fold' },
+                    { solver: 'limp', id: 'limp', label: 'Limp' },
+                    { solver: 'allin', id: 'allin', label: 'Raise All-In' },
                 ],
                 contextText: `${pos} RFI (${stackDepth}BB)`,
-                questionText: (hand) => `You are in ${pos} with ${hand}. Action folds to you. What do you do?`,
+                questionText: (hand) => `Action folds to you in ${pos} at ${stackDepth} BB effective. You hold ${hand}. What is your best action?`,
             });
         }
 
@@ -908,12 +912,13 @@ export class DeterministicGTOEngine {
                 spotType: '3bet',
                 nodeType: 'preflop_3bet',
                 actionLabels: [
-                    { solver: 'raise', id: 'r', label: '3-Bet' },
+                    { solver: 'raise', id: 'r', label: '3-Bet To 9 BB' },
                     { solver: 'call', id: 'c', label: 'Call' },
                     { solver: 'fold', id: 'f', label: 'Fold' },
+                    { solver: 'allin', id: 'allin', label: '3-Bet All-In' },
                 ],
                 contextText: `${pos} 3-Bet vs ${villain}`,
-                questionText: (hand) => `${villain} opens. You are in ${pos} with ${hand}. What do you do?`,
+                questionText: (hand) => `Action folds to ${villain}, who raises to 2.5 BB. You are in ${pos} with ${hand} at ${stackDepth} BB effective. What is your best action?`,
             });
         }
 
@@ -928,12 +933,13 @@ export class DeterministicGTOEngine {
                 spotType: 'bb_defense',
                 nodeType: 'preflop_bb_defense',
                 actionLabels: [
-                    { solver: 'raise', id: 'r', label: '3-Bet' },
+                    { solver: 'raise', id: 'r', label: '3-Bet To 9 BB' },
                     { solver: 'call', id: 'c', label: 'Call' },
                     { solver: 'fold', id: 'f', label: 'Fold' },
+                    { solver: 'allin', id: 'allin', label: '3-Bet All-In' },
                 ],
                 contextText: `BB Defense vs ${villain}`,
-                questionText: (hand) => `${villain} opens. You are in BB with ${hand}. What do you do?`,
+                questionText: (hand) => `Action folds to ${villain}, who raises to 2.5 BB. You are in the Big Blind with ${hand} at ${stackDepth} BB effective. What is your best action?`,
             });
         }
 
@@ -941,20 +947,22 @@ export class DeterministicGTOEngine {
         for (const [key, data] of Object.entries(SOLVER_4BET || {})) {
             const parts = key.split('_vs_');
             const pos = parts[0];
+            const villain = parts[1] || 'opponent';
             pool.push({
                 spotData: data,
                 heroPos: pos,
-                villainPos: '3bettor',
+                villainPos: villain,
                 villainActionVerb: '3-BET',
                 spotType: '4bet',
                 nodeType: 'preflop_4bet',
                 actionLabels: [
-                    { solver: 'raise', id: 'r', label: '4-Bet' },
+                    { solver: 'raise', id: 'r', label: '4-Bet To 22 BB' },
                     { solver: 'call', id: 'c', label: 'Call' },
                     { solver: 'fold', id: 'f', label: 'Fold' },
+                    { solver: 'allin', id: 'allin', label: '4-Bet All-In' },
                 ],
                 contextText: `${pos} vs 3-Bet (4-Bet decision)`,
-                questionText: (hand) => `You opened from ${pos} with ${hand} and face a 3-Bet. What do you do?`,
+                questionText: (hand) => `You raised to 2.5 BB from ${pos}. ${villain} 3-bets to 9 BB. You hold ${hand} at ${stackDepth} BB effective. What is your best action?`,
             });
         }
 
@@ -973,9 +981,11 @@ export class DeterministicGTOEngine {
                 actionLabels: [
                     { solver: 'call', id: 'c', label: 'Call' },
                     { solver: 'fold', id: 'f', label: 'Fold' },
+                    { solver: 'raise', id: 'r', label: '3-Bet To 9 BB' },
+                    { solver: 'allin', id: 'allin', label: '3-Bet All-In' },
                 ],
                 contextText: `${pos} Cold Call vs ${villain}`,
-                questionText: (hand) => `${villain} opens. You are in ${pos} with ${hand}. Call or fold?`,
+                questionText: (hand) => `Action folds to ${villain}, who raises to 2.5 BB. You are in ${pos} with ${hand} at ${stackDepth} BB effective. What is your best action?`,
             });
         }
 
@@ -1003,15 +1013,17 @@ export class DeterministicGTOEngine {
                 spotType: 'squeeze',
                 nodeType: 'preflop_squeeze',
                 actionLabels: [
-                    { solver: 'raise', id: 'r', label: 'Squeeze' },
+                    { solver: 'raise', id: 'r', label: 'Squeeze To 12 BB' },
                     { solver: 'fold', id: 'f', label: 'Fold' },
+                    { solver: 'call', id: 'c', label: 'Call' },
+                    { solver: 'allin', id: 'allin', label: 'Squeeze All-In' },
                 ],
                 contextText: caller
-                    ? `Squeeze: ${opener} opens, ${caller} calls`
+                    ? `Squeeze: ${opener} raises first in and ${caller} calls`
                     : `Squeeze vs ${opener}`,
                 questionText: (hand) => (caller
-                    ? `${opener} opens and ${caller} calls. You are in ${pos} with ${hand}. Squeeze or fold?`
-                    : `${opener} opens. You are in ${pos} with ${hand}. Squeeze or fold?`),
+                    ? `Action folds to ${opener}, who raises to 2.5 BB; ${caller} calls. You are in ${pos} with ${hand} at ${stackDepth} BB effective. What is your best action?`
+                    : `Action folds to ${opener}, who raises to 2.5 BB. You are in ${pos} with ${hand} at ${stackDepth} BB effective. What is your best action?`),
             });
         }
 
@@ -1942,11 +1954,11 @@ export class DeterministicGTOEngine {
         const correctAction = yesFreq > 0.5 ? yesId : 'fold';
 
         const VILLAIN_ACTION_TEXT = {
-            fold_to_hero: 'Folded to you',
-            sb_push: 'SB shoves all-in',
+            fold_to_hero: 'Action folds to you',
+            sb_push: 'Action folds to the Small Blind, who raises all-in',
         };
         const villainActionText = VILLAIN_ACTION_TEXT[chart.villain_action]
-            || chart.villain_action || 'Folded to you';
+            || chart.villain_action || 'Action folds to you';
 
         const gtoFrequencies = {
             [yesId]: Math.round(yesFreq * 100),
@@ -1971,13 +1983,22 @@ export class DeterministicGTOEngine {
             },
             heroCards: parseHandToCards(heroHand),
             boardCards: [],  // Push/fold games are preflop — no board
-            question: `${chart.hero_position || 'BTN'} with ${heroHand} at ${chart.stack_depth}BB. ${villainActionText}. ${isCallNode ? 'Call or Fold?' : 'Push or Fold?'}`,
-            options: [
-                { id: yesId, text: yesText, frequency: gtoFrequencies[yesId] },
-                { id: 'fold', text: 'Fold', frequency: gtoFrequencies.fold },
-            ],
+            question: isCallNode
+                ? `Action folds to the Small Blind, who raises all-in. You are in the Big Blind with ${heroHand} at ${chart.stack_depth} BB effective. Should you call?`
+                : `Action folds to you in ${chart.hero_position || 'BTN'} at ${chart.stack_depth} BB effective. You hold ${heroHand}. Push or Fold?`,
+            options: isCallNode
+                ? [
+                    { id: yesId, text: 'Yes', frequency: gtoFrequencies[yesId] },
+                    { id: 'fold', text: 'No', frequency: gtoFrequencies.fold },
+                ]
+                : [
+                    { id: yesId, text: yesText, frequency: gtoFrequencies[yesId] },
+                    { id: 'fold', text: 'Fold', frequency: gtoFrequencies.fold },
+                ],
             correctAnswer: correctAction,
-            correctAnswerText: correctAction === 'fold' ? 'Fold' : yesText,
+            correctAnswerText: isCallNode
+                ? (correctAction === 'fold' ? 'No' : 'Yes')
+                : (correctAction === 'fold' ? 'Fold' : yesText),
             frequencies: { [yesId]: yesFreq, fold: 1 - yesFreq },
             gtoFrequencies,
             // Charts have no real EV data — zero out so the client falls back
@@ -2176,7 +2197,7 @@ export class DeterministicGTOEngine {
 
         if (street === 'preflop') {
             if (nodeType === 'preflop_open') return 'Folded to you';
-            if (nodeType === 'preflop_facing_raise') return `${villainPosition} opens`;
+            if (nodeType === 'preflop_facing_raise') return `Action folds to ${villainPosition}, who raises`;
             if (nodeType === 'preflop_bb_option') return `${villainPosition} limps — BB option`;
             return '';
         }
@@ -2234,19 +2255,19 @@ export class DeterministicGTOEngine {
             const potType = context.potType || '';
 
             if (nodeType === 'preflop_open') {
-                return `${prefix}${heroPosition} — Folded to you. You hold ${heroHand}. Your action?`;
+                return `${prefix}${heroPosition} — Action folds to you. You hold ${heroHand}. What is your best action?`;
             } else if (nodeType === 'preflop_facing_raise') {
                 // Differentiate facing open vs facing 3-bet vs facing 4-bet
                 if (potType === '4-Bet' || potType === '4bet') {
-                    return `${prefix}${heroPosition} — Facing a 4-bet from ${villainPosition}. You hold ${heroHand}. Your action?`;
+                    return `${prefix}${heroPosition} — ${villainPosition} 4-bets. You hold ${heroHand}. What is your best action?`;
                 } else if (potType === '3-Bet' || potType === '3bet') {
-                    return `${prefix}${heroPosition} — ${villainPosition} 3-bets. You hold ${heroHand}. Your action?`;
+                    return `${prefix}${heroPosition} — ${villainPosition} 3-bets. You hold ${heroHand}. What is your best action?`;
                 }
-                return `${prefix}${heroPosition} — ${villainPosition} opens. You hold ${heroHand}. Your action?`;
+                return `${prefix}${heroPosition} — Action folds to ${villainPosition}, who raises. You hold ${heroHand}. What is your best action?`;
             } else if (nodeType === 'preflop_bb_option') {
-                return `${prefix}BB — ${villainPosition} limps. You hold ${heroHand}. Check or raise?`;
+                return `${prefix}BB — ${villainPosition} limps. You hold ${heroHand}. What is your best action?`;
             }
-            return `${prefix}${heroPosition} — You hold ${heroHand}. Your action?`;
+            return `${prefix}${heroPosition} — You hold ${heroHand}. What is your best action?`;
         }
 
         const handStrength = this.categorizeHand(heroHand, board);
@@ -2316,11 +2337,11 @@ export class DeterministicGTOEngine {
 
         switch (nodeType) {
             case 'hero_bets_or_checks':
-                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainAction}.${potPart}${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainAction}.${potPart}${sprPart} You hold ${heroHand} (${handStrength}). What is your best action?`;
             case 'hero_faces_bet':
-                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainAction}.${potPart}${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainAction}.${potPart}${sprPart} You hold ${heroHand} (${handStrength}). What is your best action?`;
             default:
-                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext}${potPart}${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext}${potPart}${sprPart} You hold ${heroHand} (${handStrength}). What is your best action?`;
         }
     }
 

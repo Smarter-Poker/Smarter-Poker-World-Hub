@@ -28,6 +28,7 @@ import { createSessionRecord, createMoveRecords, saveSession } from '../engines/
 import { simplifyActions, DIFFICULTY, toEngineDifficulty } from '../engines/DifficultyEngine';
 // ═══ Phase GTO-CLONE: ActionTreeEngine for GTO action mapping + scoring ═══
 import { scoreAction, mapToSolverAction } from '../engines/ActionTreeEngine';
+import { enforceTrainingQuestionContract } from '../lib/training/questionContract.mjs';
 
 /**
  * Apply difficulty-based option simplification (GTO Wizard Simple/Grouped/Standard)
@@ -43,7 +44,7 @@ function applyDifficultyToQuestion(question, difficultyMode) {
   // middle tier skipped simplification entirely and 'expert' was simplified
   // MORE than it should have been.
   const engineMode = toEngineDifficulty(difficultyMode);
-  if (engineMode === DIFFICULTY.STANDARD) return question;
+  if (engineMode === DIFFICULTY.STANDARD) return enforceTrainingQuestionContract(question);
   try {
     const potSize = question.scenario?.pot || 10;
     // Normalize each option to the canonical action token simplifyActions matches on
@@ -157,7 +158,7 @@ function applyDifficultyToQuestion(question, difficultyMode) {
         ? { ...question.evData, actionEVs: remapEVs(question.evData.actionEVs) }
         : question.evData;
 
-      return {
+      return enforceTrainingQuestionContract({
         ...question,
         options: newOptions,
         correctAnswer: newCorrect,
@@ -169,12 +170,12 @@ function applyDifficultyToQuestion(question, difficultyMode) {
         _originalFrequencies: question.gtoFrequencies,
         _originalActionEVs: question.actionEVs,
         _difficultyApplied: difficultyMode,
-      };
+      });
     }
   } catch (e) {
     console.warn('[App] Handled exception:', e?.message || e);
   }
-  return question;
+  return enforceTrainingQuestionContract(question);
 }
 
 

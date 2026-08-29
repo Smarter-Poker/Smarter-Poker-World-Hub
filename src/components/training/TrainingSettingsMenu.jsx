@@ -11,7 +11,7 @@ import { useTrainingSettings } from '../../contexts/TrainingSettingsContext';
 
 export default function TrainingSettingsMenu({ onClose }) {
     const [isOpen, setIsOpen] = useState(false);
-    const { viewMode, setViewMode, soundEnabled, setSoundEnabled, timerEnabled, setTimerEnabled, autoAdvanceEnabled, setAutoAdvanceEnabled, hintsEnabled, setHintsEnabled } = useTrainingSettings();
+    const { viewMode, setViewMode, soundEnabled, setSoundEnabled, timerEnabled, setTimerEnabled, hintsEnabled, setHintsEnabled } = useTrainingSettings();
 
     // Auto-open when component mounts (controlled by parent)
     useEffect(() => {
@@ -131,22 +131,6 @@ export default function TrainingSettingsMenu({ onClose }) {
                             <ToggleSwitch
                                 enabled={timerEnabled}
                                 onToggle={setTimerEnabled}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Auto-Advance Toggle */}
-                    <div style={styles.settingGroup}>
-                        <div style={styles.settingRow}>
-                            <div>
-                                <label style={styles.settingLabel}>Auto-Next</label>
-                                <span style={styles.settingHintSmall}>
-                                    Skip to next question automatically
-                                </span>
-                            </div>
-                            <ToggleSwitch
-                                enabled={autoAdvanceEnabled}
-                                onToggle={setAutoAdvanceEnabled}
                             />
                         </div>
                     </div>

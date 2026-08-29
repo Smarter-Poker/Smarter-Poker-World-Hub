@@ -68,29 +68,10 @@ const SCOPE_OPTIONS = [
   { id: 'street', label: 'Street',    desc: 'Single Street' },
 ];
 
-const SPEED_OPTIONS = [
-  { id: 'normal', label: 'Normal', desc: '3s delay' },
-  { id: 'fast',   label: 'Fast',   desc: '1.5s delay' },
-  { id: 'turbo',  label: 'Turbo',  desc: 'No delay' },
-];
-
 const TABLE_OPTIONS = [
   { id: '1', label: '1 Table', desc: 'Single focus' },
   { id: '2', label: '2 Tables', desc: 'Split screen' },
   { id: '4', label: '4 Tables', desc: 'Mass multi-table' },
-];
-
-// GTOW exposes a feedback rule (show the solver's answer after every action,
-// or only when you made a mistake) and an Auto New Hand switch. Both were
-// hardcoded in the arena, silently overriding whatever the player picked.
-const FEEDBACK_OPTIONS = [
-  { id: 'every',    label: 'Every action', desc: 'Pause each hand' },
-  { id: 'mistakes', label: 'On mistakes',  desc: 'Only when wrong' },
-];
-
-const AUTO_ADVANCE_OPTIONS = [
-  { id: 'on',  label: 'Auto new hand', desc: 'Deal automatically' },
-  { id: 'off', label: 'Manual',        desc: 'You advance' },
 ];
 
 // GTOW parity #7 — HAND SELECTION.
@@ -153,10 +134,7 @@ export default function SessionSetupModal({
   const [timer,      setTimer]      = useState(saved.timer      || 'standard');
   const [mode,       setMode]       = useState(saved.mode       || 'standard');
   const [scope,      setScope]      = useState(saved.scope      || 'full');
-  const [speed,      setSpeed]      = useState(saved.speed      || 'normal');
   const [tables,     setTables]     = useState(saved.tables     || '1');
-  const [feedbackRule,  setFeedbackRule]  = useState(saved.feedbackRule  || 'mistakes');
-  const [autoAdvanceUI, setAutoAdvanceUI] = useState(saved.autoAdvanceUI || 'on');
   const [handSelection, setHandSelection] = useState(saved.handSelection || 'all');
 
   const [stats,       setStats]       = useState(null);
@@ -208,15 +186,16 @@ export default function SessionSetupModal({
       timer,
       mode,
       scope,
-      speed,
+      speed: 'normal',
       tables,
-      feedbackRule,
-      autoAdvanceUI,
+      feedbackRule: 'every',
+      autoAdvanceUI: 'off',
+      autoAdvance: false,
       handSelection,
     };
     if (gameId) writePrefs(gameId, prefs);
     onStart?.({ game, ...prefs });
-  }, [game, gameId, difficulty, timer, mode, scope, speed, tables, feedbackRule, autoAdvanceUI, handSelection, onStart]);
+  }, [game, gameId, difficulty, timer, mode, scope, tables, handSelection, onStart]);
 
   if (!isOpen || !game) return null;
 
@@ -326,10 +305,9 @@ export default function SessionSetupModal({
               <SetupField title="Timer"><PillRow options={TIMER_OPTIONS} value={timer} onChange={setTimer} name="timer" /></SetupField>
               <SetupField title="Training Mode" wide><PillRow options={MODE_OPTIONS} value={mode} onChange={setMode} name="mode" tile /></SetupField>
               <SetupField title="Game Scope"><PillRow options={SCOPE_OPTIONS} value={scope} onChange={setScope} name="scope" /></SetupField>
-              <SetupField title="Game Speed"><PillRow options={SPEED_OPTIONS} value={speed} onChange={setSpeed} name="speed" /></SetupField>
               <SetupField title="Tables"><PillRow options={TABLE_OPTIONS} value={tables} onChange={setTables} name="tables" /></SetupField>
-              <SetupField title="Feedback"><PillRow options={FEEDBACK_OPTIONS} value={feedbackRule} onChange={setFeedbackRule} name="feedbackRule" /></SetupField>
-              <SetupField title="Hand Advance"><PillRow options={AUTO_ADVANCE_OPTIONS} value={autoAdvanceUI} onChange={setAutoAdvanceUI} name="autoAdvanceUI" /></SetupField>
+              <SetupField title="Feedback"><div className="sp-caption"><strong>After Every Answer</strong><br />Correct And Incorrect Results Stay Visible.</div></SetupField>
+              <SetupField title="Hand Advance"><div className="sp-caption"><strong>Manual Next Required</strong><br />Click Next When You Finish Reviewing.</div></SetupField>
               <SetupField title="Hand Selection"><PillRow options={HAND_SELECTION_OPTIONS} value={handSelection} onChange={setHandSelection} name="handSelection" /></SetupField>
             </div>
 

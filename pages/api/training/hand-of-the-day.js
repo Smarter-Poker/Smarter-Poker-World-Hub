@@ -13,6 +13,7 @@ import { withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUt
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { safeAward } from '../../../src/lib/rewards/awardGuard';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -98,11 +99,18 @@ export default async function handler(req, res) {
         // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         // MAP question_data to the daily challenge display format
         // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-        const qd = cached.question_data;
+        let qd = cached.question_data;
         // 2026-07-19 AUDIT FIX: ~7% of cache rows carry a correctAnswer /
         // correctAnswerText contradicting their own solver `frequencies` —
         // and this endpoint grades by TEXT. Reconcile before mapping.
         reconcileAnswerKey(qd);
+        qd = enforceTrainingQuestionContract(qd);
+        if (!isTrainingQuestionValid(qd)) {
+          return res.status(422).json({
+            success: false,
+            error: 'Today’s hand did not pass the training integrity audit.',
+          });
+        }
         const scenario = qd.scenario || {};
 
         // Phase 93: Prefer scenario.heroHand (canonical, matches explanation prose)
@@ -130,28 +138,7 @@ export default async function handler(req, res) {
           }
         }
 
-        // Ensure 4 options (4-option mandate)
-        let options = qd.options || [];
-        if (options.length < 4) {
-          const defaults = [
-            { id: 'a', text: 'Fold' },
-            { id: 'b', text: 'Call' },
-            { id: 'c', text: 'Raise' },
-            { id: 'd', text: 'All-In' },
-          ];
-          // Fill missing options
-          while (options.length < 4) {
-            const next = defaults[options.length];
-            if (next && !options.find((o) => o.text === next.text)) {
-              options.push(next);
-            } else {
-              options.push({
-                id: String.fromCharCode(97 + options.length),
-                text: `Option ${options.length + 1}`,
-              });
-            }
-          }
-        }
+        const options = qd.options || [];
 
         // Build the question object that daily-challenge.js expects
         const question = {

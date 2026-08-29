@@ -18,6 +18,7 @@ import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
 import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
 import { filterRowsToDeclaredStreet } from '../../../src/lib/training/declaredStreet';
+import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ●● Deterministic hash for seeded fallback data (avoids Math.random in data gen) ●●
@@ -465,8 +466,15 @@ export default async function handler(req, res) {
               // IMP-5: Tag data quality for frontend confidence indicators
               qData.dataQuality = dataQuality;
 
-              return qData;
-          }).filter(Boolean); // Remove null entries
+              return enforceTrainingQuestionContract(qData);
+          }).filter((question) => question && isTrainingQuestionValid(question));
+
+          if (enrichedBatch.length === 0) {
+              return res.status(422).json({
+                  success: false,
+                  error: 'No questions passed the training integrity audit for this game and level.',
+              });
+          }
 
           // A live deterministic question must become canonical before it can
           // be answered. record-question regrades against this server-side row;
