@@ -16,7 +16,6 @@ import { reapStaleCaches } from '../../src/lib/cacheReaper';
 import { CardCustomizerPanel } from '../../src/world/components/CardCustomizerPanel';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import BottomNavBar, { BOTTOM_NAV_CLEARANCE } from '../../src/components/ui/BottomNavBar';
-import HubPromoStrip from '../../src/components/ui/HubPromoStrip';
 
 // Dynamic import with SSR disabled to prevent hydration mismatches from R3F/WebGL
 // Error handling on the dynamic import itself catches module-level init failures
@@ -143,16 +142,20 @@ export default function HubPage() {
                 menuItems={menuConfig.menuItems}
                 bottomLinks={menuConfig.bottomLinks}
             />
-            {/* House promotions (2026-08-28). The `hub_promotions` slot was
-                declared in Phase 1 and wired to nothing; the World Hub had no
-                ad surface at all. It renders in normal flow right under the
-                sticky header, which lands it in the empty band above the 3D
-                carousel — the carousel is position:fixed, so nothing moves.
-                Error-bounded: an advert must never take the Hub down with it,
-                and must never render an error where a promotion goes. */}
-            <HubErrorBoundary name="Hub Promotions" fallback={<></>}>
-                <HubPromoStrip />
-            </HubErrorBoundary>
+            {/* NO ADVERT RENDERS ON THE HUB HOME. Dan, 2026-08-29: "DO NOT PUT
+               ADS IN RANDOM PLACES OR OVERLAPPING IMAGES EVER."
+
+               HubPromoStrip was mounted here on 2026-08-28 with a comment
+               reasoning that the 3D carousel is position:fixed "so nothing
+               moves". That is precisely why it was wrong: a fixed carousel is
+               not in the flow, so a strip placed in the flow does not sit
+               above it in an empty band - it sits ON it. In production it
+               covered the featured cards, which are the page.
+
+               The house-ad surface for the Hub is the promotions rail on
+               /hub/promotions, which is in-page, in-flow, and owns its space.
+               The hub_promotions slot still serves there; nothing in the
+               catalog changed. Do not re-add an ad to this page. */}
 
             {/* Card Visibility Customizer Panel — isolated in its own error boundary */}
             <HubErrorBoundary name="Card Customizer" fallback={<></>}>
