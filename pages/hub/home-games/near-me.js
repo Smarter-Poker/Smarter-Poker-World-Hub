@@ -31,6 +31,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   MapPin,
@@ -256,8 +257,10 @@ export default function HomeGamesNearMePage() {
         canonical="https://smarter.poker/hub/home-games/near-me"
       />
 
+      <PokerNearMeFamilyNav className="pnm-family-nav--standalone" />
+
       {/* Top bar */}
-      <div className="sticky top-0 z-10 border-b border-[#1E293B] bg-[#0A1526]/95 backdrop-blur-sm">
+      <div className="pnm-location-topbar sticky top-0 z-10 border-b border-[#1E293B] bg-[#0A1526]/95 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/hub/home-games/in" className="text-[#94A3B8] hover:text-white flex items-center gap-1">
             <ArrowLeft className="w-5 h-5" />

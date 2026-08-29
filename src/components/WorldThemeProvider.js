@@ -27,6 +27,16 @@ const ROUTE_TO_WORLD = {
     '/hub/poker-near-me/roadtrip': 'poker-near-me',
     '/hub/poker-near-me/alerts': 'poker-near-me',
     '/hub/poker-near-me/more': 'poker-near-me',
+    // Poker Near Me secondary and tertiary discovery families. These pages
+    // keep independent data lifecycles but inherit one visual system.
+    '/hub/venues': 'poker-near-me',
+    '/hub/home-games': 'poker-near-me',
+    '/hub/poker-tours': 'poker-near-me',
+    '/hub/poker-series': 'poker-near-me',
+    '/hub/tours': 'poker-near-me',
+    '/hub/series': 'poker-near-me',
+    '/hub/events-calendar': 'poker-near-me',
+    '/hub/daily-tournaments': 'poker-near-me',
     '/hub/diamond-store': 'marketplace',
     '/hub/club-arena': 'club-arena',
     '/hub/video-library': 'video-library',

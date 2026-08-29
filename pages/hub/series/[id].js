@@ -13,6 +13,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { eventBus } from '../../../src/engine/EventBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { formatGameType, decodeHtml } from '../../../src/utils/pokerFormatters';
 import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
@@ -512,6 +513,7 @@ export default function SeriesDetailPage() {
           router.back();
         }}
         />
+        <PokerNearMeFamilyNav />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="series-page">
           <div className="loading-container">
@@ -536,6 +538,7 @@ export default function SeriesDetailPage() {
           router.back();
         }}
         />
+        <PokerNearMeFamilyNav />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="series-page">
           <div className="error-container" style={{ textAlign: 'center', padding: '80px 20px' }}>
@@ -628,6 +631,7 @@ export default function SeriesDetailPage() {
           router.back();
         }}
       />
+      <PokerNearMeFamilyNav />
 
       <HamburgerMenu
           isOpen={menuOpen}
