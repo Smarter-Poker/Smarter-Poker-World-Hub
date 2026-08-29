@@ -906,7 +906,7 @@ export default function TourDetailPage() {
         )}
       </div>
 
-      <style>{styles}</style>
+      <style suppressHydrationWarning>{styles}</style>
     </>
   );
 }

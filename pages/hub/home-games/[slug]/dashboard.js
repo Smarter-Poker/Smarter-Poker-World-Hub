@@ -3,11 +3,13 @@
  * Host-facing dashboard — Overview · Members · Moderation · Settings
  * Gated to group host/co_host/admin. No admin RPCs — host-scoped only.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
+import PokerNearMeFamilyNav from '../../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import DeepRouteSignalDeck from '../../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import { createClient } from '@supabase/supabase-js';
@@ -341,6 +343,19 @@ export default function HomeGameDashboard() {
   // Without it a signed-out visitor sits on the loading screen forever because
   // the data effect below bails on !token and never reaches the redirect.
   const [authChecked, setAuthChecked] = useState(false);
+  const tabRefs = useRef([]);
+
+  const handleTabKeyDown = useCallback((event, index) => {
+    let next = null;
+    if (event.key === 'ArrowRight') next = (index + 1) % TABS.length;
+    if (event.key === 'ArrowLeft') next = (index - 1 + TABS.length) % TABS.length;
+    if (event.key === 'Home') next = 0;
+    if (event.key === 'End') next = TABS.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    setTab(next);
+    tabRefs.current[next]?.focus();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -427,13 +442,13 @@ export default function HomeGameDashboard() {
   }, [slug, token, authChecked, router]);
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textSec, fontFamily: 'Inter,-apple-system,sans-serif' }}>
+    <div className="hgd-page hgd-state">
       Loading dashboard…
     </div>
   );
 
   if (err) return (
-    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, fontFamily: 'Inter,-apple-system,sans-serif' }}>
+    <div className="hgd-page hgd-state">
       <div style={{ color: '#f87171', fontSize: 15 }}>{err}</div>
       <Link href="/hub/my-clubs" style={{ color: C.teal, fontSize: 13 }}>← My Clubs</Link>
     </div>
@@ -443,11 +458,37 @@ export default function HomeGameDashboard() {
     <>
       <Head>
         <title>{group?.name ? `${group.name} Dashboard` : 'Host Dashboard'} | Smarter.Poker</title>
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Inter,-apple-system,sans-serif', paddingBottom: 80 }}>
+      <div className="hgd-page">
         <UniversalHeader pageDepth={2} />
+        <PokerNearMeFamilyNav />
 
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 16px' }}>
+        <DeepRouteSignalDeck
+          compact
+          kind="dashboard"
+          eyebrow="Host operations"
+          title={`${group?.name || 'Home game'} command deck`}
+          description="Manage the room, members, upcoming sessions, moderation, and host settings from one protected surface."
+          image={group?.cover_photo_url || group?.profile_photo_url}
+          imageAlt="Home game host command deck"
+          breadcrumbs={[
+            { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
+            { label: group?.name || 'Home game', href: `/hub/home-games/${slug}` },
+            { label: 'Dashboard' },
+          ]}
+          status="Host access verified"
+          statusTone="live"
+          freshness={{ label: 'Protected live workspace' }}
+          metrics={[
+            { label: 'Role', value: group?.userRole || 'host' },
+            { label: 'Members', value: group?.member_count || 0 },
+            { label: 'Location', value: [group?.city, group?.state].filter(Boolean).join(', ') || 'Private' },
+          ]}
+          actions={<Link href={`/hub/home-games/${slug}`}>View public profile</Link>}
+        />
+
+        <main className="hgd-main">
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
             {group?.profile_photo_url ? (
@@ -458,7 +499,7 @@ export default function HomeGameDashboard() {
               </div>
             )}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{group?.name}</h1>
+              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{group?.name}</h2>
               <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
                 {[group?.city, group?.state].filter(Boolean).join(', ')}
                 <span style={{ margin: '0 6px', color: C.textMuted }}>·</span>
@@ -468,20 +509,33 @@ export default function HomeGameDashboard() {
           </div>
 
           {/* Tab Bar */}
-          <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,.04)', borderRadius: 10, padding: 4, marginBottom: 20 }}>
+          <div className="hgd-tabs" role="tablist" aria-label="Host dashboard sections">
             {TABS.map((t, i) => (
-              <button key={t} onClick={() => setTab(i)} style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, transition: 'all .15s', background: tab === i ? C.tealDim : 'transparent', color: tab === i ? C.teal : C.textSec }}>
+              <button
+                key={t}
+                ref={(node) => { tabRefs.current[i] = node; }}
+                id={`hgd-tab-${i}`}
+                role="tab"
+                aria-selected={tab === i}
+                aria-controls="hgd-tabpanel"
+                tabIndex={tab === i ? 0 : -1}
+                className="hgd-tab"
+                onClick={() => setTab(i)}
+                onKeyDown={(event) => handleTabKeyDown(event, i)}
+              >
                 {t}
               </button>
             ))}
           </div>
 
           {/* Tab Content */}
-          {tab === 0 && <OverviewTab slug={slug} group={group} token={token} />}
-          {tab === 1 && <MembersTab group={group} token={token} />}
-          {tab === 2 && <ModerationTab group={group} token={token} />}
-          {tab === 3 && <SettingsTab group={group} />}
-        </div>
+          <section id="hgd-tabpanel" role="tabpanel" aria-labelledby={`hgd-tab-${tab}`} tabIndex={0}>
+            {tab === 0 && <OverviewTab slug={slug} group={group} token={token} />}
+            {tab === 1 && <MembersTab group={group} token={token} />}
+            {tab === 2 && <ModerationTab group={group} token={token} />}
+            {tab === 3 && <SettingsTab group={group} />}
+          </section>
+        </main>
 
         <BottomNavBar />
       </div>

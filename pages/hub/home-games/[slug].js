@@ -22,6 +22,8 @@ import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import DeepRouteSignalDeck from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
+import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { supabase } from '../../../src/lib/supabase';
@@ -30,6 +32,7 @@ import HomeGamesSeatReservation from '../../../src/components/home-games/HomeGam
 import TournamentList from '../../../src/components/home-games/TournamentList';
 import { safeCopyToClipboard } from '../../../src/lib/clipboard';
 import { toast } from '../../../src/stores/toastStore';
+import { rememberPokerPlace, capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
 
 const GAME_TYPE_LABELS = {
   nlh: "No-Limit Hold'em",
@@ -301,6 +304,25 @@ export default function PublicHomeGamePage({ data, serverError }) {
   const vouchLockRef = useRef(false);
   const joinLockRef = useRef(false);
   const friendLockRef = useRef(false);
+  const trackedHomeGameRef = useRef(null);
+
+  useEffect(() => {
+    const trackedPage = data?.page;
+    if (!trackedPage?.slug || trackedHomeGameRef.current === trackedPage.slug) return;
+    trackedHomeGameRef.current = trackedPage.slug;
+    const href = `/hub/home-games/${encodeURIComponent(trackedPage.slug)}`;
+    rememberPokerPlace({
+      href,
+      title: trackedPage.name,
+      subtitle: [trackedPage.city, trackedPage.state].filter(Boolean).join(', ') || 'Home game community',
+      kind: 'home_game',
+    });
+    capturePokerNearMeEvent('deep_route_viewed', {
+      route_family: 'home_game',
+      state: trackedPage.state,
+      city: trackedPage.city,
+    });
+  }, [data]);
 
   // Resolve the signed-in user once on mount so the seat picker can highlight own claims
   useEffect(() => {
@@ -772,7 +794,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
             <Link href="/hub/home-games/near-me" className="hgs-primary-btn">Browse Home Games</Link>
           </div>
           <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} worldKey="hub" />
-          <style>{pageStyles}</style>
+          <style suppressHydrationWarning>{pageStyles}</style>
         </div>
       </>
     );
@@ -1027,15 +1049,39 @@ export default function PublicHomeGamePage({ data, serverError }) {
         <UniversalHeader onMenuClick={() => setMenuOpen(true)} pageDepth={2} onBackClick={() => router.back()} />
         <PokerNearMeFamilyNav />
 
-
-        <div className="hgs-cover">
-          {page.cover_url ? (
-            <img src={page.cover_url} alt={page.name} className="hgs-cover-img" loading="eager" />
-          ) : (
-            <div className="hgs-cover-fallback" aria-hidden="true" />
+        <DeepRouteSignalDeck
+          eyebrow="Private game network"
+          title={page.name}
+          description={group.description || page.description || `A player-led poker community${page.city ? ` in ${page.city}, ${page.state}` : ''}.`}
+          image={page.cover_url || page.avatar_url}
+          imageAlt={page.name + ' home game'}
+          kind="home_game"
+          breadcrumbs={[
+            { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
+            { label: 'Home games', href: '/hub/home-games/near-me' },
+            { label: page.name },
+          ]}
+          status={upcoming_games.length > 0 ? `${upcoming_games.length} upcoming ${upcoming_games.length === 1 ? 'game' : 'games'}` : 'Community profile available'}
+          statusTone={upcoming_games.length > 0 ? 'live' : 'neutral'}
+          freshness={{ label: 'Current public community record' }}
+          metrics={[
+            { label: 'Location', value: page.city ? `${page.city}, ${page.state}` : 'Location shared by host' },
+            { label: 'Members', value: group.member_count || 0 },
+            { label: 'Followers', value: followerCount },
+            { label: 'Games hosted', value: group.games_hosted || 0 },
+            { label: 'Cadence', value: FREQUENCY_LABELS[group.frequency] || group.frequency || 'Host scheduled' },
+          ]}
+          actions={(
+            <>
+              <button type="button" className={isFollowing ? 'is-active' : ''} onClick={handleFollowToggle} disabled={followBusy}>
+                {isFollowing ? 'Following' : 'Follow game'}
+              </button>
+              <button type="button" onClick={handleShare}>Share profile</button>
+            </>
           )}
-          <div className="hgs-cover-fade" />
-        </div>
+        />
+
+        <PokerNearMeRecentRail currentHref={canonical} />
 
         <div className="hgs-header">
           <div className="hgs-avatar">
@@ -1046,7 +1092,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
             )}
           </div>
           <div className="hgs-header-info">
-            <h1 className="hgs-name">{page.name}</h1>
+            <h2 className="hgs-name">{page.name}</h2>
             <p className="hgs-meta">
               {page.city ? `${page.city}, ${page.state}` : 'Private Home Game'}
               {host?.display_name ? ` · Hosted by ${host.display_name}` : ''}
@@ -1593,7 +1639,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
           </div>
         )}
 
-        <style>{pageStyles}</style>
+        <style suppressHydrationWarning>{pageStyles}</style>
       </div>
     </>
   );

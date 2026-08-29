@@ -18,6 +18,7 @@ const staticPages = [
   // Hub — Core
   { path: '/hub', priority: '0.9', changefreq: 'daily' },
   { path: '/hub/poker-near-me/lobby', priority: '0.9', changefreq: 'daily' },
+  { path: '/hub/poker-near-me/in', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/home-games', priority: '0.9', changefreq: 'daily' },
   { path: '/hub/training', priority: '0.9', changefreq: 'weekly' },
   { path: '/hub/news', priority: '0.9', changefreq: 'hourly' },
@@ -217,6 +218,51 @@ async function buildHomeGameUrls() {
   }
 }
 
+// Physical venue + state/city discovery URLs. This is intentionally sourced
+// from the same poker_venues table as /api/poker/venues so the sitemap cannot
+// advertise synthetic location combinations.
+async function buildPokerVenueUrls() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return [];
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { US_STATES_BY_CODE, cityTitleToSlug } = await import('../src/lib/home-games/locationUtils');
+    const supabase = createClient(url, key);
+    const { data, error } = await supabase
+      .from('poker_venues')
+      .select('id, city, state, is_active, is_suppressed')
+      .eq('is_active', true)
+      .or('is_suppressed.is.null,is_suppressed.eq.false')
+      .limit(5000);
+    if (error || !Array.isArray(data)) return [];
+
+    const urls = [];
+    const states = new Set();
+    const cities = new Set();
+    data.forEach((venue) => {
+      if (venue.id) urls.push({ path: `/hub/venues/${venue.id}`, priority: '0.7', changefreq: 'daily' });
+      const state = String(venue.state || '').toUpperCase();
+      if (!US_STATES_BY_CODE[state]) return;
+      const stateSlug = state.toLowerCase();
+      if (!states.has(stateSlug)) {
+        states.add(stateSlug);
+        urls.push({ path: `/hub/poker-near-me/in/${stateSlug}`, priority: '0.7', changefreq: 'daily' });
+      }
+      const citySlug = cityTitleToSlug(venue.city);
+      const cityKey = `${stateSlug}/${citySlug}`;
+      if (citySlug && !cities.has(cityKey)) {
+        cities.add(cityKey);
+        urls.push({ path: `/hub/poker-near-me/in/${cityKey}`, priority: '0.6', changefreq: 'daily' });
+      }
+    });
+    return urls;
+  } catch (err) {
+    console.warn('[sitemap] poker venue URL build failed:', err.message);
+    return [];
+  }
+}
+
 function generateSitemapXml(urls) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -237,8 +283,8 @@ ${urls
 }
 
 export async function getServerSideProps({ res }) {
-  const homeGameUrls = await buildHomeGameUrls();
-  const sitemap = generateSitemapXml([...staticPages, ...homeGameUrls]);
+  const [homeGameUrls, pokerVenueUrls] = await Promise.all([buildHomeGameUrls(), buildPokerVenueUrls()]);
+  const sitemap = generateSitemapXml([...staticPages, ...homeGameUrls, ...pokerVenueUrls]);
 
   res.setHeader('Content-Type', 'text/xml');
   res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=43200');
