@@ -280,6 +280,148 @@
 
 .scanButton { min-width: 210px; }
 
+.auditReceipt {
+  position: relative;
+  margin: 0 0 16px;
+  padding: 5px;
+  border: 1px solid #6e94a8;
+  background: #010507;
+  box-shadow: inset 0 1px 0 rgba(238, 250, 255, 0.25), 0 14px 30px #000;
+}
+
+.auditReceipt::before {
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(52, 191, 232, 0.22);
+  pointer-events: none;
+  content: '';
+}
+
+.auditReceiptHeader {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 72px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #294c60;
+  align-items: center;
+  gap: 12px;
+  background:
+    radial-gradient(circle at 8% 50%, rgba(27, 184, 232, 0.15), transparent 24%),
+    linear-gradient(180deg, #10212d, #030a0f);
+}
+
+.auditReceiptHeader > span:last-child {
+  min-width: 0;
+}
+
+.auditReceiptHeader strong,
+.auditReceiptHeader span span {
+  display: block;
+}
+
+.auditReceiptHeader strong {
+  color: #eefaff;
+  font: 600 21px Rajdhani, 'Arial Narrow', sans-serif;
+  letter-spacing: 0.015em;
+}
+
+.auditReceiptHeader span span {
+  margin-top: 2px;
+  color: #8299a6;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.auditReceiptSeal {
+  display: grid !important;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border: 1px solid #57d9f7;
+  place-items: center;
+  color: #6ee6ff;
+  background: radial-gradient(circle, rgba(33, 196, 236, 0.22), #061019 68%);
+  box-shadow: inset 0 0 14px rgba(41, 200, 239, 0.16), 0 0 12px rgba(21, 153, 210, 0.18);
+}
+
+.auditReceiptGrid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  margin: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: #02080c;
+}
+
+.auditReceiptCell {
+  min-width: 0;
+  padding: 12px 14px;
+  border-right: 1px solid #1d3b4b;
+  border-bottom: 1px solid #1d3b4b;
+}
+
+.auditReceiptCell:nth-child(4n) { border-right: 0; }
+.auditReceiptCell:nth-last-child(-n + 4) { border-bottom: 0; }
+
+.auditReceiptCell dt {
+  overflow: hidden;
+  color: #68818f;
+  font: 700 7px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.09em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.auditReceiptCell dd {
+  margin: 4px 0 0;
+  color: #e9f8ff;
+  font: 600 17px Rajdhani, 'Arial Narrow', sans-serif;
+}
+
+.auditSourceRail {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  padding: 10px 12px;
+  border-top: 1px solid #31566a;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  background: #071019;
+}
+
+.auditSourceRail span {
+  overflow: hidden;
+  padding: 6px 8px;
+  border: 1px solid #3d5360;
+  color: #8799a4;
+  font: 700 8px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.05em;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.auditSourceRail span[data-ready='true'] {
+  border-color: #198d6d;
+  color: #66e4b6;
+  background: rgba(21, 126, 95, 0.12);
+}
+
+.auditReceiptNote {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 10px 14px;
+  border-top: 1px solid #5e4822;
+  color: #d9b56c;
+  background: rgba(126, 87, 25, 0.12);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 .toolPage :global(.pa-btn) {
   border-radius: 0 !important;
   text-transform: capitalize;
@@ -385,6 +527,15 @@
   .scanDisc { width: 52px; height: 52px; }
   .scanText strong { font-size: 19px; }
   .scanButton { width: 100%; min-width: 0; }
+  .auditReceipt { margin-inline: -4px; }
+  .auditReceiptHeader { padding: 12px; }
+  .auditReceiptHeader strong { font-size: 19px; }
+  .auditReceiptGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .auditReceiptCell:nth-child(4n) { border-right: 1px solid #1d3b4b; }
+  .auditReceiptCell:nth-child(2n) { border-right: 0; }
+  .auditReceiptCell:nth-last-child(-n + 4) { border-bottom: 1px solid #1d3b4b; }
+  .auditReceiptCell:nth-last-child(-n + 2) { border-bottom: 0; }
+  .auditSourceRail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

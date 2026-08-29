@@ -260,6 +260,132 @@ await test('syncs a Club Arena row through normalization, solver grading, and id
   ]);
 });
 
+await test('skips a complete, current Club Arena audit without repeating solver queries', async () => {
+  let solverQueries = 0;
+  let writes = 0;
+  const db = {
+    from(table) {
+      if (table === 'hand_history') {
+        let membership = null;
+        const chain = {
+          select: () => chain,
+          contains: (_column, value) => { membership = value; return chain; },
+          in: () => chain,
+          order: () => chain,
+          limit: async () => ({ data: membership?.[0]?.userId ? [clubRow] : [], error: null }),
+        };
+        return chain;
+      }
+      if (table === 'hand_audit_decisions') {
+        const readChain = {
+          eq: () => readChain,
+          in: () => readChain,
+          limit: async () => ({
+            data: [{
+              hand_external_id: 'club-arena:hand-42',
+              solver_verified: true,
+              updated_at: '2026-08-29T12:00:00.000Z',
+            }],
+            error: null,
+          }),
+        };
+        return {
+          select: () => readChain,
+          upsert: async () => { writes++; return { error: null }; },
+        };
+      }
+      if (table === 'training_question_cache') {
+        solverQueries++;
+        throw new Error('A current audit must not query the solver cache');
+      }
+      throw new Error(`Unexpected table ${table}`);
+    },
+  };
+  const result = await syncClubArenaHandsForAudit(db, userId, {
+    nowMs: new Date('2026-08-29T13:00:00.000Z').getTime(),
+  });
+  assert.equal(result.handsAudited, 0);
+  assert.equal(result.handsAlreadyCurrent, 1);
+  assert.equal(result.handsQueuedForRetry, 0);
+  assert.equal(solverQueries, 0);
+  assert.equal(writes, 0);
+});
+
+await test('retries a stale unpriced Club Arena audit after the solver refresh window', async () => {
+  let solverQueries = 0;
+  const question = {
+    source: 'DETERMINISTIC_SOLVER',
+    scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [] },
+    options: [{ id: 'raise', text: 'Raise' }],
+    correctAnswer: 'raise',
+    gtoFrequencies: { raise: 100 },
+  };
+  const db = {
+    from(table) {
+      if (table === 'hand_history') {
+        let membership = null;
+        const chain = {
+          select: () => chain,
+          contains: (_column, value) => { membership = value; return chain; },
+          in: () => chain,
+          order: () => chain,
+          limit: async () => ({ data: membership?.[0]?.userId ? [clubRow] : [], error: null }),
+        };
+        return chain;
+      }
+      if (table === 'hand_audit_decisions') {
+        const readChain = {
+          eq: () => readChain,
+          in: () => readChain,
+          limit: async () => ({
+            data: [{
+              hand_external_id: 'club-arena:hand-42',
+              solver_verified: false,
+              updated_at: '2026-08-27T12:00:00.000Z',
+            }],
+            error: null,
+          }),
+        };
+        return { select: () => readChain, upsert: async () => ({ error: null }) };
+      }
+      if (table === 'training_question_cache') {
+        solverQueries++;
+        const chain = {
+          select: () => chain,
+          like: () => chain,
+          eq: () => chain,
+          limit: async () => ({ data: [{ question_id: 'retry-q-1', game_id: 'cash-rfi', question_data: question }], error: null }),
+        };
+        return chain;
+      }
+      throw new Error(`Unexpected table ${table}`);
+    },
+  };
+  const result = await syncClubArenaHandsForAudit(db, userId, {
+    nowMs: new Date('2026-08-29T13:00:00.000Z').getTime(),
+  });
+  assert.equal(result.handsAudited, 1);
+  assert.equal(result.handsQueuedForRetry, 1);
+  assert.equal(result.solverVerified, 1);
+  assert.equal(result.unpriced, 0);
+  assert.equal(solverQueries, 1);
+});
+
+await test('keeps healthy solver evidence when either evidence store is degraded', () => {
+  const source = readFileSync(resolve('pages/api/assistant/leaks/detect.js'), 'utf8');
+  assert.ok(source.includes('available: trainingAvailable || auditAvailable'));
+  assert.ok(source.includes("handAudit: solverEvidence.sources?.handAudit?.available === true"));
+  assert.ok(!source.includes('Math.max(currentHands, liveHands + solverDecisions)'));
+  assert.ok(source.includes('Math.max(currentHands, liveHands, clubArenaSync.handsFound || 0)'));
+});
+
+await test('renders an inspectable audit receipt with coverage and retry telemetry', () => {
+  const page = readFileSync(resolve('pages/hub/personal-assistant/leaks.js'), 'utf8');
+  assert.ok(page.includes('Deterministic Audit Receipt'));
+  assert.ok(page.includes('Retried For Coverage'));
+  assert.ok(page.includes('<AuditReceipt result={detectionResult} />'));
+});
+
 await test('persists authoritative Club Arena cards, board, payouts, rake, and pot', async () => {
   const inserts = [];
   const supabase = {
