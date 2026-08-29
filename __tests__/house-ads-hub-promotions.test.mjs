@@ -301,8 +301,14 @@ test('an ad image is same-origin, refused before it is stored and before it rend
     /* The fetch happens on render, without the viewer doing anything, so an
        external host would hand every player's IP and user agent to a third
        party chosen by whoever typed the URL into the panel. */
+    /* The check moved from cleanImageUrl into readSitePath on 2026-08-29, and
+       stopped being silent while it did. cleanImageUrl returned null for an
+       outside host, so the row saved, the panel said "Saved." and the field
+       came back empty; the same rule now refuses with a 400 that names the
+       value, and covers target_url as well. */
     const route = read('pages/api/club-arena/house-ads.js');
-    assert.match(route, /function cleanImageUrl/);
+    assert.match(route, /function readSitePath/);
+    assert.doesNotMatch(route, /function cleanImageUrl/);
     assert.match(route, /!url\.startsWith\('\/'\) \|\| url\.startsWith\('\/\/'\)/);
 
     const lib = read('src/lib/hubAds.js');
@@ -363,4 +369,76 @@ test('the create path validates the placement BEFORE it writes the ad', () => {
     // nowhere, so the create path must keep defaulting when nothing is sent.
     assert.match(route, /b\.slot === undefined \? 'lobby_strip'/);
     assert.match(route, /b\.audience === undefined \? 'all'/);
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2026-08-29 — A CLICK THAT WENT NOWHERE WAS STILL A CLICK
+
+   Both Hub clients logged the click and THEN asked whether the destination was
+   one they would follow. `target_url` had no check on this side at all, so an
+   `https://` typed into the panel was stored, served, rendered as a tappable
+   promotion, counted, and refused at the last moment by the browser that got
+   it. The ad looked live everywhere an operator could see it and was dead
+   everywhere a player could - and the events it produced are worse than no
+   events, because they inflate the click-through rate an operator reads when
+   deciding what to run next, on exactly the campaigns that are broken.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+test('the destination is validated where it is written, not only where it is followed', () => {
+    const route = read('pages/api/club-arena/house-ads.js');
+    // Create and edit both refuse, and both name the value they refused.
+    assert.match(route, /const targetUrl = readSitePath\(b\.target_url\)/);
+    assert.match(route, /const t = readSitePath\(b\.target_url\)/);
+    assert.equal(route.match(/Not A Site Path: /g)?.length, 4, 'target and image, on both verbs');
+    // The stored value is the checked one, never the raw column.
+    assert.match(route, /target_url: targetUrl,/);
+    assert.doesNotMatch(route, /target_url: clean\(b\.target_url/);
+});
+
+test('readSitePath rejects what every client already rejects', () => {
+    const route = read('pages/api/club-arena/house-ads.js');
+    const fn = route.slice(route.indexOf('function readSitePath'));
+    // Protocol-relative and backslash included: browsers normalise
+    // /\evil.example toward //evil.example.
+    assert.match(fn, /url\.startsWith\('\/\/'\)/);
+    assert.match(fn, /url\.includes\('\\\\'\)/);
+});
+
+test('a refusal is a 400, not a null the operator has to notice', () => {
+    /* The old cleanImageUrl returned null for an outside host: 200, "Saved.",
+       and an empty field. Silently writing something other than what was asked
+       for is the failure shape this file's own readSlot comment exists to end. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    const fn = route.slice(route.indexOf('function readSitePath'), route.indexOf('export default'));
+    assert.match(fn, /return false;/, 'present-but-refused must be distinguishable from absent');
+});
+
+test('the click is logged only where a click went somewhere', () => {
+    const strip = read(STRIP);
+    const guard = strip.indexOf('if (!isSafeHubDestination(visible.targetUrl)) return;');
+    const click = strip.indexOf('logHubClick(visible.adId)');
+    assert.ok(guard > -1 && click > guard, 'the strip logs before it checks');
+
+    const rail = read('src/components/ads/HubPromoRail.jsx');
+    const railGuard = rail.indexOf('if (!isSafeHubDestination(ad.targetUrl)) return;');
+    const railClick = rail.indexOf('logHubClick(ad.adId)');
+    assert.ok(railGuard > -1 && railClick > railGuard, 'the rail logs before it checks');
+});
+
+test('the create path floors weight at 1, like the edit path already did', () => {
+    /* Number('') is 0 and Number.isFinite(0) is true, so a cleared weight box
+       passed the guard and hit ad_catalog_weight_positive - a 500 reading
+       "Could not create that ad", naming nothing. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /const weight = Number\.isFinite\(Number\(b\.weight\)\)\s*\?\s*Math\.max\(1,/);
+    assert.doesNotMatch(route, /Math\.max\(0, Math\.min\(1000/);
+});
+
+test('an insert that could not be read back is not a bare 500', () => {
+    /* .maybeSingle() answers an unreadable row with { data: null, error: null }.
+       created.id then threw, and the catch turned an ad that may well have been
+       written into "Internal server error". */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /if \(!created\?\.id\)/);
+    assert.match(route, /could not be read back/);
 });

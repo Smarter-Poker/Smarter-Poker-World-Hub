@@ -78,12 +78,15 @@ export default function HubPromoRail({ limit = 3 }) {
      *
      * The click is still logged BEFORE navigating either way - losing the
      * event to the unmount is how a working click path ends up looking like
-     * nobody ever clicked.
+     * nobody ever clicked - but AFTER the destination is checked. Logging it
+     * first meant an ad this client refuses to follow recorded a click and
+     * then did nothing, which reads in the panel exactly like a campaign that
+     * works.
      */
     const activate = (e, ad) => {
         e.preventDefault();
-        logHubClick(ad.adId);
         if (!isSafeHubDestination(ad.targetUrl)) return;
+        logHubClick(ad.adId);
         if (leavesTheNextRouter(ad.targetUrl)) {
             window.location.assign(ad.targetUrl);
             return;
