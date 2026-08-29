@@ -7,7 +7,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { wishlistService } from '../../../src/services/preferences-service';
 import toast from '../../../src/stores/toastStore';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -18,6 +18,12 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 import { Heart, RefreshCw, ShoppingBag, Trash2 } from 'lucide-react';
 
+const productAnchorId = (value) =>
+  `merch-product-${String(value || 'item')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')}`;
+
 export default function Wishlist() {
   const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/wishlist');
   useTrainingBus('diamond-store-wishlist');
@@ -25,6 +31,7 @@ export default function Wishlist() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [removingId, setRemovingId] = useState(null);
+  const loadRequestRef = useRef(0);
 
   useEffect(() => {
     if (authChecking || !user?.id) return;
@@ -32,6 +39,7 @@ export default function Wishlist() {
   }, [authChecking, user?.id]);
 
   const loadWishlist = async () => {
+    const requestId = ++loadRequestRef.current;
     setLoading(true);
     setLoadError(null);
     try {
@@ -47,6 +55,7 @@ export default function Wishlist() {
       } catch (catalogError) {
         console.warn('Could not enrich wishlist from live catalog:', catalogError);
       }
+      if (requestId !== loadRequestRef.current) return;
       setWishlist(
         (Array.isArray(items) ? items : []).map((item) => ({
           ...item,
@@ -54,10 +63,11 @@ export default function Wishlist() {
         }))
       );
     } catch (error) {
+      if (requestId !== loadRequestRef.current) return;
       console.warn('Error loading wishlist:', error);
       setLoadError('Your Wishlist Could Not Be Loaded. Check Your Connection And Try Again.');
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestRef.current) setLoading(false);
     }
   };
 
@@ -127,9 +137,9 @@ export default function Wishlist() {
                 const destination =
                   item.product_type === 'vip'
                     ? '/hub/vip-membership'
-                    : item.product_type === 'diamonds'
+                    : item.product_type === 'diamond' || item.product_type === 'diamonds'
                       ? '/hub/diamond-store'
-                      : '/hub/merch-store';
+                      : `/hub/merch-store#${productAnchorId(item.product_id)}`;
                 return (
                   <article key={item.id ?? item.product_id} style={styles.wishlistItem}>
                     <div style={styles.productMedia}>

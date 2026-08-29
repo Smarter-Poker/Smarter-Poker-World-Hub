@@ -53,6 +53,41 @@ const MIN_ITEM_PRICE_USD = 0.5;
 const MAX_SINGLE_ITEM_USD = 500;
 const MAX_ORDER_TOTAL_USD = 2000;
 
+async function findCompletedDiamondMerchOrder(userId, purchaseReference) {
+  if (!purchaseReference) return null;
+  const { data, error } = await getSupabase()
+    .from('merchandise_orders')
+    .select('id, items, diamonds_spent, total_usd, status, metadata, created_at')
+    .eq('user_id', userId)
+    .eq('payment_method', 'diamonds')
+    .in('status', ['processing', 'paid', 'completed', 'shipped', 'delivered'])
+    .contains('metadata', { purchase_reference: purchaseReference })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.warn('[DiamondPurchase] Could not inspect an idempotent order:', error.message);
+    return null;
+  }
+  return data || null;
+}
+
+function replayPurchaseResponse(order, newBalance = null) {
+  return {
+    success: true,
+    idempotent: true,
+    duplicate: true,
+    data: {
+      order_id: order.id,
+      diamonds_spent: Number(order.diamonds_spent) || 0,
+      new_balance: typeof newBalance === 'number' ? newBalance : null,
+      items_purchased: Array.isArray(order.items) ? order.items.length : 0,
+      total_usd: Number(order.total_usd) || 0,
+      fulfillment_status: order?.metadata?.fulfillment_status || order.status || null,
+    },
+  };
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
@@ -108,6 +143,25 @@ export default async function handler(req, res) {
 
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ success: false, error: 'Items array required' });
+      }
+
+      // The UI keeps this key stable across a lost response/retry. Look for a
+      // completed order before touching stock or the wallet, then use the same
+      // reference on the ledger debit below. This turns "the order succeeded
+      // but the response disappeared" into a truthful replay instead of an
+      // alarming duplicate-reference error.
+      const clientIdempotencyKey = String(req.headers['x-idempotency-key'] || '').trim();
+      const stableRequestFingerprint = /^[a-zA-Z0-9:_-]{12,180}$/.test(clientIdempotencyKey)
+        ? createHash('sha256').update(clientIdempotencyKey).digest('hex').slice(0, 20)
+        : null;
+      const explicitPurchaseRef = stableRequestFingerprint
+        ? `merch_${user.id}_${stableRequestFingerprint}`
+        : null;
+      if (explicitPurchaseRef) {
+        const existingOrder = await findCompletedDiamondMerchOrder(user.id, explicitPurchaseRef);
+        if (existingOrder) {
+          return res.status(200).json(replayPurchaseResponse(existingOrder));
+        }
       }
 
       const requestedIds = [...new Set(items.map((item) => item?.id).filter(Boolean))];
@@ -396,12 +450,8 @@ export default async function handler(req, res) {
         )
         .digest('hex')
         .slice(0, 16);
-      const clientIdempotencyKey = String(req.headers['x-idempotency-key'] || '').trim();
-      const stableRequestFingerprint = /^[a-zA-Z0-9:_-]{12,180}$/.test(clientIdempotencyKey)
-        ? createHash('sha256').update(clientIdempotencyKey).digest('hex').slice(0, 20)
-        : null;
-      const purchaseRef = stableRequestFingerprint
-        ? `merch_${user.id}_${stableRequestFingerprint}`
+      const purchaseRef = explicitPurchaseRef
+        ? explicitPurchaseRef
         : `merch_${user.id}_${cartFingerprint}_${Math.floor(Date.now() / IDEMPOTENCY_WINDOW_MS)}`;
 
       const { data: deductResult, error: deductError } = await getSupabase().rpc(
@@ -423,6 +473,19 @@ export default async function handler(req, res) {
       // concurrency) via its data payload — the pre-read check above is stale.
       if (deductResult && deductResult.success === false) {
         if (!isPrintfulOrder) await releaseStock('diamond deduction refused');
+        if (deductResult.duplicate) {
+          const existingOrder = await findCompletedDiamondMerchOrder(user.id, purchaseRef);
+          if (existingOrder) {
+            return res
+              .status(200)
+              .json(replayPurchaseResponse(existingOrder, deductResult.new_balance));
+          }
+          return res.status(409).json({
+            success: false,
+            error: 'This Order Is Already Being Finalized. Check Order History In A Moment.',
+            code: 'PURCHASE_ALREADY_PROCESSING',
+          });
+        }
         return res.status(400).json({
           success: false,
           error: deductResult.error || 'Insufficient diamonds',
@@ -453,14 +516,15 @@ export default async function handler(req, res) {
           ...(shippingRecipient
             ? { shipping_address: publicShippingAddress(shippingRecipient) }
             : {}),
-          ...(isPrintfulOrder
-            ? {
-                metadata: {
+          metadata: {
+            purchase_reference: purchaseRef,
+            ...(isPrintfulOrder
+              ? {
                   fulfillment_provider: 'printful',
                   fulfillment_status: 'submitting',
-                },
-              }
-            : {}),
+                }
+              : {}),
+          },
         })
         .select('id, metadata')
         .maybeSingle();
@@ -520,6 +584,7 @@ export default async function handler(req, res) {
             .from('merchandise_orders')
             .update({
               metadata: {
+                purchase_reference: purchaseRef,
                 fulfillment_provider: 'printful',
                 fulfillment_status: fulfillmentStatus,
                 printful_order_id: providerOrder?.id ? String(providerOrder.id).slice(0, 80) : null,
@@ -536,6 +601,7 @@ export default async function handler(req, res) {
             .update({
               status: 'paid',
               metadata: {
+                purchase_reference: purchaseRef,
                 fulfillment_provider: 'printful',
                 fulfillment_status: 'submission_failed',
                 needs_review: true,
@@ -562,6 +628,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         success: true,
         data: {
+          order_id: order.id,
           diamonds_spent: diamondCost,
           new_balance: newBalance,
           items_purchased: items.length,

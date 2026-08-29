@@ -6,7 +6,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -16,6 +16,16 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 
+function safeTrackingUrl(value) {
+  if (!value) return null;
+  try {
+    const url = new URL(String(value));
+    return url.protocol === 'https:' ? url.toString() : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 export default function OrderHistory() {
   const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/orders');
   useTrainingBus('diamond-store-orders');
@@ -23,6 +33,10 @@ export default function OrderHistory() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [partialError, setPartialError] = useState(null);
+  // Realtime events can arrive while the initial three-source read is still
+  // running. Only the newest snapshot may commit, otherwise an older response
+  // can roll a just-shipped order back to "processing" on screen.
+  const loadRequestRef = useRef(0);
 
   useEffect(() => {
     if (authChecking || !user?.id) return;
@@ -121,6 +135,12 @@ export default function OrderHistory() {
       status: row?.status || 'pending',
       currency: paidWithDiamonds ? 'diamonds' : 'usd',
       amount: paidWithDiamonds ? Number(row?.diamonds_spent) || 0 : toCents(row?.total_usd),
+      trackingNumber: row?.tracking_number || null,
+      trackingUrl: safeTrackingUrl(row?.tracking_url),
+      carrier: row?.carrier || null,
+      shippedAt: row?.shipped_at || row?.metadata?.shipped_at || null,
+      deliveredAt: row?.delivered_at || row?.metadata?.delivered_at || null,
+      fulfillmentStatus: row?.metadata?.fulfillment_status || null,
       items: rawItems.map((item) => {
         // create-checkout-session stores `price`; purchase-with-diamonds
         // stores `priceUsd` (and sometimes a catalog `diamondPrice`)
@@ -170,6 +190,7 @@ export default function OrderHistory() {
   };
 
   const loadOrders = async () => {
+    const requestId = ++loadRequestRef.current;
     try {
       // The real pipelines write diamond_purchases and merchandise_orders —
       // read both and merge client-side into one date-sorted list.
@@ -185,7 +206,7 @@ export default function OrderHistory() {
         supabase
           .from('merchandise_orders')
           .select(
-            'id, items, total_usd, diamonds_spent, payment_method, status, metadata, tracking_number, created_at, updated_at, shipped_at, delivered_at'
+            'id, items, total_usd, diamonds_spent, payment_method, status, metadata, tracking_number, tracking_url, carrier, created_at, updated_at, shipped_at, delivered_at'
           )
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
@@ -225,6 +246,7 @@ export default function OrderHistory() {
       }
 
       // Every source failed — nothing truthful can be shown.
+      if (requestId !== loadRequestRef.current) return;
       if (failed.length === 3) {
         setLoadError(
           purchasesRes?.error?.message ||
@@ -248,6 +270,7 @@ export default function OrderHistory() {
       setOrders(merged.slice(0, 50));
       setLoading(false);
     } catch (error) {
+      if (requestId !== loadRequestRef.current) return;
       console.warn('Error loading orders:', error);
       setLoadError(error?.message || 'Could not load orders');
       setPartialError(null);
@@ -268,6 +291,7 @@ export default function OrderHistory() {
       past_due: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', label: 'Past Due' },
       unpaid: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Unpaid' },
       canceled: { bg: 'rgba(156, 163, 175, 0.15)', color: '#9ca3af', label: 'Canceled' },
+      cancelled: { bg: 'rgba(156, 163, 175, 0.15)', color: '#9ca3af', label: 'Canceled' },
       failed: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Failed' },
       refunded: { bg: 'rgba(156, 163, 175, 0.15)', color: '#9ca3af', label: 'Refunded' },
     };
@@ -307,6 +331,28 @@ export default function OrderHistory() {
   const formatAmount = (amount, currency) => {
     if (currency === 'diamonds') return `${(Number(amount) || 0).toLocaleString()} Diamonds`;
     return formatPrice(amount);
+  };
+
+  const fulfillmentSteps = (order) => {
+    const rank = {
+      pending: 0,
+      paid: 1,
+      processing: 1,
+      completed: 1,
+      shipped: 2,
+      delivered: 3,
+    };
+    const currentRank = Math.max(
+      rank[String(order?.status || '').toLowerCase()] ?? 0,
+      order?.deliveredAt ? 3 : order?.shippedAt ? 2 : 0
+    );
+    const currentStep = currentRank >= 3 ? -1 : currentRank;
+    return [
+      { label: 'Order placed', complete: true, date: order?.created_at },
+      { label: 'In production', complete: currentRank >= 1, date: null },
+      { label: 'Shipped', complete: currentRank >= 2, date: order?.shippedAt },
+      { label: 'Delivered', complete: currentRank >= 3, date: order?.deliveredAt },
+    ].map((step, index) => ({ ...step, current: index === currentStep }));
   };
 
   return (
@@ -406,6 +452,61 @@ export default function OrderHistory() {
                     ))}
                   </div>
 
+                  {order.source === 'merchandise' && (
+                    <section
+                      aria-label={`Fulfillment for order ${String(order.id || '').slice(0, 8)}`}
+                      style={styles.fulfillmentPanel}
+                    >
+                      <div style={styles.fulfillmentHeadingRow}>
+                        <div>
+                          <div style={styles.fulfillmentEyebrow}>Fulfillment telemetry</div>
+                          <div style={styles.fulfillmentTitle}>
+                            {order.deliveredAt || order.status === 'delivered'
+                              ? 'Delivery complete'
+                              : order.shippedAt || order.status === 'shipped'
+                                ? 'Package in transit'
+                                : order.fulfillmentStatus === 'submission_failed'
+                                  ? 'Order needs fulfillment review'
+                                  : 'Order is being prepared'}
+                          </div>
+                        </div>
+                        {order.trackingUrl && (
+                          <a href={order.trackingUrl} style={styles.trackingButton}>
+                            Track package →
+                          </a>
+                        )}
+                      </div>
+
+                      <ol style={styles.fulfillmentRail}>
+                        {fulfillmentSteps(order).map((step) => (
+                          <li
+                            key={step.label}
+                            aria-current={step.current ? 'step' : undefined}
+                            style={{
+                              ...styles.fulfillmentStep,
+                              ...(step.complete ? styles.fulfillmentStepComplete : {}),
+                            }}
+                          >
+                            <span aria-hidden="true" style={styles.fulfillmentNode} />
+                            <span style={styles.fulfillmentStepLabel}>{step.label}</span>
+                            {step.date && (
+                              <time dateTime={step.date} style={styles.fulfillmentDate}>
+                                {formatDate(step.date)}
+                              </time>
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+
+                      {(order.carrier || order.trackingNumber) && (
+                        <div style={styles.trackingMeta}>
+                          {order.carrier && <span>Carrier: {order.carrier}</span>}
+                          {order.trackingNumber && <span>Tracking: {order.trackingNumber}</span>}
+                        </div>
+                      )}
+                    </section>
+                  )}
+
                   <div style={styles.orderFooter}>
                     <div style={styles.totalLabel}>Total</div>
                     <div style={styles.totalAmount}>
@@ -487,6 +588,8 @@ const styles = {
     marginBottom: '20px',
     paddingBottom: '16px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    gap: '14px',
+    flexWrap: 'wrap',
   },
   orderId: { fontSize: '16px', fontWeight: 700, marginBottom: '4px' },
   orderTitle: { fontSize: '14px', color: '#e5e7eb', marginBottom: '4px' },
@@ -500,8 +603,8 @@ const styles = {
     fontSize: '13px',
   },
   orderItems: { display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' },
-  orderItem: { display: 'flex', alignItems: 'center', gap: '12px' },
-  itemName: { flex: 1, fontSize: '14px' },
+  orderItem: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' },
+  itemName: { flex: '1 1 180px', minWidth: 0, fontSize: '14px', overflowWrap: 'anywhere' },
   itemQty: { fontSize: '13px', color: '#9ca3af' },
   itemPrice: { fontSize: '14px', fontWeight: 600 },
   orderFooter: {
@@ -512,6 +615,88 @@ const styles = {
   },
   totalLabel: { fontSize: '14px', color: '#9ca3af' },
   totalAmount: { fontSize: '18px', fontWeight: 700, color: '#00D4FF' },
+  fulfillmentPanel: {
+    margin: '4px 0 20px',
+    padding: '18px',
+    border: '1px solid rgba(85, 144, 169, 0.62)',
+    background:
+      'linear-gradient(90deg, rgba(0, 205, 255, 0.08), transparent 45%), rgba(2, 9, 14, 0.82)',
+  },
+  fulfillmentHeadingRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '14px',
+    flexWrap: 'wrap',
+  },
+  fulfillmentEyebrow: {
+    color: '#7f9aa9',
+    fontFamily: 'IBM Plex Mono, monospace',
+    fontSize: '9px',
+    fontWeight: 700,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+  },
+  fulfillmentTitle: { marginTop: '5px', color: '#dff9ff', fontSize: '15px', fontWeight: 700 },
+  trackingButton: {
+    display: 'inline-flex',
+    minHeight: '44px',
+    alignItems: 'center',
+    padding: '8px 14px',
+    border: '1px solid #8ed9eb',
+    background: 'linear-gradient(180deg, #dff9ff, #6da7bc 48%, #1c4b61)',
+    color: '#06131a',
+    fontFamily: 'IBM Plex Mono, monospace',
+    fontSize: '10px',
+    fontWeight: 800,
+    textDecoration: 'none',
+    textTransform: 'uppercase',
+  },
+  fulfillmentRail: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+    gap: '10px',
+    margin: '20px 0 0',
+    padding: 0,
+    listStyle: 'none',
+  },
+  fulfillmentStep: {
+    position: 'relative',
+    display: 'grid',
+    gridTemplateColumns: '12px 1fr',
+    alignItems: 'start',
+    gap: '8px',
+    minWidth: 0,
+    paddingTop: '10px',
+    borderTop: '2px solid #263b47',
+    color: '#6f8794',
+  },
+  fulfillmentStepComplete: { borderTopColor: '#00c8ff', color: '#dff9ff' },
+  fulfillmentNode: {
+    width: '9px',
+    height: '9px',
+    marginTop: '2px',
+    border: '1px solid currentColor',
+    background: 'currentColor',
+    boxShadow: '0 0 10px currentColor',
+  },
+  fulfillmentStepLabel: { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' },
+  fulfillmentDate: {
+    gridColumn: '2',
+    color: '#7f939e',
+    fontSize: '10px',
+    lineHeight: 1.4,
+  },
+  trackingMeta: {
+    display: 'flex',
+    gap: '8px 20px',
+    flexWrap: 'wrap',
+    marginTop: '16px',
+    color: '#93a7b2',
+    fontFamily: 'IBM Plex Mono, monospace',
+    fontSize: '10px',
+    overflowWrap: 'anywhere',
+  },
   receiptLink: {
     display: 'block',
     marginTop: '16px',

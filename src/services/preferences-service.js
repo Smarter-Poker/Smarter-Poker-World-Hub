@@ -226,13 +226,22 @@ export const wishlistService = {
     try {
       const { data, error } = await supabase
         .from('wishlists')
-        .insert({
-          user_id: userId,
-          product_id: product.id,
-          product_type: product.type,
-          product_name: product.name,
-          product_price: product.price,
-        })
+        .upsert(
+          {
+            user_id: userId,
+            product_id: product.id,
+            product_type: product.type,
+            product_name: product.name,
+            product_price: product.price,
+          },
+          {
+            onConflict: 'user_id,product_id',
+            // A fast double tap or a second signed-in tab is a successful
+            // "already saved" outcome, not an error toast. DO NOTHING also
+            // avoids requiring an UPDATE policy on this owner-scoped table.
+            ignoreDuplicates: true,
+          }
+        )
         .select()
         .maybeSingle();
 

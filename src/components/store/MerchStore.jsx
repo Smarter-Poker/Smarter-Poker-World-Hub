@@ -103,6 +103,11 @@ const CARD_BORDER = '1px solid rgba(255, 255, 255, 0.15)';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 const usd = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+const productAnchorId = (value) =>
+  `merch-product-${String(value || 'item')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')}`;
 
 function firstFiniteNumber(candidates) {
   for (const c of candidates) {
@@ -424,8 +429,10 @@ function MerchProductCard({
 
   return (
     <article
+      id={productAnchorId(product.catalogId || product.key)}
       aria-labelledby={titleId}
       style={{
+        scrollMarginTop: 96,
         background:
           'linear-gradient(155deg, rgba(34,48,59,0.98) 0%, rgba(5,10,15,0.98) 28%, rgba(2,5,9,0.99) 100%)',
         border: soldOut ? '1px solid rgba(255, 95, 109, 0.35)' : CARD_BORDER,
@@ -1203,14 +1210,21 @@ export default function MerchStore({ user = null }) {
           throw new Error(errorMessageOf(data, res.status));
         }
 
+        const replayed = data.idempotent === true;
         const spent = Number(data.data?.diamonds_spent) || cost;
         captureStoreEvent('diamond_purchase_complete', {
           route: 'merch',
           product: product.catalogId || product.key,
           quantity,
           diamonds_spent: spent,
+          idempotent: replayed,
         });
-        showStoreToast('success', `Order Placed! ${fmt(spent)} Diamonds Deducted.`);
+        showStoreToast(
+          'success',
+          replayed
+            ? 'Order Already Placed — No Additional Diamonds Were Deducted.'
+            : `Order Placed! ${fmt(spent)} Diamonds Deducted.`
+        );
         try {
           new Audio('/sounds/purchase-success.mp3')
             .play()
@@ -1219,7 +1233,7 @@ export default function MerchStore({ user = null }) {
           console.warn('[MerchStore] Sound unavailable:', e?.message || e);
         }
 
-        busEmit.diamondsSpent(spent, 'Merch Store Purchase');
+        if (!replayed) busEmit.diamondsSpent(spent, 'Merch Store Purchase');
         broadcastSync('smarter_poker_diamond_sync', 'refresh');
         broadcastSync('smarter_poker_chips_sync', 'refresh');
         refreshBalance();
@@ -1239,6 +1253,20 @@ export default function MerchStore({ user = null }) {
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <>
+      <style jsx global>{`
+        article[id^='merch-product-']:target {
+          outline: 2px solid #8befff;
+          outline-offset: 5px;
+          box-shadow:
+            0 0 0 8px rgba(0, 200, 255, 0.1),
+            0 24px 58px rgba(0, 168, 255, 0.42) !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          article[id^='merch-product-']:target {
+            scroll-behavior: auto;
+          }
+        }
+      `}</style>
       <div style={styles.intro}>
         <h2 style={styles.merchTitle}>Official Merch</h2>
         <p style={styles.introText}>

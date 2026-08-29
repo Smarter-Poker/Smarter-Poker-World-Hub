@@ -26,6 +26,17 @@ import { createCheckoutRequestId } from '../../../src/lib/store/storeAnalytics';
 // Legacy standalone key used by earlier versions of this page. It is folded
 // into the shared zustand cart once and then removed.
 const LEGACY_CART_KEY = 'diamond-store-cart';
+
+const checkoutErrorMessage = (data, status) => {
+  if (typeof data?.error?.message === 'string') return data.error.message;
+  if (typeof data?.error === 'string') return data.error;
+  if (typeof data?.message === 'string') return data.message;
+  if (status === 401) return 'Your Session Expired. Please Sign In Again.';
+  if (status === 409) return 'This Checkout Is Already Being Finalized. Try Again In A Moment.';
+  if (status === 429) return 'Too Many Checkout Attempts. Wait A Moment And Try Again.';
+  return `Checkout Could Not Start (${status})`;
+};
+
 export default function ShoppingCart() {
   const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/cart');
   useTrainingBus('diamond-store-cart');
@@ -385,14 +396,14 @@ export default function ShoppingCart() {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(data?.error?.message || `Request failed (${res.status})`);
+        throw new Error(checkoutErrorMessage(data, res.status));
       }
       const url = data?.data?.url || data?.url;
       if (url) {
         window.location.href = url;
         return;
       }
-      throw new Error(data?.error?.message || data?.error || 'No checkout URL returned');
+      throw new Error('Checkout Session Missing Redirect URL');
     } catch (err) {
       // Stay on the cart so the user can retry — the button re-enables via finally
       toast.error(err.message || 'Checkout Unavailable. Please Try Again.');
@@ -468,7 +479,7 @@ export default function ShoppingCart() {
             `Not Enough Diamonds. This Order Costs ${required.toLocaleString()} Diamonds And You Have ${current.toLocaleString()}.`
           );
         }
-        throw new Error(data?.error || `Request failed (${res.status})`);
+        throw new Error(checkoutErrorMessage(data, res.status));
       }
 
       if (data?.success) {
@@ -479,12 +490,15 @@ export default function ShoppingCart() {
         const purchasedIds = new Set(merchItems.map((item) => item?.id));
         setCartItems(useCartStore.getState().items.filter((item) => !purchasedIds.has(item?.id)));
         const result = data.data || {};
+        const replayed = data.idempotent === true;
         const spent = result.diamonds_spent ?? 0;
         const newBalance = result.new_balance ?? diamondBalance;
         toast.success(
-          `Purchased With ${spent.toLocaleString()} Diamonds. New Balance: ${newBalance.toLocaleString()}.`
+          replayed
+            ? 'Order Already Placed. No Additional Diamonds Were Deducted.'
+            : `Purchased With ${spent.toLocaleString()} Diamonds. New Balance: ${newBalance.toLocaleString()}.`
         );
-        busEmit.diamondsSpent(spent, 'Diamond Store Purchase');
+        if (!replayed) busEmit.diamondsSpent(spent, 'Diamond Store Purchase');
         setDiamondBalance(newBalance);
         setPendingDiamondCheckout(null);
       } else {
@@ -591,7 +605,7 @@ export default function ShoppingCart() {
                 {!usingDiamonds && cardGroup && deferredUnits > 0 && (
                   <div style={styles.noticeBox}>
                     {cardGroup === 'diamonds'
-                      ? `Diamond packages check out one at a time. This checkout covers 1 x ${diamondItems[0]?.name || 'Diamond Package'} for $${(cardChargeCents / 100).toFixed(2)} — the other ${deferredUnits} ${deferredUnits === 1 ? 'item stays' : 'items stay'} in your cart.`
+                      ? `All diamond packages check out together for $${(cardChargeCents / 100).toFixed(2)}. The other ${deferredUnits} ${deferredUnits === 1 ? 'item stays' : 'items stay'} in your cart for a separate checkout.`
                       : `This checkout covers your merchandise ($${(cardChargeCents / 100).toFixed(2)}). The other ${deferredUnits} ${deferredUnits === 1 ? 'item stays' : 'items stay'} in your cart.`}
                   </div>
                 )}
