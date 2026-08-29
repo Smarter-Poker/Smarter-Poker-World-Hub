@@ -31,13 +31,14 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
           hero_position: 'BTN',
           board_cards: ['Qc', '5h', '3s'],
           scenario_text: 'You Hold T9s On The Flop. What Is The GTO Play?',
-          scenario: { heroHand: 'T9s', heroPosition: 'BTN', potSize: 6 },
+          scenario: { heroHand: 'T9s', heroPosition: 'BTN', pot: 6 },
         },
       }),
     }));
     await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Hand Of The Day' })).toBeVisible();
     await expect(page.getByText('You Hold T9s On The Flop. What Is The GTO Play?')).toBeVisible();
+    await expect(page.getByText('BTN · Pot 6 BB')).toBeVisible();
     await expect(page.getByRole('button', { name: /Load In Sandbox/i })).toBeVisible();
     await expectHealthyLayout(page);
   });

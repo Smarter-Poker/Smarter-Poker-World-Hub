@@ -78,7 +78,7 @@ function normalizeDailyHandPayload(payload) {
     heroHand,
     position: raw.position || raw.hero_position || scenario.heroPosition || null,
     board,
-    pot: raw.pot ?? raw.pot_size ?? scenario.potSize ?? null,
+    pot: raw.pot ?? raw.pot_size ?? scenario.potSize ?? scenario.pot ?? null,
     title: raw.title || raw.scenario_text || raw.question || scenario.context || 'What Is The Best Line?',
   };
 }
