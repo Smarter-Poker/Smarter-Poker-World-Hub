@@ -172,9 +172,9 @@ class HandHistoryRecorder {
     if (!this._currentHand) return;
     
     this._currentHand.showdown = true;
-    this._currentHand.winners = data.winners;
-    this._currentHand.pots = data.pots;
-    this._currentHand.rake = data.rake || 0;
+    if (Array.isArray(data.winners)) this._currentHand.winners = data.winners;
+    if (Array.isArray(data.pots)) this._currentHand.pots = data.pots;
+    if (data.rake !== null && data.rake !== undefined) this._currentHand.rake = Number(data.rake) || 0;
     
     // Mark which players showed cards
     if (data.shownCards) {
@@ -203,6 +203,7 @@ class HandHistoryRecorder {
       amount: data.amount,
       handDescription: 'Last player standing',
     }];
+    if (data.rake !== null && data.rake !== undefined) this._currentHand.rake = Number(data.rake) || 0;
   }
 
   /**
@@ -254,10 +255,11 @@ class HandHistoryRecorder {
                 seat: p.seatIndex,
                 stack: p.endStack ?? p.startStack,
               })),
-              board: handRecord.board || [],
+              board: handRecord.communityCards || handRecord.board || [],
               summary: JSON.stringify(handRecord),
               rake_amount: handRecord.rake || 0,
-              pot_size: (handRecord.pots || []).reduce((sum, p) => sum + (p.amount || 0), 0),
+              pot_size: (handRecord.pots || []).reduce((sum, p) => sum + (p.amount || 0), 0)
+                || (handRecord.winners || []).reduce((sum, winner) => sum + (winner.amount || 0), 0),
               winners: (handRecord.winners || []).map(w => ({ userId: w.playerId, amount: w.amount })),
               source: 'wh-engine',
               started_at: handRecord.startedAt,

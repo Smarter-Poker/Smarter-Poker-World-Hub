@@ -6,6 +6,7 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const detect = read('pages/api/assistant/leaks/detect.js');
 const record = read('pages/api/training/record-question.js');
 const audit = read('pages/api/training/audit-hand-history.js');
+const auditEngine = read('src/lib/training/handAuditEngine.js');
 const batch = read('pages/api/training/batch-preload.js');
 const single = read('pages/api/training/get-question.js');
 const upload = read('pages/hub/training/hand-history-upload.js');
@@ -41,13 +42,14 @@ test('cache-miss trainer questions are canonicalized before answers arrive', () 
 });
 
 test('hand import uses server audit and refuses ambiguous solver sizing', () => {
-  assert.match(audit, /gradeSolverDecision/);
-  assert.match(audit, /matches\.length !== 1/);
-  assert.match(audit, /point\.nodeClass/);
-  assert.match(audit, /decisionFingerprint/);
-  assert.match(audit, /nodeCompatible/);
-  assert.match(audit, /solver_verified: solverVerified/);
-  assert.match(audit, /maxDecisions = 250/);
+  assert.match(audit, /auditParsedHands/);
+  assert.match(auditEngine, /gradeSolverDecision/);
+  assert.match(auditEngine, /matches\.length === 1/);
+  assert.match(auditEngine, /point\.nodeClass/);
+  assert.match(auditEngine, /fingerprint/);
+  assert.match(auditEngine, /nodeCompatible/);
+  assert.match(auditEngine, /solver_verified: solverVerified/);
+  assert.match(auditEngine, /maxDecisions = 250/);
   assert.match(upload, /_solverAudit/);
   assert.match(upload, /filter\(g => g\?\.solverVerified\)/);
   assert.doesNotMatch(upload, /training:leaks-detected/);

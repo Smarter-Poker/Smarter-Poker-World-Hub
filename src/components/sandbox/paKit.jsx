@@ -110,7 +110,10 @@ export function PAStyles() {
                 isolation: isolate;
                 position: relative;
                 color: ${T.text};
+                border-radius: 0 !important;
+                text-transform: capitalize;
             }
+            .pa-sheet :is(input, textarea)::placeholder { text-transform: capitalize; }
             .pa-sheet::before {
                 position: absolute; inset: 0; z-index: -1; pointer-events: none; content: '';
                 background:

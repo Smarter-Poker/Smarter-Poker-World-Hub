@@ -42,6 +42,7 @@ import {
   PAStyles, BottomSheet, Skeleton, EmptyState, ErrorState, Segmented,
   safeStorage, usePrefersReducedMotion, useAbortableFetch, isAbortError,
 } from '../../../src/components/sandbox/paKit';
+import toolStyles from '../../../src/styles/worlds/PersonalAssistantTools.module.css';
 import {
   dueQueueAll, reviewStats, leakToDrill, migrateRecord, resolutionProgress,
   MAX_QUEUE as REVIEW_MAX_QUEUE, SCHEMA_VERSION as REVIEW_SCHEMA_VERSION,
@@ -400,7 +401,7 @@ function queueReason(entry) {
 
 function ReviewSkeletonCard() {
   return (
-    <section style={{ ...card, marginBottom: S.md }} aria-busy="true" aria-label="Loading your review queue">
+    <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-busy="true" aria-label="Loading your review queue">
       <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
         <Skeleton h={14} w="40%" />
         <Skeleton h={22} w="70%" />
@@ -454,7 +455,7 @@ function ReviewQueueCard({
   // ── nothing to review because there is nothing to review FROM ──────────
   if (!hasLeaks) {
     return (
-      <section style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
+      <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
         {heading}
         {/* No button here on purpose: the detection control sits immediately
             below, and two identical buttons a thumb apart reads as a bug. */}
@@ -477,7 +478,7 @@ function ReviewQueueCard({
   if (!top) {
     const nextLabel = dueInLabel(stats?.nextDueAt, nowMs);
     return (
-      <section style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
+      <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
         {heading}
         <p style={styles.reviewCaughtUp}>
           <CheckCircle2 size={18} strokeWidth={2} color={T.success} aria-hidden="true" />
@@ -500,7 +501,7 @@ function ReviewQueueCard({
   const total = Math.max(list.length, Math.floor(num(queueTotal)) || 0);
 
   return (
-    <section style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
+    <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
       {heading}
 
       {/* `queue` is capped at MAX_QUEUE for the session, but the count states
@@ -796,7 +797,7 @@ function BleedSummary({ leaks, isDemo }) {
   const restBb = total - top.reduce((s, i) => s + i.bb, 0);
 
   return (
-    <section style={{ ...card, marginBottom: S.md }} aria-label="EV bleed summary">
+    <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="EV bleed summary">
       <h2 style={styles.bleedHeadline}>
         {isDemo ? 'Sample data: ' : 'You are bleeding '}
         <span style={{ ...numeric, color: T.danger, fontWeight: 800 }}>~{total.toFixed(1)} BB</span>
@@ -1426,7 +1427,7 @@ export default function LeakFinderPage() {
     userId,
     ready: !authInitializing,
   });
-  const { runDetection, isDetecting } = useLeakDetection();
+  const { runDetection, isDetecting, detectionResult } = useLeakDetection();
 
   const safeLeaks = useMemo(() => (Array.isArray(fetchedLeaks) ? fetchedLeaks : []), [fetchedLeaks]);
   const leaks = useMemo(
@@ -1591,7 +1592,7 @@ export default function LeakFinderPage() {
       }
       setDetectionSummary({
         type: 'success',
-        text: `Analysed ${num(result.handsAnalyzed).toLocaleString()} hands · ${found} leak${found === 1 ? '' : 's'} found.`,
+        text: `Analysed ${num(result.handsAnalyzed).toLocaleString()} Hands · Synced ${num(result.clubArenaSync?.handsAudited).toLocaleString()} New Club Arena Hands · Graded ${num(result.solverDecisionsAnalyzed).toLocaleString()} Solver Decisions · ${found} Leak${found === 1 ? '' : 's'} Found.`,
       });
     } else {
       setDetectionSummary({ type: 'error', text: friendlyDetectionError(result?.error) });
@@ -2052,10 +2053,10 @@ export default function LeakFinderPage() {
     );
   }
 
-  const detectButton = (block = true) => (
+  const detectButton = (block = true, extraClass = '') => (
     <button
       type="button"
-      className="pa-btn"
+      className={`pa-btn ${extraClass}`}
       style={btn('primary', { block, disabled: isDetecting })}
       onClick={handleRunDetection}
       disabled={isDetecting}
@@ -2073,7 +2074,7 @@ export default function LeakFinderPage() {
         canonical="/hub/personal-assistant/leaks"
       />
 
-      <div className="leaks-page" style={styles.page}>
+      <div className={`leaks-page ${toolStyles.toolPage}`} style={styles.page}>
         <PAStyles />
         <UniversalHeader pageDepth={2} onMenuClick={() => setShowMenu(true)} />
 
@@ -2089,17 +2090,41 @@ export default function LeakFinderPage() {
         />
 
         <main id="leak-finder-main" className="leaks-shell" style={styles.shell}>
-          {/* ── Page header ── */}
-          <header style={styles.pageHeader}>
-            <div style={{ minWidth: 0 }}>
-              <h1 style={styles.pageTitle}>Leak Finder</h1>
-              <p style={styles.pageSub}>Post-session analysis — repeated, measurable EV leaks.</p>
+          <section className={`${toolStyles.machineHero} ${toolStyles.leakHero}`} aria-labelledby="leak-machine-title">
+            <div className={toolStyles.machineHeroInner}>
+              <div className={toolStyles.machineHeroCopy}>
+                <span className={toolStyles.machineEyebrow}>Deterministic Hand Audit</span>
+                <h1 id="leak-machine-title" className={toolStyles.machineTitle}>Leak Finder</h1>
+                <p className={toolStyles.machineDescription}>
+                  Club Arena Hands Flow Into A Solver-Verified Audit That Finds Repeated Decisions, Measures The EV Cost, And Builds The Next Drill.
+                </p>
+                <span style={styles.integrityBadge}>
+                  <Lock size={12} strokeWidth={2} aria-hidden="true" />
+                  Not Live Play — Post-Session Review Only
+                </span>
+              </div>
+              <div className={toolStyles.machineTelemetry} aria-label="Leak Finder data telemetry">
+                <span className={toolStyles.telemetryCell}>
+                  <span className={toolStyles.telemetryLabel}>Club Arena Link</span>
+                  <strong className={toolStyles.telemetryValue} data-tone="live">
+                    {!detectionResult ? 'Ready To Sync' : detectionResult?.clubArenaSync?.available === false ? 'Check Required' : 'Connected'}
+                  </strong>
+                </span>
+                <span className={toolStyles.telemetryCell}>
+                  <span className={toolStyles.telemetryLabel}>Club Hands Found</span>
+                  <strong className={toolStyles.telemetryValue}>
+                    {detectionResult ? num(detectionResult?.clubArenaSync?.handsFound).toLocaleString() : '—'}
+                  </strong>
+                </span>
+                <span className={toolStyles.telemetryCell}>
+                  <span className={toolStyles.telemetryLabel}>Solver Decisions</span>
+                  <strong className={toolStyles.telemetryValue} data-tone="gold">
+                    {num(detectionResult?.solverDecisionsAnalyzed).toLocaleString()}
+                  </strong>
+                </span>
+              </div>
             </div>
-            <span style={styles.integrityBadge}>
-              <Lock size={12} strokeWidth={2} aria-hidden="true" />
-              Not Live Play — Post-Session Review Only
-            </span>
-          </header>
+          </section>
 
           {/* ── Sample-data disclosure ── */}
           {leaksAreDemo && !leaksLoading && (
@@ -2153,8 +2178,13 @@ export default function LeakFinderPage() {
             )}
           </section>
 
+          <div className={toolStyles.sectionRail} aria-hidden="true">
+            <strong>Analysis Control Deck</strong>
+            <span>Club Arena + Solver Evidence</span>
+          </div>
+
           {/* ── Tabs ── */}
-          <div style={{ marginBottom: S.md }}>
+          <div style={{ marginTop: S.md, marginBottom: S.md }}>
             <Segmented
               idPrefix="leaks-tab"
               label="View"
@@ -2189,10 +2219,19 @@ export default function LeakFinderPage() {
               </LeakErrorBoundary>
 
               {/* Detection */}
-              <div style={{ ...card, marginBottom: S.md }}>
-                {detectButton(true)}
+              <div className={toolStyles.scanDeck}>
+                <div className={toolStyles.scanDeckInner}>
+                  <div className={toolStyles.scanDeckCopy}>
+                    <span className={toolStyles.scanDisc} aria-hidden="true"><Activity size={25} strokeWidth={1.8} /></span>
+                    <span className={toolStyles.scanText}>
+                      <strong>Run The Deterministic Audit</strong>
+                      <span>Import Recent Club Arena Hands, Match The Same Solver Ranges Used In Training, And Rebuild Your Leak Queue.</span>
+                    </span>
+                  </div>
+                  {detectButton(true, toolStyles.scanButton)}
+                </div>
                 {isDetecting && (
-                  <div style={{ marginTop: S.md }} aria-live="polite">
+                  <div style={{ padding: `0 ${S.md}px ${S.md}px` }} aria-live="polite">
                     <div className="leak-progress"><span /></div>
                     <p style={styles.detectStepText}>
                       {detectSlow
@@ -2283,7 +2322,7 @@ export default function LeakFinderPage() {
                   </LeakErrorBoundary>
 
                   {/* Search + sort + filter */}
-                  <div style={{ ...cardCompact, marginBottom: S.md, display: 'flex', flexDirection: 'column', gap: S.md }}>
+                  <div className={toolStyles.instrumentPanel} style={{ ...cardCompact, marginBottom: S.md, display: 'flex', flexDirection: 'column', gap: S.md }}>
                     <div style={styles.searchWrap}>
                       <Search size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.textDim, flexShrink: 0 }} />
                       <input
@@ -2443,7 +2482,7 @@ export default function LeakFinderPage() {
                 </LeakErrorBoundary>
 
                 {/* Worst coach-mode spots */}
-                <div style={card}>
+                <div className={toolStyles.instrumentPanel} style={card}>
                   <h3 style={styles.cardHeading}>Worst coach-mode spots</h3>
                   {coachLoading ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }} aria-busy="true">

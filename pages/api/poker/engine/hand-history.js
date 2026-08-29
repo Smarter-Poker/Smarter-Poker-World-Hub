@@ -95,13 +95,25 @@ export default async function handler(req, res) {
     const lim = Math.min(parseInt(limit) || 20, 50);
 
     try {
-      const { data, error, count } = await getSupabase()
+      let handResult = await getSupabase()
         .from('hand_history')
         .select('*', { count: 'exact' })
         .eq('table_id', tableId)
         .contains('players', [{ userId: user.id }])
         .order('created_at', { ascending: false })
         .range(offset, offset + lim - 1);
+
+      if (!handResult.error && (handResult.data || []).length === 0) {
+        handResult = await getSupabase()
+          .from('hand_history')
+          .select('*', { count: 'exact' })
+          .eq('table_id', tableId)
+          .contains('players', [{ id: user.id }])
+          .order('created_at', { ascending: false })
+          .range(offset, offset + lim - 1);
+      }
+
+      const { data, error, count } = handResult;
 
       if (error) {
         console.warn('[hand-history] Query error:', error.message);

@@ -6110,22 +6110,10 @@ function LivePokerTable({
     };
     setHandHistory(prev => [entry, ...prev].slice(0, 50)); // Keep last 50
 
-    // E1: Persist to server (fire-and-forget)
-    try {
-      supabase?.auth?.getSession?.().then(({ data }) => {
-        const token = data?.session?.access_token;
-        if (token) {
-          fetch('/api/poker/engine/hand-history', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ tableId, hand: entry }),
-          }).then(() => {
-            // G6: Broadcast hand history update so HandHistoryBrowser auto-refreshes
-            try { eventBus.emit('DATA_MUTATED', 'hand_history_updated'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        }
-      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+    // The server-side HandHistoryRecorder is the authoritative writer. The old
+    // client backup sent a summary without players or streets, was correctly
+    // rejected by the API, and could duplicate hands when it succeeded.
+    try { eventBus.emit('DATA_MUTATED', 'hand_history_updated'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, [result, myCards]);
 
   const [noteTarget, setNoteTarget] = useState(null); // { id, displayName } for notes modal

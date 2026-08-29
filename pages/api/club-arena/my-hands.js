@@ -70,13 +70,27 @@ export default async function handler(req, res) {
               return res.status(200).json({ success: true, hands: [], total: 0, page: pageNum, totalPages: 0 });
           }
 
-          const { data: hands, count, error } = await getSupabase()
+          let handResult = await getSupabase()
               .from('hand_history')
               .select('id, hand_id:hand_number, hand_number, table_id, pot_total:pot_size, created_at', { count: 'exact' })
               .in('table_id', clubTableIds)
               .contains('players', [{ userId: user.id }])
               .order('created_at', { ascending: false })
               .range(offset, offset + limitNum - 1);
+
+          // Rows written before the recorder normalization used `id` inside
+          // players JSON. Fall back without mixing pagination windows.
+          if (!handResult.error && (handResult.data || []).length === 0) {
+              handResult = await getSupabase()
+                  .from('hand_history')
+                  .select('id, hand_id:hand_number, hand_number, table_id, pot_total:pot_size, created_at', { count: 'exact' })
+                  .in('table_id', clubTableIds)
+                  .contains('players', [{ id: user.id }])
+                  .order('created_at', { ascending: false })
+                  .range(offset, offset + limitNum - 1);
+          }
+
+          const { data: hands, count, error } = handResult;
 
           if (error) throw error;
 

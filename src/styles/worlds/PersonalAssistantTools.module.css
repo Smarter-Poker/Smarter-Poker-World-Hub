@@ -1,0 +1,392 @@
+.toolPage {
+  --machine-cyan: #62e6ff;
+  --machine-blue: #078ed6;
+  --machine-gold: #e8bc61;
+  --machine-steel: #7898aa;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(0, 135, 218, 0.14), transparent 34rem),
+    linear-gradient(rgba(99, 231, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 231, 255, 0.02) 1px, transparent 1px),
+    #000 !important;
+  background-size: auto, 28px 28px, 28px 28px, auto !important;
+  text-transform: capitalize;
+}
+
+.toolPage::before {
+  position: fixed;
+  z-index: 0;
+  inset: 66px 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(119, 220, 255, 0.7), transparent);
+  box-shadow: 0 0 18px rgba(0, 174, 255, 0.38);
+  content: '';
+  pointer-events: none;
+}
+
+.machineHero {
+  position: relative;
+  z-index: 1;
+  grid-column: 1 / -1 !important;
+  min-height: 285px;
+  overflow: hidden;
+  margin: 0 0 10px;
+  padding: 7px;
+  border: 1px solid #7898aa;
+  border-radius: 0;
+  background: #020609;
+  box-shadow: inset 0 1px 0 rgba(236, 251, 255, 0.28), 0 18px 38px #000;
+}
+
+.machineHero::after {
+  position: absolute;
+  inset: 7px;
+  z-index: 2;
+  border: 1px solid rgba(81, 176, 220, 0.58);
+  box-shadow: inset 0 0 42px rgba(0, 144, 218, 0.14);
+  content: '';
+  pointer-events: none;
+}
+
+.machineHeroInner {
+  position: relative;
+  min-height: 270px;
+  overflow: hidden;
+  background-color: #02070b;
+  background-position: 76% 48%;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.sandboxHero .machineHeroInner {
+  background-image:
+    linear-gradient(90deg, #02070b 0%, rgba(2, 7, 11, 0.97) 30%, rgba(2, 7, 11, 0.5) 56%, rgba(2, 7, 11, 0.08) 79%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.55), transparent 46%),
+    url('/images/personal-assistant-v2/sandbox-system.webp');
+}
+
+.leakHero .machineHeroInner {
+  background-image:
+    linear-gradient(90deg, #02070b 0%, rgba(2, 7, 11, 0.97) 31%, rgba(2, 7, 11, 0.48) 57%, rgba(2, 7, 11, 0.06) 81%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.62), transparent 48%),
+    url('/images/personal-assistant-v2/leak-finder-system.webp');
+}
+
+.machineHeroCopy {
+  position: relative;
+  z-index: 3;
+  width: min(57%, 640px);
+  padding: 48px 46px 88px;
+}
+
+.machineEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #6ee7ff;
+  font: 700 9px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.machineEyebrow::before {
+  width: 20px;
+  height: 1px;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  content: '';
+}
+
+.machineTitle {
+  margin: 12px 0 10px;
+  color: #f3f9fc;
+  font: 500 clamp(38px, 5vw, 62px) / 0.95 Rajdhani, 'Arial Narrow', sans-serif;
+  letter-spacing: -0.035em;
+  text-shadow: 0 3px 2px #000, 0 0 22px rgba(79, 215, 255, 0.18);
+}
+
+.machineDescription {
+  max-width: 520px;
+  margin: 0;
+  color: #b8c8d2;
+  font-size: 13px;
+  line-height: 1.65;
+  text-shadow: 0 2px 2px #000;
+}
+
+.machineTelemetry {
+  position: absolute;
+  z-index: 4;
+  right: 7px;
+  bottom: 7px;
+  left: 7px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid #3b6d88;
+  background: linear-gradient(180deg, rgba(7, 20, 29, 0.78), rgba(1, 6, 10, 0.97));
+  backdrop-filter: blur(5px);
+}
+
+.telemetryCell {
+  display: flex;
+  min-width: 0;
+  min-height: 60px;
+  padding: 11px 16px;
+  border-right: 1px solid #294c60;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.telemetryCell:last-child { border-right: 0; }
+
+.telemetryLabel {
+  overflow: hidden;
+  color: #6f8794;
+  font: 700 8px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.telemetryValue {
+  margin-top: 4px;
+  overflow: hidden;
+  color: #e9f8ff;
+  font: 600 16px Rajdhani, 'Arial Narrow', sans-serif;
+  letter-spacing: 0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.telemetryValue[data-tone='live'] { color: #63e7ff; text-shadow: 0 0 10px rgba(54, 213, 255, 0.5); }
+.telemetryValue[data-tone='gold'] { color: #e8bc61; text-shadow: 0 0 10px rgba(232, 188, 97, 0.3); }
+
+.instrumentPanel {
+  position: relative;
+  overflow: hidden;
+  padding: 15px !important;
+  border: 1px solid #7898aa !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(rgba(99, 231, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 231, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(180deg, #152936 0, #061019 18%, #02070b 82%, #10202b 100%) !important;
+  background-size: 20px 20px, 20px 20px, auto !important;
+  box-shadow: inset 0 1px 0 rgba(236, 251, 255, 0.26), inset 0 -3px 5px #000, 0 13px 25px rgba(0, 0, 0, 0.7) !important;
+}
+
+.instrumentPanel::before {
+  position: absolute;
+  top: 0;
+  right: 12%;
+  left: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #72dfff, transparent);
+  box-shadow: 0 0 12px #078ed6;
+  content: '';
+  pointer-events: none;
+}
+
+.sectionRail {
+  display: flex;
+  min-height: 52px;
+  padding: 10px 16px;
+  border: 1px solid #728b9d;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, #2b3d49 0, #09121a 22%, #03080c 76%, #1b2933);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52), inset 0 -3px 5px #000, 0 8px 18px #000;
+}
+
+.sectionRail strong {
+  color: #f2f8fb;
+  font: 600 18px Rajdhani, 'Arial Narrow', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.sectionRail span {
+  color: #7f98a6;
+  font: 700 8px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.scanDeck {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 16px;
+  padding: 7px;
+  border: 1px solid #7898aa;
+  background: #020609;
+  box-shadow: inset 0 1px 0 rgba(236, 251, 255, 0.28), 0 16px 30px #000;
+}
+
+.scanDeckInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  min-height: 112px;
+  padding: 20px;
+  border: 1px solid #315d74;
+  align-items: center;
+  background:
+    radial-gradient(circle at 12% 50%, rgba(0, 175, 255, 0.16), transparent 28%),
+    repeating-linear-gradient(90deg, transparent 0 39px, rgba(90, 194, 239, 0.04) 40px),
+    #050d13;
+}
+
+.scanDeckCopy {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.scanDisc {
+  position: relative;
+  display: grid;
+  width: 62px;
+  height: 62px;
+  border: 1px solid #6fbad9;
+  border-radius: 50%;
+  place-items: center;
+  color: #69e5ff;
+  background: radial-gradient(circle, rgba(27, 178, 229, 0.24), #06111a 58%);
+  box-shadow: inset 0 0 18px rgba(52, 197, 255, 0.2), 0 0 18px rgba(0, 157, 255, 0.16);
+}
+
+.scanDisc::before {
+  position: absolute;
+  inset: 8px;
+  border: 1px dashed rgba(110, 226, 255, 0.42);
+  border-radius: 50%;
+  content: '';
+}
+
+.scanText strong {
+  display: block;
+  color: #f2f8fb;
+  font: 600 22px Rajdhani, 'Arial Narrow', sans-serif;
+}
+
+.scanText span {
+  display: block;
+  margin-top: 4px;
+  color: #88a0ad;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.scanButton { min-width: 210px; }
+
+.toolPage :global(.pa-btn) {
+  border-radius: 0 !important;
+  text-transform: capitalize;
+}
+
+.toolPage :global(.pa-sheet),
+.toolPage :global(input::placeholder) {
+  text-transform: capitalize;
+}
+
+.toolPage :global(.sandbox-table-wrap) {
+  padding: 7px;
+  border: 1px solid #7898aa;
+  background: #020609;
+  box-shadow: inset 0 1px 0 rgba(236, 251, 255, 0.28), 0 18px 34px #000;
+}
+
+.toolPage :global(.sandbox-table-wrap > *) {
+  border: 1px solid #3e7390;
+}
+
+.toolPage :global(.sandbox-command-bar) {
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, rgba(39, 55, 66, 0.98), rgba(3, 8, 12, 0.98) 24%, rgba(1, 4, 7, 0.99)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 -12px 26px #000 !important;
+}
+
+.toolPage :global(.leak-card) {
+  border-radius: 0 !important;
+}
+
+.toolPage :global(.leak-stat-grid) > div {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0 !important;
+  background:
+    radial-gradient(circle at 50% 115%, rgba(0, 153, 255, 0.18), transparent 58%),
+    linear-gradient(180deg, #142633, #061019 24%, #02070b) !important;
+  box-shadow: inset 0 1px 0 rgba(236, 251, 255, 0.2), 0 12px 24px #000 !important;
+}
+
+.toolPage :global(.leak-stat-grid) > div::after {
+  position: absolute;
+  inset: auto 18% 0;
+  height: 1px;
+  background: #1fbfe8;
+  box-shadow: 0 0 10px #078ed6;
+  content: '';
+}
+
+@media (min-width: 769px) {
+  .machineHero { min-height: 300px; }
+  .machineHeroInner { min-height: 285px; }
+}
+
+@media (max-width: 768px) {
+  .machineHero {
+    min-height: 410px;
+    margin-inline: -16px;
+    padding: 5px;
+    border-right: 0;
+    border-left: 0;
+  }
+
+  .machineHero::after { inset: 5px; }
+
+  .machineHeroInner {
+    min-height: 400px;
+    background-position: 66% top;
+    background-size: auto 250px;
+  }
+
+  .sandboxHero .machineHeroInner {
+    background-image:
+      linear-gradient(0deg, #02070b 0%, #02070b 39%, rgba(2, 7, 11, 0.82) 55%, rgba(2, 7, 11, 0.05) 83%),
+      url('/images/personal-assistant-v2/sandbox-system.webp');
+  }
+
+  .leakHero .machineHeroInner {
+    background-image:
+      linear-gradient(0deg, #02070b 0%, #02070b 39%, rgba(2, 7, 11, 0.82) 55%, rgba(2, 7, 11, 0.05) 83%),
+      url('/images/personal-assistant-v2/leak-finder-system.webp');
+  }
+
+  .machineHeroCopy {
+    width: auto;
+    padding: 228px 20px 84px;
+  }
+
+  .machineTitle { font-size: 38px; }
+  .machineDescription { font-size: 12px; line-height: 1.55; }
+  .machineTelemetry { right: 5px; bottom: 5px; left: 5px; }
+  .telemetryCell { min-height: 58px; padding: 9px 8px; }
+  .telemetryLabel { font-size: 6.5px; letter-spacing: 0.06em; }
+  .telemetryValue { font-size: 13px; }
+
+  .instrumentPanel { padding: 12px !important; }
+  .sectionRail { min-height: 48px; padding: 9px 12px; }
+  .sectionRail strong { font-size: 16px; }
+
+  .scanDeck { margin-inline: -4px; padding: 5px; }
+  .scanDeckInner { grid-template-columns: 1fr; padding: 15px; }
+  .scanDisc { width: 52px; height: 52px; }
+  .scanText strong { font-size: 19px; }
+  .scanButton { width: 100%; min-width: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanDisc { box-shadow: inset 0 0 18px rgba(52, 197, 255, 0.2); }
+}
