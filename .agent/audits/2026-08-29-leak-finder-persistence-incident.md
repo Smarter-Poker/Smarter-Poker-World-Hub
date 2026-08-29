@@ -40,3 +40,29 @@ The compatibility tests must remain in the Leak Finder build gate. Any future
 `user_leaks` writer must use the shared compatibility boundary or explicitly
 write both generations of required fields. The live schema remains the source
 of truth; an archived migration is not a safe runtime contract.
+
+## Production Acceptance And Club Arena Follow-Up
+
+Production version `2a780ae1` was exercised through the authenticated Leak
+Finder page. The deterministic audit completed, saved six new leaks, expanded
+the active queue from three to nine, and rendered the audit receipt instead of
+the prior save failure. The receipt then exposed a separate Club Arena read
+failure that had been hidden behind the persistence incident.
+
+The Club Arena hand query passed an array of objects directly to
+`postgrest-js.contains`. With the installed client generation this becomes an
+invalid JSON operand and production returns PostgreSQL `22P02` for both the
+modern and legacy player-key queries. The query also excluded `source =
+'manual'`, which is the source used by the live Hetzner Club Arena recorder.
+Finally, the normalizer understood the older API-engine shape but not the live
+recorder's `stage`, `community_cards`, `hole_cards`, or `button_seat` fields.
+
+The follow-up repair serializes every player containment operand with
+`JSON.stringify`, includes the live `manual` source, and normalizes both live
+and legacy row generations. The same invalid containment pattern was corrected
+in My Hands and the shared hand-history readers. A read-only audit against live
+data found 100 recent Club Arena hands, normalized the nine with revealed hero
+cards, extracted 37 decision points, and found five candidate solver nodes.
+None were promoted to verified evidence because none had an exact board/node
+match; those decisions correctly remain unpriced rather than being presented
+as solver-certified leaks.

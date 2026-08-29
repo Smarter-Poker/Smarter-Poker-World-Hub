@@ -74,7 +74,7 @@ export default async function handler(req, res) {
               .from('hand_history')
               .select('id, hand_id:hand_number, hand_number, table_id, pot_total:pot_size, created_at', { count: 'exact' })
               .in('table_id', clubTableIds)
-              .contains('players', [{ userId: user.id }])
+              .contains('players', JSON.stringify([{ userId: user.id }]))
               .order('created_at', { ascending: false })
               .range(offset, offset + limitNum - 1);
 
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
                   .from('hand_history')
                   .select('id, hand_id:hand_number, hand_number, table_id, pot_total:pot_size, created_at', { count: 'exact' })
                   .in('table_id', clubTableIds)
-                  .contains('players', [{ id: user.id }])
+                  .contains('players', JSON.stringify([{ id: user.id }]))
                   .order('created_at', { ascending: false })
                   .range(offset, offset + limitNum - 1);
           }
