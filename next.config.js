@@ -111,15 +111,9 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   // `runtimeCaching` parameter is silently ignored in v10 — that's why the mobile
   // white-screen fix from PR #503 was not taking effect.
   extendDefaultRuntimeCaching: false,
-  // public/ is OPT-IN, not opt-out. Nothing is globbed out of it; the shell
-  // files come back through workboxOptions.additionalManifestEntries below. A
-  // denylist of heavy folders would be wrong within a month — the next person
-  // to add a video directory would silently put it back on the install path,
-  // and the only symptom is that enrolling for notifications got slower.
-  //
-  // This is a next-pwa option, NOT a workbox one: workbox's GenerateSW
-  // validates its config strictly and rejects `publicExcludes` outright.
-  publicExcludes: ['!**/*'],
+  // NOTE: `publicExcludes` further down this object is next-pwa's own
+  // build-cost denylist and is NOT what keeps public/ out of the precache.
+  // See the additionalManifestEntries comment below for what actually does.
   workboxOptions: {
     // ─── THE ROOT SERVICE WORKER MUST BE ABLE TO INSTALL ───────────────────
     // Dan, 2026-08-29, from an iPhone: "ENABLE NOTIFICATIONS ISN'T WORKING",
@@ -198,13 +192,31 @@ const withPWA = require('@ducanh2912/next-pwa').default({
     // deployed worker: every entry must resolve, and the total must stay under
     // PRECACHE_BUDGET_MB. A 30 MB folder dropped into public/ now fails there
     // instead of quietly adding a minute to every first enrolment.
-    // The files from public/ that genuinely belong to the shell, with
-    // content-hash revisions. See scripts/pwa/public-shell-precache.js for why
-    // each one is on the list, and why this cannot be done as a
-    // manifestTransform: workbox applies additionalManifestEntriesTransform
-    // LAST, after every user transform, so entries added this way are invisible
-    // to filtering (which is exactly how the first cut of this change filtered
-    // the page chunks correctly and left all 199 public files in place).
+    // ─── THIS LINE IS WHAT KEEPS public/ OUT OF THE PRECACHE ───────────────
+    //
+    // next-pwa feeds the files it globs out of public/ into workbox as
+    // `additionalManifestEntries`. Setting the option REPLACES that list — so
+    // public/ becomes opt-in, and these are the only files from it that get
+    // precached. Verified by building locally and reading the generated
+    // public/sw.js: 200 public entries before, 6 after (five shell files plus
+    // next-pwa's own custom worker, which it adds itself).
+    //
+    // Two things this is NOT, both learned the expensive way:
+    //
+    //   * It is not a `manifestTransform`. Workbox applies
+    //     `additionalManifestEntriesTransform` LAST, after every user
+    //     transform (workbox-build/build/lib/transform-manifest.js), so
+    //     entries arriving this way are invisible to filtering. The first cut
+    //     of this change filtered the page chunks correctly and left all 199
+    //     public files in place for exactly that reason.
+    //   * It is not `publicExcludes`. That option already exists further down
+    //     this object as a build-cost denylist; adding a second one here was a
+    //     duplicate key that JS silently resolved in favour of the other, and
+    //     it did nothing either way.
+    //
+    // See scripts/pwa/public-shell-precache.js for why each file is on the
+    // list — every one is bytes a person waits for before they can turn on
+    // notifications, and one 404 among them takes web push down origin-wide.
     additionalManifestEntries: publicShellManifestEntries(__dirname),
 
     manifestTransforms: [

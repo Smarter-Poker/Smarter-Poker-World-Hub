@@ -92,19 +92,25 @@ test('notification-icon.png is small enough to sit on the install path', () => {
   );
 });
 
-test('public/ is opt-in: next.config.js globs nothing out of it', () => {
+test('public/ is opt-in: the shell allowlist replaces next-pwa public globbing', () => {
   const config = fs.readFileSync(path.join(ROOT, 'next.config.js'), 'utf8');
-  assert.match(
-    config,
-    /publicExcludes:\s*\['!\*\*\/\*'\]/,
-    `next.config.js must keep publicExcludes: ['!**/*']. Without it next-pwa globs every ` +
-      `file in public/ into the precache, which is how 34.7 MB ended up on the path to ` +
-      `turning on notifications.`
-  );
+  // next-pwa feeds the files it globs out of public/ into workbox as
+  // additionalManifestEntries. Setting the option REPLACES that list, which is
+  // the whole mechanism: delete this line and all 200 public files (34.7 MB)
+  // come straight back onto the path that gates enrolling for notifications.
   assert.match(
     config,
     /additionalManifestEntries:\s*publicShellManifestEntries\(__dirname\)/,
-    'the shell files must come back through additionalManifestEntries'
+    'the shell allowlist must be wired into workboxOptions.additionalManifestEntries'
+  );
+  // And exactly one option-level publicExcludes: a second one is a duplicate
+  // key that JS resolves silently, which is how an inert config line can look
+  // like it is doing the work.
+  const publicExcludes = config.match(/^ {2}publicExcludes:/gm) || [];
+  assert.equal(
+    publicExcludes.length,
+    1,
+    `next.config.js has ${publicExcludes.length} option-level publicExcludes keys; duplicates in one object literal are silently resolved and read as if both applied`
   );
 });
 
