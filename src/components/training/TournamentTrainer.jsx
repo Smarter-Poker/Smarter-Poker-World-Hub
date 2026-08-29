@@ -95,7 +95,6 @@ const SCENARIOS = {
       options: [
         { action: 'All-in', correct: true, ev: '+0.9%', explanation: 'A7o at 6bb from UTG is a clear shove. You\'re desperate and A7 is well above the Nash push range for 6bb. Waiting will cost you more through blinds and antes.' },
         { action: 'Fold', correct: false, ev: '-1.5%', explanation: 'A7 is too strong to fold at 6bb. Your push range here should be ~35% of hands, and A7o is comfortably in that range.' },
-        { action: 'Raise to 2x', correct: false, ev: '-0.8%', explanation: 'No standard opens at 6bb. It\'s push or fold — you need maximum fold equity from a shove.' },
       ],
     },
     {
@@ -141,7 +140,6 @@ const SCENARIOS = {
       options: [
         { action: 'All-in', correct: true, ev: '+0.6%', explanation: '87s at 12bb from BTN is a clear push. Only 2 players remain, suited connectors play well all-in, and at 12bb your raise/fold game is too expensive. Nash range here is ~40%.' },
         { action: 'Fold', correct: false, ev: '-0.7%', explanation: '87s is well within the BTN push range at 12bb. Folding here is far too tight and bleeds your stack through blinds and antes.' },
-        { action: 'Raise to 2.5x', correct: false, ev: '-0.2%', explanation: 'At 12bb, a standard open commits too much of your stack. If you get 3-bet, you\'ll be forced to fold having invested 20% of your stack. Push/fold is cleaner.' },
       ],
     },
   ],

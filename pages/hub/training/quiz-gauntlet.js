@@ -32,6 +32,19 @@ function saveSession(payload) {
   }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 }
 
+function buildNumericChoices(answer, unit) {
+  const spread = unit === ' chips' ? 10 : 5;
+  const candidates = [answer, answer - spread, answer + spread, answer + spread * 2]
+    .map((value) => unit === '%' ? Math.max(0, Math.min(100, value)) : value);
+  const unique = [...new Set(candidates)];
+  while (unique.length < 4) unique.push(unique[unique.length - 1] + spread);
+  for (let i = unique.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [unique[i], unique[j]] = [unique[j], unique[i]];
+  }
+  return unique.slice(0, 4);
+}
+
 // ── Question generators ───────────────────────────────────────────
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
@@ -44,6 +57,7 @@ function genPotOdds() {
     icon: '',
     color: 'var(--sp-accent-cyan)',
     answer,
+    options: buildNumericChoices(answer, '%'),
     unit: '%',
     tolerance: 2,
     question: `Villain bets **${bet}** into a **${pot}** chip pot. What are your pot odds?`,
@@ -60,6 +74,7 @@ function genMDF() {
     icon: '',
     color: 'var(--sp-accent-purple)',
     answer,
+    options: buildNumericChoices(answer, '%'),
     unit: '%',
     tolerance: 2,
     question: `Villain bets **${bet}** into **${pot}**. What is your Min Defense Frequency?`,
@@ -77,6 +92,7 @@ function genEV() {
     icon: '',
     color: 'var(--sp-accent-green)',
     answer,
+    options: buildNumericChoices(answer, ' chips'),
     unit: ' chips',
     tolerance: 2,
     question: `Pot **${pot}**, bet **${bet}**, you have **${eq}% equity**. EV of calling?`,
@@ -93,6 +109,7 @@ function genBreakEven() {
     icon: '',
     color: 'var(--sp-accent-orange)',
     answer,
+    options: buildNumericChoices(answer, '%'),
     unit: '%',
     tolerance: 2,
     question: `Bet **${bet}**, pot **${pot}**. Min equity to break even on a call?`,
@@ -142,7 +159,6 @@ export default function QuizGauntlet({ onExit } = {}) {
   const [showFeedback, setShowFeedback] = useState(null); // null | 'correct' | 'close' | 'wrong' | 'timeout'
 
   const timerRef = useRef(null);
-  const inputRef = useRef(null);
 
   const q = questions[qIdx];
 
@@ -150,11 +166,10 @@ export default function QuizGauntlet({ onExit } = {}) {
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  const advanceQuestion = useCallback((entry) => {
+  const recordAnswer = useCallback((entry) => {
     setHistory((h) => {
       const next = [...h, entry];
       if (next.length === TOTAL_Q) {
-        // Game over
         clearTimer();
         const correct = next.filter((e) => e.isCorrect).length;
         const score = next.reduce((s, e) => s + e.score, 0);
@@ -173,25 +188,29 @@ export default function QuizGauntlet({ onExit } = {}) {
           correct_answers: correct,
           total_questions: TOTAL_Q,
         });
-        setTimeout(() => setPhase('results'), 800);
-      } else {
-        setTimeout(() => {
-          setQIdx((i) => i + 1);
-          setUserAnswer('');
-          setTimeLeft(SHOT_CLOCK);
-          setShowFeedback(null);
-          requestAnimationFrame(() => setTimeout(() => inputRef.current?.focus(), 50));
-        }, 900);
       }
       return next;
     });
   }, []);
 
+  const handleNext = useCallback(() => {
+    if (!showFeedback) return;
+    if (history.length >= TOTAL_Q) {
+      setPhase('results');
+      return;
+    }
+    setQIdx((i) => i + 1);
+    setUserAnswer('');
+    setTimeLeft(SHOT_CLOCK);
+    setShowFeedback(null);
+  }, [showFeedback, history.length]);
+
   const submitAnswer = useCallback(
-    (forced = false) => {
+    (forced = false, answerOverride = null) => {
       if (!q || showFeedback) return;
       clearTimer();
-      const num = parseFloat(userAnswer);
+      const submittedAnswer = answerOverride === null ? userAnswer : String(answerOverride);
+      const num = parseFloat(submittedAnswer);
       const isTimeout = forced && isNaN(num);
       let res = 'wrong',
         isCorrect = false,
@@ -210,10 +229,11 @@ export default function QuizGauntlet({ onExit } = {}) {
         res = 'timeout';
         setCombo(0);
       }
+      setUserAnswer(submittedAnswer);
       setShowFeedback(res);
-      advanceQuestion({ isCorrect, score: pts, topic: q.topic, res });
+      recordAnswer({ isCorrect, score: pts, topic: q.topic, res });
     },
-    [q, userAnswer, showFeedback, timeLeft, combo, advanceQuestion]
+    [q, userAnswer, showFeedback, timeLeft, combo, recordAnswer]
   );
 
   // Shot clock
@@ -243,7 +263,6 @@ export default function QuizGauntlet({ onExit } = {}) {
     setHistory([]);
     setShowFeedback(null);
     setPhase('playing');
-    requestAnimationFrame(() => setTimeout(() => inputRef.current?.focus(), 100));
   }
 
   const correctCount = history.filter((h) => h.isCorrect).length;
@@ -543,73 +562,56 @@ export default function QuizGauntlet({ onExit } = {}) {
                       )
                     )}
                   </p>
-                  <div
-                    style={{
-                      padding: '6px 10px',
-                      background: 'rgba(255,255,255,0.04)',
-                      borderRadius: 6,
-                      fontSize: 11,
-                      color: 'var(--sp-fg-dim)',
-                      borderLeft: `3px solid ${q.color}60`,
-                    }}
-                  >
-                     {q.hint}
-                  </div>
                 </div>
 
-                {/* Input */}
+                {/* Four meaningful numeric choices; formulas remain hidden until grading. */}
                 {!showFeedback && (
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <input
-                      ref={inputRef}
-                      type="number"
-                      value={userAnswer}
-                      onChange={(e) => setUserAnswer(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && submitAnswer()}
-                      placeholder={`Answer in ${q.unit.trim() || '%'}`}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+                    {q.options.map((option, index) => (
+                      <button
+                      key={option}
+                      type="button"
+                      onClick={() => submitAnswer(false, option)}
                       style={{
-                        flex: 1,
-                        padding: '14px 16px',
-                        borderRadius: 12,
-                        fontSize: 20,
-                        fontWeight: 700,
-                        ...C.orb,
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: 'var(--sp-fg)',
-                        outline: 'none',
-                      }}
-                    />
-                    <button
-                      onClick={() => submitAnswer()}
-                      style={{
-                        padding: '14px 24px',
-                        borderRadius: 12,
-                        background: `linear-gradient(135deg,${q.color},${q.color}99)`,
-                        border: 'none',
-                        color: '#000',
+                        minHeight: 54,
+                        padding: '14px 12px',
+                        borderRadius: 0,
+                        background: 'linear-gradient(180deg, rgba(35,70,91,0.95), rgba(7,18,27,0.98))',
+                        border: `1px solid ${q.color}90`,
+                        color: '#fff',
                         fontWeight: 900,
-                        fontSize: 14,
+                        fontSize: 16,
                         cursor: 'pointer',
                         ...C.orb,
+                        boxShadow: 'inset 0 1px rgba(255,255,255,0.2), 0 8px 16px rgba(0,0,0,0.28)',
                       }}
                     >
-                      LOCK IN
-                    </button>
+                      <span style={{ color: q.color, marginRight: 6 }}>{index + 1}.</span>
+                      {option}{q.unit}
+                      </button>
+                    ))}
                   </div>
                 )}
 
                 {/* Feedback (TRAIN-WIRE-FEEDBACK-V2-1) */}
                 {showFeedback && (
-                  <FeedbackCard
-                    verdict={showFeedback === 'correct' ? 'correct' : showFeedback === 'close' ? 'mixed' : 'incorrect'}
-                    userAction={userAnswer ? `${userAnswer}${q.unit || ''}` : (showFeedback === 'timeout' ? 'No answer' : '—')}
-                    solverAction={`${q.answer}${q.unit || ''}`}
-                    evLoss={0}
-                    whyShort={q.explanation ? q.explanation.replace(/\*\*/g, '') : ''}
-                    accuracy={undefined}
-                    compact
-                  />
+                  <div aria-live="assertive">
+                    <FeedbackCard
+                      verdict={showFeedback === 'correct' || showFeedback === 'close' ? 'correct' : 'incorrect'}
+                      userAction={userAnswer ? `${userAnswer}${q.unit || ''}` : (showFeedback === 'timeout' ? 'No answer' : '—')}
+                      solverAction={`${q.answer}${q.unit || ''}`}
+                      evLoss={0}
+                      whyShort={q.explanation ? q.explanation.replace(/\*\*/g, '') : ''}
+                      accuracy={undefined}
+                      compact
+                    />
+                    <div style={{ marginTop: 10, color: 'var(--sp-fg-muted)', fontSize: 12, textAlign: 'center' }}>
+                      Review The Calculation. This Result Will Stay Open Until You Click Next.
+                    </div>
+                    <button type="button" onClick={handleNext} style={{ width: '100%', minHeight: 52, marginTop: 12, borderRadius: 0, border: '1px solid #9beeff', background: 'linear-gradient(180deg, #23465b, #07121b)', color: '#fff', fontSize: 15, fontWeight: 900, cursor: 'pointer', boxShadow: 'inset 0 1px rgba(255,255,255,0.26), 0 8px 18px rgba(0,0,0,0.38)' }}>
+                      {history.length >= TOTAL_Q ? 'View Results →' : 'Next Question →'}
+                    </button>
+                  </div>
                 )}
               </motion.div>
             )}

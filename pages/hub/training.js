@@ -197,15 +197,15 @@ export default function TrainingPage() {
           game: setupGame.id,
           ...(prefs?.difficulty ? { difficulty: prefs.difficulty } : {}),
           ...(prefs?.timer ? { timer: prefs.timer } : {}),
-          ...(prefs?.autoAdvanceUI ? { autoAdvance: prefs.autoAdvanceUI !== 'off' ? '1' : '0' } : {}),
+          autoAdvance: '0',
           ...(prefs?.handSelection ? { handSelection: prefs.handSelection } : {}),
           // GTOW parity #9 / #6: the arena derives its Auto New Hand delay from
           // `speed` and its pause behaviour from `feedbackRule`. The single-table
           // branch below forwards both; this branch dropped them, so every
           // multi-table session ran Normal speed and "On mistakes" no matter what
           // the player chose one screen earlier.
-          ...(prefs?.speed ? { speed: prefs.speed } : {}),
-          ...(prefs?.feedbackRule ? { feedbackRule: prefs.feedbackRule } : {}),
+          speed: 'normal',
+          feedbackRule: 'every',
         },
       });
       return;
@@ -216,13 +216,13 @@ export default function TrainingPage() {
       timer: prefs.timer, 
       mode: prefs.mode,
       scope: prefs.scope,
-      speed: prefs.speed,
+      speed: 'normal',
       tables: prefs.tables,
       // GTOW parity #29: the player's feedback rule and Auto New Hand choice
       // must survive into the arena. These used to be dropped here and then
       // hardcoded downstream.
-      feedbackRule: prefs.feedbackRule,
-      autoAdvance: prefs.autoAdvanceUI !== 'off',
+      feedbackRule: 'every',
+      autoAdvance: false,
       // GTOW parity #7: `applyHandSelection` in useGTOTrainer reads
       // trainerConfig.handSelection. Dropping it here is what kept the filter
       // dead — the hook received undefined and returned the unfiltered set on

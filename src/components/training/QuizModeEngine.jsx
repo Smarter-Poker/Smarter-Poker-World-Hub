@@ -21,8 +21,8 @@ const DIFFICULTIES = [
 // ●●● QUESTION BANK ●●●
 const QUESTION_BANK = [
   // Action questions
-  { type: 'action', q: 'You have A♠K♠ on BTN. UTG opens 2.5x. What do you do?', options: ['Fold', 'Call', '3-Bet to 8x', '3-Bet to 10x'], correct: 2, explanation: 'AKs is a premium 3-bet hand from the BTN vs UTG open.' },
-  { type: 'action', q: 'BB with 9♣7♣. BTN opens 2.5x. SB folds. Your action?', options: ['Fold', 'Call', '3-Bet', 'All-in'], correct: 1, explanation: '97s has good implied odds and playability to defend the BB vs BTN open.' },
+  { type: 'action', q: 'Action folds to Under The Gun, who raises to 2.5 BB. You hold A♠K♠ on the Button. What is your best action?', options: ['Fold', 'Call', '3-Bet to 8x', '3-Bet to 10x'], correct: 2, explanation: 'AKs is a premium 3-bet hand from the Button against an Under The Gun raise.' },
+  { type: 'action', q: 'Action folds to the Button, who raises to 2.5 BB; the Small Blind folds. You hold 9♣7♣ in the Big Blind. What is your best action?', options: ['Fold', 'Call', '3-Bet', 'All-in'], correct: 1, explanation: '97s has good implied odds and playability to defend the Big Blind against a Button raise.' },
   { type: 'action', q: 'CO with J♥T♥. Folds to you. What do you do?', options: ['Fold', 'Limp', 'Raise 2.2x', 'Raise 3x'], correct: 2, explanation: 'JTs is a clear open-raise from the CO. Standard 2.2x sizing.' },
   { type: 'action', q: 'K♠Q♦8♣ flop. You c-bet 33%, BB check-raises to 3x. You have A♠A♥.', options: ['Fold', 'Call', 'Re-raise', 'All-in'], correct: 1, explanation: 'AA is too strong to fold but re-raising turns our hand face-up. Call and reassess turn.' },
   { type: 'action', q: 'River: A♣K♦7♠4♥2♣. You have Q♠J♠ after barreling flop+turn. BB checks.', options: ['Check back', 'Bet 33%', 'Bet 75%', 'Overbet'], correct: 3, explanation: 'QJ has no showdown value. An overbet bluff is optimal as it polarizes our range and maximizes fold equity.' },
@@ -33,9 +33,9 @@ const QUESTION_BANK = [
   { type: 'sizing', q: 'River with the nuts on a dry board. Opponent has shown strength. Size?', options: ['33%', '50%', '75%', 'Overbet'], correct: 3, explanation: 'With the nuts against a strong range, overbet to extract maximum value.' },
 
   // Range questions
-  { type: 'range', q: 'UTG opens at 6-max. Approximately what % of hands is a standard RFI range?', options: ['8-10%', '13-16%', '20-25%', '30-35%'], correct: 1, explanation: 'UTG RFI range is typically 13-16% — pairs 22+, ATs+, KQs, AQo+.' },
-  { type: 'range', q: 'BTN opens at 6-max. What\'s the approximate RFI percentage?', options: ['20-25%', '30-35%', '40-50%', '55-65%'], correct: 2, explanation: 'BTN has the widest open range at ~40-50% since only the blinds remain.' },
-  { type: 'range', q: 'BB faces a BTN open. What % of hands should BB defend (call + 3-bet)?', options: ['20-30%', '35-45%', '50-60%', '65-75%'], correct: 2, explanation: 'BB gets the best odds and should defend ~50-60% vs BTN, using a mix of calls and 3-bets.' },
+  { type: 'range', q: 'At 6-max, approximately what percentage of hands should Under The Gun raise first in?', options: ['8-10%', '13-16%', '20-25%', '30-35%'], correct: 1, explanation: 'The Under The Gun raise-first-in range is typically 13-16% — pairs 22+, ATs+, KQs, AQo+.' },
+  { type: 'range', q: 'At 6-max, approximately what percentage of hands should the Button raise first in?', options: ['20-25%', '30-35%', '40-50%', '55-65%'], correct: 2, explanation: 'The Button has the widest raise-first-in range at ~40-50% since only the blinds remain.' },
+  { type: 'range', q: 'The Button raises first in. What percentage of hands should the Big Blind defend by calling or 3-betting?', options: ['20-30%', '35-45%', '50-60%', '65-75%'], correct: 2, explanation: 'The Big Blind gets the best odds and should defend ~50-60% against the Button, using a mix of calls and 3-bets.' },
 
   // EV questions
   { type: 'ev', q: 'You face a pot-sized bet on the river. You need at least what equity to call?', options: ['25%', '33%', '40%', '50%'], correct: 1, explanation: 'Facing a pot-sized bet, you need 33% equity: Risk/(Risk+Reward) = Pot/(Pot + 2*Pot) = 1/3.' },

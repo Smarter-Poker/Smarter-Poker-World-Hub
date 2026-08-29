@@ -96,8 +96,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         if (isCorrect) { setScore(prev => prev + (100 + (streak * 25)) * pointMultiplier); setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCorrectAnswers(prev => prev + 1); SoundEngine.play(streak >= 2 ? 'combo' : 'correct'); }
         else { setStreak(0); SoundEngine.play('wrong'); mistakesRef.current.push({ position: currentPattern.scenario?.title || 'Unknown', correct: currentPattern.correctAnswer, picked: action }); busEmit.decisionIncorrect(streak, { userAction: action, bestAction: currentPattern.correctAnswer, scenario: currentPattern.scenario }); }
         setGameState('revealed');
-        setTimeout(() => { nextRound(); }, 1200);
-    }, [gameState, currentPattern, streak, nextRound]);
+    }, [gameState, currentPattern, streak]);
 
     const handlePowerUp = useCallback(async (pu) => {
         const purchase = await purchasePowerUp(pu, DiamondEngine);
@@ -108,7 +107,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         else if (pu.id === 'HINT_REVEAL' && currentPattern) {
             setHintUsedThisRound(true); setActivePowerUp(null);
             // Eliminate one wrong answer
-            const wrongOptions = ['fold', 'call', 'raise'].filter(a => a !== currentPattern.correctAnswer);
+            const wrongOptions = ['fold', 'call', 'raise', 'mixed'].filter(a => a !== currentPattern.correctAnswer);
             setEliminatedOption(wrongOptions[Math.floor(Math.random() * wrongOptions.length)]);
         }
     }, [DiamondEngine, onScoreUpdate, currentPattern]);
@@ -117,7 +116,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         const handleKey = (e) => {
             if ((gameState === 'ready' || gameState === 'gameover') && (e.key === ' ' || e.key === 'Enter')) { startGame(); }
             else if (gameState === 'playing') {
-                if (e.key === '1') handleAnswer('fold'); else if (e.key === '2') handleAnswer('call'); else if (e.key === '3') handleAnswer('raise');
+                if (e.key === '1') handleAnswer('fold'); else if (e.key === '2') handleAnswer('call'); else if (e.key === '3') handleAnswer('raise'); else if (e.key === '4') handleAnswer('mixed');
             }
         };
         window.addEventListener('keydown', handleKey);
@@ -193,8 +192,8 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                         </div>
                     )}
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                        {['fold', 'call', 'raise'].map((action, idx) => {
-                            const colors = { fold: { bg: 'rgba(100,100,100,0.3)', border: '#666', color: '#fff', label: 'FOLD Range' }, call: { bg: 'rgba(16,185,129,0.3)', border: '#10B981', color: '#10B981', label: 'CALL Range' }, raise: { bg: 'rgba(239,68,68,0.3)', border: '#EF4444', color: '#EF4444', label: 'RAISE Range' } };
+                        {['fold', 'call', 'raise', 'mixed'].map((action, idx) => {
+                            const colors = { fold: { bg: 'rgba(100,100,100,0.3)', border: '#666', color: '#fff', label: 'FOLD Range' }, call: { bg: 'rgba(16,185,129,0.3)', border: '#10B981', color: '#10B981', label: 'CALL Range' }, raise: { bg: 'rgba(239,68,68,0.3)', border: '#EF4444', color: '#EF4444', label: 'RAISE Range' }, mixed: { bg: 'rgba(14,165,233,0.25)', border: '#38BDF8', color: '#7DD3FC', label: 'MIXED Range' } };
                             const c = colors[action];
                             const isEliminated = eliminatedOption === action;
                             return (
@@ -205,6 +204,11 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                             );
                         })}
                     </div>
+                    {gameState === 'revealed' && (
+                        <button type="button" onClick={nextRound} style={{ width: '100%', minHeight: 52, marginTop: 18, borderRadius: 0, border: '1px solid #9beeff', background: 'linear-gradient(180deg, #23465b, #07121b)', color: '#fff', fontSize: 15, fontWeight: 900, cursor: 'pointer', boxShadow: 'inset 0 1px rgba(255,255,255,0.26), 0 8px 18px rgba(0,0,0,0.38)' }}>
+                            Next Question →
+                        </button>
+                    )}
                 </>
             )}
 

@@ -75,7 +75,7 @@ const PROTOCOL_STEPS = [
     iconKind: 'target',
     title: 'Distractions Cleared',
     desc: 'Is your phone away? Are other browser tabs closed? Have you set your environment for peak focus?',
-    options: ['100% Cleared', 'Mostly Clear', 'Still Distracted'],
+    options: ['100% Cleared', 'Mostly Clear', 'Still Distracted', 'Not Prepared'],
     icon: '◆',
   },
   {
@@ -111,7 +111,7 @@ const PROTOCOL_STEPS = [
     iconKind: 'clock',
     title: 'Session Duration',
     desc: 'Set your planned session length. Quality drops after 60 minutes for most players. Shorter focused sessions beat long unfocused grinds.',
-    options: ['30 min', '45 min', '60 min', '90 min', '120 min'],
+    options: ['30 min', '45 min', '60 min', '90 min'],
     icon: '○',
   },
 ];

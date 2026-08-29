@@ -96,7 +96,6 @@ export default function SpotTrainerPage() {
   const [correctDrills, setCorrectDrills] = useState(0);
   const [sessionStart] = useState(Date.now());
 
-  const autoNextTimer = useRef(null);
   const questionStartRef = useRef(Date.now());
   const sessionHandHistory = useRef([]);
 
@@ -106,8 +105,6 @@ export default function SpotTrainerPage() {
     setError(null);
     setSelected(null);
     setShowResult(false);
-    if (autoNextTimer.current) clearTimeout(autoNextTimer.current);
-
     try {
       const params = new URLSearchParams();
       if (format) params.set('format', format);
@@ -216,21 +213,9 @@ export default function SpotTrainerPage() {
         eventBus?.emit?.('training:drill-complete', {}, 'SpotTrainer');
       } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
-      // Reset question timer and auto-next after 2 seconds
-      autoNextTimer.current = setTimeout(() => {
-        questionStartRef.current = Date.now();
-        fetchSpot();
-      }, 2000);
     },
-    [showResult, spot, bus, fetchSpot]
+    [showResult, spot, bus]
   );
-
-  // Clean up timer
-  useEffect(() => {
-    return () => {
-      if (autoNextTimer.current) clearTimeout(autoNextTimer.current);
-    };
-  }, []);
 
   const accuracy = totalDrills > 0 ? Math.round((correctDrills / totalDrills) * 100) : 0;
   const elapsed = Math.floor((Date.now() - sessionStart) / 60000);
@@ -730,13 +715,13 @@ export default function SpotTrainerPage() {
                           marginTop: 6,
                         }}
                       >
-                        Next spot in 2s...
+                        Review The Solver Frequencies. This Result Will Stay Open Until You Click Next.
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {/* Next Button (manual override) */}
+                {/* Results advance only through this explicit control. */}
                 {showResult && (
                   <button
                     onClick={fetchSpot}

@@ -254,6 +254,11 @@ export function generateLevel8() {
 
             // Build the options the player will see
             const options = buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards);
+            const lastAction = matchup.isPFR
+                ? (matchup.posContext === 'IP'
+                    ? `${matchup.villain} checks to you`
+                    : 'You are first to act')
+                : `${matchup.villain} continuation-bets 50% of the pot`;
 
             // Determine the correct action (defender: argmax of the same matrix
             // frequencies buildFlopOptions uses, so the two always agree)
@@ -273,6 +278,7 @@ export function generateLevel8() {
                 level: 8,
                 title: `Flop: ${handNotation} — ${matchup.context}`,
                 description: `${matchup.context}. Board: ${board.join(' ')} (${boardAnalysis.description}).`,
+                lastAction,
                 tip: strategy.reason,
                 heroCards,
                 heroHand: handNotation,
@@ -316,6 +322,31 @@ export function generateLevel8() {
  * GTO Wizard-style: "Check / Bet 33% / Bet 75%" with separate frequencies per size.
  * Uses the sizeDistribution from enhanced solver data when available.
  */
+function ensureFourBetCheckOptions(options, strategy, street) {
+    const completed = [...(options || [])];
+    const labels = new Set(completed.map(option => String(option.label || '').toLowerCase()));
+    const candidates = [
+        { label: 'Bet 33% Pot', action: 'bet', sizing: 0.33 },
+        { label: 'Bet 67% Pot', action: 'bet', sizing: 0.67 },
+        { label: 'Bet Pot', action: 'bet', sizing: 1.0 },
+        { label: 'Overbet 125%', action: 'bet', sizing: 1.25 },
+    ];
+
+    for (const candidate of candidates) {
+        if (completed.length >= 4) break;
+        if (labels.has(candidate.label.toLowerCase())) continue;
+        completed.push({
+            ...candidate,
+            isCorrect: false,
+            frequency: 0,
+            feedback: `${candidate.label} is legal, but it is not the solver-preferred ${street} size in this spot. ${strategy?.reason || ''}`.trim(),
+            evDelta: -0.35,
+        });
+        labels.add(candidate.label.toLowerCase());
+    }
+    return completed;
+}
+
 function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) {
     if (matchup.isPFR) {
         const betFreq = strategy.frequency || 0;
@@ -397,12 +428,12 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
                 options.forEach(o => { o.frequency = Math.round(o.frequency * scale); });
             }
 
-            return options;
+            return ensureFourBetCheckOptions(options, strategy, 'flop');
         }
 
         // ●●● SINGLE-SIZE FALLBACK (original behavior) ●●●
         const betSize = strategy.sizing || BET_SIZES.MEDIUM;
-        return [
+        return ensureFourBetCheckOptions([
             {
                 label: 'Check',
                 action: 'check',
@@ -424,7 +455,7 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
                     : `Overbet/bluff. ${strategy.reason}`,
                 evDelta: strategy.shouldBet ? 0 : -0.3,
             },
-        ];
+        ], strategy, 'flop');
     } else {
         // Defender options: Check-Raise, Call, Fold
         // Use enhanced XR data if available from solver tables
@@ -463,7 +494,7 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
                 evDelta: correctAction === 'call' ? 0 : -0.3,
             },
             {
-                label: 'Raise',
+                label: 'Raise To 3x',
                 action: 'raise',
                 isCorrect: correctAction === 'raise',
                 frequency: raiseFreqPct,
@@ -471,6 +502,14 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
                     ? `Great check-raise! ${crInfo.reason || strategy.reason || ''}`
                     : `Check-raise is too aggressive here. ${crInfo.reason || strategy.reason || ''}`,
                 evDelta: correctAction === 'raise' ? 0.5 : -1.5,
+            },
+            {
+                label: 'Raise All-In',
+                action: 'allin',
+                isCorrect: false,
+                frequency: 0,
+                feedback: `An all-in raise is unnecessary at this stack depth. Use the solver's standard raise size when raising.`,
+                evDelta: -2.0,
             },
         ];
     }
@@ -512,12 +551,16 @@ export function generateLevel9() {
             const handClass = classifyHandClass(heroCards, board);
 
             const options = buildMultiSizeOptions(strategy, 'turn');
+            const lastAction = matchup.posContext === 'IP'
+                ? `${matchup.villain} checks to you on the turn`
+                : 'You are first to act on the turn';
 
             scenarios.push({
                 id: `l9-turn-${matchup.idTag}-${handIdx}`,
                 level: 9,
                 title: `Turn: ${handNotation} — ${matchup.context}`,
                 description: `${matchup.context}. Hero c-bet flop, villain called. Board: ${board.join(' ')} (${boardAnalysis.description}).`,
+                lastAction,
                 tip: strategy.reason,
                 heroCards,
                 heroHand: handNotation,
@@ -603,13 +646,17 @@ export function generateLevel10() {
                 lineNarrative = 'Both checked to river.';
             }
             let description = `${matchup.context}. ${lineNarrative} Board: ${board.join(' ')}.`;
+            let lastAction = matchup.posContext === 'IP'
+                ? `${matchup.villain} checks to you on the river`
+                : 'You are first to act on the river';
 
             // Bluff catchers face a bet: correctAction must match the call/fold
             // option marked isCorrect in buildRiverOptions (strength >= 0.25 → call)
             let correctAction = strategy.action;
             if (strategy.category === 'bluff_catcher') {
                 correctAction = madeHand.strength >= 0.25 ? 'call' : 'fold';
-                description += ' Villain bets river.';
+                description += ` ${matchup.villain} bets 75% of the pot on the river.`;
+                lastAction = `${matchup.villain} bets 75% of the pot on the river`;
             }
 
             scenarios.push({
@@ -617,6 +664,7 @@ export function generateLevel10() {
                 level: 10,
                 title: `River: ${handNotation} — ${matchup.context}`,
                 description,
+                lastAction,
                 tip: strategy.reason,
                 heroCards,
                 heroHand: handNotation,
@@ -734,7 +782,7 @@ function buildMultiSizeOptions(strategy, street) {
         options.forEach(o => { o.frequency = Math.round(o.frequency * scale); });
     }
 
-    return options;
+    return ensureFourBetCheckOptions(options, strategy, street);
 }
 
 /**
@@ -770,6 +818,22 @@ function buildRiverOptions(strategy, madeHand, prevAction) {
                     ? `Correct fold. ${madeHand.description} can't beat many value hands.`
                     : `Too tight! ${madeHand.description} is good enough to call.`,
                 evDelta: madeHand.strength < 0.25 ? 0 : -0.5,
+            },
+            {
+                label: 'Raise To 2.5x',
+                action: 'raise',
+                isCorrect: false,
+                frequency: 0,
+                feedback: 'This bluff-catcher is not strong enough to raise for value and does not make a sound bluff candidate.',
+                evDelta: -1.2,
+            },
+            {
+                label: 'Raise All-In',
+                action: 'allin',
+                isCorrect: false,
+                frequency: 0,
+                feedback: 'Turning this bluff-catcher into an all-in raise overplays the hand and folds out the bluffs you beat.',
+                evDelta: -2.0,
             },
         ];
     }
