@@ -651,7 +651,7 @@ flood verified stopped at 15:23:55 UTC.
 | Issue | Fix |
 |---|---|
 | Phantom duplicate `smarter-poker-world-hub` project (`prj_ELynDO2...`, created 2026-05-01 01:52 by Antigravity `vercel deploy --yes` from a fresh checkout, zero env vars, fan-out fail on every push) | Deleted via REST API. 6 legitimate projects remain. |
-| Recurrence prevention | `scripts/antigravity-deploy.sh` + `scripts/force-redeploy.sh` patched to write `.vercel/project.json` with hub-vanguard projectId BEFORE invoking the Vercel CLI. |
+| Recurrence prevention | Superseded 2026-08-29: all local production-deploy scripts and Makefile targets are removed. Protected `main` through the hub-vanguard Git integration is the only publication path; CHECK 18 rejects direct CLI deployment commands. |
 
 ---
 

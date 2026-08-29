@@ -76,6 +76,26 @@
 /** @type {import('next').NextConfig} */
 const { withSentryConfig } = require('@sentry/nextjs');
 const { publicShellManifestEntries } = require('./scripts/pwa/public-shell-precache');
+const { execFileSync } = require('child_process');
+
+// Vercel normally supplies VERCEL_GIT_COMMIT_SHA, but CLI-created deployments
+// can omit the System Environment Variables while still replacing production.
+// Stamp the checked-out revision into the build so health checks always expose
+// the source that actually produced the running bundle.
+const buildCommitSha = (() => {
+  const suppliedSha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA;
+  if (/^[a-f0-9]{7,40}$/i.test(suppliedSha || '')) return suppliedSha;
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: __dirname,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return 'local';
+  }
+})();
+
 const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   register: true,
@@ -318,6 +338,10 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 });
 
 const nextConfig = {
+  env: {
+    BUILD_COMMIT_SHA: buildCommitSha,
+  },
+
   // outputFileTracingRoot: require('path').join(__dirname),
   // StrictMode doubles renders/effects in dev, which doubles memory pressure on 952 pages.
   // Keep it ON for production builds where it helps catch bugs; OFF for dev stability.

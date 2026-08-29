@@ -31,6 +31,7 @@
  * for anyone who edits .gitignore without knowing why those lines are there.
  */
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -160,4 +161,28 @@ test('.gitignore anchors the root patterns and does not swallow public/', () => 
         /assets\/x\.js/,
         'a stray build at the repo root is no longer ignored - the anchored .gitignore patterns were removed'
     );
+});
+
+test('the Club Arena release manifest has an exact defensive no-store policy', () => {
+    const config = JSON.parse(fs.readFileSync(path.join(REPO, 'vercel.json'), 'utf8'));
+    const blanketHubIndex = config.headers.findIndex(
+        (rule) => rule.source === '/hub/((?!.*?/assets/)(?!.*?/images/)(?!.*?/videos/)(?!.*?/cards/)(?!.*?/sounds/)(?!.*?/club-logos/).*)'
+    );
+    const manifestIndex = config.headers.findIndex(
+        (rule) => rule.source === '/hub/club-arena/build-info.json'
+    );
+
+    assert.ok(blanketHubIndex >= 0, 'the blanket /hub cache policy is missing');
+    assert.ok(manifestIndex > blanketHubIndex, 'the exact manifest policy must override the blanket /hub rule');
+
+    const headers = Object.fromEntries(
+        config.headers[manifestIndex].headers.map(({ key, value }) => [key.toLowerCase(), value])
+    );
+
+    assert.match(headers['cache-control'], /no-store/);
+    assert.match(headers['cache-control'], /max-age=0/);
+    assert.equal(headers['cdn-cache-control'], 'no-store');
+    assert.equal(headers['vercel-cdn-cache-control'], 'no-store');
+    assert.equal(headers.pragma, 'no-cache');
+    assert.equal(headers.expires, '0');
 });

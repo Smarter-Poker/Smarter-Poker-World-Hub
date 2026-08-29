@@ -85,8 +85,8 @@ function displayStatus(deployments) {
     if (latest.status === 'Error') {
         console.log(`${COLORS.red}  ACTION REQUIRED: Latest deployment failed.${COLORS.reset}`);
         console.log(`  1. Check build logs: ${latest.url}`);
-        console.log(`  2. Fix syntax errors and push again`);
-        console.log(`  3. Or force redeploy: npm run deploy:force\n`);
+        console.log(`  2. Fix forward on a protected branch and merge to main`);
+        console.log(`  3. Let the hub-vanguard Git integration publish the new main commit\n`);
         process.exit(1);
     }
 }

@@ -581,7 +581,13 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       const lat = v.latitude;
       const lng = v.longitude;
 
-      const marker = L.marker([lat, lng], { icon: venueIcon, zIndexOffset: isTourStop ? 500 : 0 })
+      const marker = L.marker([lat, lng], {
+        icon: venueIcon,
+        zIndexOffset: isTourStop ? 500 : 0,
+        keyboard: true,
+        title: v.name || 'Poker venue',
+        alt: `${v.name || 'Poker venue'} map marker`,
+      })
         .bindPopup(popupHtml, { className: 'pnm-popup', maxWidth: 300, closeButton: true });
 
       // Touch preview on mobile
@@ -613,7 +619,13 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         popupAnchor: [0, -40]
       });
 
-      userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 })
+      userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], {
+        icon: userIcon,
+        zIndexOffset: 1000,
+        keyboard: true,
+        title: 'Your location',
+        alt: 'Your location map marker',
+      })
         .addTo(map)
         .bindPopup('<div style="padding:8px 12px;"><b style="color:#fff;font-size:14px;">Your Location</b></div>');
     }
@@ -638,8 +650,16 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>
+      <p id="pnm-map-instructions" className="sr-only">
+        Interactive poker venue map. Use arrow keys to pan, plus and minus to zoom, and Tab to move between venue markers.
+      </p>
       <div
         ref={mapRef}
+        role="region"
+        aria-label="Poker venues map"
+        aria-describedby="pnm-map-instructions"
+        aria-busy={!mapReady}
+        tabIndex={0}
         style={{
           width: '100%', height: '100%', minHeight: 300, borderRadius: 12, overflow: 'hidden',
           border: '1px solid rgba(255,255,255,0.15)',
@@ -656,7 +676,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
           LOADING MAP...
         </div>
       )}
-      <div style={{
+      <div role="status" aria-live="polite" style={{
         marginTop: 8, fontSize: 12, color: 'rgba(200,214,229,0.4)',
         textAlign: 'center',
       }}>

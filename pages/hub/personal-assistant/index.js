@@ -62,6 +62,31 @@ const SYSTEMS = [
   },
 ];
 
+const DAILY_HAND_MAX_ATTEMPTS = 2;
+const DAILY_HAND_TIMEOUT_MS = 6000;
+const DAILY_HAND_RETRY_DELAY_MS = 350;
+
+function normalizeDailyHandPayload(payload) {
+  const raw = payload?.hand || payload?.question;
+  if (!raw || typeof raw !== 'object') return null;
+  const scenario = raw.scenario && typeof raw.scenario === 'object' ? raw.scenario : {};
+  const board = raw.board || raw.board_cards || raw.boardCards || scenario.board || null;
+  const exactHeroCards = Array.isArray(raw.heroCards) && raw.heroCards.length >= 2
+    ? raw.heroCards.slice(0, 2).join('')
+    : null;
+  const heroHand = exactHeroCards || raw.heroHand || raw.hero_hand || scenario.heroHand || null;
+  if (!heroHand) return null;
+  return {
+    ...raw,
+    id: raw.id || payload?.dailyId || null,
+    heroHand,
+    position: raw.position || raw.hero_position || scenario.heroPosition || null,
+    board,
+    pot: raw.pot ?? raw.pot_size ?? scenario.potSize ?? scenario.pot ?? null,
+    title: raw.title || raw.scenario_text || raw.question || scenario.context || 'What Is The Best Line?',
+  };
+}
+
 const SectionBar = ({ title, meta, id }) => (
   <div className={styles.sectionBar} id={id}>
     <h2>{title}</h2>
@@ -106,16 +131,55 @@ export default function PersonalAssistantPage() {
   }, [refetchSessions]);
 
   const [dailyHand, setDailyHand] = useState(null);
+  const [dailyHandStatus, setDailyHandStatus] = useState('loading');
+  const [dailyHandReloadKey, setDailyHandReloadKey] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/training/hand-of-the-day')
-      .then((response) => (response.ok ? response.json() : null))
-      .then((json) => {
-        if (!cancelled && json?.hand) setDailyHand(json.hand);
-      })
-      .catch((error) => console.warn('[App] Handled promise rejection:', error?.message || error));
+
+    const loadDailyHand = async () => {
+      setDailyHandStatus('loading');
+      let lastError = null;
+
+      for (let attempt = 0; attempt < DAILY_HAND_MAX_ATTEMPTS && !cancelled; attempt += 1) {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), DAILY_HAND_TIMEOUT_MS);
+
+        try {
+          const response = await fetch('/api/training/hand-of-the-day', {
+            cache: 'no-store',
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+          });
+          if (!response.ok) throw new Error(`Daily hand request failed with status ${response.status}`);
+
+          const normalized = normalizeDailyHandPayload(await response.json());
+          if (!normalized) throw new Error('Daily hand response did not include a playable hand');
+
+          if (!cancelled) {
+            setDailyHand(normalized);
+            setDailyHandStatus('ready');
+          }
+          return;
+        } catch (error) {
+          lastError = error;
+        } finally {
+          window.clearTimeout(timeout);
+        }
+
+        if (attempt < DAILY_HAND_MAX_ATTEMPTS - 1 && !cancelled) {
+          await new Promise((resolve) => window.setTimeout(resolve, DAILY_HAND_RETRY_DELAY_MS));
+        }
+      }
+
+      if (!cancelled) {
+        setDailyHandStatus('error');
+        console.warn('[Personal Assistant] Daily hand unavailable:', lastError?.message || lastError);
+      }
+    };
+
+    loadDailyHand();
     return () => { cancelled = true; };
-  }, []);
+  }, [dailyHandReloadKey]);
 
   const normalizeHeroHand = (raw) => {
     const hand = String(raw || '').replace(/[\s,]/g, '');
@@ -615,10 +679,10 @@ export default function PersonalAssistantPage() {
             )}
           </section>
 
-          {dailyHand && (
-            <section className={styles.section} aria-labelledby="daily-title">
-              <SectionBar id="daily-title" title="Hand Of The Day" meta="Daily Decision Drill" />
-              <div className={styles.dailyFrame}>
+          <section className={styles.section} aria-labelledby="daily-title">
+            <SectionBar id="daily-title" title="Hand Of The Day" meta="Daily Decision Drill" />
+            <div className={styles.dailyFrame}>
+              {dailyHand ? (
                 <div className={styles.dailyInner}>
                   <div className={styles.holeCards} aria-label={`Hero hand ${dailyHand.heroHand || 'unknown'}`}>
                     {(heroCards.length ? heroCards : [formatCard('?'), formatCard('?')]).map((card, index) => (
@@ -647,9 +711,35 @@ export default function PersonalAssistantPage() {
                     <Play size={15} fill="currentColor" aria-hidden="true" />Load In Sandbox
                   </button>
                 </div>
-              </div>
-            </section>
-          )}
+              ) : (
+                <div
+                  className={styles.dailyState}
+                  role={dailyHandStatus === 'error' ? 'alert' : 'status'}
+                  aria-live="polite"
+                >
+                  <span className={`${styles.dailyStateIcon} ${dailyHandStatus === 'loading' ? styles.dailyStateIconLoading : ''}`} aria-hidden="true">
+                    <RotateCw size={23} />
+                  </span>
+                  <div className={styles.dailyStateCopy}>
+                    <span className={styles.dailyEyebrow}>
+                      {dailyHandStatus === 'loading' ? 'Syncing Solver Scenario' : 'Training Feed Interrupted'}
+                    </span>
+                    <h3>{dailyHandStatus === 'loading' ? 'Loading Today’s Decision' : 'Daily Hand Temporarily Unavailable'}</h3>
+                    <p>
+                      {dailyHandStatus === 'loading'
+                        ? 'Jarvis Is Retrieving The Exact Hand, Board, Position, And Pot.'
+                        : 'Your Other Tools Remain Available. Retry The Training Feed To Restore Today’s Spot.'}
+                    </p>
+                  </div>
+                  {dailyHandStatus === 'error' && (
+                    <button type="button" className={styles.secondaryButton} onClick={() => setDailyHandReloadKey((key) => key + 1)}>
+                      <RotateCw size={15} aria-hidden="true" />Retry Daily Hand
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
         </main>
       </div>
 
