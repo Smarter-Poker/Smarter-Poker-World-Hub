@@ -65,6 +65,14 @@ test('unpriced preflop decisions are never silently marked correct', () => {
   assert.match(upload, /excluded from GTO accuracy, EV loss, and Leak Finder evidence/);
 });
 
+test('non-exact Club Arena matches persist no solver conclusion or EV claim', () => {
+  assert.match(auditEngine, /solver_action: solverVerified \? grade\.optimalAction : null/);
+  assert.match(auditEngine, /classification: solverVerified \? grade\.classification : 'unpriced'/);
+  assert.match(auditEngine, /ev_loss: solverVerified \? grade\.evLoss : null/);
+  assert.match(auditEngine, /ev_loss_measured: solverVerified && !!grade\.evLossMeasured/);
+  assert.match(auditEngine, /hasUntrustedClassification/);
+});
+
 test('poker hand-history writes fail closed and reads filter before pagination', () => {
   assert.match(pokerHistory, /if \(error\)[\s\S]*?status\(500\)/);
   const containsAt = pokerHistory.indexOf(".contains('players'");

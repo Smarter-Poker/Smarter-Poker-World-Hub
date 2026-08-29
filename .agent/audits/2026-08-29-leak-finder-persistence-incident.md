@@ -66,3 +66,12 @@ cards, extracted 37 decision points, and found five candidate solver nodes.
 None were promoted to verified evidence because none had an exact board/node
 match; those decisions correctly remain unpriced rather than being presented
 as solver-certified leaks.
+
+The production persistence check then found one historical non-exact candidate
+whose `solver_verified` flag was false but whose tentative classification had
+still been stored. Although every Leak Finder aggregate already filters on
+`solver_verified = true`, the row itself overstated what was known. The audit
+writer now nulls every solver conclusion and EV field unless the match is exact,
+stores `classification = 'unpriced'`, and immediately retries older rows that
+carry this inconsistent provenance instead of waiting for the normal refresh
+window.
