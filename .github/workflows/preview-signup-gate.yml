@@ -45,6 +45,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # deployment_status defaults to the repository default branch. Test
+          # the exact commit Vercel deployed, not whatever main contains now.
+          ref: ${{ github.event.deployment.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -81,6 +85,14 @@ jobs:
             exit 1
           fi
           echo "::notice::Health probe status: $STATUS"
+
+      - name: Marketplace gate — routes and checkout providers must be ready
+        env:
+          PREVIEW_URL: ${{ github.event.deployment_status.environment_url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          MARKETPLACE_PROBE_TIMEOUT_MS: '20000'
+        run: |
+          node scripts/verify-marketplace-deployment.mjs "$PREVIEW_URL" --require-checkout
 
       - name: Playwright — real e2e signup
         env:
@@ -131,3 +143,24 @@ jobs:
                 body: `🚨 **Signup gate FAILED on preview ${url}**\n\nThe synthetic signup did not complete on this preview deploy. This blocks merge to main because the same failure would brick production signups.\n\nSee the workflow run logs for the failing step. Common causes:\n- Geo-block middleware blocking /auth/*\n- Trigger function error in handle_new_user\n- Supabase env vars missing on the preview\n- Vercel deployment protection blocking the probe (check VERCEL_AUTOMATION_BYPASS_SECRET secret)\n\nFix and re-push to retest.`,
               });
             }
+
+  production-marketplace:
+    name: Marketplace post-deploy verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: |
+      github.event.deployment_status.state == 'success'
+      && contains(github.event.deployment_status.environment, 'Production')
+      && github.event.deployment_status.environment_url != ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+      - name: Verify production marketplace routes and checkout dependencies
+        env:
+          MARKETPLACE_BASE_URL: ${{ github.event.deployment_status.environment_url }}
+          MARKETPLACE_PROBE_TIMEOUT_MS: '20000'
+        run: node scripts/verify-marketplace-deployment.mjs "$MARKETPLACE_BASE_URL" --require-checkout

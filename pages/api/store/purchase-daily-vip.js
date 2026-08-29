@@ -108,8 +108,6 @@ export default async function handler(req, res) {
 
           // Configuration
           const COST = resolveDailyCost();
-          const HOURS = 24;
-
           // ── Idempotency key ──────────────────────────────────────────────
           const { key: clientKey, invalid: keyInvalid } = readClientKey(req);
           if (keyInvalid) {
@@ -142,131 +140,43 @@ export default async function handler(req, res) {
               referenceId = null;
           };
 
-          // Fetch user profile
-          const { data: profile, error: profileError } = await getSupabase()
-              .from('profiles')
-              .select('diamonds, is_vip, vip_tier, vip_expires_at')
-              .eq('id', user.id)
-              .maybeSingle();
-
-          if (profileError || !profile) {
-              return res.status(500).json({ success: false, error: 'Failed to access profile' });
-          }
-
-          // Validation
-          const currentBalance = profile.diamonds ?? 0;
-          if (currentBalance < COST) {
-              // Not cached — the user can top up and retry with the same key.
-              _submissions.delete(referenceId);
-              referenceId = null;
-              return res.status(400).json({
-                  success: false,
-                  error: 'Insufficient diamonds',
-                  required: COST,
-                  current: currentBalance
-              });
-          }
-
-          // Deduct diamonds atomically using the RPC. p_reference_id is what
-          // makes this idempotent — add_diamonds_to_balance refuses a
-          // reference_id it has already written.
-          const { data: deductResult, error: deductError } = await getSupabase().rpc('add_diamonds_to_balance', {
+          // The wallet debit and entitlement extension are a single transaction.
+          const { data: purchaseResult, error: purchaseError } = await getSupabase().rpc('purchase_vip_with_diamonds_atomic', {
               p_user_id: user.id,
-              p_amount: -COST,
-              p_type: 'vip_daily',
+              p_cost: COST,
+              p_days: 1,
+              p_plan: 'daily',
               p_description: `1-Day VIP Access (${COST} diamonds)`,
               p_reference_id: referenceId
           });
 
-          if (deductError) {
-              console.warn('[Purchase Daily VIP] Deduction failed:', deductError);
+          if (purchaseError) {
+              console.warn('[Purchase Daily VIP] Atomic purchase failed:', purchaseError);
               _submissions.delete(referenceId);
               referenceId = null;
               return res.status(500).json({ success: false, error: 'Failed to process payment' });
           }
-          // The RPC reports business failures (e.g. insufficient balance under
-          // concurrency, or a duplicate reference id) via its data payload, not
-          // a thrown error — the pre-read balance check above is not atomic.
-          if (deductResult && deductResult.success === false) {
-              if (deductResult.duplicate) {
-                  // This exact purchase already went through. Replay the
-                  // current VIP state instead of charging (or granting) twice.
-                  const body = {
-                      success: true,
-                      idempotent: true,
-                      duplicate: true,
-                      isVip: !!profile.is_vip,
-                      expiresAt: profile.vip_expires_at || null,
-                      newBalance: currentBalance
-                  };
-                  remember(200, body);
-                  return res.status(200).json(body);
-              }
+          if (!purchaseResult?.success) {
               _submissions.delete(referenceId);
               referenceId = null;
-              return res.status(400).json({
+              return res.status(purchaseResult?.error === 'insufficient_diamonds' ? 400 : 500).json({
                   success: false,
-                  error: deductResult.error || 'Insufficient diamonds',
+                  error: purchaseResult?.error === 'insufficient_diamonds'
+                      ? 'Insufficient diamonds'
+                      : (purchaseResult?.error || 'Failed to process payment'),
                   required: COST,
-                  current: currentBalance
+                  current: purchaseResult?.new_balance
               });
           }
-
-          // Calculate new expiration
-          let newExpiresAt = new Date();
-          if (profile.is_vip && profile.vip_expires_at) {
-              const currentExpiraton = new Date(profile.vip_expires_at);
-              if (currentExpiraton > newExpiresAt) {
-                  // If they already have an active VIP pass, extend it
-                  newExpiresAt = currentExpiraton;
-              }
-          }
-          newExpiresAt.setHours(newExpiresAt.getHours() + HOURS);
-
-          // Update profile — do NOT downgrade an active subscription tier
-          // (e.g. monthly/annual) to 'daily'; keep the higher tier and extend expiry.
-          const keepExistingTier = profile.is_vip && profile.vip_tier && profile.vip_tier !== 'daily';
-          const { error: updateError } = await getSupabase()
-              .from('profiles')
-              .update({
-                  is_vip: true,
-                  vip_tier: keepExistingTier ? profile.vip_tier : 'daily',
-                  vip_expires_at: newExpiresAt.toISOString()
-              })
-              .eq('id', user.id);
-
-          if (updateError) {
-              console.warn('[Purchase Daily VIP] Profile update failed:', updateError);
-              // Compensate: refund the deducted diamonds instead of relying on a support ticket.
-              // The refund needs its OWN reference id — reusing the purchase id
-              // would trip the duplicate guard and silently drop the refund.
-              const { data: refundResult, error: refundError } = await getSupabase().rpc('add_diamonds_to_balance', {
-                  p_user_id: user.id,
-                  p_amount: COST,
-                  p_type: 'refund',
-                  p_description: 'Refund — 1-Day VIP activation failed',
-                  p_reference_id: referenceId + ':refund'
-              });
-              const refundFailed = refundError || (refundResult && refundResult.success === false);
-              // Release the key either way so the user can retry.
-              _submissions.delete(referenceId);
-              referenceId = null;
-              if (refundFailed) {
-                  console.warn('[Purchase Daily VIP] Refund after failed activation ALSO failed:', refundError || refundResult);
-                  return res.status(500).json({ success: false, error: 'Payment succeeded, but VIP activation failed. Contact support.' });
-              }
-              return res.status(500).json({ success: false, error: 'VIP activation failed — your diamonds have been refunded. Please try again.' });
-          }
-
-          const newBalance = typeof deductResult?.new_balance === 'number'
-              ? deductResult.new_balance
-              : (typeof deductResult?.balance === 'number' ? deductResult.balance : currentBalance - COST);
 
           const body = {
               success: true,
+              idempotent: !!purchaseResult.duplicate,
+              duplicate: !!purchaseResult.duplicate,
               isVip: true,
-              expiresAt: newExpiresAt.toISOString(),
-              newBalance
+              tier: purchaseResult.tier || 'daily',
+              expiresAt: purchaseResult.expires_at,
+              newBalance: purchaseResult.new_balance
           };
           remember(200, body);
           return res.status(200).json(body);

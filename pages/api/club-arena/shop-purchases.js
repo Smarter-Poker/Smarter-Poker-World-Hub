@@ -28,6 +28,7 @@ const { isUUID } = require('../../../src/lib/club-arena/validate');
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
+const SEARCH_CANDIDATE_LIMIT = 1000;
 
 let _supabase = null;
 function getSupabase() {
@@ -76,12 +77,71 @@ export default async function handler(req, res) {
             return res.status(403).json({ success: false, error: 'Admin access required' });
         }
 
-        const { data: rows, error, count } = await getSupabase()
+        let itemIds = [];
+        let buyerIdsMatchingSearch = [];
+        if (q) {
+            // Resolve searchable display fields before paginating purchases.
+            // The old implementation paginated first and filtered afterward,
+            // making valid older matches disappear and returning a false total.
+            const safeNeedle = q.replace(/[,()%]/g, ' ').replace(/\s+/g, ' ').trim();
+            const pattern = `%${safeNeedle}%`;
+            const [{ data: items }, { data: clubMembers }] = await Promise.all([
+                getSupabase()
+                    .from('club_shop_items')
+                    .select('id')
+                    .eq('club_id', clubId)
+                    .ilike('name', pattern)
+                    .limit(SEARCH_CANDIDATE_LIMIT),
+                getSupabase()
+                    .from('club_members')
+                    .select('user_id, display_name, nickname')
+                    .eq('club_id', clubId)
+                    .limit(SEARCH_CANDIDATE_LIMIT),
+            ]);
+            itemIds = (items || []).map((row) => row.id);
+            const clubUserIds = (clubMembers || []).map((row) => row.user_id);
+            const lower = safeNeedle.toLowerCase();
+            buyerIdsMatchingSearch = (clubMembers || [])
+                .filter((row) =>
+                    String(row.nickname || '').toLowerCase().includes(lower) ||
+                    String(row.display_name || '').toLowerCase().includes(lower)
+                )
+                .map((row) => row.user_id);
+
+            if (clubUserIds.length) {
+                const { data: profiles } = await getSupabase()
+                    .from('profiles')
+                    .select('id')
+                    .in('id', clubUserIds)
+                    .or(`display_name.ilike.${pattern},username.ilike.${pattern}`)
+                    .limit(SEARCH_CANDIDATE_LIMIT);
+                buyerIdsMatchingSearch.push(...(profiles || []).map((row) => row.id));
+            }
+            buyerIdsMatchingSearch = [...new Set(buyerIdsMatchingSearch)];
+        }
+
+        let purchaseQuery = getSupabase()
             .from('club_shop_purchases')
             .select('id, item_id, buyer_id, price_paid, currency, created_at, refunded_at, club_shop_items(name, category)', {
                 count: 'exact',
             })
-            .eq('club_id', clubId)
+            .eq('club_id', clubId);
+
+        if (q) {
+            const filters = [];
+            if (itemIds.length) filters.push(`item_id.in.(${itemIds.join(',')})`);
+            if (buyerIdsMatchingSearch.length) {
+                filters.push(`buyer_id.in.(${buyerIdsMatchingSearch.join(',')})`);
+            }
+            if (!filters.length) {
+                return res.status(200).json({
+                    success: true, purchases: [], total: 0, limit, offset, hasMore: false,
+                });
+            }
+            purchaseQuery = purchaseQuery.or(filters.join(','));
+        }
+
+        const { data: rows, error, count } = await purchaseQuery
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
 
@@ -134,7 +194,7 @@ export default async function handler(req, res) {
             for (const r of inv || []) invByPurchase.set(r.purchase_id, r.status);
         }
 
-        let result = purchases.map((p) => {
+        const result = purchases.map((p) => {
             const invStatus = invByPurchase.get(p.id) || null;
             const refunded = !!p.refunded_at || invStatus === 'refunded';
             const redeemed = invStatus === 'redeemed';
@@ -154,15 +214,6 @@ export default async function handler(req, res) {
                 refundable: !refunded && !redeemed && invStatus === 'owned',
             };
         });
-
-        if (q) {
-            const needle = q.toLowerCase();
-            result = result.filter(
-                (r) =>
-                    r.itemName.toLowerCase().includes(needle) ||
-                    r.buyerName.toLowerCase().includes(needle)
-            );
-        }
 
         return res.status(200).json({
             success: true,

@@ -45,6 +45,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { resilientFetch } from './lib/resilient-fetch.mjs';
 
 const REPO = process.cwd();
@@ -97,7 +98,44 @@ function changedMigrations(base) {
 /** What a migration CREATES or ADDS. Drops, renames and alters of existing
  *  objects are out of scope: this asks "did the thing you added land", not
  *  "is the schema perfect". */
-function declaredObjects(sql) {
+function splitSqlArguments(source) {
+  const args = [];
+  let current = '';
+  let depth = 0;
+  let quote = null;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (quote) {
+      current += char;
+      if (char === quote && source[index - 1] !== '\\') quote = null;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      quote = char;
+      current += char;
+      continue;
+    }
+    if (char === '(' || char === '[') depth += 1;
+    if (char === ')' || char === ']') depth = Math.max(0, depth - 1);
+    if (char === ',' && depth === 0) {
+      if (current.trim()) args.push(current.trim());
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+  if (current.trim()) args.push(current.trim());
+  return args;
+}
+
+function functionArgumentNames(signature) {
+  return splitSqlArguments(signature)
+    .map((argument) => argument.replace(/^\s*(?:inout|in|out|variadic)\s+/i, '').trim())
+    .map((argument) => argument.match(/^"?([a-z_][a-z0-9_]*)"?\s+/i)?.[1]?.toLowerCase())
+    .filter(Boolean);
+}
+
+export function declaredObjects(sql) {
   const clean = sql.replace(/--[^\n]*/g, '');
   const grab = (re) => [...clean.matchAll(re)].map((m) => m[1]);
 
@@ -108,11 +146,11 @@ function declaredObjects(sql) {
   // be represented by the live-schema source used below.
   const fns = [
     ...clean.matchAll(
-      /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\([\s\S]*?\)\s*returns\s+"?([a-z0-9_.]+)"?/gi
+      /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\(([\s\S]*?)\)\s*returns\s+"?([a-z0-9_.]+)"?/gi
     ),
   ]
-    .filter((m) => !/^(?:trigger|event_trigger)$/i.test(m[2]))
-    .map((m) => m[1]);
+    .filter((m) => !/^(?:trigger|event_trigger)$/i.test(m[3]))
+    .map((m) => ({ name: m[1].toLowerCase(), args: functionArgumentNames(m[2]) }));
   const tables = grab(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi);
   const views = grab(
     /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi
@@ -130,10 +168,45 @@ function declaredObjects(sql) {
     .map((m) => [m[1], m[2]]);
 
   return {
-    fns: [...new Set(fns)],
+    fns: [...new Map(fns.map((fn) => [`${fn.name}(${fn.args.join(',')})`, fn])).values()],
     tables: [...new Set([...tables, ...views])],
     columns: [...new Map(columns.map((c) => [c.join('.'), c])).values()],
   };
+}
+
+function resolveSchema(doc, schema) {
+  if (!schema || typeof schema !== 'object') return null;
+  const ref = schema.$ref;
+  if (typeof ref !== 'string' || !ref.startsWith('#/')) return schema;
+  return ref
+    .slice(2)
+    .split('/')
+    .reduce((value, key) => value?.[key], doc) || null;
+}
+
+export function rpcArgumentSets(doc, rpcName) {
+  const path = doc?.paths?.[`/rpc/${rpcName}`];
+  if (!path || typeof path !== 'object') return [];
+  const sets = [];
+  for (const operationName of ['get', 'post']) {
+    const operation = path[operationName];
+    if (!operation || typeof operation !== 'object') continue;
+    const names = new Set();
+    for (const parameter of [...(path.parameters || []), ...(operation.parameters || [])]) {
+      if (parameter?.in === 'query' && parameter.name) names.add(String(parameter.name).toLowerCase());
+      if (parameter?.in === 'body') {
+        const schema = resolveSchema(doc, parameter.schema);
+        for (const name of Object.keys(schema?.properties || {})) names.add(name.toLowerCase());
+      }
+    }
+    const content = operation.requestBody?.content || {};
+    for (const media of Object.values(content)) {
+      const schema = resolveSchema(doc, media?.schema);
+      for (const name of Object.keys(schema?.properties || {})) names.add(name.toLowerCase());
+    }
+    if (names.size > 0) sets.push(names);
+  }
+  return sets;
 }
 
 async function liveSchema() {
@@ -164,7 +237,8 @@ async function liveSchema() {
       .filter((p) => p.startsWith('/rpc/'))
       .map((p) => p.slice(5))
   );
-  return { tables, fns };
+  const rpcArgs = new Map([...fns].map((name) => [name, rpcArgumentSets(doc, name)]));
+  return { tables, fns, rpcArgs };
 }
 
 async function main() {
@@ -175,7 +249,7 @@ async function main() {
     return;
   }
 
-  const { tables, fns } = await liveSchema();
+  const { tables, fns, rpcArgs } = await liveSchema();
   const failures = [];
 
   for (const file of files) {
@@ -187,7 +261,21 @@ async function main() {
       if (!tables.has(t)) continue;
       if (!tables.get(t).has(c)) failures.push([file, 'column', `${t}.${c}`]);
     }
-    for (const f of d.fns) if (!fns.has(f)) failures.push([file, 'function', f]);
+    for (const fn of d.fns) {
+      if (!fns.has(fn.name)) {
+        failures.push([file, 'function', `${fn.name}(${fn.args.join(', ')})`]);
+        continue;
+      }
+      if (fn.args.length > 0) {
+        const liveSignatures = rpcArgs.get(fn.name) || [];
+        const signatureReady = liveSignatures.some((liveArgs) =>
+          fn.args.every((argument) => liveArgs.has(argument))
+        );
+        if (!signatureReady) {
+          failures.push([file, 'function signature', `${fn.name}(${fn.args.join(', ')})`]);
+        }
+      }
+    }
   }
 
   console.log(
@@ -214,7 +302,11 @@ async function main() {
   process.exit(1);
 }
 
-main().catch((err) => {
-  console.error('[check-migrations-applied] script error:', err?.message || err);
-  process.exit(2);
-});
+const isMain = process.argv[1]
+  && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
+  main().catch((err) => {
+    console.error('[check-migrations-applied] script error:', err?.message || err);
+    process.exit(2);
+  });
+}

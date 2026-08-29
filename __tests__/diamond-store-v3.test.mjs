@@ -21,7 +21,7 @@ test('connects all five store destinations to the shared showcase', () => {
   }
   assert.match(page, /<SmarterStoreShowcase/);
   assert.match(component, /href=\{TAB_ROUTES\[id\]\}/);
-  assert.match(component, /target=\{id === activeTab \? undefined : '_blank'\}/);
+  assert.doesNotMatch(component, /target=["']_blank["']|window\.open/);
 });
 
 test('keeps diamond values centered below art and buys through the existing checkout', () => {

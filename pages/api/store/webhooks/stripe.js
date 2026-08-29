@@ -8,6 +8,7 @@ import Stripe from 'stripe';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 const {
     buildPrintfulItems,
+    cancelPrintfulOrder,
     createPrintfulOrder,
     isAutoConfirmEnabled,
     normalizePrintfulRecipient,
@@ -133,6 +134,14 @@ export default async function handler(req, res) {
                   await handleCheckoutCompleted(event.data.object);
                   break;
 
+              case 'checkout.session.async_payment_succeeded':
+                  await handleCheckoutCompleted(event.data.object);
+                  break;
+
+              case 'checkout.session.async_payment_failed':
+                  await handleCheckoutExpired(event.data.object);
+                  break;
+
               case 'checkout.session.expired':
                   await handleCheckoutExpired(event.data.object);
                   break;
@@ -194,10 +203,13 @@ export default async function handler(req, res) {
 }
 
 async function handleCheckoutCompleted(session) {
-    const { id, customer, metadata, mode, amount_total } = session;
+    const { id, customer, metadata, mode } = session;
 
 
     if (mode === 'payment') {
+        // A completed Checkout Session can still represent a delayed method
+        // whose funds are pending. Fulfillment waits for the settled event.
+        if (session.payment_status !== 'paid') return;
         // One-time payment (diamonds or merchandise)
         // metadata can be null for sessions created outside this app (e.g. payment links)
         if (metadata?.type === 'diamonds' && metadata.purchase_id) {
@@ -485,12 +497,6 @@ async function handleCheckoutCompleted(session) {
                 // a paying customer VIP for a period rather than instantly
                 // lapsed if Stripe ever omits it.
                 // ═══════════════════════════════════════════════════════════
-                const tier = metadata.vip_tier || 'monthly';
-                const periodEnd = Number(subscription?.current_period_end);
-                const expiresAt = Number.isFinite(periodEnd) && periodEnd > 0
-                    ? new Date(periodEnd * 1000).toISOString()
-                    : new Date(Date.now() + (tier === 'annual' || tier === 'yearly' ? 365 : 31) * 86400000).toISOString();
-
                 // .select() so a ZERO-ROW match is distinguishable from a
                 // successful grant. This filters on metadata.user_id; if that id
                 // is wrong, stale, or belongs to a deleted profile, PostgREST
@@ -507,9 +513,6 @@ async function handleCheckoutCompleted(session) {
                   .from('profiles')
                   .update({
                         stripe_customer_id: customer,
-                        is_vip: true,
-                        vip_tier: tier,
-                        vip_expires_at: expiresAt,
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', metadata.user_id)
@@ -591,13 +594,14 @@ async function handleSubscriptionUpdate(subscription) {
     // Get user ID from customer
     // `let`, not `const`: the !profile branch below can recover the profile
     // through Stripe customer metadata and reassign it.
-    let { data: profile } = await getSupabase()
+    let { data: profile, error: profileLookupError } = await getSupabase()
         .from('profiles')
         // vip_tier is read so a renewal cannot silently downgrade an annual
         // subscriber to 'monthly' when Stripe metadata does not carry the tier.
         .select('id, vip_expires_at, vip_tier')
         .eq('stripe_customer_id', customer)
         .maybeSingle();
+    if (profileLookupError) throw profileLookupError;
 
     if (!profile) {
         // This returned 200 having done nothing, so Stripe never retried and the
@@ -619,11 +623,12 @@ async function handleSubscriptionUpdate(subscription) {
             const stripeCustomer = await stripe.customers.retrieve(customer);
             const recoveredUserId = stripeCustomer?.metadata?.smarter_poker_id;
             if (recoveredUserId) {
-                const { data: backfilled } = await getSupabase()
+                const { data: backfilled, error: backfillError } = await getSupabase()
                     .from('profiles')
                     .update({ stripe_customer_id: customer, updated_at: new Date().toISOString() })
                     .eq('id', recoveredUserId)
                     .select('id, vip_expires_at, vip_tier');
+                if (backfillError) throw backfillError;
                 if (backfilled && backfilled.length) {
                     recovered = backfilled[0];
                     console.warn(`[stripe-webhook] recovered customer ${customer} -> profile ${recovered.id} via Stripe metadata and backfilled stripe_customer_id`);
@@ -679,12 +684,22 @@ async function handleSubscriptionUpdate(subscription) {
         // written too, so a plan change (monthly -> annual) is reflected rather
         // than leaving the profile on a stale tier.
         const renewalExpiry = new Date(current_period_end * 1000).toISOString();
+        const existingExpiryMs = profile.vip_expires_at ? Date.parse(profile.vip_expires_at) : 0;
+        const renewalExpiryMs = Date.parse(renewalExpiry);
+        const preservesPrepaidExtension = Number.isFinite(existingExpiryMs)
+            && existingExpiryMs > renewalExpiryMs;
+        const tierRank = { daily: 1, monthly: 2, annual: 3, lifetime: 4 };
+        const renewalTier = metadata?.vip_tier || 'monthly';
+        const effectiveTier = preservesPrepaidExtension
+            && (tierRank[profile.vip_tier] || 0) > (tierRank[renewalTier] || 0)
+            ? profile.vip_tier
+            : renewalTier;
         const { data: vipSyncRows, error: vipSyncErr } = await getSupabase()
             .from('profiles')
             .update({
                 is_vip: true,
-                vip_tier: metadata?.vip_tier || profile.vip_tier || 'monthly',
-                vip_expires_at: renewalExpiry,
+                vip_tier: effectiveTier,
+                vip_expires_at: preservesPrepaidExtension ? profile.vip_expires_at : renewalExpiry,
                 updated_at: new Date().toISOString(),
             })
             .eq('id', profile.id)
@@ -753,11 +768,12 @@ async function handleSubscriptionCanceled(subscription) {
     // already respects an active vip_expires_at for exactly this reason; the
     // cancel path never got the same treatment.
     if (customer) {
-        const { data: profile } = await getSupabase()
+        const { data: profile, error: profileReadError } = await getSupabase()
             .from('profiles')
             .select('id, vip_expires_at, vip_tier')
             .eq('stripe_customer_id', customer)
             .maybeSingle();
+        if (profileReadError) throw profileReadError;
 
         const hasActivePaidPass = profile?.vip_tier === 'lifetime'
             || (profile?.vip_expires_at && new Date(profile.vip_expires_at) > new Date());
@@ -794,7 +810,7 @@ async function handleSubscriptionCanceled(subscription) {
 }
 
 async function handleInvoicePaymentSucceeded(invoice) {
-    const { subscription, customer } = invoice;
+    const { subscription } = invoice;
 
     if (subscription) {
         // Subscription renewal - already handled by subscription.updated event
@@ -802,7 +818,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
 }
 
 async function handleInvoicePaymentFailed(invoice) {
-    const { subscription, customer, attempt_count } = invoice;
+    const { subscription } = invoice;
 
 
     if (subscription) {
@@ -847,82 +863,31 @@ async function handleInvoicePaymentFailed(invoice) {
 }
 
 async function handleRefund(charge) {
-    const { id, payment_intent, amount_refunded, metadata } = charge;
+    const { payment_intent, amount_refunded } = charge;
+    const chargeAmount = Number(charge.amount);
+    const cumulativeRefund = Number(amount_refunded);
+    if (!Number.isSafeInteger(chargeAmount) || chargeAmount <= 0
+        || !Number.isSafeInteger(cumulativeRefund) || cumulativeRefund < 0) {
+        throw new Error('Stripe refund carried invalid cumulative amounts');
+    }
 
-
-    // Find and update the purchase/order
-    const { data: purchase } = await getSupabase()
+    const { data: purchase, error: purchaseReadError } = await getSupabase()
         .from('diamond_purchases')
-        .select('*')
+        .select('id')
         .eq('stripe_payment_intent_id', payment_intent)
         .maybeSingle();
+    if (purchaseReadError) throw purchaseReadError;
 
     if (purchase) {
-        // IDEMPOTENCY: compare-and-set — only process the refund if the purchase
-        // is still 'completed'. charge.refunded fires once per refund (including
-        // partials) and Stripe redelivers events, so an unconditional update +
-        // deduct would double-deduct on duplicate deliveries.
-        const { data: lockedPurchase, error: err_diamond_purchases_7v1b6 } = await getSupabase()
-
-          .from('diamond_purchases')
-
-          .update({
-                status: 'refunded',
-                refunded_at: new Date().toISOString()
-            })
-            .eq('id', purchase.id)
-            .eq('status', 'completed')
-            .select()
-            .maybeSingle();
-
-        if (err_diamond_purchases_7v1b6) {
-            console.warn('[stripe-webhook] refund status update failed for purchase', purchase.id, '— Stripe will retry:', err_diamond_purchases_7v1b6.message);
-            throw err_diamond_purchases_7v1b6;
-        }
-        if (!lockedPurchase) {
-            // Already refunded (duplicate delivery / second partial refund) or the
-            // purchase was never completed (no diamonds credited) — nothing to deduct.
-            return;
-        }
-
-        // Deduct diamonds proportionally to the amount actually refunded — a
-        // partial refund must not claw back the entire package.
-        const totalDiamonds = purchase.diamonds_amount + (purchase.bonus_diamonds || 0);
-        const refundFraction = charge.amount > 0
-            ? Math.min((amount_refunded || 0) / charge.amount, 1)
-            : 1;
-        const diamondsToDeduct = Math.min(Math.round(totalDiamonds * refundFraction), totalDiamonds);
-
-        if (diamondsToDeduct > 0) {
-            const { error: deductErr } = await getSupabase().rpc('add_diamonds_to_balance', {
-                p_user_id: purchase.user_id,
-                p_amount: -diamondsToDeduct,
-                p_type: 'refund',
-                p_description: `Refund — ${purchase.package_name} (${diamondsToDeduct} of ${totalDiamonds} diamonds)`,
-                p_reference_id: `refund_${purchase.id}`
+        const { data: result, error: reconcileError } = await getSupabase()
+            .rpc('reconcile_diamond_purchase_refund', {
+                p_purchase_id: purchase.id,
+                p_charge_amount_cents: chargeAmount,
+                p_refunded_amount_cents: cumulativeRefund,
             });
-
-            if (deductErr) {
-                // Roll back the status='refunded' lock so the next Stripe webhook
-                // retry can re-process. Throw to bubble up a 500 — Stripe retries.
-                try {
-                    // Same idempotency-lock reasoning as the purchase rollback
-                    // above: if this misses, the row stays 'refunded', the retry
-                    // is dismissed as a duplicate, and the diamonds are never
-                    // deducted for a refund the customer already received.
-                    const { data: refundRolledBack, error: err_diamond_purchases_7qh4q } = await getSupabase()
-                      .from('diamond_purchases')
-                      .update({ status: 'completed', refunded_at: null })
-                        .eq('id', purchase.id)
-                        .select('id');
-                    if (err_diamond_purchases_7qh4q) console.error('[stripe-webhook] CRITICAL: refund rollback FAILED for purchase', purchase.id, err_diamond_purchases_7qh4q.message);
-                    else if (!refundRolledBack || refundRolledBack.length === 0) console.error('[stripe-webhook] CRITICAL: refund rollback MATCHED ZERO ROWS for purchase', purchase.id, '- lock stuck refunded, retries will be dismissed, diamonds never deducted for a refund already paid out.');
-                } catch (rollbackErr) {
-                    console.warn('[stripe-webhook] Refund rollback failed for purchase', purchase.id, rollbackErr?.message || rollbackErr);
-                }
-                console.warn('[stripe-webhook] refund deduct RPC failed for purchase', purchase.id, '— rolled back, Stripe will retry:', deductErr);
-                throw deductErr;
-            }
+        if (reconcileError) throw reconcileError;
+        if (!result?.success) {
+            throw new Error(`Diamond refund reconciliation failed: ${result?.error || 'unknown_error'}`);
         }
         return;
     }
@@ -933,31 +898,75 @@ async function handleRefund(charge) {
     // still have been picked, packed and shipped — the customer got their money
     // back AND the goods. The stock taken at payment was never returned either.
     // ═══════════════════════════════════════════════════════════════════════
-    const { data: order } = await getSupabase()
+    const { data: order, error: orderReadError } = await getSupabase()
         .from('merchandise_orders')
-        .select('id, items, status')
+        .select('id, items, status, metadata, refunded_amount_cents')
         .eq('stripe_payment_intent_id', payment_intent)
         .maybeSingle();
+    if (orderReadError) throw orderReadError;
 
     if (!order) return;
+    const previousRefund = Number(order.refunded_amount_cents) || 0;
+    const nextRefund = Math.min(chargeAmount, cumulativeRefund);
+    const effectiveRefund = Math.max(previousRefund, nextRefund);
+    const fullyRefunded = effectiveRefund >= chargeAmount;
+    const newlyFullyRefunded = fullyRefunded && previousRefund < chargeAmount;
+    const existingMetadata = order.metadata && typeof order.metadata === 'object' ? order.metadata : {};
+    const isPrintfulOrder = existingMetadata.fulfillment_provider === 'printful'
+        || (Array.isArray(order.items) && order.items.length > 0
+            && order.items.every((item) => item?.fulfillmentProvider === 'printful'));
 
-    // IDEMPOTENCY: compare-and-set. charge.refunded fires per refund and Stripe
-    // redelivers events, so an unconditional update would return stock twice.
-    const { data: lockedOrder, error: orderErr } = await getSupabase()
-        .from('merchandise_orders')
-        .update({ status: 'refunded', updated_at: new Date().toISOString() })
-        .eq('id', order.id)
-        .neq('status', 'refunded')
-        .select()
-        .maybeSingle();
-
-    if (orderErr) {
-        console.warn('[stripe-webhook] merch refund status update failed for order', order.id, '— Stripe will retry:', orderErr.message);
-        throw orderErr;
+    let cancellation = null;
+    let cancellationError = null;
+    if (fullyRefunded && isPrintfulOrder && !existingMetadata.refund_provider_canceled) {
+        try {
+            cancellation = await cancelPrintfulOrder({
+                orderId: order.id,
+                providerOrderId: existingMetadata.printful_order_id,
+            });
+        } catch (error) {
+            cancellationError = error;
+            try { reportApiError(error, null); } catch (_) { /* best effort */ }
+        }
     }
-    if (!lockedOrder) return; // already refunded
 
-    // Put the stock back. A refunded order did not consume inventory.
+    const now = new Date().toISOString();
+    const update = {
+        refunded_amount_cents: effectiveRefund,
+        status: fullyRefunded ? 'refunded' : order.status,
+        updated_at: now,
+        metadata: {
+            ...existingMetadata,
+            refund_status: fullyRefunded ? 'full' : 'partial',
+            refunded_amount_cents: effectiveRefund,
+            ...(cancellation ? {
+                refund_provider_canceled: true,
+                refund_provider_canceled_at: now,
+                refund_provider_result: cancellation,
+                needs_review: false,
+            } : {}),
+            ...(cancellationError ? {
+                refund_provider_canceled: false,
+                needs_review: true,
+                reason: 'printful_cancellation_failed_after_refund',
+                flagged_at: now,
+            } : {}),
+        },
+    };
+    let updateQuery = getSupabase().from('merchandise_orders').update(update).eq('id', order.id);
+    if (nextRefund > previousRefund) updateQuery = updateQuery.eq('refunded_amount_cents', previousRefund);
+    const { data: updatedRows, error: orderErr } = await updateQuery.select('id');
+    if (orderErr || !updatedRows?.length) {
+        throw orderErr || new Error('Merchandise refund reconciliation matched zero orders');
+    }
+
+    // Retry transient provider failures after recording the refunded state and
+    // review flag. Permanent 4xx responses need human recovery, not webhook churn.
+    if (cancellationError && (!cancellationError.status || cancellationError.status >= 500)) {
+        throw cancellationError;
+    }
+
+    // Put local stock back only once, and only when the cumulative refund is full.
     const lines = Array.isArray(order.items)
         ? order.items
             .filter((l) => l && (l.id || l.catalogId))
@@ -968,13 +977,12 @@ async function handleRefund(charge) {
             }))
         : [];
 
-    if (lines.length > 0) {
+    if (newlyFullyRefunded && !isPrintfulOrder && lines.length > 0) {
         const { error: relErr } = await getSupabase()
             .rpc('release_merch_order', { p_lines: lines });
         if (relErr) {
-            // Do not throw: the refund itself is recorded and correct. Stock is
-            // merely understated, which is safe (it under-sells) and fixable.
             console.error(`[stripe-webhook] STOCK NOT RETURNED for refunded order ${order.id}:`, relErr.message);
+            try { reportApiError(relErr, null); } catch (_) { /* best effort */ }
         }
     }
 }

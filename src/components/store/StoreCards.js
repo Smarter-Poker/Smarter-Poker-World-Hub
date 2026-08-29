@@ -10,14 +10,14 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
             style={{
                 position: 'relative',
                 background: isSelected
-                    ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(138, 43, 226, 0.2))'
+                    ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(36, 96, 126, 0.2))'
                     : 'rgba(255, 255, 255, 0.05)',
                 border: isSelected
                     ? '2px solid #00D4FF'
                     : pkg.popular
                         ? '2px solid rgba(255, 215, 0, 0.5)'
                         : pkg.hasDiscount
-                            ? '2px solid rgba(0, 255, 136, 0.4)'
+                            ? '2px solid rgba(0, 212, 255, 0.4)'
                             : '1px solid rgba(255, 255, 255, 0.15)',
                 borderRadius: 16,
                 padding: 20,
@@ -38,7 +38,7 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
                 <div style={{
                     // Sit on the left when 'Popular' occupies the top-right corner
                     position: 'absolute', top: -10, ...(pkg.popular ? { left: 16 } : { right: 16 }),
-                    background: 'linear-gradient(135deg, #00ff88, #00cc66)',
+                    background: 'linear-gradient(135deg, #00d4ff, #007fbd)',
                     color: '#0a1628', fontSize: 10, fontWeight: 700,
                     padding: '4px 10px', borderRadius: 10, textTransform: 'uppercase',
                 }}>+5% Bonus</div>
@@ -50,7 +50,7 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
                         {totalDiamonds.toLocaleString()}
                     </div>
                     {pkg.bonus > 0 && (
-                        <div style={{ fontSize: 11, color: '#00ff88', fontWeight: 600 }}>
+                        <div style={{ fontSize: 11, color: '#00d4ff', fontWeight: 600 }}>
                             ({(pkg.diamonds || 0).toLocaleString()} + {(pkg.bonus || 0).toLocaleString()} bonus)
                         </div>
                     )}
@@ -130,7 +130,7 @@ export function MerchCard({ item, onSelect }) {
         >
             <div style={{
                 height: 120,
-                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(138, 43, 226, 0.1))',
+                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(36, 96, 126, 0.1))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40,
             }}>
                 {item.category === 'apparel' ? <Shirt size={40} color="#a8b2d1" /> : <Package size={40} color="#a8b2d1" />}

@@ -1,326 +1,161 @@
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/marketplace-purchase
- * Atomic marketplace item purchase. Deducts DIAMONDS from the buyer's global
- * wallet (profiles.diamonds), records the purchase (currency='diamonds').
  *
- * PRODUCT RULE (Dan, 2026-08-23): the marketplace is fully funded by diamonds,
- * never chips. The chip debit path (fn_debit_chips) was removed in the same
- * change that added club_shop_purchases.currency; legacy chip purchases are
- * still refunded in chips by fn_refund_shop_purchase's currency branch.
- *
- * Auth: Bearer token (any club member)
+ * Purchases a Club Shop item with the authenticated member's global diamond
+ * wallet. Availability, per-user caps, limited stock, wallet debit, purchase
+ * persistence, inventory delivery, and the immutable grant snapshot are one
+ * PostgreSQL transaction in fn_purchase_club_shop_item_diamonds.
  */
+import crypto from 'crypto';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+import { reportApiError } from '../../../src/lib/sentryWrap';
+
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { requireEmailVerified, requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
-import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
 }
 
+const PURCHASE_ERRORS = {
+  not_member: ['Not a member', 404],
+  not_found: ['Item not found', 404],
+  inactive: ['Item not available', 400],
+  not_yet_available: ['This item is not on sale yet', 400],
+  no_longer_available: ['This offer has ended', 400],
+  sold_out: ['This item is sold out', 400],
+  already_owned: ['You already own an unused copy of this item. Redeem it before buying another.', 400],
+  limit_reached: ['You have reached the purchase limit for this item', 400],
+  insufficient_diamonds: ['Insufficient diamonds', 400],
+  profile_not_found: ['Wallet not found', 404],
+  reference_conflict: ['Purchase reference conflict', 409],
+};
+
 export default async function handler(req, res) {
-  const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
-      if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+    if (req.method !== 'POST') {
+      return res.status(405).json({ success: false, error: 'POST only' });
+    }
 
-      // RED TEAM: Payload size + field allowlist validation
-      const ALLOWED = new Set(['clubId', 'itemId']);
-      const bodyStr = JSON.stringify(req.body || {});
-      if (bodyStr.length > 512) return res.status(413).json({ success: false, error: 'Request body too large' });
-      const bad = Object.keys(req.body || {}).filter(k => !ALLOWED.has(k));
-      if (bad.length > 0) return res.status(400).json({ success: false, error: `Unknown fields: ${bad.join(', ')}` });
+    const allowed = new Set(['clubId', 'itemId']);
+    const bodyString = JSON.stringify(req.body || {});
+    if (bodyString.length > 512) {
+      return res.status(413).json({ success: false, error: 'Request body too large' });
+    }
+    const unknown = Object.keys(req.body || {}).filter((key) => !allowed.has(key));
+    if (unknown.length) {
+      return res.status(400).json({ success: false, error: `Unknown fields: ${unknown.join(', ')}` });
+    }
 
-      // Rate limit + auth BEFORE checkIdempotency: the idempotency map is an
-      // in-memory Map keyed by a client-supplied header, so an unauthenticated
-      // caller sending a fresh key per request could grow it without limit.
-      if (!applyRateLimit(req, res, 'club-arena/marketplace-purchase')) return;
+    if (!applyRateLimit(req, res, 'club-arena/marketplace-purchase')) return;
 
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-      const user = authUser;
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    const supabase = getSupabase();
+    const { user, error: authError } = await getServerUserWithFallback(req, supabase);
+    if (authError || !user) {
+      return res.status(401).json({ success: false, error: 'Invalid token' });
+    }
 
-      // Idempotency guard — prevent double-tap purchases. Backed by a shared
-      // table: a per-process Map does not survive serverless fan-out.
-      const { proceed } = await beginIdempotent(getSupabase(), req, res, 'marketplace-purchase');
-      if (!proceed) return;
+    // Include authenticated identity and route in the durable key namespace so
+    // a raw key reused by another user or endpoint can never replay this body.
+    const { proceed } = await beginIdempotent(supabase, req, res, `marketplace-purchase:${user.id}`);
+    if (!proceed) return;
 
-      // [Phase 6.1.12] Email must be verified before chip/diamond purchases.
-      // requireEmailVerified reads user.email_confirmed_at, which is NOT a JWT
-      // claim. Since auth verification became local-first (2026-08-24) the user
-      // object is built from the token and that field is always undefined, so
-      // the bare gate rejects EVERY user including verified ones. The three
-      // sibling store endpoints already carry this DB fallback; this one did
-      // not, which made it a hard 403 on every marketplace purchase.
-      let emailGate = requireEmailVerified(user);
-      if (!emailGate.ok && typeof user.email_confirmed_at === 'undefined') {
-          emailGate = await requireEmailVerifiedByUserId(getSupabase(), user.id);
+    let emailGate = requireEmailVerified(user);
+    if (!emailGate.ok && typeof user.email_confirmed_at === 'undefined') {
+      emailGate = await requireEmailVerifiedByUserId(supabase, user.id);
+    }
+    if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
+
+    const { clubId, itemId } = req.body || {};
+    if (!clubId || !itemId) {
+      return res.status(400).json({ success: false, error: 'clubId and itemId required' });
+    }
+    if (!isUUID(clubId) || !isUUID(itemId)) {
+      return res.status(400).json({ success: false, error: 'Invalid clubId or itemId format' });
+    }
+
+    const lock = await checkSettlementLock(supabase, clubId);
+    if (lock.locked) return sendLockedResponse(res, lock);
+
+    const chargeReference = `ca-shop-${user.id}-${crypto.randomUUID()}`;
+    const { data: result, error: purchaseError } = await supabase.rpc(
+      'fn_purchase_club_shop_item_diamonds',
+      {
+        p_club_id: clubId,
+        p_user_id: user.id,
+        p_item_id: itemId,
+        p_charge_reference: chargeReference,
       }
-      if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
+    );
+    if (purchaseError) throw purchaseError;
 
-      const { clubId, itemId } = req.body;
-      if (!clubId || !itemId) return res.status(400).json({ success: false, error: 'clubId and itemId required' });
-      if (!isUUID(clubId) || !isUUID(itemId)) {
-          return res.status(400).json({ success: false, error: 'Invalid clubId or itemId format' });
+    if (!result?.success) {
+      const code = String(result?.error || 'purchase_failed');
+      const [message, status] = PURCHASE_ERRORS[code] || ['Purchase failed', 500];
+      if (status >= 500) {
+        throw new Error(`Atomic Club Shop purchase failed: ${code}`);
       }
+      return res.status(status).json({
+        success: false,
+        error: message,
+        reason: code,
+        soldOut: code === 'sold_out',
+        alreadyOwned: code === 'already_owned',
+        limitReached: code === 'limit_reached',
+        limit: result?.limit,
+        available: result?.new_balance,
+        price: result?.price,
+      });
+    }
 
-      // Settlement lock check
-      const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
-      if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+    try {
+      await logAudit(supabase, {
+        actionType: 'marketplace_purchase',
+        userId: user.id,
+        clubId,
+        amount: Number(result.price_paid) || 0,
+        ip: extractIP(req),
+        details: {
+          itemId,
+          itemName: result.item_name,
+          itemType: result.item_type,
+          purchaseId: result.purchase_id,
+          atomic: true,
+        },
+      });
+    } catch (auditError) {
+      // The commerce transaction is already committed; audit failure must be
+      // observable without falsely telling the buyer the purchase failed.
+      try { reportApiError(auditError, req); } catch (_reportError) { /* no-op */ }
+      console.warn('[marketplace-purchase] audit failed after commit:', auditError?.message || auditError);
+    }
 
-      // Declared out here so the outer catch can give a claimed unit back.
-      let stockClaimed = false;
-      const releaseStock = async () => {
-          if (!stockClaimed) return;
-          stockClaimed = false;
-          try {
-              await getSupabase().rpc('fn_release_shop_stock', { p_club_id: clubId, p_item_id: itemId });
-          } catch (e) {
-              console.warn('[marketplace-purchase] stock release failed:', e?.message || e);
-          }
-      };
-
-      try {
-          // Get member (marketplace is member-only; balance comes from the
-          // buyer's GLOBAL diamond wallet, not the club chip balance)
-          const { data: member, error: memErr } = await getSupabase()
-              .from('club_members')
-              .select('user_id, role')
-              .eq('club_id', clubId)
-              .eq('user_id', user.id)
-              .maybeSingle();
-
-          if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member' });
-
-          // Buyer's diamond wallet (profiles.diamonds is the platform truth)
-          const { data: profileRow, error: profErr } = await getSupabase()
-              .from('profiles')
-              .select('diamonds')
-              .eq('id', user.id)
-              .maybeSingle();
-          if (profErr || !profileRow) {
-              return res.status(404).json({ success: false, error: 'Wallet not found' });
-          }
-
-          // Get item (scoped to this club) — BUG FIX: was .select('id'), making is_active/price undefined
-          const { data: item, error: itemErr } = await getSupabase()
-              .from('club_shop_items')
-              .select('id, price, is_active, name, description, item_type, stock')
-              .eq('id', itemId)
-              .eq('club_id', clubId)
-              .maybeSingle();
-
-          if (itemErr || !item) return res.status(404).json({ success: false, error: 'Item not found' });
-
-          // ONE authoritative answer for "may this member buy this now, and at
-          // what price?" — active, promo window, stock, ownership, per-user cap
-          // and sale price. Keeping these in the DB stops the storefront and
-          // the purchase route from drifting apart on the rules.
-          // fn_claim_shop_purchase takes a per-(user,item) advisory lock, then
-          // re-checks availability AND decrements stock inside that lock. The
-          // previous read-then-act shape let N concurrent buys of a stackable
-          // per_user_limit=1 item all count 0 and all succeed.
-          const { data: avail, error: availErr } = await getSupabase().rpc('fn_claim_shop_purchase', {
-              p_club_id: clubId,
-              p_user_id: user.id,
-              p_item_id: itemId,
-          });
-          if (availErr) throw availErr;
-
-          if (!avail?.ok) {
-              const REASONS = {
-                  not_found: ['Item not found', 404],
-                  inactive: ['Item not available', 400],
-                  not_yet_available: ['This item is not on sale yet', 400],
-                  no_longer_available: ['This offer has ended', 400],
-                  sold_out: ['This item is sold out', 400],
-                  already_owned: ['You already own an unused copy of this item. Redeem it before buying another.', 400],
-                  limit_reached: ['You have reached the purchase limit for this item', 400],
-              };
-              const [msg, status] = REASONS[avail?.reason] || ['Item unavailable', 400];
-              return res.status(status).json({
-                  success: false,
-                  error: msg,
-                  reason: avail?.reason,
-                  soldOut: avail?.reason === 'sold_out',
-                  alreadyOwned: avail?.reason === 'already_owned',
-                  limitReached: avail?.reason === 'limit_reached',
-                  limit: avail?.limit,
-              });
-          }
-
-          // fn_claim_shop_purchase has already decremented limited stock by
-          // this point. Arm rollback immediately so every later early return —
-          // including insufficient balance — gives that unit back.
-          stockClaimed = avail.stock_claimed === true;
-
-          // Sale-aware, server-decided. The client never sends a price.
-          const price = Number(avail.price) || 0;
-          const balance = Number(profileRow.diamonds) || 0;
-
-          if (balance < price) {
-              await releaseStock();
-              return res.status(400).json({
-                  success: false, error: `Insufficient diamonds. Have ${balance}, need ${price}`,
-                  available: balance,
-                  price,
-              });
-          }
-
-          // Limited-quantity items: take a unit BEFORE money moves, so two
-          // concurrent buyers cannot both get the last one. Every failure path
-          // below releases it again.
-          // The unit (if any) was already taken inside fn_claim_shop_purchase
-          // and rollback was armed above before balance validation.
-
-          // Deduct DIAMONDS atomically from the buyer's global wallet.
-          //
-          // add_diamonds_to_balance takes the FOR UPDATE row lock on profiles,
-          // refuses to go negative, writes the diamond_transactions ledger row,
-          // and enforces reference_id uniqueness — a raced double-submit can
-          // charge at most once. Like the chip RPCs it reports business
-          // failures via its data payload, not a thrown error, so BOTH the
-          // transport error and success:false must be handled.
-          const chargeRef = `ca-shop-${require('crypto').randomUUID()}`;
-          const { data: debit, error: deductErr } = await getSupabase().rpc('add_diamonds_to_balance', {
-              p_user_id: user.id,
-              p_amount: -price,
-              p_type: 'purchase',
-              p_description: `Club Shop: ${item.name || itemId}`,
-              p_reference_id: chargeRef,
-          });
-
-          if (deductErr) {
-              await releaseStock();
-              throw deductErr;
-          }
-
-          if (!debit?.success) {
-              await releaseStock();
-              const msg = String(debit?.error || '');
-              const insufficient = /insufficient/i.test(msg);
-              return res.status(insufficient ? 400 : 500).json({
-                  success: false,
-                  error: insufficient ? 'Insufficient diamonds' : 'Payment failed',
-                  available: balance,
-                  price,
-              });
-          }
-          const balanceAfterCharge = Number(debit.new_balance);
-
-          // From here on, any failure path must give the diamonds back.
-          const refundDiamonds = async () => {
-              const { data: refundRes, error: refundRpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
-                  p_user_id: user.id,
-                  p_amount: price,
-                  p_type: 'refund',
-                  p_description: `Club Shop rollback: ${item.name || itemId}`,
-                  p_reference_id: `${chargeRef}-rollback`,
-              });
-              const dup = refundRes?.duplicate === true;
-              return refundRpcErr || (refundRes?.success || dup ? null : new Error(refundRes?.error || 'refund returned success:false'));
-          };
-
-          // Record purchase (currency travels with the row so refunds know
-          // which wallet to credit — legacy rows default to 'chips')
-          const { error: purchaseErr } = await getSupabase()
-              .from('club_shop_purchases')
-              .insert({
-                  club_id: clubId,
-                  buyer_id: user.id,
-                  item_id: itemId,
-                  price_paid: price,
-                  stock_claimed: stockClaimed,
-                  currency: 'diamonds',
-              });
-
-          if (purchaseErr) {
-              await releaseStock();
-              // uq_shop_inventory_owned_per_item (partial unique on status='owned')
-              // is the race-proof form of the ownership check above: two tabs can
-              // both pass the SELECT, only one can pass this. The loser is
-              // refunded below and told it already owns the item.
-              const isDuplicateOwned =
-                  purchaseErr.code === '23505' ||
-                  /uq_shop_inventory_owned_per_item|duplicate key/i.test(purchaseErr.message || '');
-              // Rollback the diamond deduction atomically. CRITICAL: capture the
-              // refund error — if THIS fails, the user paid for nothing and
-              // ops needs to know immediately.
-              const refundErr = await refundDiamonds();
-              if (refundErr) {
-                  // Loud audit log — this is real money the user lost.
-                  console.warn('[marketplace-purchase] CRITICAL: refund of', price, 'diamonds for user', user.id, 'in club', clubId, 'FAILED after purchase insert error:', refundErr?.message || refundErr);
-                  try {
-                      logAudit(supabaseAdmin, {
-                          actionType: 'marketplace_refund_failed',
-                          userId: user.id,
-                          clubId,
-                          amount: price,
-                          ip: extractIP(req),
-                          details: { itemId, purchaseErr: purchaseErr?.message, refundErr: refundErr?.message },
-                      });
-                  } catch (auditErr) {
-                      console.warn('[marketplace-purchase] audit log of refund failure also failed:', auditErr?.message || auditErr);
-                  }
-              }
-              if (isDuplicateOwned) {
-                  return res.status(400).json({
-                      success: false,
-                      error: 'You already own an unused copy of this item. Redeem it before buying another.',
-                      alreadyOwned: true,
-                  });
-              }
-              throw purchaseErr;
-          }
-
-          // Ledger row: add_diamonds_to_balance already wrote the
-          // diamond_transactions entry (reference_id = chargeRef), so no
-          // separate transaction insert is needed here.
-
-          // The purchase is COMMITTED from here on. Nothing below may throw a
-          // 500 — the diamonds are spent and the item is delivered, so an audit
-          // or balance-read hiccup must not tell the buyer it failed.
-          try {
-              logAudit(supabaseAdmin, { actionType: 'marketplace_purchase', userId: user.id, clubId, amount: price, ip: extractIP(req), details: { itemId, itemName: item.name, itemType: item.item_type } });
-          } catch (auditErr) {
-              console.warn('[marketplace-purchase] audit log failed (purchase still successful):', auditErr?.message || auditErr);
-          }
-
-          return res.status(200).json({
-              success: true,
-              // Diamond balance straight from the debit RPC (post-charge,
-              // row-locked) — no re-read race.
-              newBalance: Number.isFinite(balanceAfterCharge) ? balanceAfterCharge : (balance - price),
-              currency: 'diamonds',
-              // The price the server actually charged. A sale can end between
-              // page load and confirm, and the modal would otherwise still be
-              // showing the promo price with no way to tell.
-              pricePaid: price,
-              item: { name: item.name, type: item.item_type },
-          });
-      } catch (err) {
-          // CRITICAL (audit pass 5): every throw after the stock claim used to
-          // leak a unit permanently — a limited drop of 10 quietly became 9.
-          try { await releaseStock(); } catch (_e) { /* logged inside */ }
-          console.warn('[marketplace-purchase]', err);
-          return res.status(500).json({ success: false, error: 'Purchase failed' });
-      }
-
-  } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+    return res.status(200).json({
+      success: true,
+      purchaseId: result.purchase_id,
+      newBalance: Number(result.new_balance),
+      currency: 'diamonds',
+      pricePaid: Number(result.price_paid) || 0,
+      duplicate: result.duplicate === true,
+      item: { name: result.item_name, type: result.item_type },
+    });
+  } catch (error) {
+    try { reportApiError(error, req); } catch (_reportError) { /* no-op */ }
+    console.warn('[marketplace-purchase]', error);
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, error: 'Purchase failed' });
+    }
   }
 }

@@ -1,9 +1,11 @@
 name: E2E Tests (Playwright)
 
-# Runs on PRs and manual trigger — does NOT block deploy
-# Separate from build-safety-gate.yml to keep deploy pipeline fast
+# Runs on PRs, main pushes, and manual trigger. Branch protection decides
+# whether the PR run blocks merge; the main run provides post-promote evidence.
 on:
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
   workflow_dispatch:
 
@@ -15,7 +17,7 @@ jobs:
   e2e:
     name: Playwright E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -113,7 +115,7 @@ jobs:
           exit 1
 
       - name: Run Playwright tests
-        run: npx playwright test --project=chromium
+        run: npx playwright test --project=chromium --project=mobile-chrome
         env:
           CI: true
           # e2e/00-auth.setup.ts signs in as the standing test account and every

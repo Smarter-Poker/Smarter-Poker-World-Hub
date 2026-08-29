@@ -63,12 +63,13 @@ test('card merchandise orders preserve catalog and variant IDs for stock fulfill
 test('the merch page server-renders a static lineup while refreshing the live catalog', () => {
   assert.doesNotMatch(STORE, /dynamic\(\(\) => import\('\.\.\/\.\.\/src\/components\/store\/MerchStore'\), \{\s*ssr: false/);
   assert.match(MERCH, /const STATIC_PRODUCTS = MERCHANDISE/);
-  assert.match(MERCH, /useState\(\(\) => STATIC_PRODUCTS\)/);
+  assert.match(MERCH, /return normalized \? \[normalized\] : STATIC_PRODUCTS/);
+  assert.match(MERCH, /useState\(\(\) => initialProducts\)/);
   assert.match(MERCH, /setLoading\(true\)/);
   assert.match(MERCH, /Verifying Live Prices, Options, And Stock/);
   assert.doesNotMatch(MERCH, /\{!loading && sections\.map/);
   assert.match(MERCH, /catalog_fallback/);
-  assert.match(MERCH, /width: 44, minWidth: 44, height: 44/);
+  assert.match(MERCH, /width:\s*44,[\s\S]*?minWidth:\s*44,[\s\S]*?height:\s*44/);
 });
 
 test('seeded merch image placeholders do not issue guaranteed production 404s', () => {

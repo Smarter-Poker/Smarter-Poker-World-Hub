@@ -1,0 +1,377 @@
+.stage {
+  --market-ice: #dff9ff;
+  --market-cyan: #00c8ff;
+  --market-steel: #607d8e;
+  width: calc(100% - 48px);
+  max-width: 1240px;
+  min-height: calc(100vh - 150px);
+  margin: 0 auto;
+  padding: 92px 0 110px;
+  color: #e9f4f8;
+  font-family: 'Inter', sans-serif;
+}
+
+.routeRail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid #526d7d;
+  border-radius: 0;
+  background: linear-gradient(180deg, #263944 0, #071018 18%, #020509 78%, #13232c 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.52),
+    inset 0 -4px 8px #000,
+    0 18px 38px #000;
+}
+
+.routeLink {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-right: 1px solid #2a4352;
+  color: #9fb1bb;
+  font:
+    700 12px 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.routeLink:last-child {
+  border-right: 0;
+}
+
+.routeLink[aria-current='page'] {
+  background: linear-gradient(180deg, rgba(159, 238, 255, 0.2), rgba(0, 152, 220, 0.08));
+  box-shadow:
+    inset 0 -3px 0 var(--market-cyan),
+    inset 0 1px 0 #ecfcff;
+  color: #f1fcff;
+  text-shadow: 0 0 12px rgba(0, 197, 255, 0.72);
+}
+
+.routeCount {
+  display: inline-grid;
+  min-width: 22px;
+  min-height: 22px;
+  place-items: center;
+  padding: 0 5px;
+  border: 1px solid #ffd700;
+  color: #071019;
+  background: #ffd700;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.commandHeader {
+  position: relative;
+  display: grid;
+  min-height: 310px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(380px, 1.1fr);
+  align-items: stretch;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 11px;
+  overflow: hidden;
+  border: 1px solid #8da4b0;
+  border-radius: 0;
+  background: linear-gradient(180deg, #263641 0, #050b10 6%, #010306 94%, #14242e 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 253, 255, 0.86),
+    inset 0 0 0 5px #020509,
+    inset 0 0 0 6px rgba(84, 113, 130, 0.82),
+    0 24px 50px #000;
+}
+
+.commandHeader::before {
+  position: absolute;
+  inset: 6px 14% auto;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #9df1ff 24%,
+    #008bd4 50%,
+    #9df1ff 76%,
+    transparent
+  );
+  box-shadow: 0 0 16px rgba(0, 190, 255, 0.72);
+  content: '';
+}
+
+.commandHeader::after {
+  position: absolute;
+  inset: 18px;
+  border: 1px solid rgba(132, 169, 189, 0.28);
+  clip-path: polygon(0 12px, 12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+  content: '';
+  pointer-events: none;
+}
+
+.headerCopy,
+.headerActions {
+  position: relative;
+  z-index: 1;
+}
+
+.headerCopy {
+  max-width: 720px;
+  align-self: center;
+  padding: 42px 18px 42px 34px;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 13px;
+  color: #83dff5;
+  font:
+    700 10px 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.headerCopy h1 {
+  margin: 0;
+  color: var(--market-ice);
+  font:
+    500 clamp(32px, 5vw, 58px) 'Rajdhani',
+    sans-serif;
+  letter-spacing: -0.035em;
+  line-height: 0.96;
+  text-transform: uppercase;
+}
+
+.headerCopy p {
+  max-width: 650px;
+  margin: 17px 0 0;
+  color: #9fb0ba;
+  font:
+    500 15px/1.65 'Inter',
+    sans-serif;
+}
+
+.headerActions {
+  position: absolute;
+  z-index: 3;
+  left: 45px;
+  bottom: 30px;
+}
+
+.operationsVisual {
+  position: relative;
+  z-index: 1;
+  min-height: 286px;
+  overflow: hidden;
+  border: 1px solid #506c7d;
+  background-color: #010306;
+  background-image: url('/images/store-v3/commerce-operations-atlas.webp');
+  background-position: 0 center;
+  background-repeat: no-repeat;
+  background-size: 300% 100%;
+  box-shadow:
+    inset 0 1px 0 rgba(235, 250, 255, 0.48),
+    inset 0 0 0 5px rgba(0, 0, 0, 0.72),
+    -18px 0 46px rgba(0, 0, 0, 0.45);
+}
+
+.stage[data-active='orders'] .operationsVisual {
+  background-position: 50% center;
+}
+
+.stage[data-active='wishlist'] .operationsVisual {
+  background-position: 100% center;
+}
+
+.stage[data-active='store'] .operationsVisual {
+  background-image: url('/images/store-v3/diamond-vault-hero.webp');
+  background-position: 58% center;
+  background-size: cover;
+}
+
+.operationsVisual::before {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.44), transparent 24%),
+    linear-gradient(180deg, transparent 54%, rgba(0, 0, 0, 0.84));
+  content: '';
+}
+
+.operationsVisual::after {
+  position: absolute;
+  inset: 9px;
+  border: 1px solid rgba(181, 216, 231, 0.34);
+  content: '';
+  pointer-events: none;
+}
+
+.visualReadout {
+  position: absolute;
+  z-index: 2;
+  right: 24px;
+  bottom: 22px;
+  left: 24px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  padding: 11px 13px;
+  border-top: 1px solid rgba(132, 206, 232, 0.66);
+  border-bottom: 1px solid rgba(47, 83, 101, 0.72);
+  background: rgba(0, 5, 9, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.visualReadout strong {
+  color: #e8f8fc;
+  font: 600 14px 'Rajdhani', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.visualReadout small {
+  grid-column: 2;
+  color: #849ba7;
+  font: 600 9px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bayCode {
+  grid-row: 1 / span 2;
+  align-self: center;
+  padding-right: 12px;
+  border-right: 1px solid #2f5668;
+  color: #4edcff;
+  font: 800 9px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.12em;
+}
+
+.scanLine {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  bottom: 10px;
+  left: 12px;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, #63e7ff, transparent);
+  box-shadow: 0 0 12px #00b9ff;
+  opacity: 0.6;
+}
+
+.headerActions :is(a, button) {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border: 1px solid #9cd7e8;
+  border-radius: 0;
+  background: linear-gradient(180deg, #dff9ff, #6da7bc 48%, #1c4b61);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -3px 5px rgba(0, 0, 0, 0.62);
+  color: #06131a;
+  font:
+    800 11px 'IBM Plex Mono',
+    monospace;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.contentDeck {
+  position: relative;
+  margin-top: 22px;
+  padding: 30px;
+  border: 1px solid #6f8997;
+  border-radius: 0;
+  background:
+    linear-gradient(120deg, rgba(0, 177, 255, 0.05), transparent 32%),
+    linear-gradient(180deg, #101b22 0, #03070b 38px, #010305 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(235, 251, 255, 0.38),
+    inset 0 0 0 6px #03080c,
+    inset 0 0 0 7px rgba(67, 96, 112, 0.6),
+    0 24px 56px #000;
+}
+
+.contentDeck::before {
+  display: block;
+  margin: 0 0 25px;
+  color: #819aa8;
+  font:
+    700 9px 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+  content: 'Marketplace Account Deck  /  Secure Commerce Record';
+}
+
+.stage :is(a, button, input, select):focus-visible {
+  outline: 2px solid #8befff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+  .stage {
+    width: calc(100% - 20px);
+    padding: 72px 0 104px;
+  }
+
+  .routeRail {
+    overflow-x: auto;
+    grid-template-columns: repeat(4, minmax(112px, 1fr));
+    scrollbar-width: none;
+  }
+
+  .routeRail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .routeLink {
+    min-height: 48px;
+    font-size: 10px;
+  }
+
+  .commandHeader {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 9px;
+  }
+
+  .headerCopy {
+    padding: 34px 20px 24px;
+  }
+
+  .operationsVisual {
+    min-height: min(72vw, 330px);
+  }
+
+  .headerActions {
+    position: static;
+    width: auto;
+    padding: 0 20px 18px;
+  }
+
+  .headerActions :is(a, button) {
+    width: 100%;
+  }
+
+  .contentDeck {
+    padding: 20px 14px 26px;
+  }
+
+  .contentDeck::before {
+    line-height: 1.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage * {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
