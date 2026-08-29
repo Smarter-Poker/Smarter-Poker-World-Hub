@@ -104,7 +104,18 @@ test('training frequencies and solver EV map to the Sandbox contract', () => {
   assert.equal(result.optimalAction.frequency, 100);
   assert.equal(result.actions.find(action => action.id === 'b16').ev, 0.1);
   assert.equal(result.ev.hero, 0.43);
+  assert.equal(result.ev.max, 0.43);
+  assert.equal(result.ev.evLoss, 0);
   assert.equal(result.explanation, canonicalQuestion.explanation);
+});
+
+test('normalized optimal quality never becomes a fabricated BB loss', () => {
+  const result = mapTrainingQuestionToAnalysis({
+    ...canonicalQuestion,
+    evData: { ...canonicalQuestion.evData, optimalEV: 1 },
+  });
+  assert.equal(result.ev.max, 0.43);
+  assert.equal(result.ev.evLoss, 0);
 });
 
 test('fractional frequency payloads normalize to percentages', () => {
