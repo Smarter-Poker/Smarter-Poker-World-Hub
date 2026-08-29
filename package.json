@@ -25,7 +25,6 @@
     "deploy:log": "node scripts/deploy-log.js --show",
     "deploy:status": "node scripts/check-deploy-status.js",
     "deploy:watch": "node scripts/check-deploy-status.js --watch",
-    "deploy:force": "bash scripts/force-redeploy.sh",
     "push": "bash scripts/git-safe-push.sh",
     "verify": "node scripts/verify-deploy.js",
     "lint": "node node_modules/next/dist/bin/next lint",

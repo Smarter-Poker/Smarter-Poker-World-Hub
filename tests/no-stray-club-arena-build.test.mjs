@@ -163,7 +163,7 @@ test('.gitignore anchors the root patterns and does not swallow public/', () => 
     );
 });
 
-test('the Club Arena release manifest cannot be served from a prior deployment cache', () => {
+test('the Club Arena release manifest has an exact defensive no-store policy', () => {
     const config = JSON.parse(fs.readFileSync(path.join(REPO, 'vercel.json'), 'utf8'));
     const blanketHubIndex = config.headers.findIndex(
         (rule) => rule.source === '/hub/((?!.*?/assets/)(?!.*?/images/)(?!.*?/videos/)(?!.*?/cards/)(?!.*?/sounds/)(?!.*?/club-logos/).*)'
