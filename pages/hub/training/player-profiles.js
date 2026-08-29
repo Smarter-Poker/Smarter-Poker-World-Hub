@@ -412,6 +412,7 @@ export default function PlayerProfilesPage() {
       </Head>
 
       <div
+        className="sp-training-intelligence sp-training-intelligence--profiles"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: '#0a0a1a',
@@ -421,6 +422,7 @@ export default function PlayerProfilesPage() {
       >
         {/* Header */}
         <div
+          className="sp-intelligence-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid #3a3b3c',
@@ -462,7 +464,7 @@ export default function PlayerProfilesPage() {
           </div>
         </div>
 
-        <div style={{ padding: '16px 20px', maxWidth: 900, margin: '0 auto' }}>
+        <div className="sp-intelligence-main" style={{ padding: '16px 20px', maxWidth: 900, margin: '0 auto' }}>
           {/* Profile Selector Grid */}
           <div
             style={{

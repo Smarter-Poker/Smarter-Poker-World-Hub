@@ -150,9 +150,9 @@ export default function AggregateReports() {
         />
       </Head>
 
-      <div style={styles.page}>
+      <div className="sp-training-intelligence sp-training-intelligence--aggregate" style={styles.page}>
         {/* Header */}
-        <div style={styles.header}>
+        <div className="sp-intelligence-header" style={styles.header}>
           <motion.button
             type="button"
             aria-label="Back to training"

@@ -2457,3 +2457,316 @@ body.world-training .sp-journey-main > [style*="border-radius"] {
         box-shadow: none;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 10 — REPORTING & COMPETITIVE INTELLIGENCE / INTELLIGENCE RAIL
+   A single metallic instrumentation language for reports, scorecards,
+   dashboards, aggregate analysis, leaderboards, and opponent profiles.
+   The global header is intentionally outside these opt-in page classes.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-training .sp-intelligence-page-shell,
+body.world-training .sp-training-intelligence {
+    --intel-cyan: #62e6ff;
+    --intel-blue: #168cff;
+    --intel-amber: #ffbd4a;
+    --intel-line: rgba(137, 222, 251, 0.4);
+    --intel-panel: rgba(3, 13, 20, 0.96);
+    color: #edfaff !important;
+    background:
+        radial-gradient(circle at 78% 4%, rgba(31, 177, 255, 0.15), transparent 31%),
+        linear-gradient(rgba(73, 202, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(73, 202, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(145deg, #02070b 0%, #07131c 48%, #02070a 100%) !important;
+    background-size: auto, 38px 38px, 38px 38px, auto !important;
+}
+
+body.world-training .sp-training-intelligence {
+    position: relative;
+    isolation: isolate;
+    min-height: calc(100dvh - 52px) !important;
+    box-sizing: border-box;
+    overflow-x: clip !important;
+    font-family: var(--sp-font-ui, "Rajdhani", "Arial Narrow", sans-serif) !important;
+    text-transform: capitalize;
+}
+
+body.world-training .sp-training-intelligence::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, transparent, rgba(104, 225, 255, 0.045) 50%, transparent),
+        repeating-linear-gradient(90deg, transparent 0 4px, rgba(255,255,255,0.012) 4px 5px);
+}
+
+body.world-training .sp-training-intelligence [style*="text-transform"] {
+    text-transform: capitalize !important;
+}
+
+body.world-training .sp-intelligence-header {
+    position: relative;
+    min-height: 80px;
+    box-sizing: border-box;
+    padding: 18px max(20px, calc((100% - 1080px) / 2)) 21px !important;
+    border-top: 1px solid rgba(225, 248, 255, 0.27) !important;
+    border-bottom: 1px solid rgba(98, 230, 255, 0.45) !important;
+    background:
+        linear-gradient(180deg, rgba(127, 171, 193, 0.2), rgba(8, 22, 31, 0.96) 19%, rgba(2, 10, 15, 0.99) 76%, rgba(25, 73, 94, 0.48)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.22),
+        inset 0 -2px 0 rgba(0,0,0,0.82),
+        0 15px 34px rgba(0,0,0,0.4);
+}
+
+body.world-training .sp-intelligence-header::after,
+body.world-training .sp-training-intelligence--leaderboard::before {
+    content: "";
+    position: absolute;
+    left: max(20px, calc((100% - 1080px) / 2));
+    right: max(20px, calc((100% - 1080px) / 2));
+    bottom: -1px;
+    z-index: 2;
+    height: 4px;
+    pointer-events: none;
+    background: linear-gradient(90deg, #e0f9ff 0 4%, #55e4ff 4% 32%, #168cff 32% 63%, #ffbd4a 63% 68%, rgba(61, 188, 236, 0.18) 68% 100%);
+    box-shadow: 0 0 15px rgba(66, 210, 255, 0.54);
+}
+
+body.world-training .sp-intelligence-header :where(h1, h2),
+body.world-training .sp-training-intelligence--leaderboard > h1 {
+    color: #f5fbff !important;
+    -webkit-text-fill-color: initial !important;
+    background: none !important;
+    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-size: clamp(22px, 3vw, 34px) !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0.018em !important;
+    text-align: left !important;
+    text-shadow: 0 2px 0 #000, 0 0 22px rgba(54, 213, 255, 0.3) !important;
+}
+
+body.world-training .sp-intelligence-header p,
+body.world-training .sp-intelligence-header > div > div:last-child {
+    color: #9fbdcb !important;
+}
+
+body.world-training .sp-intelligence-main {
+    position: relative;
+    width: min(100%, 1080px) !important;
+    max-width: 1080px !important;
+    margin-inline: auto !important;
+    box-sizing: border-box;
+    padding: 28px 20px 58px !important;
+}
+
+body.world-training .sp-training-intelligence--gto-reports .sp-intelligence-main,
+body.world-training .sp-training-intelligence--scorecard .sp-intelligence-main {
+    max-width: 880px !important;
+}
+
+body.world-training .sp-training-intelligence--community .sp-intelligence-main {
+    max-width: 760px !important;
+}
+
+body.world-training .sp-training-intelligence--aggregate {
+    width: min(100%, 1000px) !important;
+    max-width: 1000px !important;
+    margin-inline: auto !important;
+    padding: 28px 20px 64px !important;
+    border-inline: 1px solid rgba(107, 211, 247, 0.2);
+}
+
+body.world-training .sp-training-intelligence--aggregate .sp-intelligence-header {
+    margin: -28px -20px 22px !important;
+}
+
+body.world-training .sp-training-intelligence--leaderboard {
+    width: min(100%, 1080px) !important;
+    max-width: 1080px !important;
+    min-height: calc(100dvh - 60px) !important;
+    padding-top: 50px !important;
+}
+
+body.world-training .sp-training-intelligence--leaderboard::before {
+    top: 0;
+    bottom: auto;
+}
+
+body.world-training .sp-training-intelligence--leaderboard > h1 {
+    display: flex !important;
+    justify-content: center;
+    width: 100%;
+    margin: 0 0 28px !important;
+    padding: 22px 18px 25px;
+    border: 1px solid var(--intel-line);
+    background: linear-gradient(105deg, rgba(91, 182, 222, 0.16), rgba(1, 8, 13, 0.96) 40%, rgba(10, 31, 43, 0.9)) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 14px 32px rgba(0,0,0,0.34);
+}
+
+/* Straight dimensional cards. Avatars and loading indicators retain circles. */
+body.world-training .sp-training-intelligence :where(button, [role="button"], a[style*="border-radius"]),
+body.world-training .sp-training-intelligence div[style*="border-radius"]:not([style*="50%"]),
+body.world-training .sp-training-intelligence section[style*="border-radius"] {
+    border-radius: 0 !important;
+    clip-path: none !important;
+}
+
+body.world-training .sp-training-intelligence div[style*="border: 1px"][style*="border-radius"]:not([style*="50%"]),
+body.world-training .sp-training-intelligence section[style*="border: 1px"],
+body.world-training .sp-training-intelligence--leaderboard > div[style*="border"] {
+    border-color: var(--intel-line) !important;
+    background-image: linear-gradient(150deg, rgba(93, 151, 178, 0.16), rgba(3, 12, 19, 0.98) 40%, rgba(11, 32, 44, 0.94)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(235, 250, 255, 0.16),
+        inset 0 -2px 0 rgba(0,0,0,0.72),
+        0 10px 24px rgba(0,0,0,0.3) !important;
+}
+
+body.world-training .sp-training-intelligence :where(button, [role="button"]),
+body.world-training .sp-training-intelligence--leaderboard a[style] {
+    min-height: 42px;
+    border: 1px solid rgba(143, 219, 247, 0.38) !important;
+    border-radius: 0 !important;
+    color: #dff6ff !important;
+    background: linear-gradient(180deg, #2d4654 0%, #142630 44%, #061018 52%, #172d39 100%) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -2px 0 rgba(0,0,0,0.72), 0 6px 14px rgba(0,0,0,0.26) !important;
+    text-shadow: 0 1px 1px #000;
+}
+
+body.world-training .sp-training-intelligence button[aria-pressed="true"] {
+    color: #031018 !important;
+    border-color: #c5f8ff !important;
+    background: linear-gradient(180deg, #e9fcff 0%, #8feaff 45%, #25b8e4 52%, #86e8ff 100%) !important;
+    box-shadow: inset 0 1px 0 #fff, inset 0 -3px 0 rgba(0,74,105,0.54), 0 0 18px rgba(64, 211, 255, 0.32) !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.6) !important;
+}
+
+body.world-training .sp-training-intelligence :where(h2, h3) {
+    color: #e8f9ff !important;
+    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    letter-spacing: 0.025em !important;
+    text-shadow: 0 1px 0 #000, 0 0 16px rgba(59, 210, 255, 0.18);
+}
+
+body.world-training .sp-training-intelligence :where(p, label) {
+    color: #aec8d5 !important;
+}
+
+body.world-training .sp-training-intelligence table {
+    min-width: 620px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+body.world-training .sp-training-intelligence :where(th, td) {
+    border-color: rgba(117, 203, 234, 0.18) !important;
+}
+
+body.world-training .sp-training-intelligence th {
+    color: #bfeeff !important;
+    background: rgba(24, 64, 82, 0.5) !important;
+}
+
+body.world-training .sp-training-intelligence :focus-visible {
+    outline: 2px solid #8beaff !important;
+    outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+    body.world-training .sp-training-intelligence {
+        min-height: calc(100dvh - 35px) !important;
+    }
+
+    body.world-training .sp-intelligence-header {
+        min-height: 0;
+        padding: 13px 12px 16px !important;
+    }
+
+    body.world-training .sp-intelligence-header::after {
+        left: 12px;
+        right: 12px;
+    }
+
+    body.world-training .sp-intelligence-header > div {
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    body.world-training .sp-intelligence-header :where(h1, h2) {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        font-size: clamp(22px, 7.4vw, 31px) !important;
+    }
+
+    body.world-training .sp-intelligence-main,
+    body.world-training .sp-training-intelligence--leaderboard,
+    body.world-training .sp-training-intelligence--aggregate {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 18px 12px 40px !important;
+    }
+
+    body.world-training .sp-training-intelligence--aggregate .sp-intelligence-header {
+        margin: -18px -12px 18px !important;
+    }
+
+    body.world-training .sp-training-intelligence--leaderboard > h1 {
+        justify-content: flex-start;
+        margin-bottom: 16px !important;
+        padding: 18px 14px 21px;
+        font-size: clamp(24px, 7.8vw, 32px) !important;
+    }
+
+    body.world-training .sp-training-intelligence [style*="grid-template-columns: repeat(5"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body.world-training .sp-training-intelligence [style*="grid-template-columns: repeat(6"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body.world-training .sp-training-intelligence [style*="grid-template-columns: repeat(3"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body.world-training .sp-training-intelligence--profiles [style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    body.world-training .sp-training-intelligence--leaderboard [style*="justify-content: center"] {
+        justify-content: flex-start !important;
+        overflow-x: auto;
+        padding-bottom: 6px;
+    }
+
+    body.world-training .sp-training-intelligence--leaderboard [style*="border-radius: 12px"],
+    body.world-training .sp-training-intelligence--community [style*="border-radius: 12px"] {
+        min-width: 0;
+    }
+
+    body.world-training .sp-training-intelligence--leaderboard img[style*="48px"] {
+        width: 40px !important;
+        height: 40px !important;
+    }
+}
+
+@media (max-width: 430px) {
+    body.world-training .sp-training-intelligence [style*="grid-template-columns: repeat(3"],
+    body.world-training .sp-training-intelligence--session-dashboard [style*="minmax(280px"] {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    body.world-training .sp-training-intelligence--profiles [style*="minmax(130px"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.world-training .sp-intelligence-header::after,
+    body.world-training .sp-training-intelligence--leaderboard::before {
+        box-shadow: none;
+    }
+}
