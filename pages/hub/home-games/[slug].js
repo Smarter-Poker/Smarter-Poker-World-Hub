@@ -21,6 +21,7 @@ import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { supabase } from '../../../src/lib/supabase';
@@ -762,6 +763,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
         <SEOHead title="Home Game — Temporarily Unavailable" description="We couldn't load this page right now." noindex={true} />
         <div className="hgs-page">
           <UniversalHeader onMenuClick={() => setMenuOpen(true)} pageDepth={2} />
+          <PokerNearMeFamilyNav />
           <div className="hgs-notfound">
             <h1>Temporarily Unavailable</h1>
             <p>We couldn&apos;t load this home game right now. Please try again in a moment.</p>
@@ -1023,6 +1025,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
       </Head>
       <div className="hgs-page">
         <UniversalHeader onMenuClick={() => setMenuOpen(true)} pageDepth={2} onBackClick={() => router.back()} />
+        <PokerNearMeFamilyNav />
 
 
         <div className="hgs-cover">

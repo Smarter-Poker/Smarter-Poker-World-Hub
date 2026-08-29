@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import StopScheduleModal from '../../../src/components/tours/StopScheduleModal';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
@@ -370,6 +371,7 @@ export default function TourDetailPage() {
           router.back();
         }}
       />
+      <PokerNearMeFamilyNav />
 
       <HamburgerMenu
           isOpen={menuOpen}

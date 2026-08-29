@@ -107,7 +107,7 @@ export default function LobbyCanvas() {
     const img = new Image();
     img.onload = () => { if (!cancelled) setBgLoaded(true); };
     img.onerror = () => console.warn('[LobbyCanvas] Background image failed to load, using fallback gradient');
-    img.src = '/images/lobby-bg/default.png';
+    img.src = '/images/pnm-redesign/casino-command-map-v1.webp';
     return () => {
       cancelled = true;
       img.onload = null;
@@ -129,7 +129,7 @@ export default function LobbyCanvas() {
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: bgLoaded ? 'url(/images/lobby-bg/default.png)' : 'none',
+          backgroundImage: bgLoaded ? 'url(/images/pnm-redesign/casino-command-map-v1.webp)' : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
