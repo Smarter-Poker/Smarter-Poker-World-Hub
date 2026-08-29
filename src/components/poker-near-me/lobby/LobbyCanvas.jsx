@@ -98,11 +98,23 @@ function AnimatedOverlay() {
 // ─── Main LobbyCanvas Component (background only) ───
 export default function LobbyCanvas() {
   const [bgLoaded, setBgLoaded] = useState(false);
+  const [liteMode, setLiteMode] = useState(false);
 
   // Preload background image.
   // The cancelled flag stops setBgLoaded firing after unmount (the decode can
   // easily outlive a fast route change).
   useEffect(() => {
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const shouldUseLiteMode = !!(
+      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+      || connection?.saveData
+      || /(^|-)2g$/.test(connection?.effectiveType || '')
+      || Number(navigator.deviceMemory || 4) < 4
+    );
+    if (shouldUseLiteMode) {
+      setLiteMode(true);
+      return undefined;
+    }
     let cancelled = false;
     const img = new Image();
     img.onload = () => { if (!cancelled) setBgLoaded(true); };
@@ -117,6 +129,7 @@ export default function LobbyCanvas() {
 
   return (
     <div
+      data-render-mode={liteMode ? 'lite' : 'cinematic'}
       style={{
         position: 'absolute',
         inset: 0,
@@ -160,7 +173,7 @@ export default function LobbyCanvas() {
       />
 
       {/* Animated radar + pulse */}
-      <AnimatedOverlay />
+      {!liteMode && <AnimatedOverlay />}
 
       {/* Metallic top border accent */}
       <div style={{

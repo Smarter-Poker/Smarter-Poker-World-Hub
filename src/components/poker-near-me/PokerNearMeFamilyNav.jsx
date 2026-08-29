@@ -7,6 +7,7 @@ const FAMILY_LINKS = [
   { label: 'Venues', href: '/hub/poker-near-me/venues', matches: ['/hub/poker-near-me/venues', '/hub/venues'] },
   { label: 'Live', href: '/hub/poker-near-me/live-games', matches: ['/hub/poker-near-me/live-games'], live: true },
   { label: 'Map', href: '/hub/poker-near-me/map', matches: ['/hub/poker-near-me/map'] },
+  { label: 'Locations', href: '/hub/poker-near-me/in', matches: ['/hub/poker-near-me/in'] },
   { label: 'Events', href: '/hub/events-calendar', matches: ['/hub/events-calendar', '/hub/daily-tournaments', '/hub/poker-near-me/events', '/hub/poker-near-me/daily-tournaments', '/hub/poker-near-me/events-calendar', '/hub/poker-near-me/daily', '/hub/poker-near-me/calendar'] },
   { label: 'Series', href: '/hub/poker-near-me/series', matches: ['/hub/poker-near-me/series', '/hub/poker-series', '/hub/series'] },
   { label: 'Tours', href: '/hub/poker-tours', matches: ['/hub/poker-tours', '/hub/tours', '/hub/poker-near-me/tours'] },

@@ -1156,7 +1156,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                 {/* ═══════════════════════════════════════ */}
                 {/* STYLES — Matching Poker Tours layout   */}
                 {/* ═══════════════════════════════════════ */}
-                <style>{`
+                <style suppressHydrationWarning>{`
                     .pnm-page {
                         min-height: 100vh;
                         padding-bottom: 70px;

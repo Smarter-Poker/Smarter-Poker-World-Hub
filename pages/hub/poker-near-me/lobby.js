@@ -3190,7 +3190,7 @@ export default function PokerNearMeLobby() {
       )}
 
       {/* Global keyframes + VenueCard CSS (required for VenueCard component styling) */}
-      <style>{`
+      <style suppressHydrationWarning>{`
       /* Server-rendered SEO/a11y layer: present in the HTML for crawlers and
          screen readers, visually hidden so the cinematic lobby is unchanged.
          Not display:none / visibility:hidden — both are treated as hidden

@@ -521,7 +521,7 @@ export default function SeriesDetailPage() {
             <p className="loading-text">Loading Series Details...</p>
           </div>
         </div>
-        <style>{styles}</style>
+        <style suppressHydrationWarning>{styles}</style>
       </>
     );
   }
@@ -563,7 +563,7 @@ export default function SeriesDetailPage() {
             </div>
           </div>
         </div>
-        <style>{styles}</style>
+        <style suppressHydrationWarning>{styles}</style>
       </>
     );
   }
@@ -1175,7 +1175,7 @@ export default function SeriesDetailPage() {
         </div>
       </div>
 
-      <style>{styles}</style>
+      <style suppressHydrationWarning>{styles}</style>
     </>
   );
 }

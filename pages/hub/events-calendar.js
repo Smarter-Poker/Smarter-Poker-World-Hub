@@ -1137,7 +1137,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         currentLocation={userLocation}
       />
 
-      <style>{`
+      <style suppressHydrationWarning>{`
         /* ═══ BASE ═══ */
         .ec-page {
           min-height: 100vh; padding-bottom: 70px;

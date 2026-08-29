@@ -13,6 +13,8 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import DeepRouteSignalDeck from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
+import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { claimReward } from '../../../src/lib/claimReward';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -25,6 +27,7 @@ import { openNativeMaps as openNativeMapsUtil, buildVenueAddress, getMapProvider
 import dynamic from 'next/dynamic';
 import { createClient } from '@supabase/supabase-js';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
+import { rememberPokerPlace, capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
 
 const BestTimeToGoWidget = dynamic(
   () => import('../../../src/components/poker-near-me/BestTimeToGoWidget'),
@@ -458,7 +461,7 @@ function PlayerRatingDisplay({ avgRating, totalReviews, trustScore }) {
           ({totalReviews} {totalReviews === 1 ? 'Review' : 'Reviews'})
         </a>
       )}
-      <style>{`
+      <style suppressHydrationWarning>{`
         .player-rating-display {
           display: flex;
           align-items: center;
@@ -502,7 +505,7 @@ function VenueTypeBadge({ type }) {
   return (
     <span className="venue-type-badge">
       {label}
-      <style>{`
+      <style suppressHydrationWarning>{`
         .venue-type-badge {
           display: inline-block;
           padding: 4px 14px;
@@ -750,9 +753,28 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     };
   }, { fallbackData: swrFallback });
   const venue = swrData?.venue || null;
+  const trackedVenueRef = useRef(null);
   const [localFollowerCount, setFollowerCount] = useState(null);
   const followerCount = localFollowerCount !== null ? localFollowerCount : (swrData?.followerCount || 0);
   const socialPageSlug = swrData?.socialPageSlug || null;
+
+  // Keep deep-route personalization private to this browser and report only a
+  // route-family event. No coordinates, address, or user identity are stored.
+  useEffect(function () {
+    if (!venue || !id || trackedVenueRef.current === String(id)) return;
+    trackedVenueRef.current = String(id);
+    var href = '/hub/venues/' + encodeURIComponent(String(id));
+    rememberPokerPlace({
+      href: href,
+      title: venue.name,
+      subtitle: [venue.city, venue.state].filter(Boolean).join(', '),
+      kind: 'venue',
+    });
+    capturePokerNearMeEvent('deep_route_viewed', {
+      route_family: 'venue',
+      venue_type: venue.venue_type || 'unknown',
+    });
+  }, [id, venue]);
 
   // Fetch live games
   var fetchLiveGames = async function () {
@@ -1778,9 +1800,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         <meta key="twitter:title" name="twitter:title" content={seo.title} />
         <meta key="twitter:description" name="twitter:description" content={seo.description} />
         {seo.image ? <meta key="twitter:image" name="twitter:image" content={seo.image} /> : null}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </SEOHead>
 
       {venueJsonLd && (
@@ -1815,7 +1834,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       />
 
       <div className="venue-page">
-        {loading && (
+        {loading && !venue && (
           <div className="loading-state">
             <div className="spinner" />
             <p>Loading Venue...</p>
@@ -1834,8 +1853,49 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           </div>
         )}
 
-        {venue && !loading && (
+        {venue && (
           <>
+
+            <DeepRouteSignalDeck
+              eyebrow="Venue intelligence"
+              title={venue.name}
+              description={venue.about || venue.description || venue.tagline || ('Live poker details, schedules, player signals, and room information for ' + venue.name + '.')}
+              image={venue.cover_photo_url || venue.profile_photo_url}
+              imageAlt={venue.name + ' poker venue'}
+              kind="venue"
+              breadcrumbs={[
+                { label: 'Hub', href: '/hub' },
+                { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
+                { label: venue.name },
+              ]}
+              status={(bravoLiveTables?.games || []).some(function (game) { return !game.is_simulated && (game.tables_running || 0) > 0; })
+                ? 'Live tables observed'
+                : (bravoLiveTables?.games || []).some(function (game) { return game.is_simulated; })
+                  ? 'Modeled activity available'
+                  : 'Venue profile available'}
+              statusTone={(bravoLiveTables?.games || []).some(function (game) { return !game.is_simulated && (game.tables_running || 0) > 0; })
+                ? 'live'
+                : (bravoLiveTables?.games || []).some(function (game) { return game.is_simulated; }) ? 'modeled' : 'neutral'}
+              freshness={bravoLiveTables?.last_updated
+                ? { label: 'Live feed timestamp available', dateTime: bravoLiveTables.last_updated }
+                : { label: 'Venue profile record' }}
+              metrics={[
+                { label: 'Location', value: [venue.city, venue.state].filter(Boolean).join(', ') || 'See venue details' },
+                { label: 'Room type', value: String(venue.venue_type || 'Poker room').replace(/_/g, ' ') },
+                { label: 'Schedules', value: String(countSchedules(venue)) },
+                { label: 'Player rating', value: totalReviews > 0 ? avgRating.toFixed(1) + ' / 5' : 'Not yet rated' },
+              ]}
+              actions={(
+                <>
+                  <button type="button" className={isSaved ? 'is-active' : ''} onClick={handleSaveVenue}>
+                    {isSaved ? 'Saved' : 'Save venue'}
+                  </button>
+                  <button type="button" onClick={function () { openNativeMaps('directions'); }}>Get directions</button>
+                </>
+              )}
+            />
+
+            <PokerNearMeRecentRail currentHref={'/hub/venues/' + encodeURIComponent(String(id))} />
 
             {/* Breadcrumb Navigation */}
             {!isIframeMode && (
@@ -1886,7 +1946,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     return <div style={{ width: 56, height: 56, borderRadius: 12, background: colors.bg, border: '2px solid ' + colors.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: colors.text, flexShrink: 0 }}>{initials}</div>;
                   })()}
                   <div>
-                  <h1 className="venue-name">{venue.name}</h1>
+                  <h2 className="venue-name">{venue.name}</h2>
                   <div className="venue-meta">
                     <VenueTypeBadge type={venue.venue_type} />
                     {venue.is_featured && (
@@ -3472,7 +3532,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         )}
       </div>
 
-      <style>{`
+      <style suppressHydrationWarning>{`
         /* Metal UI Variables */
         :root {
           --metal-dark: #0a0a15;
