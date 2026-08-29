@@ -6,6 +6,7 @@
 import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import seriesJson from '../../../data/poker-tour-series-2026.json';
+import seriesSourceRegistry from '../../../data/series_source_registry.json';
 import allVenuesData from '../../../data/all-venues.json';
 import wsopEvents from '../../../data/wsop-2026-events.json';
 import wptEvents from '../../../data/wpt-2026-events.json';
@@ -16,6 +17,28 @@ import venetianEvents from '../../../data/venetian-2026-events.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+
+const primaryBundledSeries = Array.isArray(seriesJson) ? seriesJson : (seriesJson.series_2026 || []);
+const registryBundledSeries = Object.values(seriesSourceRegistry || {}).map((series) => ({
+  series_uid: series.series_uid,
+  name: series.series_name,
+  short_name: series.series_name,
+  tour: null,
+  venue: null,
+  city: null,
+  state: null,
+  start_date: null,
+  end_date: null,
+  total_events: series.event_count || 0,
+  main_event_buyin: null,
+  main_event_guaranteed: null,
+  series_type: 'regional',
+  source_url: series.source_url || null,
+  is_featured: false,
+  logo_url: null,
+  is_suppressed: false,
+}));
+const bundledSeries = primaryBundledSeries.length > 0 ? primaryBundledSeries : registryBundledSeries;
 
 let _supabase = null;
 function getSupabase() {
@@ -276,7 +299,7 @@ async function handler(req, res) {
           // ids come from the UNFILTERED array (same as the list path) so a
           // suppressed entry never shifts the numbering; suppressed rows are
           // then hidden rather than renumbered.
-          const allSeries = mapSeriesToApi(seriesJson.series_2026 || []);
+          const allSeries = mapSeriesToApi(bundledSeries);
           const match = allSeries.find((s) => s.id === numericId) || null;
           singleSeries = match && !match.is_suppressed ? match : null;
         }
@@ -309,6 +332,11 @@ async function handler(req, res) {
           success: true,
           data: singleSeries,
           total: 1,
+          meta: {
+            generatedAt: new Date().toISOString(),
+            degraded: !singleSeries.source_table,
+            source: singleSeries.source_table || 'static_bundle',
+          },
         });
       }
 
@@ -316,6 +344,9 @@ async function handler(req, res) {
 
       // Try Supabase first
       let seriesData = null;
+      let seriesSource = 'database';
+      let degraded = false;
+      const sourceWarnings = [];
       try {
         // Query both tournament_series AND poker_series tables for maximum coverage
         let query = getSupabase()
@@ -402,7 +433,15 @@ async function handler(req, res) {
         if (start_date) psQuery = psQuery.gte('start_date', start_date);
         if (end_date) psQuery = psQuery.lte('start_date', end_date);
 
-        const [{ data, error }, { data: psData }] = await Promise.all([query, psQuery]);
+        const [{ data, error }, { data: psData, error: psError }] = await Promise.all([query, psQuery]);
+        if (error) {
+          degraded = true;
+          sourceWarnings.push('tournament_series_unavailable');
+        }
+        if (psError) {
+          degraded = true;
+          sourceWarnings.push('poker_series_unavailable');
+        }
         // [B1 FIX] Declare pokerSeriesData here — was missing 'let' causing ReferenceError
         // in strict mode, crashing the try block and falling through to empty JSON fallback.
         let pokerSeriesData = psData || [];
@@ -479,12 +518,17 @@ async function handler(req, res) {
         if (merged.length > 0) {
           seriesData = merged;
         }
-      } catch (dbErr) { console.warn('[App] Handled exception:', dbErr?.message || dbErr); }
+      } catch (dbErr) {
+        degraded = true;
+        sourceWarnings.push('database_query_failed');
+        console.warn('[App] Handled exception:', dbErr?.message || dbErr);
+      }
 
       // Fall back to JSON data if DB returned nothing
       if (!seriesData) {
+        seriesSource = 'static_bundle';
         // Bug fix: JSON fallback also must exclude suppressed series
-        let allSeries = mapSeriesToApi(seriesJson.series_2026 || []).filter(s => !s.is_suppressed);
+        let allSeries = mapSeriesToApi(bundledSeries).filter(s => !s.is_suppressed);
 
         // Apply filters
         if (upcoming === 'true') {
@@ -531,6 +575,10 @@ async function handler(req, res) {
 
       const total = seriesData.length;
       const limited = seriesData.slice(0, parsedLimit);
+      const sourceLastUpdated = limited.reduce((latest, series) => {
+        const candidate = series.updated_at || series.last_scraped || series.created_at || null;
+        return candidate && (!latest || candidate > latest) ? candidate : latest;
+      }, null);
 
       // Enrich each series with events from poker_events.
       //
@@ -608,16 +656,30 @@ async function handler(req, res) {
         success: true,
         data: limited,
         total,
+        meta: {
+          generatedAt: new Date().toISOString(),
+          lastUpdated: sourceLastUpdated,
+          degraded,
+          source: seriesSource,
+          warnings: sourceWarnings,
+        },
       });
     } catch (error) {
       console.warn('Series API error:', error);
       // Last resort: return mapped JSON data unsorted
-      const fallback = mapSeriesToApi(seriesJson.series_2026 || []);
+      const fallback = mapSeriesToApi(bundledSeries);
       res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=86400');
       return res.status(200).json({
         success: true,
         data: fallback,
         total: fallback.length,
+        meta: {
+          generatedAt: new Date().toISOString(),
+          lastUpdated: null,
+          degraded: true,
+          source: 'static_bundle',
+          warnings: ['database_query_failed'],
+        },
       });
     }
 

@@ -16,8 +16,8 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
-import { supabase } from '../../src/lib/supabase';
 import useSWR from 'swr';
+import PokerIdentityMark from '../../src/components/poker-near-me/PokerIdentityMark';
 
 // ─── Lazy-load components ───
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.default })), { ssr: false });
@@ -194,85 +194,24 @@ function isSeriesUpcoming(start, daysAhead = 60) {
 // ═══════════════════════════════════════════════
 // MAIN PAGE COMPONENT
 // ═══════════════════════════════════════════════
-export default function PokerSeriesPage({ initialSeries = [] }) {
+export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta = null }) {
     const router = useRouter();
     const [isMenuOpen, setMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     // ─── Data State ───
-    const [allSeries, setAllSeries] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [allSeries, setAllSeries] = useState(initialSeries);
+    const [loading, setLoading] = useState(initialSeries.length === 0);
     const [allVenues, setAllVenues] = useState([]);
+    const [lastSuccessfulSync, setLastSuccessfulSync] = useState(initialSeriesMeta?.generatedAt || null);
+    const refreshSeriesRef = useRef(() => {});
 
-    // Bind realtime venue and series updates to cache invalidation
-    // BUG FIX: poker-series relies exclusively on getStaticProps initialSeries.
-    // Setting an rtNonce previously did NOTHING except force a re-render over stale prop arrays!
-    // Now we surgically intercept postgres payloads and mutate `allSeries` directly.
+    // The shared poll/recovery hook now revalidates the canonical API resource.
+    // The old path duplicated the entire Supabase query in the browser, fetched
+    // select('*') twice, and produced ID collisions between the two source tables.
     useVenueRealtime((payload) => {
-        if (!payload) {
-            // [PS2+PS3 FIX] Use .range(0,999) to bypass Supabase 1000-row project ceiling.
-            Promise.all([
-                supabase.from('poker_series').select('*').or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 999),
-                supabase.from('tournament_series').select('*').or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 499)
-            ])
-            .then(([psRes, tsRes]) => {
-                let merged = [];
-                if (tsRes.data) merged = [...tsRes.data];
-                if (psRes.data) {
-                    for (const ps of psRes.data) {
-                        const uid = ps.series_uid;
-                        if (!uid || !merged.some(t => t.series_uid === uid)) merged.push(ps);
-                    }
-                }
-                setAllSeries(merged);
-            })
-            .catch(err => console.warn('[RT] Hard refresh exception:', err));
-            return;
+        if (!payload || payload.table === 'poker_series' || payload.table === 'tournament_series') {
+            refreshSeriesRef.current();
         }
-
-        if (payload.table === 'poker_venues') {
-            const { eventType, new: newRec } = payload;
-            if ((eventType === 'INSERT' || eventType === 'UPDATE') && newRec) {
-                setAllVenues(prev => {
-                    const next = [...prev];
-                    const idx = next.findIndex(v => v.id === newRec.id);
-                    if (newRec.is_suppressed === true || newRec.is_active === false) {
-                        if (idx !== -1) next.splice(idx, 1);
-                    } else if (idx !== -1) {
-                        next[idx] = { ...next[idx], ...newRec };
-                    } else {
-                        next.push(newRec);
-                    }
-                    return next;
-                });
-            }
-            return;
-        }
-
-        if (payload.table !== 'poker_series' && payload.table !== 'tournament_series') return;
-        const { eventType, new: newRec, old: oldRec } = payload;
-
-        setAllSeries(prev => {
-            let next = [...prev];
-            if (eventType === 'DELETE' && oldRec) {
-                return next.filter(s => s.id !== oldRec.id);
-            }
-            if (eventType === 'INSERT' && newRec) {
-                if (newRec.is_suppressed !== true && !next.some(s => s.id === newRec.id)) next.push(newRec);
-            } else if (eventType === 'UPDATE' && newRec) {
-                const idx = next.findIndex(s => s.id === newRec.id);
-                if (newRec.is_suppressed === true) {
-                    if (idx !== -1) next.splice(idx, 1);
-                } else if (idx !== -1) {
-                    next[idx] = { ...next[idx], ...newRec };
-                } else {
-                    next.push(newRec);
-                }
-            } else if (eventType === 'DELETE' && oldRec) {
-                next = next.filter(s => s.id !== oldRec.id);
-            }
-
-            return next;
-        });
     });
     const [userLocation, setUserLocation] = useState(null);
     const [iframeModal, setIframeModal] = useState({ isOpen: false, url: '', title: '' });
@@ -411,15 +350,55 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
 
     const menuConfig = getMenuConfig('events');
     // ─── Fetch series data ───
-    const fetcher = url => fetch(url).then(res => res.json()).then(d => d.data || d);
-    const { data: liveSeries, error: swrError } = useSWR('/api/poker/series?limit=1500', fetcher, {
-        fallbackData: initialSeries,
+    const fetcher = async (url) => {
+        const response = await fetch(url, { headers: { Accept: 'application/json' } });
+        let payload = null;
+        try { payload = await response.json(); } catch { /* handled below */ }
+        if (!response.ok || payload?.success === false) {
+            const error = new Error(payload?.error || `Series directory returned ${response.status}`);
+            error.status = response.status;
+            throw error;
+        }
+        const data = Array.isArray(payload) ? payload : payload?.data;
+        if (!Array.isArray(data)) throw new Error('Series directory returned an invalid payload');
+        return Array.isArray(payload) ? { data, total: data.length, meta: null } : payload;
+    };
+    const { data: seriesPayload, error: swrError, isValidating, mutate: refreshSeries } = useSWR('/api/poker/series?limit=999', fetcher, {
+        fallbackData: {
+            success: true,
+            data: initialSeries,
+            total: initialSeriesMeta?.totalCount || initialSeries.length,
+            meta: initialSeriesMeta,
+        },
         refreshInterval: 300000,
-        revalidateOnFocus: true
+        revalidateOnFocus: true,
+        focusThrottleInterval: 1000,
     });
+    refreshSeriesRef.current = refreshSeries;
+    const liveSeries = seriesPayload?.data;
     useEffect(() => {
-        if (liveSeries) { setAllSeries(liveSeries); setLoading(false); }
-    }, [liveSeries]);
+        if (Array.isArray(liveSeries)) {
+            setAllSeries(liveSeries);
+            setLoading(false);
+            if (!swrError) setLastSuccessfulSync(seriesPayload?.meta?.lastUpdated || seriesPayload?.meta?.generatedAt || new Date().toISOString());
+        }
+    }, [liveSeries, seriesPayload?.meta?.generatedAt, swrError]);
+
+    const syncState = swrError
+        ? (allSeries.length > 0 ? 'cached' : 'error')
+        : (isValidating ? 'syncing' : seriesPayload?.meta?.degraded ? 'degraded' : 'live');
+    const syncLabel = syncState === 'cached'
+        ? 'Cached directory · live refresh unavailable'
+        : syncState === 'error'
+            ? 'Directory unavailable'
+            : syncState === 'syncing'
+                ? 'Synchronizing live directory'
+                : syncState === 'degraded'
+                    ? 'Live directory · partial source coverage'
+                    : 'Live directory synchronized';
+    const freshnessLabel = lastSuccessfulSync
+        ? `${lastSuccessfulSync.slice(0, 10)} ${lastSuccessfulSync.slice(11, 16)} UTC`
+        : null;
 
     // ─── Fetch all venues for coordinate lookup ───
     useEffect(() => {
@@ -896,6 +875,16 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                 }[dateRange]}</span>}
                                 {distanceFilter !== 'all' && <span className="tours-results-query"> &bull; Within {distanceFilter} Miles</span>}
                             </div>
+                            <div className={`pnm-source-state pnm-source-state--${syncState}`} role="status" aria-live="polite" data-source-state={syncState}>
+                                <span className="pnm-source-state__signal" aria-hidden="true" />
+                                <span>{syncLabel}</span>
+                                {freshnessLabel && (
+                                    <time dateTime={lastSuccessfulSync}>Snapshot {freshnessLabel}</time>
+                                )}
+                                <button type="button" onClick={() => refreshSeries()} disabled={isValidating}>
+                                    {syncState === 'cached' || syncState === 'error' ? 'Retry' : isValidating ? 'Syncing…' : 'Refresh'}
+                                </button>
+                            </div>
                         </div>
 
                         {/* ═══ SERIES CARDS GRID ═══ */}
@@ -989,35 +978,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                             <div className="tour-card-header" style={{ alignItems: 'flex-start' }}>
                                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1, minWidth: 0 }}>
                                                     {/* Square venue logo — top-left corner */}
-                                                    {series.logo_url && (
-                                                        <div style={{
-                                                            width: 58,
-                                                            height: 58,
-                                                            flexShrink: 0,
-                                                            borderRadius: 8,
-                                                            overflow: 'hidden',
-                                                            border: '1px solid rgba(255,255,255,0.12)',
-                                                            background: 'rgba(0,0,0,0.35)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                        }}>
-                                                            <img
-                                                                src={series.logo_url}
-                                                                alt={seriesName}
-                                                                style={{
-                                                                    width: '100%',
-                                                                    height: '100%',
-                                                                    objectFit: 'contain',
-                                                                    display: 'block',
-                                                                    padding: 4,
-                                                                    boxSizing: 'border-box',
-                                                                }}
-                                                                loading="lazy"
-                                                                onError={e => { e.target.parentElement.style.display = 'none'; }}
-                                                            />
-                                                        </div>
-                                                    )}
+                                                    <PokerIdentityMark src={series.logo_url} name={seriesName} size={58} />
                                                     {/* Tour badge + series name stacked */}
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
                                                         <div
@@ -1562,6 +1523,54 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         color: #ffffff;
                         font-weight: 800;
                     }
+                    .pnm-source-state {
+                        display: flex;
+                        align-items: center;
+                        justify-content: flex-end;
+                        flex-wrap: wrap;
+                        gap: 7px;
+                        color: rgba(210, 225, 237, 0.72);
+                        font-size: 11px;
+                        font-weight: 700;
+                        letter-spacing: 0.035em;
+                        text-transform: uppercase;
+                    }
+                    .pnm-source-state__signal {
+                        width: 7px;
+                        height: 7px;
+                        border-radius: 50%;
+                        background: #4ade80;
+                        box-shadow: 0 0 10px rgba(74, 222, 128, 0.65);
+                    }
+                    .pnm-source-state--syncing .pnm-source-state__signal {
+                        background: #60a5fa;
+                        box-shadow: 0 0 10px rgba(96, 165, 250, 0.68);
+                    }
+                    .pnm-source-state--cached .pnm-source-state__signal,
+                    .pnm-source-state--error .pnm-source-state__signal,
+                    .pnm-source-state--degraded .pnm-source-state__signal {
+                        background: #f4b942;
+                        box-shadow: 0 0 10px rgba(244, 185, 66, 0.62);
+                    }
+                    .pnm-source-state time {
+                        color: rgba(148, 163, 184, 0.58);
+                        font-weight: 600;
+                        text-transform: none;
+                    }
+                    .pnm-source-state button {
+                        min-height: 32px;
+                        padding: 5px 10px;
+                        border: 1px solid rgba(244, 185, 66, 0.42);
+                        border-radius: 5px;
+                        background: rgba(244, 185, 66, 0.08);
+                        color: #f6cf7b;
+                        font: inherit;
+                        cursor: pointer;
+                    }
+                    .pnm-source-state button:disabled {
+                        cursor: wait;
+                        opacity: 0.62;
+                    }
                     .tours-stops-count {
                         color: rgba(34,197,94,0.7);
                         font-weight: 600;
@@ -2062,6 +2071,8 @@ import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
 // worst case we ship empty props and ISR fills the page in on the first real
 // request, which is the same path a cache miss already takes.
 const BUILD_FETCH_TIMEOUT_MS = 15000;
+const SSR_SERIES_PREVIEW_LIMIT = 160;
+const SSR_POKER_SERIES_ID_OFFSET = 5000000;
 function withBuildTimeout(promise, label) {
     let timer;
     const timeout = new Promise((resolve) => {
@@ -2073,7 +2084,39 @@ function withBuildTimeout(promise, label) {
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+function buildSeriesPreview(rows, generatedAt) {
+    const today = generatedAt.slice(0, 10);
+    const priority = (series) => {
+        if (series.start_date && series.end_date && series.start_date <= today && series.end_date >= today) return 0;
+        if (series.start_date && series.start_date >= today) return 1;
+        if (!series.start_date) return 2;
+        return 3;
+    };
+    const compact = (series) => {
+        const allowed = [
+            'id', 'name', 'series_name', 'short_name', 'series_uid', 'tour', 'tour_code',
+            'venue', 'venue_name', 'venue_id', 'city', 'state', 'start_date', 'end_date',
+            'logo_url', 'events_count', 'event_count', 'total_events', 'main_event_buyin',
+            'main_event_guaranteed', 'total_guaranteed', 'is_featured', 'series_type', 'source_table',
+        ];
+        return Object.fromEntries(allowed
+            .filter((key) => series[key] !== null && series[key] !== undefined && series[key] !== '')
+            .map((key) => [key, series[key]]));
+    };
+
+    return [...rows]
+        .sort((a, b) => {
+            const rankDiff = priority(a) - priority(b);
+            if (rankDiff) return rankDiff;
+            if (priority(a) === 3) return (b.end_date || b.start_date || '').localeCompare(a.end_date || a.start_date || '');
+            return (a.start_date || '9999-12-31').localeCompare(b.start_date || '9999-12-31');
+        })
+        .slice(0, SSR_SERIES_PREVIEW_LIMIT)
+        .map(compact);
+}
+
 export async function getStaticProps() {
+    const generatedAt = new Date().toISOString();
     try {
         // NOTE: poker_series uses 'series_name' (not 'name'), and lacks venue/latitude/longitude/country/logo_url
         // tournament_series uses 'name' (not 'series_name'), and lacks venue_id/logo_url/latitude/longitude/country
@@ -2085,28 +2128,57 @@ export async function getStaticProps() {
             supabaseAdmin.from('poker_series').select(psColumns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 999),
             supabaseAdmin.from('tournament_series').select(tsColumns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 499)
         ]), 'poker-series supabase queries');
-        if (!raced) return { props: { initialSeries: [] }, revalidate: 3600 };
+        if (!raced) return {
+            props: {
+                initialSeries: [],
+                initialSeriesMeta: { generatedAt, previewCount: 0, totalCount: 0, degraded: true, source: 'isr-timeout' },
+            },
+            revalidate: 3600,
+        };
         const [psRes, tsRes] = raced;
 
         if (psRes.error) throw psRes.error;
         if (tsRes.error) throw tsRes.error;
 
         // Normalize poker_series rows: map series_name -> name so downstream code is unified
-        const normalizedPs = (psRes.data || []).map(ps => ({ ...ps, name: ps.series_name }));
+        const normalizedPs = (psRes.data || []).map(ps => ({
+            ...ps,
+            id: ps.id + SSR_POKER_SERIES_ID_OFFSET,
+            name: ps.series_name,
+            series_name: ps.series_name,
+            tour: ps.tour_code,
+            source_table: 'poker_series',
+        }));
 
         let allData = [];
-        if (tsRes.data) allData = [...tsRes.data];
+        if (tsRes.data) allData = tsRes.data.map(ts => ({ ...ts, source_table: 'tournament_series' }));
         for (const ps of normalizedPs) {
             const uid = ps.series_uid;
             if (!uid || !allData.some(t => t.series_uid === uid)) allData.push(ps);
         }
 
+        const initialSeries = buildSeriesPreview(allData, generatedAt);
         return {
-            props: { initialSeries: allData },
-            revalidate: 3600, // 60 second Edge caching
+            props: {
+                initialSeries,
+                initialSeriesMeta: {
+                    generatedAt,
+                    previewCount: initialSeries.length,
+                    totalCount: allData.length,
+                    degraded: false,
+                    source: 'isr-preview',
+                },
+            },
+            revalidate: 3600, // 1-hour ISR snapshot; SWR keeps the client live
         };
     } catch (e) {
         console.warn('ISR Build Failed:', e.message);
-        return { props: { initialSeries: [] }, revalidate: 3600 };
+        return {
+            props: {
+                initialSeries: [],
+                initialSeriesMeta: { generatedAt, previewCount: 0, totalCount: 0, degraded: true, source: 'isr-error' },
+            },
+            revalidate: 3600,
+        };
     }
 }

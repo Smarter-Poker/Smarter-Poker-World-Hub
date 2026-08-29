@@ -18,7 +18,8 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
-import { getInitialsColor } from '../../src/components/poker-near-me/pnm-utils';
+import PokerIdentityMark from '../../src/components/poker-near-me/PokerIdentityMark';
+import { homeGameUrl } from '../../src/lib/home-games/urls';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -178,9 +179,11 @@ export default function DailyTournaments() {
         return p;
     }, [selectedDay, selectedState, selectedType, selectedBuyin, debouncedSearch, selectedDate]);
 
-    const { data: swrData, error, isLoading: loading, mutate: refreshTournaments } = useSWR(
+    const { data: swrData, error, isLoading: loading, isValidating, mutate: refreshTournaments } = useSWR(
         `/api/poker/daily-tournaments?${swrParams}`,
-        (url) => fetch(url).then(r => r.json()).then(d => {
+        (url) => fetch(url).then(async r => {
+            const d = await r.json().catch(() => null);
+            if (!r.ok) throw new Error(d?.error || `Schedule returned ${r.status}`);
             // BUG FIX: SWR gracefully passes soft 200 JSON errors. Force strict extraction.
             if (d && d.success === false) throw new Error(d.error || 'Failed to fetch API events');
             return d;
@@ -201,7 +204,11 @@ export default function DailyTournaments() {
     useVenueRealtime(() => {
         const rtUrl = `/api/poker/daily-tournaments?${swrParams.toString()}&_rt=${Date.now()}`;
         fetch(rtUrl)
-            .then(r => r.json())
+            .then(async r => {
+                const data = await r.json().catch(() => null);
+                if (!r.ok) throw new Error(data?.error || `Realtime schedule returned ${r.status}`);
+                return data;
+            })
             .then(d => {
                 if (d.success) refreshTournaments(d, { revalidate: false });
                 else refreshTournaments(); // Soft invalidate if payload is bad
@@ -210,6 +217,16 @@ export default function DailyTournaments() {
     });
     const tournaments = swrData?.tournaments || [];
     const stats = swrData?.stats || {};
+    const scheduleMeta = swrData?.meta || null;
+    const scheduleState = error ? 'error' : scheduleMeta?.degraded ? 'degraded' : isValidating ? 'syncing' : 'live';
+    const scheduleStatusLabel = scheduleState === 'error'
+        ? 'Schedule connection unavailable'
+        : scheduleState === 'degraded'
+            ? 'Partial live coverage · supplemental sources remain available'
+            : scheduleState === 'syncing'
+                ? 'Refreshing verified schedules'
+                : 'Verified schedule feed synchronized';
+    const scheduleFreshness = swrData?.lastUpdated || scheduleMeta?.generatedAt || null;
 
     // ── GPS / Distance Filter ─────────────────────────────────────────────
     // [P1-B FIX] Moved above clearFilters — useState setters must be declared before
@@ -382,6 +399,15 @@ export default function DailyTournaments() {
                     <div className="dt-header-left">
                         <h1><span className="white">DAILY</span> <span className="gold">TOURNAMENTS</span></h1>
                         <span className="subtitle">{stats.total || 0} TOURNAMENTS AT {stats.venueCount || new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} VENUES</span>
+                        <div className={`dt-source-state dt-source-state--${scheduleState}`} role="status" aria-live="polite" data-source-state={scheduleState}>
+                            <span className="dt-source-state__signal" aria-hidden="true" />
+                            <span>{scheduleStatusLabel}</span>
+                            {scheduleFreshness && (
+                                <time dateTime={scheduleFreshness}>
+                                    {scheduleFreshness.slice(0, 10)} {scheduleFreshness.slice(11, 16)} UTC
+                                </time>
+                            )}
+                        </div>
                     </div>
                     <div className="dt-header-right">
                         <form role="search" className="pnm-search-box" style={{ position: 'relative' }} onSubmit={(e) => { e.preventDefault(); setDebouncedSearch(searchQuery); }}>
@@ -789,6 +815,39 @@ export default function DailyTournaments() {
                         font-weight: 400;
                         letter-spacing: 1px;
                     }
+                    .dt-source-state {
+                        display: flex;
+                        align-items: center;
+                        flex-wrap: wrap;
+                        gap: 7px;
+                        margin-top: 4px;
+                        color: rgba(205, 224, 236, 0.7);
+                        font-size: 10px;
+                        font-weight: 700;
+                        letter-spacing: 0.055em;
+                        text-transform: uppercase;
+                    }
+                    .dt-source-state__signal {
+                        width: 7px;
+                        height: 7px;
+                        border-radius: 50%;
+                        background: #4ade80;
+                        box-shadow: 0 0 10px rgba(74, 222, 128, 0.65);
+                    }
+                    .dt-source-state--syncing .dt-source-state__signal {
+                        background: #60a5fa;
+                        box-shadow: 0 0 10px rgba(96, 165, 250, 0.65);
+                    }
+                    .dt-source-state--degraded .dt-source-state__signal,
+                    .dt-source-state--error .dt-source-state__signal {
+                        background: #f4b942;
+                        box-shadow: 0 0 10px rgba(244, 185, 66, 0.62);
+                    }
+                    .dt-source-state time {
+                        color: rgba(148, 163, 184, 0.56);
+                        font-weight: 600;
+                        text-transform: none;
+                    }
 
                     .day-selector {
                         padding: 0 20px 16px;
@@ -1163,30 +1222,24 @@ export default function DailyTournaments() {
 // Tournament Card Component
 function TournamentCard({ tournament }) {
     const t = tournament;
-    const isRealVenue = t.venue_id && !String(t.venue_id).startsWith('charity_') && !String(t.venue_id).startsWith('tour_event_');
-    const initials = (t.venue_name || 'V').substring(0, 1).toUpperCase();
-    const initialsColors = getInitialsColor(t.venue_id || t.venue_name || 'V');
+    const isHomeGame = Boolean(t.is_home_game);
+    const isRealVenue = Number.isFinite(Number(t.venue_id)) && Number(t.venue_id) > 0;
+    const detailUrl = isHomeGame ? homeGameUrl(t) : (isRealVenue ? `/hub/venues/${t.venue_id}` : null);
 
     return (
         <div className="tournament-card">
             {/* ── TOP ROW: Logo + Time badge (left) + Buy-in (right) ── */}
             <div className="card-top">
                 <div className="card-logo-wrap">
-                    {t.logo_url ? (
-                        <img src={t.logo_url} alt={initials} className="card-logo" />
-                    ) : (
-                        <div className="card-initials" style={{ backgroundColor: initialsColors.bg, color: initialsColors.text, borderColor: initialsColors.border }}>
-                            {initials}
-                        </div>
-                    )}
+                    <PokerIdentityMark src={t.logo_url} name={t.venue_name} size={56} />
                 </div>
                 <div className="card-top-meta">
                     <span className="card-time">{formatTime(t.start_time)}</span>
                     {t.tournament_name && t.tournament_name !== t.venue_name && !t.tournament_name.match(/Buy In$/i) && !t.tournament_name.match(/^(pdf_action|viewport|fc-head|rh-flat|cookie|null|undefined)$/i) && t.tournament_name.length < 120 && (
                         <p className="card-tournament-name">{t.tournament_name}</p>
                     )}
-                    {isRealVenue ? (
-                        <Link href={`/hub/venues/${t.venue_id}`} legacyBehavior>
+                    {detailUrl ? (
+                        <Link href={detailUrl} legacyBehavior>
                             <a className="card-venue card-venue-link">{t.venue_name}</a>
                         </Link>
                     ) : (
@@ -1205,9 +1258,9 @@ function TournamentCard({ tournament }) {
 
             {/* ── FOOTER: Action buttons always at bottom ── */}
             <div className="card-actions">
-                {isRealVenue && (
-                    <Link href={`/hub/venues/${t.venue_id}`} legacyBehavior>
-                        <a className="card-link venue-link">View venue page</a>
+                {detailUrl && (
+                    <Link href={detailUrl} legacyBehavior>
+                        <a className="card-link venue-link">{isHomeGame ? 'View home game' : 'View venue page'}</a>
                     </Link>
                 )}
                 {t.pokerAtlasUrl && (
@@ -1243,28 +1296,6 @@ function TournamentCard({ tournament }) {
                 .card-logo-wrap {
                     flex-shrink: 0;
                     width: 56px;
-                }
-                .card-logo {
-                    width: 56px;
-                    height: 56px;
-                    border-radius: 6px;
-                    object-fit: contain;
-                    background: rgba(255, 255, 255, 0.9);
-                    padding: 3px;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    display: block;
-                }
-                .card-initials {
-                    width: 56px;
-                    height: 56px;
-                    border-radius: 6px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 24px;
-                    font-weight: 700;
-                    border: 1px solid;
-                    flex-shrink: 0;
                 }
                 .card-top-meta {
                     flex: 1;
