@@ -17,10 +17,35 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
+  test('strategy hub renders the live question-shaped Hand Of The Day payload', async ({ page }) => {
+    await page.route('**/api/training/hand-of-the-day', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        dailyId: 'daily-test',
+        question: {
+          id: 'solver-question-test',
+          hero_hand: 'T9s',
+          heroCards: ['Ts', '9s'],
+          hero_position: 'BTN',
+          board_cards: ['Qc', '5h', '3s'],
+          scenario_text: 'You Hold T9s On The Flop. What Is The GTO Play?',
+          scenario: { heroHand: 'T9s', heroPosition: 'BTN', potSize: 6 },
+        },
+      }),
+    }));
+    await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Hand Of The Day' })).toBeVisible();
+    await expect(page.getByText('You Hold T9s On The Flop. What Is The GTO Play?')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Load In Sandbox/i })).toBeVisible();
+    await expectHealthyLayout(page);
+  });
+
   test('Sandbox setup sheet opens, traps context, and closes with Escape', async ({ page }) => {
     const response = await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
-    await expect(page.getByRole('heading', { name: /Virtual Sandbox Poker Scenario Solver/i })).toBeAttached();
+    await expect(page.getByRole('heading', { name: 'Virtual Sandbox', exact: true })).toBeAttached();
     await expect(page.locator('#sandbox-table')).toBeVisible();
     await page.getByRole('button', { name: 'Open setup' }).click();
     await expect(page.getByRole('dialog', { name: /Setup/i })).toBeVisible();
@@ -48,6 +73,20 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(page.getByRole('dialog', { name: /Pick card 2 of 2/i })).toBeVisible();
     await page.getByRole('button', { name: 'Done' }).click();
     await expect(page.getByRole('dialog', { name: /Pick card/i })).toHaveCount(0);
+    await expectHealthyLayout(page);
+  });
+
+  test('Sandbox templates and study analytics subpages open from their real controls', async ({ page }) => {
+    await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
+
+    await page.getByRole('button', { name: 'Open setup' }).click();
+    await page.getByRole('button', { name: 'Templates', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: /My templates/i })).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    await page.getByRole('button', { name: 'Load a saved hand' }).click();
+    await page.getByRole('button', { name: /Study analytics/i }).click();
+    await expect(page.getByRole('dialog', { name: /Study analytics/i })).toBeVisible();
     await expectHealthyLayout(page);
   });
 

@@ -64,6 +64,31 @@ test('Coach Mode keeps four-choice quizzes and unmistakable manual feedback', ()
   assert.doesNotMatch(source, /setTimeout\([^)]*nextQuizQuestion/);
 });
 
+test('Coach Mode is an image-led casino-realism chamber, not a generic dashboard', () => {
+  const source = read('pages/hub/training/coach-mode.js');
+  const css = read('src/styles/worlds/training.css');
+  const artwork = [...source.matchAll(/art:\s*'([^']+)'/g)].map((match) => match[1]);
+
+  assert.equal(artwork.length, 6, 'every Coach Mode module needs purpose-built rendered art');
+  for (const publicPath of artwork) {
+    const asset = path.join(root, 'public', publicPath);
+    assert.ok(fs.existsSync(asset), `missing Coach Mode artwork: ${publicPath}`);
+    assert.ok(fs.statSync(asset).size < 200_000, `Coach Mode artwork is not delivery-optimized: ${publicPath}`);
+  }
+
+  assert.match(source, /strategy-chamber-hero\.webp/);
+  assert.match(source, /sp-coach-casino/);
+  assert.match(source, /sp-coach-console--concept/);
+  assert.match(source, /sp-coach-console--quiz/);
+  assert.match(source, /sp-coach-console--results/);
+  assert.doesNotMatch(source, /style=\{\{/);
+  assert.match(css, /COACH MODE — #SMARTERCASINOREALISM PRIVATE STRATEGY CHAMBER/);
+  assert.match(css, /--coach-black:\s*#010305/);
+  assert.match(css, /\.sp-coach-module-grid[\s\S]*repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.sp-coach-module-grid[\s\S]*minmax\(0, 1fr\)/);
+  assert.match(css, /\.sp-coach-module-card[\s\S]*border-radius:\s*2px\s*!important/);
+});
+
 test('the Phase 11 visual system uses straight dimensional cards and responsive grids', () => {
   const css = read('src/styles/worlds/training.css');
 
