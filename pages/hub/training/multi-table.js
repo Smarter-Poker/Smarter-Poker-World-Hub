@@ -35,12 +35,6 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
 // `?timer=` in a bookmarked URL cannot reach the arena as an unknown key.
 const TIMER_MODES = { relaxed: 1, standard: 1, quick: 1, blitz: 1 };
 
-// Same treatment for the other two setup-modal vocabularies that reach the
-// arena through the query string. SPEED_OPTIONS and FEEDBACK_OPTIONS in
-// SessionSetupModal are the source of these id sets.
-const SPEED_MODES = { normal: 1, fast: 1, turbo: 1 };
-const FEEDBACK_RULES = { every: 1, mistakes: 1 };
-
 const MULTI_TABLE_GAMES = [
   { id: 'cash-002', name: '3-Bet Pots' },
   { id: 'cash-003', name: 'Continuation Betting' },
@@ -73,7 +67,6 @@ export default function MultiTablePage() {
     totalEVLoss: 0,
     tablesCompleted: 0,
   });
-  const [isAutoAdvance, setIsAutoAdvance] = useState(false);
   const [completedTables, setCompletedTables] = useState(new Set());
   const [showSummary, setShowSummary] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // 'saving' | 'saved' | 'error'
@@ -144,7 +137,6 @@ export default function MultiTablePage() {
     if (Number.isFinite(requested) && requested >= 2 && requested <= 4) {
       setTableCount(requested);
     }
-    if (q.autoAdvance === '1') setIsAutoAdvance(true);
     if (typeof q.game === 'string' && q.game) {
       // Lead with the drill the player actually clicked, then fill the
       // remaining slots from the preset list without repeating it.
@@ -204,7 +196,7 @@ export default function MultiTablePage() {
       ? router.query.timer
       : 'relaxed',
     mode: 'standard',
-    autoAdvance: isAutoAdvance,
+    autoAdvance: false,
     // GTOW parity #7: the hand-selection filter has to survive the hop through
     // the query string too, otherwise picking "Close only" and then 2 tables
     // silently reverted to the unfiltered set.
@@ -218,17 +210,12 @@ export default function MultiTablePage() {
     // Both are whitelisted rather than passed through, because speed resolves
     // to a DELAY -- an unknown key would land on the 3000ms Normal branch by
     // accident rather than by decision.
-    speed: Object.prototype.hasOwnProperty.call(SPEED_MODES, router.query.speed)
-      ? router.query.speed
-      : 'normal',
-    feedbackRule: Object.prototype.hasOwnProperty.call(FEEDBACK_RULES, router.query.feedbackRule)
-      ? router.query.feedbackRule
-      : 'mistakes',
+    speed: 'normal',
+    feedbackRule: 'every',
     // Deliberately NOT `tables` — each arena here is a single table. The
     // wrapper's own multi-table branch was removed in this same change because
     // it rendered N identical copies of one drill.
-  }), [router.query.difficulty, router.query.timer, router.query.handSelection,
-       router.query.speed, router.query.feedbackRule, isAutoAdvance]);
+  }), [router.query.difficulty, router.query.timer, router.query.handSelection]);
 
   // The tables actually on screen, and which one currently owns the keyboard
   // and the confetti canvas. `focusedGameId` starts null so that it does not
@@ -685,51 +672,6 @@ export default function MultiTablePage() {
               </div>
             </div>
 
-            {/* Auto-Advance Toggle */}
-            <div style={{ marginBottom: 28 }}>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  letterSpacing: 1.5,
-                  textTransform: 'uppercase',
-                  marginBottom: 10,
-                }}
-              >
-                BLITZ MODE
-              </div>
-              <div
-                onClick={() => setIsAutoAdvance(!isAutoAdvance)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  borderRadius: 12,
-                  cursor: 'pointer',
-                  background: isAutoAdvance ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${isAutoAdvance ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                }}
-              >
-                <div style={{ textAlign: 'left' }}>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: isAutoAdvance ? 'var(--sp-accent-green)' : 'var(--sp-fg)',
-                    }}
-                  >
-                    Auto-Advance Hands
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
-                    Automatically deal next hand after answering
-                  </div>
-                </div>
-                <div style={{ fontSize: 18 }}>{isAutoAdvance ? '⌁' : '↻'}</div>
-              </div>
-            </div>
-
             {/* Game Selection Grid */}
             <div style={{ marginBottom: 28 }}>
               <div
@@ -1039,7 +981,7 @@ export default function MultiTablePage() {
                       sessionId={`${runId}-${gameId}`}
                       initialConfig={arenaInitialConfig}
                       isFocused={gameId === activeGameId}
-                      autoAdvance={isAutoAdvance}
+                      autoAdvance={false}
                       onComplete={() => {}}
                       onExit={() => setCompletedTables((prev) => new Set([...prev, gameId]))}
                     />

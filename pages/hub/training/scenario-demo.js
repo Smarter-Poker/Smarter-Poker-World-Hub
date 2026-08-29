@@ -83,27 +83,27 @@ const TUTORIAL_STEPS = [
 const QUIZ_QUESTIONS = [
   {
     q: 'What does "GTO" stand for?',
-    options: ['Game Theory Optimal', 'Get The Odds', 'Grand Total Output'],
+    options: ['Game Theory Optimal', 'Get The Odds', 'Grand Total Output', 'Game Table Order'],
     correct: 'Game Theory Optimal',
   },
   {
     q: 'If the solver says Check 80% / Bet 20%, what should you primarily do?',
-    options: ['Always bet', 'Primarily check', 'Fold'],
+    options: ['Always bet', 'Primarily check', 'Fold', 'Raise every time'],
     correct: 'Primarily check',
   },
   {
     q: 'Which position has the most advantage postflop?',
-    options: ['UTG', 'BB', 'BTN'],
+    options: ['UTG', 'BB', 'BTN', 'SB'],
     correct: 'BTN',
   },
   {
     q: 'What does MDF (Minimum Defense Frequency) tell you?',
-    options: ['How often to bluff', 'How often to continue vs a bet', 'How much to bet'],
+    options: ['How often to bluff', 'How often to continue vs a bet', 'How much to bet', 'How often to open preflop'],
     correct: 'How often to continue vs a bet',
   },
   {
     q: 'An 85% GTO accuracy score is considered:',
-    options: ['Weak — needs improvement', 'Strong — near-optimal', 'Average — room to grow'],
+    options: ['Weak — needs improvement', 'Strong — near-optimal', 'Average — room to grow', 'Unusable — restart the session'],
     correct: 'Strong — near-optimal',
   },
 ];

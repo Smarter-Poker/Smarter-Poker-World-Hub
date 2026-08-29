@@ -124,10 +124,23 @@ export const SPOT_SCENARIOS = [
                                     description: 'Villain Calls. River is 3h (Brick). BB Checks.',
                                     options: [
                                         { label: 'Check', score: 50, feedback: 'Missed value. Villain has many worse Kings.' },
+                                        { label: 'Bet 7BB (33%)', score: 75, feedback: 'Small sizing gets called often but leaves value on the table.' },
                                         { label: 'Bet 15BB (66%)', score: 100, feedback: 'Maximize value! Target KQ, KJ, KT.' },
                                         { label: 'All-In', score: 60, feedback: 'Too ambitious. Folds out everything you beat.' }
                                     ]
                                 }
+                            },
+                            {
+                                label: 'Bet 3BB (33%)',
+                                score: 82,
+                                feedback: 'A reasonable value size, though the turn supports a larger bet.',
+                                next: null
+                            },
+                            {
+                                label: 'Bet 11BB (125%)',
+                                score: 45,
+                                feedback: 'The overbet folds too much of the weaker range you want to keep in.',
+                                next: null
                             }
                         ]
                     }
@@ -136,6 +149,12 @@ export const SPOT_SCENARIOS = [
                     label: 'Bet 4BB (75%)',
                     score: 75,
                     feedback: 'A bit large for this dry board. Folds out hands you want to call.',
+                    next: null
+                },
+                {
+                    label: 'Bet 7BB (125%)',
+                    score: 30,
+                    feedback: 'The overbet is unnecessary on this dry board and isolates stronger hands.',
                     next: null
                 }
             ]
@@ -189,7 +208,9 @@ export const SPOT_SCENARIOS = [
                                     description: 'Villain Checks Back. River is 2d. You Act First.',
                                     options: [
                                         { label: 'Check', score: 90, feedback: 'Good to check-call or check-fold depending on size.' },
-                                        { label: 'Bet 10BB', score: 100, feedback: 'Thin value/blocker bet. Tries to get value from JJ/TT.' }
+                                        { label: 'Bet 8BB (25%)', score: 88, feedback: 'A small blocker bet is reasonable but leaves some value behind.' },
+                                        { label: 'Bet 10BB', score: 100, feedback: 'Thin value/blocker bet. Tries to get value from JJ/TT.' },
+                                        { label: 'Bet 24BB (75%)', score: 45, feedback: 'The large sizing is called by too many Ax hands and folds out worse pairs.' }
                                     ]
                                 }
                             },
@@ -197,6 +218,16 @@ export const SPOT_SCENARIOS = [
                                 label: 'Bet 16BB (50%)',
                                 score: 40,
                                 feedback: 'Dangerous. You act into the Ace which connects with their float range.'
+                            },
+                            {
+                                label: 'Bet 8BB (25%)',
+                                score: 65,
+                                feedback: 'Small betting has some merit, but checking protects your range better.'
+                            },
+                            {
+                                label: 'Bet 24BB (75%)',
+                                score: 25,
+                                feedback: 'The large barrel overplays an underpair on a card that favors the caller.'
                             }
                         ]
                     }
@@ -205,6 +236,11 @@ export const SPOT_SCENARIOS = [
                     label: 'Bet 15BB (75%)',
                     score: 70,
                     feedback: 'Slightly too big. Isolates you against sets and better overpairs.'
+                },
+                {
+                    label: 'Bet 25BB (125%)',
+                    score: 25,
+                    feedback: 'Overbetting isolates the strongest part of the Button range and folds worse hands.'
                 }
             ]
         }

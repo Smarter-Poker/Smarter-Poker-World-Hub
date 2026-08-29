@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useTrainingSettings } from '../../contexts/TrainingSettingsContext';
 import { formatScenario } from '../../utils/formatScenario';
 
@@ -19,8 +20,10 @@ const styles = {
         height: '100%',
         minHeight: '500px',
         background: 'linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 100%)',
-        borderRadius: '16px',
+        borderRadius: 0,
         overflow: 'hidden',
+        border: '1px solid rgba(120,205,238,.48)',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.18), inset 0 -18px 38px rgba(0,0,0,.42), 0 18px 42px rgba(0,0,0,.48)',
     },
 
     // Scenario/Question area (top 60%)
@@ -37,7 +40,7 @@ const styles = {
         background: 'linear-gradient(135deg, #f59e0b, #d97706)',
         color: '#000',
         padding: '6px 16px',
-        borderRadius: '20px',
+        borderRadius: 0,
         fontSize: '14px',
         fontWeight: '700',
         marginBottom: '16px',
@@ -46,7 +49,7 @@ const styles = {
     questionBox: {
         background: 'linear-gradient(135deg, #1e3a5f, #0f2847)',
         border: '2px solid #3b82f6',
-        borderRadius: '12px',
+        borderRadius: 0,
         padding: '24px 32px',
         maxWidth: '600px',
         width: '100%',
@@ -85,7 +88,7 @@ const styles = {
     answerButton: {
         background: 'linear-gradient(135deg, #1e3a5f, #0f2847)',
         border: '2px solid #3b82f6',
-        borderRadius: '8px',
+        borderRadius: 0,
         padding: '16px 20px',
         color: '#fff',
         fontSize: '16px',
@@ -150,28 +153,39 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0,0,0,0.85)',
+        justifyContent: 'flex-start',
+        overflowY: 'auto',
+        padding: 'clamp(18px, 5vw, 44px) clamp(14px, 5vw, 36px)',
+        background: 'radial-gradient(circle at 50% 8%, rgba(41,116,148,.32), transparent 36%), linear-gradient(145deg, rgba(19,32,44,.985), rgba(2,6,12,.99) 56%, rgba(0,2,5,.995))',
         zIndex: 10,
     },
 
     feedbackIcon: {
-        fontSize: '64px',
-        marginBottom: '16px',
+        width: 78,
+        height: 78,
+        display: 'grid',
+        placeItems: 'center',
+        fontSize: '52px',
+        lineHeight: 1,
+        marginBottom: '12px',
     },
 
     feedbackText: {
         color: '#fff',
-        fontSize: '24px',
+        fontSize: 'clamp(30px, 7vw, 48px)',
         fontWeight: '700',
-        marginBottom: '8px',
+        letterSpacing: 3,
+        lineHeight: 1,
+        marginBottom: '14px',
+        textTransform: 'uppercase',
+        fontFamily: "var(--font-rajdhani), 'Rajdhani', 'Inter', sans-serif",
     },
 
     explanationText: {
         color: '#94a3b8',
         fontSize: '16px',
         textAlign: 'center',
-        maxWidth: '400px',
+        maxWidth: '620px',
         lineHeight: '1.5',
     },
 
@@ -180,7 +194,7 @@ const styles = {
         padding: '12px 32px',
         background: 'linear-gradient(135deg, #164e63, #0f2847)',
         border: '2px solid #22d3ee',
-        borderRadius: '8px',
+        borderRadius: 0,
         color: '#22d3ee',
         fontSize: '16px',
         fontWeight: '700',
@@ -204,6 +218,7 @@ export default function GTOQuestionCard({
 }) {
     const [hoveredId, setHoveredId] = useState(null);
     const [selectedId, setSelectedId] = useState(null);
+    const reduceMotion = useReducedMotion();
     const { viewMode } = useTrainingSettings();
 
     // Reset selection/hover when a new question arrives so stale
@@ -305,28 +320,85 @@ export default function GTOQuestionCard({
                 </div>
             </div>
 
-            {/* Feedback Overlay */}
-            {showFeedback && (
-                <div style={styles.feedbackOverlay}>
-                    <div style={styles.feedbackIcon}>
-                        {feedbackResult === 'correct'? '✓': '✕'}
-                    </div>
-                    <div style={{
-                        ...styles.feedbackText,
-                        color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444'
-                    }}>
-                        {feedbackResult === 'correct' ? 'Correct!' : 'Incorrect'}
-                    </div>
-                    {explanation && (
-                        <div style={styles.explanationText}>{explanation}</div>
-                    )}
-                    {onNextHand && (
-                        <button style={styles.nextButton} onClick={onNextHand}>
-                            Next Question
-                        </button>
-                    )}
-                </div>
-            )}
+            {/* Feedback Overlay — persistent until the explicit Next click. */}
+            <AnimatePresence>
+                {showFeedback && (() => {
+                    const isCorrect = feedbackResult === 'correct';
+                    const resultColor = isCorrect ? '#53f2a0' : '#ff6670';
+                    const selectedText = question.options?.find(option => option.id === selectedId)?.text || selectedId || 'No Answer';
+                    const correctText = question.options?.find(option => option.id === question.correctAnswer)?.text || question.correctAnswer || 'Not Available';
+                    return (
+                        <motion.div
+                            key="feedback"
+                            role="status"
+                            aria-live="assertive"
+                            aria-atomic="true"
+                            initial={reduceMotion ? false : { opacity: 0, scale: .96 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={reduceMotion ? undefined : { opacity: 0, scale: .98 }}
+                            transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 310, damping: 25 }}
+                            style={styles.feedbackOverlay}
+                        >
+                            <motion.div
+                                initial={reduceMotion ? false : { rotateY: -90, scale: .72 }}
+                                animate={{ rotateY: 0, scale: 1 }}
+                                transition={reduceMotion ? { duration: 0 } : { delay: .08, type: 'spring', stiffness: 260, damping: 19 }}
+                                style={{
+                                    ...styles.feedbackIcon,
+                                    color: resultColor,
+                                    border: `2px solid ${resultColor}`,
+                                    background: 'linear-gradient(145deg, rgba(255,255,255,.18), rgba(0,0,0,.5))',
+                                    boxShadow: `inset 0 1px rgba(255,255,255,.3), 0 0 30px ${isCorrect ? 'rgba(28,222,128,.35)' : 'rgba(255,55,75,.38)'}`,
+                                }}
+                            >
+                                {isCorrect ? '✓' : '✕'}
+                            </motion.div>
+                            <div style={{ ...styles.feedbackText, color: resultColor, textShadow: '0 2px 0 #000, 0 0 22px currentColor' }}>
+                                {isCorrect ? 'Correct' : 'Incorrect'}
+                            </div>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                                gap: 10,
+                                maxWidth: 620,
+                                width: '100%',
+                                marginBottom: 14,
+                            }}>
+                                <div style={{ padding: 12, background: 'rgba(0,0,0,.42)', border: `1px solid ${isCorrect ? 'rgba(83,242,160,.5)' : 'rgba(255,102,112,.55)'}` }}>
+                                    <div style={{ color: '#91a9b7', fontSize: 9, fontWeight: 850, letterSpacing: 1.4, textTransform: 'uppercase' }}>Your Answer</div>
+                                    <div style={{ color: resultColor, fontSize: 15, fontWeight: 850, marginTop: 4 }}>{selectedText}</div>
+                                </div>
+                                <div style={{ padding: 12, background: 'rgba(0,0,0,.42)', border: '1px solid rgba(83,242,160,.55)' }}>
+                                    <div style={{ color: '#91a9b7', fontSize: 9, fontWeight: 850, letterSpacing: 1.4, textTransform: 'uppercase' }}>Correct Answer</div>
+                                    <div style={{ color: '#53f2a0', fontSize: 15, fontWeight: 850, marginTop: 4 }}>{correctText}</div>
+                                </div>
+                            </div>
+                            {explanation && (
+                                <div style={{
+                                    ...styles.explanationText,
+                                    padding: '13px 16px',
+                                    background: 'rgba(0,0,0,.3)',
+                                    border: '1px solid rgba(132,202,230,.32)',
+                                    color: '#d8e6ed',
+                                }}>{explanation}</div>
+                            )}
+                            <div style={{ color: '#9db0bb', fontSize: 10, fontWeight: 700, marginTop: 13, textAlign: 'center' }}>
+                                This Result Will Stay Open Until You Click Next.
+                            </div>
+                            {onNextHand && (
+                                <button style={{
+                                    ...styles.nextButton,
+                                    minHeight: 52,
+                                    background: 'linear-gradient(180deg, #4c7387 0%, #173849 12%, #071722 56%, #02080d 100%)',
+                                    boxShadow: 'inset 0 2px rgba(255,255,255,.35), inset 0 -6px rgba(0,0,0,.42), 0 9px 22px rgba(0,0,0,.5), 0 0 18px rgba(34,211,238,.18)',
+                                }} onClick={onNextHand}>
+                                    Next Question →
+                                </button>
+                            )}
+                        </motion.div>
+                    );
+                })()}
+            </AnimatePresence>
         </div>
     );
 }

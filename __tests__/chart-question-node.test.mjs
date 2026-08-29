@@ -13,8 +13,8 @@
  * cannot ship again:
  *
  *   • push-node charts grade from the push frequency;
- *   • call-node charts grade from the call frequency, render Call All-In
- *     options and "Call or Fold?" text, and never say "Push";
+ *   • call-node charts grade from the call frequency, render literal Yes/No
+ *     options for "Should you call?", and never say "Push";
  *   • villain_action codes render as human text, never raw ('sb_push');
  *   • a hand whose frequency the code cannot read produces NULL, not "fold" —
  *     refusing beats fabricating an answer.
@@ -79,7 +79,7 @@ test('push-node charts grade from the push frequency', () => {
     const aa = build(b, PUSH_CHART, 'AA');
     assert.equal(aa.correctAnswer, 'push', 'AA must be a push in an open-shove chart');
     assert.match(aa.question, /Push or Fold\?$/);
-    assert.match(aa.question, /Folded to you/);
+    assert.match(aa.question, /Action folds to you/);
     assert.equal(build(b, PUSH_CHART, '72o').correctAnswer, 'fold');
 });
 
@@ -87,11 +87,12 @@ test('call-node charts grade from the call frequency and render a call decision'
     const b = loadChartBuilder();
     const aa = build(b, CALL_CHART, 'AA');
     assert.equal(aa.correctAnswer, 'call', 'AA facing a shove is a call, NEVER a fold — this exact bug shipped once');
-    assert.equal(aa.correctAnswerText, 'Call All-In');
-    assert.match(aa.question, /Call or Fold\?$/);
-    assert.match(aa.question, /SB shoves/);
+    assert.equal(aa.correctAnswerText, 'Yes');
+    assert.match(aa.question, /Should you call\?$/);
+    assert.match(aa.question, /Action folds to the Small Blind, who raises all-in/);
     assert.ok(!aa.question.includes('sb_push'), 'raw villain_action codes must never reach the question text');
     assert.deepEqual(aa.options.map(o => o.id), ['call', 'fold']);
+    assert.deepEqual(aa.options.map(o => o.text), ['Yes', 'No']);
     assert.equal(aa.gtoFrequencies.call, 100);
 
     const trash = build(b, CALL_CHART, '83o');

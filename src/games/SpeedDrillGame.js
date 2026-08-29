@@ -144,39 +144,42 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
         });
 
         setGameState('revealed');
-
-        const freezeSaved = !isCorrect && streakFreezeAvailable;
-        setTimeout(() => {
-            if (!isCorrect && !freezeSaved && lives - 1 <= 0) {
-                setGameState('gameover');
-                SoundEngine.play('gameOver');
-                { const acc = handsPlayed > 0 ? Math.round((score / (handsPlayed * 110)) * 100) : 0; const g = acc >= 90 ? 'S' : acc >= 75 ? 'A' : acc >= 60 ? 'B' : acc >= 40 ? 'C' : 'D'; savePersonalBest('speed-drill', score, g); if (g === 'S' || g === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
-                recordSessionWeakness('speed-drill', mistakesRef.current, handsPlayed + 1);
-                const diamondReward = Math.floor(score / 100);
-                if (diamondReward > 0 && DiamondEngine) {
-                    void DiamondEngine.award(diamondReward).then(newBalance => {
-                        if (Number.isFinite(newBalance)) onScoreUpdate?.(newBalance);
-                    });
-                }
-                if (userId) {
-                    const accuracy = handsPlayed > 0 ? Math.round((score / (handsPlayed * 100)) * 100) : 0;
-                    gameSessionService.recordSession(userId, {
-                        gameMode: 'speed_drill', level,
-                        scenarioId: currentHand?.scenario?.title,
-                        score, accuracy, timeTaken: 0,
-                        diamondsSpent: 0, diamondsEarned: 0, completed: true
-                    }).catch(e => console.warn('[SpeedDrill] Session failed:', e));
-                    achievementService.checkAndUnlock(userId, {
-                        gamesPlayed: 1, accuracy, level,
-                        gameMode: 'speed_drill', currentStreak: maxStreak,
-                        modesPlayed: ['speed_drill']
-                    }).catch(e => console.warn('[SpeedDrill] Achievement check failed:', e));
-                }
-            } else {
-                nextHand();
-            }
-        }, 800);
     }, [gameState, currentHand, streak, lives, score, nextHand, DiamondEngine, onScoreUpdate, userId, handsPlayed, level, maxStreak, streakFreezeAvailable, doublePointsActive]);
+
+    const handleNext = useCallback(() => {
+        if (gameState !== 'revealed') return;
+        if (lives > 0) {
+            nextHand();
+            return;
+        }
+
+        setGameState('gameover');
+        SoundEngine.play('gameOver');
+        const accuracy = handsPlayed > 0 ? Math.round((score / (handsPlayed * 110)) * 100) : 0;
+        const grade = accuracy >= 90 ? 'S' : accuracy >= 75 ? 'A' : accuracy >= 60 ? 'B' : accuracy >= 40 ? 'C' : 'D';
+        savePersonalBest('speed-drill', score, grade);
+        if (grade === 'S' || grade === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        recordSessionWeakness('speed-drill', mistakesRef.current, handsPlayed);
+        const diamondReward = Math.floor(score / 100);
+        if (diamondReward > 0 && DiamondEngine) {
+            void DiamondEngine.award(diamondReward).then(newBalance => {
+                if (Number.isFinite(newBalance)) onScoreUpdate?.(newBalance);
+            });
+        }
+        if (userId) {
+            gameSessionService.recordSession(userId, {
+                gameMode: 'speed_drill', level,
+                scenarioId: currentHand?.scenario?.title,
+                score, accuracy, timeTaken: 0,
+                diamondsSpent: 0, diamondsEarned: 0, completed: true
+            }).catch(e => console.warn('[SpeedDrill] Session failed:', e));
+            achievementService.checkAndUnlock(userId, {
+                gamesPlayed: 1, accuracy, level,
+                gameMode: 'speed_drill', currentStreak: maxStreak,
+                modesPlayed: ['speed_drill']
+            }).catch(e => console.warn('[SpeedDrill] Achievement check failed:', e));
+        }
+    }, [gameState, lives, nextHand, handsPlayed, score, DiamondEngine, onScoreUpdate, userId, level, currentHand, maxStreak]);
 
     const handlePowerUp = useCallback(async (powerUp) => {
         if (!DiamondEngine || usedPowerUps.has(powerUp.id)) return;
@@ -195,7 +198,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
             setActivePowerUp(null);
             // Eliminate one wrong answer
             if (currentHand) {
-                const wrongActions = ['fold', 'call', 'raise'].filter(a => a !== currentHand.correctAction);
+                const wrongActions = ['fold', 'call', 'raise', 'allin'].filter(a => a !== currentHand.correctAction);
                 setEliminatedAction(wrongActions[Math.floor(Math.random() * wrongActions.length)]);
             }
         }
@@ -226,6 +229,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                 if (e.key === '1') handleAnswer('fold');
                 else if (e.key === '2') handleAnswer('call');
                 else if (e.key === '3') handleAnswer('raise');
+                else if (e.key === '4') handleAnswer('allin');
             }
         };
         window.addEventListener('keydown', handleKey);
@@ -290,10 +294,13 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                     </div>
                     </CircularTimer>
                     {gameState === 'revealed' && (
-                        <div style={{ marginBottom: 16 }}>
-                            <div style={{ fontSize: 18, fontWeight: 700, color: lastAnswerCorrect ? '#00ff88' : '#ff4444', marginBottom: 12 }}>
-                                {lastAnswerCorrect ? ` Correct! +${100 + (streak - 1) * 10}` : `✗ Wrong! Should ${currentHand.correctAction.toUpperCase()}`}
+                        <div aria-live="assertive" style={{ marginBottom: 16, border: `2px solid ${lastAnswerCorrect ? '#00ff88' : '#ff5c74'}`, background: lastAnswerCorrect ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,92,0.12)', padding: 14, borderRadius: 0 }}>
+                            <div style={{ fontSize: 24, fontWeight: 900, color: lastAnswerCorrect ? '#00ff88' : '#ff5c74', marginBottom: 10, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                                {lastAnswerCorrect ? 'Correct' : 'Incorrect'}
                             </div>
+                            <div style={{ color: 'rgba(255,255,255,0.78)', fontSize: 13 }}>Your Answer: {String(userAnswer).toUpperCase()}</div>
+                            <div style={{ color: '#72ffd0', fontSize: 13, marginTop: 3 }}>Correct Answer: {currentHand.correctAction.toUpperCase()}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.52)', fontSize: 11, marginTop: 8 }}>This Result Will Stay Open Until You Click Next.</div>
                             {!lastAnswerCorrect && (
                                 <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/gto-panels/panels/gto_${(currentHand.scenario?.position || 'utg').toLowerCase()}_${currentHand.correctAction}_${currentHand.scenario?.stackDepth || 100}bb.png`}
                                     alt="GTO Analysis" style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
@@ -304,7 +311,8 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                         {[{ action: 'fold', bg: 'rgba(100,100,100,0.3)', border: '#666', color: '#fff', label: 'FOLD', key: '1' },
                           { action: 'call', bg: 'rgba(16,185,129,0.3)', border: '#10B981', color: '#10B981', label: 'CALL', key: '2' },
-                          { action: 'raise', bg: 'rgba(239,68,68,0.3)', border: '#EF4444', color: '#EF4444', label: 'RAISE', key: '3' }].map(btn => {
+                          { action: 'raise', bg: 'rgba(239,68,68,0.3)', border: '#EF4444', color: '#EF4444', label: 'RAISE', key: '3' },
+                          { action: 'allin', bg: 'rgba(168,85,247,0.3)', border: '#A855F7', color: '#D8B4FE', label: 'ALL-IN', key: '4' }].map(btn => {
                             const isElim = eliminatedAction === btn.action;
                             return (
                                 <button key={btn.action} onClick={() => !isElim && handleAnswer(btn.action)} disabled={gameState !== 'playing' || isElim} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: isElim ? 'rgba(50,50,50,0.2)' : btn.bg, border: `2px solid ${isElim ? 'rgba(255,255,255,0.05)' : btn.border}`, borderRadius: 12, color: isElim ? 'rgba(255,255,255,0.15)' : btn.color, cursor: (gameState === 'playing' && !isElim) ? 'pointer' : 'default', opacity: isElim ? 0.25 : (gameState === 'playing' ? 1 : 0.5), position: 'relative', touchAction: 'manipulation', textDecoration: isElim ? 'line-through' : 'none' }}>
@@ -313,6 +321,11 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                             );
                         })}
                     </div>
+                    {gameState === 'revealed' && (
+                        <button type="button" onClick={handleNext} style={{ width: '100%', minHeight: 52, marginTop: 18, borderRadius: 0, border: '1px solid #9beeff', background: 'linear-gradient(180deg, #23465b, #07121b)', color: '#fff', fontSize: 15, fontWeight: 900, cursor: 'pointer', boxShadow: 'inset 0 1px rgba(255,255,255,0.26), 0 8px 18px rgba(0,0,0,0.38)' }}>
+                            {lives <= 0 ? 'View Results →' : 'Next Hand →'}
+                        </button>
+                    )}
                 </>
             )}
 

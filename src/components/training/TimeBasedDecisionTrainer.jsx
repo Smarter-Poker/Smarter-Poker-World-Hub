@@ -7,16 +7,16 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 
 const DECISIONS = [
-  { id: 1, board: 'K♠ 9♦ 4♣', hand: 'A♠ K♥', position: 'BTN vs BB', action: 'Villain checks', correct: 'bet33', options: ['bet33', 'bet67', 'check'], explanation: 'Top pair top kicker on dry board — c-bet 33% with high frequency.' },
-  { id: 2, board: 'J♥ T♥ 8♠', hand: '7♣ 6♣', position: 'CO vs BB', action: 'Villain checks', correct: 'check', options: ['bet33', 'bet67', 'check'], explanation: 'Open-ended but no backdoor flush draw on wet board. Check and realize equity.' },
-  { id: 3, board: 'A♦ 7♠ 2♣', hand: 'Q♠ Q♥', position: 'UTG vs BB', action: 'Villain bets 67%', correct: 'call', options: ['raise', 'call', 'fold'], explanation: 'QQ is strong but ace on board. Call and evaluate turn. Raising bloats pot unnecessarily.' },
-  { id: 4, board: 'T♣ 8♣ 3♦ 5♣', hand: 'A♣ 2♦', position: 'BTN vs BB', action: 'Villain checks turn', correct: 'bet67', options: ['bet33', 'bet67', 'check'], explanation: 'Turned nut flush draw with backdoor straight. Bet 67% — semi-bluff with massive equity.' },
-  { id: 5, board: 'K♥ Q♦ J♠ 9♣ 4♥', hand: 'A♠ T♣', position: 'IP vs BB', action: 'Villain bets 75%', correct: 'raise', options: ['raise', 'call', 'fold'], explanation: 'Nut straight on river. Raise for value — villain bets wide here with Kx, Qx.' },
-  { id: 6, board: '6♠ 5♠ 3♦', hand: 'A♥ A♦', position: 'SB vs BB', action: 'Villain check-raises', correct: 'call', options: ['reraise', 'call', 'fold'], explanation: 'AA is strong but board is very connected. Call the check-raise — don\'t inflate pot on draw-heavy board.' },
-  { id: 7, board: 'Q♣ 8♦ 2♠ 7♣ K♣', hand: '9♣ 6♣', position: 'BB vs BTN', action: 'Villain bets 50%', correct: 'raise', options: ['raise', 'call', 'fold'], explanation: 'Rivered flush. Raise for value — villain is betting for thin value with Kx or Qx.' },
-  { id: 8, board: 'A♣ K♦ T♥', hand: '5♠ 5♦', position: 'BB vs CO', action: 'Villain c-bets 33%', correct: 'fold', options: ['raise', 'call', 'fold'], explanation: '55 has almost no equity on AKT board. No draws, dominated. Clean fold.' },
-  { id: 9, board: '9♥ 8♥ 7♦ 2♣', hand: 'T♥ 6♥', position: 'BTN vs BB', action: 'Villain donk bets 50%', correct: 'raise', options: ['raise', 'call', 'fold'], explanation: 'Made straight with flush redraw. Raise for value and protection against villain\'s draws.' },
-  { id: 10, board: 'J♠ 4♦ 2♣ 8♠ Q♠', hand: 'A♠ 3♠', position: 'CO vs BB', action: 'Villain checks river', correct: 'bet67', options: ['bet33', 'bet67', 'check'], explanation: 'Rivered nut flush. Bet 67% for max value — villain checks back flushes that beat us.' },
+  { id: 1, board: 'K♠ 9♦ 4♣', hand: 'A♠ K♥', position: 'BTN vs BB', action: 'The Big Blind checks to you on the flop.', correct: 'bet33', options: ['check', 'bet33', 'bet67', 'bet125'], explanation: 'Top pair top kicker on dry board — c-bet 33% with high frequency.' },
+  { id: 2, board: 'J♥ T♥ 8♠', hand: '7♣ 6♣', position: 'CO vs BB', action: 'The Big Blind checks to you on the flop.', correct: 'check', options: ['check', 'bet33', 'bet67', 'bet125'], explanation: 'Open-ended but no backdoor flush draw on wet board. Check and realize equity.' },
+  { id: 3, board: 'A♦ 7♠ 2♣', hand: 'Q♠ Q♥', position: 'UTG vs BB', action: 'The Big Blind leads for 67% pot on the flop.', correct: 'call', options: ['fold', 'call', 'raise', 'allin'], explanation: 'QQ is strong but ace on board. Call and evaluate turn. Raising bloats pot unnecessarily.' },
+  { id: 4, board: 'T♣ 8♣ 3♦ 5♣', hand: 'A♣ 2♦', position: 'BTN vs BB', action: 'The Big Blind checks to you on the turn.', correct: 'bet67', options: ['check', 'bet33', 'bet67', 'bet125'], explanation: 'Turned nut flush draw with backdoor straight. Bet 67% — semi-bluff with massive equity.' },
+  { id: 5, board: 'K♥ Q♦ J♠ 9♣ 4♥', hand: 'A♠ T♣', position: 'IP vs BB', action: 'The Big Blind bets 75% pot into you on the river.', correct: 'raise', options: ['fold', 'call', 'raise', 'allin'], explanation: 'Nut straight on river. Raise for value — villain bets wide here with Kx, Qx.' },
+  { id: 6, board: '6♠ 5♠ 3♦', hand: 'A♥ A♦', position: 'SB vs BB', action: 'The Big Blind check-raises your flop bet.', correct: 'call', options: ['fold', 'call', 'reraise', 'allin'], explanation: 'AA is strong but board is very connected. Call the check-raise — don\'t inflate pot on draw-heavy board.' },
+  { id: 7, board: 'Q♣ 8♦ 2♠ 7♣ K♣', hand: '9♣ 6♣', position: 'BB vs BTN', action: 'The Button bets 50% pot into you on the river.', correct: 'raise', options: ['fold', 'call', 'raise', 'allin'], explanation: 'Rivered flush. Raise for value — villain is betting for thin value with Kx or Qx.' },
+  { id: 8, board: 'A♣ K♦ T♥', hand: '5♠ 5♦', position: 'BB vs CO', action: 'The Cutoff bets 33% pot into you on the flop.', correct: 'fold', options: ['fold', 'call', 'raise', 'allin'], explanation: '55 has almost no equity on AKT board. No draws, dominated. Clean fold.' },
+  { id: 9, board: '9♥ 8♥ 7♦ 2♣', hand: 'T♥ 6♥', position: 'BTN vs BB', action: 'The Big Blind leads for 50% pot on the turn.', correct: 'raise', options: ['fold', 'call', 'raise', 'allin'], explanation: 'Made straight with flush redraw. Raise for value and protection against villain\'s draws.' },
+  { id: 10, board: 'J♠ 4♦ 2♣ 8♠ Q♠', hand: 'A♠ 3♠', position: 'CO vs BB', action: 'The Big Blind checks to you on the river.', correct: 'bet67', options: ['check', 'bet33', 'bet67', 'bet125'], explanation: 'Rivered nut flush. Bet 67% for max value — villain checks back flushes that beat us.' },
 ];
 
 const TIME_LIMITS = [5, 10, 15, 20, 30];
@@ -86,7 +86,7 @@ function TimeBasedDecisionTrainer() {
   const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
   const timerPct = (timeLeft / timeLimit) * 100;
 
-  const labelMap = { bet33: 'Bet 33%', bet67: 'Bet 67%', check: 'Check', call: 'Call', raise: 'Raise', fold: 'Fold', reraise: '4-Bet' };
+  const labelMap = { bet33: 'Bet 33%', bet67: 'Bet 67%', bet125: 'Bet 125%', check: 'Check', call: 'Call', raise: 'Raise To 3x', fold: 'Fold', reraise: 'Re-Raise To 3x', allin: 'Raise All-In' };
 
   try {
     return (
@@ -129,6 +129,7 @@ function TimeBasedDecisionTrainer() {
           <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: 4, marginBottom: 6 }}>{decision.board}</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#f472b6', marginBottom: 6 }}>Hero: {decision.hand}</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{decision.position} • {decision.action}</div>
+          <div style={{ fontSize: 12, color: '#dbeafe', fontWeight: 800, marginTop: 7 }}>What Is Your Best Action?</div>
         </div>
 
         {/* Action Buttons or Start */}

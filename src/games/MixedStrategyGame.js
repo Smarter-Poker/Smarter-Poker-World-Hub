@@ -174,7 +174,6 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         if (difference <= 15) { setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCloseCount(prev => prev + 1); setScore(prev => prev + points + (streak * 50)); SoundEngine.play(streak >= 2 ? 'combo' : 'correct'); }
         else { setStreak(0); setScore(prev => prev + points); SoundEngine.play('wrong'); mistakesRef.current.push({ position: currentScenario?.title || 'Unknown', action: targetAction, expected: actualFreq, got: userFreq, diff: difference }); busEmit.decisionIncorrect(streak, { userAction: `${targetAction} ${userFreq}%`, bestAction: `${targetAction} ${actualFreq}%`, scenario: currentScenario }); }
         setGameState('revealed');
-        setTimeout(nextRound, 2000);
     };
 
     const handlePowerUp = useCallback(async (pu) => {
@@ -248,7 +247,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${gameState === 'revealed' ? currentScenario.frequencies[targetAction] : userFreq}%`, background: gameState === 'revealed' ? 'linear-gradient(90deg, #00ff88, #00cc6a)' : 'linear-gradient(90deg, #A855F7, #D946EF)', borderRadius: 20, transition: 'width 0.3s ease', opacity: gameState === 'revealed' ? 0.3 : 1 }} />
                         {gameState === 'revealed' && (<div style={{ position: 'absolute', left: `calc(${userFreq}% - 2px)`, top: -10, bottom: -10, width: 4, background: diff <= 5 ? '#00ff88' : '#ff4444', zIndex: 10, boxShadow: '0 0 10px rgba(0,0,0,0.5)' }} />)}
                         {gameState === 'revealed' && (<div style={{ position: 'absolute', left: `calc(${currentScenario.frequencies[targetAction]}% - 2px)`, top: -15, bottom: -15, width: 4, background: '#fff', zIndex: 11, boxShadow: '0 0 15px #fff' }} />)}
-                        <input type="range" min="0" max="100" value={userFreq} onChange={(e) => setGameState('playing') && setUserFreq(Number(e.target.value))} disabled={gameState !== 'playing'} style={{ position: 'absolute', width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 20 }} />
+                        <input type="range" min="0" max="100" value={userFreq} onChange={(e) => setUserFreq(Number(e.target.value))} disabled={gameState !== 'playing'} style={{ position: 'absolute', width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 20 }} />
                         <div style={{ position: 'absolute', width: '100%', top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 18, pointerEvents: 'none', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
                             {gameState === 'revealed' ? `${currentScenario.frequencies[targetAction]}% (You: ${userFreq}%)` : `${userFreq}%`}
                         </div>
@@ -259,11 +258,17 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                             <div style={{ fontSize: 18, fontWeight: 700, color: diff <= 5 ? '#00ff88' : diff <= 15 ? '#ffaa00' : '#ff4444', marginBottom: 12 }}>
                                 {diff === 0 ? 'PERFECT!' : diff <= 5 ? 'EXCELLENT!' : diff <= 15 ? 'CLOSE!' : 'WAY OFF!'}
                             </div>
+                            <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, lineHeight: 1.6 }}>
+                                Your Answer: {userFreq}% · Solver Answer: {currentScenario.frequencies[targetAction]}%
+                            </div>
+                            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 8 }}>
+                                This Result Will Stay Open Until You Click Next.
+                            </div>
                             {diff > 15 && (<img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/gto-panels/panels/gto_${(currentScenario?.position || 'utg').toLowerCase()}_${targetAction}_${currentScenario?.stackDepth || 100}bb.png`} alt="GTO Analysis" style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }} onError={(e) => { e.target.style.display = 'none'; }} />)}
                         </div>
                     )}
-                    <button onClick={handleSubmit} disabled={gameState !== 'playing'} style={{ marginTop: 40, padding: '16px 64px', background: gameState === 'revealed' ? 'rgba(255,255,255,0.1)' : '#fff', color: gameState === 'revealed' ? 'rgba(255,255,255,0.3)' : '#000', border: 'none', borderRadius: 40, fontWeight: 900, fontSize: 18, cursor: gameState === 'playing' ? 'pointer' : 'default', transform: gameState === 'playing' ? 'scale(1)' : 'scale(0.95)', transition: 'all 0.2s ease' }}>
-                        {gameState === 'revealed' ? 'NEXT HAND...' : 'LOCK IT IN'}
+                    <button onClick={gameState === 'revealed' ? nextRound : handleSubmit} style={{ marginTop: 40, padding: '16px 64px', background: gameState === 'revealed' ? 'linear-gradient(180deg, #23465b, #07121b)' : '#fff', color: gameState === 'revealed' ? '#fff' : '#000', border: gameState === 'revealed' ? '1px solid #9beeff' : 'none', borderRadius: 0, fontWeight: 900, fontSize: 18, cursor: 'pointer', boxShadow: gameState === 'revealed' ? 'inset 0 1px rgba(255,255,255,0.26), 0 8px 18px rgba(0,0,0,0.38)' : 'none', transition: 'all 0.2s ease' }}>
+                        {gameState === 'revealed' ? 'NEXT HAND →' : 'LOCK IT IN'}
                     </button>
                 </>
             )}

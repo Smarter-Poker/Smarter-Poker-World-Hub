@@ -58,6 +58,7 @@ const FINAL_TABLES = [
           { id: 'raise', text: 'Raise 8M', freq: 85, ev: 1.2, correct: true },
           { id: 'limp', text: 'Limp 4M', freq: 10, ev: 0.4 },
           { id: 'fold', text: 'Fold', freq: 5, ev: 0 },
+          { id: 'jam', text: 'Raise All-In', freq: 0, ev: -1.8 },
         ],
         explanation:
           'With AKo on the BTN 3-handed, raising is the dominant strategy. Limping is a significant leak as it gives the blinds a cheap flop with position.',
@@ -73,6 +74,7 @@ const FINAL_TABLES = [
           { id: 'cbet-33', text: 'C-Bet 33% pot', freq: 65, ev: 2.8, correct: true },
           { id: 'cbet-75', text: 'C-Bet 75% pot', freq: 25, ev: 2.1 },
           { id: 'check', text: 'Check back', freq: 10, ev: 1.5 },
+          { id: 'cbet-125', text: 'C-Bet 125% pot', freq: 0, ev: 0.6 },
         ],
         explanation:
           "Top pair top kicker on a dry board. Small c-bet is optimal — it gets value from worse Ax and doesn't build the pot unnecessarily.",
@@ -88,6 +90,7 @@ const FINAL_TABLES = [
           { id: 'bet-66', text: 'Bet 66% pot', freq: 55, ev: 3.5, correct: true },
           { id: 'bet-100', text: 'Bet pot', freq: 20, ev: 2.8 },
           { id: 'check', text: 'Check', freq: 25, ev: 2.2 },
+          { id: 'bet-33', text: 'Bet 33% pot', freq: 0, ev: 1.7 },
         ],
         explanation:
           'The Queen brings backdoor flush draws. Betting 66% continues to extract value while maintaining range balance.',
@@ -118,6 +121,7 @@ const FINAL_TABLES = [
           { id: 'raise', text: 'Raise 14M', freq: 75, ev: 1.8, correct: true },
           { id: 'limp', text: 'Limp 6M', freq: 20, ev: 1.1 },
           { id: 'fold', text: 'Fold', freq: 5, ev: 0 },
+          { id: 'jam', text: 'Raise All-In', freq: 0, ev: -1.1 },
         ],
         explanation:
           'Suited connectors are premium HU. With a 5:1 chip lead, applying pressure with a standard raise is ICM-optimal.',
@@ -131,6 +135,7 @@ const FINAL_TABLES = [
           { id: 'cbet-33', text: 'C-Bet 33%', freq: 70, ev: 3.2, correct: true },
           { id: 'cbet-75', text: 'C-Bet 75%', freq: 15, ev: 2.5 },
           { id: 'check', text: 'Check', freq: 15, ev: 1.8 },
+          { id: 'cbet-125', text: 'C-Bet 125%', freq: 0, ev: 0.9 },
         ],
         explanation:
           'Open-ended straight draw with two overcards. Small c-bet is optimal — you have massive equity and want to build the pot cheaply.',
@@ -162,6 +167,7 @@ const FINAL_TABLES = [
           { id: 'raise', text: 'Raise 900K', freq: 70, ev: 0.9, correct: true },
           { id: 'fold', text: 'Fold', freq: 25, ev: 0 },
           { id: 'jam', text: 'All-in 8.9M', freq: 5, ev: -0.3 },
+          { id: 'limp', text: 'Limp 400K', freq: 0, ev: -0.5 },
         ],
         explanation:
           'JTs is a strong CO open 3-handed. Standard raise size at 2.25x. Jamming would be a severe ICM error at this stack depth.',
@@ -193,6 +199,7 @@ const FINAL_TABLES = [
           { id: 'raise', text: 'Raise 2M', freq: 80, ev: 1.5, correct: true },
           { id: 'jam', text: 'All-in 33.5M', freq: 5, ev: 0.8 },
           { id: 'limp', text: 'Limp 800K', freq: 15, ev: 0.6 },
+          { id: 'fold', text: 'Fold', freq: 0, ev: -1.2 },
         ],
         explanation:
           'AQo is a premium hand from the SB 3-handed. Standard 2.5x raise maximizes EV. Jamming is +EV but surrenders significant edge.',
@@ -206,6 +213,7 @@ const FINAL_TABLES = [
           { id: 'cbet-33', text: 'C-Bet 33%', freq: 60, ev: 2.2, correct: true },
           { id: 'cbet-75', text: 'C-Bet 75%', freq: 30, ev: 1.9 },
           { id: 'check', text: 'Check', freq: 10, ev: 1.2 },
+          { id: 'cbet-125', text: 'C-Bet 125%', freq: 0, ev: 0.4 },
         ],
         explanation:
           'Top pair with top kicker on a dry Q-high board. Small c-bet extracts from worse queens and middle pairs.',
@@ -236,6 +244,7 @@ const FINAL_TABLES = [
           { id: 'raise', text: 'Raise 450K', freq: 82, ev: 1.3, correct: true },
           { id: 'limp', text: 'Limp 200K', freq: 15, ev: 0.7 },
           { id: 'fold', text: 'Fold', freq: 3, ev: 0 },
+          { id: 'jam', text: 'Raise All-In', freq: 0, ev: -0.8 },
         ],
         explanation:
           'KJh is a strong HU raising hand. At 28 BB effective, standard raise sizing keeps the SPR manageable.',
@@ -249,6 +258,7 @@ const FINAL_TABLES = [
           { id: 'cbet-50', text: 'C-Bet 50%', freq: 55, ev: 3.8, correct: true },
           { id: 'cbet-100', text: 'C-Bet pot', freq: 25, ev: 3.1 },
           { id: 'check', text: 'Check', freq: 20, ev: 2.4 },
+          { id: 'cbet-125', text: 'C-Bet 125%', freq: 0, ev: 1.6 },
         ],
         explanation:
           'Top pair with a nut flush draw. This is a monster draw — c-betting 50% pot sets up for a turn barrel or free card.',

@@ -2831,7 +2831,6 @@ function GodModeArenaInner({
   sessionId,
   onComplete,
   onExit,
-  autoAdvance = false,
   // 2026-07-26 UX FIX: when the caller has ALREADY collected difficulty /
   // timer / mode (SessionSetupModal on the dashboard), pass them here.
   // The arena then starts straight into play instead of showing its own
@@ -2858,21 +2857,11 @@ function GodModeArenaInner({
   // Trainer config state
   const [trainerConfig, setTrainerConfig] = useState(() => {
     if (initialConfig) {
-      // GTOW's Auto New Hand delay is ~3s at Normal. Fast halves it; Turbo is
-      // "as soon as the frame paints" — but 1ms gave no time to even register
-      // that the hand resolved, so Turbo is 250ms.
-      let delayMs = 3000;
-      if (initialConfig.speed === 'fast') delayMs = 1500;
-      if (initialConfig.speed === 'turbo') delayMs = 250;
-
-      // GTOW parity #29: these two used to sit AFTER the spread, so whatever
-      // the player chose in the setup modal was unconditionally discarded.
-      // They now come from the config, with the spread last so it wins.
       return {
-        feedbackRule: 'mistakes',
-        autoAdvance: true,
         ...initialConfig,
-        autoAdvanceDelayMs: delayMs,
+        feedbackRule: 'every',
+        autoAdvance: false,
+        autoAdvanceDelayMs: 0,
       };
     }
     return null;
@@ -2880,7 +2869,12 @@ function GodModeArenaInner({
   const [showConfigModal, setShowConfigModal] = useState(false);
 
   const handleConfigStart = useCallback((config) => {
-    setTrainerConfig(config);
+    setTrainerConfig({
+      ...config,
+      feedbackRule: 'every',
+      autoAdvance: false,
+      autoAdvanceDelayMs: 0,
+    });
     setShowConfigModal(false);
     // Game will re-mount with new config
   }, []);
@@ -3373,41 +3367,6 @@ function GodModeArenaInner({
   // than left to be resurrected by the next refactor; UDT's expiry path
   // auto-folds/checks with the solver's own classification and says TIME.
 
-  // ●●● AUTO-ADVANCE FOR MULTI-TABLE BLITZ ●●●
-  // GTOW parity #29: this used to fire on a hardcoded 800ms regardless of the
-  // player's Game speed choice, and regardless of the feedback rule — so
-  // "Every action" still auto-advanced. It now defers to the resolved config
-  // and stays out of the way whenever the table's own countdown owns pacing.
-  useEffect(() => {
-    if (!autoAdvance || !showFeedback || gameComplete) return;
-    const rule = trainerConfig?.feedbackRule || 'mistakes';
-    if (rule === 'every') return;
-
-    // #6, second half. This is a SECOND auto-advance path: UniversalDynamicTable
-    // runs its own countdown from the same trainerConfig, and the two did not
-    // share rules. UDT stops on an inaccuracy under 'mistakes' and NEVER
-    // advances a wrong answer or a blunder under any rule -- "the player should
-    // study the feedback" is the entire point of the setting. This effect
-    // advanced everything the moment the rule was not 'every', and with both
-    // mounted the earlier timeout wins, so on the multi-table screen a blunder's
-    // feedback was pulled off the felt while UDT was deliberately holding it
-    // there. Mirror UDT's classification rules exactly rather than racing them.
-    const good = lastClassification === 'best' || lastClassification === 'correct';
-    if (rule === 'mistakes' && !good) return;
-    if (!good && lastClassification !== 'inaccuracy') return;
-
-    // #5: the delay is the player's Game speed choice, and an inaccuracy gets
-    // double the reading time -- again matching UDT rather than diverging.
-    const base = Number(trainerConfig?.autoAdvanceDelayMs) > 0
-      ? Number(trainerConfig.autoAdvanceDelayMs)
-      : 3000;
-    const delay = lastClassification === 'inaccuracy' ? Math.round(base * 2) : base;
-    const timerId = setTimeout(() => {
-      nextQuestion();
-    }, delay);
-    return () => clearTimeout(timerId);
-  }, [autoAdvance, showFeedback, gameComplete, nextQuestion, trainerConfig, lastClassification]);
-
   // ●●● Phase 21: Game Phase State Machine ●●●
   // Skip the splash entirely when the caller already gathered the config.
   const [gamePhase, setGamePhase] = useState(initialConfig ? 'playing' : 'splash'); // 'splash' | 'playing' | 'review'
@@ -3778,11 +3737,6 @@ function GodModeArenaInner({
       if (typeof window !== 'undefined' && window.__spUnifiedKeyboard > 0) return;
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) return;
-      if (showFeedback && e.key === ' ') {
-        e.preventDefault();
-        handleNextQuestion();
-        return;
-      }
       if (!showFeedback && currentQuestion?.options) {
         const idx = parseInt(e.key) - 1;
         if (idx >= 0 && idx < currentQuestion.options.length) {
@@ -3794,7 +3748,7 @@ function GodModeArenaInner({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [gamePhase, showFeedback, currentQuestion, handleSubmitAnswer, handleNextQuestion, isFocused]);
+  }, [gamePhase, showFeedback, currentQuestion, handleSubmitAnswer, isFocused]);
 
   // F5: Mixed strategy adherence tracking
   const mixedStrategyScore = useMemo(() => {
@@ -3880,6 +3834,9 @@ function GodModeArenaInner({
     // Merge GodModeArena timer settings if no custom config timer
     timerEnabled: trainerConfig?.timerEnabled || isTimerEnabled(timerMode),
     timerSeconds: trainerConfig?.timerSeconds || resolveTimerSeconds(timerMode),
+    feedbackRule: 'every',
+    autoAdvance: false,
+    autoAdvanceDelayMs: 0,
   }), [trainerConfig, timerMode]);
   const handleConfigClick = useCallback(() => setShowConfigModal(true), []);
   const handleDefaultNextHand = useCallback(() => {

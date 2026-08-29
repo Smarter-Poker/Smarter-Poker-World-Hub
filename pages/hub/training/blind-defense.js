@@ -27,7 +27,7 @@ import ActionButton, { ActionButtonRow } from '../../../src/components/poker/Act
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const POSITIONS = ['UTG', 'HJ', 'CO', 'BTN', 'SB'];
-const SIZES = ['2x', '2.5x', '3x', 'All-In'];
+const SIZES = ['2 BB', '2.5 BB', '3 BB', '4 BB'];
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
@@ -58,13 +58,13 @@ function generateScenario() {
   if (isPair || (highCard && isSuited) || hand[0].r === 'A') {
     correct = '3-Bet';
   } else if (isSuited || highCard) {
-    correct = size === 'All-In' ? 'Fold' : 'Call';
+    correct = 'Call';
   } else {
     correct = 'Fold';
   }
 
   // Edge case constraints (very loose BTN implies wider BB defense)
-  if (vPos === 'BTN' && size === '2x' && correct === 'Fold' && Math.random() > 0.5)
+  if (vPos === 'BTN' && size === '2 BB' && correct === 'Fold' && Math.random() > 0.5)
     correct = 'Call';
 
   return { hand, vPos, size, correct };
@@ -98,33 +98,28 @@ export default function BlindDefensePage() {
       isCorrect,
       chosen: action,
       correctAction: scenario.correct,
-      msg: isCorrect
-        ? 'Correct Defense Strategy!'
-        : `Incorrect. The GTO action here is to ${scenario.correct}.`,
+      msg: isCorrect ? 'Correct' : 'Incorrect',
     });
 
     setScore((prev) => ({ correct: prev.correct + (isCorrect ? 1 : 0), total: prev.total + 1 }));
+  };
 
-    setTimeout(() => {
-      setFeedback(null);
-      setScenario(generateScenario());
-
-      // Periodically emit session updates for overarching stats tracking
-      if ((score.total + 1) % 5 === 0) {
-        const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-        if (!token) return;
+  const handleNext = () => {
+    if (!feedback) return;
+    if (score.total > 0 && score.total % 5 === 0) {
+      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+      if (token) {
         authedFetch('/api/training/save-session', {
           method: 'POST',
           body: JSON.stringify({
             gameId: 'blind-defense',
-            stats: {
-              correct_count: score.correct + (isCorrect ? 1 : 0),
-              total_questions: score.total + 1,
-            },
+            stats: { correct_count: score.correct, total_questions: score.total },
           }),
         }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
-    }, 1500);
+    }
+    setFeedback(null);
+    setScenario(generateScenario());
   };
 
   if (!scenario) return null;
@@ -225,7 +220,7 @@ export default function BlindDefensePage() {
               Action to you
             </div>
             <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
-              {scenario.vPos} Opens <span style={{ color: 'var(--sp-accent-amber)' }}>{scenario.size}</span>
+              Action Folds To {scenario.vPos}, Who Raises To <span style={{ color: 'var(--sp-accent-amber)' }}>{scenario.size}</span>
             </div>
             <div style={{ fontSize: 14, color: 'var(--sp-fg)' }}>You are in the Big-Blind</div>
           </div>
@@ -259,7 +254,9 @@ export default function BlindDefensePage() {
                     zIndex: 10,
                   }}
                 >
-                  {feedback.msg}
+                  <div style={{ fontSize: 24, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{feedback.msg}</div>
+                  <div style={{ fontSize: 12, marginTop: 6 }}>Your Answer: {feedback.chosen}</div>
+                  {!feedback.isCorrect && <div style={{ fontSize: 12, marginTop: 2 }}>Correct Answer: {feedback.correctAction}</div>}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -286,8 +283,14 @@ export default function BlindDefensePage() {
           <ActionButtonRow data-sticky-action-bar gap={12}>
             <ActionButton action="fold" label="Fold" shortcut={1} disabled={!!feedback} onClick={() => handleAction('Fold')} size="lg" />
             <ActionButton action="call" label="Call" shortcut={2} disabled={!!feedback} onClick={() => handleAction('Call')} size="lg" />
-            <ActionButton action="raise" label="3-Bet" shortcut={3} disabled={!!feedback} onClick={() => handleAction('3-Bet')} size="lg" />
+            <ActionButton action="raise" label="3-Bet To 9 BB" shortcut={3} disabled={!!feedback} onClick={() => handleAction('3-Bet')} size="lg" />
+            <ActionButton action="raise" label="3-Bet All-In" shortcut={4} disabled={!!feedback} onClick={() => handleAction('3-Bet All-In')} size="lg" />
           </ActionButtonRow>
+          {feedback && (
+            <button type="button" onClick={handleNext} style={{ width: '100%', minHeight: 52, marginTop: 18, borderRadius: 0, border: '1px solid #9beeff', background: 'linear-gradient(180deg, #23465b, #07121b)', color: '#fff', fontSize: 15, fontWeight: 900, cursor: 'pointer', boxShadow: 'inset 0 1px rgba(255,255,255,0.26), 0 8px 18px rgba(0,0,0,0.38)' }}>
+              Next Question →
+            </button>
+          )}
         </div>
       </div>
     </>
