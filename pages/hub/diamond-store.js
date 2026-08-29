@@ -46,6 +46,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Trash2,
+  CreditCard,
 } from 'lucide-react';
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 import { VIPCard } from '../../src/components/store/StoreCards';
@@ -101,10 +102,9 @@ const GEM = '\uD83D\uDC8E';
 // ═══════════════════════════════════════════════════════════════════════════
 // STORE TAB ROUTES
 // ═══════════════════════════════════════════════════════════════════════════
-// Dan 2026-08-25: "Each tab should open to a new page, and tab, not just stay
-// within the diamond-store slug." Every tab is now a real, linkable, indexable
-// URL rather than a piece of component state, and every tab control opens it in
-// a new browser tab so the page you came from stays where it was.
+// Every tab is a real, linkable, indexable URL rather than a piece of component
+// state. Navigation stays in the current browser surface, matching the rest of
+// the Hub and the installed PWA instead of spawning detached tabs.
 //
 // The pages under pages/hub/ are thin wrappers that render THIS component with
 // an `initialTab` prop, so there is exactly one implementation of the store and
@@ -112,6 +112,48 @@ const GEM = '\uD83D\uDC8E';
 export const STORE_TABS = ['diamonds', 'vip', 'merch', 'rewards', 'club-shop'];
 const REWARD_TABS = ['overview', 'diamonds', 'eggs'];
 const CHECKOUT_STATUS_RETRY_DELAYS = [0, 1200, 2400, 4800];
+const CLUB_CARD_PACKAGE_OPTIONS = [
+  { packageId: 'micro', diamonds: 100, price: 1 },
+  { packageId: 'small', diamonds: 500, price: 5 },
+  { packageId: 'medium', diamonds: 1000, price: 10 },
+  { packageId: 'standard', diamonds: 2500, price: 25 },
+  { packageId: 'large', diamonds: 5000, price: 50 },
+  { packageId: 'value', diamonds: 10500, price: 100 },
+  { packageId: 'premium', diamonds: 26250, price: 250 },
+  { packageId: 'whale', diamonds: 52500, price: 500 },
+];
+
+function clubCardTopUpFor(priceInDiamonds) {
+  const required = Math.max(1, Number(priceInDiamonds) || 0);
+  return (
+    CLUB_CARD_PACKAGE_OPTIONS.map((option) => ({
+      ...option,
+      quantity: Math.ceil(required / option.diamonds),
+    }))
+      .filter((option) => option.quantity <= 10)
+      .sort(
+        (a, b) =>
+          a.price * a.quantity - b.price * b.quantity ||
+          a.diamonds * a.quantity - b.diamonds * b.quantity
+      )[0] || null
+  );
+}
+
+const CLUB_PRODUCT_ATLAS = {
+  'VIP Rail Seat (7 Days)': '0% 0%',
+  'VIP Rail Seat (7 days)': '0% 0%',
+  'Time Bank +30s': '33.333% 0%',
+  'Time Bank Bundle (5x)': '66.667% 0%',
+  'Snowball Pack (10)': '100% 0%',
+  'Tomato Pack (10)': '0% 50%',
+  'Golden Egg (3)': '33.333% 50%',
+  'Midnight Felt Table Skin': '66.667% 50%',
+  'Royal Gold Table Skin': '100% 50%',
+  'Classic Emote Pack': '0% 100%',
+  'Premium Emote Pack': '33.333% 100%',
+  'Shark Avatar': '66.667% 100%',
+  'Crown Avatar': '100% 100%',
+};
 
 export const TAB_ROUTES = {
   diamonds: '/hub/diamond-store',
@@ -124,7 +166,7 @@ export const TAB_ROUTES = {
 // Five addresses means five tab titles and five meta descriptions. Without
 // this, all five routes would share "Diamond Store" and be indistinguishable in
 // the browser's tab strip — which is the exact problem opening them in separate
-// tabs is meant to solve.
+// routes are meant to solve.
 export const TAB_META = {
   diamonds: {
     title: 'Diamond Store — Smarter.Poker',
@@ -374,6 +416,7 @@ export default function DiamondStorePage({ initialTab }) {
   const [clubShopLoaded, setClubShopLoaded] = useState(false);
   const [clubShopBuyTarget, setClubShopBuyTarget] = useState(null);
   const [clubShopProcessing, setClubShopProcessing] = useState(false);
+  const [clubShopCardProcessingId, setClubShopCardProcessingId] = useState(null);
   const [clubShopError, setClubShopError] = useState(null);
   const [clubShopCategory, setClubShopCategory] = useState('All');
   const [clubShopSearch, setClubShopSearch] = useState('');
@@ -552,7 +595,13 @@ export default function DiamondStorePage({ initialTab }) {
       controller.abort();
       if (retryTimer) window.clearTimeout(retryTimer);
     };
-  }, [activeTab, router.isReady, router.query.canceled, router.query.session_id, router.query.success]);
+  }, [
+    activeTab,
+    router.isReady,
+    router.query.canceled,
+    router.query.session_id,
+    router.query.success,
+  ]);
 
   useEffect(() => {
     captureStoreEvent('viewed', { route: activeTab });
@@ -743,7 +792,8 @@ export default function DiamondStorePage({ initialTab }) {
         kind: 'daily',
         title: 'Activate The 1-Day VIP Pass',
         cost: plan.price,
-        detail: 'Twenty-Four Hours Of Full VIP Access. If You Already Have VIP, This Adds A Day To The End Of It Rather Than Replacing It.',
+        detail:
+          'Twenty-Four Hours Of Full VIP Access. If You Already Have VIP, This Adds A Day To The End Of It Rather Than Replacing It.',
         idempotencyKey: createCheckoutRequestId('vip-daily'),
       });
       return;
@@ -1019,20 +1069,21 @@ export default function DiamondStorePage({ initialTab }) {
   );
 
   // ═══ Club Shop: Purchase handler ═══
-  const handleClubPurchase = async () => {
-    if (!clubShopBuyTarget || !clubShopClubId || clubShopProcessingRef.current) return;
+  const handleClubPurchase = async (purchaseTarget = clubShopBuyTarget) => {
+    const targetClubId = purchaseTarget?.clubId || purchaseTarget?.club_id || clubShopClubId;
+    if (!purchaseTarget || !targetClubId || clubShopProcessingRef.current) return;
     setClubProcessing(true);
     try {
       captureStoreEvent('club_purchase_started', {
         route: 'club-shop',
-        product: clubShopBuyTarget.id,
-        diamonds_spent: Number(clubShopBuyTarget.price || 0),
+        product: purchaseTarget.id,
+        diamonds_spent: Number(purchaseTarget.price || 0),
         currency: 'diamonds',
       });
       const token = getAccessToken();
       if (!token) throw new Error('Not authenticated');
 
-      const idempotencyKey = clubShopBuyTarget.purchaseRequestId;
+      const idempotencyKey = purchaseTarget.purchaseRequestId;
       const response = await fetch('/api/club-arena/marketplace-purchase', {
         method: 'POST',
         headers: {
@@ -1040,22 +1091,22 @@ export default function DiamondStorePage({ initialTab }) {
           'Content-Type': 'application/json',
           'X-Idempotency-Key': idempotencyKey,
         },
-        body: JSON.stringify({ clubId: clubShopClubId, itemId: clubShopBuyTarget.id }),
+        body: JSON.stringify({ clubId: targetClubId, itemId: purchaseTarget.id }),
       });
       const responseData = await response
         .json()
         .catch(() => ({ success: false, error: `HTTP ${response.status}` }));
       if (!responseData.success) throw new Error(responseData.error || 'Purchase failed');
 
-      const pricePaid = Number(responseData.pricePaid ?? clubShopBuyTarget.price) || 0;
+      const pricePaid = Number(responseData.pricePaid ?? purchaseTarget.price) || 0;
       captureStoreEvent('club_purchase_complete', {
         route: 'club-shop',
-        product: clubShopBuyTarget.id,
+        product: purchaseTarget.id,
         diamonds_spent: pricePaid,
         currency: responseData.currency || 'diamonds',
       });
       setClubShopSuccess(
-        `Purchased ${clubShopBuyTarget.name} For ${pricePaid.toLocaleString()} Diamonds!`
+        `Purchased ${purchaseTarget.name} For ${pricePaid.toLocaleString()} Diamonds!`
       );
       if (clubShopSuccessTimerRef.current) clearTimeout(clubShopSuccessTimerRef.current);
       clubShopSuccessTimerRef.current = setTimeout(() => setClubShopSuccess(null), 2500);
@@ -1064,6 +1115,11 @@ export default function DiamondStorePage({ initialTab }) {
       // cross-tab channel as every other diamond purchase.
       broadcastSync('smarter_poker_diamond_sync', 'refresh');
       setClubShopBuyTarget(null);
+      try {
+        window.localStorage.removeItem('smarter_poker_pending_club_card_purchase');
+      } catch (_) {
+        /* storage is optional */
+      }
       clubShopLoadingRef.current = false;
       loadClubShop(true);
     } catch (err) {
@@ -1073,6 +1129,91 @@ export default function DiamondStorePage({ initialTab }) {
       setClubProcessing(false);
     }
   };
+
+  const handleClubCardCheckout = async (item) => {
+    if (!item || clubShopCardProcessingId || clubShopProcessingRef.current) return;
+    const token = getAccessToken();
+    if (!token || !user?.id || !clubShopClubId) {
+      showStoreToast('error', 'Please Sign In To Buy Club Shop Items.');
+      return;
+    }
+    const topUp = clubCardTopUpFor(item.price);
+    if (!topUp) {
+      showStoreToast('error', 'This Item Is Above The Current Card Checkout Limit.');
+      return;
+    }
+    const checkoutRequestId = createCheckoutRequestId(`club-card-${item.id}`);
+    const pending = {
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      clubId: clubShopClubId,
+      purchaseRequestId: createCheckoutRequestId(`club-card-redeem-${item.id}`),
+      expiresAt: Date.now() + 30 * 60 * 1000,
+    };
+    setClubShopCardProcessingId(item.id);
+    try {
+      window.localStorage.setItem(
+        'smarter_poker_pending_club_card_purchase',
+        JSON.stringify(pending)
+      );
+      captureStoreEvent('checkout_started', {
+        route: 'club-shop',
+        type: 'card-funded-item',
+        product: item.id,
+        value_usd: topUp.price * topUp.quantity,
+      });
+      const origin = window.location.origin;
+      const response = await fetch('/api/store/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-Checkout-Request-ID': checkoutRequestId,
+        },
+        body: JSON.stringify({
+          type: 'diamonds',
+          items: [{ packageId: topUp.packageId, quantity: topUp.quantity }],
+          successUrl: `${origin}${TAB_ROUTES['club-shop']}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${origin}${TAB_ROUTES['club-shop']}?canceled=true`,
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success || !data?.data?.url) {
+        throw new Error(data?.error?.message || 'Could Not Start Card Checkout.');
+      }
+      window.location.href = data.data.url;
+    } catch (error) {
+      try {
+        window.localStorage.removeItem('smarter_poker_pending_club_card_purchase');
+      } catch (_) {
+        /* storage is optional */
+      }
+      setClubShopCardProcessingId(null);
+      showStoreToast('error', error.message || 'Could Not Start Card Checkout.');
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'club-shop' || checkoutReturn?.status !== 'complete') return;
+    let pending = null;
+    try {
+      pending = JSON.parse(
+        window.localStorage.getItem('smarter_poker_pending_club_card_purchase') || 'null'
+      );
+    } catch (_) {
+      window.localStorage.removeItem('smarter_poker_pending_club_card_purchase');
+    }
+    if (!pending?.id || !pending?.clubId || Number(pending.expiresAt) < Date.now()) {
+      window.localStorage.removeItem('smarter_poker_pending_club_card_purchase');
+      return;
+    }
+    setClubShopCardProcessingId(pending.id);
+    handleClubPurchase(pending).finally(() => setClubShopCardProcessingId(null));
+    // The verified checkout status is the one-shot trigger. Re-running for the
+    // same receipt would only exercise the durable idempotency guard.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, checkoutReturn?.status]);
 
   // ═══ Club Shop: Admin — load all items (active + hidden) ═══
   const loadClubShopAdmin = useCallback(async () => {
@@ -1114,12 +1255,7 @@ export default function DiamondStorePage({ initialTab }) {
   // activeTab is persisted, so a user can land directly on 'club-shop'
   // without ever clicking the tab button (which is the only other trigger).
   useEffect(() => {
-    if (
-      activeTab === 'club-shop' &&
-      user?.id &&
-      !clubShopLoaded &&
-      !clubShopLoadingRef.current
-    ) {
+    if (activeTab === 'club-shop' && user?.id && !clubShopLoaded && !clubShopLoadingRef.current) {
       loadClubShop();
     }
   }, [activeTab, clubShopLoaded, loadClubShop, user?.id]);
@@ -1215,67 +1351,67 @@ export default function DiamondStorePage({ initialTab }) {
   return (
     <>
       <Head>
-          <title>{TAB_META[activeTab]?.title || TAB_META.diamonds.title}</title>
-          <meta
-            name="description"
-            content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
-          />
-          <link rel="canonical" href={`https://smarter.poker${TAB_ROUTES[activeTab]}`} />
-          <meta
-            key="store-og-title"
-            property="og:title"
-            content={TAB_META[activeTab]?.title || TAB_META.diamonds.title}
-          />
-          <meta
-            key="store-og-description"
-            property="og:description"
-            content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
-          />
-          <meta key="store-og-type" property="og:type" content="website" />
-          <meta
-            key="store-og-url"
-            property="og:url"
-            content={`https://smarter.poker${TAB_ROUTES[activeTab]}`}
-          />
-          <meta
-            key="store-og-image"
-            property="og:image"
-            content={`https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`}
-          />
-          <meta key="store-twitter-card" name="twitter:card" content="summary_large_image" />
-          <meta
-            key="store-twitter-title"
-            name="twitter:title"
-            content={TAB_META[activeTab]?.title || TAB_META.diamonds.title}
-          />
-          <meta
-            key="store-twitter-description"
-            name="twitter:description"
-            content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
-          />
-          <meta
-            key="store-twitter-image"
-            name="twitter:image"
-            content={`https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`}
-          />
-          <script
-            key="store-structured-data"
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(storeStructuredData(activeTab)) }}
-          />
-          <link
-            rel="preload"
-            as="image"
-            href={
-              activeTab === 'diamonds'
-                ? '/images/store-v3/diamond-vault-hero.webp'
-                : TAB_SOCIAL_IMAGE[activeTab]
-            }
-            type="image/webp"
-            fetchPriority="high"
-          />
+        <title>{TAB_META[activeTab]?.title || TAB_META.diamonds.title}</title>
+        <meta
+          name="description"
+          content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
+        />
+        <link rel="canonical" href={`https://smarter.poker${TAB_ROUTES[activeTab]}`} />
+        <meta
+          key="store-og-title"
+          property="og:title"
+          content={TAB_META[activeTab]?.title || TAB_META.diamonds.title}
+        />
+        <meta
+          key="store-og-description"
+          property="og:description"
+          content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
+        />
+        <meta key="store-og-type" property="og:type" content="website" />
+        <meta
+          key="store-og-url"
+          property="og:url"
+          content={`https://smarter.poker${TAB_ROUTES[activeTab]}`}
+        />
+        <meta
+          key="store-og-image"
+          property="og:image"
+          content={`https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`}
+        />
+        <meta key="store-twitter-card" name="twitter:card" content="summary_large_image" />
+        <meta
+          key="store-twitter-title"
+          name="twitter:title"
+          content={TAB_META[activeTab]?.title || TAB_META.diamonds.title}
+        />
+        <meta
+          key="store-twitter-description"
+          name="twitter:description"
+          content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
+        />
+        <meta
+          key="store-twitter-image"
+          name="twitter:image"
+          content={`https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`}
+        />
+        <script
+          key="store-structured-data"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(storeStructuredData(activeTab)) }}
+        />
+        <link
+          rel="preload"
+          as="image"
+          href={
+            activeTab === 'diamonds'
+              ? '/images/store-v3/diamond-vault-hero.webp'
+              : TAB_SOCIAL_IMAGE[activeTab]
+          }
+          type="image/webp"
+          fetchPriority="high"
+        />
 
-          <style>{`
+        <style>{`
                     /* <details> in the VIP FAQ: Safari/WebKit paints its OWN
                        disclosure triangle in addition to our chevron unless the
                        marker is removed, so the question rendered with two
@@ -1305,7 +1441,6 @@ export default function DiamondStorePage({ initialTab }) {
 
       <StoreToast />
       <PageTransition disableInitialAnimation>
-
         <div className="diamond-store-page" style={styles.container}>
           {/* Background */}
           <div style={styles.bgGrid} />
@@ -1315,32 +1450,30 @@ export default function DiamondStorePage({ initialTab }) {
           <UniversalHeader pageDepth={1} />
 
           <main className={`store-redesign-content ${shellStyles.root}`}>
-          <CheckoutStatusPanel
-            state={checkoutReturn}
-            onDismiss={() => setCheckoutReturn(null)}
-          />
-          <SmarterStoreShowcase
-            activeTab={activeTab}
-            packages={DIAMOND_PACKAGES}
-            isProcessing={isProcessing}
-            busyPackageId={busyPackageId}
-            onBuy={handleDirectCheckout}
-          />
+            <CheckoutStatusPanel state={checkoutReturn} onDismiss={() => setCheckoutReturn(null)} />
+            <SmarterStoreShowcase
+              activeTab={activeTab}
+              packages={DIAMOND_PACKAGES}
+              isProcessing={isProcessing}
+              busyPackageId={busyPackageId}
+              onBuy={handleDirectCheckout}
+            />
 
-          {/* Main Content (non-diamonds tabs) */}
-          <div
-            className={shellStyles.contentShell}
-            style={{
-              ...styles.content,
-              ...(activeTab === 'vip' ? { paddingTop: 8 } : {}),
-            }}
-          >
-            {/* ═══════════════════════════════════════════════════════════════════ */}
-            {/* VIP MEMBERSHIP TAB */}
-            {/* ═══════════════════════════════════════════════════════════════════ */}
-            {activeTab === 'vip' && (
-              <>
-                {/* ═══════════════════════════════════════════════════════════
+            {/* Main Content (non-diamonds tabs) */}
+            <div
+              className={shellStyles.contentShell}
+              data-store-section={activeTab}
+              style={{
+                ...styles.content,
+                ...(activeTab === 'vip' ? { paddingTop: 8 } : {}),
+              }}
+            >
+              {/* ═══════════════════════════════════════════════════════════════════ */}
+              {/* VIP MEMBERSHIP TAB */}
+              {/* ═══════════════════════════════════════════════════════════════════ */}
+              {activeTab === 'vip' && (
+                <>
+                  {/* ═══════════════════════════════════════════════════════════
                     VIP PURCHASE BLOCK
 
                     Restored 2026-08-26. `VIPCard` was imported and never
@@ -1353,1388 +1486,1441 @@ export default function DiamondStorePage({ initialTab }) {
                     production.
                    ═══════════════════════════════════════════════════════════ */}
 
-                {/* Current membership, when there is one. Without this the page
+                  {/* Current membership, when there is one. Without this the page
                     invites an existing member to "Subscribe" as though they had
                     nothing — the single most likely way to take a second
                     payment from someone who already paid. */}
-                {isVip && (
-                  <div
-                    className={shellStyles.rewardsBoostLayout}
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,215,0,0.04))',
-                      border: '1px solid rgba(255,215,0,0.35)',
-                      borderRadius: 14,
-                      padding: '14px 18px',
-                      marginBottom: 18,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <Crown size={22} color="#FFD700" style={{ flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 200 }}>
-                      <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 15 }}>
-                        You Are Already A VIP Member{vipTier ? ` — ${String(vipTier).replace(/^./, (c) => c.toUpperCase())}` : ''}
-                      </div>
-                      <div style={{ color: '#B0B3B8', fontSize: 13, marginTop: 2 }}>
-                        {vipExpiresAt
-                          ? `Your Access Runs Until ${new Date(vipExpiresAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}. Anything You Buy Below Is Added To The End Of That, Never Instead Of It.`
-                          : 'Anything You Buy Below Extends Your Membership Rather Than Replacing It.'}
-                      </div>
-                    </div>
-                    <a
-                      href="/hub/settings?section=billing"
+                  {isVip && (
+                    <div
+                      className={shellStyles.rewardsBoostLayout}
                       style={{
-                        minHeight: 44,
-                        display: 'inline-flex',
+                        background:
+                          'linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,215,0,0.04))',
+                        border: '1px solid rgba(255,215,0,0.35)',
+                        borderRadius: 14,
+                        padding: '14px 18px',
+                        marginBottom: 18,
+                        display: 'flex',
                         alignItems: 'center',
-                        padding: '10px 16px',
-                        border: '1px solid rgba(255,215,0,0.55)',
-                        background: 'linear-gradient(180deg, #3A3214, #0D0B04)',
-                        color: '#FFF1A6',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        textDecoration: 'none',
+                        gap: 12,
+                        flexWrap: 'wrap',
                       }}
                     >
-                      Manage VIP In Account Settings
-                    </a>
-                  </div>
-                )}
+                      <Crown size={22} color="#FFD700" style={{ flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 15 }}>
+                          You Are Already A VIP Member
+                          {vipTier
+                            ? ` — ${String(vipTier).replace(/^./, (c) => c.toUpperCase())}`
+                            : ''}
+                        </div>
+                        <div style={{ color: '#B0B3B8', fontSize: 13, marginTop: 2 }}>
+                          {vipExpiresAt
+                            ? `Your Access Runs Until ${new Date(vipExpiresAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}. Anything You Buy Below Is Added To The End Of That, Never Instead Of It.`
+                            : 'Anything You Buy Below Extends Your Membership Rather Than Replacing It.'}
+                        </div>
+                      </div>
+                      <a
+                        href="/hub/settings?section=billing"
+                        style={{
+                          minHeight: 44,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '10px 16px',
+                          border: '1px solid rgba(255,215,0,0.55)',
+                          background: 'linear-gradient(180deg, #3A3214, #0D0B04)',
+                          color: '#FFF1A6',
+                          fontSize: 13,
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                        }}
+                      >
+                        Manage VIP In Account Settings
+                      </a>
+                    </div>
+                  )}
 
-                {/* Plan selection */}
-                <div
-                  className={shellStyles.planRail}
-                  style={styles.vipPlansRow}
-                  role="region"
-                  aria-label="VIP Membership Plans"
-                  tabIndex={0}
-                >
-                  <VIPCard
-                    plan={VIP_MEMBERSHIP.daily}
-                    isSelected={selectedVIP === 'vip-daily'}
-                    onSelect={setSelectedVIP}
-                  />
-                  <VIPCard
-                    plan={VIP_MEMBERSHIP.monthly}
-                    isSelected={selectedVIP === 'vip-monthly'}
-                    onSelect={setSelectedVIP}
-                  />
-                  <VIPCard
-                    plan={VIP_MEMBERSHIP.annual}
-                    isSelected={selectedVIP === 'vip-annual'}
-                    onSelect={setSelectedVIP}
-                  />
-                </div>
-
-                {/* Annual saving, stated in money rather than implied by a badge */}
-                {selectedVIP === 'vip-annual' && VIP_MEMBERSHIP.annual.savings > 0 && (
+                  {/* Plan selection */}
                   <div
-                    style={{
-                      textAlign: 'center',
-                      marginTop: 10,
-                      fontSize: 13,
-                      color: '#4ADE80',
-                      fontWeight: 600,
-                    }}
+                    className={shellStyles.planRail}
+                    style={styles.vipPlansRow}
+                    role="region"
+                    aria-label="VIP Membership Plans"
+                    tabIndex={0}
                   >
-                    Saves ${Number(VIP_MEMBERSHIP.annual.savings).toFixed(2)} A Year Against Paying Monthly — About Two Months Free
-                  </div>
-                )}
-
-                {/* Primary call to action */}
-                <div style={styles.vipSubscribeSection}>
-                  <button
-                    type="button"
-                    disabled={isProcessing}
-                    aria-busy={isProcessing}
-                    aria-label={isProcessing ? 'Processing' : vipSubscribeLabel}
-                    onClick={handleVIPSubscribe}
-                    style={{
-                      cursor: isProcessing ? 'wait' : 'pointer',
-                      opacity: isProcessing ? 0.6 : 1,
-                      transition: 'transform 0.15s ease, filter 0.15s ease',
-                      display: 'inline-block',
-                      padding: 0,
-                      border: 0,
-                      background: 'transparent',
-                      color: 'inherit',
-                    }}
-                  >
-                    <img
-                      src="/images/subscribe-button.webp"
-                      width={1249}
-                      height={258}
-                      alt=""
-                      style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
-                      draggable={false}
-                      loading="lazy"
+                    <VIPCard
+                      plan={VIP_MEMBERSHIP.daily}
+                      isSelected={selectedVIP === 'vip-daily'}
+                      onSelect={setSelectedVIP}
                     />
-                    {/* The button artwork is a static $19.99/month image, so the
-                        live plan is stated in text beneath it. Without this the
-                        picture contradicts the selected plan. */}
+                    <VIPCard
+                      plan={VIP_MEMBERSHIP.monthly}
+                      isSelected={selectedVIP === 'vip-monthly'}
+                      onSelect={setSelectedVIP}
+                    />
+                    <VIPCard
+                      plan={VIP_MEMBERSHIP.annual}
+                      isSelected={selectedVIP === 'vip-annual'}
+                      onSelect={setSelectedVIP}
+                    />
+                  </div>
+
+                  {/* Annual saving, stated in money rather than implied by a badge */}
+                  {selectedVIP === 'vip-annual' && VIP_MEMBERSHIP.annual.savings > 0 && (
                     <div
                       style={{
                         textAlign: 'center',
-                        marginTop: 8,
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: '#FFD700',
+                        marginTop: 10,
+                        fontSize: 13,
+                        color: '#4ADE80',
+                        fontWeight: 600,
                       }}
                     >
-                      {isProcessing ? 'Processing...' : vipSubscribeLabel}
+                      Saves ${Number(VIP_MEMBERSHIP.annual.savings).toFixed(2)} A Year Against
+                      Paying Monthly — About Two Months Free
                     </div>
-                  </button>
-                </div>
+                  )}
 
-                {/* Pay in diamonds — monthly and annual only. The daily plan is
-                    already priced in diamonds and has its own endpoint. */}
-                {selectedVIPPlan && !selectedVIPPlan.isDiamondCost && (
-                  <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 8 }}>
-                    {(() => {
-                      const planKey = selectedVIP === 'vip-annual' ? 'annual' : 'monthly';
-                      // Mirrors the server: 100 diamonds per dollar, derived
-                      // from the same catalog price rather than a second copy.
-                      const cost = Math.round(Number(selectedVIPPlan.price) * 100);
-                      const known = diamondBalance != null;
-                      const short = known ? cost - diamondBalance : 0;
-                      const canAfford = !known || short <= 0;
-                      return (
-                        <>
-                          <button
-                            type="button"
-                            disabled={isProcessing || !canAfford}
-                            onClick={() =>
-                              setPendingSpend({
-                                kind: 'plan',
-                                planKey,
-                                title: `Pay For ${selectedVIPPlan.name} With Diamonds`,
-                                cost,
-                                detail: `${Number(cost).toLocaleString()} Diamonds For ${planKey === 'annual' ? '365' : '30'} Days Of VIP. This Extends Any Membership You Already Have Rather Than Replacing It.`,
-                                idempotencyKey: `vip-${planKey}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-                              })
-                            }
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 8,
-                              padding: '11px 22px',
-                              borderRadius: 12,
-                              background: canAfford ? 'rgba(0,180,255,0.12)' : 'rgba(255,255,255,0.04)',
-                              border: `1px solid ${canAfford ? 'rgba(0,180,255,0.4)' : 'rgba(255,255,255,0.12)'}`,
-                              color: canAfford ? '#00D4FF' : 'rgba(255,255,255,0.4)',
-                              fontSize: 15,
-                              fontWeight: 600,
-                              cursor: isProcessing || !canAfford ? 'not-allowed' : 'pointer',
-                            }}
-                          >
-                            <Gem size={16} />
-                            Pay With Diamonds Instead — {Number(cost).toLocaleString()}
-                          </button>
-                          <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 8 }}>
-                            {!known
-                              ? 'Sign In To Pay With Diamonds.'
-                              : canAfford
-                                ? `You Have ${Number(diamondBalance).toLocaleString()} Diamonds.`
-                                : `You Have ${Number(diamondBalance).toLocaleString()} And Need ${Number(short).toLocaleString()} More.`}
-                          </div>
-                        </>
-                      );
-                    })()}
+                  {/* Primary call to action */}
+                  <div style={styles.vipSubscribeSection}>
+                    <button
+                      type="button"
+                      disabled={isProcessing}
+                      aria-busy={isProcessing}
+                      aria-label={isProcessing ? 'Processing' : vipSubscribeLabel}
+                      onClick={handleVIPSubscribe}
+                      style={{
+                        cursor: isProcessing ? 'wait' : 'pointer',
+                        opacity: isProcessing ? 0.6 : 1,
+                        transition: 'transform 0.15s ease, filter 0.15s ease',
+                        display: 'inline-block',
+                        padding: 0,
+                        border: 0,
+                        background: 'transparent',
+                        color: 'inherit',
+                      }}
+                    >
+                      <img
+                        src="/images/subscribe-button.webp"
+                        width={1249}
+                        height={258}
+                        alt=""
+                        style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
+                        draggable={false}
+                        loading="lazy"
+                      />
+                      {/* The button artwork is a static $19.99/month image, so the
+                        live plan is stated in text beneath it. Without this the
+                        picture contradicts the selected plan. */}
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          marginTop: 8,
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: '#FFD700',
+                        }}
+                      >
+                        {isProcessing ? 'Processing...' : vipSubscribeLabel}
+                      </div>
+                    </button>
                   </div>
-                )}
 
-                {/* Diamond-spend confirmation. Replaces window.confirm(), which
+                  {/* Pay in diamonds — monthly and annual only. The daily plan is
+                    already priced in diamonds and has its own endpoint. */}
+                  {selectedVIPPlan && !selectedVIPPlan.isDiamondCost && (
+                    <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 8 }}>
+                      {(() => {
+                        const planKey = selectedVIP === 'vip-annual' ? 'annual' : 'monthly';
+                        // Mirrors the server: 100 diamonds per dollar, derived
+                        // from the same catalog price rather than a second copy.
+                        const cost = Math.round(Number(selectedVIPPlan.price) * 100);
+                        const known = diamondBalance != null;
+                        const short = known ? cost - diamondBalance : 0;
+                        const canAfford = !known || short <= 0;
+                        return (
+                          <>
+                            <button
+                              type="button"
+                              disabled={isProcessing || !canAfford}
+                              onClick={() =>
+                                setPendingSpend({
+                                  kind: 'plan',
+                                  planKey,
+                                  title: `Pay For ${selectedVIPPlan.name} With Diamonds`,
+                                  cost,
+                                  detail: `${Number(cost).toLocaleString()} Diamonds For ${planKey === 'annual' ? '365' : '30'} Days Of VIP. This Extends Any Membership You Already Have Rather Than Replacing It.`,
+                                  idempotencyKey: `vip-${planKey}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+                                })
+                              }
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                padding: '11px 22px',
+                                borderRadius: 12,
+                                background: canAfford
+                                  ? 'rgba(0,180,255,0.12)'
+                                  : 'rgba(255,255,255,0.04)',
+                                border: `1px solid ${canAfford ? 'rgba(0,180,255,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                                color: canAfford ? '#00D4FF' : 'rgba(255,255,255,0.4)',
+                                fontSize: 15,
+                                fontWeight: 600,
+                                cursor: isProcessing || !canAfford ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              <Gem size={16} />
+                              Pay With Diamonds Instead — {Number(cost).toLocaleString()}
+                            </button>
+                            <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 8 }}>
+                              {!known
+                                ? 'Sign In To Pay With Diamonds.'
+                                : canAfford
+                                  ? `You Have ${Number(diamondBalance).toLocaleString()} Diamonds.`
+                                  : `You Have ${Number(diamondBalance).toLocaleString()} And Need ${Number(short).toLocaleString()} More.`}
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Diamond-spend confirmation. Replaces window.confirm(), which
                     blocks the tab, cannot be styled, and is easy to miss inside
                     an installed PWA. Nothing is spent until Confirm is pressed,
                     and the idempotency key is minted when the modal OPENS so a
                     double-tap cannot mint a second purchase. */}
-                {pendingSpend && (
-                  <div
-                    onClick={() => !isProcessing && setPendingSpend(null)}
-                    className={shellStyles.dialogBackdrop}
-                    style={{
-                      position: 'fixed',
-                      inset: 0,
-                      background: 'rgba(0,0,0,0.72)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 20,
-                      zIndex: 9999,
-                    }}
-                  >
+                  {pendingSpend && (
                     <div
-                      ref={pendingSpendDialogRef}
-                      role="dialog"
-                      aria-modal="true"
-                      aria-labelledby="vip-spend-dialog-title"
-                      aria-describedby="vip-spend-dialog-description"
-                      tabIndex={-1}
-                      onClick={(e) => e.stopPropagation()}
-                      className={shellStyles.dialogPanel}
+                      onClick={() => !isProcessing && setPendingSpend(null)}
+                      className={shellStyles.dialogBackdrop}
                       style={{
-                        background: '#16181C',
-                        border: '1px solid rgba(255,215,0,0.3)',
-                        borderRadius: 16,
-                        padding: '22px 20px',
-                        maxWidth: 420,
-                        width: '100%',
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.72)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 20,
+                        zIndex: 9999,
                       }}
                     >
-                      <h4 id="vip-spend-dialog-title" style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#FFD700' }}>
-                        {pendingSpend.title}
-                      </h4>
-                      <p id="vip-spend-dialog-description" style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.6, color: '#B0B3B8' }}>
-                        {pendingSpend.detail}
-                      </p>
                       <div
+                        ref={pendingSpendDialogRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="vip-spend-dialog-title"
+                        aria-describedby="vip-spend-dialog-description"
+                        tabIndex={-1}
+                        onClick={(e) => e.stopPropagation()}
+                        className={shellStyles.dialogPanel}
                         style={{
-                          margin: '14px 0 18px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          fontSize: 20,
-                          fontWeight: 700,
-                          color: '#00D4FF',
+                          background: '#16181C',
+                          border: '1px solid rgba(255,215,0,0.3)',
+                          borderRadius: 16,
+                          padding: '22px 20px',
+                          maxWidth: 420,
+                          width: '100%',
                         }}
                       >
-                        <Gem size={20} />
-                        {Number(pendingSpend.cost).toLocaleString()} Diamonds
-                      </div>
-                      <div style={{ display: 'flex', gap: 10 }}>
-                        <button
-                          type="button"
-                          disabled={isProcessing}
-                          onClick={() => setPendingSpend(null)}
-                          style={{
-                            flex: 1,
-                            padding: '11px 0',
-                            borderRadius: 10,
-                            background: 'transparent',
-                            border: '1px solid rgba(255,255,255,0.18)',
-                            color: '#E4E6EB',
-                            fontSize: 15,
-                            fontWeight: 600,
-                            cursor: isProcessing ? 'not-allowed' : 'pointer',
-                          }}
+                        <h4
+                          id="vip-spend-dialog-title"
+                          style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#FFD700' }}
                         >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isProcessing}
-                          onClick={async () => {
-                            const spend = pendingSpend;
-                            setPendingSpend(null);
-                            if (spend.kind === 'daily') {
-                              await runDailyPassPurchase(spend.idempotencyKey);
-                            }
-                            else await runDiamondPlanPurchase(spend.planKey, spend.idempotencyKey);
-                          }}
+                          {pendingSpend.title}
+                        </h4>
+                        <p
+                          id="vip-spend-dialog-description"
                           style={{
-                            flex: 1,
-                            padding: '11px 0',
-                            borderRadius: 10,
-                            background: 'rgba(255,215,0,0.15)',
-                            border: '1px solid rgba(255,215,0,0.45)',
-                            color: '#FFD700',
-                            fontSize: 15,
-                            fontWeight: 700,
-                            cursor: isProcessing ? 'wait' : 'pointer',
-                          }}
-                        >
-                          {isProcessing ? 'Processing...' : 'Confirm'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* VIP Benefits Table */}
-                <div style={styles.benefitsSection}>
-                  <h2 style={styles.benefitsTitle}>Everything Included With VIP</h2>
-
-                  {/* Smarter.Poker Platform */}
-                  <div style={styles.benefitsCategoryHeader}>
-                    <span style={styles.benefitsCategoryLabel}>Smarter.Poker Platform</span>
-                  </div>
-                  <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
-                    {VIP_BENEFITS.filter((b) => b.category === 'Smarter.Poker').map(
-                      (benefit, idx) => (
-                        <div key={idx} style={styles.benefitCard}>
-                          <div style={styles.benefitInfo}>
-                            <div style={styles.benefitTitle}>{benefit.title}</div>
-                            <div style={styles.benefitDesc}>{benefit.description}</div>
-                          </div>
-                          <div style={styles.benefitValue}>{benefit.value}</div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                  {/* Club & Diamond Arena Features */}
-                  <div style={styles.benefitsCategoryHeader}>
-                    <span style={styles.benefitsCategoryLabel}>Club & Diamond Arena Features</span>
-                  </div>
-                  <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
-                    {VIP_BENEFITS.filter((b) => b.category === 'Club & Diamond Arena').map(
-                      (benefit, idx) => (
-                        <div key={idx} style={styles.benefitCard}>
-                          <div style={styles.benefitInfo}>
-                            <div style={styles.benefitTitle}>{benefit.title}</div>
-                            <div style={styles.benefitDesc}>{benefit.description}</div>
-                          </div>
-                          <div style={styles.benefitValue}>{benefit.value}</div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-
-                {/* View in Marketplace Link */}
-                <div style={{ textAlign: 'center', marginTop: 24, marginBottom: 32 }}>
-                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-                  <a
-                    href={TAB_ROUTES.merch}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      color: '#FFD700',
-                      fontSize: 16,
-                      fontWeight: 600,
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                      padding: '12px 24px',
-                      borderRadius: 12,
-                      background: 'rgba(255, 215, 0, 0.08)',
-                      border: '1px solid rgba(255, 215, 0, 0.2)',
-                      transition: 'all 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 215, 0, 0.15)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 215, 0, 0.08)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.2)';
-                    }}
-                  >
-                    View in Marketplace <span style={{ fontSize: 18 }}>→</span>
-                  </a>
-                </div>
-
-                {/* ─── Frequently Asked Questions ─── */}
-                <div
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    borderRadius: 16,
-                    padding: '28px 24px',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
-                  }}
-                >
-                  <h2
-                    style={{
-                      fontSize: 20,
-                      fontWeight: 700,
-                      color: '#FFFFFF',
-                      marginBottom: 20,
-                      textAlign: 'center',
-                    }}
-                  >
-                    Frequently Asked Questions
-                  </h2>
-
-                  {VIP_FAQ.map((faq, idx) => (
-                    <details
-                      key={idx}
-                      style={{
-                        borderBottom:
-                          idx < VIP_FAQ.length - 1
-                            ? '1px solid rgba(255, 255, 255, 0.06)'
-                            : 'none',
-                        paddingBottom: 0,
-                      }}
-                    >
-                      <summary
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '16px 0',
-                          cursor: 'pointer',
-                          fontSize: 15,
-                          fontWeight: 600,
-                          color: '#E4E6EB',
-                          listStyle: 'none',
-                        }}
-                      >
-                        {faq.q}
-                        <span
-                          className="faq-chevron"
-                          style={{ color: '#B0B3B8', fontSize: 18, marginLeft: 12, flexShrink: 0 }}
-                        >
-                          ▾
-                        </span>
-                      </summary>
-                      <p
-                        style={{
-                          padding: '0 0 16px 0',
-                          margin: 0,
-                          fontSize: 14,
-                          lineHeight: 1.6,
-                          color: '#B0B3B8',
-                        }}
-                      >
-                        {faq.a}
-                      </p>
-                    </details>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* ═══════════════════════════════════════════════════════════════════ */}
-            {/* MERCHANDISE TAB */}
-            {/* ═══════════════════════════════════════════════════════════════════ */}
-            {activeTab === 'merch' && <MerchStore user={user} />}
-
-            {/* ═══════════════════════════════════════════════════════════════════ */}
-            {/* SMARTER REWARDS TAB - Comprehensive Rewards Information Center */}
-            {/* ═══════════════════════════════════════════════════════════════════ */}
-            {activeTab === 'rewards' && (
-              <>
-                {/* Active Diamond Multiplier Banner */}
-                <div
-                  style={{
-                    margin: '12px 0 0',
-                    padding: '14px 16px',
-                    borderRadius: 12,
-                    background:
-                      diamondMultiplier > 1.0
-                        ? 'linear-gradient(135deg, rgba(245,158,11,0.18), rgba(251,191,36,0.12))'
-                        : 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))',
-                    border: `1px solid ${diamondMultiplier > 1.0 ? 'rgba(245,158,11,0.45)' : 'rgba(99,102,241,0.3)'}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <div
-                      className={shellStyles.rewardsBoostCopy}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-                    >
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 10,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background:
-                            diamondMultiplier > 1.0
-                              ? 'rgba(245,158,11,0.2)'
-                              : 'rgba(99,102,241,0.2)',
-                          fontSize: 20,
-                        }}
-                      >
-                        {diamondMultiplier > 1.0 ? (
-                          <Zap size={20} color="#f59e0b" />
-                        ) : (
-                          <Gem size={20} color="#818cf8" />
-                        )}
-                      </div>
-                      <div>
-                        <div
-                          style={{
+                            margin: '10px 0 0',
                             fontSize: 14,
-                            fontWeight: 700,
-                            color: diamondMultiplier > 1.0 ? '#f59e0b' : '#818cf8',
+                            lineHeight: 1.6,
+                            color: '#B0B3B8',
                           }}
                         >
-                          {diamondMultiplier > 1.0
-                            ? `${diamondMultiplier.toFixed(2)}× Diamond Boost Active`
-                            : 'Activate Your Diamond Boost'}
-                        </div>
+                          {pendingSpend.detail}
+                        </p>
                         <div
-                          style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}
+                          style={{
+                            margin: '14px 0 18px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            fontSize: 20,
+                            fontWeight: 700,
+                            color: '#00D4FF',
+                          }}
                         >
-                          {diamondMultiplier > 1.0
-                            ? `Every diamond you earn is multiplied ${diamondMultiplier.toFixed(2)}× by your share streak`
-                            : 'Share posts daily for 3+ days to boost ALL your diamond earnings'}
+                          <Gem size={20} />
+                          {Number(pendingSpend.cost).toLocaleString()} Diamonds
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <button
+                            type="button"
+                            disabled={isProcessing}
+                            onClick={() => setPendingSpend(null)}
+                            style={{
+                              flex: 1,
+                              padding: '11px 0',
+                              borderRadius: 10,
+                              background: 'transparent',
+                              border: '1px solid rgba(255,255,255,0.18)',
+                              color: '#E4E6EB',
+                              fontSize: 15,
+                              fontWeight: 600,
+                              cursor: isProcessing ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isProcessing}
+                            onClick={async () => {
+                              const spend = pendingSpend;
+                              setPendingSpend(null);
+                              if (spend.kind === 'daily') {
+                                await runDailyPassPurchase(spend.idempotencyKey);
+                              } else
+                                await runDiamondPlanPurchase(spend.planKey, spend.idempotencyKey);
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '11px 0',
+                              borderRadius: 10,
+                              background: 'rgba(255,215,0,0.15)',
+                              border: '1px solid rgba(255,215,0,0.45)',
+                              color: '#FFD700',
+                              fontSize: 15,
+                              fontWeight: 700,
+                              cursor: isProcessing ? 'wait' : 'pointer',
+                            }}
+                          >
+                            {isProcessing ? 'Processing...' : 'Confirm'}
+                          </button>
                         </div>
                       </div>
                     </div>
-                    <div
-                      className={shellStyles.rewardsBoostTiers}
-                      style={{ textAlign: 'right', flexShrink: 0 }}
-                    >
-                      {[
-                        { label: 'Streak 3d', mult: '1.2×', color: '#60a5fa' },
-                        { label: 'Expert 7d', mult: '1.5×', color: '#34d399' },
-                        { label: 'Master 14d', mult: '1.75×', color: '#818cf8' },
-                        { label: 'Legend 30d', mult: '2.0×', color: '#f59e0b' },
-                      ].map((tier) => (
-                        <span
-                          key={tier.label}
-                          style={{
-                            display: 'inline-block',
-                            margin: '2px 3px',
-                            fontSize: 10,
-                            fontWeight: 600,
-                            color: tier.color,
-                            background: `${tier.color}18`,
-                            border: `1px solid ${tier.color}35`,
-                            borderRadius: 6,
-                            padding: '2px 6px',
-                          }}
-                        >
-                          {tier.label} {tier.mult}
-                        </span>
-                      ))}
+                  )}
+
+                  {/* VIP Benefits Table */}
+                  <div className={shellStyles.vipBenefits} style={styles.benefitsSection}>
+                    <h2 style={styles.benefitsTitle}>Everything Included With VIP</h2>
+
+                    {/* Smarter.Poker Platform */}
+                    <div style={styles.benefitsCategoryHeader}>
+                      <span style={styles.benefitsCategoryLabel}>Smarter.Poker Platform</span>
+                    </div>
+                    <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
+                      {VIP_BENEFITS.filter((b) => b.category === 'Smarter.Poker').map(
+                        (benefit, idx) => (
+                          <div
+                            key={idx}
+                            className={shellStyles.premiumDataCard}
+                            style={styles.benefitCard}
+                          >
+                            <div style={styles.benefitInfo}>
+                              <div style={styles.benefitTitle}>{benefit.title}</div>
+                              <div style={styles.benefitDesc}>{benefit.description}</div>
+                            </div>
+                            <div style={styles.benefitValue}>{benefit.value}</div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                    {/* Club & Diamond Arena Features */}
+                    <div style={styles.benefitsCategoryHeader}>
+                      <span style={styles.benefitsCategoryLabel}>
+                        Club & Diamond Arena Features
+                      </span>
+                    </div>
+                    <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
+                      {VIP_BENEFITS.filter((b) => b.category === 'Club & Diamond Arena').map(
+                        (benefit, idx) => (
+                          <div
+                            key={idx}
+                            className={shellStyles.premiumDataCard}
+                            style={styles.benefitCard}
+                          >
+                            <div style={styles.benefitInfo}>
+                              <div style={styles.benefitTitle}>{benefit.title}</div>
+                              <div style={styles.benefitDesc}>{benefit.description}</div>
+                            </div>
+                            <div style={styles.benefitValue}>{benefit.value}</div>
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
-                </div>
 
-                {/* Sub-Tab Navigation */}
-                <div role="tablist" aria-label="Smarter Rewards Sections" style={styles.rewardsSubNav}>
-                  <button
-                    type="button"
-                    role="tab"
-                    id="rewards-tab-overview"
-                    aria-selected={rewardsSubTab === 'overview'}
-                    aria-controls="rewards-panel-overview"
-                    tabIndex={rewardsSubTab === 'overview' ? 0 : -1}
-                    onClick={() => setRewardsSubTab('overview')}
-                    onKeyDown={(event) => handleRewardsTabKeyDown(event, 'overview')}
-                    style={{
-                      ...styles.rewardsSubTab,
-                      ...(rewardsSubTab === 'overview' ? styles.rewardsSubTabActive : {}),
-                    }}
-                  >
-                    Overview
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    id="rewards-tab-diamonds"
-                    aria-selected={rewardsSubTab === 'diamonds'}
-                    aria-controls="rewards-panel-diamonds"
-                    tabIndex={rewardsSubTab === 'diamonds' ? 0 : -1}
-                    onClick={() => setRewardsSubTab('diamonds')}
-                    onKeyDown={(event) => handleRewardsTabKeyDown(event, 'diamonds')}
-                    style={{
-                      ...styles.rewardsSubTab,
-                      ...(rewardsSubTab === 'diamonds' ? styles.rewardsSubTabActive : {}),
-                    }}
-                  >
-                    Diamond Rewards
-                  </button>
+                  {/* View in Marketplace Link */}
+                  <div style={{ textAlign: 'center', marginTop: 24, marginBottom: 32 }}>
+                    {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                    <a
+                      href={TAB_ROUTES.merch}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        color: '#FFD700',
+                        fontSize: 16,
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                        padding: '12px 24px',
+                        borderRadius: 12,
+                        background: 'rgba(255, 215, 0, 0.08)',
+                        border: '1px solid rgba(255, 215, 0, 0.2)',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 215, 0, 0.15)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 215, 0, 0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.2)';
+                      }}
+                    >
+                      View in Marketplace <span style={{ fontSize: 18 }}>→</span>
+                    </a>
+                  </div>
 
-                  <button
-                    type="button"
-                    role="tab"
-                    id="rewards-tab-eggs"
-                    aria-selected={rewardsSubTab === 'eggs'}
-                    aria-controls="rewards-panel-eggs"
-                    tabIndex={rewardsSubTab === 'eggs' ? 0 : -1}
-                    onClick={() => setRewardsSubTab('eggs')}
-                    onKeyDown={(event) => handleRewardsTabKeyDown(event, 'eggs')}
-                    style={{
-                      ...styles.rewardsSubTab,
-                      ...(rewardsSubTab === 'eggs' ? styles.rewardsSubTabActive : {}),
-                    }}
-                  >
-                    Easter Eggs
-                  </button>
-                </div>
-
-                {/* OVERVIEW SUB-TAB */}
-                {rewardsSubTab === 'overview' && (
+                  {/* ─── Frequently Asked Questions ─── */}
                   <div
-                    id="rewards-panel-overview"
-                    role="tabpanel"
-                    aria-labelledby="rewards-tab-overview"
-                    tabIndex={0}
-                    className={shellStyles.subPanel}
-                    style={styles.rewardsOverview}
+                    className={shellStyles.vipFaq}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: 16,
+                      padding: '28px 24px',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                    }}
                   >
-                    <h2 style={styles.earnTitle}>Smarter Rewards</h2>
-                    <p style={styles.introText}>
-                      Welcome To The Smarter Rewards System! Earn Diamonds By Playing, Training, And
-                      Engaging With The Community.
-                    </p>
+                    <h2
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 700,
+                        color: '#FFFFFF',
+                        marginBottom: 20,
+                        textAlign: 'center',
+                      }}
+                    >
+                      Frequently Asked Questions
+                    </h2>
 
-                    <div className={shellStyles.responsiveGrid} style={styles.overviewGrid}>
-                      <div style={styles.overviewCard}>
-                        <div style={styles.overviewIcon}>
-                          <Gem size={40} color="#00D4FF" />
-                        </div>
-                        <h3 style={styles.overviewCardTitle}>Diamond Rewards</h3>
-                        <p style={styles.overviewCardText}>
-                          Earn Diamonds Through Daily Logins, Training, Social Engagement, And
-                          Referrals.
-                          <strong style={{ color: '#00ff88' }}>
-                            {' '}
-                            Daily Cap: {DAILY_CAP.free} {GEM} ({DAILY_CAP.vip} VIP)
-                          </strong>{' '}
-                          — Up To {fmt(MONTHLY_CAP.free)} {GEM} A Month Free, {fmt(MONTHLY_CAP.vip)}{' '}
-                          {GEM} VIP. Share Streak Multipliers Help You Reach The Cap Faster — They
-                          Never Raise It.
-                        </p>
-                      </div>
-
-                      <div style={styles.overviewCard}>
-                        <div style={styles.overviewIcon}>
-                          <Crown size={40} color="#FFD700" />
-                        </div>
-                        <h3 style={styles.overviewCardTitle}>VIP Membership</h3>
-                        <div style={{ marginTop: 12, marginBottom: 12 }}>
-                          <img
-                            src="/images/vip-card.webp"
-                            width={1024}
-                            height={1024}
-                            alt="VIP Membership Card"
-                            style={{
-                              width: '100%',
-                              maxWidth: 320,
-                              borderRadius: 12,
-                              boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-                            }}
-                            draggable={false}
-                            loading="lazy"
-                          />
-                        </div>
-                        <div
+                    {VIP_FAQ.map((faq, idx) => (
+                      <details
+                        key={idx}
+                        style={{
+                          borderBottom:
+                            idx < VIP_FAQ.length - 1
+                              ? '1px solid rgba(255, 255, 255, 0.06)'
+                              : 'none',
+                          paddingBottom: 0,
+                        }}
+                      >
+                        <summary
                           style={{
                             display: 'flex',
-                            justifyContent: 'center',
-                            gap: 16,
-                            marginTop: 8,
-                          }}
-                        >
-                          <div
-                            style={{
-                              background:
-                                'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05))',
-                              border: '1px solid rgba(255,215,0,0.3)',
-                              borderRadius: 10,
-                              padding: '10px 18px',
-                              textAlign: 'center',
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: 20,
-                                fontWeight: 800,
-                                color: '#FFD700',
-                                fontFamily: 'Orbitron, sans-serif',
-                              }}
-                            >
-                              $19.99
-                            </div>
-                            <div
-                              style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}
-                            >
-                              Per Month
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              background:
-                                'linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05))',
-                              border: '1px solid rgba(0,212,255,0.3)',
-                              borderRadius: 10,
-                              padding: '10px 18px',
-                              textAlign: 'center',
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: 20,
-                                fontWeight: 800,
-                                color: '#00D4FF',
-                                fontFamily: 'Orbitron, sans-serif',
-                              }}
-                            >
-                              $199.99
-                            </div>
-                            <div
-                              style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}
-                            >
-                              Per Year (Save $40!)
-                            </div>
-                          </div>
-                        </div>
-                        <a
-                          href={TAB_ROUTES.vip}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label="View VIP Plans, Opens In New Tab"
-                          style={{
-                            display: 'inline-block',
-                            marginTop: 12,
-                            padding: '10px 28px',
-                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                            border: 'none',
-                            borderRadius: 8,
-                            color: '#000',
-                            fontSize: 14,
-                            fontWeight: 700,
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '16px 0',
                             cursor: 'pointer',
-                            boxShadow: '0 0 16px rgba(255,215,0,0.3)',
-                            textDecoration: 'none',
+                            fontSize: 15,
+                            fontWeight: 600,
+                            color: '#E4E6EB',
+                            listStyle: 'none',
                           }}
                         >
-                          View VIP Plans →
-                        </a>
-                      </div>
-
-                      <div style={styles.overviewCard}>
-                        <div style={styles.overviewIcon}>
-                          <Gift size={40} color="#00ff88" />
-                        </div>
-                        <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
-                        <p style={styles.overviewCardText}>
-                          Discover <strong>{TOTAL_EASTER_EGGS} Hidden Achievements</strong> Across{' '}
-                          {EGG_CATEGORY_COUNT} Categories. From Performance To Legacy Milestones —
-                          Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On Top Of Your
-                          Normal Cap. {EARNABLE_EGG_COUNT} Are Live Now.
+                          {faq.q}
+                          <span
+                            className="faq-chevron"
+                            style={{
+                              color: '#B0B3B8',
+                              fontSize: 18,
+                              marginLeft: 12,
+                              flexShrink: 0,
+                            }}
+                          >
+                            ▾
+                          </span>
+                        </summary>
+                        <p
+                          style={{
+                            padding: '0 0 16px 0',
+                            margin: 0,
+                            fontSize: 14,
+                            lineHeight: 1.6,
+                            color: '#B0B3B8',
+                          }}
+                        >
+                          {faq.a}
                         </p>
-                      </div>
-                    </div>
-
-                    <div style={styles.quickStats}>
-                      <div style={styles.quickStat}>
-                        <span style={styles.quickStatValue}>{DAILY_CAP.free}</span>
-                        <span style={styles.quickStatLabel}>Daily Cap (Free)</span>
-                      </div>
-                      <div style={styles.quickStat}>
-                        <span style={styles.quickStatValue}>
-                          {Object.keys(VIP_MEMBERSHIP).length}
-                        </span>
-                        <span style={styles.quickStatLabel}>VIP Plans</span>
-                      </div>
-                      <div style={styles.quickStat}>
-                        <span style={styles.quickStatValue}>{TOTAL_EASTER_EGGS}</span>
-                        <span style={styles.quickStatLabel}>Easter Eggs</span>
-                      </div>
-                      <div style={styles.quickStat}>
-                        <span style={styles.quickStatValue}>{STANDARD_REWARDS.length}</span>
-                        <span style={styles.quickStatLabel}>Standard Rewards</span>
-                      </div>
-                    </div>
+                      </details>
+                    ))}
                   </div>
-                )}
+                </>
+              )}
 
-                {/* DIAMOND REWARDS SUB-TAB */}
-                {rewardsSubTab === 'diamonds' && (
+              {/* ═══════════════════════════════════════════════════════════════════ */}
+              {/* MERCHANDISE TAB */}
+              {/* ═══════════════════════════════════════════════════════════════════ */}
+              {activeTab === 'merch' && (
+                <section className={shellStyles.merchSurface} aria-label="Official Merch Catalog">
+                  <MerchStore user={user} />
+                </section>
+              )}
+
+              {/* ═══════════════════════════════════════════════════════════════════ */}
+              {/* SMARTER REWARDS TAB - Comprehensive Rewards Information Center */}
+              {/* ═══════════════════════════════════════════════════════════════════ */}
+              {activeTab === 'rewards' && (
+                <section className={shellStyles.rewardsSurface} aria-label="Smarter Rewards Center">
+                  {/* Active Diamond Multiplier Banner */}
                   <div
-                    id="rewards-panel-diamonds"
-                    role="tabpanel"
-                    aria-labelledby="rewards-tab-diamonds"
-                    tabIndex={0}
-                    className={shellStyles.subPanel}
-                    style={styles.diamondRewardsSection}
-                  >
-                    <h2 style={styles.earnTitle}>Diamond Rewards</h2>
-                    <p style={styles.introText}>
-                      All {TOTAL_WAYS_TO_EARN} Ways You Can Earn Diamonds On Smarter.Poker —{' '}
-                      {STANDARD_REWARDS.length} Standard Rewards Plus {TOTAL_EASTER_EGGS} Hidden
-                      Achievements
-                    </p>
-
-                    {/* Daily Cap Banner */}
-                    <div className={shellStyles.rewardsCapBanner} style={styles.capBanner}>
-                      <div style={styles.capInfo}>
-                        <span style={styles.capNumber}>{DAILY_CAP.free}</span>
-                        <span style={styles.capLabel}>
-                          Daily Cap · {fmt(MONTHLY_CAP.free)} A Month
-                        </span>
-                      </div>
-                      <div style={styles.capDivider} />
-                      <div style={styles.capInfo}>
-                        <span style={styles.capNumber}>{DAILY_CAP.vip}</span>
-                        <span style={styles.capLabel}>
-                          VIP Daily Cap · {fmt(MONTHLY_CAP.vip)} A Month
-                        </span>
-                      </div>
-                      <div style={styles.capDivider} />
-                      <div style={styles.streakMultipliers}>
-                        <div style={styles.multiplierItem}>
-                          <span style={styles.multiplierValue}>1.5x</span>
-                          <span style={styles.multiplierLabel}>Share Streak 7d</span>
-                        </div>
-                        <div style={styles.multiplierItem}>
-                          <span style={styles.multiplierValueGold}>2.0x</span>
-                          <span style={styles.multiplierLabel}>Share Streak 30d</span>
-                        </div>
-                      </div>
-                    </div>
-                    <p style={styles.introText}>
-                      The Cap Is Measured After Your Share Streak Multiplier — Multipliers Help You
-                      Reach {DAILY_CAP.free} {GEM} A Day With Less Work, They Never Raise It. Easter
-                      Eggs Draw On A Separate {EASTER_EGG_MONTHLY_CAP} {GEM} Per Month Budget On
-                      Top. 1 {GEM} = $0.01, So {fmt(MONTHLY_CAP.free)} {GEM} A Month = $
-                      {(MONTHLY_CAP.free / 100).toFixed(0)}.
-                    </p>
-
-                    {/* Standard Rewards List */}
-                    <div style={styles.rewardCategory}>
-                      <h3 style={styles.categoryTitle}>All Standard Rewards</h3>
-                      <div style={styles.rewardList}>
-                        {STANDARD_REWARDS.map((reward, idx) => (
-                          <div key={idx} className={shellStyles.rewardRow} style={styles.rewardItem}>
-                            <span style={styles.rewardIcon}>
-                              {reward.icon && <reward.icon size={24} />}
-                            </span>
-                            <div style={styles.rewardDetails}>
-                              <span style={styles.rewardName}>{reward.name}</span>
-                              <span style={styles.rewardNote}>{reward.note}</span>
-                            </div>
-                            <span style={styles.rewardAmount}>{reward.amount}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* EASTER EGGS SUB-TAB */}
-                {rewardsSubTab === 'eggs' && (
-                  <div
-                    id="rewards-panel-eggs"
-                    role="tabpanel"
-                    aria-labelledby="rewards-tab-eggs"
-                    tabIndex={0}
-                    className={shellStyles.subPanel}
-                    style={styles.easterEggsSection}
-                  >
-                    <h2 style={styles.earnTitle}>
-                      Easter Eggs - {TOTAL_EASTER_EGGS} Hidden Achievements
-                    </h2>
-                    <p style={styles.introText}>
-                      {TOTAL_EASTER_EGGS} Hidden Achievements Across {EGG_CATEGORY_COUNT} Categories
-                      — {EARNABLE_EGG_COUNT} Are Unlockable Today, The Rest Arrive As Tracking
-                      Expands. Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On Top Of Your
-                      Normal Daily Cap, And The Biggest Single Egg Pays {biggestEggValue()} {GEM}.
-                    </p>
-
-                    {/* Performance Category */}
-                    <div style={styles.eggCategory}>
-                      <h3 style={styles.eggCategoryTitle}>
-                        {EGG_CATEGORY_LABELS.performance} ({EASTER_EGG_COUNTS.performance}{' '}
-                        Achievements)
-                      </h3>
-                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
-                        {EASTER_EGGS.performance.map((egg) => (
-                          <div key={egg.id} style={styles.eggCard}>
-                            <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                            <h4 style={styles.eggName}>{egg.name}</h4>
-                            <div
-                              style={{
-                                ...styles.rarityBadge,
-                                ...styles[
-                                  `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
-                                ],
-                              }}
-                            >
-                              {egg.rarity.toUpperCase()}
-                            </div>
-                            <div style={styles.eggReward}>{egg.reward}</div>
-                            <p style={styles.eggTrigger}>{egg.trigger}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Timing & Loyalty Category */}
-                    <div style={styles.eggCategory}>
-                      <h3 style={styles.eggCategoryTitle}>
-                        {EGG_CATEGORY_LABELS.timing_loyalty} ({EASTER_EGG_COUNTS.timing_loyalty}{' '}
-                        Achievements)
-                      </h3>
-                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
-                        {EASTER_EGGS.timing_loyalty.map((egg) => (
-                          <div key={egg.id} style={styles.eggCard}>
-                            <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                            <h4 style={styles.eggName}>{egg.name}</h4>
-                            <div
-                              style={{
-                                ...styles.rarityBadge,
-                                ...styles[
-                                  `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
-                                ],
-                              }}
-                            >
-                              {egg.rarity.toUpperCase()}
-                            </div>
-                            <div style={styles.eggReward}>{egg.reward}</div>
-                            <p style={styles.eggTrigger}>{egg.trigger}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Strategy & Mastery Category */}
-                    <div style={styles.eggCategory}>
-                      <h3 style={styles.eggCategoryTitle}>
-                        {EGG_CATEGORY_LABELS.strategy_mastery} ({EASTER_EGG_COUNTS.strategy_mastery}{' '}
-                        Achievements)
-                      </h3>
-                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
-                        {EASTER_EGGS.strategy_mastery.map((egg) => (
-                          <div key={egg.id} style={styles.eggCard}>
-                            <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                            <h4 style={styles.eggName}>{egg.name}</h4>
-                            <div
-                              style={{
-                                ...styles.rarityBadge,
-                                ...styles[
-                                  `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
-                                ],
-                              }}
-                            >
-                              {egg.rarity.toUpperCase()}
-                            </div>
-                            <div style={styles.eggReward}>{egg.reward}</div>
-                            <p style={styles.eggTrigger}>{egg.trigger}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Social & Viral Category */}
-                    <div style={styles.eggCategory}>
-                      <h3 style={styles.eggCategoryTitle}>
-                        {EGG_CATEGORY_LABELS.social_viral} ({EASTER_EGG_COUNTS.social_viral}{' '}
-                        Achievements)
-                      </h3>
-                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
-                        {EASTER_EGGS.social_viral.map((egg) => (
-                          <div key={egg.id} style={styles.eggCard}>
-                            <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                            <h4 style={styles.eggName}>{egg.name}</h4>
-                            <div
-                              style={{
-                                ...styles.rarityBadge,
-                                ...styles[
-                                  `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
-                                ],
-                              }}
-                            >
-                              {egg.rarity.toUpperCase()}
-                            </div>
-                            <div style={styles.eggReward}>{egg.reward}</div>
-                            <p style={styles.eggTrigger}>{egg.trigger}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Discovery Category */}
-                    <div style={styles.eggCategory}>
-                      <h3 style={styles.eggCategoryTitle}>
-                        {EGG_CATEGORY_LABELS.discovery} ({EASTER_EGG_COUNTS.discovery} Achievements)
-                      </h3>
-                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
-                        {EASTER_EGGS.discovery.map((egg) => (
-                          <div key={egg.id} style={styles.eggCard}>
-                            <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                            <h4 style={styles.eggName}>{egg.name}</h4>
-                            <div
-                              style={{
-                                ...styles.rarityBadge,
-                                ...styles[
-                                  `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
-                                ],
-                              }}
-                            >
-                              {egg.rarity.toUpperCase()}
-                            </div>
-                            <div style={styles.eggReward}>{egg.reward}</div>
-                            <p style={styles.eggTrigger}>{egg.trigger}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Legacy & Milestones Category */}
-                    <div style={styles.eggCategory}>
-                      <h3 style={styles.eggCategoryTitle}>
-                        {EGG_CATEGORY_LABELS.legacy_milestones} (
-                        {EASTER_EGG_COUNTS.legacy_milestones} Achievements)
-                      </h3>
-                      <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
-                        {EASTER_EGGS.legacy_milestones.map((egg) => (
-                          <div key={egg.id} style={styles.eggCard}>
-                            <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                            <h4 style={styles.eggName}>{egg.name}</h4>
-                            <div
-                              style={{
-                                ...styles.rarityBadge,
-                                ...styles[
-                                  `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
-                                ],
-                              }}
-                            >
-                              {egg.rarity.toUpperCase()}
-                            </div>
-                            <div style={styles.eggReward}>{egg.reward}</div>
-                            <p style={styles.eggTrigger}>{egg.trigger}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* ═══════════════════════════════════════════════════════════════════ */}
-            {/* CLUB SHOP TAB — Diamond-funded marketplace items from user's club */}
-            {/* ═══════════════════════════════════════════════════════════════════ */}
-            {activeTab === 'club-shop' && (
-              <>
-                {/* Success Flash */}
-                {clubShopSuccess && (
-                  <div
-                    role="status"
-                    aria-live="polite"
                     style={{
-                      position: 'fixed',
-                      top: 80,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      background: 'linear-gradient(135deg, #00ff88, #00cc66)',
-                      color: '#000',
-                      padding: '12px 28px',
+                      margin: '12px 0 0',
+                      padding: '14px 16px',
                       borderRadius: 12,
-                      fontWeight: 700,
-                      fontSize: 15,
-                      zIndex: 9999,
-                      boxShadow: '0 4px 20px rgba(0,255,136,0.4)',
-                      animation: 'fadeIn 0.3s ease',
-                    }}
-                  >
-                    <CheckCircle
-                      size={16}
-                      style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
-                    />{' '}
-                    {clubShopSuccess}
-                  </div>
-                )}
-
-                {/* Purchase Confirm Modal */}
-                {clubShopBuyTarget && (
-                  <div
-                    onClick={() => !clubShopProcessing && setClubShopBuyTarget(null)}
-                    className={shellStyles.dialogBackdrop}
-                    style={{
-                      position: 'fixed',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: 'rgba(0,0,0,0.7)',
-                      backdropFilter: 'blur(6px)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 9999,
+                      background:
+                        diamondMultiplier > 1.0
+                          ? 'linear-gradient(135deg, rgba(245,158,11,0.18), rgba(251,191,36,0.12))'
+                          : 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))',
+                      border: `1px solid ${diamondMultiplier > 1.0 ? 'rgba(245,158,11,0.45)' : 'rgba(99,102,241,0.3)'}`,
                     }}
                   >
                     <div
-                      ref={clubShopDialogRef}
-                      role="dialog"
-                      aria-modal="true"
-                      aria-labelledby="club-shop-dialog-title"
-                      aria-describedby="club-shop-dialog-description"
-                      tabIndex={-1}
-                      onClick={(e) => e.stopPropagation()}
-                      className={shellStyles.dialogPanel}
                       style={{
-                        background: '#1a1a2e',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        borderRadius: 16,
-                        padding: 28,
-                        maxWidth: 420,
-                        width: '90%',
-                        boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
                       }}
                     >
-                      <h3
-                        id="club-shop-dialog-title"
-                        style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 16 }}
-                      >
-                        Confirm Purchase
-                      </h3>
                       <div
-                        style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}
+                        className={shellStyles.rewardsBoostCopy}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10 }}
                       >
                         <div
                           style={{
-                            width: 56,
-                            height: 56,
-                            borderRadius: 12,
-                            background: 'rgba(255,255,255,0.05)',
+                            width: 40,
+                            height: 40,
+                            borderRadius: 10,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: 28,
+                            background:
+                              diamondMultiplier > 1.0
+                                ? 'rgba(245,158,11,0.2)'
+                                : 'rgba(99,102,241,0.2)',
+                            fontSize: 20,
                           }}
                         >
-                          {clubShopBuyTarget.image_url ? (
-                            <img
-                              src={clubShopBuyTarget.image_url}
-                              alt=""
-                              style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
-                            />
+                          {diamondMultiplier > 1.0 ? (
+                            <Zap size={20} color="#f59e0b" />
                           ) : (
-                            <CartIcon size={28} color="#8b8d91" />
+                            <Gem size={20} color="#818cf8" />
                           )}
                         </div>
                         <div>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>
-                            {clubShopBuyTarget.name}
-                          </div>
-                          <div id="club-shop-dialog-description" style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-                            {clubShopBuyTarget.description || ''}
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-                        <div
-                          style={{
-                            flex: 1,
-                            background: 'rgba(255,255,255,0.05)',
-                            borderRadius: 10,
-                            padding: '12px 16px',
-                            textAlign: 'center',
-                          }}
-                        >
                           <div
                             style={{
-                              fontSize: 10,
-                              fontWeight: 600,
-                              color: 'rgba(255,255,255,0.4)',
-                              textTransform: 'uppercase',
-                              letterSpacing: 1,
-                            }}
-                          >
-                            Item Price
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 20,
+                              fontSize: 14,
                               fontWeight: 700,
-                              color: '#ff6b6b',
-                              marginTop: 4,
+                              color: diamondMultiplier > 1.0 ? '#f59e0b' : '#818cf8',
                             }}
                           >
-                            {clubShopBuyTarget.price.toLocaleString()}
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            flex: 1,
-                            background: 'rgba(255,255,255,0.05)',
-                            borderRadius: 10,
-                            padding: '12px 16px',
-                            textAlign: 'center',
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 600,
-                              color: 'rgba(255,255,255,0.4)',
-                              textTransform: 'uppercase',
-                              letterSpacing: 1,
-                            }}
-                          >
-                            Your Balance
+                            {diamondMultiplier > 1.0
+                              ? `${diamondMultiplier.toFixed(2)}× Diamond Boost Active`
+                              : 'Activate Your Diamond Boost'}
                           </div>
                           <div
-                            style={{
-                              fontSize: 20,
-                              fontWeight: 700,
-                              color: '#00ff88',
-                              marginTop: 4,
-                            }}
+                            style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}
                           >
-                            {clubDiamondBalance.toLocaleString()}
+                            {diamondMultiplier > 1.0
+                              ? `Every diamond you earn is multiplied ${diamondMultiplier.toFixed(2)}× by your share streak`
+                              : 'Share posts daily for 3+ days to boost ALL your diamond earnings'}
                           </div>
                         </div>
-                      </div>
-                      {clubDiamondBalance < clubShopBuyTarget.price && (
-                        <div
-                          style={{
-                            color: '#ff6b6b',
-                            fontSize: 13,
-                            fontWeight: 600,
-                            marginBottom: 12,
-                            textAlign: 'center',
-                          }}
-                        >
-                          <AlertTriangle
-                            size={14}
-                            style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
-                          />{' '}
-                          Insufficient Diamonds. You Need{' '}
-                          {(clubShopBuyTarget.price - clubDiamondBalance).toLocaleString()} More.
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', gap: 12 }}>
-                        <button
-                          onClick={() => setClubShopBuyTarget(null)}
-                          disabled={clubShopProcessing}
-                          style={{
-                            flex: 1,
-                            padding: '12px',
-                            background: 'rgba(255,255,255,0.08)',
-                            border: '1px solid rgba(255,255,255,0.15)',
-                            borderRadius: 10,
-                            color: '#B0B3B8',
-                            fontSize: 14,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleClubPurchase}
-                          disabled={clubShopProcessing || clubDiamondBalance < clubShopBuyTarget.price}
-                          style={{
-                            flex: 1,
-                            padding: '12px',
-                            background:
-                              clubShopProcessing || clubDiamondBalance < clubShopBuyTarget.price
-                                ? 'rgba(255,255,255,0.1)'
-                                : 'linear-gradient(135deg, #1877F2, #4285F4)',
-                            border: 'none',
-                            borderRadius: 10,
-                            color: '#fff',
-                            fontSize: 14,
-                            fontWeight: 700,
-                            cursor: clubShopProcessing ? 'wait' : 'pointer',
-                          }}
-                        >
-                          {clubShopProcessing ? 'Purchasing...' : 'Confirm Purchase'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div style={styles.intro}>
-                  <h2
-                    style={{ ...styles.merchTitle, display: 'flex', alignItems: 'center', gap: 12 }}
-                  >
-                    <Gamepad2
-                      size={20}
-                      style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }}
-                    />{' '}
-                    Club Shop
-                    <span
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                        color: '#000',
-                        padding: '4px 14px',
-                        borderRadius: 20,
-                      }}
-                    >
-                      <Gem
-                        size={14}
-                        style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
-                      />{' '}
-                      {clubDiamondBalance.toLocaleString()} Diamonds
-                    </span>
-                  </h2>
-                  <p style={styles.introText}>
-                    Purchase In-Game Items For Your Club With Diamonds — Time Banks, Table Skins,
-                    Throwables, Emotes & More.
-                  </p>
-                </div>
-
-                {!user?.id ? (
-                  <div style={{ textAlign: 'center', padding: 40 }}>
-                    <Home size={48} color="rgba(255,255,255,0.3)" />
-                    <div
-                      style={{
-                        marginTop: 12,
-                        fontSize: 16,
-                        color: 'rgba(255,255,255,0.7)',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Sign In To Access Your Club Shop
-                    </div>
-                  </div>
-                ) : clubShopError ? (
-                  <div
-                    role="alert"
-                    style={{
-                      display: 'grid',
-                      justifyItems: 'center',
-                      gap: 14,
-                      padding: 40,
-                      color: '#FFD7D7',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <AlertTriangle size={30} color="#FF6B6B" />
-                    <div>{clubShopError}</div>
-                    <button
-                      type="button"
-                      onClick={() => loadClubShop(false)}
-                      disabled={clubShopLoading}
-                      style={{
-                        minHeight: 44,
-                        padding: '10px 22px',
-                        border: '1px solid #7BDCF2',
-                        background: 'linear-gradient(180deg, #314A5A, #07121B)',
-                        color: '#E9FBFF',
-                        fontWeight: 700,
-                        cursor: clubShopLoading ? 'wait' : 'pointer',
-                      }}
-                    >
-                      {clubShopLoading ? 'Retrying...' : 'Retry Club Shop'}
-                    </button>
-                  </div>
-                ) : clubShopLoading && !clubShopLoaded ? (
-                  <div role="status" aria-live="polite" style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}>
-                    Loading Club Shop...
-                  </div>
-                ) : !clubShopClubId ? (
-                  clubShopLoaded ? (
-                    <div style={{ textAlign: 'center', padding: 40 }}>
-                      <div style={{ marginBottom: 12 }}>
-                        <Home size={48} color="rgba(255,255,255,0.3)" />
                       </div>
                       <div
-                        style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}
+                        className={shellStyles.rewardsBoostTiers}
+                        style={{ textAlign: 'right', flexShrink: 0 }}
                       >
-                        No Club Found
+                        {[
+                          { label: 'Streak 3d', mult: '1.2×', color: '#60a5fa' },
+                          { label: 'Expert 7d', mult: '1.5×', color: '#34d399' },
+                          { label: 'Master 14d', mult: '1.75×', color: '#818cf8' },
+                          { label: 'Legend 30d', mult: '2.0×', color: '#f59e0b' },
+                        ].map((tier) => (
+                          <span
+                            key={tier.label}
+                            style={{
+                              display: 'inline-block',
+                              margin: '2px 3px',
+                              fontSize: 10,
+                              fontWeight: 600,
+                              color: tier.color,
+                              background: `${tier.color}18`,
+                              border: `1px solid ${tier.color}35`,
+                              borderRadius: 6,
+                              padding: '2px 6px',
+                            }}
+                          >
+                            {tier.label} {tier.mult}
+                          </span>
+                        ))}
                       </div>
-                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>
-                        Join a club to access the Club Shop.
-                      </p>
                     </div>
-                  ) : (
+                  </div>
+
+                  {/* Sub-Tab Navigation */}
+                  <div
+                    role="tablist"
+                    aria-label="Smarter Rewards Sections"
+                    style={styles.rewardsSubNav}
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      id="rewards-tab-overview"
+                      aria-selected={rewardsSubTab === 'overview'}
+                      aria-controls="rewards-panel-overview"
+                      tabIndex={rewardsSubTab === 'overview' ? 0 : -1}
+                      onClick={() => setRewardsSubTab('overview')}
+                      onKeyDown={(event) => handleRewardsTabKeyDown(event, 'overview')}
+                      style={{
+                        ...styles.rewardsSubTab,
+                        ...(rewardsSubTab === 'overview' ? styles.rewardsSubTabActive : {}),
+                      }}
+                    >
+                      Overview
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      id="rewards-tab-diamonds"
+                      aria-selected={rewardsSubTab === 'diamonds'}
+                      aria-controls="rewards-panel-diamonds"
+                      tabIndex={rewardsSubTab === 'diamonds' ? 0 : -1}
+                      onClick={() => setRewardsSubTab('diamonds')}
+                      onKeyDown={(event) => handleRewardsTabKeyDown(event, 'diamonds')}
+                      style={{
+                        ...styles.rewardsSubTab,
+                        ...(rewardsSubTab === 'diamonds' ? styles.rewardsSubTabActive : {}),
+                      }}
+                    >
+                      Diamond Rewards
+                    </button>
+
+                    <button
+                      type="button"
+                      role="tab"
+                      id="rewards-tab-eggs"
+                      aria-selected={rewardsSubTab === 'eggs'}
+                      aria-controls="rewards-panel-eggs"
+                      tabIndex={rewardsSubTab === 'eggs' ? 0 : -1}
+                      onClick={() => setRewardsSubTab('eggs')}
+                      onKeyDown={(event) => handleRewardsTabKeyDown(event, 'eggs')}
+                      style={{
+                        ...styles.rewardsSubTab,
+                        ...(rewardsSubTab === 'eggs' ? styles.rewardsSubTabActive : {}),
+                      }}
+                    >
+                      Easter Eggs
+                    </button>
+                  </div>
+
+                  {/* OVERVIEW SUB-TAB */}
+                  {rewardsSubTab === 'overview' && (
+                    <div
+                      id="rewards-panel-overview"
+                      role="tabpanel"
+                      aria-labelledby="rewards-tab-overview"
+                      tabIndex={0}
+                      className={shellStyles.subPanel}
+                      style={styles.rewardsOverview}
+                    >
+                      <h2 style={styles.earnTitle}>Smarter Rewards</h2>
+                      <p style={styles.introText}>
+                        Welcome To The Smarter Rewards System! Earn Diamonds By Playing, Training,
+                        And Engaging With The Community.
+                      </p>
+
+                      <div className={shellStyles.responsiveGrid} style={styles.overviewGrid}>
+                        <div style={styles.overviewCard}>
+                          <div style={styles.overviewIcon}>
+                            <Gem size={40} color="#00D4FF" />
+                          </div>
+                          <h3 style={styles.overviewCardTitle}>Diamond Rewards</h3>
+                          <p style={styles.overviewCardText}>
+                            Earn Diamonds Through Daily Logins, Training, Social Engagement, And
+                            Referrals.
+                            <strong style={{ color: '#00ff88' }}>
+                              {' '}
+                              Daily Cap: {DAILY_CAP.free} {GEM} ({DAILY_CAP.vip} VIP)
+                            </strong>{' '}
+                            — Up To {fmt(MONTHLY_CAP.free)} {GEM} A Month Free,{' '}
+                            {fmt(MONTHLY_CAP.vip)} {GEM} VIP. Share Streak Multipliers Help You
+                            Reach The Cap Faster — They Never Raise It.
+                          </p>
+                        </div>
+
+                        <div style={styles.overviewCard}>
+                          <div style={styles.overviewIcon}>
+                            <Crown size={40} color="#FFD700" />
+                          </div>
+                          <h3 style={styles.overviewCardTitle}>VIP Membership</h3>
+                          <div style={{ marginTop: 12, marginBottom: 12 }}>
+                            <img
+                              src="/images/vip-card.webp"
+                              width={1024}
+                              height={1024}
+                              alt="VIP Membership Card"
+                              style={{
+                                width: '100%',
+                                maxWidth: 320,
+                                borderRadius: 12,
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                              }}
+                              draggable={false}
+                              loading="lazy"
+                            />
+                          </div>
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'center',
+                              gap: 16,
+                              marginTop: 8,
+                            }}
+                          >
+                            <div
+                              style={{
+                                background:
+                                  'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05))',
+                                border: '1px solid rgba(255,215,0,0.3)',
+                                borderRadius: 10,
+                                padding: '10px 18px',
+                                textAlign: 'center',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: 20,
+                                  fontWeight: 800,
+                                  color: '#FFD700',
+                                  fontFamily: 'Orbitron, sans-serif',
+                                }}
+                              >
+                                $19.99
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: 'rgba(255,255,255,0.6)',
+                                  marginTop: 2,
+                                }}
+                              >
+                                Per Month
+                              </div>
+                            </div>
+                            <div
+                              style={{
+                                background:
+                                  'linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05))',
+                                border: '1px solid rgba(0,212,255,0.3)',
+                                borderRadius: 10,
+                                padding: '10px 18px',
+                                textAlign: 'center',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: 20,
+                                  fontWeight: 800,
+                                  color: '#00D4FF',
+                                  fontFamily: 'Orbitron, sans-serif',
+                                }}
+                              >
+                                $199.99
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: 'rgba(255,255,255,0.6)',
+                                  marginTop: 2,
+                                }}
+                              >
+                                Per Year (Save $40!)
+                              </div>
+                            </div>
+                          </div>
+                          <a
+                            href={TAB_ROUTES.vip}
+                            aria-label="View VIP Plans"
+                            style={{
+                              display: 'inline-block',
+                              marginTop: 12,
+                              padding: '10px 28px',
+                              background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                              border: 'none',
+                              borderRadius: 8,
+                              color: '#000',
+                              fontSize: 14,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              boxShadow: '0 0 16px rgba(255,215,0,0.3)',
+                              textDecoration: 'none',
+                            }}
+                          >
+                            View VIP Plans →
+                          </a>
+                        </div>
+
+                        <div style={styles.overviewCard}>
+                          <div style={styles.overviewIcon}>
+                            <Gift size={40} color="#00ff88" />
+                          </div>
+                          <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
+                          <p style={styles.overviewCardText}>
+                            Discover <strong>{TOTAL_EASTER_EGGS} Hidden Achievements</strong> Across{' '}
+                            {EGG_CATEGORY_COUNT} Categories. From Performance To Legacy Milestones —
+                            Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On Top Of Your
+                            Normal Cap. {EARNABLE_EGG_COUNT} Are Live Now.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={styles.quickStats}>
+                        <div style={styles.quickStat}>
+                          <span style={styles.quickStatValue}>{DAILY_CAP.free}</span>
+                          <span style={styles.quickStatLabel}>Daily Cap (Free)</span>
+                        </div>
+                        <div style={styles.quickStat}>
+                          <span style={styles.quickStatValue}>
+                            {Object.keys(VIP_MEMBERSHIP).length}
+                          </span>
+                          <span style={styles.quickStatLabel}>VIP Plans</span>
+                        </div>
+                        <div style={styles.quickStat}>
+                          <span style={styles.quickStatValue}>{TOTAL_EASTER_EGGS}</span>
+                          <span style={styles.quickStatLabel}>Easter Eggs</span>
+                        </div>
+                        <div style={styles.quickStat}>
+                          <span style={styles.quickStatValue}>{STANDARD_REWARDS.length}</span>
+                          <span style={styles.quickStatLabel}>Standard Rewards</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DIAMOND REWARDS SUB-TAB */}
+                  {rewardsSubTab === 'diamonds' && (
+                    <div
+                      id="rewards-panel-diamonds"
+                      role="tabpanel"
+                      aria-labelledby="rewards-tab-diamonds"
+                      tabIndex={0}
+                      className={shellStyles.subPanel}
+                      style={styles.diamondRewardsSection}
+                    >
+                      <h2 style={styles.earnTitle}>Diamond Rewards</h2>
+                      <p style={styles.introText}>
+                        All {TOTAL_WAYS_TO_EARN} Ways You Can Earn Diamonds On Smarter.Poker —{' '}
+                        {STANDARD_REWARDS.length} Standard Rewards Plus {TOTAL_EASTER_EGGS} Hidden
+                        Achievements
+                      </p>
+
+                      {/* Daily Cap Banner */}
+                      <div className={shellStyles.rewardsCapBanner} style={styles.capBanner}>
+                        <div style={styles.capInfo}>
+                          <span style={styles.capNumber}>{DAILY_CAP.free}</span>
+                          <span style={styles.capLabel}>
+                            Daily Cap · {fmt(MONTHLY_CAP.free)} A Month
+                          </span>
+                        </div>
+                        <div style={styles.capDivider} />
+                        <div style={styles.capInfo}>
+                          <span style={styles.capNumber}>{DAILY_CAP.vip}</span>
+                          <span style={styles.capLabel}>
+                            VIP Daily Cap · {fmt(MONTHLY_CAP.vip)} A Month
+                          </span>
+                        </div>
+                        <div style={styles.capDivider} />
+                        <div style={styles.streakMultipliers}>
+                          <div style={styles.multiplierItem}>
+                            <span style={styles.multiplierValue}>1.5x</span>
+                            <span style={styles.multiplierLabel}>Share Streak 7d</span>
+                          </div>
+                          <div style={styles.multiplierItem}>
+                            <span style={styles.multiplierValueGold}>2.0x</span>
+                            <span style={styles.multiplierLabel}>Share Streak 30d</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p style={styles.introText}>
+                        The Cap Is Measured After Your Share Streak Multiplier — Multipliers Help
+                        You Reach {DAILY_CAP.free} {GEM} A Day With Less Work, They Never Raise It.
+                        Easter Eggs Draw On A Separate {EASTER_EGG_MONTHLY_CAP} {GEM} Per Month
+                        Budget On Top. 1 {GEM} = $0.01, So {fmt(MONTHLY_CAP.free)} {GEM} A Month = $
+                        {(MONTHLY_CAP.free / 100).toFixed(0)}.
+                      </p>
+
+                      {/* Standard Rewards List */}
+                      <div style={styles.rewardCategory}>
+                        <h3 style={styles.categoryTitle}>All Standard Rewards</h3>
+                        <div style={styles.rewardList}>
+                          {STANDARD_REWARDS.map((reward, idx) => (
+                            <div
+                              key={idx}
+                              className={shellStyles.rewardRow}
+                              style={styles.rewardItem}
+                            >
+                              <span style={styles.rewardIcon}>
+                                {reward.icon && <reward.icon size={24} />}
+                              </span>
+                              <div style={styles.rewardDetails}>
+                                <span style={styles.rewardName}>{reward.name}</span>
+                                <span style={styles.rewardNote}>{reward.note}</span>
+                              </div>
+                              <span style={styles.rewardAmount}>{reward.amount}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* EASTER EGGS SUB-TAB */}
+                  {rewardsSubTab === 'eggs' && (
+                    <div
+                      id="rewards-panel-eggs"
+                      role="tabpanel"
+                      aria-labelledby="rewards-tab-eggs"
+                      tabIndex={0}
+                      className={shellStyles.subPanel}
+                      style={styles.easterEggsSection}
+                    >
+                      <h2 style={styles.earnTitle}>
+                        Easter Eggs - {TOTAL_EASTER_EGGS} Hidden Achievements
+                      </h2>
+                      <p style={styles.introText}>
+                        {TOTAL_EASTER_EGGS} Hidden Achievements Across {EGG_CATEGORY_COUNT}{' '}
+                        Categories — {EARNABLE_EGG_COUNT} Are Unlockable Today, The Rest Arrive As
+                        Tracking Expands. Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On
+                        Top Of Your Normal Daily Cap, And The Biggest Single Egg Pays{' '}
+                        {biggestEggValue()} {GEM}.
+                      </p>
+
+                      {/* Performance Category */}
+                      <div style={styles.eggCategory}>
+                        <h3 style={styles.eggCategoryTitle}>
+                          {EGG_CATEGORY_LABELS.performance} ({EASTER_EGG_COUNTS.performance}{' '}
+                          Achievements)
+                        </h3>
+                        <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
+                          {EASTER_EGGS.performance.map((egg) => (
+                            <div key={egg.id} style={styles.eggCard}>
+                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
+                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <div
+                                style={{
+                                  ...styles.rarityBadge,
+                                  ...styles[
+                                    `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
+                                  ],
+                                }}
+                              >
+                                {egg.rarity.toUpperCase()}
+                              </div>
+                              <div style={styles.eggReward}>{egg.reward}</div>
+                              <p style={styles.eggTrigger}>{egg.trigger}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Timing & Loyalty Category */}
+                      <div style={styles.eggCategory}>
+                        <h3 style={styles.eggCategoryTitle}>
+                          {EGG_CATEGORY_LABELS.timing_loyalty} ({EASTER_EGG_COUNTS.timing_loyalty}{' '}
+                          Achievements)
+                        </h3>
+                        <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
+                          {EASTER_EGGS.timing_loyalty.map((egg) => (
+                            <div key={egg.id} style={styles.eggCard}>
+                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
+                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <div
+                                style={{
+                                  ...styles.rarityBadge,
+                                  ...styles[
+                                    `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
+                                  ],
+                                }}
+                              >
+                                {egg.rarity.toUpperCase()}
+                              </div>
+                              <div style={styles.eggReward}>{egg.reward}</div>
+                              <p style={styles.eggTrigger}>{egg.trigger}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Strategy & Mastery Category */}
+                      <div style={styles.eggCategory}>
+                        <h3 style={styles.eggCategoryTitle}>
+                          {EGG_CATEGORY_LABELS.strategy_mastery} (
+                          {EASTER_EGG_COUNTS.strategy_mastery} Achievements)
+                        </h3>
+                        <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
+                          {EASTER_EGGS.strategy_mastery.map((egg) => (
+                            <div key={egg.id} style={styles.eggCard}>
+                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
+                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <div
+                                style={{
+                                  ...styles.rarityBadge,
+                                  ...styles[
+                                    `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
+                                  ],
+                                }}
+                              >
+                                {egg.rarity.toUpperCase()}
+                              </div>
+                              <div style={styles.eggReward}>{egg.reward}</div>
+                              <p style={styles.eggTrigger}>{egg.trigger}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Social & Viral Category */}
+                      <div style={styles.eggCategory}>
+                        <h3 style={styles.eggCategoryTitle}>
+                          {EGG_CATEGORY_LABELS.social_viral} ({EASTER_EGG_COUNTS.social_viral}{' '}
+                          Achievements)
+                        </h3>
+                        <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
+                          {EASTER_EGGS.social_viral.map((egg) => (
+                            <div key={egg.id} style={styles.eggCard}>
+                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
+                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <div
+                                style={{
+                                  ...styles.rarityBadge,
+                                  ...styles[
+                                    `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
+                                  ],
+                                }}
+                              >
+                                {egg.rarity.toUpperCase()}
+                              </div>
+                              <div style={styles.eggReward}>{egg.reward}</div>
+                              <p style={styles.eggTrigger}>{egg.trigger}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Discovery Category */}
+                      <div style={styles.eggCategory}>
+                        <h3 style={styles.eggCategoryTitle}>
+                          {EGG_CATEGORY_LABELS.discovery} ({EASTER_EGG_COUNTS.discovery}{' '}
+                          Achievements)
+                        </h3>
+                        <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
+                          {EASTER_EGGS.discovery.map((egg) => (
+                            <div key={egg.id} style={styles.eggCard}>
+                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
+                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <div
+                                style={{
+                                  ...styles.rarityBadge,
+                                  ...styles[
+                                    `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
+                                  ],
+                                }}
+                              >
+                                {egg.rarity.toUpperCase()}
+                              </div>
+                              <div style={styles.eggReward}>{egg.reward}</div>
+                              <p style={styles.eggTrigger}>{egg.trigger}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Legacy & Milestones Category */}
+                      <div style={styles.eggCategory}>
+                        <h3 style={styles.eggCategoryTitle}>
+                          {EGG_CATEGORY_LABELS.legacy_milestones} (
+                          {EASTER_EGG_COUNTS.legacy_milestones} Achievements)
+                        </h3>
+                        <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
+                          {EASTER_EGGS.legacy_milestones.map((egg) => (
+                            <div key={egg.id} style={styles.eggCard}>
+                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
+                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <div
+                                style={{
+                                  ...styles.rarityBadge,
+                                  ...styles[
+                                    `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
+                                  ],
+                                }}
+                              >
+                                {egg.rarity.toUpperCase()}
+                              </div>
+                              <div style={styles.eggReward}>{egg.reward}</div>
+                              <p style={styles.eggTrigger}>{egg.trigger}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* ═══════════════════════════════════════════════════════════════════ */}
+              {/* CLUB SHOP TAB — Diamond-funded marketplace items from user's club */}
+              {/* ═══════════════════════════════════════════════════════════════════ */}
+              {activeTab === 'club-shop' && (
+                <>
+                  {/* Success Flash */}
+                  {clubShopSuccess && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      style={{
+                        position: 'fixed',
+                        top: 80,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'linear-gradient(135deg, #00ff88, #00cc66)',
+                        color: '#000',
+                        padding: '12px 28px',
+                        borderRadius: 12,
+                        fontWeight: 700,
+                        fontSize: 15,
+                        zIndex: 9999,
+                        boxShadow: '0 4px 20px rgba(0,255,136,0.4)',
+                        animation: 'fadeIn 0.3s ease',
+                      }}
+                    >
+                      <CheckCircle
+                        size={16}
+                        style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
+                      />{' '}
+                      {clubShopSuccess}
+                    </div>
+                  )}
+
+                  {/* Purchase Confirm Modal */}
+                  {clubShopBuyTarget && (
+                    <div
+                      onClick={() => !clubShopProcessing && setClubShopBuyTarget(null)}
+                      className={shellStyles.dialogBackdrop}
+                      style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.7)',
+                        backdropFilter: 'blur(6px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 9999,
+                      }}
+                    >
+                      <div
+                        ref={clubShopDialogRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="club-shop-dialog-title"
+                        aria-describedby="club-shop-dialog-description"
+                        tabIndex={-1}
+                        onClick={(e) => e.stopPropagation()}
+                        className={shellStyles.dialogPanel}
+                        style={{
+                          background: '#1a1a2e',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          borderRadius: 16,
+                          padding: 28,
+                          maxWidth: 420,
+                          width: '90%',
+                          boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+                        }}
+                      >
+                        <h3
+                          id="club-shop-dialog-title"
+                          style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 16 }}
+                        >
+                          Confirm Purchase
+                        </h3>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 16,
+                            marginBottom: 20,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 56,
+                              height: 56,
+                              borderRadius: 12,
+                              background: 'rgba(255,255,255,0.05)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 28,
+                            }}
+                          >
+                            {clubShopBuyTarget.image_url ? (
+                              <img
+                                src={clubShopBuyTarget.image_url}
+                                alt=""
+                                style={{
+                                  width: 48,
+                                  height: 48,
+                                  borderRadius: 8,
+                                  objectFit: 'cover',
+                                }}
+                              />
+                            ) : (
+                              <CartIcon size={28} color="#8b8d91" />
+                            )}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>
+                              {clubShopBuyTarget.name}
+                            </div>
+                            <div
+                              id="club-shop-dialog-description"
+                              style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}
+                            >
+                              {clubShopBuyTarget.description || ''}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+                          <div
+                            style={{
+                              flex: 1,
+                              background: 'rgba(255,255,255,0.05)',
+                              borderRadius: 10,
+                              padding: '12px 16px',
+                              textAlign: 'center',
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 600,
+                                color: 'rgba(255,255,255,0.4)',
+                                textTransform: 'uppercase',
+                                letterSpacing: 1,
+                              }}
+                            >
+                              Item Price
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 20,
+                                fontWeight: 700,
+                                color: '#ff6b6b',
+                                marginTop: 4,
+                              }}
+                            >
+                              {clubShopBuyTarget.price.toLocaleString()}
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              flex: 1,
+                              background: 'rgba(255,255,255,0.05)',
+                              borderRadius: 10,
+                              padding: '12px 16px',
+                              textAlign: 'center',
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 600,
+                                color: 'rgba(255,255,255,0.4)',
+                                textTransform: 'uppercase',
+                                letterSpacing: 1,
+                              }}
+                            >
+                              Your Balance
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 20,
+                                fontWeight: 700,
+                                color: '#00ff88',
+                                marginTop: 4,
+                              }}
+                            >
+                              {clubDiamondBalance.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                        {clubDiamondBalance < clubShopBuyTarget.price && (
+                          <div
+                            style={{
+                              color: '#ff6b6b',
+                              fontSize: 13,
+                              fontWeight: 600,
+                              marginBottom: 12,
+                              textAlign: 'center',
+                            }}
+                          >
+                            <AlertTriangle
+                              size={14}
+                              style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
+                            />{' '}
+                            Insufficient Diamonds. You Need{' '}
+                            {(clubShopBuyTarget.price - clubDiamondBalance).toLocaleString()} More.
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 12 }}>
+                          <button
+                            onClick={() => setClubShopBuyTarget(null)}
+                            disabled={clubShopProcessing}
+                            style={{
+                              flex: 1,
+                              padding: '12px',
+                              background: 'rgba(255,255,255,0.08)',
+                              border: '1px solid rgba(255,255,255,0.15)',
+                              borderRadius: 10,
+                              color: '#B0B3B8',
+                              fontSize: 14,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleClubPurchase}
+                            disabled={
+                              clubShopProcessing || clubDiamondBalance < clubShopBuyTarget.price
+                            }
+                            style={{
+                              flex: 1,
+                              padding: '12px',
+                              background:
+                                clubShopProcessing || clubDiamondBalance < clubShopBuyTarget.price
+                                  ? 'rgba(255,255,255,0.1)'
+                                  : 'linear-gradient(135deg, #1877F2, #4285F4)',
+                              border: 'none',
+                              borderRadius: 10,
+                              color: '#fff',
+                              fontSize: 14,
+                              fontWeight: 700,
+                              cursor: clubShopProcessing ? 'wait' : 'pointer',
+                            }}
+                          >
+                            {clubShopProcessing ? 'Purchasing...' : 'Confirm Purchase'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={styles.intro}>
+                    <h2
+                      style={{
+                        ...styles.merchTitle,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                      }}
+                    >
+                      <Gamepad2
+                        size={20}
+                        style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }}
+                      />{' '}
+                      Club Shop
+                      <span
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                          color: '#000',
+                          padding: '4px 14px',
+                          borderRadius: 20,
+                        }}
+                      >
+                        <Gem
+                          size={14}
+                          style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
+                        />{' '}
+                        {clubDiamondBalance.toLocaleString()} Diamonds
+                      </span>
+                    </h2>
+                    <p style={styles.introText}>
+                      Purchase In-Game Items For Your Club With Diamonds — Time Banks, Table Skins,
+                      Throwables, Emotes & More.
+                    </p>
+                  </div>
+
+                  {!user?.id ? (
+                    <div style={{ textAlign: 'center', padding: 40 }}>
+                      <Home size={48} color="rgba(255,255,255,0.3)" />
+                      <div
+                        style={{
+                          marginTop: 12,
+                          fontSize: 16,
+                          color: 'rgba(255,255,255,0.7)',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Sign In To Access Your Club Shop
+                      </div>
+                    </div>
+                  ) : clubShopError ? (
+                    <div
+                      role="alert"
+                      style={{
+                        display: 'grid',
+                        justifyItems: 'center',
+                        gap: 14,
+                        padding: 40,
+                        color: '#FFD7D7',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <AlertTriangle size={30} color="#FF6B6B" />
+                      <div>{clubShopError}</div>
+                      <button
+                        type="button"
+                        onClick={() => loadClubShop(false)}
+                        disabled={clubShopLoading}
+                        style={{
+                          minHeight: 44,
+                          padding: '10px 22px',
+                          border: '1px solid #7BDCF2',
+                          background: 'linear-gradient(180deg, #314A5A, #07121B)',
+                          color: '#E9FBFF',
+                          fontWeight: 700,
+                          cursor: clubShopLoading ? 'wait' : 'pointer',
+                        }}
+                      >
+                        {clubShopLoading ? 'Retrying...' : 'Retry Club Shop'}
+                      </button>
+                    </div>
+                  ) : clubShopLoading && !clubShopLoaded ? (
                     <div
                       role="status"
                       aria-live="polite"
@@ -2742,722 +2928,168 @@ export default function DiamondStorePage({ initialTab }) {
                     >
                       Loading Club Shop...
                     </div>
-                  )
-                ) : (
-                  <div className={shellStyles.clubShopSurface}>
-                    {/* Sub-tabs: Store / My Purchases / Manage (admin) */}
-                    <div role="group" aria-label="Club Shop Views" style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-                      {[
-                        {
-                          key: 'store',
-                          label: `Store (${clubShopItems.length})`,
-                          LIcon: ShoppingBag,
-                        },
-                        {
-                          key: 'my-purchases',
-                          label: `My Purchases (${clubShopPurchases.length})`,
-                          LIcon: Package,
-                        },
-                        ...(clubShopIsAdmin
-                          ? [{ key: 'manage', label: 'Manage', LIcon: Wrench }]
-                          : []),
-                      ].map((st) => (
-                        <button
-                          type="button"
-                          key={st.key}
-                          aria-pressed={clubShopSubTab === st.key}
-                          onClick={() => {
-                            setClubShopSubTab(st.key);
-                            if (st.key === 'manage' && !clubShopAdminLoaded) loadClubShopAdmin();
-                          }}
-                          style={{
-                            padding: '8px 20px',
-                            background:
-                              clubShopSubTab === st.key
-                                ? 'rgba(0,180,255,0.15)'
-                                : 'rgba(255,255,255,0.05)',
-                            border:
-                              clubShopSubTab === st.key
-                                ? '1px solid rgba(0,180,255,0.4)'
-                                : '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: 10,
-                            color: clubShopSubTab === st.key ? '#00D4FF' : 'rgba(255,255,255,0.5)',
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {st.LIcon && (
-                            <st.LIcon
-                              size={13}
-                              style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
-                            />
-                          )}
-                          {st.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {clubShopSubTab === 'store' && (
-                      <>
-                        {/* Category Filters */}
-                        <div
-                          role="group"
-                          aria-label="Club Shop Categories"
-                          style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}
-                        >
-                          {[
-                            'All',
-                            'Time Banks',
-                            'Table Skins',
-                            'Throwables',
-                            'Emotes',
-                            'Avatars',
-                            'Exclusive',
-                          ].map((cat) => (
-                            <button
-                              type="button"
-                              key={cat}
-                              aria-pressed={clubShopCategory === cat}
-                              onClick={() => setClubShopCategory(cat)}
-                              style={{
-                                padding: '6px 14px',
-                                borderRadius: 20,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                background:
-                                  clubShopCategory === cat
-                                    ? 'rgba(0,180,255,0.2)'
-                                    : 'rgba(255,255,255,0.05)',
-                                border:
-                                  clubShopCategory === cat
-                                    ? '1px solid #00B4FF'
-                                    : '1px solid rgba(255,255,255,0.1)',
-                                color:
-                                  clubShopCategory === cat ? '#00D4FF' : 'rgba(255,255,255,0.5)',
-                                transition: 'all 0.2s ease',
-                              }}
-                            >
-                              {cat}
-                            </button>
-                          ))}
+                  ) : !clubShopClubId ? (
+                    clubShopLoaded ? (
+                      <div style={{ textAlign: 'center', padding: 40 }}>
+                        <div style={{ marginBottom: 12 }}>
+                          <Home size={48} color="rgba(255,255,255,0.3)" />
                         </div>
-
-                        {/* Search + Sort */}
-                        <div className={shellStyles.controlRow} style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-                          <input
-                            type="text"
-                            aria-label="Search Club Shop Items"
-                            placeholder="Search items..."
-                            value={clubShopSearch}
-                            onChange={(e) => setClubShopSearch(e.target.value)}
-                            style={{
-                              flex: 1,
-                              padding: '10px 16px',
-                              borderRadius: 10,
-                              background: 'rgba(255,255,255,0.05)',
-                              border: '1px solid rgba(255,255,255,0.1)',
-                              color: '#E4E6EB',
-                              fontSize: 14,
-                              outline: 'none',
-                              boxSizing: 'border-box',
+                        <div
+                          style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}
+                        >
+                          No Club Found
+                        </div>
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>
+                          Join a club to access the Club Shop.
+                        </p>
+                      </div>
+                    ) : (
+                      <div
+                        role="status"
+                        aria-live="polite"
+                        style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
+                      >
+                        Loading Club Shop...
+                      </div>
+                    )
+                  ) : (
+                    <div className={shellStyles.clubShopSurface}>
+                      {/* Sub-tabs: Store / My Purchases / Manage (admin) */}
+                      <div
+                        role="group"
+                        aria-label="Club Shop Views"
+                        style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}
+                      >
+                        {[
+                          {
+                            key: 'store',
+                            label: `Store (${clubShopItems.length})`,
+                            LIcon: ShoppingBag,
+                          },
+                          {
+                            key: 'my-purchases',
+                            label: `My Purchases (${clubShopPurchases.length})`,
+                            LIcon: Package,
+                          },
+                          ...(clubShopIsAdmin
+                            ? [{ key: 'manage', label: 'Manage', LIcon: Wrench }]
+                            : []),
+                        ].map((st) => (
+                          <button
+                            type="button"
+                            key={st.key}
+                            aria-pressed={clubShopSubTab === st.key}
+                            onClick={() => {
+                              setClubShopSubTab(st.key);
+                              if (st.key === 'manage' && !clubShopAdminLoaded) loadClubShopAdmin();
                             }}
-                          />
-                          <select
-                            aria-label="Sort Club Shop Items"
-                            value={clubShopSortMode}
-                            onChange={(e) => setClubShopSortMode(e.target.value)}
                             style={{
-                              padding: '10px 14px',
+                              padding: '8px 20px',
+                              background:
+                                clubShopSubTab === st.key
+                                  ? 'rgba(0,180,255,0.15)'
+                                  : 'rgba(255,255,255,0.05)',
+                              border:
+                                clubShopSubTab === st.key
+                                  ? '1px solid rgba(0,180,255,0.4)'
+                                  : '1px solid rgba(255,255,255,0.1)',
                               borderRadius: 10,
-                              background: 'rgba(255,255,255,0.05)',
-                              border: '1px solid rgba(255,255,255,0.1)',
-                              color: '#E4E6EB',
+                              color:
+                                clubShopSubTab === st.key ? '#00D4FF' : 'rgba(255,255,255,0.5)',
                               fontSize: 13,
-                              outline: 'none',
+                              fontWeight: 600,
                               cursor: 'pointer',
                             }}
                           >
-                            <option value="newest">Newest First</option>
-                            <option value="price-low">Price: Low → High</option>
-                            <option value="price-high">Price: High → Low</option>
-                            <option value="popular">Most Popular</option>
-                          </select>
-                        </div>
+                            {st.LIcon && (
+                              <st.LIcon
+                                size={13}
+                                style={{
+                                  display: 'inline',
+                                  verticalAlign: 'middle',
+                                  marginRight: 4,
+                                }}
+                              />
+                            )}
+                            {st.label}
+                          </button>
+                        ))}
+                      </div>
 
-                        {/* Item Grid */}
-                        {(() => {
-                          const activePurchasedIds = new Set(
-                            clubShopPurchases
-                              .filter((purchase) => !purchase.refunded_at)
-                              .map((purchase) => purchase.item_id)
-                          );
-                          let filtered = [...clubShopItems];
-                          if (clubShopCategory !== 'All') {
-                            filtered = filtered.filter(
-                              (i) =>
-                                (i.category || 'Time Banks').toLowerCase() ===
-                                clubShopCategory.toLowerCase()
-                            );
-                          }
-                          if (clubShopSearch.trim()) {
-                            const q = clubShopSearch.toLowerCase();
-                            filtered = filtered.filter(
-                              (i) =>
-                                i.name.toLowerCase().includes(q) ||
-                                (i.description || '').toLowerCase().includes(q)
-                            );
-                          }
-                          // Sort
-                          switch (clubShopSortMode) {
-                            case 'price-low':
-                              filtered.sort((a, b) => a.price - b.price);
-                              break;
-                            case 'price-high':
-                              filtered.sort((a, b) => b.price - a.price);
-                              break;
-                            case 'popular':
-                              filtered.sort(
-                                (a, b) => (b.purchase_count || 0) - (a.purchase_count || 0)
-                              );
-                              break;
-                            default:
-                              break; // newest = API order
-                          }
-
-                          if (filtered.length === 0) {
-                            return (
-                              <div style={{ textAlign: 'center', padding: 40 }}>
-                                <div style={{ marginBottom: 12 }}>
-                                  <ShoppingBag size={48} color="rgba(255,255,255,0.3)" />
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: 14,
-                                    color: 'rgba(255,255,255,0.5)',
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  {clubShopItems.length === 0
-                                    ? 'The shop is currently empty.'
-                                    : 'No items match your filter.'}
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <div
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                                gap: 16,
-                              }}
-                            >
-                              {filtered.map((item) => {
-                                const purchaseLimit = Number(item.per_user_limit) || 0;
-                                const purchasedCount = Number(item.my_purchase_count) || 0;
-                                const blocked = item.stackable
-                                  ? purchaseLimit > 0 && purchasedCount >= purchaseLimit
-                                  : activePurchasedIds.has(item.id);
-                                const blockedLabel = item.stackable ? 'Limit Reached' : 'Owned';
-                                return (
-                                  <div
-                                    key={item.id}
-                                    style={{
-                                      background: 'rgba(255,255,255,0.05)',
-                                      border: '1px solid rgba(255,255,255,0.1)',
-                                      borderRadius: 14,
-                                      overflow: 'hidden',
-                                      transition: 'border-color 0.2s, transform 0.2s',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.borderColor = 'rgba(0,180,255,0.3)';
-                                      e.currentTarget.style.transform = 'translateY(-2px)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                                      e.currentTarget.style.transform = 'translateY(0)';
-                                    }}
-                                  >
-                                    <div
-                                      style={{
-                                        height: 120,
-                                        background:
-                                          'linear-gradient(135deg, rgba(0,180,255,0.08), rgba(138,43,226,0.08))',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        position: 'relative',
-                                      }}
-                                    >
-                                      {item.image_url ? (
-                                        <img
-                                          src={item.image_url}
-                                          alt={item.name}
-                                          loading="lazy"
-                                          decoding="async"
-                                          style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover',
-                                          }}
-                                        />
-                                      ) : (
-                                        <Gift size={40} color="#8b8d91" />
-                                      )}
-                                      <span
-                                        style={{
-                                          position: 'absolute',
-                                          top: 8,
-                                          right: 8,
-                                          background: 'rgba(0,0,0,0.7)',
-                                          color: '#E4E6EB',
-                                          padding: '3px 8px',
-                                          borderRadius: 6,
-                                          fontSize: 10,
-                                          fontWeight: 600,
-                                          textTransform: 'uppercase',
-                                        }}
-                                      >
-                                        {item.category || 'Time Banks'}
-                                      </span>
-                                    </div>
-                                    <div style={{ padding: 14 }}>
-                                      <div
-                                        style={{
-                                          fontSize: 14,
-                                          fontWeight: 700,
-                                          color: '#E4E6EB',
-                                          marginBottom: 4,
-                                        }}
-                                      >
-                                        {item.name}
-                                      </div>
-                                      <div
-                                        style={{
-                                          fontSize: 11,
-                                          color: 'rgba(255,255,255,0.4)',
-                                          marginBottom: 10,
-                                          lineHeight: 1.4,
-                                          minHeight: 30,
-                                        }}
-                                      >
-                                        {item.description || 'No description.'}
-                                      </div>
-                                      <div
-                                        style={{
-                                          display: 'flex',
-                                          justifyContent: 'space-between',
-                                          alignItems: 'center',
-                                        }}
-                                      >
-                                        <div>
-                                          <span
-                                            style={{
-                                              fontSize: 16,
-                                              fontWeight: 700,
-                                              color: '#FFD700',
-                                              display: 'inline-flex',
-                                              alignItems: 'center',
-                                              gap: 4,
-                                            }}
-                                          >
-                                            <Gem size={14} /> {item.price.toLocaleString()}
-                                          </span>
-                                          {(item.purchase_count || 0) > 0 && (
-                                            <div
-                                              style={{
-                                                fontSize: 10,
-                                                color: 'rgba(255,255,255,0.35)',
-                                                marginTop: 2,
-                                              }}
-                                            >
-                                              {item.purchase_count} sold
-                                            </div>
-                                          )}
-                                        </div>
-                                        <button
-                                          onClick={() => {
-                                            if (blocked) return;
-                                            setClubShopBuyTarget({
-                                              ...item,
-                                              purchaseRequestId: createCheckoutRequestId(
-                                                `club-${item.id}`
-                                              ),
-                                            });
-                                          }}
-                                          disabled={blocked}
-                                          style={{
-                                            padding: '7px 16px',
-                                            borderRadius: 20,
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                            cursor: blocked ? 'default' : 'pointer',
-                                            background: blocked
-                                              ? 'rgba(0,255,136,0.15)'
-                                              : 'linear-gradient(135deg, #1877F2, #4285F4)',
-                                            border: blocked
-                                              ? '1px solid rgba(0,255,136,0.3)'
-                                              : 'none',
-                                            color: blocked ? '#00ff88' : '#fff',
-                                          }}
-                                        >
-                                          {blocked ? (
-                                            <>
-                                              <CheckCircle
-                                                size={12}
-                                                style={{
-                                                  display: 'inline',
-                                                  verticalAlign: 'middle',
-                                                  marginRight: 3,
-                                                }}
-                                              />{' '}
-                                              {blockedLabel}
-                                            </>
-                                          ) : (
-                                            'Buy'
-                                          )}
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })()}
-                      </>
-                    )}
-
-                    {/* My Purchases Sub-Tab */}
-                    {clubShopSubTab === 'my-purchases' && (
-                      <>
-                        {clubShopPurchases.length === 0 ? (
-                          <div style={{ textAlign: 'center', padding: 40 }}>
-                            <div style={{ marginBottom: 12 }}>
-                              <Package size={48} color="rgba(255,255,255,0.3)" />
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 14,
-                                color: 'rgba(255,255,255,0.5)',
-                                fontWeight: 600,
-                              }}
-                            >
-                              No purchases yet.
-                            </div>
-                            <button
-                              onClick={() => setClubShopSubTab('store')}
-                              style={{
-                                marginTop: 12,
-                                padding: '10px 24px',
-                                borderRadius: 10,
-                                background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-                                border: 'none',
-                                color: '#fff',
-                                fontSize: 14,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Browse Store
-                            </button>
-                          </div>
-                        ) : (
+                      {clubShopSubTab === 'store' && (
+                        <>
+                          {/* Category Filters */}
                           <div
-                            role="region"
-                            aria-label="Club Shop Purchase History"
-                            tabIndex={0}
-                            style={{ overflowX: 'auto' }}
+                            role="group"
+                            aria-label="Club Shop Categories"
+                            style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}
                           >
-                            <table
-                              style={{
-                                width: '100%',
-                                borderCollapse: 'collapse',
-                                background: 'rgba(255,255,255,0.03)',
-                                borderRadius: 12,
-                              }}
-                            >
-                              <thead>
-                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                                  <th
-                                    style={{
-                                      padding: '12px 16px',
-                                      textAlign: 'left',
-                                      fontSize: 12,
-                                      fontWeight: 600,
-                                      color: 'rgba(255,255,255,0.65)',
-                                      textTransform: 'uppercase',
-                                    }}
-                                  >
-                                    Item
-                                  </th>
-                                  <th
-                                    style={{
-                                      padding: '12px 16px',
-                                      textAlign: 'left',
-                                      fontSize: 12,
-                                      fontWeight: 600,
-                                      color: 'rgba(255,255,255,0.65)',
-                                      textTransform: 'uppercase',
-                                    }}
-                                  >
-                                    Category
-                                  </th>
-                                  <th
-                                    style={{
-                                      padding: '12px 16px',
-                                      textAlign: 'left',
-                                      fontSize: 12,
-                                      fontWeight: 600,
-                                      color: 'rgba(255,255,255,0.65)',
-                                      textTransform: 'uppercase',
-                                    }}
-                                  >
-                                    Price Paid
-                                  </th>
-                                  <th
-                                    style={{
-                                      padding: '12px 16px',
-                                      textAlign: 'left',
-                                      fontSize: 12,
-                                      fontWeight: 600,
-                                      color: 'rgba(255,255,255,0.65)',
-                                      textTransform: 'uppercase',
-                                    }}
-                                  >
-                                    Date
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {clubShopPurchases.map((p) => {
-                                  const itemData = clubShopItems.find((i) => i.id === p.item_id);
-                                  const name = p.item_name || itemData?.name || 'Unknown Item';
-                                  const cat = p.item_category || itemData?.category || 'Time Banks';
-                                  const dateStr = p.created_at
-                                    ? new Date(p.created_at).toLocaleDateString()
-                                    : '';
-                                  return (
-                                    <tr
-                                      key={p.id}
-                                      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-                                    >
-                                      <td
-                                        style={{
-                                          padding: '12px 16px',
-                                          fontSize: 14,
-                                          fontWeight: 700,
-                                          color: '#E4E6EB',
-                                        }}
-                                      >
-                                        {name}
-                                      </td>
-                                      <td style={{ padding: '12px 16px' }}>
-                                        <span
-                                          style={{
-                                            padding: '3px 8px',
-                                            borderRadius: 6,
-                                            fontSize: 10,
-                                            fontWeight: 600,
-                                            background: 'rgba(255,255,255,0.08)',
-                                            color: 'rgba(255,255,255,0.5)',
-                                          }}
-                                        >
-                                          {cat}
-                                        </span>
-                                      </td>
-                                      <td
-                                        style={{
-                                          padding: '12px 16px',
-                                          fontSize: 14,
-                                          fontWeight: 800,
-                                          color: '#FFD700',
-                                        }}
-                                      >
-                                        {(p.price_paid || 0).toLocaleString()}{' '}
-                                        {p.currency === 'chips' ? 'Chips' : 'Diamonds'}
-                                        {p.refunded_at && (
-                                          <span
-                                            style={{
-                                              display: 'block',
-                                              marginTop: 2,
-                                              color: '#FF9B9B',
-                                              fontSize: 10,
-                                              fontWeight: 700,
-                                            }}
-                                          >
-                                            Refunded
-                                          </span>
-                                        )}
-                                      </td>
-                                      <td
-                                        style={{
-                                          padding: '12px 16px',
-                                          fontSize: 12,
-                                          color: 'rgba(255,255,255,0.35)',
-                                        }}
-                                      >
-                                        {dateStr}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
+                            {[
+                              'All',
+                              'Time Banks',
+                              'Table Skins',
+                              'Throwables',
+                              'Emotes',
+                              'Avatars',
+                              'Exclusive',
+                            ].map((cat) => (
+                              <button
+                                type="button"
+                                key={cat}
+                                aria-pressed={clubShopCategory === cat}
+                                onClick={() => setClubShopCategory(cat)}
+                                style={{
+                                  padding: '6px 14px',
+                                  borderRadius: 20,
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  background:
+                                    clubShopCategory === cat
+                                      ? 'rgba(0,180,255,0.2)'
+                                      : 'rgba(255,255,255,0.05)',
+                                  border:
+                                    clubShopCategory === cat
+                                      ? '1px solid #00B4FF'
+                                      : '1px solid rgba(255,255,255,0.1)',
+                                  color:
+                                    clubShopCategory === cat ? '#00D4FF' : 'rgba(255,255,255,0.5)',
+                                  transition: 'all 0.2s ease',
+                                }}
+                              >
+                                {cat}
+                              </button>
+                            ))}
                           </div>
-                        )}
-                      </>
-                    )}
 
-                    {/* Manage Sub-Tab (admin only) */}
-                    {clubShopSubTab === 'manage' && clubShopIsAdmin && (
-                      <>
-                        {/* Admin Stats */}
-                        {(() => {
-                          const total = clubShopAdminItems.length;
-                          const active = clubShopAdminItems.filter((i) => i.is_active).length;
-                          const totalSold = clubShopAdminItems.reduce(
-                            (s, i) => s + (i.purchase_count || 0),
-                            0
-                          );
-                          const totalRev = clubShopAdminItems.reduce(
-                            (s, i) => s + (i.purchase_count || 0) * i.price,
-                            0
-                          );
-                          return (
-                            <div
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                                gap: 12,
-                                marginBottom: 24,
-                              }}
-                            >
-                              {[
-                                { label: 'Total Items', val: total },
-                                { label: 'Active', val: active },
-                                { label: 'Total Sold', val: totalSold },
-                                { label: 'Revenue', val: totalRev.toLocaleString() + ' Diamonds' },
-                              ].map((s) => (
-                                <div
-                                  key={s.label}
-                                  style={{
-                                    background: 'rgba(255,255,255,0.05)',
-                                    border: '1px solid rgba(255,255,255,0.08)',
-                                    borderRadius: 12,
-                                    padding: '16px 14px',
-                                    textAlign: 'center',
-                                  }}
-                                >
-                                  <div style={{ fontSize: 22, fontWeight: 800, color: '#00D4FF' }}>
-                                    {s.val}
-                                  </div>
-                                  <div
-                                    style={{
-                                      fontSize: 11,
-                                      color: 'rgba(255,255,255,0.4)',
-                                      fontWeight: 600,
-                                      marginTop: 4,
-                                    }}
-                                  >
-                                    {s.label}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })()}
-
-                        {/* Create Item Form */}
-                        <div
-                          style={{
-                            background: 'rgba(255,255,255,0.03)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: 14,
-                            padding: 20,
-                            marginBottom: 24,
-                          }}
-                        >
-                          <h3
-                            style={{
-                              fontSize: 15,
-                              fontWeight: 700,
-                              color: '#E4E6EB',
-                              marginBottom: 14,
-                            }}
+                          {/* Search + Sort */}
+                          <div
+                            className={shellStyles.controlRow}
+                            style={{ display: 'flex', gap: 10, marginBottom: 20 }}
                           >
-                            <Wrench
-                              size={14}
-                              style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }}
-                            />{' '}
-                            Create Shop Item
-                          </h3>
-                          <div className={shellStyles.controlRow} style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                             <input
-                              aria-label="Item Name"
-                              value={clubShopNewName}
-                              onChange={(e) => setClubShopNewName(e.target.value)}
-                              placeholder="Item name"
-                              maxLength={100}
-                              style={{
-                                flex: 2,
-                                padding: '10px 14px',
-                                borderRadius: 10,
-                                background: 'rgba(255,255,255,0.05)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                color: '#E4E6EB',
-                                fontSize: 14,
-                                outline: 'none',
-                              }}
-                            />
-                            <input
-                              type="number"
-                              aria-label="Price In Diamonds"
-                              value={clubShopNewPrice}
-                              onChange={(e) => setClubShopNewPrice(e.target.value)}
-                              placeholder="Price (Diamonds)"
-                              min="1"
+                              type="text"
+                              aria-label="Search Club Shop Items"
+                              placeholder="Search items..."
+                              value={clubShopSearch}
+                              onChange={(e) => setClubShopSearch(e.target.value)}
                               style={{
                                 flex: 1,
-                                padding: '10px 14px',
+                                padding: '10px 16px',
                                 borderRadius: 10,
                                 background: 'rgba(255,255,255,0.05)',
                                 border: '1px solid rgba(255,255,255,0.1)',
                                 color: '#E4E6EB',
                                 fontSize: 14,
                                 outline: 'none',
+                                boxSizing: 'border-box',
                               }}
                             />
-                          </div>
-                          <input
-                            aria-label="Item Description"
-                            value={clubShopNewDesc}
-                            onChange={(e) => setClubShopNewDesc(e.target.value)}
-                            placeholder="Description (optional)"
-                            maxLength={500}
-                            style={{
-                              width: '100%',
-                              padding: '10px 14px',
-                              borderRadius: 10,
-                              background: 'rgba(255,255,255,0.05)',
-                              border: '1px solid rgba(255,255,255,0.1)',
-                              color: '#E4E6EB',
-                              fontSize: 14,
-                              outline: 'none',
-                              marginBottom: 10,
-                              boxSizing: 'border-box',
-                            }}
-                          />
-                          <div className={shellStyles.controlRow} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
                             <select
-                              aria-label="Item Category"
-                              value={clubShopNewCategory}
-                              onChange={(e) => setClubShopNewCategory(e.target.value)}
+                              aria-label="Sort Club Shop Items"
+                              value={clubShopSortMode}
+                              onChange={(e) => setClubShopSortMode(e.target.value)}
                               style={{
-                                flex: 1,
                                 padding: '10px 14px',
                                 borderRadius: 10,
                                 background: 'rgba(255,255,255,0.05)',
@@ -3468,26 +3100,597 @@ export default function DiamondStorePage({ initialTab }) {
                                 cursor: 'pointer',
                               }}
                             >
-                              {[
-                                'Time Banks',
-                                'Table Skins',
-                                'Throwables',
-                                'Emotes',
-                                'Avatars',
-                                'Exclusive',
-                              ].map((c) => (
-                                <option key={c} value={c}>
-                                  {c}
-                                </option>
-                              ))}
+                              <option value="newest">Newest First</option>
+                              <option value="price-low">Price: Low → High</option>
+                              <option value="price-high">Price: High → Low</option>
+                              <option value="popular">Most Popular</option>
                             </select>
-                            <input
-                              aria-label="Item Image URL"
-                              value={clubShopNewImage}
-                              onChange={(e) => setClubShopNewImage(e.target.value)}
-                              placeholder="Image URL (optional)"
+                          </div>
+
+                          {/* Item Grid */}
+                          {(() => {
+                            const activePurchasedIds = new Set(
+                              clubShopPurchases
+                                .filter((purchase) => !purchase.refunded_at)
+                                .map((purchase) => purchase.item_id)
+                            );
+                            let filtered = [...clubShopItems];
+                            if (clubShopCategory !== 'All') {
+                              filtered = filtered.filter(
+                                (i) =>
+                                  (i.category || 'Time Banks').toLowerCase() ===
+                                  clubShopCategory.toLowerCase()
+                              );
+                            }
+                            if (clubShopSearch.trim()) {
+                              const q = clubShopSearch.toLowerCase();
+                              filtered = filtered.filter(
+                                (i) =>
+                                  i.name.toLowerCase().includes(q) ||
+                                  (i.description || '').toLowerCase().includes(q)
+                              );
+                            }
+                            // Sort
+                            switch (clubShopSortMode) {
+                              case 'price-low':
+                                filtered.sort((a, b) => a.price - b.price);
+                                break;
+                              case 'price-high':
+                                filtered.sort((a, b) => b.price - a.price);
+                                break;
+                              case 'popular':
+                                filtered.sort(
+                                  (a, b) => (b.purchase_count || 0) - (a.purchase_count || 0)
+                                );
+                                break;
+                              default:
+                                break; // newest = API order
+                            }
+
+                            if (filtered.length === 0) {
+                              return (
+                                <div style={{ textAlign: 'center', padding: 40 }}>
+                                  <div style={{ marginBottom: 12 }}>
+                                    <ShoppingBag size={48} color="rgba(255,255,255,0.3)" />
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: 14,
+                                      color: 'rgba(255,255,255,0.5)',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {clubShopItems.length === 0
+                                      ? 'The shop is currently empty.'
+                                      : 'No items match your filter.'}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div
+                                className={shellStyles.clubItemGrid}
+                                style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                                  gap: 16,
+                                }}
+                              >
+                                {filtered.map((item) => {
+                                  const purchaseLimit = Number(item.per_user_limit) || 0;
+                                  const purchasedCount = Number(item.my_purchase_count) || 0;
+                                  const blocked = item.stackable
+                                    ? purchaseLimit > 0 && purchasedCount >= purchaseLimit
+                                    : activePurchasedIds.has(item.id);
+                                  const blockedLabel = item.stackable ? 'Limit Reached' : 'Owned';
+                                  return (
+                                    <article
+                                      key={item.id}
+                                      className={shellStyles.clubItemCard}
+                                      style={{
+                                        background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: 14,
+                                        overflow: 'hidden',
+                                        transition: 'border-color 0.2s, transform 0.2s',
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.borderColor = 'rgba(0,180,255,0.3)';
+                                        e.currentTarget.style.transform = 'translateY(-2px)';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                      }}
+                                    >
+                                      <div
+                                        className={shellStyles.clubProductMedia}
+                                        style={{
+                                          height: 120,
+                                          background:
+                                            'linear-gradient(135deg, rgba(0,180,255,0.08), rgba(138,43,226,0.08))',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          position: 'relative',
+                                        }}
+                                      >
+                                        {CLUB_PRODUCT_ATLAS[item.name] ? (
+                                          <div
+                                            role="img"
+                                            aria-label={item.name}
+                                            className={shellStyles.clubProductAtlas}
+                                            style={{
+                                              backgroundPosition: CLUB_PRODUCT_ATLAS[item.name],
+                                            }}
+                                          />
+                                        ) : item.image_url ? (
+                                          <img
+                                            src={item.image_url}
+                                            alt={item.name}
+                                            loading="lazy"
+                                            decoding="async"
+                                            style={{
+                                              width: '100%',
+                                              height: '100%',
+                                              objectFit: 'cover',
+                                            }}
+                                          />
+                                        ) : (
+                                          <Gift size={40} color="#8b8d91" />
+                                        )}
+                                        <span
+                                          style={{
+                                            position: 'absolute',
+                                            top: 8,
+                                            right: 8,
+                                            background: 'rgba(0,0,0,0.7)',
+                                            color: '#E4E6EB',
+                                            padding: '3px 8px',
+                                            borderRadius: 6,
+                                            fontSize: 10,
+                                            fontWeight: 600,
+                                            textTransform: 'uppercase',
+                                          }}
+                                        >
+                                          {item.category || 'Time Banks'}
+                                        </span>
+                                      </div>
+                                      <div
+                                        className={shellStyles.clubItemBody}
+                                        style={{ padding: 14 }}
+                                      >
+                                        <div
+                                          className={shellStyles.clubPriceActions}
+                                          style={{
+                                            fontSize: 14,
+                                            fontWeight: 700,
+                                            color: '#E4E6EB',
+                                            marginBottom: 4,
+                                          }}
+                                        >
+                                          {item.name}
+                                        </div>
+                                        <div
+                                          style={{
+                                            fontSize: 11,
+                                            color: 'rgba(255,255,255,0.4)',
+                                            marginBottom: 10,
+                                            lineHeight: 1.4,
+                                            minHeight: 30,
+                                          }}
+                                        >
+                                          {item.description || 'No description.'}
+                                        </div>
+                                        <div
+                                          style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                          }}
+                                        >
+                                          <div>
+                                            <span
+                                              style={{
+                                                fontSize: 16,
+                                                fontWeight: 700,
+                                                color: '#FFD700',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 4,
+                                              }}
+                                            >
+                                              <Gem size={14} /> {item.price.toLocaleString()}
+                                            </span>
+                                            <div className={shellStyles.cardEquivalent}>
+                                              ${(Number(item.price) / 100).toFixed(2)} Card
+                                              Equivalent
+                                            </div>
+                                            {(item.purchase_count || 0) > 0 && (
+                                              <div
+                                                style={{
+                                                  fontSize: 10,
+                                                  color: 'rgba(255,255,255,0.35)',
+                                                  marginTop: 2,
+                                                }}
+                                              >
+                                                {item.purchase_count} sold
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className={shellStyles.clubItemActions}>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                if (blocked) return;
+                                                setClubShopBuyTarget({
+                                                  ...item,
+                                                  purchaseRequestId: createCheckoutRequestId(
+                                                    `club-${item.id}`
+                                                  ),
+                                                });
+                                              }}
+                                              disabled={
+                                                blocked || clubShopCardProcessingId === item.id
+                                              }
+                                            >
+                                              {blocked ? (
+                                                <>
+                                                  <CheckCircle size={12} /> {blockedLabel}
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Gem size={12} /> Diamonds
+                                                </>
+                                              )}
+                                            </button>
+                                            {!blocked && (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleClubCardCheckout(item)}
+                                                disabled={Boolean(clubShopCardProcessingId)}
+                                              >
+                                                <CreditCard size={12} />
+                                                {clubShopCardProcessingId === item.id
+                                                  ? 'Opening...'
+                                                  : 'Card'}
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </article>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </>
+                      )}
+
+                      {/* My Purchases Sub-Tab */}
+                      {clubShopSubTab === 'my-purchases' && (
+                        <>
+                          {clubShopPurchases.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: 40 }}>
+                              <div style={{ marginBottom: 12 }}>
+                                <Package size={48} color="rgba(255,255,255,0.3)" />
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 14,
+                                  color: 'rgba(255,255,255,0.5)',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                No purchases yet.
+                              </div>
+                              <button
+                                onClick={() => setClubShopSubTab('store')}
+                                style={{
+                                  marginTop: 12,
+                                  padding: '10px 24px',
+                                  borderRadius: 10,
+                                  background: 'linear-gradient(135deg, #1877F2, #4285F4)',
+                                  border: 'none',
+                                  color: '#fff',
+                                  fontSize: 14,
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Browse Store
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              role="region"
+                              aria-label="Club Shop Purchase History"
+                              tabIndex={0}
+                              style={{ overflowX: 'auto' }}
+                            >
+                              <table
+                                style={{
+                                  width: '100%',
+                                  borderCollapse: 'collapse',
+                                  background: 'rgba(255,255,255,0.03)',
+                                  borderRadius: 12,
+                                }}
+                              >
+                                <thead>
+                                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <th
+                                      style={{
+                                        padding: '12px 16px',
+                                        textAlign: 'left',
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        color: 'rgba(255,255,255,0.65)',
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      Item
+                                    </th>
+                                    <th
+                                      style={{
+                                        padding: '12px 16px',
+                                        textAlign: 'left',
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        color: 'rgba(255,255,255,0.65)',
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      Category
+                                    </th>
+                                    <th
+                                      style={{
+                                        padding: '12px 16px',
+                                        textAlign: 'left',
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        color: 'rgba(255,255,255,0.65)',
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      Price Paid
+                                    </th>
+                                    <th
+                                      style={{
+                                        padding: '12px 16px',
+                                        textAlign: 'left',
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        color: 'rgba(255,255,255,0.65)',
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      Date
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {clubShopPurchases.map((p) => {
+                                    const itemData = clubShopItems.find((i) => i.id === p.item_id);
+                                    const name = p.item_name || itemData?.name || 'Unknown Item';
+                                    const cat =
+                                      p.item_category || itemData?.category || 'Time Banks';
+                                    const dateStr = p.created_at
+                                      ? new Date(p.created_at).toLocaleDateString()
+                                      : '';
+                                    return (
+                                      <tr
+                                        key={p.id}
+                                        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                                      >
+                                        <td
+                                          style={{
+                                            padding: '12px 16px',
+                                            fontSize: 14,
+                                            fontWeight: 700,
+                                            color: '#E4E6EB',
+                                          }}
+                                        >
+                                          {name}
+                                        </td>
+                                        <td style={{ padding: '12px 16px' }}>
+                                          <span
+                                            style={{
+                                              padding: '3px 8px',
+                                              borderRadius: 6,
+                                              fontSize: 10,
+                                              fontWeight: 600,
+                                              background: 'rgba(255,255,255,0.08)',
+                                              color: 'rgba(255,255,255,0.5)',
+                                            }}
+                                          >
+                                            {cat}
+                                          </span>
+                                        </td>
+                                        <td
+                                          style={{
+                                            padding: '12px 16px',
+                                            fontSize: 14,
+                                            fontWeight: 800,
+                                            color: '#FFD700',
+                                          }}
+                                        >
+                                          {(p.price_paid || 0).toLocaleString()}{' '}
+                                          {p.currency === 'chips' ? 'Chips' : 'Diamonds'}
+                                          {p.refunded_at && (
+                                            <span
+                                              style={{
+                                                display: 'block',
+                                                marginTop: 2,
+                                                color: '#FF9B9B',
+                                                fontSize: 10,
+                                                fontWeight: 700,
+                                              }}
+                                            >
+                                              Refunded
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td
+                                          style={{
+                                            padding: '12px 16px',
+                                            fontSize: 12,
+                                            color: 'rgba(255,255,255,0.35)',
+                                          }}
+                                        >
+                                          {dateStr}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Manage Sub-Tab (admin only) */}
+                      {clubShopSubTab === 'manage' && clubShopIsAdmin && (
+                        <>
+                          {/* Admin Stats */}
+                          {(() => {
+                            const total = clubShopAdminItems.length;
+                            const active = clubShopAdminItems.filter((i) => i.is_active).length;
+                            const totalSold = clubShopAdminItems.reduce(
+                              (s, i) => s + (i.purchase_count || 0),
+                              0
+                            );
+                            const totalRev = clubShopAdminItems.reduce(
+                              (s, i) => s + (i.purchase_count || 0) * i.price,
+                              0
+                            );
+                            return (
+                              <div
+                                style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                                  gap: 12,
+                                  marginBottom: 24,
+                                }}
+                              >
+                                {[
+                                  { label: 'Total Items', val: total },
+                                  { label: 'Active', val: active },
+                                  { label: 'Total Sold', val: totalSold },
+                                  {
+                                    label: 'Revenue',
+                                    val: totalRev.toLocaleString() + ' Diamonds',
+                                  },
+                                ].map((s) => (
+                                  <div
+                                    key={s.label}
+                                    style={{
+                                      background: 'rgba(255,255,255,0.05)',
+                                      border: '1px solid rgba(255,255,255,0.08)',
+                                      borderRadius: 12,
+                                      padding: '16px 14px',
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    <div
+                                      style={{ fontSize: 22, fontWeight: 800, color: '#00D4FF' }}
+                                    >
+                                      {s.val}
+                                    </div>
+                                    <div
+                                      style={{
+                                        fontSize: 11,
+                                        color: 'rgba(255,255,255,0.4)',
+                                        fontWeight: 600,
+                                        marginTop: 4,
+                                      }}
+                                    >
+                                      {s.label}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
+
+                          {/* Create Item Form */}
+                          <div
+                            style={{
+                              background: 'rgba(255,255,255,0.03)',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              borderRadius: 14,
+                              padding: 20,
+                              marginBottom: 24,
+                            }}
+                          >
+                            <h3
                               style={{
-                                flex: 1,
+                                fontSize: 15,
+                                fontWeight: 700,
+                                color: '#E4E6EB',
+                                marginBottom: 14,
+                              }}
+                            >
+                              <Wrench
+                                size={14}
+                                style={{
+                                  display: 'inline',
+                                  verticalAlign: 'middle',
+                                  marginRight: 6,
+                                }}
+                              />{' '}
+                              Create Shop Item
+                            </h3>
+                            <div
+                              className={shellStyles.controlRow}
+                              style={{ display: 'flex', gap: 10, marginBottom: 10 }}
+                            >
+                              <input
+                                aria-label="Item Name"
+                                value={clubShopNewName}
+                                onChange={(e) => setClubShopNewName(e.target.value)}
+                                placeholder="Item name"
+                                maxLength={100}
+                                style={{
+                                  flex: 2,
+                                  padding: '10px 14px',
+                                  borderRadius: 10,
+                                  background: 'rgba(255,255,255,0.05)',
+                                  border: '1px solid rgba(255,255,255,0.1)',
+                                  color: '#E4E6EB',
+                                  fontSize: 14,
+                                  outline: 'none',
+                                }}
+                              />
+                              <input
+                                type="number"
+                                aria-label="Price In Diamonds"
+                                value={clubShopNewPrice}
+                                onChange={(e) => setClubShopNewPrice(e.target.value)}
+                                placeholder="Price (Diamonds)"
+                                min="1"
+                                style={{
+                                  flex: 1,
+                                  padding: '10px 14px',
+                                  borderRadius: 10,
+                                  background: 'rgba(255,255,255,0.05)',
+                                  border: '1px solid rgba(255,255,255,0.1)',
+                                  color: '#E4E6EB',
+                                  fontSize: 14,
+                                  outline: 'none',
+                                }}
+                              />
+                            </div>
+                            <input
+                              aria-label="Item Description"
+                              value={clubShopNewDesc}
+                              onChange={(e) => setClubShopNewDesc(e.target.value)}
+                              placeholder="Description (optional)"
+                              maxLength={500}
+                              style={{
+                                width: '100%',
                                 padding: '10px 14px',
                                 borderRadius: 10,
                                 background: 'rgba(255,255,255,0.05)',
@@ -3495,282 +3698,332 @@ export default function DiamondStorePage({ initialTab }) {
                                 color: '#E4E6EB',
                                 fontSize: 14,
                                 outline: 'none',
+                                marginBottom: 10,
+                                boxSizing: 'border-box',
                               }}
                             />
-                          </div>
-                          <button
-                            type="button"
-                            disabled={
-                              clubShopProcessing || !clubShopNewName.trim() || !clubShopNewPrice
-                            }
-                            onClick={async () => {
-                              if (clubShopProcessingRef.current) return;
-                              const now = Date.now();
-                              if (now - clubShopLastCreate < 3000) {
-                                showStoreToast(
-                                  'warning',
-                                  'Please wait before creating another item'
-                                );
-                                return;
-                              }
-                              const price = Math.floor(Number(clubShopNewPrice));
-                              if (!price || price <= 0) {
-                                showStoreToast('error', 'Price must be a positive number');
-                                return;
-                              }
-                              if (price > 1000000000) {
-                                showStoreToast('error', 'Price exceeds maximum');
-                                return;
-                              }
-                              setClubProcessing(true);
-                              try {
-                                // Server-side admin CRUD (post-Phase-37 RLS lockdown — anon
-                                // writes to club_shop_items now blocked by design).
-                                const token = getAccessToken();
-                                if (!token) throw new Error('Not authenticated');
-                                const resp = await fetch('/api/club-arena/shop-items', {
-                                  method: 'POST',
-                                  headers: {
-                                    'Content-Type': 'application/json',
-                                    Authorization: `Bearer ${token}`,
-                                  },
-                                  body: JSON.stringify({
-                                    action: 'create',
-                                    clubId: clubShopClubId,
-                                    name: clubShopNewName.trim(),
-                                    price,
-                                    description: clubShopNewDesc.trim() || null,
-                                    category: clubShopNewCategory,
-                                    imageUrl: clubShopNewImage.trim() || null,
-                                  }),
-                                });
-                                const json = await resp.json().catch(() => ({}));
-                                if (!resp.ok || !json.success)
-                                  throw new Error(json.error || `HTTP ${resp.status}`);
-                                setClubShopLastCreate(Date.now());
-                                setClubShopNewName('');
-                                setClubShopNewPrice('');
-                                setClubShopNewDesc('');
-                                setClubShopNewImage('');
-                                setClubShopNewCategory('Time Banks');
-                                loadClubShopAdmin();
-                                clubShopLoadingRef.current = false;
-                                loadClubShop(true);
-                              } catch (err) {
-                                showStoreToast('error', err.message);
-                              } finally {
-                                setClubProcessing(false);
-                              }
-                            }}
-                            style={{
-                              padding: '10px 28px',
-                              borderRadius: 10,
-                              fontSize: 14,
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-                              border: 'none',
-                              color: '#fff',
-                              opacity: !clubShopNewName.trim() || !clubShopNewPrice ? 0.5 : 1,
-                            }}
-                          >
-                            {clubShopProcessing ? 'Creating...' : 'Create Item'}
-                          </button>
-                        </div>
-
-                        {/* Admin Item List */}
-                        {clubShopAdminItems.length === 0 ? (
-                          <div style={{ textAlign: 'center', padding: 40 }}>
-                            <div style={{ marginBottom: 12 }}>
-                              <Wrench size={48} color="rgba(255,255,255,0.3)" />
-                            </div>
                             <div
-                              style={{
-                                fontSize: 14,
-                                color: 'rgba(255,255,255,0.5)',
-                                fontWeight: 600,
-                              }}
+                              className={shellStyles.controlRow}
+                              style={{ display: 'flex', gap: 10, marginBottom: 14 }}
                             >
-                              No shop items yet. Create one above.
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {clubShopAdminItems.map((item) => (
-                              <div
-                                key={item.id}
+                              <select
+                                aria-label="Item Category"
+                                value={clubShopNewCategory}
+                                onChange={(e) => setClubShopNewCategory(e.target.value)}
                                 style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  background: 'rgba(255,255,255,0.04)',
-                                  border: '1px solid rgba(255,255,255,0.06)',
+                                  flex: 1,
+                                  padding: '10px 14px',
                                   borderRadius: 10,
-                                  padding: '12px 16px',
+                                  background: 'rgba(255,255,255,0.05)',
+                                  border: '1px solid rgba(255,255,255,0.1)',
+                                  color: '#E4E6EB',
+                                  fontSize: 13,
+                                  outline: 'none',
+                                  cursor: 'pointer',
                                 }}
                               >
-                                <div>
-                                  <div
-                                    style={{
-                                      fontWeight: 700,
-                                      color: item.is_active ? '#E4E6EB' : '#6B7280',
-                                      fontSize: 14,
-                                    }}
-                                  >
-                                    {item.name}
-                                  </div>
-                                  <div style={{ fontSize: 12, color: '#8b8d91', marginTop: 2 }}>
-                                    {item.price.toLocaleString()} Diamonds •{' '}
-                                    <span
+                                {[
+                                  'Time Banks',
+                                  'Table Skins',
+                                  'Throwables',
+                                  'Emotes',
+                                  'Avatars',
+                                  'Exclusive',
+                                ].map((c) => (
+                                  <option key={c} value={c}>
+                                    {c}
+                                  </option>
+                                ))}
+                              </select>
+                              <input
+                                aria-label="Item Image URL"
+                                value={clubShopNewImage}
+                                onChange={(e) => setClubShopNewImage(e.target.value)}
+                                placeholder="Image URL (optional)"
+                                style={{
+                                  flex: 1,
+                                  padding: '10px 14px',
+                                  borderRadius: 10,
+                                  background: 'rgba(255,255,255,0.05)',
+                                  border: '1px solid rgba(255,255,255,0.1)',
+                                  color: '#E4E6EB',
+                                  fontSize: 14,
+                                  outline: 'none',
+                                }}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              disabled={
+                                clubShopProcessing || !clubShopNewName.trim() || !clubShopNewPrice
+                              }
+                              onClick={async () => {
+                                if (clubShopProcessingRef.current) return;
+                                const now = Date.now();
+                                if (now - clubShopLastCreate < 3000) {
+                                  showStoreToast(
+                                    'warning',
+                                    'Please wait before creating another item'
+                                  );
+                                  return;
+                                }
+                                const price = Math.floor(Number(clubShopNewPrice));
+                                if (!price || price <= 0) {
+                                  showStoreToast('error', 'Price must be a positive number');
+                                  return;
+                                }
+                                if (price > 1000000000) {
+                                  showStoreToast('error', 'Price exceeds maximum');
+                                  return;
+                                }
+                                setClubProcessing(true);
+                                try {
+                                  // Server-side admin CRUD (post-Phase-37 RLS lockdown — anon
+                                  // writes to club_shop_items now blocked by design).
+                                  const token = getAccessToken();
+                                  if (!token) throw new Error('Not authenticated');
+                                  const resp = await fetch('/api/club-arena/shop-items', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      Authorization: `Bearer ${token}`,
+                                    },
+                                    body: JSON.stringify({
+                                      action: 'create',
+                                      clubId: clubShopClubId,
+                                      name: clubShopNewName.trim(),
+                                      price,
+                                      description: clubShopNewDesc.trim() || null,
+                                      category: clubShopNewCategory,
+                                      imageUrl: clubShopNewImage.trim() || null,
+                                    }),
+                                  });
+                                  const json = await resp.json().catch(() => ({}));
+                                  if (!resp.ok || !json.success)
+                                    throw new Error(json.error || `HTTP ${resp.status}`);
+                                  setClubShopLastCreate(Date.now());
+                                  setClubShopNewName('');
+                                  setClubShopNewPrice('');
+                                  setClubShopNewDesc('');
+                                  setClubShopNewImage('');
+                                  setClubShopNewCategory('Time Banks');
+                                  loadClubShopAdmin();
+                                  clubShopLoadingRef.current = false;
+                                  loadClubShop(true);
+                                } catch (err) {
+                                  showStoreToast('error', err.message);
+                                } finally {
+                                  setClubProcessing(false);
+                                }
+                              }}
+                              style={{
+                                padding: '10px 28px',
+                                borderRadius: 10,
+                                fontSize: 14,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                background: 'linear-gradient(135deg, #1877F2, #4285F4)',
+                                border: 'none',
+                                color: '#fff',
+                                opacity: !clubShopNewName.trim() || !clubShopNewPrice ? 0.5 : 1,
+                              }}
+                            >
+                              {clubShopProcessing ? 'Creating...' : 'Create Item'}
+                            </button>
+                          </div>
+
+                          {/* Admin Item List */}
+                          {clubShopAdminItems.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: 40 }}>
+                              <div style={{ marginBottom: 12 }}>
+                                <Wrench size={48} color="rgba(255,255,255,0.3)" />
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 14,
+                                  color: 'rgba(255,255,255,0.5)',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                No shop items yet. Create one above.
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {clubShopAdminItems.map((item) => (
+                                <div
+                                  key={item.id}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    background: 'rgba(255,255,255,0.04)',
+                                    border: '1px solid rgba(255,255,255,0.06)',
+                                    borderRadius: 10,
+                                    padding: '12px 16px',
+                                  }}
+                                >
+                                  <div>
+                                    <div
                                       style={{
-                                        padding: '2px 6px',
-                                        borderRadius: 4,
-                                        fontSize: 10,
-                                        background: 'rgba(255,255,255,0.06)',
-                                        color: 'rgba(255,255,255,0.4)',
+                                        fontWeight: 700,
+                                        color: item.is_active ? '#E4E6EB' : '#6B7280',
+                                        fontSize: 14,
                                       }}
                                     >
-                                      {item.category || 'Time Banks'}
-                                    </span>{' '}
-                                    • {item.purchase_count || 0} sold
+                                      {item.name}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: '#8b8d91', marginTop: 2 }}>
+                                      {item.price.toLocaleString()} Diamonds •{' '}
+                                      <span
+                                        style={{
+                                          padding: '2px 6px',
+                                          borderRadius: 4,
+                                          fontSize: 10,
+                                          background: 'rgba(255,255,255,0.06)',
+                                          color: 'rgba(255,255,255,0.4)',
+                                        }}
+                                      >
+                                        {item.category || 'Time Banks'}
+                                      </span>{' '}
+                                      • {item.purchase_count || 0} sold
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: 8 }}>
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          const token = getAccessToken();
+                                          if (!token) throw new Error('Not authenticated');
+                                          const resp = await fetch('/api/club-arena/shop-items', {
+                                            method: 'POST',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                              Authorization: `Bearer ${token}`,
+                                            },
+                                            body: JSON.stringify({
+                                              action: 'toggle',
+                                              clubId: item.club_id,
+                                              itemId: item.id,
+                                            }),
+                                          });
+                                          const json = await resp.json().catch(() => ({}));
+                                          if (!resp.ok || !json.success)
+                                            throw new Error(json.error || `HTTP ${resp.status}`);
+                                          loadClubShopAdmin();
+                                          clubShopLoadingRef.current = false;
+                                          loadClubShop(true);
+                                        } catch (err) {
+                                          showStoreToast('error', err.message);
+                                        }
+                                      }}
+                                      style={{
+                                        padding: '6px 14px',
+                                        borderRadius: 20,
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        background: item.is_active
+                                          ? 'rgba(0,255,136,0.1)'
+                                          : 'rgba(255,255,255,0.05)',
+                                        border: item.is_active
+                                          ? '1px solid rgba(0,255,136,0.3)'
+                                          : '1px solid rgba(255,255,255,0.1)',
+                                        color: item.is_active ? '#00ff88' : 'rgba(255,255,255,0.4)',
+                                      }}
+                                    >
+                                      {item.is_active ? (
+                                        <>
+                                          <CheckCircle
+                                            size={12}
+                                            style={{
+                                              display: 'inline',
+                                              verticalAlign: 'middle',
+                                              marginRight: 3,
+                                            }}
+                                          />{' '}
+                                          Active
+                                        </>
+                                      ) : (
+                                        'Hidden'
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm(`Delete "${item.name}"?`)) return;
+                                        try {
+                                          const token = getAccessToken();
+                                          if (!token) throw new Error('Not authenticated');
+                                          const resp = await fetch('/api/club-arena/shop-items', {
+                                            method: 'POST',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                              Authorization: `Bearer ${token}`,
+                                            },
+                                            body: JSON.stringify({
+                                              action: 'delete',
+                                              clubId: item.club_id,
+                                              itemId: item.id,
+                                            }),
+                                          });
+                                          const json = await resp.json().catch(() => ({}));
+                                          if (!resp.ok || !json.success)
+                                            throw new Error(json.error || `HTTP ${resp.status}`);
+                                          loadClubShopAdmin();
+                                          clubShopLoadingRef.current = false;
+                                          loadClubShop(true);
+                                        } catch (err) {
+                                          showStoreToast('error', err.message);
+                                        }
+                                      }}
+                                      style={{
+                                        padding: '6px 14px',
+                                        borderRadius: 20,
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        background: 'rgba(255,59,48,0.1)',
+                                        border: '1px solid rgba(255,59,48,0.3)',
+                                        color: '#ff6b6b',
+                                      }}
+                                    >
+                                      <Trash2
+                                        size={12}
+                                        style={{
+                                          display: 'inline',
+                                          verticalAlign: 'middle',
+                                          marginRight: 4,
+                                        }}
+                                      />{' '}
+                                      Delete
+                                    </button>
                                   </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                  <button
-                                    onClick={async () => {
-                                      try {
-                                        const token = getAccessToken();
-                                        if (!token) throw new Error('Not authenticated');
-                                        const resp = await fetch('/api/club-arena/shop-items', {
-                                          method: 'POST',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                            Authorization: `Bearer ${token}`,
-                                          },
-                                          body: JSON.stringify({
-                                            action: 'toggle',
-                                            clubId: item.club_id,
-                                            itemId: item.id,
-                                          }),
-                                        });
-                                        const json = await resp.json().catch(() => ({}));
-                                        if (!resp.ok || !json.success)
-                                          throw new Error(json.error || `HTTP ${resp.status}`);
-                                        loadClubShopAdmin();
-                                        clubShopLoadingRef.current = false;
-                                        loadClubShop(true);
-                                      } catch (err) {
-                                        showStoreToast('error', err.message);
-                                      }
-                                    }}
-                                    style={{
-                                      padding: '6px 14px',
-                                      borderRadius: 20,
-                                      fontSize: 11,
-                                      fontWeight: 700,
-                                      cursor: 'pointer',
-                                      background: item.is_active
-                                        ? 'rgba(0,255,136,0.1)'
-                                        : 'rgba(255,255,255,0.05)',
-                                      border: item.is_active
-                                        ? '1px solid rgba(0,255,136,0.3)'
-                                        : '1px solid rgba(255,255,255,0.1)',
-                                      color: item.is_active ? '#00ff88' : 'rgba(255,255,255,0.4)',
-                                    }}
-                                  >
-                                    {item.is_active ? (
-                                      <>
-                                        <CheckCircle
-                                          size={12}
-                                          style={{
-                                            display: 'inline',
-                                            verticalAlign: 'middle',
-                                            marginRight: 3,
-                                          }}
-                                        />{' '}
-                                        Active
-                                      </>
-                                    ) : (
-                                      'Hidden'
-                                    )}
-                                  </button>
-                                  <button
-                                    onClick={async () => {
-                                      if (!confirm(`Delete "${item.name}"?`)) return;
-                                      try {
-                                        const token = getAccessToken();
-                                        if (!token) throw new Error('Not authenticated');
-                                        const resp = await fetch('/api/club-arena/shop-items', {
-                                          method: 'POST',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                            Authorization: `Bearer ${token}`,
-                                          },
-                                          body: JSON.stringify({
-                                            action: 'delete',
-                                            clubId: item.club_id,
-                                            itemId: item.id,
-                                          }),
-                                        });
-                                        const json = await resp.json().catch(() => ({}));
-                                        if (!resp.ok || !json.success)
-                                          throw new Error(json.error || `HTTP ${resp.status}`);
-                                        loadClubShopAdmin();
-                                        clubShopLoadingRef.current = false;
-                                        loadClubShop(true);
-                                      } catch (err) {
-                                        showStoreToast('error', err.message);
-                                      }
-                                    }}
-                                    style={{
-                                      padding: '6px 14px',
-                                      borderRadius: 20,
-                                      fontSize: 11,
-                                      fontWeight: 700,
-                                      cursor: 'pointer',
-                                      background: 'rgba(255,59,48,0.1)',
-                                      border: '1px solid rgba(255,59,48,0.3)',
-                                      color: '#ff6b6b',
-                                    }}
-                                  >
-                                    <Trash2
-                                      size={12}
-                                      style={{
-                                        display: 'inline',
-                                        verticalAlign: 'middle',
-                                        marginRight: 4,
-                                      }}
-                                    />{' '}
-                                    Delete
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
 
-            {/* Legal Note */}
-            <p style={styles.legalNote}>
-              Diamonds are virtual currency and have no real-world cash value.
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              All purchases are final. See our{' '}
-              <a href="/terms" style={styles.link}>
-                Terms of Service
-              </a>{' '}
-              for details.
-            </p>
-          </div>
+              {/* Legal Note */}
+              <p style={styles.legalNote}>
+                Diamonds are virtual currency and have no real-world cash value.
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                All purchases are final. See our{' '}
+                <a href="/terms" style={styles.link}>
+                  Terms of Service
+                </a>{' '}
+                for details.
+              </p>
+            </div>
           </main>
         </div>
         <BottomNavBar />
       </PageTransition>
-
     </>
   );
 }

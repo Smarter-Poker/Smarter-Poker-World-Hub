@@ -90,7 +90,10 @@ test('every tab has a route, a meta entry, and a real page file behind it', () =
 
 test('each wrapper page passes its own initialTab and nothing else', () => {
   for (const tab of TABS.filter((t) => t !== 'diamonds')) {
-    const src = readFileSync(join(ROOT, 'pages', `${ROUTES[tab].replace(/^\/hub\//, 'hub/')}.js`), 'utf8');
+    const src = readFileSync(
+      join(ROOT, 'pages', `${ROUTES[tab].replace(/^\/hub\//, 'hub/')}.js`),
+      'utf8'
+    );
     assert.match(
       src,
       new RegExp(`initialTab=["']${tab}["']`),
@@ -105,8 +108,8 @@ test('store navigation uses native links instead of popup-driven buttons', () =>
     'utf8'
   );
   assert.match(showcase, /href=\{TAB_ROUTES\[id\]\}/);
-  assert.match(showcase, /target=\{id === activeTab \? undefined : '_blank'\}/);
-  assert.match(showcase, /rel=\{id === activeTab \? undefined : 'noopener noreferrer'\}/);
+  assert.match(showcase, /import Link from 'next\/link'/);
+  assert.doesNotMatch(showcase, /target=.*_blank|noopener noreferrer/);
   assert.doesNotMatch(showcase, /<button[\s\S]*?Store Sections/);
   assert.doesNotMatch(STORE, /function openTab|window\.open\(/);
 });

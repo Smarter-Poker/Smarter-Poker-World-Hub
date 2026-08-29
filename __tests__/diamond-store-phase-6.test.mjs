@@ -47,9 +47,15 @@ test('checkout return verification retries slow fulfillment and cancels stale re
   assert.match(STORE, /signal: controller\.signal/);
   assert.match(STORE, /verification_attempts: attempt \+ 1/);
   assert.match(STORE, /controller\.abort\(\)/);
-  const clearIndex = STORE.indexOf('clearCheckoutTransport();', STORE.indexOf("setCheckoutReturn({ status: 'verifying' })"));
+  const clearIndex = STORE.indexOf(
+    'clearCheckoutTransport();',
+    STORE.indexOf("setCheckoutReturn({ status: 'verifying' })")
+  );
   const fetchIndex = STORE.indexOf('/api/store/checkout-status?session_id=', clearIndex);
-  assert.ok(clearIndex > -1 && fetchIndex > clearIndex, 'checkout transport must clear before verification fetch');
+  assert.ok(
+    clearIndex > -1 && fetchIndex > clearIndex,
+    'checkout transport must clear before verification fetch'
+  );
 });
 
 test('checkout status is visible before the catalog and receives focus when it changes', () => {
@@ -84,7 +90,10 @@ test('wide merchandise purchase controls preserve an accessibility-safe height',
     MERCH.indexOf('{/* Honest, specific reason instead of a silently dead button */}')
   );
   assert.equal((purchaseArea.match(/minHeight:\s*46/g) || []).length, 2);
-  const fallbackArea = MERCH.slice(MERCH.indexOf('{usingFallback && loadError && ('), MERCH.indexOf('{loading && ('));
+  const fallbackArea = MERCH.slice(
+    MERCH.indexOf('{usingFallback && loadError && ('),
+    MERCH.indexOf('{loading && (')
+  );
   assert.match(fallbackArea, /minHeight:\s*46/);
 });
 
@@ -97,10 +106,16 @@ test('authenticated Club Shop controls preserve the 44-pixel target at every vie
 });
 
 test('live merchandise variants keep their labels, prices, stock, and selection after hydration', () => {
-  assert.match(MERCH, /const composedLabel = \[color, size\]\.filter\(Boolean\)\.join\('\s*\/\s*'\)/);
+  assert.match(
+    MERCH,
+    /const composedLabel = \[color, size\]\.filter\(Boolean\)\.join\('\s*\/\s*'\)/
+  );
   assert.match(MERCH, /priceUsd,[\s\S]*?priceDiamonds,[\s\S]*?stock,[\s\S]*?inStock/);
-  assert.match(MERCH, /const defaultVariant = product\.variants\.find\(v => v\.inStock\)/);
-  assert.match(MERCH, /const variant = product\.variants\.find\(v => v\.key === variantKey\) \|\| defaultVariant/);
+  assert.match(MERCH, /const defaultVariant = product\.variants\.find\(\(?v\)? => v\.inStock\)/);
+  assert.match(
+    MERCH,
+    /const variant = product\.variants\.find\(\(?v\)? => v\.key === variantKey\) \|\| defaultVariant/
+  );
   assert.match(MERCH, /variant\?\.priceUsd, product\.priceUsd/);
   assert.match(MERCH, /variant\?\.priceDiamonds,[\s\S]*?product\.priceDiamonds/);
   assert.match(MERCH, /product\.source !== 'catalog'/);
@@ -111,9 +126,22 @@ test('store purchase controls close synchronous double-submit gaps', () => {
   assert.match(MERCH, /const busyRef = useRef\(false\)/);
   assert.match(MERCH, /if \(busyRef\.current\) return/);
   assert.match(STORE, /const clubShopProcessingRef = useRef\(false\)/);
-  assert.match(STORE, /if \(!clubShopBuyTarget \|\| !clubShopClubId \|\| clubShopProcessingRef\.current\) return/);
+  assert.match(
+    STORE,
+    /if \(!purchaseTarget \|\| !targetClubId \|\| clubShopProcessingRef\.current\) return/
+  );
   assert.match(STORE, /purchaseRequestId: createCheckoutRequestId/);
-  assert.match(STORE, /const idempotencyKey = clubShopBuyTarget\.purchaseRequestId/);
+  assert.match(STORE, /const idempotencyKey = purchaseTarget\.purchaseRequestId/);
+});
+
+test('physical merch and Club Shop items expose both card and diamond purchase paths', () => {
+  assert.match(DIALOG, /Shipping Destination/);
+  assert.match(MERCH, /requiresShipping/);
+  assert.match(MERCH_PURCHASE, /normalizePrintfulRecipient/);
+  assert.match(MERCH_PURCHASE, /createPrintfulOrder/);
+  assert.match(STORE, /handleClubCardCheckout/);
+  assert.match(STORE, /smarter_poker_pending_club_card_purchase/);
+  assert.match(STORE, /<CreditCard size=\{12\}/);
 });
 
 test('Club Shop currency, ownership, refresh, failure, and stock rollback match the API contract', () => {
@@ -122,7 +150,10 @@ test('Club Shop currency, ownership, refresh, failure, and stock rollback match 
   assert.match(STORE, /clubDiamondBalance/);
   assert.match(STORE, /listenBroadcast\('smarter_poker_diamond_sync'/);
   assert.match(STORE, /\.filter\(\(purchase\) => !purchase\.refunded_at\)/);
-  assert.match(STORE, /item\.stackable[\s\S]*?purchaseLimit > 0 && purchasedCount >= purchaseLimit/);
+  assert.match(
+    STORE,
+    /item\.stackable[\s\S]*?purchaseLimit > 0 && purchasedCount >= purchaseLimit/
+  );
   assert.match(STORE, /Retry Club Shop/);
   const claimIndex = CLUB_PURCHASE.indexOf('stockClaimed = avail.stock_claimed === true');
   const balanceIndex = CLUB_PURCHASE.indexOf('if (balance < price)');
@@ -146,7 +177,13 @@ test('store feedback and dialogs remain accessible under failure and reverse-tab
 });
 
 test('store metadata and content render without a client-only transition boundary', () => {
-  assert.match(STORE, /import PageTransition from '..\/..\/src\/components\/transitions\/PageTransition'/);
-  assert.match(STORE, /<Head>[\s\S]*?<StoreToast \/>[\s\S]*?<PageTransition disableInitialAnimation>/);
+  assert.match(
+    STORE,
+    /import PageTransition from '..\/..\/src\/components\/transitions\/PageTransition'/
+  );
+  assert.match(
+    STORE,
+    /<Head>[\s\S]*?<StoreToast \/>[\s\S]*?<PageTransition disableInitialAnimation>/
+  );
   assert.doesNotMatch(STORE, /<meta name="viewport"/);
 });

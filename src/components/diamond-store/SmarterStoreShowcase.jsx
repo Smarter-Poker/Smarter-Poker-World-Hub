@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import Link from 'next/link';
 
 import { captureStoreEvent } from '../../lib/store/storeAnalytics';
 import styles from './SmarterStoreShowcase.module.css';
@@ -64,7 +65,10 @@ export default function SmarterStoreShowcase({
     event.preventDefault();
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     event.currentTarget.scrollBy({
-      left: event.key === 'ArrowRight' ? event.currentTarget.clientWidth * 0.86 : event.currentTarget.clientWidth * -0.86,
+      left:
+        event.key === 'ArrowRight'
+          ? event.currentTarget.clientWidth * 0.86
+          : event.currentTarget.clientWidth * -0.86,
       behavior: reduceMotion ? 'auto' : 'smooth',
     });
   };
@@ -89,19 +93,17 @@ export default function SmarterStoreShowcase({
     <section className={`${styles.showcase} ${styles[activeTab] || ''}`}>
       <nav className={styles.tabs} aria-label="Store Sections">
         {TAB_LABELS.map(([id, label]) => (
-          <a
+          <Link
             key={id}
             ref={id === activeTab ? activeTabRef : null}
             href={TAB_ROUTES[id]}
-            target={id === activeTab ? undefined : '_blank'}
-            rel={id === activeTab ? undefined : 'noopener noreferrer'}
             className={`${styles.tab} ${id === activeTab ? styles.activeTab : ''}`}
             aria-current={id === activeTab ? 'page' : undefined}
-            aria-label={id === activeTab ? `${label}, Current Page` : `${label}, Opens In New Tab`}
+            aria-label={id === activeTab ? `${label}, Current Page` : label}
             onClick={() => captureStoreEvent('section_opened', { from: activeTab, to: id })}
           >
             {label}
-          </a>
+          </Link>
         ))}
       </nav>
 
@@ -138,7 +140,9 @@ export default function SmarterStoreShowcase({
                   aria-busy={busyPackageId === pkg.id}
                   aria-label={`Buy ${pkg.name}, ${Number(pkg.diamonds || 0).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`}
                 >
-                  {busyPackageId === pkg.id ? 'Opening...' : `$${Number(pkg.price || 0).toFixed(2)}`}
+                  {busyPackageId === pkg.id
+                    ? 'Opening...'
+                    : `$${Number(pkg.price || 0).toFixed(2)}`}
                 </button>
               </article>
             ))}

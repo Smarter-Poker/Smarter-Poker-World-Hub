@@ -81,7 +81,9 @@
 .ledger dt,
 .total > span {
   color: #a9bfcc;
-  font: 600 10px 'IBM Plex Mono', monospace;
+  font:
+    600 10px 'IBM Plex Mono',
+    monospace;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -89,7 +91,10 @@
 .header h2 {
   margin: 5px 0 0;
   color: #f4fcff;
-  font: 500 clamp(18px, 3.8vw, 25px) Michroma, Rajdhani, sans-serif;
+  font:
+    500 clamp(18px, 3.8vw, 25px) Michroma,
+    Rajdhani,
+    sans-serif;
   letter-spacing: -0.035em;
 }
 
@@ -101,7 +106,9 @@
   border: 1px solid #718b9e;
   border-radius: 0;
   background: linear-gradient(180deg, #354c59, #08111a 28%, #15252e);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48), inset 0 -3px 5px #000;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    inset 0 -3px 5px #000;
   color: #e7f7ff;
   cursor: pointer;
 }
@@ -146,7 +153,9 @@
   padding: 16px;
   border: 1px solid #7892a5;
   background: linear-gradient(180deg, #243943, #050b11 24%, #101d24);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.36), inset 0 -3px 5px #000;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -3px 5px #000;
 }
 
 .total strong {
@@ -154,8 +163,56 @@
   align-items: center;
   gap: 9px;
   color: #8defff;
-  font: 700 clamp(16px, 4vw, 20px) 'IBM Plex Mono', monospace;
+  font:
+    700 clamp(16px, 4vw, 20px) 'IBM Plex Mono',
+    monospace;
   text-align: right;
+}
+
+.shipping {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 16px;
+  border: 1px solid #536d7e;
+  background: rgba(1, 7, 12, 0.72);
+}
+
+.shipping legend,
+.shipping label span {
+  color: #a9bfcc;
+  font:
+    600 10px 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.shipping label {
+  display: grid;
+  gap: 7px;
+}
+
+.shipping .full {
+  grid-column: 1 / -1;
+}
+
+.shipping :is(input, select) {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid #58758a;
+  border-radius: 0;
+  background: #03080d;
+  color: #eef9ff;
+  padding: 9px 11px;
+  font-size: 13px;
+}
+
+.shipping :is(input, select):focus-visible {
+  outline: 2px solid #9bf4ff;
+  outline-offset: 2px;
 }
 
 .notice {
@@ -175,7 +232,9 @@
   min-height: 50px;
   padding: 0 16px;
   border-radius: 0;
-  font: 800 12px 'IBM Plex Mono', monospace;
+  font:
+    800 12px 'IBM Plex Mono',
+    monospace;
   cursor: pointer;
 }
 
@@ -188,21 +247,36 @@
 .cancel {
   border: 1px solid #718b9e;
   background: linear-gradient(180deg, #344955, #081119 25%, #14232b);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.44), inset 0 -3px 5px #000;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.44),
+    inset 0 -3px 5px #000;
   color: #dbe8ef;
 }
 
 .confirm {
   border: 1px solid #c9f6ff;
-  background: linear-gradient(180deg, #a5f2ff, #197fb7 12%, #063b60 48%, #0499de 52%, #07334d 88%, #9cefff);
-  box-shadow: inset 0 1px 0 #fff, inset 0 -4px 7px #001529, 0 0 18px rgba(0, 191, 255, 0.42);
+  background: linear-gradient(
+    180deg,
+    #a5f2ff,
+    #197fb7 12%,
+    #063b60 48%,
+    #0499de 52%,
+    #07334d 88%,
+    #9cefff
+  );
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -4px 7px #001529,
+    0 0 18px rgba(0, 191, 255, 0.42);
   color: #fff;
 }
 
 .actions button:active:not(:disabled),
 .close:active:not(:disabled) {
   transform: translateY(2px);
-  box-shadow: inset 0 3px 7px #000, inset 0 -1px 0 #9cefff;
+  box-shadow:
+    inset 0 3px 7px #000,
+    inset 0 -1px 0 #9cefff;
 }
 
 .actions button:disabled,
@@ -233,6 +307,14 @@
 
   .ledger {
     grid-template-columns: 1fr;
+  }
+
+  .shipping {
+    grid-template-columns: 1fr;
+  }
+
+  .shipping .full {
+    grid-column: auto;
   }
 
   .total {

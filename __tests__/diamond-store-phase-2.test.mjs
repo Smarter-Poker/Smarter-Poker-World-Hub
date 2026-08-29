@@ -14,7 +14,8 @@ const shell = read('src/components/diamond-store/DiamondStoreShell.module.css');
 
 test('announces active store navigation and complete package purchase names', () => {
   assert.match(showcase, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
-  assert.match(showcase, /Opens In New Tab/);
+  assert.match(showcase, /import Link from 'next\/link'/);
+  assert.doesNotMatch(showcase, /target=["']_blank["']|Opens In New Tab/);
   assert.match(showcase, /className=\{styles\.packageUnit\}>Diamonds/);
   assert.match(showcase, /Diamonds For \$\$\{Number\(pkg\.price/);
 });
@@ -80,7 +81,7 @@ test('adds a scoped metallic mobile shell without touching the global header', (
     page,
     /<UniversalHeader pageDepth=\{1\} \/>\s*<main className=\{`store-redesign-content \$\{shellStyles\.root\}`\}>/
   );
-  assert.match(shell, /\.root :is\([^}]*:focus-visible/s);
+  assert.match(shell, /\.root[\s\S]*?:is\([\s\S]*?\):focus-visible\s*\{/);
   assert.match(shell, /\.planRail > button\s*\{[^}]*flex:\s*0 0 min\(82vw, 320px\)/s);
   assert.match(
     shell,

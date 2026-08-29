@@ -1,0 +1,264 @@
+.stage {
+  --market-ice: #dff9ff;
+  --market-cyan: #00c8ff;
+  --market-steel: #607d8e;
+  width: calc(100% - 48px);
+  max-width: 1240px;
+  min-height: calc(100vh - 150px);
+  margin: 0 auto;
+  padding: 92px 0 110px;
+  color: #e9f4f8;
+}
+
+.routeRail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid #526d7d;
+  border-radius: 0;
+  background: linear-gradient(180deg, #263944 0, #071018 18%, #020509 78%, #13232c 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.52),
+    inset 0 -4px 8px #000,
+    0 18px 38px #000;
+}
+
+.routeLink {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-right: 1px solid #2a4352;
+  color: #9fb1bb;
+  font:
+    700 12px 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.routeLink:last-child {
+  border-right: 0;
+}
+
+.routeLink[aria-current='page'] {
+  background: linear-gradient(180deg, rgba(159, 238, 255, 0.2), rgba(0, 152, 220, 0.08));
+  box-shadow:
+    inset 0 -3px 0 var(--market-cyan),
+    inset 0 1px 0 #ecfcff;
+  color: #f1fcff;
+  text-shadow: 0 0 12px rgba(0, 197, 255, 0.72);
+}
+
+.commandHeader {
+  position: relative;
+  display: flex;
+  min-height: 190px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  margin-top: 22px;
+  padding: 36px 40px;
+  overflow: hidden;
+  border: 1px solid #6a8494;
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, rgba(0, 193, 255, 0.08), transparent 38%),
+    radial-gradient(circle at 86% 38%, rgba(0, 177, 255, 0.18), transparent 28%),
+    linear-gradient(145deg, #162832 0, #050a0f 42%, #010305 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(238, 252, 255, 0.7),
+    inset 0 0 0 7px #03080c,
+    inset 0 0 0 8px rgba(65, 101, 122, 0.72),
+    0 24px 50px #000;
+}
+
+.commandHeader::before {
+  position: absolute;
+  inset: 10px 10px auto;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #9df1ff 24%,
+    #008bd4 50%,
+    #9df1ff 76%,
+    transparent
+  );
+  box-shadow: 0 0 16px rgba(0, 190, 255, 0.72);
+  content: '';
+}
+
+.commandHeader::after {
+  position: absolute;
+  right: 42px;
+  bottom: 28px;
+  width: min(36vw, 430px);
+  height: 86px;
+  border: 1px solid rgba(116, 166, 192, 0.18);
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 28px,
+    rgba(0, 197, 255, 0.08) 29px 30px
+  );
+  clip-path: polygon(12% 0, 100% 0, 88% 100%, 0 100%);
+  content: '';
+  pointer-events: none;
+}
+
+.headerCopy,
+.headerActions {
+  position: relative;
+  z-index: 1;
+}
+
+.headerCopy {
+  max-width: 720px;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 13px;
+  color: #83dff5;
+  font:
+    700 10px 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.headerCopy h1 {
+  margin: 0;
+  color: var(--market-ice);
+  font:
+    500 clamp(32px, 5vw, 58px) 'Rajdhani',
+    sans-serif;
+  letter-spacing: -0.035em;
+  line-height: 0.96;
+  text-transform: uppercase;
+}
+
+.headerCopy p {
+  max-width: 650px;
+  margin: 17px 0 0;
+  color: #9fb0ba;
+  font:
+    500 15px/1.65 'Inter',
+    sans-serif;
+}
+
+.headerActions {
+  flex: 0 0 auto;
+}
+
+.headerActions :is(a, button) {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border: 1px solid #9cd7e8;
+  border-radius: 0;
+  background: linear-gradient(180deg, #dff9ff, #6da7bc 48%, #1c4b61);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -3px 5px rgba(0, 0, 0, 0.62);
+  color: #06131a;
+  font:
+    800 11px 'IBM Plex Mono',
+    monospace;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.contentDeck {
+  position: relative;
+  margin-top: 22px;
+  padding: 30px;
+  border: 1px solid #526e7f;
+  border-radius: 0;
+  background:
+    linear-gradient(120deg, rgba(0, 177, 255, 0.05), transparent 32%),
+    linear-gradient(180deg, #101b22 0, #03070b 38px, #010305 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(235, 251, 255, 0.38),
+    inset 0 0 0 6px #03080c,
+    0 24px 56px #000;
+}
+
+.contentDeck::before {
+  display: block;
+  margin: 0 0 25px;
+  color: #819aa8;
+  font:
+    700 9px 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+  content: 'Marketplace Account Deck  /  Secure Commerce Record';
+}
+
+.stage :is(a, button, input, select):focus-visible {
+  outline: 2px solid #8befff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+  .stage {
+    width: calc(100% - 20px);
+    padding: 72px 0 104px;
+  }
+
+  .routeRail {
+    overflow-x: auto;
+    grid-template-columns: repeat(4, minmax(112px, 1fr));
+    scrollbar-width: none;
+  }
+
+  .routeRail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .routeLink {
+    min-height: 48px;
+    font-size: 10px;
+  }
+
+  .commandHeader {
+    min-height: 220px;
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 30px 24px;
+  }
+
+  .commandHeader::after {
+    right: 12px;
+    bottom: 16px;
+    width: 72vw;
+  }
+
+  .headerActions {
+    width: 100%;
+  }
+
+  .headerActions :is(a, button) {
+    width: 100%;
+  }
+
+  .contentDeck {
+    padding: 20px 14px 26px;
+  }
+
+  .contentDeck::before {
+    line-height: 1.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage * {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
