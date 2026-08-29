@@ -231,7 +231,7 @@ async function buildPokerVenueUrls() {
     const supabase = createClient(url, key);
     const { data, error } = await supabase
       .from('poker_venues')
-      .select('id, city, state, is_active, is_suppressed')
+      .select('id, city, state, venue_type, is_active, is_suppressed')
       .eq('is_active', true)
       .or('is_suppressed.is.null,is_suppressed.eq.false')
       .limit(5000);
@@ -241,6 +241,10 @@ async function buildPokerVenueUrls() {
     const states = new Set();
     const cities = new Set();
     data.forEach((venue) => {
+      // Match the public location-page normalizer. Tours, series, and home
+      // games own dedicated route families and must not create venue/location
+      // URLs that the physical-room directory cannot surface.
+      if (['series', 'tour', 'home_game'].includes(venue.venue_type)) return;
       if (venue.id) urls.push({ path: `/hub/venues/${venue.id}`, priority: '0.7', changefreq: 'daily' });
       const state = String(venue.state || '').toUpperCase();
       if (!US_STATES_BY_CODE[state]) return;
