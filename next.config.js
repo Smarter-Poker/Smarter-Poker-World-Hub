@@ -91,6 +91,46 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   // white-screen fix from PR #503 was not taking effect.
   extendDefaultRuntimeCaching: false,
   workboxOptions: {
+    // ─── THE ROOT SERVICE WORKER MUST BE ABLE TO INSTALL ───────────────────
+    // Dan, 2026-08-29, from an iPhone: "ENABLE NOTIFICATIONS ISN'T WORKING",
+    // with Club Arena's prompt showing "The notification service worker did
+    // not start. Reload and try again."
+    //
+    // Measured against production the same day: `navigator.serviceWorker
+    // .register('/sw.js')` resolved, the worker went `redundant` ~170ms later,
+    // and `getRegistration('/')` then returned undefined. Probing all 827
+    // precache entries found exactly ONE bad URL:
+    //
+    //     /_next/dynamic-css-manifest.json  ->  404
+    //
+    // Next emits `dynamic-css-manifest.json` as a BUILD artifact and does not
+    // serve it under /_next/. next-pwa put it in the precache manifest anyway,
+    // workbox's install precaches the whole manifest atomically, and ONE 404
+    // rejects install — so the root worker never activated. That worker is the
+    // only one on this origin with a `push` handler (worker/index.js,
+    // sp-push-v3), which means web push was dead for EVERY user of the hub AND
+    // of Club Arena, not just the person who saw the error.
+    //
+    // Filtering it here, rather than via `exclude`, is deliberate:
+    //   * next-pwa spreads OUR manifestTransforms BEFORE its own, so this runs
+    //     while entries may still be raw asset names — the regex is anchored on
+    //     the basename so it matches whether the url is
+    //     `dynamic-css-manifest.json` or `/_next/dynamic-css-manifest.json`.
+    //   * supplying `exclude` REPLACES next-pwa's default exclude array
+    //     (woff2 / .map / manifest*.js), which is a silent regression waiting
+    //     to happen. manifestTransforms is additive.
+    //
+    // If a future Next release adds another unserved `_next/*.json` build
+    // artifact, the symptom is identical and silent. `scripts/ci/check-sw-precache.mjs`
+    // exists to catch that: it probes every precache entry against production.
+    manifestTransforms: [
+      async (manifest) => ({
+        manifest: manifest.filter(
+          (entry) => !/(^|\/)dynamic-css-manifest\.json$/.test(entry.url || '')
+        ),
+        warnings: [],
+      }),
+    ],
     runtimeCaching: [
       // ─── CRITICAL: Override next-pwa defaults that cause stale pages on mobile ───
       // next-pwa defaults use CacheFirst for /_next/static JS, which means mobile
