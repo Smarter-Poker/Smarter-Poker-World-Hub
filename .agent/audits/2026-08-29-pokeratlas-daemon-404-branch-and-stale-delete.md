@@ -103,6 +103,59 @@ destroys that distinction.
 page retrieved *and parsed*. Redirects and missing pages are counted separately
 as `no_page`, surfaced in the heartbeat and the evidence record.
 
+## 4. The sweep cannot finish, and an unfinished sweep deletes what it never saw
+
+Found by reading the **live daemon log**, not the code. This is the one doing
+damage right now.
+
+```
+15:42:24  Scraping 11 validated regions...          <- old code
+15:43:35  Saving 148 venue records to Supabase...   <- 71 seconds, full catalogue
+16:33:58  Scraping 710 venues (skipping 404 cached)...   <- new code
+16:41:36  ...still fetching, still inside California
+```
+
+Measured against the running process (pid 45361): roughly **4 seconds per
+venue**, so a 710-venue sweep needs about **47 minutes**. `SCRAPE_INTERVAL` is
+**15 minutes** and `SLOW_CYCLE_THRESHOLD_MINUTES` is **20**.
+
+So every cycle started at venue 0, was aborted by the slow-cycle watchdog around
+venue ~250, and started again at venue 0 fifteen minutes later. The back half of
+the estate was never reached — **and neither was the no-cash cache the whole
+design depends on, so it could never warm up.** The feature deadlocks against
+itself.
+
+The damage is what happens next. An aborted loop still falls through to the
+publish path, and the stale cleanup deletes everything not in this batch:
+
+```python
+sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.pokeratlas')
+```
+
+A pass that covered venues 0–250 therefore **deletes the rows for 251–709** —
+venues it never visited. The catalogue collapses to whatever the partial pass
+managed, every cycle, forever.
+
+**Fixed** by walking the sweep across cycles:
+
+- a cursor in `data/pokeratlas-sweep-state.json`, checked *before* each fetch so
+  it always points at a venue not yet done and never skips one;
+- a `SWEEP_SLICE_BUDGET_MINUTES = 9` slice, comfortably inside the 15-minute
+  interval, after which the cycle saves its place and returns;
+- `sweep_complete`, set False by all three early exits (circuit breaker,
+  slow-cycle watchdog, budget), which **gates the delete**. A partial pass
+  defers cleanup and keeps rows for venues it has not reached. Stale data beats
+  deleted data, and it is visible;
+- the delete is scoped to the **whole sweep** (`scrape_batch_id=not.in.(...)`)
+  rather than one pass. With several passes per sweep, `neq.{batch_id}` would
+  have deleted the rows written by every earlier pass of the sweep that just
+  finished — emptying the catalogue down to the final slice. That bug would have
+  been *introduced* by the cursor fix if the delete had been left alone.
+
+Simulated end to end: the sweep converges in 6 cycles (~90 minutes on a cold
+cache, far quicker once it warms), and every delete happens only after full
+coverage.
+
 ---
 
 ## Verified, not asserted
