@@ -54,10 +54,10 @@ const SCENARIOS = {
       payouts: [0, 100, 70, 50, 35],
       playersLeft: 5,
       bubbleSize: 4,
-      situation: 'On the bubble. UTG (30bb) opens 2.2x, HJ (28bb) calls. You have KQs on the BTN with 15bb.',
+      situation: 'On The Bubble, Action Folds To Under The Gun With 30 BB, Who Raises To 2.2 BB. The Hijack Calls With 28 BB. You Are On The Button With K♠Q♠ And 15 BB.',
       options: [
         { action: 'All-in', correct: true, ev: '+1.5%', explanation: 'With 15bb and KQs, shoving over the open + call is profitable. You have great fold equity as both opponents need strong hands to call on the bubble.' },
-        { action: 'Call', correct: false, ev: '-0.6%', explanation: 'Calling bloats the pot multiway and you\'re OOP postflop with an awkward stack. Push/fold is the right strategy here.' },
+        { action: 'Call', correct: false, ev: '-0.6%', explanation: 'Calling creates a low stack-to-pot ratio in a multiway pot and leaves too little room to realize K♠Q♠ cleanly. In this stated model, pushing performs better.' },
         { action: 'Fold', correct: false, ev: '-0.8%', explanation: 'KQs is too strong to fold at 15bb. Even with ICM, you need to accumulate chips to have a shot at the win.' },
         { action: 'Raise to 8bb', correct: false, ev: '-1.2%', explanation: 'Min-raising with 15bb commits half your stack. Either go all-in for maximum fold equity or fold.' },
       ],

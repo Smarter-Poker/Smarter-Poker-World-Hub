@@ -248,7 +248,7 @@ const SPOT_SCENARIOS = [
         streets: [
             {
                 street: 'preflop',
-                description: 'SB (Hero) Opens to 2.5BB. BB 3-bets to 7BB. Hero with A5s.',
+                description: 'Action Folds To Hero In The Small Blind, Who Raises To 2.5 BB. The Big Blind 3-Bets To 7 BB. Hero Holds A♠5♠.',
                 pot: 9.5,
                 heroStack: 22.5,
                 villainStack: 18,

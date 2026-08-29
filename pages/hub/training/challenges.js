@@ -113,7 +113,16 @@ export default function ChallengesPage() {
   } = useSWR(swrKey, (url) =>
     authedFetch(url)
       .then((r) => r.json())
-      .then((d) => d.challenges || [])
+      .then((d) => (d.challenges || []).map((challenge) => ({
+        ...challenge,
+        title: challenge.title || challenge.name || 'Training Challenge',
+        description: challenge.description || 'Complete the training target to unlock the reward.',
+        period: challenge.period || challenge.challenge_type || 'weekly',
+        goal: Math.max(1, Number(challenge.goal ?? challenge.target_value ?? 1)),
+        progress: Math.max(0, Number(challenge.progress ?? 0)),
+        diamonds: Math.max(0, Number(challenge.diamonds ?? challenge.diamond_reward ?? 0)),
+        periodKey: challenge.periodKey || challenge.period_key || '',
+      })))
   );
   const challenges = swrData || [];
 
@@ -151,7 +160,7 @@ export default function ChallengesPage() {
   };
 
   const getProgressPercent = (challenge) => {
-    return Math.min(100, (challenge.progress / challenge.goal) * 100);
+    return Math.min(100, Math.max(0, (challenge.progress / Math.max(1, challenge.goal)) * 100));
   };
 
   if (!user) {
@@ -164,7 +173,7 @@ export default function ChallengesPage() {
         />
         <div style={styles.container}>
           <UniversalHeader pageDepth={2} />
-          <div style={styles.content}>
+          <div className="sp-training-command sp-training-command--challenges sp-command-main" style={styles.content}>
             <div style={styles.signInPrompt}>
               {/* TRAIN-CHALLENGES-A11Y-1: SVG target replaces fontSize:48 */}
               <span style={{ display: 'inline-flex', color: '#00E0FF' }} aria-hidden>
@@ -192,9 +201,9 @@ export default function ChallengesPage() {
       <div style={styles.container}>
         <UniversalHeader pageDepth={2} />
 
-        <div style={styles.content}>
+        <div className="sp-training-command sp-training-command--challenges sp-command-main" style={styles.content}>
           {/* Header */}
-          <div style={styles.header}>
+          <div className="sp-command-header" style={styles.header}>
             {/* TRAIN-CHALLENGES-A11Y-1: semantic h1 + SVG target icon */}
             <h1 style={styles.title}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center', color: '#00E0FF' }}>
@@ -217,7 +226,7 @@ export default function ChallengesPage() {
               message="Check back soon for new challenges!"
             />
           ) : (
-            <div style={styles.challengeList}>
+            <div className="sp-command-grid sp-command-grid--challenges" style={styles.challengeList}>
               {challenges.map((challenge, i) => {
                 const progress = getProgressPercent(challenge);
                 const isComplete = progress >= 100;
@@ -227,6 +236,7 @@ export default function ChallengesPage() {
                 return (
                   <motion.div
                     key={challenge.id}
+                    className="sp-command-card"
                     style={{
                       ...styles.challengeCard,
                       ...(challenge.claimed ? styles.claimedCard : {}),

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { normalizeClubArenaHand } from '../src/lib/training/handAuditEngine.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const detect = read('pages/api/assistant/leaks/detect.js');
@@ -64,11 +65,62 @@ test('unpriced preflop decisions are never silently marked correct', () => {
   assert.match(upload, /excluded from GTO accuracy, EV loss, and Leak Finder evidence/);
 });
 
+test('non-exact Club Arena matches persist no solver conclusion or EV claim', () => {
+  assert.match(auditEngine, /solver_action: solverVerified \? grade\.optimalAction : null/);
+  assert.match(auditEngine, /classification: solverVerified \? grade\.classification : 'unpriced'/);
+  assert.match(auditEngine, /ev_loss: solverVerified \? grade\.evLoss : null/);
+  assert.match(auditEngine, /ev_loss_measured: solverVerified && !!grade\.evLossMeasured/);
+  assert.match(auditEngine, /hasUntrustedClassification/);
+});
+
 test('poker hand-history writes fail closed and reads filter before pagination', () => {
   assert.match(pokerHistory, /if \(error\)[\s\S]*?status\(500\)/);
   const containsAt = pokerHistory.indexOf(".contains('players'");
   const rangeAt = pokerHistory.indexOf('.range(');
   assert.ok(containsAt >= 0 && rangeAt > containsAt, 'participant filter must run before pagination');
+});
+
+test('Club Arena hand filters use valid JSON containment and include the live recorder', () => {
+  for (const [name, source] of [
+    ['audit engine', auditEngine],
+    ['leak detector', detect],
+    ['poker hand history', pokerHistory],
+    ['Club Arena My Hands', read('pages/api/club-arena/my-hands.js')],
+    ['hand-history library', read('src/lib/poker-engine/HandHistory.js')],
+  ]) {
+    assert.doesNotMatch(source, /\.contains\('players', \[\{/, `${name} must not emit invalid PostgREST JSON`);
+    assert.match(source, /\.contains\('players', JSON\.stringify\(\[\{/, `${name} must serialize JSON containment`);
+  }
+  assert.match(auditEngine, /\['manual', 'wh-engine', 'engine-api'\]/);
+});
+
+test('Club Arena live rows normalize stages, board, button and revealed hero cards', () => {
+  const hand = normalizeClubArenaHand({
+    id: 'hand-1',
+    source: 'manual',
+    game_variant: 'nlh',
+    button_seat: 4,
+    players: [
+      { userId: 'hero', username: 'Hero', seat: 4, cards: [null, null] },
+      { userId: 'villain', username: 'Villain', seat: 7, cards: [null, null] },
+    ],
+    hole_cards: { hero: ['As', 'Kh'] },
+    community_cards: ['2c', '7d', 'Th', 'Js', 'Qc'],
+    actions: [
+      { userId: 'villain', action: 'raise', stage: 'preflop', amount: 3 },
+      { userId: 'hero', action: 'call', stage: 'preflop', amount: 3 },
+      { userId: 'hero', action: 'check', stage: 'flop', amount: 0 },
+    ],
+  }, 'hero');
+
+  assert.ok(hand);
+  assert.deepEqual(hand.hero.holeCards, ['As', 'Kh']);
+  assert.equal(hand.hero.position, 'BTN');
+  assert.equal(hand.buttonSeat, 4);
+  assert.deepEqual(hand.streets.flop.board, ['2c', '7d', 'Th']);
+  assert.equal(hand.streets.preflop.actions.length, 2);
+  assert.equal(hand.streets.flop.actions.length, 1);
+  assert.equal(hand.streets.preflop.actions[1].isHero, true);
 });
 
 test('migrations preserve provenance and idempotent hand audits', () => {

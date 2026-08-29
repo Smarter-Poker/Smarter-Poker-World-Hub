@@ -597,7 +597,7 @@ export default function DailyTournaments() {
                     
                 </div>
 
-                <style>{`
+                <style suppressHydrationWarning>{`
                     /* Metal UI Variables */
                     :root {
                         --metal-dark: #0a0a15;
@@ -1217,7 +1217,7 @@ function TournamentCard({ tournament }) {
                 )}
             </div>
 
-            <style>{`
+            <style suppressHydrationWarning>{`
                 .tournament-card {
                     display: flex;
                     flex-direction: column;

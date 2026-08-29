@@ -1065,7 +1065,13 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       // and left it visibly detached from its own geofence circle (drawn at true coords).
       // Visual precedence is already guaranteed by the never-clustered tourLayer plus the
       // zIndexOffset below, so tour pins now render at their real position.
-      const marker = L.marker([venue.latitude, venue.longitude], { icon: finalIcon, zIndexOffset: isTourStop ? 1000 : isFav ? 500 : 0 })
+      const marker = L.marker([venue.latitude, venue.longitude], {
+        icon: finalIcon,
+        zIndexOffset: isTourStop ? 1000 : isFav ? 500 : 0,
+        keyboard: true,
+        title: venue.name || 'Poker venue',
+        alt: `${venue.name || 'Poker venue'} map marker`,
+      })
         .bindPopup(popupHtml, { maxWidth: 320, className: 'venue-popup', closeButton: true });
 
       if (!isTourStop) {
@@ -1248,6 +1254,11 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       )}
       <div
         ref={mapContainerRef}
+        role="region"
+        aria-label="Interactive poker venue map"
+        aria-description="Use arrow keys to pan, plus and minus to zoom, and Tab to move between venue markers."
+        aria-busy={!mapReady}
+        tabIndex={0}
         style={{
           width: '100%',
           ...(fullHeight

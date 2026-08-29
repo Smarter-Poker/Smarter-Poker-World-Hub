@@ -476,9 +476,33 @@ ALL_CRONS = [
 OVERFLOW_CRONS = ALL_CRONS
 
 
-SCRAPER_PY = str(
-    Path.home() / 'Documents' / 'Smarter-Poker-World-Hub' / 'scripts' / 'video_library_scraper.py'
-)
+# Host-portability (2026-08-29). SCRAPER_PY used to resolve only against
+# Path.home()/'Documents'/... — Dan's Mac. On the Hetzner dispatcher the file was
+# absent, should_skip_on_secondary() skipped all five video-library jobs every
+# day, and the skip was logged as normal operation. Video ingestion therefore
+# depended on a laptop process staying alive; when it stopped on 2026-04-22 the
+# library froze for 129 days and nothing alerted.
+#
+# Resolution order: SP_SCRAPER_DIR env override, then the repo this dispatcher
+# is deployed from, then the historical Mac path. The Mac keeps working
+# unchanged; Hetzner now works too once the scripts are deployed alongside it.
+_SCRAPER_DIR_CANDIDATES = [
+    Path(os.environ['SP_SCRAPER_DIR']) if os.environ.get('SP_SCRAPER_DIR') else None,
+    Path(__file__).resolve().parent,
+    Path.home() / 'Documents' / 'Smarter-Poker-World-Hub' / 'scripts',
+]
+
+
+def _resolve_script(filename: str) -> str:
+    """First existing candidate wins; fall back to the Mac path so the
+    not-present branch in the job wrapper still logs a meaningful path."""
+    for base in _SCRAPER_DIR_CANDIDATES:
+        if base and (base / filename).exists():
+            return str(base / filename)
+    return str(_SCRAPER_DIR_CANDIDATES[-1] / filename)
+
+
+SCRAPER_PY = _resolve_script('video_library_scraper.py')
 
 # ─── Jobs that invoke a local Python script instead of a Vercel HTTP endpoint ─
 # Maps cron path → list of args passed to `python3 SCRAPER_PY`.
@@ -490,9 +514,7 @@ SCRAPER_PY = str(
 # library videos never reached social_reels. The flag belongs to
 # video_library_to_reels.py, which no scheduler referenced at all.
 # SCRIPT_JOB_SCRIPTS overrides the script per path; default stays SCRAPER_PY.
-REELS_BRIDGE_PY = str(
-    Path.home() / 'Documents' / 'Smarter-Poker-World-Hub' / 'scripts' / 'video_library_to_reels.py'
-)
+REELS_BRIDGE_PY = _resolve_script('video_library_to_reels.py')
 
 SCRIPT_JOB_SCRIPTS = {
     '/api/cron/video-library-reels': REELS_BRIDGE_PY,
@@ -522,11 +544,7 @@ DISPATCHER_PRIVATE_IP  = os.environ.get('DISPATCHER_PRIVATE_IP', '').strip()
 
 WORKERS_PREFERRED = {
     # ─── 2B.2(b) — video-library SCRIPT_JOBS, all idempotent via Supabase upserts ───
-    '/api/cron/video-library-scraper':  '/cron/video-library-scraper',
-    '/api/cron/video-library-reels':    '/cron/video-library-reels',
-    '/api/cron/video-library-backfill': '/cron/video-library-backfill',
-    '/api/cron/video-library-purge':    '/cron/video-library-purge',
-    '/api/cron/video-library-views':    '/cron/video-library-views',
+    # REMOVED: These must run locally via Python; workers HTTP routes just report status.
     # ─── 2B.2(c) Batch A+B — lowest-risk: scrapers, content gen, log cleanup ───
     # Each verified to return 200 from openclaw via private net before flip.
     # Each handler is idempotent via DELETE-by-cutoff or upsert-on-unique-key.
@@ -1022,11 +1040,36 @@ def should_skip_on_secondary(path: str, role: str) -> bool:
     """
     if role == 'secondary' and path == '/api/cron/cardplayer-scraper':
         return True
-    return (
+
+    skip = (
         role == 'secondary'
         and path in SCRIPT_JOBS
         and path not in WORKERS_PREFERRED
     )
+
+    # 2026-08-29: this used to return True silently and that silence cost 129
+    # days of video-library ingestion. A job that is skipped on the ONLY host
+    # that runs it is indistinguishable from a job that is working, so say so
+    # loudly and say why. SP_ENABLE_SCRIPT_JOBS=1 opts a secondary host in once
+    # the scripts are deployed alongside it (they are host-portable as of the
+    # same date); the scripts upsert into Supabase, so a brief overlap with the
+    # Mac dispatcher is safe.
+    if skip:
+        script = SCRIPT_JOB_SCRIPTS.get(path, SCRAPER_PY)
+        if os.environ.get('SP_ENABLE_SCRIPT_JOBS', '').strip() in ('1', 'true', 'yes'):
+            if os.path.exists(script):
+                log.info(f'{path}: SCRIPT_JOB enabled on secondary → {script}')
+                return False
+            log.warning(
+                f'{path}: SP_ENABLE_SCRIPT_JOBS is set but {script} is missing on '
+                f'this host — deploy the scripts/ directory alongside the dispatcher.'
+            )
+        log.warning(
+            f'{path}: SKIPPED on secondary (SCRIPT_JOB, script expected at {script}). '
+            f'This job runs ONLY on a primary/Mac dispatcher. If no primary is '
+            f'running, this work is not happening anywhere.'
+        )
+    return skip
 
 
 def main():

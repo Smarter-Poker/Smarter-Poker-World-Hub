@@ -3,6 +3,10 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 body.world-poker-near-me {
+    /* Self-contained stacks keep deep routes typographically stable even on
+       pages that do not mount the global next/font variable wrapper. */
+    --font-premium-display: 'Rajdhani', 'Arial Narrow', 'Avenir Next Condensed', sans-serif;
+    --font-premium-body: 'Inter', 'Avenir Next', -apple-system, BlinkMacSystemFont, sans-serif;
     --world-primary: #3b82f6;
     --world-primary-rgb: 59, 130, 246;
     --world-primary-glow: rgba(59, 130, 246, 0.4);
@@ -45,7 +49,14 @@ body.world-poker-near-me {
     color: var(--pnm-white);
     background: var(--pnm-void);
     font-family: var(--font-premium-body);
+    /* clip, not hidden. `hidden` on one axis computes the other to `auto`,
+       which makes this a scroll container - and WebKit then resolves fixed
+       descendants against IT instead of the viewport. On this page that is the
+       favourite-venue toast (position:fixed; top:80px) scrolling away with the
+       content, and the two full-bleed `inset:0` backgrounds sizing to the whole
+       scroll height. Same mechanism as the Club Arena footer bug, 2026-08-29. */
     overflow-x: hidden;
+    overflow-x: clip;
 }
 
 body.world-poker-near-me::before {
@@ -384,6 +395,235 @@ body.world-poker-near-me .location-enable-modal__manual {
     color: #b6c3ce !important;
 }
 
+/* Lobby location recovery shares the same physical command language as the
+   secondary discovery shell. These sheets replace the last rounded/glass
+   location surfaces and retain live values as real form controls. */
+body.world-poker-near-me .pnm-location-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 165;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(1, 3, 5, 0.92);
+}
+
+body.world-poker-near-me .pnm-location-sheet__frame {
+    position: relative;
+    width: min(470px, 96vw);
+    max-height: min(760px, 90dvh);
+    overflow: auto;
+    color: var(--pnm-white);
+    border: 1px solid rgba(160, 180, 198, 0.46);
+    border-radius: 4px;
+    outline: none;
+    background:
+        linear-gradient(145deg, rgba(15, 22, 30, 0.995), rgba(4, 8, 12, 0.995));
+    box-shadow:
+        0 34px 100px rgba(0, 0, 0, 0.76),
+        inset 0 0 0 2px rgba(0, 0, 0, 0.68),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.world-poker-near-me .pnm-location-sheet__frame:focus-visible {
+    box-shadow: 0 34px 100px rgba(0, 0, 0, 0.76), 0 0 0 2px rgba(47, 168, 255, 0.7);
+}
+
+body.world-poker-near-me .pnm-location-sheet__energy {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--pnm-blue) 22%, #b9d7ea 50%, var(--pnm-blue) 78%, transparent);
+    box-shadow: 0 0 16px rgba(47, 168, 255, 0.66);
+}
+
+body.world-poker-near-me .pnm-location-sheet__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 16px;
+    align-items: start;
+    padding: 20px;
+    border-bottom: 1px solid rgba(142, 162, 181, 0.2);
+    background: linear-gradient(180deg, rgba(47, 168, 255, 0.075), transparent);
+}
+
+body.world-poker-near-me .pnm-location-sheet__eyebrow {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--pnm-blue);
+    font: 700 9px/1 var(--font-premium-body);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-location-sheet__header h2 {
+    margin: 0;
+    color: var(--pnm-white);
+    font: 560 24px/1.05 var(--font-premium-display);
+    letter-spacing: 0.015em;
+    text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-location-sheet__header p {
+    margin: 8px 0 0;
+    color: var(--pnm-muted);
+    font: 500 12px/1.55 var(--font-premium-body);
+}
+
+body.world-poker-near-me .pnm-location-sheet__close {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 1px solid rgba(127, 145, 166, 0.28);
+    border-radius: 3px;
+    color: #a8b6c4;
+    background: rgba(4, 8, 12, 0.72);
+    font-size: 24px;
+    line-height: 1;
+}
+
+body.world-poker-near-me .pnm-location-sheet__body {
+    display: grid;
+    gap: 14px;
+    padding: 20px;
+}
+
+body.world-poker-near-me :is(.pnm-location-sheet__gps, .pnm-location-sheet__primary, .pnm-location-sheet__manual) {
+    min-height: 48px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.055em;
+    font: 750 11px/1 var(--font-premium-body);
+}
+
+body.world-poker-near-me .pnm-location-sheet__gps {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border: 1px solid rgba(47, 168, 255, 0.58);
+    color: var(--pnm-white);
+    background: linear-gradient(180deg, rgba(47, 168, 255, 0.26), rgba(47, 168, 255, 0.11));
+    box-shadow: inset 0 -2px 0 rgba(47, 168, 255, 0.5), 0 0 18px rgba(47, 168, 255, 0.1);
+}
+
+body.world-poker-near-me .pnm-location-sheet__instructions {
+    padding: 14px;
+    border: 1px solid rgba(200, 164, 93, 0.24);
+    border-radius: 3px;
+    background: rgba(200, 164, 93, 0.035);
+}
+
+body.world-poker-near-me .pnm-location-sheet__instructions > span {
+    color: var(--pnm-gold);
+    font: 700 9px/1 var(--font-premium-body);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-location-sheet__instructions ol {
+    display: grid;
+    gap: 8px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: location-step;
+}
+
+body.world-poker-near-me .pnm-location-sheet__instructions li {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 9px;
+    align-items: start;
+    color: #b9c4cf;
+    font: 500 12px/1.45 var(--font-premium-body);
+    counter-increment: location-step;
+}
+
+body.world-poker-near-me .pnm-location-sheet__instructions li::before {
+    content: counter(location-step, decimal-leading-zero);
+    color: var(--pnm-gold);
+    font: 700 9px/18px var(--font-premium-body);
+    text-align: center;
+    border: 1px solid rgba(200, 164, 93, 0.3);
+    background: rgba(200, 164, 93, 0.07);
+}
+
+body.world-poker-near-me .pnm-location-sheet__divider {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 10px;
+    align-items: center;
+    color: #667584;
+    font: 700 9px/1 var(--font-premium-body);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-location-sheet__divider::before,
+body.world-poker-near-me .pnm-location-sheet__divider::after {
+    content: '';
+    height: 1px;
+    background: rgba(139, 160, 180, 0.18);
+}
+
+body.world-poker-near-me .pnm-location-sheet__manual {
+    border: 1px solid rgba(127, 145, 166, 0.28);
+    color: #b6c3ce;
+    background: rgba(127, 145, 166, 0.055);
+}
+
+body.world-poker-near-me .pnm-location-sheet__fields {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(110px, 0.8fr);
+    gap: 10px;
+}
+
+body.world-poker-near-me .pnm-location-sheet__fields label {
+    display: grid;
+    gap: 6px;
+}
+
+body.world-poker-near-me .pnm-location-sheet__fields label > span {
+    color: #7f90a0;
+    font: 700 9px/1 var(--font-premium-body);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-location-sheet__fields :is(input, select) {
+    width: 100%;
+    min-height: 46px;
+    box-sizing: border-box;
+    border-radius: 3px !important;
+}
+
+body.world-poker-near-me .pnm-location-sheet__primary {
+    border: 1px solid rgba(47, 168, 255, 0.58);
+    color: var(--pnm-white);
+    background: linear-gradient(180deg, rgba(47, 168, 255, 0.28), rgba(47, 168, 255, 0.12));
+}
+
+body.world-poker-near-me .pnm-location-sheet__primary:disabled,
+body.world-poker-near-me .pnm-location-sheet__gps:disabled {
+    cursor: wait;
+    opacity: 0.48;
+}
+
+body.world-poker-near-me .pnm-location-sheet__error {
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 91, 98, 0.34);
+    border-radius: 3px;
+    color: #ff9ca1;
+    background: rgba(255, 91, 98, 0.07);
+    font: 600 12px/1.4 var(--font-premium-body);
+}
+
 /* ─── Physical chrome frames: panel → inner stroke → content ─── */
 body.world-poker-near-me :is(
     .pnm-filter-bar, .pnm-top-filters, .ec-filter-bar, .day-selector,
@@ -617,7 +857,7 @@ body.world-poker-near-me .skeleton-pulse {
     .pnm-family-nav__label { display: none; }
 
     .pnm-family-nav__link {
-        min-height: 38px;
+        min-height: 44px;
         padding-inline: 13px;
         font-size: 9px;
     }
@@ -684,6 +924,26 @@ body.world-poker-near-me .skeleton-pulse {
         max-height: 82dvh !important;
     }
 
+    body.world-poker-near-me .pnm-location-sheet {
+        align-items: flex-end;
+        padding: 8px;
+    }
+
+    body.world-poker-near-me .pnm-location-sheet__frame {
+        width: 100%;
+        max-height: 88dvh;
+        border-radius: 4px 4px 2px 2px;
+    }
+
+    body.world-poker-near-me .pnm-location-sheet__header,
+    body.world-poker-near-me .pnm-location-sheet__body {
+        padding: 16px;
+    }
+
+    body.world-poker-near-me .pnm-location-sheet__fields {
+        grid-template-columns: minmax(0, 1fr) 108px;
+    }
+
     body.world-poker-near-me :is(.card-grid, .tours-grid, .hg-card-grid, .bravo-live-games-grid, .info-grid, .nearby-venues-grid, .venue-news-grid) {
         grid-template-columns: minmax(0, 1fr) !important;
     }
@@ -700,6 +960,293 @@ body.world-poker-near-me .skeleton-pulse {
         width: 100% !important;
         margin-top: 18px;
     }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 4 — DEEP ROUTE SIGNAL CHASSIS
+   Venue, home-game, host, state and city pages share one physical frame.
+   ═══════════════════════════════════════════════════════════════════════════ */
+body.world-poker-near-me .pnm-deep-deck {
+    position: relative;
+    width: min(100% - 32px, 1480px);
+    min-height: clamp(430px, 58vw, 650px);
+    margin: 18px auto 26px;
+    display: grid;
+    align-items: end;
+    overflow: hidden;
+    isolation: isolate;
+    border: 1px solid rgba(182, 201, 218, 0.34);
+    border-radius: 4px;
+    background: #05080c;
+    box-shadow: var(--pnm-frame-shadow), 0 0 0 1px #020304, 0 0 0 2px rgba(97, 118, 137, 0.16);
+}
+
+body.world-poker-near-me .pnm-deep-deck::before,
+body.world-poker-near-me .pnm-deep-deck::after {
+    content: '';
+    position: absolute;
+    z-index: 3;
+    pointer-events: none;
+}
+
+body.world-poker-near-me .pnm-deep-deck::before {
+    inset: 9px;
+    border: 1px solid rgba(203, 218, 230, 0.12);
+    clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 26px 100%, 0 calc(100% - 26px));
+}
+
+body.world-poker-near-me .pnm-deep-deck::after {
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--pnm-blue);
+    box-shadow: 0 0 22px rgba(47, 168, 255, 0.72);
+}
+
+body.world-poker-near-me .pnm-deep-deck__visual {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: #030507;
+}
+
+body.world-poker-near-me .pnm-deep-deck__visual::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(2, 4, 7, 0.96) 0%, rgba(2, 4, 7, 0.78) 38%, rgba(2, 4, 7, 0.28) 72%, rgba(2, 4, 7, 0.52) 100%),
+        linear-gradient(0deg, #030507 0%, rgba(3, 5, 7, 0.38) 55%, rgba(3, 5, 7, 0.46) 100%);
+}
+
+body.world-poker-near-me .pnm-deep-deck__visual img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    filter: saturate(0.82) contrast(1.08) brightness(0.76);
+}
+
+body.world-poker-near-me .pnm-deep-deck__scan {
+    position: absolute;
+    inset: 0;
+    opacity: 0.2;
+    background: repeating-linear-gradient(180deg, transparent 0 6px, rgba(115, 173, 214, 0.05) 7px);
+    mask-image: linear-gradient(90deg, black, transparent 72%);
+}
+
+body.world-poker-near-me .pnm-deep-deck__content {
+    width: min(780px, 72%);
+    padding: clamp(28px, 5vw, 72px);
+    box-sizing: border-box;
+}
+
+body.world-poker-near-me .pnm-deep-deck__breadcrumbs ol {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding: 0;
+    margin: 0 0 32px;
+    list-style: none;
+}
+
+body.world-poker-near-me .pnm-deep-deck__breadcrumbs li {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #718193;
+    font: 700 9px/1 var(--font-premium-body);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-deep-deck__breadcrumbs li:not(:last-child)::after { content: '/'; color: #43505d; }
+body.world-poker-near-me .pnm-deep-deck__breadcrumbs a { color: #8d9cac; text-decoration: none; }
+body.world-poker-near-me .pnm-deep-deck__breadcrumbs a:hover { color: var(--pnm-blue); }
+
+body.world-poker-near-me .pnm-deep-deck__eyebrow,
+body.world-poker-near-me .pnm-recent-rail > div:first-child p {
+    margin: 0 0 12px;
+    color: var(--pnm-blue);
+    font: 700 10px/1 var(--font-premium-body);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-deep-deck h1 {
+    max-width: 760px;
+    margin: 0;
+    color: var(--pnm-white);
+    font: 430 clamp(38px, 6vw, 84px)/0.96 var(--font-premium-display);
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+    text-wrap: balance;
+    text-shadow: 0 16px 34px rgba(0, 0, 0, 0.9);
+}
+
+body.world-poker-near-me .pnm-deep-deck__description {
+    max-width: 650px;
+    margin: 20px 0 0;
+    color: #a8b4c0;
+    font: 500 clamp(14px, 1.5vw, 18px)/1.6 var(--font-premium-body);
+}
+
+body.world-poker-near-me .pnm-deep-deck__status {
+    width: fit-content;
+    min-height: 34px;
+    margin-top: 22px;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 13px;
+    border: 1px solid rgba(82, 209, 139, 0.3);
+    border-radius: 2px;
+    color: #b8dcca;
+    background: rgba(5, 17, 15, 0.72);
+    font: 700 9px/1 var(--font-premium-body);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-deep-deck__status > span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pnm-success);
+    box-shadow: 0 0 10px rgba(82, 209, 139, 0.75);
+}
+
+body.world-poker-near-me .pnm-deep-deck__status[data-tone='modeled'] { color: #dec790; border-color: rgba(200, 164, 93, 0.36); }
+body.world-poker-near-me .pnm-deep-deck__status[data-tone='modeled'] > span { background: var(--pnm-gold); box-shadow: 0 0 10px rgba(200, 164, 93, 0.64); }
+body.world-poker-near-me .pnm-deep-deck__status[data-tone='offline'] { color: #d29ca0; border-color: rgba(255, 91, 98, 0.34); }
+body.world-poker-near-me .pnm-deep-deck__status[data-tone='offline'] > span { background: var(--pnm-danger); box-shadow: 0 0 10px rgba(255, 91, 98, 0.62); }
+
+body.world-poker-near-me .pnm-deep-deck__metrics {
+    margin: 26px 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    border-block: 1px solid rgba(154, 177, 197, 0.15);
+    background: rgba(3, 6, 10, 0.58);
+}
+
+body.world-poker-near-me .pnm-deep-deck__metrics > div { min-width: 0; padding: 14px 16px; border-right: 1px solid rgba(154, 177, 197, 0.13); }
+body.world-poker-near-me .pnm-deep-deck__metrics > div:last-child { border-right: 0; }
+body.world-poker-near-me .pnm-deep-deck__metrics dt { color: #718091; font: 700 8px/1.2 var(--font-premium-body); letter-spacing: 0.14em; text-transform: uppercase; }
+body.world-poker-near-me .pnm-deep-deck__metrics dd { margin: 7px 0 0; overflow: hidden; color: var(--pnm-white); font: 650 15px/1.1 var(--font-premium-body); text-overflow: ellipsis; white-space: nowrap; }
+
+body.world-poker-near-me .pnm-deep-deck__actions { margin-top: 22px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+body.world-poker-near-me .pnm-deep-deck__actions :is(a, button) {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 17px;
+    border: 1px solid rgba(122, 149, 172, 0.36);
+    border-radius: 3px;
+    color: var(--pnm-white);
+    background: rgba(8, 13, 19, 0.84);
+    text-decoration: none;
+    font: 700 10px/1 var(--font-premium-body);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-deep-deck__actions :is(a, button):hover,
+body.world-poker-near-me .pnm-deep-deck__actions :is(a, button):focus-visible {
+    border-color: var(--pnm-blue-line);
+    background: rgba(47, 168, 255, 0.1);
+    outline: none;
+}
+
+body.world-poker-near-me .pnm-deep-deck--compact { min-height: 390px; }
+body.world-poker-near-me .pnm-deep-deck__freshness { margin: 9px 0 0; color: #748292; font: 650 9px/1.3 var(--font-premium-body); letter-spacing: 0.09em; text-transform: uppercase; }
+body.world-poker-near-me .pnm-deep-deck--compact .pnm-deep-deck__content { padding-block: clamp(28px, 4vw, 52px); }
+
+body.world-poker-near-me .pnm-recent-rail {
+    width: min(100% - 32px, 1480px);
+    margin: 22px auto 30px;
+    padding: 18px;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+    border: 1px solid rgba(151, 174, 194, 0.18);
+    border-radius: 3px;
+    background: #080d13;
+}
+
+body.world-poker-near-me .pnm-recent-rail h2 { margin: 0; color: var(--pnm-white); font: 520 23px/1 var(--font-premium-display); text-transform: uppercase; }
+body.world-poker-near-me .pnm-recent-rail__track { min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; }
+body.world-poker-near-me .pnm-recent-rail__item { min-width: 180px; max-width: 250px; padding: 12px 14px; border: 1px solid rgba(151, 174, 194, 0.16); border-radius: 2px; color: var(--pnm-white); background: #0b1118; text-decoration: none; }
+body.world-poker-near-me .pnm-recent-rail__item:hover { border-color: var(--pnm-blue-line); }
+body.world-poker-near-me .pnm-recent-rail__item span { display: block; color: var(--pnm-blue); font: 700 8px/1 var(--font-premium-body); letter-spacing: 0.14em; text-transform: uppercase; }
+body.world-poker-near-me .pnm-recent-rail__item strong { display: block; margin-top: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+body.world-poker-near-me .pnm-recent-rail__item small { display: block; margin-top: 5px; overflow: hidden; color: var(--pnm-muted); text-overflow: ellipsis; white-space: nowrap; }
+
+/* Deep-route legacy structures inherit the chassis while handlers stay intact. */
+body.world-poker-near-me :is(.venue-header, .hgs-header, .hgd-panel, .pnm-location-listing__panel) {
+    border-color: rgba(148, 171, 191, 0.2) !important;
+    border-radius: 3px !important;
+    background-color: #0a1017 !important;
+    background-image: none !important;
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), 0 18px 50px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.world-poker-near-me .hgd-page { min-height: 100vh; padding-bottom: 82px; color: var(--pnm-white); background: var(--pnm-void); }
+body.world-poker-near-me .hgd-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; color: var(--pnm-muted); text-align: center; }
+body.world-poker-near-me .hgd-main { width: min(100% - 28px, 1120px); margin: 0 auto; padding: 22px 0 48px; }
+body.world-poker-near-me .hgd-tabs { display: flex; gap: 2px; margin: 18px 0; padding: 4px; overflow-x: auto; border: 1px solid var(--pnm-hairline); border-radius: 3px; background: #070c12; }
+body.world-poker-near-me .hgd-tab { min-width: 118px; min-height: 44px; flex: 1 0 auto; border: 1px solid transparent; border-radius: 2px; color: var(--pnm-muted); background: transparent; font: 700 10px/1 var(--font-premium-body); letter-spacing: 0.12em; text-transform: uppercase; }
+body.world-poker-near-me .hgd-tab[aria-selected='true'] { color: var(--pnm-white); border-color: var(--pnm-blue-line); background: var(--pnm-blue-soft); box-shadow: inset 0 -2px var(--pnm-blue); }
+body.world-poker-near-me .hgd-tab:focus-visible { outline: 2px solid var(--pnm-blue); outline-offset: 2px; }
+body.world-poker-near-me .hgd-page [style*='borderRadius'] { border-radius: 3px !important; }
+
+body.world-poker-near-me .pnm-location-listing { min-height: 100vh; background: var(--pnm-void); }
+body.world-poker-near-me .pnm-location-listing__main { width: min(100% - 32px, 1480px); margin: 0 auto; padding-bottom: 64px; }
+body.world-poker-near-me .pnm-location-listing__summary { margin: 0 0 18px; color: var(--pnm-muted); }
+body.world-poker-near-me .pnm-location-listing__main > section + section { margin-top: 34px; }
+body.world-poker-near-me .pnm-location-listing__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+body.world-poker-near-me .pnm-location-card { min-width: 0; overflow: hidden; border: 1px solid rgba(151, 174, 194, 0.2); border-radius: 3px; background: #090f16; }
+body.world-poker-near-me .pnm-location-card > a { display: block; color: inherit; text-decoration: none; }
+body.world-poker-near-me .pnm-location-card__media { position: relative; aspect-ratio: 16 / 8.5; overflow: hidden; background: #05080c; }
+body.world-poker-near-me .pnm-location-card__media img { width: 100%; height: 100%; object-fit: cover; filter: saturate(0.78) contrast(1.05); transition: transform 220ms ease; }
+body.world-poker-near-me .pnm-location-card:hover .pnm-location-card__media img { transform: scale(1.025); }
+body.world-poker-near-me .pnm-location-card__media::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(3, 5, 7, 0.94), transparent 70%); }
+body.world-poker-near-me .pnm-location-card__body { padding: 16px; }
+body.world-poker-near-me .pnm-location-card__body > span { color: var(--pnm-blue); font: 700 8px/1 var(--font-premium-body); letter-spacing: 0.13em; text-transform: uppercase; }
+body.world-poker-near-me .pnm-location-card h2 { margin: 8px 0 4px; color: var(--pnm-white); font: 520 24px/1.05 var(--font-premium-display); text-transform: uppercase; }
+body.world-poker-near-me .pnm-location-card p { margin: 0; color: var(--pnm-muted); font-size: 13px; }
+body.world-poker-near-me .pnm-location-card__facts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 13px; }
+body.world-poker-near-me .pnm-location-card__facts span { padding: 5px 7px; border: 1px solid var(--pnm-hairline); border-radius: 2px; color: #9eabba; font-size: 10px; }
+body.world-poker-near-me .pnm-location-listing__states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+body.world-poker-near-me .pnm-location-listing__state { min-height: 70px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; border: 1px solid var(--pnm-hairline); border-radius: 2px; color: var(--pnm-white); background: #090f16; text-decoration: none; }
+body.world-poker-near-me .pnm-location-listing__state:hover { border-color: var(--pnm-blue-line); }
+body.world-poker-near-me .pnm-location-listing__state small { color: var(--pnm-muted); }
+
+@media (max-width: 900px) {
+    body.world-poker-near-me .pnm-deep-deck { width: min(100% - 16px, 1480px); min-height: 560px; }
+    body.world-poker-near-me .pnm-deep-deck__visual::after { background: linear-gradient(0deg, #030507 0%, rgba(3, 5, 7, 0.76) 62%, rgba(3, 5, 7, 0.34) 100%); }
+    body.world-poker-near-me .pnm-deep-deck__visual img { object-position: 58% center; }
+    body.world-poker-near-me .pnm-deep-deck__content { width: 100%; padding: 24px 20px 28px; }
+    body.world-poker-near-me .pnm-deep-deck__breadcrumbs ol { margin-bottom: 22px; }
+    body.world-poker-near-me .pnm-deep-deck__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    body.world-poker-near-me .pnm-deep-deck__metrics > div:nth-child(2n) { border-right: 0; }
+    body.world-poker-near-me .pnm-deep-deck__metrics > div:nth-child(n + 3) { border-top: 1px solid rgba(154, 177, 197, 0.13); }
+    body.world-poker-near-me .pnm-recent-rail { width: min(100% - 16px, 1480px); grid-template-columns: 1fr; }
+    body.world-poker-near-me .pnm-location-listing__main { width: min(100% - 16px, 1480px); }
+    body.world-poker-near-me .pnm-location-listing__grid { grid-template-columns: minmax(0, 1fr); }
+    body.world-poker-near-me .pnm-location-listing__states { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+    body.world-poker-near-me .pnm-deep-deck { min-height: 600px; }
+    body.world-poker-near-me .pnm-deep-deck h1 { font-size: clamp(36px, 12vw, 54px); }
+    body.world-poker-near-me .pnm-deep-deck__description { font-size: 14px; }
+    body.world-poker-near-me .pnm-deep-deck__actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+    body.world-poker-near-me .pnm-deep-deck__actions :is(a, button) { width: 100%; }
+    body.world-poker-near-me .pnm-location-listing__states { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {

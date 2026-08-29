@@ -17,7 +17,7 @@ const SB_STRATS = [
   {
     title: 'SB 3-Bet vs BTN',
     color: '#ef4444',
-    desc: 'When the BTN opens, SB should 3-bet a polarized range: premiums + some bluffs. Flatting from SB is awkward — you\'re OOP with BB still to act.',
+    desc: 'When Action Folds To The Button, Who Raises, The Small Blind Can 3-Bet A Polarized Range Of Premiums And Selected Bluffs. Calling Is Awkward Because The Big Blind Still Has Action.',
     range: '~10-12%',
     sizing: '3.5-4x open',
     hands: 'AA-TT, AKs-ATs, AKo-AJo, KQs, plus A5s-A2s as bluffs',
@@ -36,7 +36,7 @@ const BB_STRATS = [
   {
     title: 'BB Defense vs SB',
     color: '#10b981',
-    desc: 'BB gets the best price and closes the action. Defend very wide vs SB opens — you\'re getting great odds and SB range is wide.',
+    desc: 'When Action Folds To The Small Blind, Who Raises, The Big Blind Gets The Best Price And Closes The Action. That Supports A Wider Defense Against The Small Blind\'s First-In Range.',
     range: '~65-70% of hands',
     sizing: 'Call or 3-bet',
     hands: 'All pairs, all suited hands, most broadways, suited connectors, suited gappers',

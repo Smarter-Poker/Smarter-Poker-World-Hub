@@ -4,7 +4,7 @@
  * Test understanding of positional advantages, opening ranges by position,
  * and how position affects strategy decisions.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 
 const QUESTIONS = [
   {
@@ -14,34 +14,34 @@ const QUESTIONS = [
     explanation: 'The Button (BTN) has the highest win rate because it acts last postflop on every street. This informational advantage allows wider opening, better bluffing, and more accurate value betting.',
   },
   {
-    q: 'What is the approximate open-raise range for UTG in a 6-max game?',
-    options: ['~8% (very tight)', '~15% (tight)', '~25% (medium)', '~40% (wide)'],
+    q: 'In A 100 BB, 6-Max Cash Game Without Antes, Action Folds To Under The Gun. Which Approximate First-In Raise Frequency Matches This Lesson\'s Baseline?',
+    options: ['Approximately 8%', 'Approximately 15%', 'Approximately 25%', 'Approximately 40%'],
     correct: 1,
-    explanation: 'UTG opens approximately 15% in 6-max — tight because 5 players can wake up with a hand behind you. This includes big pairs, big broadway, suited aces, and some suited connectors.',
+    explanation: 'Under The Gun has five players left to act, so this lesson uses a tight first-in baseline of approximately 15%, including premium pairs, strong broadways, suited aces, and selected suited connectors.',
   },
   {
-    q: 'In a 3-bet pot where CO 3-bets and BTN calls, who has the range advantage on A-high flops?',
-    options: ['CO (3-bettor)', 'BTN (caller)', 'Equal', 'Depends on suits'],
+    q: 'At 100 BB, Action Folds To The Cutoff, Who Raises To 2.5 BB. The Button 3-Bets And The Cutoff Calls. Who Usually Holds The Range Advantage On A-High Flops?',
+    options: ['The Cutoff, Who Called The 3-Bet', 'The Button, Who 3-Bet', 'Neither; The Ranges Are Equally Strong', 'It Depends Only On The Suit Of The Ace'],
+    correct: 1,
+    explanation: 'The Button’s 3-betting range retains more AA, AK, and AQ combinations, while the Cutoff’s call caps some of its strongest hands.',
+  },
+  {
+    q: 'At 100 BB, Action Folds To The Button, Who Raises To 2.5 BB. Which Simplified Small-Blind Response Strategy Does This Lesson Use With The Big Blind Still To Act?',
+    options: ['Use A 3-Bet-Or-Fold Baseline', 'Use A Call-Or-3-Bet Baseline Without Folds', 'Call Every Hand That Continues', 'Fold The Entire Range'],
     correct: 0,
-    explanation: 'The 3-bettor (CO) has a significant range advantage on A-high boards because their range contains more AA, AK, AQs combos. The BTN caller often has capped Ax hands.',
+    explanation: 'This simplified lesson uses a 3-bet-or-fold Small Blind baseline to avoid calling out of position with the Big Blind still to act. Some solved formats can include calls, so the exact configuration still matters.',
   },
   {
-    q: 'From which position should you NEVER flat-call a raise in GTO poker?',
-    options: ['UTG', 'CO', 'SB', 'BB'],
-    correct: 2,
-    explanation: 'The SB should almost never flat-call — only 3-bet or fold. Flatting from SB leaves you OOP for the entire hand with the BB still to act behind. 3-betting gives fold equity and initiative.',
-  },
-  {
-    q: 'What is the approximate opening range for BTN in 6-max?',
+    q: 'In A 100 BB, 6-Max Cash Game Without Antes, Action Folds To The Button. Which Approximate First-In Raise Frequency Matches This Lesson\'s Baseline?',
     options: ['~25%', '~35%', '~45%', '~55%'],
     correct: 2,
-    explanation: 'BTN opens approximately 45% of hands — very wide because only the blinds remain. This includes most broadway, suited cards, many offsuit broadways, and small pairs. Position postflop compensates for hand quality.',
+    explanation: 'Only the blinds remain and the Button acts last after the flop, so this lesson uses a wide first-in baseline of approximately 45%.',
   },
   {
-    q: 'When should BB defend the widest against a raise?',
-    options: ['vs UTG open', 'vs MP open', 'vs CO open', 'vs BTN open'],
+    q: 'At 100 BB, Against Which First-In Raiser Does This Lesson Give The Big Blind Its Widest Defending Range?',
+    options: ['Under The Gun', 'Middle Position', 'Cutoff', 'Button'],
     correct: 3,
-    explanation: 'BB should defend widest vs BTN opens because: (1) BTN opens widest so their range is weakest, (2) you close the action, (3) you already have 1bb invested, and (4) you get a positional discount.',
+    explanation: 'When action folds to the Button, who raises, that first-in range is the widest of these choices. The Big Blind also closes the action and has already invested one blind, supporting its widest defense.',
   },
   {
     q: 'Which concept is MOST important in early position play?',
@@ -50,32 +50,32 @@ const QUESTIONS = [
     explanation: 'Range tightness is paramount in early position. With many players behind, you need hands strong enough to withstand 3-bets and play well out of position. Implied odds are secondary.',
   },
   {
-    q: 'In a HU pot (BTN vs BB), who has the nut advantage on 7♠5♣2♦?',
-    options: ['BTN (always)', 'BB', 'Equal', 'Depends on preflop action'],
+    q: 'At 100 BB, Action Folds To The Button, Who Raises, And The Big Blind Calls. On 7♠5♣2♦, Which Range Contains More 75s And 52s Two-Pair Combinations?',
+    options: ['The Button\'s Raising Range', 'The Big Blind\'s Calling Range', 'Both Ranges Contain The Same Number', 'Neither Range Can Contain Those Hands'],
     correct: 1,
-    explanation: 'BB has the nut advantage on low connected boards like 752. BB defends with many low suited connectors and pairs (75s, 52s, 77, 55, 22) that BTN raises less frequently.',
+    explanation: 'The Big Blind calls more low suited combinations such as 75s and 52s, so its range contains more two-pair combinations on this low board.',
   },
   {
-    q: 'What is the "positional discount" in poker?',
+    q: 'What Does The "Blind Discount" Mean When The Big Blind Faces A Preflop Raise?',
     options: [
-      'Playing fewer hands from early position',
-      'The extra value gained from acting last',
-      'BB getting better odds to call due to posted blind',
-      'Discounting opponent range based on position',
+      'Early Position Must Enter With Fewer Hands',
+      'Acting Last Adds Chips To The Pot',
+      'The Posted Big Blind Reduces The Additional Chips Needed To Call',
+      'The Raiser Must Use A Smaller Bet Size',
     ],
     correct: 2,
-    explanation: 'The positional discount refers to the BB getting better pot odds to call raises because they already have 1bb invested. This discount allows BB to defend wider than other positions.',
+    explanation: 'The Big Blind has already posted one blind, so the additional amount required to call is smaller than it would be from an uninvested seat.',
   },
   {
-    q: 'How does being IP (in position) affect your bluffing frequency?',
+    q: 'In A Heads-Up Postflop Pot, Which Information Advantage Can Make In-Position Bluffs More Efficient?',
     options: [
-      'You should bluff less IP',
-      'You should bluff more IP',
-      'Position does not affect bluffing',
-      'You should only bluff OOP',
+      'You See The Opponent\'s Action Before Choosing Your Own',
+      'Position Requires A Lower Bluffing Frequency On Every Board',
+      'Position Automatically Increases The Cards\' Showdown Equity',
+      'Position Changes Preflop Decisions But Not Postflop Decisions',
     ],
-    correct: 1,
-    explanation: 'Being IP allows you to bluff more because you get to see your opponent act first. You can bluff when they show weakness (checking) and give up when they show strength. This information advantage makes bluffs more efficient.',
+    correct: 0,
+    explanation: 'Acting last reveals whether the opponent checks or bets before you choose a bluff, value bet, call, raise, or check-back.',
   },
 ];
 
@@ -83,7 +83,6 @@ function PositionAwarenessQuiz() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selected, setSelected] = useState(null);
   const [stats, setStats] = useState({ correct: 0, total: 0 });
-  const [showAll, setShowAll] = useState(false);
 
   const question = QUESTIONS[currentIdx];
   const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
@@ -137,7 +136,7 @@ function PositionAwarenessQuiz() {
             }
 
             return (
-              <button key={i} onClick={() => handleSelect(i)} style={{
+              <button key={i} onClick={() => handleSelect(i)} disabled={selected !== null} aria-pressed={isSelected} style={{
                 padding: '12px 16px', borderRadius: 8, border, background: bg,
                 cursor: selected === null ? 'pointer' : 'default', textAlign: 'left',
                 fontSize: 13, fontWeight: 600, color,
@@ -152,15 +151,18 @@ function PositionAwarenessQuiz() {
 
         {/* Explanation */}
         {selected !== null && (
-          <div>
-            <div style={{ padding: 12, background: 'rgba(129,140,248,0.06)', borderRadius: 8, border: '1px solid rgba(129,140,248,0.12)', marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#818cf8', marginBottom: 4 }}>Explanation</div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{question.explanation}</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <button onClick={nextQuestion} style={{ padding: '10px 28px', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', background: '#818cf8', color: '#fff' }}>Next Question →</button>
-            </div>
-          </div>
+          <section
+            className={`sp-command-verdict ${selected === question.correct ? 'is-correct' : 'is-incorrect'}`}
+            aria-live="assertive"
+            aria-atomic="true"
+          >
+            <strong>{selected === question.correct ? 'Correct' : 'Incorrect'}</strong>
+            <div><span>Your Answer</span><b>{question.options[selected]}</b></div>
+            <div><span>Correct Answer</span><b>{question.options[question.correct]}</b></div>
+            <p>{question.explanation}</p>
+            <em>This Result Will Stay Open Until You Click Next.</em>
+            <button onClick={nextQuestion}>Next Question →</button>
+          </section>
         )}
       </div>
     );

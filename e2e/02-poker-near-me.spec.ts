@@ -33,7 +33,9 @@ test.describe('2. Poker Near Me Flow', () => {
     const podHotspots = page.locator('[data-tutorial-id^="pod-"]');
     await expect(podHotspots.first()).toBeAttached({ timeout: 20000 });
     expect(await podHotspots.count(), 'no Poker Near Me feature pods rendered').toBeGreaterThan(0);
-    await expect(page.getByRole('button', { name: 'Open Poker Near Me' })).toBeAttached({ timeout: 20000 });
+    // Route destinations are links so they keep open-in-new-tab, copy-link, and
+    // crawler behavior while the primary click still opens the in-app panel.
+    await expect(page.getByRole('link', { name: 'Open Poker Near Me' })).toBeAttached({ timeout: 20000 });
 
     // 5. No error shell and no client-side crash
     await expect(page.getByText('Application Error', { exact: true })).toHaveCount(0);

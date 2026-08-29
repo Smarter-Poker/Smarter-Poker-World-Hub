@@ -239,7 +239,7 @@ function computeAdaptation(profileId) {
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const SCENARIOS = [
-  { id: 1, spot: 'UTG opens 2.5x, Hero in BTN', action: 'Pre-flop Decision', board: null },
+  { id: 1, spot: 'Action Folds To Under The Gun, Who Raises To 2.5 BB; Hero Is On The Button', action: 'Preflop Decision', board: null },
   { id: 2, spot: 'Hero opens BTN, Villain 3-bets from BB', action: 'Facing 3-Bet', board: null },
   { id: 3, spot: 'Hero c-bets 65% on A♠ 7♥ 2♦', action: 'C-bet Response', board: 'A♠ 7♥ 2♦' },
   {

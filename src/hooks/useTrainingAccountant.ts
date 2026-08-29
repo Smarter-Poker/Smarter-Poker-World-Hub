@@ -17,6 +17,7 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { getLaw } from '../data/POKER_LAWS';
+import { leakTypeSlug } from '../lib/personal-assistant/leakRecord';
 
 interface XPLogEntry {
     user_id: string;
@@ -43,6 +44,14 @@ interface LeakEntry {
     total_samples: number;
     mistake_count: number;
     clinic_id?: string;
+    leak_type: string;
+    situation_class: string;
+    status: 'emerging';
+    source_system: 'training_accountant';
+    occurrence_count: number;
+    current_frequency: number;
+    first_detected_at: string;
+    last_detected_at: string;
 }
 
 export function useTrainingAccountant(userId: string | null) {
@@ -146,6 +155,7 @@ export function useTrainingAccountant(userId: string | null) {
             const law = getLaw(lawId);
             const leakCategory = lawId; // Use lawId as category
             const leakName = law?.name || lawId;
+            const leakType = `training_${leakTypeSlug(lawId)}`;
 
             // Check if this leak already exists for this user
             const { data: existingLeak, error: fetchError } = await supabase
@@ -154,6 +164,8 @@ export function useTrainingAccountant(userId: string | null) {
                 .eq('user_id', userId)
                 .eq('leak_category', leakCategory)
                 .eq('is_active', true)
+                .order('updated_at', { ascending: false })
+                .limit(1)
                 .maybeSingle();
 
             if (fetchError && fetchError.code !== 'PGRST116') {
@@ -168,17 +180,26 @@ export function useTrainingAccountant(userId: string | null) {
                 const newTotalSamples = existingLeak.total_samples + 1;
                 const newErrorRate = newMistakeCount / newTotalSamples;
                 const newConfidence = Math.min(0.99, existingLeak.confidence + 0.05);
+                const detectedAt = new Date().toISOString();
 
                 const { error: updateError } = await supabase
                     .from('user_leaks')
                     .update({
+                        leak_type: existingLeak.leak_type || leakType,
+                        situation_class: existingLeak.situation_class || leakName,
+                        status: existingLeak.status || 'emerging',
+                        source_system: existingLeak.source_system || 'training_accountant',
                         mistake_count: newMistakeCount,
                         total_samples: newTotalSamples,
                         error_rate: newErrorRate,
                         confidence: newConfidence,
-                        updated_at: new Date().toISOString()
+                        occurrence_count: newMistakeCount,
+                        current_frequency: +(newErrorRate * 100).toFixed(2),
+                        last_detected_at: detectedAt,
+                        updated_at: detectedAt
                     })
-                    .eq('id', existingLeak.id);
+                    .eq('id', existingLeak.id)
+                    .eq('user_id', userId);
 
                 if (updateError) {
                     console.warn('[ACCOUNTANT] Leak update error:', updateError);
@@ -196,6 +217,7 @@ export function useTrainingAccountant(userId: string | null) {
 
             } else {
                 // Insert new leak
+                const detectedAt = new Date().toISOString();
                 const entry: LeakEntry = {
                     user_id: userId,
                     leak_category: leakCategory,
@@ -204,7 +226,15 @@ export function useTrainingAccountant(userId: string | null) {
                     confidence: 0.25, // Start with low confidence
                     total_samples: 1,
                     mistake_count: 1,
-                    clinic_id: clinicId
+                    clinic_id: clinicId,
+                    leak_type: leakType,
+                    situation_class: leakName,
+                    status: 'emerging',
+                    source_system: 'training_accountant',
+                    occurrence_count: 1,
+                    current_frequency: 100,
+                    first_detected_at: detectedAt,
+                    last_detected_at: detectedAt,
                 };
 
                 const { data, error: insertError } = await supabase

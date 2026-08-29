@@ -34,7 +34,8 @@ fi
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 REPO_OWNER="Smarter-Poker"
-REPO_NAME="$(basename "$REPO_ROOT")"
+REMOTE_URL="$(git remote get-url origin)"
+REPO_NAME="$(basename "${REMOTE_URL%.git}")"
 BRANCH="agent/${USER:-cowork}-$(date +%s)"
 WT_PARENT="$(mktemp -d -t agent-push-XXXXXX)"
 WT="$WT_PARENT/wt"

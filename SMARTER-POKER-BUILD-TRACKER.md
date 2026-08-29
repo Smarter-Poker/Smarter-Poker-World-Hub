@@ -1321,3 +1321,19 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 - Vercel bypass secret: generate in Vercel dashboard → add GitHub secret `VERCEL_AUTOMATION_BYPASS_SECRET`. See `.agent/handoffs/2026-05-13-vercel-automation-bypass-secret.md`.
 - P50 workers SSH deploy: `bash scripts/deploy-workers.sh --dry-run` then `bash scripts/deploy-workers.sh`. See `.agent/handoffs/2026-05-13-deploy-workers-p50.md`.
 - P51 brain modularization: `HorsePokerBrain.js` → 13 modules. See `.agent/handoffs/2026-05-12-brain-modularization-p51.md`.
+
+---
+
+## PHASE 58 — Training Catalog #SmarterCasinoRealism Systematic Pass (2026-08-29)
+
+| Deliverable | Detail |
+|---|---|
+| 107 bespoke game renders | Every canonical training game now owns a unique optimized WebP render; zero duplicated image hashes and no category-art reuse. |
+| Shared game-card rebuild | Category cards now use straight gunmetal frames, rendered scenes, physical depth, sector instrumentation, campaign progress, and explicit arena entry states. |
+| Category command decks | All five category pages now use image-led responsive casino-command compositions on desktop and mobile. |
+| Secondary-page propagation | Each game's render follows it into setup and campaign/level-selection surfaces. |
+| Club Arena gameplay contract | The live arena is explicitly excluded from route-art decoration and retains the Club Arena skin, cards, avatars, hero placement, and manual Next verdict flow. |
+| Permanent regression gate | Build fails on missing or duplicate catalog art, artwork-contract bypass, or loss of the Club Arena table assets. |
+| Systematic browser audit | 107 of 107 game cards clicked one by one; 107 unique artwork URLs; 0px mobile overflow; sharp card geometry verified. |
+
+**Verification:** 439 prebuild checks passed, Training question integrity passed, the new casino-realism catalog suite passed, and the optimized Next.js build completed successfully. Full evidence: `.agent/audits/2026-08-29-training-casino-realism-catalog.md`.

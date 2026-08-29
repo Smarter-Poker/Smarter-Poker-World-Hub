@@ -24,6 +24,8 @@ test('discovery status rail distinguishes live, modeled, and offline data', () =
   const page = read('pages/hub/poker-near-me/[pnmTab].js');
   assert.match(page, /<DiscoveryStatusRail/);
   assert.match(page, /liveDataAgeMinutes=\{liveDataAgeMinutes\}/);
+  assert.match(page, /liveDataMode == null \|\| liveDataMode === 'none'/);
+  assert.doesNotMatch(page, /liveDataMode === 'none'\s*\? '0'/);
 });
 
 test('location recovery dialog is keyboard-addressable and casino themed', () => {

@@ -126,6 +126,15 @@ const TRAINING_ROUTES_WITH_HEADER = new Set([
   '/hub/training/tournament/[id]',
   '/hub/training/tournaments',
 ]);
+const TRAINING_STANDALONE_ART_IDS = new Set([
+  'tournament-prep',
+  'final-table-sim',
+  'quiz-gauntlet',
+  'hand-lab',
+  'bluff-catcher',
+  'mixed-strategy-lab',
+  'study-group',
+]);
 // GlobalReportBugButton removed — bug reporting is inside every HamburgerMenu via ReportBugWidget
 // ═══════════════════════════════════════════════════════════════════════════
 // CACHE BUSTER — Clears stale caches on new deploys
@@ -693,6 +702,16 @@ export default function App({ Component, pageProps }) {
   // Determine if this route requires global capitalization per User specification
   const path = router.asPath.split('?')[0];
   const isTrainingRoute = path === '/hub/training' || path.startsWith('/hub/training/');
+  const trainingPathLeaf = path.split('/').filter(Boolean).at(-1);
+  const candidateTrainingArtId = typeof router.query.gameId === 'string'
+    ? router.query.gameId
+    : TRAINING_STANDALONE_ART_IDS.has(trainingPathLeaf) ? trainingPathLeaf : null;
+  const trainingArtId = candidateTrainingArtId && /^[a-z0-9-]{3,40}$/.test(candidateTrainingArtId)
+    ? candidateTrainingArtId
+    : null;
+  const trainingRouteArt = trainingArtId
+    ? `/images/training/casino-realism/${trainingArtId}.webp`
+    : null;
 
   // Several legacy training pages already own the unchanged global header.
   // All other training routes receive the same component here so the complete
@@ -804,7 +823,12 @@ export default function App({ Component, pageProps }) {
                             <WorldThemeProvider>
                               <PageErrorBoundary key={router.asPath}>
                                 {isTrainingRoute ? (
-                                  <div className="sp-training-route-shell" data-training-route={router.pathname}>
+                                  <div
+                                    className="sp-training-route-shell"
+                                    data-training-route={router.pathname}
+                                    data-training-art={trainingRouteArt ? trainingArtId : undefined}
+                                    style={trainingRouteArt ? { '--sp-training-route-art': `url("${trainingRouteArt}")` } : undefined}
+                                  >
                                     {!trainingPageOwnsHeader && <UniversalHeader pageDepth={2} />}
                                     <div className="sp-training-page-stage">
                                       <Component {...pageProps} />

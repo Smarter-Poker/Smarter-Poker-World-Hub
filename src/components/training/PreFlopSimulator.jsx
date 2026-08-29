@@ -9,7 +9,7 @@ import React, { useState, useMemo } from 'react';
 const ACTION_TREES = [
   {
     id: 1, name: 'Single Raised Pot',
-    sequence: ['UTG opens 2.5x', 'Folds to BB', 'BB defends'],
+    sequence: ['Action Folds To Under The Gun, Who Raises To 2.5 BB', 'Action Folds To The Big Blind', 'The Big Blind Responds'],
     positions: { opener: 'UTG', defender: 'BB' },
     openerRange: '~15% (AA-77, AKs-ATs, KQs-KTs, AKo-AJo, suited connectors)',
     defenderOptions: [
@@ -21,7 +21,7 @@ const ACTION_TREES = [
   },
   {
     id: 2, name: '3-Bet Pot',
-    sequence: ['CO opens 2.5x', 'BTN 3-bets to 8x', 'CO decides'],
+    sequence: ['Action Folds To The Cutoff, Who Raises To 2.5 BB', 'The Button 3-Bets To 8 BB', 'The Cutoff Responds'],
     positions: { opener: 'CO', defender: 'BTN' },
     openerRange: '~27% opening range from CO',
     defenderOptions: [
@@ -33,7 +33,7 @@ const ACTION_TREES = [
   },
   {
     id: 3, name: '4-Bet Pot',
-    sequence: ['BTN opens 2.5x', 'SB 3-bets to 10x', 'BTN 4-bets to 22x', 'SB decides'],
+    sequence: ['Action Folds To The Button, Who Raises To 2.5 BB', 'The Small Blind 3-Bets To 10 BB', 'The Button 4-Bets To 22 BB', 'The Small Blind Responds'],
     positions: { opener: 'BTN', defender: 'SB' },
     openerRange: 'BTN 4-bet range: ~6% (AA, KK, QQ, AKs, AKo, A5s, 76s)',
     defenderOptions: [
@@ -45,7 +45,7 @@ const ACTION_TREES = [
   },
   {
     id: 4, name: 'Multiway Pot',
-    sequence: ['MP opens 2.5x', 'CO calls', 'BTN calls', 'BB squeezes to 12x'],
+    sequence: ['Action Folds To Middle Position, Who Raises To 2.5 BB', 'The Cutoff Calls', 'The Button Calls', 'The Big Blind Squeezes To 12 BB'],
     positions: { opener: 'MP', defender: 'BB' },
     openerRange: 'Multiway pot — all callers have capped ranges',
     defenderOptions: [

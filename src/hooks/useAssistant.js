@@ -197,9 +197,10 @@ export function useLeaks(statusFilter = null, authState) {
 
 /** Map an API leak row onto the shape the Leak Finder UI renders. */
 function formatLeak(leak) {
+  const leakType = leak.leak_type || null;
   return {
     id: leak.id,
-    title: formatLeakTitle(leak.leak_type),
+    title: leak.situation_class || leak.leak_name || formatLeakTitle(leakType),
     status: leak.status,
     confidence: leak.confidence,
     situationClass: leak.situation_class,
@@ -217,7 +218,7 @@ function formatLeak(leak) {
     // a SECOND time (useLeakExtras) purely to recover these, doubling the
     // request and the parse on the page's hottest path. Every field is optional
     // and defaults to null, so a missing DB column degrades gracefully.
-    leakType: leak.leak_type || null,
+    leakType,
     leakCategory: leak.leak_category || null,
     recommendedDrill: leak.recommended_drill || null,
     suggestedFix: leak.suggested_fix || null,
@@ -544,25 +545,6 @@ export function useRecentSessions(limit = 10, authState) {
       }
       setIsDemo(false);
 
-      const SELECT_WITH_RESULTS = `
-          id,
-          hero_hand,
-          hero_position,
-          hero_stack_bb,
-          game_type,
-          board_flop,
-          board_turn,
-          board_river,
-          villain_config,
-          action_history,
-          pot_size_bb,
-          created_at,
-          sandbox_results (
-            primary_action,
-            primary_frequency,
-            full_analysis
-          )
-        `;
       const SELECT_BASE = `
           id,
           hero_hand,
@@ -578,23 +560,33 @@ export function useRecentSessions(limit = 10, authState) {
           created_at
         `;
 
-      let { data, error: queryError } = await supabase
+      const { data, error: queryError } = await supabase
         .from('sandbox_sessions')
-        .select(SELECT_WITH_RESULTS)
+        .select(SELECT_BASE)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      // Defensive: sandbox_results may not exist in every environment
-      if (queryError) {
-        const retry = await supabase
-          .from('sandbox_sessions')
-          .select(SELECT_BASE)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(limit);
-        data = retry.data;
-        queryError = retry.error;
+      // Production intentionally has no PostgREST relationship from results to
+      // sessions. The old nested select failed on every request and retried
+      // without results, so Recent Sessions never displayed action or EV data.
+      // Resolve the owned session ids first, then hydrate their result rows.
+      const resultsBySession = new Map();
+      const sessionIds = (data || []).map(session => session.id).filter(Boolean);
+      if (!queryError && sessionIds.length > 0) {
+        const { data: resultRows, error: resultsError } = await supabase
+          .from('sandbox_results')
+          .select('session_id, primary_action, primary_frequency, ev_loss_bb, full_analysis, created_at')
+          .in('session_id', sessionIds)
+          .order('created_at', { ascending: false });
+        if (resultsError) {
+          console.warn('[useRecentSessions] Results hydration failed:', resultsError.message);
+        } else {
+          (resultRows || []).forEach(result => {
+            const key = String(result.session_id);
+            if (!resultsBySession.has(key)) resultsBySession.set(key, result);
+          });
+        }
       }
 
       if (requestId !== requestIdRef.current) return;
@@ -603,7 +595,9 @@ export function useRecentSessions(limit = 10, authState) {
         setError(queryError.message || 'Recent sessions could not be loaded');
         setSessions([]);
       } else {
-        const formatted = (data || []).map(s => ({
+        const formatted = (data || []).map(s => {
+          const result = resultsBySession.get(String(s.id)) || null;
+          return ({
           id: s.id,
           title: `${s.hero_position || 'Unknown'} with ${s.hero_hand || '??'}`,
           stack: `${s.hero_stack_bb}BB`,
@@ -613,10 +607,10 @@ export function useRecentSessions(limit = 10, authState) {
           game_type: s.game_type,
           // Real EV loss when the analysis recorded one, otherwise null so the
           // UI can render an em dash instead of a fabricated 0.00 BB.
-          evLoss: extractEvLoss(s.sandbox_results?.[0]),
+          evLoss: extractEvLoss(result),
           type: 'sandbox',
           date: s.created_at,
-          result: s.sandbox_results?.[0]?.primary_action,
+          result: result?.primary_action,
           // Full restoration fields
           board_flop: s.board_flop,
           board_turn: s.board_turn,
@@ -624,7 +618,8 @@ export function useRecentSessions(limit = 10, authState) {
           villain_config: s.villain_config,
           action_history: s.action_history,
           pot_size_bb: s.pot_size_bb,
-        }));
+          });
+        });
         setSessions(formatted);
         setError(null);
       }

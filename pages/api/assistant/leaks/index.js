@@ -14,6 +14,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { availabilityFailure, persistedResult } from '../../../../src/lib/personal-assistant/persistenceContract';
+import { normalizeUserLeakRow, toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
 
 let _supabase = null;
 function getSupabase() {
@@ -100,7 +101,7 @@ export default async function handler(req, res) {
             console.warn('user_leaks query failed:', error.message);
             failedSources.push('user_leaks');
           }
-          legacyLeaks = data || [];
+          legacyLeaks = (data || []).map(normalizeUserLeakRow);
         }
 
         // Also fetch from new user_training_leaks table (Memory Matrix)
@@ -126,7 +127,7 @@ export default async function handler(req, res) {
             failedSources.push('user_training_leaks');
           }
           // Transform to match expected format
-          trainingLeaks = (data || []).map(leak => ({
+          trainingLeaks = (data || []).map(leak => normalizeUserLeakRow({
             id: leak.id,
             user_id: leak.user_id,
             leak_type: leak.leak_type,
@@ -213,11 +214,12 @@ export default async function handler(req, res) {
         if (body[field] !== undefined) leak[field] = body[field];
       });
       leak.last_detected_at = new Date().toISOString();
+      const persistenceRow = toUserLeakPersistenceRow(leak, { userId });
 
       try {
         let { data, error } = await getSupabase()
           .from('user_leaks')
-          .upsert(leak, { onConflict: 'user_id,leak_type' })
+          .upsert(persistenceRow, { onConflict: 'user_id,leak_type' })
           .select()
           .maybeSingle();
 
@@ -234,7 +236,7 @@ export default async function handler(req, res) {
           if (existing) {
             ({ data, error } = await getSupabase()
               .from('user_leaks')
-              .update({ ...leak, updated_at: new Date().toISOString() })
+              .update({ ...persistenceRow, updated_at: new Date().toISOString() })
               .eq('id', existing.id)
               .eq('user_id', userId)
               .select()
@@ -242,7 +244,7 @@ export default async function handler(req, res) {
           } else {
             ({ data, error } = await getSupabase()
               .from('user_leaks')
-              .insert(leak)
+              .insert(persistenceRow)
               .select()
               .maybeSingle());
           }
@@ -250,7 +252,8 @@ export default async function handler(req, res) {
           if (error) throw error;
         }
 
-        return res.status(200).json(persistedResult(data, { leak: data }));
+        const normalized = normalizeUserLeakRow(data);
+        return res.status(200).json(persistedResult(normalized, { leak: normalized }));
 
       } catch (error) {
         console.warn('Save leak error:', error);

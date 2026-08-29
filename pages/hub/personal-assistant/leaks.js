@@ -595,7 +595,7 @@ function ConfidenceBadge({ confidence }) {
 }
 
 function SourceBadge({ source }) {
-  const isTraining = source === 'training_arena';
+  const isTraining = source === 'training_arena' || source === 'training_accountant';
   const isSolver = source === 'solver_engine' || source === 'training_solver';
   return (
     <span style={pill(isTraining || isSolver ? 'accent' : 'purple')}>
@@ -830,6 +830,76 @@ function BleedSummary({ leaks, isDemo }) {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+// A scan receipt is deliberately separate from the success toast. It gives the
+// player durable proof of what the engine imported and what the shared solver
+// could actually verify without turning unpriced spots into invented EV.
+function AuditReceipt({ result }) {
+  if (!result) return null;
+  const sync = result.clubArenaSync || {};
+  const coverage = result.evidenceCoverage || {};
+  const sources = result.evidenceSources || {};
+  const audited = num(coverage.auditedThisRun);
+  const verified = num(coverage.verifiedThisRun);
+  const verificationLabel = audited > 0
+    ? `${verified} / ${audited}`
+    : `${num(coverage.verifiedDecisions).toLocaleString()} Total`;
+  const cells = [
+    ['Club Hands Found', num(sync.handsFound).toLocaleString()],
+    ['Eligible Hands', num(sync.handsEligible).toLocaleString()],
+    ['Audited This Run', num(sync.handsAudited).toLocaleString()],
+    ['Already Current', num(sync.handsAlreadyCurrent).toLocaleString()],
+    ['Retried For Coverage', num(sync.handsQueuedForRetry).toLocaleString()],
+    ['Verified Decisions', verificationLabel],
+    ['Unpriced Decisions', num(coverage.unpricedThisRun).toLocaleString()],
+    ['Leaks Found', num(result.leaksDetected).toLocaleString()],
+  ];
+
+  return (
+    <section className={toolStyles.auditReceipt} aria-labelledby="audit-receipt-title">
+      <div className={toolStyles.auditReceiptHeader}>
+        <span className={toolStyles.auditReceiptSeal} aria-hidden="true">
+          {sync.available === false || sync.persisted === false || result.persisted === false
+            ? <AlertTriangle size={20} strokeWidth={2} />
+            : <CheckCircle2 size={20} strokeWidth={2} />}
+        </span>
+        <span>
+          <strong id="audit-receipt-title">Deterministic Audit Receipt</strong>
+          <span>
+            {sync.available === false
+              ? 'Club Arena Could Not Be Read During This Scan.'
+              : sync.persisted === false
+                ? 'The Hand Audit Completed, But Its Decision Evidence Could Not Be Saved.'
+              : result.persisted === false
+                ? 'The Scan Completed, But Its Findings Could Not Be Saved.'
+                : 'Club Arena Import, Shared Solver Matching, And Leak Persistence Completed.'}
+          </span>
+        </span>
+      </div>
+
+      <dl className={toolStyles.auditReceiptGrid}>
+        {cells.map(([label, value]) => (
+          <div key={label} className={toolStyles.auditReceiptCell}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <div className={toolStyles.auditSourceRail} aria-label="Evidence Source Status">
+        <span data-ready={sources.livePlay === true}>Live Hand Statistics</span>
+        <span data-ready={sources.trainingSolver === true}>Training Solver</span>
+        <span data-ready={sources.handAudit === true}>Hand Audit Store</span>
+        <span data-ready={sources.clubArena === true}>Club Arena</span>
+      </div>
+      {num(coverage.unpricedThisRun) > 0 && (
+        <p className={toolStyles.auditReceiptNote}>
+          Unpriced Decisions Stay Excluded From EV Claims And Will Be Retried After The Solver Cache Refresh Window.
+        </p>
+      )}
     </section>
   );
 }
@@ -2267,6 +2337,8 @@ export default function LeakFinderPage() {
                   </div>
                 )}
               </div>
+
+              <AuditReceipt result={detectionResult} />
 
               {/* Load error (never replaces the empty state / detect button) */}
               {leaksError && !leaksLoading && (
