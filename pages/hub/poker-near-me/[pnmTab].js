@@ -3881,14 +3881,11 @@ export default function PokerNearMePage() {
                 {dbStats.total > 0 ? dbStats.total.toLocaleString() : '—'} Venues &nbsp;&bull;&nbsp;
                 {/* UX FIX: 'mixed' means the published total is real observations
                     PLUS simulator output, so it must carry the approximate label
-                    too; and when data_mode is 'none' there is nothing live to
-                    report, so the figure renders as 0 rather than a stale count
-                    under a "Live Tables" heading. data_age_minutes qualifies it. */}
-                {liveDataMode == null
+                    too. Pending and offline feeds cannot prove a zero count, so
+                    they render an em dash instead of a misleading zero. */}
+                {liveDataMode == null || liveDataMode === 'none'
                   ? '—'
-                  : liveDataMode === 'none'
-                    ? '0'
-                    : liveTableCount.toLocaleString()}{' '}
+                  : liveTableCount.toLocaleString()}{' '}
                 {liveDataMode === 'estimated' || liveDataMode === 'mixed'
                   ? 'Tables (Approx.)'
                   : 'Live Tables'}
