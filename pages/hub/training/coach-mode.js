@@ -69,6 +69,8 @@ const LESSONS = [
   {
     id: 'preflop-basics',
     name: 'Preflop Basics',
+    code: 'Chamber 01',
+    art: '/images/training/coach-mode/preflop-position.webp',
     iconKind: 'crown',
     icon: '',
     color: 'var(--sp-accent-blue)',
@@ -106,6 +108,8 @@ const LESSONS = [
   {
     id: 'three-bet',
     name: '3-Bet Strategy',
+    code: 'Chamber 02',
+    art: '/images/training/coach-mode/three-bet-pressure.webp',
     iconKind: 'bolt',
     icon: '',
     color: 'var(--sp-accent-purple)',
@@ -152,6 +156,8 @@ const LESSONS = [
   {
     id: 'cbet-basics',
     name: 'C-Bet Fundamentals',
+    code: 'Chamber 03',
+    art: '/images/training/coach-mode/cbet-analysis.webp',
     iconKind: 'target',
     icon: '',
     color: 'var(--sp-accent-green)',
@@ -202,6 +208,8 @@ const LESSONS = [
   {
     id: 'pot-odds',
     name: 'Pot Odds & MDF',
+    code: 'Chamber 04',
+    art: '/images/training/coach-mode/pot-odds-core.webp',
     iconKind: 'abacus',
     icon: '',
     color: 'var(--sp-accent-amber)',
@@ -234,6 +242,8 @@ const LESSONS = [
   {
     id: 'turn-play',
     name: 'Turn Strategy',
+    code: 'Chamber 05',
+    art: '/images/training/coach-mode/turn-evolution.webp',
     iconKind: 'rotate',
     icon: '',
     color: 'var(--sp-accent-cyan)',
@@ -279,6 +289,8 @@ const LESSONS = [
   {
     id: 'river-play',
     name: 'River Mastery',
+    code: 'Chamber 06',
+    art: '/images/training/coach-mode/river-mastery.webp',
     iconKind: 'flag',
     icon: '',
     color: 'var(--sp-accent-red)',
@@ -430,376 +442,280 @@ export default function CoachModePage() {
     const isConceptPhase = step < activeLesson.concepts.length;
     const isQuizPhase = step === activeLesson.concepts.length;
     const isResults = step > activeLesson.concepts.length;
+    const totalStages = activeLesson.concepts.length + activeLesson.quiz.length;
+    const completedStages = isResults
+      ? totalStages
+      : isConceptPhase
+        ? step
+        : activeLesson.concepts.length + quizIdx;
+    const progressPercent = Math.max(3, Math.round((completedStages / totalStages) * 100));
+    const currentQuestion = isQuizPhase ? activeLesson.quiz[quizIdx] : null;
+    const answerIsCorrect = selected !== null && selected === currentQuestion?.answer;
 
     return (
       <>
         <Head>
           <title>{activeLesson.name} | Coach Mode</title>
         </Head>
-        <div
-          className="sp-training-command sp-training-command--coach"
-          style={{
-            minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-            background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-            color: 'var(--sp-fg)',
-            fontFamily: "'Inter', -apple-system, sans-serif",
-          }}
-        >
-          <div
-            className="sp-command-header"
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
+        <div className="sp-training-command sp-training-command--coach sp-coach-casino sp-coach-casino--lesson">
+          <header className="sp-command-header sp-coach-lesson-header">
             <button
               type="button"
               aria-label="Back to lesson list"
               onClick={() => setActiveLesson(null)}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 18,
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              className="sp-coach-back"
             >
-              ←
+              <BackArrowIcon size={18} />
+              <span>All Modules</span>
             </button>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>{activeLesson.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-                {isConceptPhase
-                  ? `Concept ${step + 1}/${activeLesson.concepts.length}`
-                  : isQuizPhase
-                    ? `Quiz ${quizIdx + 1}/${activeLesson.quiz.length}`
-                    : 'Complete'}
-              </div>
+            <div className="sp-coach-lesson-title">
+              <span>{activeLesson.code}</span>
+              <strong>{activeLesson.name}</strong>
             </div>
-          </div>
-          <div className="sp-command-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
-            {/* Progress Bar */}
-            <div
-              style={{
-                height: 4,
-                borderRadius: 2,
-                background: 'rgba(255,255,255,0.05)',
-                marginBottom: 24,
-                overflow: 'hidden',
-              }}
-            >
+            <div className="sp-coach-phase-readout" role="status">
+              <span>Operating State</span>
+              <strong>
+                {isConceptPhase
+                  ? `Concept ${step + 1} Of ${activeLesson.concepts.length}`
+                  : isQuizPhase
+                    ? `Decision ${quizIdx + 1} Of ${activeLesson.quiz.length}`
+                    : 'Analysis Complete'}
+              </strong>
+            </div>
+          </header>
+
+          <main className="sp-command-main sp-coach-stage">
+            <div className="sp-coach-progress" aria-label={`${progressPercent}% complete`}>
+              <div className="sp-coach-progress-labels">
+                <span>Strategy Core</span>
+                <span>{progressPercent}% Calibrated</span>
+              </div>
               <motion.div
-                animate={{
-                  width: `${((isConceptPhase ? step : activeLesson.concepts.length + quizIdx) / (activeLesson.concepts.length + activeLesson.quiz.length)) * 100}%`,
-                }}
-                style={{
-                  height: '100%',
-                  background: `linear-gradient(90deg, ${activeLesson.color}, ${activeLesson.color}88)`,
-                  borderRadius: 2,
-                }}
+                className="sp-coach-progress-fill"
+                animate={{ width: `${progressPercent}%` }}
               />
             </div>
 
             {isConceptPhase && (
-              <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                <div
-                  style={{
-                    padding: '24px 20px',
-                    borderRadius: 16,
-                    background: `${activeLesson.color}08`,
-                    border: `1px solid ${activeLesson.color}15`,
-                    marginBottom: 20,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: activeLesson.color,
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      marginBottom: 10,
-                    }}
-                  >
-                    CONCEPT {step + 1}
-                  </div>
-                  <div style={{ fontSize: 14, color: 'var(--sp-fg)', lineHeight: 1.7 }}>
-                    {activeLesson.concepts[step]}
+              <motion.article
+                className="sp-coach-console sp-coach-console--concept"
+                key={step}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="sp-coach-console-visual">
+                  <img src={activeLesson.art} alt="" width="1200" height="751" />
+                  <div className="sp-coach-visual-shade" />
+                  <div className="sp-coach-visual-label">
+                    <span>{activeLesson.code}</span>
+                    <strong>Knowledge Calibration</strong>
                   </div>
                 </div>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setStep(step + 1)}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    borderRadius: 12,
-                    border: 'none',
-                    background: `linear-gradient(135deg, ${activeLesson.color}, ${activeLesson.color}aa)`,
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {step < activeLesson.concepts.length - 1 ? 'Next Concept' : 'Start Quiz'}
-                </motion.button>
-              </motion.div>
+                <div className="sp-coach-console-content">
+                  <div className="sp-coach-kicker"><i /> Concept {step + 1}</div>
+                  <h1>{activeLesson.name}</h1>
+                  <p>{activeLesson.concepts[step]}</p>
+                  <div className="sp-coach-console-rule" />
+                  <div className="sp-coach-console-meta">
+                    <span>Module Focus</span>
+                    <strong>{activeLesson.desc}</strong>
+                  </div>
+                  <motion.button
+                    className="sp-coach-primary"
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setStep(step + 1)}
+                  >
+                    {step < activeLesson.concepts.length - 1 ? 'Calibrate Next Concept' : 'Enter Decision Test'}
+                    <span aria-hidden>›</span>
+                  </motion.button>
+                </div>
+              </motion.article>
             )}
 
-            {isQuizPhase && activeLesson.quiz[quizIdx] && (
-              <motion.div
+            {isQuizPhase && currentQuestion && (
+              <motion.article
+                className="sp-coach-console sp-coach-console--quiz"
                 key={quizIdx}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
               >
-                <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, lineHeight: 1.5 }}>
-                  {activeLesson.quiz[quizIdx].q}
+                <div className="sp-coach-console-visual sp-coach-console-visual--quiz">
+                  <img src={activeLesson.art} alt="" width="1200" height="751" />
+                  <div className="sp-coach-visual-shade" />
+                  <div className="sp-coach-visual-label">
+                    <span>Decision {String(quizIdx + 1).padStart(2, '0')}</span>
+                    <strong>{activeLesson.name}</strong>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                  {activeLesson.quiz[quizIdx].opts.map((opt, i) => (
-                    <motion.button
-                      key={i}
-                      whileTap={selected === null ? { scale: 0.98 } : {}}
-                      onClick={() => handleAnswer(i)}
-                      aria-pressed={selected === i}
-                      aria-disabled={selected !== null}
-                      style={{
-                        padding: '14px 16px',
-                        borderRadius: 10,
-                        textAlign: 'left',
-                        border: `1px solid ${selected === null ? 'rgba(255,255,255,0.08)' : i === activeLesson.quiz[quizIdx].answer ? 'rgba(34,197,94,0.3)' : selected === i ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.04)'}`,
-                        background:
-                          selected === null
-                            ? 'rgba(0,0,0,0.2)'
-                            : i === activeLesson.quiz[quizIdx].answer
-                              ? 'rgba(34,197,94,0.08)'
-                              : selected === i
-                                ? 'rgba(239,68,68,0.08)'
-                                : 'rgba(0,0,0,0.1)',
-                        color:
-                          selected === null
-                            ? 'var(--sp-fg)'
-                            : i === activeLesson.quiz[quizIdx].answer
-                              ? 'var(--sp-accent-green)'
-                              : selected === i
-                                ? 'var(--sp-accent-red)'
-                                : 'var(--sp-fg-faint)',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: selected === null ? 'pointer' : 'default',
-                      }}
+                <div className="sp-coach-console-content sp-coach-question-panel">
+                  <div className="sp-coach-kicker"><i /> Read The Table</div>
+                  <h1>{currentQuestion.q}</h1>
+                  <div className="sp-coach-options" role="group" aria-label="Answer Choices">
+                    {currentQuestion.opts.map((opt, i) => {
+                      const optionState = selected === null
+                        ? ''
+                        : i === currentQuestion.answer
+                          ? 'is-correct'
+                          : selected === i
+                            ? 'is-incorrect'
+                            : 'is-muted';
+                      return (
+                        <motion.button
+                          key={i}
+                          className={`sp-coach-option ${optionState}`}
+                          whileTap={selected === null ? { scale: 0.985 } : {}}
+                          onClick={() => handleAnswer(i)}
+                          aria-pressed={selected === i}
+                          aria-disabled={selected !== null}
+                        >
+                          <span className="sp-coach-option-key">{String.fromCharCode(65 + i)}</span>
+                          <span>{opt}</span>
+                          <i aria-hidden />
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                  {selected !== null && (
+                    <motion.section
+                      className={`sp-command-verdict sp-coach-verdict ${answerIsCorrect ? 'is-correct' : 'is-incorrect'}`}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      aria-live="assertive"
+                      aria-atomic="true"
                     >
-                      {opt}
-                    </motion.button>
-                  ))}
+                      <div className="sp-coach-verdict-status">
+                        <span>Analysis Result</span>
+                        <strong>{answerIsCorrect ? 'Correct' : 'Incorrect'}</strong>
+                      </div>
+                      <div className="sp-coach-verdict-answer"><span>Your Answer</span><b>{currentQuestion.opts[selected]}</b></div>
+                      <div className="sp-coach-verdict-answer"><span>Correct Answer</span><b>{currentQuestion.opts[currentQuestion.answer]}</b></div>
+                      <p>{COACH_EXPLANATIONS[activeLesson.id]?.[quizIdx] || 'Review the lesson concept before moving to the next question.'}</p>
+                      <em>This Result Will Stay Open Until You Click Next.</em>
+                      <motion.button
+                        className="sp-coach-primary"
+                        whileTap={{ scale: 0.98 }}
+                        onClick={nextQuizQuestion}
+                      >
+                        {quizIdx < activeLesson.quiz.length - 1 ? 'Next Question' : 'See Results'}
+                        <span aria-hidden>›</span>
+                      </motion.button>
+                    </motion.section>
+                  )}
                 </div>
-                {selected !== null && (
-                  <motion.section
-                    className={`sp-command-verdict ${selected === activeLesson.quiz[quizIdx].answer ? 'is-correct' : 'is-incorrect'}`}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    aria-live="assertive"
-                    aria-atomic="true"
-                  >
-                    <strong>{selected === activeLesson.quiz[quizIdx].answer ? 'Correct' : 'Incorrect'}</strong>
-                    <div><span>Your Answer</span><b>{activeLesson.quiz[quizIdx].opts[selected]}</b></div>
-                    <div><span>Correct Answer</span><b>{activeLesson.quiz[quizIdx].opts[activeLesson.quiz[quizIdx].answer]}</b></div>
-                    <p>{COACH_EXPLANATIONS[activeLesson.id]?.[quizIdx] || 'Review the lesson concept before moving to the next question.'}</p>
-                    <em>This Result Will Stay Open Until You Click Next.</em>
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={nextQuizQuestion}
-                      style={{
-                        width: '100%',
-                        padding: '14px',
-                        borderRadius: 0,
-                        border: 'none',
-                        background: `linear-gradient(135deg, ${activeLesson.color}, ${activeLesson.color}aa)`,
-                        color: '#fff',
-                        fontSize: 14,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {quizIdx < activeLesson.quiz.length - 1 ? 'Next Question' : 'See Results'}
-                    </motion.button>
-                  </motion.section>
-                )}
-              </motion.div>
+              </motion.article>
             )}
 
             {isResults && (
-              <motion.div
+              <motion.article
+                className="sp-coach-console sp-coach-console--results"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                style={{ textAlign: 'center', padding: '20px 0' }}
               >
-                <div style={{ fontSize: 48, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: score >= 4 ? 'var(--sp-accent-amber)' : score >= 3 ? 'var(--sp-accent-green)' : 'var(--sp-accent-purple)' }} aria-hidden>
-                  {/* TRAIN-COACH-A11Y-1: SVG ScoreIcon replaces // */}
-                  <ScoreIcon score={score} total={activeLesson.quiz.length} size={48} />
+                <div className="sp-coach-results-visual">
+                  <img src={activeLesson.art} alt="" width="1200" height="751" />
+                  <div className="sp-coach-results-medallion" aria-hidden>
+                    <ScoreIcon score={score} total={activeLesson.quiz.length} size={56} />
+                  </div>
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>
-                  Lesson Complete
+                <div className="sp-coach-results-content">
+                  <div className="sp-coach-kicker"><i /> Calibration Complete</div>
+                  <h1>Lesson Complete</h1>
+                  <p>{activeLesson.name}</p>
+                  <div className="sp-coach-score">
+                    <strong>{score}<span>/{activeLesson.quiz.length}</span></strong>
+                    <small>Questions Correct</small>
+                  </div>
+                  <motion.button className="sp-coach-primary" whileTap={{ scale: 0.98 }} onClick={() => setActiveLesson(null)}>
+                    Return To Training Chambers
+                    <span aria-hidden>›</span>
+                  </motion.button>
                 </div>
-                <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
-                  {activeLesson.name}
-                </div>
-                <div
-                  style={{
-                    fontSize: 36,
-                    fontWeight: 900,
-                    color: score >= 4 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
-                  }}
-                >
-                  {score}/{activeLesson.quiz.length}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginBottom: 24 }}>
-                  Questions Correct
-                </div>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setActiveLesson(null)}
-                  style={{
-                    padding: '14px 32px',
-                    borderRadius: 12,
-                    border: 'none',
-                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Back to Lessons
-                </motion.button>
-              </motion.div>
+              </motion.article>
             )}
-          </div>
+          </main>
         </div>
       </>
     );
   }
 
   // Lesson list
+  const recommendedLesson = LESSONS.find((lesson) => !completed.has(lesson.id)) || LESSONS[0];
+
   return (
     <>
       <Head>
         <title>Coach Mode | Smarter.Poker GTO Training</title>
       </Head>
-      <div
-        className="sp-training-command sp-training-command--coach"
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        <div
-          className="sp-command-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-COACH-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div>
-            {/* TRAIN-COACH-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Coach Mode</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Guided GTO lessons</div>
-          </div>
-          <div style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${completed.size} of ${LESSONS.length} lessons complete`}>
-            {completed.size}/{LESSONS.length} complete
-          </div>
-        </div>
-        <div className="sp-command-main sp-command-grid sp-command-grid--lessons" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
-          {LESSONS.map((lesson, i) => (
-            <motion.button
-              key={lesson.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => startLesson(lesson)}
-              style={{
-                width: '100%',
-                padding: '16px',
-                borderRadius: 14,
-                marginBottom: 8,
-                background: `${lesson.color}06`,
-                border: `1px solid ${lesson.color}15`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                cursor: 'pointer',
-                textAlign: 'left',
-              }}
-            >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: `${lesson.color}12`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 20,
-                  flexShrink: 0,
-                }}
-              >
-                {/* TRAIN-COACH-A11Y-1: SVG LessonIcon */}
-                <span style={{ display: 'inline-flex', color: lesson.color }} aria-hidden>
-                  <LessonIcon kind={lesson.iconKind} size={20} />
-                </span>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: lesson.color }}>
-                  {lesson.name}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>{lesson.desc}</div>
-                <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', marginTop: 3 }}>
-                  {lesson.concepts.length} concepts · {lesson.quiz.length} quiz questions
+      <div className="sp-training-command sp-training-command--coach sp-coach-casino">
+        <main className="sp-command-main sp-coach-home">
+          <section className="sp-command-header sp-coach-hero" aria-labelledby="coach-mode-title">
+            <img className="sp-coach-hero-art" src="/images/training/coach-mode/strategy-chamber-hero.webp" alt="" width="1600" height="901" fetchPriority="high" />
+            <div className="sp-coach-hero-vignette" />
+            <button type="button" className="sp-coach-back sp-coach-hero-back" onClick={() => router.push('/hub/training')}>
+              <BackArrowIcon size={18} />
+              <span>Training Hub</span>
+            </button>
+            <div className="sp-coach-hero-copy">
+              <div className="sp-coach-kicker"><i /> Private Strategy Chamber / Live</div>
+              <h1 id="coach-mode-title">Train Every Decision Until It Becomes Instinct.</h1>
+              <p>Build Elite Poker Instincts Through Audited Concepts, Table-Realistic Decisions, And Persistent Analysis.</p>
+              <div className="sp-coach-hero-actions">
+                <motion.button className="sp-coach-primary" whileTap={{ scale: 0.98 }} onClick={() => startLesson(recommendedLesson)}>
+                  {completed.size ? 'Continue Recommended Module' : 'Initialize Coach Mode'}
+                  <span aria-hidden>›</span>
+                </motion.button>
+                <div className="sp-coach-completion" role="status" aria-label={`${completed.size} of ${LESSONS.length} lessons complete`}>
+                  <strong>{String(completed.size).padStart(2, '0')}</strong>
+                  <span>Of {String(LESSONS.length).padStart(2, '0')} Chambers Calibrated</span>
                 </div>
               </div>
-              {/* TRAIN-COACH-A11Y-1: SVG check replaces ✓ */}
-              {completed.has(lesson.id) && <div style={{ fontSize: 16, display: 'inline-flex', color: 'var(--sp-accent-green)' }} aria-label="Completed" role="img"><CheckIcon size={16} /></div>}
-            </motion.button>
-          ))}
-        </div>
+            </div>
+            <div className="sp-coach-hero-plate" aria-hidden>
+              <span>GTO Training Core</span>
+              <strong>Coach / 11</strong>
+            </div>
+          </section>
+
+          <section className="sp-coach-module-section" aria-labelledby="coach-modules-title">
+            <header className="sp-coach-section-header">
+              <div>
+                <span>Choose Your Discipline</span>
+                <h2 id="coach-modules-title">Enter A Training Chamber</h2>
+              </div>
+              <p>30 Audited Scenarios <i /> Four Meaningful Choices <i /> Manual Analysis</p>
+            </header>
+            <div className="sp-command-grid sp-command-grid--lessons sp-coach-module-grid">
+              {LESSONS.map((lesson, i) => (
+                <motion.button
+                  key={lesson.id}
+                  className={`sp-coach-module-card ${completed.has(lesson.id) ? 'is-complete' : ''}`}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.055 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => startLesson(lesson)}
+                >
+                  <span className="sp-coach-module-image">
+                    <img src={lesson.art} alt="" width="1200" height="751" loading={i < 3 ? 'eager' : 'lazy'} />
+                    <span className="sp-coach-module-image-shade" />
+                    <span className="sp-coach-module-code">{lesson.code}</span>
+                    {completed.has(lesson.id) && <span className="sp-coach-module-complete"><CheckIcon size={14} /> Calibrated</span>}
+                  </span>
+                  <span className="sp-coach-module-body">
+                    <span className="sp-coach-module-name">{lesson.name}</span>
+                    <span className="sp-coach-module-desc">{lesson.desc}</span>
+                    <span className="sp-coach-module-data">
+                      <span><b>{lesson.concepts.length}</b> Concepts</span>
+                      <i />
+                      <span><b>{lesson.quiz.length}</b> Decisions</span>
+                    </span>
+                  </span>
+                  <span className="sp-coach-module-action">Enter Module <b aria-hidden>›</b></span>
+                </motion.button>
+              ))}
+            </div>
+          </section>
+        </main>
       </div>
     </>
   );
