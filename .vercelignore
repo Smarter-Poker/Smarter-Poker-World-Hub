@@ -60,7 +60,19 @@ _legacy_sql/
 # ── Test / QA ─────────────────────────────────────────────────
 /tests/
 /e2e/
-/__tests__/
+# The Vercel build runs the compact marketplace contract suite. Keep those
+# exact files in the upload while excluding the rest of the large test tree.
+/__tests__/*
+!/__tests__/diamond-store-phase-7.test.mjs
+!/__tests__/diamond-store-phase-8.test.mjs
+!/__tests__/diamond-store-phase-9.test.mjs
+!/__tests__/diamond-store-phase-10.test.mjs
+!/__tests__/diamond-store-phase-11.test.mjs
+!/__tests__/diamond-store-phase-12.test.mjs
+!/__tests__/diamond-store-phase-13.test.mjs
+!/__tests__/printful-fulfillment.test.mjs
+!/__tests__/merch-catalog-admin.test.mjs
+!/__tests__/marketplace-operations.test.mjs
 /playwright/
 /playwright-report/
 /test-results/
