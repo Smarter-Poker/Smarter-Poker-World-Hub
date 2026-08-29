@@ -10,7 +10,7 @@ const EXERCISES = [
   {
     id: 1, title: 'Value or Bluff?',
     streets: [
-      { street: 'Preflop', action: 'BTN opens 2.5x', range: 'Top ~45% of hands', rangeWidth: 45, note: 'Wide BTN opening range: pairs, broadways, suited cards, connectors.' },
+      { street: 'Preflop', action: 'Action Folds To The Button, Who Raises To 2.5 BB', range: 'Top ~45% of hands', rangeWidth: 45, note: 'Wide Button first-in range: pairs, broadways, suited cards, and connected hands.' },
       { street: 'Flop: K♠ 9♦ 4♣', action: 'BTN c-bets 33%', range: 'Top pair+, draws, some air (~65% of open)', rangeWidth: 30, note: 'Small c-bet = wide range. Still has air, overcards, and weak hands alongside Kx and 9x.' },
       { street: 'Turn: 2♥', action: 'BTN bets 67%', range: 'KQ-KT, 99, 44, strong draws, some bluffs (~35% of flop range)', rangeWidth: 12, note: 'Bigger turn bet polarizes. Air mostly gives up. Remaining range is value-heavy with some committed bluffs.' },
       { street: 'River: 7♠', action: 'BTN bets 100% pot', range: 'KQ+, sets, bluffs with missed draws (AQ, AJ, QJ type)', rangeWidth: 6, note: 'Pot-sized river bet = very polarized. Either nutted (KK, 99, K9) or a bluff (missed draws). Very few medium hands.' },
@@ -21,7 +21,7 @@ const EXERCISES = [
   {
     id: 2, title: 'The Slow Play Tell',
     streets: [
-      { street: 'Preflop', action: 'CO opens 2.5x, you 3-bet from BTN, CO calls', range: 'JJ-22, AQs-ATs, KQs, suited connectors (~12% of hands)', rangeWidth: 12, note: 'CO flatting a 3-bet. Missing AA/KK/AK (would 4-bet). Capped range.' },
+      { street: 'Preflop', action: 'Action Folds To The Cutoff, Who Raises To 2.5 BB; You 3-Bet From The Button And The Cutoff Calls', range: 'JJ-22, AQs-ATs, KQs, suited connectors (~12% of hands)', rangeWidth: 12, note: 'The Cutoff calls the 3-bet. In this model, AA, KK, and AK usually 4-bet, so the calling range is capped.' },
       { street: 'Flop: T♠ 8♣ 5♥', action: 'CO check-calls your 33% c-bet', range: 'TT, 88, 55 (sets), T9s, AT, JJ, 99, 98s, draws', rangeWidth: 9, note: 'Check-call on connected board. Has sets (slow-playing), pairs, draws. Missing complete air (folded).' },
       { street: 'Turn: 3♦', action: 'CO check-raises your 67% turn bet', range: 'TT, 88, 55 (main range), T8 (unlikely), 76s, 97s', rangeWidth: 3, note: 'CHECK-RAISE on turn = very strong. Sets are primary. Some straights (76, 97). Almost zero bluffs at low stakes.' },
       { street: 'River: K♣', action: 'CO shoves all-in', range: 'Sets (TT, 88, 55), maybe 76 straight', rangeWidth: 2, note: 'All-in after check-raise = monster. Narrowed to sets almost exclusively. This is a fold with anything less than top set.' },
@@ -32,7 +32,7 @@ const EXERCISES = [
   {
     id: 3, title: 'The Missed Draw Bluff',
     streets: [
-      { street: 'Preflop', action: 'SB opens 3x, you call BB', range: 'Wide SB opening: ~50% of hands', rangeWidth: 50, note: 'SB opens wide. Full range of hands.' },
+      { street: 'Preflop', action: 'Action Folds To The Small Blind, Who Raises To 3 BB; You Call From The Big Blind', range: 'Wide Small Blind first-in range: ~50% of hands', rangeWidth: 50, note: 'The Small Blind can raise first-in with a wide range because only the Big Blind remains.' },
       { street: 'Flop: J♣ 8♣ 3♠', action: 'SB bets 50%', range: 'Jx, 88, 33, club draws, overcards, air (~70%)', rangeWidth: 35, note: 'Standard c-bet on connected board. Many draws available (clubs, 9T, T7). Wide range.' },
       { street: 'Turn: 5♦', action: 'SB bets 67%', range: 'JJ, 88, JT+, club draws, committed bluffs (~40%)', rangeWidth: 14, note: 'Continued betting. Still has many flush draws. Value range is strong top pairs and better.' },
       { street: 'River: 2♥', action: 'SB bets 100% pot', range: 'Sets/two pair for value, missed club draws for bluff', rangeWidth: 8, note: 'All draws missed (no club, no straight). Big river bet = polarized. Flush draws became bluffs. Value hands bet big.' },

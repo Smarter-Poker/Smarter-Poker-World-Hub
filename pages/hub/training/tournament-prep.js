@@ -105,8 +105,8 @@ export default function TournamentPrepPlanner() {
       </Head>
       <UniversalHeader pageDepth={2} hideLeftIcon />
 
-      <div style={styles.container}>
-        <div style={styles.header}>
+      <div className="sp-training-command sp-training-command--tournament" style={styles.container}>
+        <div className="sp-command-header" style={styles.header}>
           <button
             type="button"
             aria-label="Back to training hub"
@@ -124,7 +124,7 @@ export default function TournamentPrepPlanner() {
           </div>
         </div>
 
-        <div style={styles.content}>
+        <div className="sp-command-main sp-command-tournament-grid" style={styles.content}>
           {/* LEFT COLUMN: Controls */}
           <div style={styles.sidebar}>
             <div style={styles.card}>

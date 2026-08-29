@@ -1,12 +1,11 @@
 // TRAIN-CSS-TOKENS-BATCH5-57 — hex sweep batch 5: literals routed to --sp-* tokens
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-5f — adoption: shared empty-state primitive
@@ -53,24 +52,23 @@ export default function StudyGroupRoom() {
   const [inputMsg, setInputMsg] = useState('');
   const [activeHandInfo, setActiveHandInfo] = useState(null);
 
-  // Mock real-time participants
+  // Explicit local-preview participants. No network presence is implied.
   const [participants] = useState([
-    { id: 1, name: 'Daniel B.', role: 'Admin', avatar: '/avatars/daniel.jpg' },
-    { id: 2, name: 'GTO_Crusher', role: 'Member', avatar: '/avatars/user2.jpg' },
-    { id: 3, name: 'RiverRat99', role: 'Member', avatar: '/avatars/user3.jpg' },
+    { id: 1, name: 'You', role: 'Admin' },
+    { id: 2, name: 'Example Solver', role: 'Preview' },
+    { id: 3, name: 'Example Reviewer', role: 'Preview' },
   ]);
 
   const handleCreateRoom = () => {
     if (!roomName) return;
     setIsCreating(false);
-    // In a real app, this would create the room in Supabase and redirect to ?roomId=xxx
-    router.push(`/hub/training/study-group?roomId=test-room-123`, undefined, { shallow: true });
+    router.push(`/hub/training/study-group?roomId=local-preview`, undefined, { shallow: true });
 
     setMessages([
       {
         id: 1,
         sender: 'System',
-        text: `Room "${roomName}" created. Waiting for others to join...`,
+        text: `Local preview "${roomName}" opened. Messages and hand reviews stay in this browser session.`,
         isSystem: true,
         time: new Date().toLocaleTimeString(),
       },
@@ -109,30 +107,12 @@ export default function StudyGroupRoom() {
       {
         id: Date.now(),
         sender: 'System',
-        text: 'Daniel B. loaded "Big River Call vs JTs" to the hand viewer.',
+        text: 'Example Solver loaded "Big River Call vs JTs" to the preview hand viewer.',
         isSystem: true,
         time: new Date().toLocaleTimeString(),
       },
     ]);
   };
-
-  // Save session data
-  useEffect(() => {
-    if (!isCreating) {
-      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-      if (!token) return;
-      authedFetch('/api/training/save-session', {
-        method: 'POST',
-        body: JSON.stringify({
-          gameId: 'study-group',
-          stats: {
-            messagesSent: messages.filter((m) => m.sender === 'You').length,
-            handsReviewed: activeHandInfo ? 1 : 0,
-          },
-        }),
-      }).catch((e) => console.warn(e)).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-    }
-  }, [messages.length, activeHandInfo]);
 
   return (
     <PageTransition>
@@ -141,8 +121,8 @@ export default function StudyGroupRoom() {
       </Head>
       <UniversalHeader pageDepth={2} hideLeftIcon />
 
-      <div style={styles.container}>
-        <div style={styles.header}>
+      <div className="sp-training-command sp-training-command--study-room" style={styles.container}>
+        <div className="sp-command-header" style={styles.header}>
           <button
             type="button"
             aria-label="Back to training hub"
@@ -157,19 +137,20 @@ export default function StudyGroupRoom() {
           </button>
           <div>
             <h1 style={styles.title}>COLLABORATIVE STUDY ROOM</h1>
-            <p style={styles.subtitle}>Review Hands & Discuss Strategy in Real-Time</p>
+            <p style={styles.subtitle}>Local Study Workflow Preview · Live Collaboration Coming Soon</p>
           </div>
         </div>
 
         {isCreating ? (
           <motion.div
+            className="sp-command-main sp-command-card-stage"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             style={styles.createBox}
           >
-            <h2>Create a New Study Room</h2>
+            <h2>Open A Local Study Room Preview</h2>
             <p style={{ color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
-              Invite friends, upload hands, and analyze GTO lines together.
+              Preview messaging and hand review in this browser. Invitations, shared rooms, and live member presence are not connected yet.
             </p>
 
             <input
@@ -180,17 +161,17 @@ export default function StudyGroupRoom() {
               aria-label="Study room name"
               style={styles.roomInput}
             />
-            <button type="button" aria-label="Start study room" onClick={handleCreateRoom} style={styles.createBtn}>
-              Start Room
+            <button type="button" aria-label="Open local study room preview" onClick={handleCreateRoom} style={styles.createBtn}>
+              Open Local Preview
             </button>
           </motion.div>
         ) : (
-          <div style={styles.roomLayout}>
+          <div className="sp-command-main sp-command-room-layout" style={styles.roomLayout}>
             {/* Left: Participants & Hand Viewer */}
             <div style={styles.mainCol}>
               <div style={styles.participantsBar}>
                 <div style={{ fontWeight: 700, color: 'var(--sp-fg-muted)', fontSize: 12, marginRight: 16 }}>
-                  ONLINE (3)
+                  PREVIEW PARTICIPANTS (3)
                 </div>
                 {participants.map((p) => (
                   <div key={p.id} style={styles.participantChip}>
@@ -199,7 +180,7 @@ export default function StudyGroupRoom() {
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        background: 'var(--sp-accent-green)',
+                        background: 'var(--sp-fg-dim)',
                         marginRight: 8,
                       }}
                     />

@@ -876,6 +876,404 @@ body.world-training [data-focus-custom]:focus-visible {
     }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 11 — CHALLENGES, COACHING & COMMUNITY COMMAND DECK
+   Shared dimensional treatment for goals, the daily solver spot, PvP,
+   coaching, study rooms, community discovery, the training feed, and
+   tournament preparation. The global header remains outside this scope.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-training .sp-training-command {
+    --command-cyan: #63e7ff;
+    --command-blue: #178cff;
+    --command-amber: #ffc65b;
+    --command-green: #54f4b5;
+    --command-line: rgba(132, 224, 252, 0.42);
+    --command-panel: rgba(3, 13, 20, 0.97);
+    position: relative;
+    isolation: isolate;
+    min-height: calc(100dvh - 52px) !important;
+    box-sizing: border-box;
+    overflow-x: clip !important;
+    color: #edfaff !important;
+    font-family: var(--sp-font-ui, "Rajdhani", "Arial Narrow", sans-serif) !important;
+    text-transform: capitalize;
+    background:
+        radial-gradient(circle at 83% 3%, rgba(28, 177, 255, 0.2), transparent 30%),
+        radial-gradient(circle at 11% 77%, rgba(28, 115, 162, 0.12), transparent 27%),
+        linear-gradient(rgba(76, 203, 255, 0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(76, 203, 255, 0.028) 1px, transparent 1px),
+        linear-gradient(145deg, #02070b 0%, #07131c 48%, #02070a 100%) !important;
+    background-size: auto, auto, 38px 38px, 38px 38px, auto !important;
+}
+
+body.world-training .sp-training-command::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.55;
+    background:
+        linear-gradient(90deg, transparent, rgba(102, 224, 255, 0.05) 50%, transparent),
+        repeating-linear-gradient(90deg, transparent 0 4px, rgba(255,255,255,0.012) 4px 5px);
+}
+
+body.world-training .sp-training-command [style*="text-transform"] {
+    text-transform: capitalize !important;
+}
+
+body.world-training .sp-command-header {
+    position: relative;
+    width: min(100%, 1180px);
+    min-height: 84px;
+    box-sizing: border-box;
+    margin-inline: auto !important;
+    padding: 18px 22px 22px !important;
+    border: 1px solid rgba(143, 224, 249, 0.42) !important;
+    border-top-color: rgba(229, 249, 255, 0.64) !important;
+    border-radius: 0 !important;
+    background:
+        linear-gradient(180deg, rgba(125, 169, 190, 0.25), rgba(9, 24, 33, 0.98) 18%, rgba(2, 10, 15, 0.99) 76%, rgba(26, 76, 98, 0.52)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.24),
+        inset 0 -3px 0 rgba(0,0,0,0.78),
+        0 16px 36px rgba(0,0,0,0.42) !important;
+}
+
+body.world-training .sp-command-header::after {
+    content: "";
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: -1px;
+    height: 4px;
+    pointer-events: none;
+    background: linear-gradient(90deg, #e0faff 0 4%, #59e6ff 4% 34%, #168cff 34% 65%, #ffc65b 65% 70%, rgba(76, 200, 244, 0.15) 70% 100%);
+    box-shadow: 0 0 16px rgba(75, 214, 255, 0.56);
+}
+
+body.world-training .sp-command-header :where(h1, h2),
+body.world-training .sp-training-command > :where(h1, h2) {
+    color: #f4fbff !important;
+    -webkit-text-fill-color: initial !important;
+    background: none !important;
+    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-size: clamp(23px, 3vw, 36px) !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0.018em !important;
+    text-shadow: 0 2px 0 #000, 0 0 24px rgba(67, 214, 255, 0.32) !important;
+}
+
+body.world-training .sp-command-main {
+    position: relative;
+    width: min(100%, 1180px) !important;
+    max-width: 1180px !important;
+    margin-inline: auto !important;
+    box-sizing: border-box;
+    padding: 28px 20px 62px !important;
+}
+
+body.world-training .sp-training-command--daily .sp-command-main {
+    max-width: 900px !important;
+}
+
+body.world-training .sp-training-command--feed .sp-command-main {
+    max-width: 920px !important;
+}
+
+body.world-training .sp-training-command--challenges.sp-command-main {
+    max-width: 1180px !important;
+    padding-top: 46px !important;
+    border-inline: 1px solid rgba(112, 211, 244, 0.2);
+}
+
+body.world-training .sp-command-grid--challenges,
+body.world-training .sp-command-grid--lessons {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+}
+
+body.world-training .sp-command-grid--lessons > button {
+    height: 100%;
+    margin-bottom: 0 !important;
+}
+
+body.world-training .sp-command-card,
+body.world-training .sp-training-command div[style*="border: 1px"][style*="border-radius"]:not([style*="50%"]),
+body.world-training .sp-training-command section[style*="border-radius"],
+body.world-training .sp-training-command article[style*="border-radius"] {
+    border-color: var(--command-line) !important;
+    border-radius: 0 !important;
+    clip-path: none !important;
+    background-image: linear-gradient(150deg, rgba(100, 158, 183, 0.18), rgba(3, 12, 19, 0.98) 39%, rgba(11, 33, 45, 0.95)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(237, 251, 255, 0.17),
+        inset 0 -3px 0 rgba(0,0,0,0.7),
+        0 12px 28px rgba(0,0,0,0.34) !important;
+}
+
+body.world-training .sp-training-command :where(button, [role="button"], a[style*="border-radius"]),
+body.world-training .sp-training-command :where(input, select, textarea) {
+    border: 1px solid rgba(143, 219, 247, 0.42) !important;
+    border-radius: 0 !important;
+    clip-path: none !important;
+    color: #e7f8ff !important;
+    background-color: #08141c !important;
+    background-image: linear-gradient(180deg, #304b59 0%, #172b36 42%, #061018 52%, #18303d 100%) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.22),
+        inset 0 -3px 0 rgba(0,0,0,0.72),
+        0 7px 16px rgba(0,0,0,0.28) !important;
+    text-shadow: 0 1px 1px #000;
+}
+
+body.world-training .sp-training-command :where(button, [role="button"]) {
+    min-height: 44px;
+}
+
+body.world-training .sp-training-command :where(input, select, textarea) {
+    min-height: 44px;
+    box-sizing: border-box;
+}
+
+body.world-training .sp-training-command :where(input, textarea)::placeholder {
+    color: #87a5b4 !important;
+    opacity: 1;
+    text-transform: capitalize;
+}
+
+body.world-training .sp-training-command button[aria-pressed="true"],
+body.world-training .sp-training-command button[style*="accent-blue"],
+body.world-training .sp-training-command button[style*="00d4ff"] {
+    color: #031018 !important;
+    border-color: #c8f8ff !important;
+    background: linear-gradient(180deg, #effdff 0%, #96ecff 44%, #28bae5 52%, #87e9ff 100%) !important;
+    box-shadow: inset 0 1px 0 #fff, inset 0 -3px 0 rgba(0,74,105,0.55), 0 0 20px rgba(65, 212, 255, 0.36) !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.65) !important;
+}
+
+body.world-training .sp-training-command button:disabled {
+    color: #77909b !important;
+    border-color: rgba(118, 149, 161, 0.26) !important;
+    background: linear-gradient(180deg, #1a252b, #081016) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.07) !important;
+    opacity: 0.72 !important;
+}
+
+body.world-training .sp-training-command :where(h2, h3, h4) {
+    color: #e9f9ff !important;
+    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    letter-spacing: 0.02em !important;
+    text-shadow: 0 1px 0 #000, 0 0 18px rgba(67, 211, 255, 0.2);
+}
+
+body.world-training .sp-training-command :where(p, label) {
+    color: #b5cfda !important;
+}
+
+body.world-training .sp-command-metric-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+body.world-training .sp-command-filter-rail {
+    position: sticky;
+    z-index: 20;
+    top: var(--sp-header-height, 52px);
+    width: min(100%, 920px);
+    margin-inline: auto;
+    box-sizing: border-box;
+    border: 1px solid rgba(119, 211, 242, 0.3) !important;
+    background: rgba(3, 12, 18, 0.96) !important;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.42) !important;
+}
+
+body.world-training .sp-command-room-layout,
+body.world-training .sp-command-tournament-grid {
+    width: min(100%, 1180px) !important;
+    max-width: 1180px !important;
+}
+
+body.world-training .sp-training-command--tournament [style*="display: flex"][style*="gap: 16px"] {
+    flex-wrap: wrap;
+}
+
+body.world-training .sp-command-verdict {
+    margin-top: 16px;
+    padding: 18px;
+    border: 2px solid #ff667d !important;
+    border-radius: 0 !important;
+    background: linear-gradient(145deg, rgba(88, 18, 30, 0.98), rgba(24, 4, 9, 0.99)) !important;
+    box-shadow: 0 0 30px rgba(255, 82, 111, 0.28), 0 16px 34px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.16) !important;
+}
+
+body.world-training .sp-command-verdict.is-correct {
+    border-color: #50f1b5 !important;
+    background: linear-gradient(145deg, rgba(7, 61, 45, 0.98), rgba(2, 20, 16, 0.99)) !important;
+    box-shadow: 0 0 30px rgba(70, 242, 180, 0.24), 0 16px 34px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.17) !important;
+}
+
+body.world-training .sp-command-verdict > strong {
+    display: block;
+    margin-bottom: 12px;
+    color: #ff8799;
+    font-family: var(--sp-font-display, "Orbitron", sans-serif);
+    font-size: clamp(24px, 5vw, 34px);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px currentColor;
+}
+
+body.world-training .sp-command-verdict.is-correct > strong {
+    color: #78ffd2;
+}
+
+body.world-training .sp-command-verdict > div {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 10px;
+    margin: 6px 0;
+}
+
+body.world-training .sp-command-verdict > div span {
+    color: #95afba;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+body.world-training .sp-command-verdict > div b {
+    color: #fff;
+}
+
+body.world-training .sp-command-verdict p {
+    margin: 13px 0 8px !important;
+    color: #dbeaf0 !important;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+body.world-training .sp-command-verdict em {
+    display: block;
+    color: #9bb3bd;
+    font-size: 11px;
+    font-style: normal;
+}
+
+body.world-training .sp-command-verdict > button {
+    width: 100%;
+    margin-top: 14px;
+}
+
+body.world-training .sp-training-command :focus-visible {
+    outline: 2px solid #91edff !important;
+    outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+    body.world-training .sp-training-command {
+        min-height: calc(100dvh - 35px) !important;
+    }
+
+    body.world-training .sp-command-header {
+        width: 100%;
+        min-height: 0;
+        padding: 13px 12px 17px !important;
+    }
+
+    body.world-training .sp-command-header::after {
+        left: 10px;
+        right: 10px;
+    }
+
+    body.world-training .sp-command-header > div,
+    body.world-training .sp-command-header {
+        flex-wrap: wrap;
+    }
+
+    body.world-training .sp-command-header :where(h1, h2),
+    body.world-training .sp-training-command > :where(h1, h2) {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        font-size: clamp(21px, 7.2vw, 30px) !important;
+    }
+
+    body.world-training .sp-command-main,
+    body.world-training .sp-training-command--challenges.sp-command-main,
+    body.world-training .sp-command-room-layout,
+    body.world-training .sp-command-tournament-grid {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 18px 12px 42px !important;
+    }
+
+    body.world-training .sp-command-grid--challenges,
+    body.world-training .sp-command-grid--lessons,
+    body.world-training .sp-command-room-layout,
+    body.world-training .sp-command-tournament-grid,
+    body.world-training .sp-training-command [style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    body.world-training .sp-command-metric-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+    }
+
+    body.world-training .sp-command-filter-rail {
+        top: 35px;
+        width: 100%;
+        overflow-x: auto;
+        padding: 8px !important;
+    }
+
+    body.world-training .sp-command-filter-rail > button {
+        flex: 0 0 auto !important;
+        min-width: 92px;
+    }
+
+    body.world-training .sp-training-command--group-finder .sp-command-main > div[style*="align-items: center"],
+    body.world-training .sp-training-command--pvp .sp-command-main [style*="display: flex"] {
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    body.world-training .sp-training-command--tournament [style*="display: flex"][style*="gap: 16px"] > div {
+        min-width: 100%;
+    }
+
+    body.world-training .sp-training-command--tournament [style*="display: grid"] {
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 430px) {
+    body.world-training .sp-command-metric-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    body.world-training .sp-command-metric-grid > div {
+        min-width: 0;
+        padding-inline: 5px !important;
+    }
+
+    body.world-training .sp-training-command [style*="grid-template-columns: repeat(3"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body.world-training .sp-training-command--pvp .sp-command-main [style*="grid-template-columns: repeat(3"] > :nth-child(3):last-child {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.world-training .sp-command-header::after {
+        box-shadow: none;
+    }
+}
+
 
 /* ──────────────────────────────────────────────────────────────────────────
    5. SAFE-AREA AWARENESS FOR FIXED ELEMENTS

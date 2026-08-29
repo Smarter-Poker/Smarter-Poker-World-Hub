@@ -6,21 +6,21 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const RESTEAL_SPOTS = [
-  { opener: 'CO opens 2.5x', you: 'BTN', stack: '30 BB', action: '3-BET ALL-IN',
+  { opener: 'Action Folds To The Cutoff, Who Raises To 2.5 BB', you: 'BTN', stack: '30 BB', action: '3-BET ALL-IN',
     hands: 'A2s-A5s, K9s+, QTs+, 77+', color: '#ef4444',
     reason: 'Short stack + LP opener = perfect resteal. They fold 60%+ and you pick up 4+ BB.' },
-  { opener: 'BTN opens 2.2x', you: 'SB', stack: '100 BB', action: '3-BET TO 10-11x',
+  { opener: 'Action Folds To The Button, Who Raises To 2.2 BB', you: 'SB', stack: '100 BB', action: '3-BET TO 10-11 BB',
     hands: 'ATs+, KQs, 99+, A5s-A4s (blockers)', color: '#f59e0b',
-    reason: 'BTN opens very wide. 3-bet from SB with a polarized range — value hands + blocker bluffs.' },
-  { opener: 'HJ opens 2.5x', you: 'CO', stack: '80 BB', action: '3-BET TO 8x',
+    reason: 'The Button Raises First-In With A Wide Range. From The Small Blind, Use A Polarized 3-Bet Range Of Value Hands And Selected Blocker Bluffs.' },
+  { opener: 'Action Folds To The Hijack, Who Raises To 2.5 BB', you: 'CO', stack: '80 BB', action: '3-BET TO 8 BB',
     hands: 'QQ+, AKs, AQs (mostly value)', color: '#3b82f6',
-    reason: 'HJ opens tighter. Your 3-bet should be more value-heavy from CO. Less bluffing.' },
-  { opener: 'BTN opens 2x', you: 'BB', stack: '50 BB', action: '3-BET TO 10x',
+    reason: 'The Hijack Raises First-In With A Tighter Range, So The Cutoff\'s 3-Bet Range Should Be More Value-Heavy.' },
+  { opener: 'Action Folds To The Button, Who Raises To 2 BB', you: 'BB', stack: '50 BB', action: '3-BET TO 10 BB',
     hands: 'TT+, AJs+, KQs, A5s-A2s, 76s-98s', color: '#22c55e',
     reason: 'BB vs BTN is the most common 3-bet spot. Mix value and bluffs. You close the action.' },
-  { opener: 'UTG opens 3x', you: 'BTN', stack: '100 BB', action: 'FLAT (don\'t resteal)',
+  { opener: 'Action Folds To Under The Gun, Who Raises To 3 BB', you: 'BTN', stack: '100 BB', action: 'CALL',
     hands: 'Just call with TT-JJ, AQs, KQs', color: '#64748b',
-    reason: 'UTG opens tight. Don\'t resteal against tight ranges — just flat and play position.' },
+    reason: 'Under The Gun Raises First-In With A Tight Range, So This Lesson Keeps The Button\'s Response Value-Heavy And Uses A Call With The Stated Hand.' },
 ];
 
 export default function RestealGuide() {

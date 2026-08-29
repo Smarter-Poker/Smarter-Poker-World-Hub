@@ -16,7 +16,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 const DEFAULT_TREE = {
   id: 'root',
   street: 'Preflop',
-  action: 'BTN opens 2.5x',
+  action: 'Action Folds To The Button, Who Raises To 2.5 BB',
   player: 'BTN',
   children: [
     {

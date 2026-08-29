@@ -69,44 +69,11 @@ function EventIcon({ kind, size=10 }) {
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// FEED ENGINE (real user data + simulated community activity)
+// FEED ENGINE (verified user session data only)
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-// Simple seed-based pseudo-random to avoid Math.random() flicker on re-renders
-function seededRandom(seed) {
-  const x = Math.sin(seed * 9301 + 49297) * 49241;
-  return x - Math.floor(x);
-}
-
-const FRIEND_NAMES = [
-  'PokerPro_Mike',
-  'AceHunter99',
-  'GTO_Sarah',
-  'Riverbluff_Dan',
-  'ChipStack_King',
-  'FlushDraw_Amy',
-  'NittyGritty',
-  'RangeWizard',
-];
-
-const GAME_NAMES = [
-  'BB Defense',
-  'BTN Opens',
-  'C-Bet Mastery',
-  'River Bluffs',
-  '3-Bet Pots',
-  'MTT Push/Fold',
-  'Turn Barrels',
-  'SB Strategy',
-  'Position Mastery',
-  'Pot Geometry',
-  'ICM Decisions',
-  'Bluff Catching',
-];
 
 function generateFeedItems(userSessions) {
   const items = [];
-  const now = Date.now();
 
   // Add user's own recent sessions
   if (userSessions && userSessions.length > 0) {
@@ -125,41 +92,6 @@ function generateFeedItems(userSessions) {
         avatarColor: 'var(--sp-accent-cyan)',
       });
     });
-  }
-
-  // Generate simulated community activity (seeded for deterministic renders)
-  const daySeed = Math.floor(now / 86400000); // changes once per day
-  for (let i = 0; i < 12; i++) {
-    const friendName = FRIEND_NAMES[i % FRIEND_NAMES.length];
-    const minutesAgo = Math.floor(seededRandom(daySeed + i) * 1440) + 5;
-    const type = i < 6 ? 'session' : i < 9 ? 'streak' : i < 11 ? 'achievement' : 'mastery';
-
-    const item = {
-      id: `community-${i}`,
-      type,
-      user: friendName,
-      isYou: false,
-      simulated: true,
-      timestamp: now - minutesAgo * 60000,
-      avatarColor: `hsl(${(i * 47) % 360}, 60%, 55%)`,
-    };
-
-    if (type === 'session') {
-      item.game = GAME_NAMES[i % GAME_NAMES.length];
-      item.accuracy = Math.floor(seededRandom(daySeed + i + 100) * 30) + 65;
-      item.handsPlayed = Math.floor(seededRandom(daySeed + i + 200) * 20) + 10;
-    } else if (type === 'streak') {
-      item.streakDays = Math.floor(seededRandom(daySeed + i + 300) * 25) + 3;
-    } else if (type === 'achievement') {
-      item.badge = ['First Blood', 'Streak Master', 'GTO Expert', 'Iron Will', 'Diamond Grinder'][
-        i % 5
-      ];
-    } else if (type === 'mastery') {
-      item.game = GAME_NAMES[i % GAME_NAMES.length];
-      item.level = Math.floor(seededRandom(daySeed + i + 400) * 3) + 1;
-    }
-
-    items.push(item);
   }
 
   // Sort by timestamp (newest first)
@@ -181,7 +113,7 @@ function formatTimeAgo(timestamp) {
 // FEED ITEM COMPONENT
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function FeedItem({ item, onChallenge }) {
+function FeedItem({ item }) {
   const eventType = EVENT_TYPES[item.type] || EVENT_TYPES.session;
 
   function renderContent() {
@@ -298,46 +230,7 @@ function FeedItem({ item, onChallenge }) {
               {eventType.label}
             </span>
           </span>
-          {item.simulated && (
-            <span
-              style={{
-                padding: '1px 5px',
-                borderRadius: 3,
-                background: 'rgba(100,116,139,0.1)',
-                border: '1px solid rgba(100,116,139,0.15)',
-                color: 'var(--sp-fg-faint)',
-                fontSize: 8,
-                fontWeight: 600,
-                letterSpacing: 0.3,
-              }}
-            >
-              COMMUNITY
-            </span>
-          )}
           <span style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>{formatTimeAgo(item.timestamp)}</span>
-          {!item.isYou && item.type === 'session' && (
-            <motion.button
-              type="button"
-              aria-label={`Challenge ${item.user} to a session`}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onChallenge(item.user)}
-              style={{
-                marginLeft: 'auto',
-                padding: '3px 10px',
-                borderRadius: 6,
-                border: '1px solid rgba(168,85,247,0.2)',
-                background: 'rgba(168,85,247,0.06)',
-                color: 'var(--sp-accent-purple)',
-                fontSize: 9,
-                fontWeight: 700,
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-              }}
-            >
-              Challenge
-            </motion.button>
-          )}
         </div>
       </div>
     </motion.div>
@@ -417,18 +310,12 @@ export default function TrainingFeedPage() {
     return unsub;
   }, [fetchFeed]);
 
-  const handleChallenge = (username) => {
-    router.push('/hub/training/pvp-lobby');
-  };
-
   const filteredItems =
     filter === 'all' ? feedItems : feedItems.filter((item) => item.type === filter);
 
   const FILTER_OPTIONS = [
     { id: 'all', label: 'All' },
     { id: 'session', label: 'Sessions' },
-    { id: 'streak', label: 'Streaks' },
-    { id: 'achievement', label: 'Badges' },
   ];
 
   return (
@@ -437,6 +324,7 @@ export default function TrainingFeedPage() {
         <title>Training Feed | Smarter.Poker GTO Training</title>
       </Head>
       <div
+        className="sp-training-command sp-training-command--feed"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -446,6 +334,7 @@ export default function TrainingFeedPage() {
       >
         {/* Header */}
         <div
+          className="sp-command-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -477,12 +366,13 @@ export default function TrainingFeedPage() {
           </button>
           <div>
             <h1 style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)', margin: 0 }}>Training Feed</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>See what your network is training</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your Verified Training Activity</div>
           </div>
         </div>
 
         {/* Filter tabs */}
         <div
+          className="sp-command-filter-rail"
           role="tablist"
           aria-label="Filter training feed"
           style={{
@@ -518,7 +408,7 @@ export default function TrainingFeedPage() {
           ))}
         </div>
 
-        <div style={{ maxWidth: 600, margin: '0 auto' }}>
+        <div className="sp-command-main" style={{ maxWidth: 600, margin: '0 auto' }}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchFeed(); }} />
 
           {/* Loading */}
@@ -543,7 +433,7 @@ export default function TrainingFeedPage() {
           {/* Feed Items */}
           {!loading &&
             filteredItems.map((item) => (
-              <FeedItem key={item.id} item={item} onChallenge={handleChallenge} />
+              <FeedItem key={item.id} item={item} />
             ))}
 
           {/* Empty state */}
@@ -565,7 +455,7 @@ export default function TrainingFeedPage() {
               color: 'var(--sp-fg-faint)',
             }}
           >
-            Feed updates automatically when you or friends complete sessions
+            Feed Updates Automatically When Your Saved Training Sessions Complete
           </div>
         </div>
       </div>

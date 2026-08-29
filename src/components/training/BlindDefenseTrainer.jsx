@@ -14,7 +14,7 @@ const DEFENSE_DATA = [
     bbFold: { pct: 83, hands: 'Weak offsuit, disconnected, low cards' },
     sb3bet: { pct: 4, hands: 'QQ+, AKs, AKo' },
     sbFold: { pct: 96, hands: 'Almost everything — worst position vs tightest range' },
-    notes: 'UTG opens tight. Defend selectively. 3-bet only premiums + some blockers.',
+    notes: 'Under The Gun Raises First-In With A Tight Range. Defend Selectively And 3-Bet Premiums Plus Selected Blocker Hands.',
   },
   {
     opener: 'MP', openPct: 18, openSize: '2.5x',
@@ -32,7 +32,7 @@ const DEFENSE_DATA = [
     bbFold: { pct: 69, hands: 'Worst hands only' },
     sb3bet: { pct: 8, hands: 'JJ+, AKs-AQs, AKo, A5s-A3s, KQs, 76s' },
     sbFold: { pct: 92, hands: 'Most hands — still OOP' },
-    notes: 'CO opens wide. BB should 3-bet aggressively with polarized range. Call wide with position discount.',
+    notes: 'The Cutoff Raises First-In With A Wider Range. The Big Blind Can 3-Bet A Polarized Range And Call More Hands Because Of The Blind Discount.',
   },
   {
     opener: 'BTN', openPct: 45, openSize: '2.5x',
@@ -41,7 +41,7 @@ const DEFENSE_DATA = [
     bbFold: { pct: 58, hands: 'Only worst offsuit combos' },
     sb3bet: { pct: 11, hands: '99+, ATs+, AJo+, KQs, A5s-A2s, suited connectors, KJs' },
     sbFold: { pct: 89, hands: 'Weak hands — complete OOP vs wide range' },
-    notes: 'BTN opens very wide. BB must defend aggressively or get exploited. 3-bet wide with polar range.',
+    notes: 'The Button Raises First-In With A Very Wide Range. The Big Blind Must Defend Enough Through Calls And Polarized 3-Bets To Avoid Over-Folding.',
   },
   {
     opener: 'SB (open)', openPct: 50, openSize: '2.5x',
@@ -50,7 +50,7 @@ const DEFENSE_DATA = [
     bbFold: { pct: 59, hands: 'Worst offsuit only — you close the action + have position discount' },
     sb3bet: { pct: 0, hands: '—' },
     sbFold: { pct: 0, hands: '—' },
-    notes: 'SB opens widest. BB should 3-bet very aggressively — you have position AND close the action.',
+    notes: 'The Small Blind Raises First-In With A Wide Range. The Big Blind Has Position, Closes The Action, And Can Respond Aggressively.',
   },
 ];
 

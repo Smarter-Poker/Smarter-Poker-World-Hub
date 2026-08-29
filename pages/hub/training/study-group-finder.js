@@ -11,13 +11,12 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-56 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH6-17 — hex sweep batch 6: extended palette literals routed
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-9b — adoption: shared empty-state primitive
 
@@ -167,7 +166,6 @@ function BookIcon({ size=24 })     { return <_Svg size={size}><path d="M4 19.5A2
 function BoltIcon({ size=24 })     { return <_Svg size={size}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></_Svg>; }
 function TargetIcon({ size=24 })   { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
 function SwordsIcon({ size=24 })   { return <_Svg size={size}><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><polyline points="19 21 21 21 21 19 14 12"/></_Svg>; }
-function CheckIcon({ size=12 })    { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
 function BackArrowIcon({ size=18 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function AvatarIcon({ kind, size=24 }) {
   switch (kind) {
@@ -189,7 +187,6 @@ export default function StudyGroupFinderPage() {
   const [filterFmt, setFilterFmt] = useState('All');
   const [filterLevel, setFilterLevel] = useState('Any');
   const [search, setSearch] = useState('');
-  const [applied, setApplied] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [sortBy, setSortBy] = useState('slots'); // 'slots' | 'members' | 'name'
 
@@ -200,53 +197,6 @@ export default function StudyGroupFinderPage() {
     });
     return unsub;
   }, []);
-
-  // Load applied groups from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('study-group-applied');
-      if (saved) setApplied(JSON.parse(saved));
-    } catch (e) { console.warn('[App] Handled exception:', e); }
-  }, []);
-
-  const applyGroup = useCallback(
-    (gId) => {
-      if (applied.includes(gId)) return;
-      const next = [...applied, gId];
-      setApplied(next);
-      try {
-        localStorage.setItem('study-group-applied', JSON.stringify(next));
-      } catch (e) { console.warn('[App] Handled exception:', e); }
-
-      // Save to Supabase
-      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-      if (token) {
-        authedFetch('/api/training/save-session', {
-          method: 'POST',
-          body: JSON.stringify({
-            gameId: 'study-group',
-            gameName: 'Study Group Application',
-            gtowScore: 100,
-            totalEVLoss: 0,
-            handsPlayed: next.length,
-            mistakeCount: 0,
-            accuracy: 100,
-            correctCount: next.length,
-            bestStreak: 0,
-            levelPassed: true,
-            level: 1,
-            handHistory: [],
-          }),
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        eventBus?.emit?.(
-          EventType?.SESSION_END || 'session:end',
-          { gameId: 'study-group', groupId: gId, totalApplied: next.length },
-          'StudyGroupFinder'
-        );
-      }
-    },
-    [applied]
-  );
 
   const filtered = useMemo(() => {
     let list = MOCK_GROUPS;
@@ -285,6 +235,7 @@ export default function StudyGroupFinderPage() {
         />
       </Head>
       <div
+        className="sp-training-command sp-training-command--group-finder"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -294,6 +245,7 @@ export default function StudyGroupFinderPage() {
       >
         {/* Header */}
         <div
+          className="sp-command-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -326,7 +278,7 @@ export default function StudyGroupFinderPage() {
                   array; rendering its length beside a live "applied" count read as
                   a real population of study groups a player could join. */}
               <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-                {MOCK_GROUPS.length} example groups · {applied.length} applied
+                {MOCK_GROUPS.length} Example Groups · Preview Catalog
               </div>
             </div>
           </div>
@@ -349,7 +301,7 @@ export default function StudyGroupFinderPage() {
           </motion.button>
         </div>
 
-        <div style={{ maxWidth: 800, margin: '0 auto', padding: '20px 16px' }}>
+        <div className="sp-command-main" style={{ maxWidth: 800, margin: '0 auto', padding: '20px 16px' }}>
           {/* Create Group Form */}
           <AnimatePresence>
             {showCreate && (
@@ -558,7 +510,6 @@ export default function StudyGroupFinderPage() {
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {filtered.map((g, i) => {
-              const isApplied = applied.includes(g.id);
               const isFull = g.members >= g.max;
               const slotsLeft = g.max - g.members;
 
@@ -570,7 +521,7 @@ export default function StudyGroupFinderPage() {
                   transition={{ delay: i * 0.04 }}
                   style={{
                     background: 'rgba(255,255,255,0.02)',
-                    border: `1px solid ${isApplied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)'}`,
+                    border: '1px solid rgba(255,255,255,0.05)',
                     borderRadius: 14,
                     padding: 20,
                   }}
@@ -637,28 +588,21 @@ export default function StudyGroupFinderPage() {
                         </div>
                       </div>
                       <motion.button
-                        whileTap={!isApplied && !isFull ? { scale: 0.95 } : {}}
-                        onClick={() => applyGroup(g.id)}
-                        disabled={isApplied || isFull}
+                        disabled
+                        aria-label={`${g.name}: Preview Only`}
                         style={{
                           padding: '10px 20px',
                           borderRadius: 8,
-                          background: isApplied
-                            ? 'transparent'
-                            : isFull
-                              ? 'rgba(255,255,255,0.03)'
-                              : 'var(--sp-accent-blue)',
-                          border: isApplied
-                            ? '1px solid #4ade80'
-                            : `1px solid ${isFull ? 'rgba(255,255,255,0.05)' : 'transparent'}`,
-                          color: isApplied ? 'var(--sp-accent-green)' : isFull ? 'var(--sp-fg-faint)' : '#fff',
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          color: 'var(--sp-fg-muted)',
                           fontSize: 12,
                           fontWeight: 700,
-                          cursor: isApplied || isFull ? 'not-allowed' : 'pointer',
+                          cursor: 'not-allowed',
                           minWidth: 120,
                         }}
                       >
-                        {isApplied ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Applied <CheckIcon size={12} /></span> : isFull ? 'Full' : 'Apply'}
+                        Preview Only
                       </motion.button>
                     </div>
                   </div>

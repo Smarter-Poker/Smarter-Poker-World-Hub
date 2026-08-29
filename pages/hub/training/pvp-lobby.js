@@ -25,8 +25,7 @@ const PvPArena = dynamic(() => import('../../../src/components/training/PvPArena
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HORSE AI MATCHMAKING CONFIG
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-const MATCHMAKING_TIMEOUT_MS = 7000; // 7 seconds before horse AI fallback
-const HORSE_ENTRANCE_DELAY_MS = 1200; // Dramatic pause before horse appears
+const TRAINING_OPPONENT_LOAD_MS = 350;
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // GAME FORMATS
@@ -51,9 +50,9 @@ const FORMATS = {
 };
 
 const STAKE_LEVELS = [
-  { name: 'Free Play', icon: 'FREE', entry: 0, prize: 'Bragging Rights' },
-  { name: 'Low Stakes', icon: '◆', entry: 10, prize: '25 Diamonds' },
-  { name: 'High Roller', icon: '★', entry: 50, prize: '150 Diamonds' },
+  { name: 'Free Practice', icon: 'FREE', entry: 0, prize: 'Training Match', available: true },
+  { name: 'Low Stakes', icon: '◆', entry: 10, prize: 'Competitive Mode Preview', available: false },
+  { name: 'High Roller', icon: '★', entry: 50, prize: 'Competitive Mode Preview', available: false },
 ];
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -170,19 +169,6 @@ function PlayerCard({ player, isReady, isSelf }) {
 // SEASON LEADERBOARD
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-const LEADERBOARD_DATA = [
-  { rank: 1, name: 'GTO_Master', rating: 1847, wins: 142, losses: 38, streak: 12 },
-  { rank: 2, name: 'SolverPro', rating: 1792, wins: 128, losses: 45, streak: 7 },
-  { rank: 3, name: 'RangeKing', rating: 1756, wins: 115, losses: 52, streak: 5 },
-  { rank: 4, name: 'PokerShark99', rating: 1701, wins: 98, losses: 61, streak: 3 },
-  { rank: 5, name: 'NitHunter', rating: 1688, wins: 105, losses: 68, streak: 4 },
-  { rank: 6, name: 'BluffCatcher', rating: 1655, wins: 92, losses: 71, streak: 2 },
-  { rank: 7, name: 'EquityKid', rating: 1621, wins: 87, losses: 79, streak: 1 },
-  { rank: 8, name: 'ThreeBetQueen', rating: 1598, wins: 81, losses: 82, streak: 0 },
-  { rank: 9, name: 'FoldToWin', rating: 1567, wins: 76, losses: 85, streak: 1 },
-  { rank: 10, name: 'GTOWizard_Fan', rating: 1543, wins: 72, losses: 89, streak: 0 },
-];
-
 function SeasonLeaderboard() {
   return (
     <div
@@ -201,7 +187,7 @@ function SeasonLeaderboard() {
           marginBottom: 10,
         }}
       >
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>Season Leaderboard</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>Competitive Leaderboard</div>
         <div
           style={{
             fontSize: 9,
@@ -211,51 +197,12 @@ function SeasonLeaderboard() {
             letterSpacing: 1,
           }}
         >
-          Season 1
+          Preview
         </div>
       </div>
-      {LEADERBOARD_DATA.map((p, i) => (
-        <div
-          key={i}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '6px 8px',
-            borderRadius: 6,
-            marginBottom: 2,
-            background: i < 3 ? `rgba(251,191,36,${0.05 - i * 0.01})` : 'transparent',
-          }}
-        >
-          <span
-            style={{
-              width: 20,
-              fontSize: 10,
-              fontWeight: 800,
-              color: i === 0 ? 'var(--sp-accent-amber)' : i === 1 ? 'var(--sp-fg-muted)' : i === 2 ? '#d97706' : 'var(--sp-fg-faint)',
-            }}
-          >
-            {p.rank}
-          </span>
-          <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: 'var(--sp-fg)' }}>{p.name}</span>
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: 'var(--sp-accent-purple)',
-              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              minWidth: 40,
-              textAlign: 'right',
-            }}
-          >
-            {p.rating}
-          </span>
-          <span style={{ fontSize: 9, color: 'var(--sp-accent-green)', minWidth: 30, textAlign: 'right' }}>
-            {p.wins}W
-          </span>
-          <span style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>/{p.losses}L</span>
-        </div>
-      ))}
+      <p style={{ margin: 0, color: 'var(--sp-fg-muted)', fontSize: 11, lineHeight: 1.6 }}>
+        Real-player rankings are not live yet. Practice matches against the training AI do not create a competitive rating.
+      </p>
     </div>
   );
 }
@@ -265,50 +212,6 @@ function SeasonLeaderboard() {
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function PersonalStats() {
-  const [stats, setStats] = React.useState({ wins: 0, losses: 0, bestStreak: 0 });
-  const [loaded, setLoaded] = React.useState(false);
-
-  React.useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const token = getAccessToken();
-        if (!token) {
-          setStats({ wins: 23, losses: 14, bestStreak: 6 });
-          setLoaded(true);
-          return;
-        }
-        const res = await authedFetch('/api/training/save-session', {
-          method: 'GET',
-        });
-        // API is POST-only, so use fallback data for now
-        // In production, a GET /api/training/stats endpoint would provide real data
-        setStats({ wins: 23, losses: 14, bestStreak: 6 });
-      } catch (e) {
-        setStats({ wins: 23, losses: 14, bestStreak: 6 });
-      }
-      setLoaded(true);
-    };
-    loadStats();
-
-    // Update stats when sessions complete
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (event) => {
-      const detail = event?.payload || event;
-      if (detail?.gameId === 'pvp-match') {
-        setStats((prev) => {
-          const won = (detail?.accuracy || 0) >= 60;
-          return {
-            wins: prev.wins + (won ? 1 : 0),
-            losses: prev.losses + (won ? 0 : 1),
-            bestStreak: won ? Math.max(prev.bestStreak, 1) : prev.bestStreak,
-          };
-        });
-      }
-    });
-    return unsub;
-  }, []);
-
-  const total = stats.wins + stats.losses;
-  const winRate = total > 0 ? Math.round((stats.wins / total) * 100) : 0;
   return (
     <div
       style={{
@@ -319,13 +222,13 @@ function PersonalStats() {
       }}
     >
       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 10 }}>
-        Your Stats
+        Competitive Stats
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
         {[
-          { label: 'W/L', value: `${stats.wins}-${stats.losses}`, color: 'var(--sp-accent-green)' },
-          { label: 'Win %', value: `${winRate}%`, color: winRate >= 55 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)' },
-          { label: 'Best Streak', value: stats.bestStreak, color: 'var(--sp-accent-cyan)' },
+          { label: 'Wins', value: '—', color: 'var(--sp-accent-green)' },
+          { label: 'Rating', value: '—', color: 'var(--sp-accent-amber)' },
+          { label: 'Best Streak', value: '—', color: 'var(--sp-accent-cyan)' },
         ].map((s, i) => (
           <div
             key={i}
@@ -362,6 +265,9 @@ function PersonalStats() {
           </div>
         ))}
       </div>
+      <p style={{ margin: '10px 0 0', color: 'var(--sp-fg-dim)', fontSize: 10, lineHeight: 1.5 }}>
+        Competitive records will appear when real-player matchmaking launches.
+      </p>
     </div>
   );
 }
@@ -371,20 +277,6 @@ function PersonalStats() {
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function RecentMatches() {
-  const matches = [
-    { opponent: 'GTO_Grinder', result: 'W', score: '78-65', date: 'Today', format: 'Rapid' },
-    {
-      opponent: 'PokerShark99',
-      result: 'L',
-      score: '62-71',
-      date: 'Yesterday',
-      format: 'Standard',
-    },
-    { opponent: 'SolverPro', result: 'W', score: '85-52', date: '2 days ago', format: 'Marathon' },
-    { opponent: 'NitHunter', result: 'W', score: '91-44', date: '3 days ago', format: 'Rapid' },
-    { opponent: 'RangeKing', result: 'L', score: '58-73', date: '4 days ago', format: 'Standard' },
-  ];
-
   return (
     <div
       style={{
@@ -397,52 +289,9 @@ function RecentMatches() {
       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 10 }}>
         Recent Matches
       </div>
-      {matches.map((m, i) => (
-        <div
-          key={i}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '8px 10px',
-            borderRadius: 8,
-            marginBottom: 4,
-            background: m.result === 'W' ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)',
-          }}
-        >
-          <span
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: '50%',
-              background: m.result === 'W' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
-              color: m.result === 'W' ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 10,
-              fontWeight: 800,
-            }}
-          >
-            {m.result}
-          </span>
-          <div style={{ flex: 1 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-fg)' }}>vs {m.opponent}</span>
-            <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>{m.format}</div>
-          </div>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: 'var(--sp-fg-muted)',
-              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-            }}
-          >
-            {m.score}
-          </span>
-          <span style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>{m.date}</span>
-        </div>
-      ))}
+      <p style={{ margin: 0, color: 'var(--sp-fg-muted)', fontSize: 11, lineHeight: 1.6 }}>
+        No real-player matches have been recorded. Training AI sessions remain practice-only.
+      </p>
     </div>
   );
 }
@@ -463,11 +312,8 @@ export default function PvPLobbyPage() {
   const searchTimerRef = useRef(null);
 
   const [inArena, setInArena] = useState(false); // When true, show PvPArena component
-  const [currentUser, setCurrentUser] = useState({ name: 'You', rating: 1200 });
-  const [onlineCount, setOnlineCount] = useState(null); // null until mounted (SSR-safe)
-  const [searchElapsed, setSearchElapsed] = useState(0); // Countdown timer display
-  const searchIntervalRef = useRef(null);
-  const [isAutoMatched, setIsAutoMatched] = useState(false); // true if matched via timeout (not realtime)
+  const [currentUser, setCurrentUser] = useState({ name: 'You', rating: null });
+  const [queueReady, setQueueReady] = useState(false);
   const [opponentEngine, setHorseData] = useState(null); // Full horse data for PvPArena
 
   useEffect(() => {
@@ -477,48 +323,33 @@ export default function PvPLobbyPage() {
       const avatarUrl = user?.user?.user_metadata?.avatar_url || user?.user_metadata?.avatar_url || null;
       const uid = user?.user?.id || user?.id || null;
       if (displayName || avatarUrl || uid) {
-        setCurrentUser({ name: displayName || 'You', rating: 1200, avatar: avatarUrl, id: uid });
+        setCurrentUser({ name: displayName || 'You', rating: null, avatar: avatarUrl, id: uid });
       }
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-    // Set online count client-side only to avoid hydration mismatch
-    setOnlineCount(237 + Math.floor(Math.random() * 50));
+    setQueueReady(true);
   }, []);
 
   // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-  // MATCHMAKING: 7-second timeout → Horse AI fallback
+  // PRACTICE OPPONENT: load an explicitly identified training AI.
   // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   const handleFindMatch = useCallback(() => {
     setIsSearching(true);
     setMatchFound(false);
     setOpponent(null);
     setSelfReady(false);
-    setSearchElapsed(0);
-    setIsAutoMatched(false);
     setHorseData(null);
 
-    // Tick every second for countdown display
-    searchIntervalRef.current = setInterval(() => {
-      setSearchElapsed(prev => prev + 1);
-    }, 1000);
-
-    // After 7 seconds: no real player found → fetch a Horse AI opponent
     searchTimerRef.current = setTimeout(async () => {
-      if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
-
       try {
         const res = await fetch('/api/training/horse-opponent');
         const data = await res.json();
 
         if (data?.player) {
-          // Brief delay to feel like real matchmaking
-          await new Promise(r => setTimeout(r, HORSE_ENTRANCE_DELAY_MS));
-
           setIsSearching(false);
           setMatchFound(true);
-          setIsAutoMatched(true);
           setHorseData(data._engine); // Internal personality for decision engine only
           setOpponent({
-            name: data.player.name,
+            name: `${data.player.name} · Training AI`,
             rating: data.player.rating,
             avatar: data.player.avatar,
             id: data.player.id,
@@ -531,25 +362,22 @@ export default function PvPLobbyPage() {
         console.warn('[PvP] Opponent fetch failed, using fallback:', err.message);
       }
 
-      // Fallback — still looks like a real player
+      // Honest local fallback when the authored training-opponent service is unavailable.
       setIsSearching(false);
       setMatchFound(true);
-      setIsAutoMatched(true);
       setOpponent({
-        name: 'GTO_Grinder',
-        rating: 1200 + Math.floor(Math.random() * 400),
-        id: `fb_${Date.now()}`,
+        name: 'GTO Training AI',
+        rating: null,
+        id: 'local-training-ai',
         _engine: { aggression: 7, humor: 4, technical: 8, contrarian: 3, gto: 'balanced', risk: 'moderate' },
       });
-    }, MATCHMAKING_TIMEOUT_MS);
+    }, TRAINING_OPPONENT_LOAD_MS);
   }, []);
 
   // Cancel search
   const handleCancelSearch = useCallback(() => {
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
     setIsSearching(false);
-    setSearchElapsed(0);
   }, []);
 
   // Ready up → launch PvPArena for the match
@@ -613,7 +441,6 @@ export default function PvPLobbyPage() {
   useEffect(() => {
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-      if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
     };
   }, []);
 
@@ -638,7 +465,7 @@ export default function PvPLobbyPage() {
         <title>PvP Arena | Smarter.Poker Training</title>
         <meta
           name="description"
-          content="Challenge other players to head-to-head GTO battles. Compete for diamonds and bragging rights."
+        content="Practice head-to-head GTO decisions against an identified training AI while real-player competitive matchmaking is in development."
         />
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap"
@@ -647,6 +474,7 @@ export default function PvPLobbyPage() {
       </Head>
 
       <div
+        className="sp-training-command sp-training-command--pvp"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
@@ -656,6 +484,7 @@ export default function PvPLobbyPage() {
       >
         {/* Header */}
         <div
+          className="sp-command-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -699,12 +528,12 @@ export default function PvPLobbyPage() {
               style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sp-accent-green)' }}
             />
             <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
-              {onlineCount !== null ? `${onlineCount} Online` : ''}
+              {queueReady ? 'Training Opponent Ready' : 'Connecting'}
             </span>
           </div>
         </div>
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className="sp-command-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {!matchFound ? (
             /* LOBBY — Format & Stake Selection */
             <>
@@ -723,7 +552,7 @@ export default function PvPLobbyPage() {
                   HEAD-TO-HEAD
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 8 }}>
-                  Challenge another player to a GTO decision battle
+                  Practice GTO decisions against an identified training AI
                 </p>
               </div>
 
@@ -793,13 +622,16 @@ export default function PvPLobbyPage() {
                   {STAKE_LEVELS.map((s, i) => (
                     <motion.button
                       key={i}
-                      onClick={() => setStakeLevel(i)}
-                      whileHover={{ scale: 1.03 }}
+                      onClick={() => s.available && setStakeLevel(i)}
+                      whileHover={s.available ? { scale: 1.03 } : undefined}
+                      disabled={!s.available}
+                      aria-label={`${s.name}: ${s.prize}`}
                       style={{
                         padding: '12px 10px',
                         borderRadius: 10,
                         border: 'none',
-                        cursor: 'pointer',
+                        cursor: s.available ? 'pointer' : 'not-allowed',
+                        opacity: s.available ? 1 : 0.52,
                         textAlign: 'center',
                         background:
                           stakeLevel === i ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.03)',
@@ -817,7 +649,7 @@ export default function PvPLobbyPage() {
                         {s.name}
                       </div>
                       <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>
-                        {s.entry > 0 ? `Entry: ${s.entry}◆` : 'Free'}
+                        {s.available ? 'Available Now' : 'Coming Soon'}
                       </div>
                     </motion.button>
                   ))}
@@ -853,10 +685,10 @@ export default function PvPLobbyPage() {
                     >
                       SEARCHING
                     </motion.span>
-                    {' '}({Math.max(0, 7 - searchElapsed)}s) — tap to cancel
+                    {' '}Training Opponent — Tap To Cancel
                   </span>
                 ) : (
-                  'FIND MATCH'
+                  'START PRACTICE MATCH'
                 )}
               </motion.button>
 
@@ -880,7 +712,7 @@ export default function PvPLobbyPage() {
                   fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
-                MATCH FOUND
+                TRAINING OPPONENT READY
               </div>
 
               {/* Player Cards */}
@@ -937,7 +769,7 @@ export default function PvPLobbyPage() {
                     boxShadow: '0 4px 20px rgba(34,197,94,0.3)',
                   }}
                 >
-                  READY UP
+                  START PRACTICE TABLE
                 </motion.button>
               ) : (
                 <div
@@ -958,7 +790,7 @@ export default function PvPLobbyPage() {
                     animate={{ opacity: [1, 0.4, 1] }}
                     transition={{ repeat: Infinity, duration: 1.2 }}
                   >
-                    WAITING FOR OPPONENT...
+                    LOADING PRACTICE TABLE...
                   </motion.span>
                 </div>
               )}
