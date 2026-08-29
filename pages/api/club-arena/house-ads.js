@@ -139,10 +139,37 @@ function normaliseDailyCap(value) {
  * panel. Same-origin paths only, and the database carries the same CHECK so
  * this is the courteous refusal rather than the lock.
  */
-function cleanImageUrl(value) {
+/**
+ * A ROOTED, SAME-ORIGIN PATH, OR A REFUSAL THAT SAYS SO.
+ *
+ * Two problems this fixes at once, and it replaces `cleanImageUrl`, which had
+ * the first of them.
+ *
+ * `cleanImageUrl` called itself "the courteous refusal" and refused nothing:
+ * an outside host returned null, the row saved, the panel said "Saved.", and
+ * the field came back empty. The operator was left to guess. That is the same
+ * silent-write shape readSlot's comment was written to end.
+ *
+ * `target_url` had no check on this side at all. Every client has one -
+ * isSafeAdTarget in Club Arena, isSafeHubDestination on the Hub - so an
+ * `https://` destination typed into this panel was stored, served, rendered,
+ * and then refused at the last moment by the browser that got it. The ad
+ * looked live everywhere an operator could see it and was dead everywhere a
+ * player could.
+ *
+ * The rule is the clients' rule, so that what this accepts is exactly what
+ * they will follow: starts with `/`, is not protocol-relative, and carries no
+ * backslash (browsers normalise `/\evil.example` toward `//evil.example`).
+ *
+ * Three return values, and the callers must tell them apart:
+ *   null   - absent. Leave it alone, or clear it. Not an error.
+ *   string - acceptable, and this is what to store.
+ *   false  - present and refused. The caller returns 400 naming the value.
+ */
+function readSitePath(value) {
     const url = clean(value, 300);
     if (!url) return null;
-    if (!url.startsWith('/') || url.startsWith('//')) return null;
+    if (!url.startsWith('/') || url.startsWith('//') || url.includes('\\')) return false;
     return url;
 }
 
@@ -664,9 +691,32 @@ export default async function handler(req, res) {
                 return res.status(400).json({ success: false, error: 'Unknown category' });
             }
 
+            /* Floor of 1, matching the PATCH clamp forty lines down and the
+               database's own ad_catalog_weight_positive. A 0 here reached that
+               constraint and came back "Could not create that ad" without ever
+               naming the field - and a cleared number box sends 0, because
+               Number('') is 0 and Number.isFinite(0) is true. */
             const weight = Number.isFinite(Number(b.weight))
-                ? Math.max(0, Math.min(1000, Math.round(Number(b.weight))))
+                ? Math.max(1, Math.min(1000, Math.round(Number(b.weight))))
                 : 100;
+
+            /* THE DESTINATION AND THE IMAGE ARE CHECKED BEFORE THE AD IS
+               WRITTEN, for the same reason the placement is: a refusal after
+               ad_catalog has been written leaves a live row behind a 400. */
+            const targetUrl = readSitePath(b.target_url);
+            if (targetUrl === false) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Not A Site Path: ${clean(b.target_url, 60)}`,
+                });
+            }
+            const imageUrl = readSitePath(b.image_url);
+            if (imageUrl === false) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Not A Site Path: ${clean(b.image_url, 60)}`,
+                });
+            }
 
             /* THE PLACEMENT IS VALIDATED BEFORE THE AD IS WRITTEN.
                Absent means "use the default" and is fine - an ad with no
@@ -702,9 +752,9 @@ export default async function handler(req, res) {
                     headline,
                     body: stripEmoji(clean(b.body, 240)),
                     glyph: stripEmoji(clean(b.glyph, 4)),
-                    target_url: clean(b.target_url, 300),
+                    target_url: targetUrl,
                     cta_label: stripEmoji(clean(b.cta_label, 40)),
-                    image_url: cleanImageUrl(b.image_url),
+                    image_url: imageUrl,
                     experiment_key: clean(b.experiment_key, 64),
                     is_active: b.is_active !== false,
                     starts_at: b.starts_at || null,
@@ -722,6 +772,18 @@ export default async function handler(req, res) {
                 }
                 console.warn('[house-ads] insert failed:', insErr.message);
                 return res.status(500).json({ success: false, error: 'Could not create that ad' });
+            }
+            /* .maybeSingle() answers a row this connection cannot read back as
+               { data: null, error: null }. Reading created.id from that threw a
+               TypeError, and the catch at the bottom turned an ad that may well
+               have been written into a bare "Internal server error" - the one
+               answer that tells the operator nothing about what to do next. */
+            if (!created?.id) {
+                console.warn('[house-ads] insert returned no row');
+                return res.status(500).json({
+                    success: false,
+                    error: 'The ad may have been created but could not be read back. Check the list before retrying.',
+                });
             }
 
             // slot, audience and dailyCap were read and validated above, before
@@ -764,7 +826,16 @@ export default async function handler(req, res) {
             if (b.headline !== undefined) patch.headline = stripEmoji(clean(b.headline, 120));
             if (b.body !== undefined) patch.body = stripEmoji(clean(b.body, 240));
             if (b.glyph !== undefined) patch.glyph = stripEmoji(clean(b.glyph, 4));
-            if (b.target_url !== undefined) patch.target_url = clean(b.target_url, 300);
+            if (b.target_url !== undefined) {
+                const t = readSitePath(b.target_url);
+                if (t === false) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Not A Site Path: ${clean(b.target_url, 60)}`,
+                    });
+                }
+                patch.target_url = t;
+            }
             if (b.cta_label !== undefined) patch.cta_label = stripEmoji(clean(b.cta_label, 40));
             if (b.is_active !== undefined) patch.is_active = b.is_active === true;
             if (b.starts_at !== undefined) patch.starts_at = b.starts_at || null;
@@ -779,7 +850,16 @@ export default async function handler(req, res) {
                    failing on a constraint the operator cannot see. */
                 patch.weight = Math.max(1, Math.min(1000, Math.round(Number(b.weight))));
             }
-            if (b.image_url !== undefined) patch.image_url = cleanImageUrl(b.image_url);
+            if (b.image_url !== undefined) {
+                const img = readSitePath(b.image_url);
+                if (img === false) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Not A Site Path: ${clean(b.image_url, 60)}`,
+                    });
+                }
+                patch.image_url = img;
+            }
             if (b.experiment_key !== undefined) patch.experiment_key = clean(b.experiment_key, 64);
             if (!patch.headline && Object.keys(patch).length === 1) {
                 return res.status(400).json({ success: false, error: 'Nothing to change' });

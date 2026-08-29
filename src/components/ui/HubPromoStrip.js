@@ -109,11 +109,15 @@ export default function HubPromoStrip() {
 
     const handleActivate = useCallback(() => {
         if (!visible) return;
-        // The click is recorded BEFORE navigating. The alternative is losing
+        // The click is recorded BEFORE navigating - the alternative is losing
         // the event to the unmount, which is how a click path ends up looking
-        // like nobody ever clicked.
-        logHubClick(visible.adId);
+        // like nobody ever clicked - but AFTER the destination has been
+        // checked. It used to be logged first, so an ad this client refuses to
+        // follow recorded a click and then did nothing: an event that reads in
+        // the panel exactly like a campaign that works, inflating the
+        // click-through rate of the campaigns that are broken.
         if (!isSafeHubDestination(visible.targetUrl)) return;
+        logHubClick(visible.adId);
         // Club Arena is a static SPA, not a Next page. The client router would
         // strip its trailing slash and land the player on "Unknown World".
         // See leavesTheNextRouter().
