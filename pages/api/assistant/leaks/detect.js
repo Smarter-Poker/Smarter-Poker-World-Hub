@@ -258,7 +258,7 @@ async function getPlayerStats(supabase, userId) {
       const queryHands = (key) => supabase
         .from('hand_history')
         .select('id, actions, players, summary, created_at')
-        .contains('players', [{ [key]: userId }])
+        .contains('players', JSON.stringify([{ [key]: userId }]))
         .order('created_at', { ascending: false })
         .limit(2000);
       const [modern, legacy] = await Promise.all([queryHands('userId'), queryHands('id')]);
@@ -1235,7 +1235,7 @@ async function linkHandExamples(userId, leaksWithIds) {
       // entry below; aliasing the whole map to `hero_cards` would have put
       // every player's shown cards into the example.
       .select('id, actions, players, summary, hole_cards, board, button_seat, pot_size, created_at')
-      .contains('players', [{ userId }])
+      .contains('players', JSON.stringify([{ userId }]))
       .order('created_at', { ascending: false })
       .limit(100);
 

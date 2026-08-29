@@ -99,7 +99,7 @@ export default async function handler(req, res) {
         .from('hand_history')
         .select('*', { count: 'exact' })
         .eq('table_id', tableId)
-        .contains('players', [{ userId: user.id }])
+        .contains('players', JSON.stringify([{ userId: user.id }]))
         .order('created_at', { ascending: false })
         .range(offset, offset + lim - 1);
 
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
           .from('hand_history')
           .select('*', { count: 'exact' })
           .eq('table_id', tableId)
-          .contains('players', [{ id: user.id }])
+          .contains('players', JSON.stringify([{ id: user.id }]))
           .order('created_at', { ascending: false })
           .range(offset, offset + lim - 1);
       }
