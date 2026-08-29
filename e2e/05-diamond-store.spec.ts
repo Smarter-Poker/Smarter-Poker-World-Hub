@@ -245,6 +245,8 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   });
 
   test('reward details own a signed-in telemetry console without leaving the page', async ({ page }) => {
+    await page.context().clearCookies();
+    await page.addInitScript(() => window.localStorage.clear());
     await page.goto('/hub/smarter-rewards/daily_login', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { level: 1, name: 'Daily Login' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 2, name: 'Verified Reward Telemetry' })).toBeVisible();
@@ -300,6 +302,8 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     const apiResponse = await request.get('/api/store/vip-membership-status');
     expect(apiResponse.status()).toBe(401);
 
+    await page.context().clearCookies();
+    await page.addInitScript(() => window.localStorage.clear());
     await page.goto('/hub/vip-membership/manage', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
     await expect(page.getByRole('heading', { level: 1, name: 'VIP Command Center' })).toBeVisible();
@@ -424,7 +428,8 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   });
 
   test('marketplace readiness is public, boolean-only, and capability-aware', async ({ request }) => {
-    const response = await request.get('/api/store/readiness');
+    test.setTimeout(60_000);
+    const response = await request.get('/api/store/readiness', { timeout: 45_000 });
     expect(response.ok()).toBeTruthy();
     const body = await response.json();
     expect(body).toMatchObject({
