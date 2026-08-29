@@ -49,7 +49,14 @@ body.world-poker-near-me {
     color: var(--pnm-white);
     background: var(--pnm-void);
     font-family: var(--font-premium-body);
+    /* clip, not hidden. `hidden` on one axis computes the other to `auto`,
+       which makes this a scroll container - and WebKit then resolves fixed
+       descendants against IT instead of the viewport. On this page that is the
+       favourite-venue toast (position:fixed; top:80px) scrolling away with the
+       content, and the two full-bleed `inset:0` backgrounds sizing to the whole
+       scroll height. Same mechanism as the Club Arena footer bug, 2026-08-29. */
     overflow-x: hidden;
+    overflow-x: clip;
 }
 
 body.world-poker-near-me::before {

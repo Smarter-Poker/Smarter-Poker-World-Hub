@@ -199,7 +199,14 @@ body.world-bankroll-manager {
         padding: 0 !important;
         width: 100% !important;
         max-width: 100vw !important;
+        /* clip, not hidden. `hidden` on one axis computes the other to `auto`,
+           which makes this a scroll container - and WebKit then resolves fixed
+           descendants against IT instead of the viewport. On this page that is the
+           favourite-venue toast (position:fixed; top:80px) scrolling away with the
+           content, and the two full-bleed `inset:0` backgrounds sizing to the whole
+           scroll height. Same mechanism as the Club Arena footer bug, 2026-08-29. */
         overflow-x: hidden !important;
+        overflow-x: clip !important;
     }
 
     /* Content goes full-width on mobile */
