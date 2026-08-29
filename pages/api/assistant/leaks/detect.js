@@ -14,6 +14,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { aggregateSolverLeaks, gradeSolverDecision } from '../../../../src/lib/training/solverDecisionEvidence';
 import { syncClubArenaHandsForAudit } from '../../../../src/lib/training/handAuditEngine';
+import { toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -852,6 +853,7 @@ export default async function handler(req, res) {
 
       // Detect leaks
       const detectedLeaks = [];
+      const persistenceEvidence = new Map();
       const now = new Date().toISOString();
 
       for (const [leakType, pattern] of Object.entries(LEAK_PATTERNS || {})) {
@@ -896,6 +898,10 @@ export default async function handler(req, res) {
           };
 
           detectedLeaks.push(leak);
+          persistenceEvidence.set(leakType, {
+            totalSamples: stats.analysisWindowHands || stats.handsPlayed,
+            mistakeCount: leak.occurrence_count,
+          });
         }
       }
 
@@ -916,24 +922,43 @@ export default async function handler(req, res) {
           trend_data: updateTrendData(existingLeak?.trend_data, currentValue),
           suggested_fix: existingLeak?.suggested_fix || generateLeakFix(solverLeak),
         });
+        persistenceEvidence.set(solverLeak.leak_type, {
+          totalSamples: _sample_count,
+          mistakeCount: _mistake_count,
+        });
       }
 
       // Save detected leaks and link hand examples
-      let persisted = true;
+      let secondarySync = {
+        handExamples: { persisted: true, linked: 0 },
+        suggestionsPersisted: true,
+      };
       if (detectedLeaks.length > 0) {
+        const persistenceRows = detectedLeaks.map(leak => toUserLeakPersistenceRow(leak, {
+          userId,
+          ...(persistenceEvidence.get(leak.leak_type) || {}),
+        }));
         // Batch upsert all detected leaks — eliminates N+1 (one round-trip)
         const { data: upsertedLeaks, error: upsertErr } = await getSupabase()
           .from('user_leaks')
           .upsert(
-            detectedLeaks.map(leak => ({ ...leak, user_id: userId })),
+            persistenceRows,
             { onConflict: 'user_id,leak_type', ignoreDuplicates: false }
           )
           .select('id, leak_type')
           .limit(100);
 
         if (upsertErr) {
-          persisted = false;
           console.warn('[LeakDetect] Failed to persist detected leaks:', upsertErr.message);
+          return res.status(503).json({
+            success: false,
+            persisted: false,
+            reason: 'write_failed',
+            error: 'The audit completed, but Leak Finder could not save the results. No leak history was changed.',
+            handsAnalyzed: liveHands,
+            solverDecisionsAnalyzed: solverDecisions,
+            leaksDetected: detectedLeaks.length,
+          });
         }
 
         // Merge DB ids back into the response objects so clients can deep-link
@@ -944,8 +969,9 @@ export default async function handler(req, res) {
 
         // Link hand examples (single hand-history fetch, batch save)
         const leaksWithIds = detectedLeaks.filter(l => l.id);
+        let handExamplesSync = { persisted: true, linked: 0 };
         if (leaksWithIds.length > 0) {
-          await linkHandExamples(userId, leaksWithIds);
+          handExamplesSync = await linkHandExamples(userId, leaksWithIds);
         }
 
         // Deterministic fixes keep detection fast, repeatable and independent
@@ -959,7 +985,7 @@ export default async function handler(req, res) {
 
         // Persist suggestions (requires user_leaks.suggested_fix column;
         // degrade gracefully if it doesn't exist yet)
-        await Promise.all(topLeaks
+        const suggestionResults = await Promise.all(topLeaks
           .filter(l => l.id && l.suggested_fix)
           .map(async (l) => {
             const { error: fixErr } = await getSupabase()
@@ -968,7 +994,12 @@ export default async function handler(req, res) {
               .eq('id', l.id)
               .eq('user_id', userId);
             if (fixErr) console.warn('[LeakDetect] Could not persist suggested_fix (column may be missing):', fixErr.message);
+            return !fixErr;
           }));
+        secondarySync = {
+          handExamples: handExamplesSync,
+          suggestionsPersisted: suggestionResults.every(Boolean),
+        };
       }
 
       // Batch-update resolved leaks — eliminates N+1.
@@ -984,47 +1015,68 @@ export default async function handler(req, res) {
         )
         .map(([, existingLeak]) => existingLeak.id);
 
+      let resolutionsSynced = true;
       if (resolvedIds.length > 0) {
         const { error: err_user_leaks_fs60f } = await getSupabase()
           .from('user_leaks')
           .update({ status: 'resolved', resolved_at: now, updated_at: now })
           .in('id', resolvedIds);
-        if (err_user_leaks_fs60f) console.warn('[Supabase] Silent mutation failed in user_leaks:', err_user_leaks_fs60f.message);
+        if (err_user_leaks_fs60f) {
+          resolutionsSynced = false;
+          console.warn('[LeakDetect] Failed to sync resolved leaks:', err_user_leaks_fs60f.message);
+        }
       }
 
       // 🚀 NEW BUG #11 FIX: Update Global PA Stats
       // Recalculate active/resolved leaks
-      const { data: updatedLeaks } = await getSupabase()
+      const { data: updatedLeaks, error: updatedLeaksErr } = await getSupabase()
         .from('user_leaks')
         .select('status')
         .eq('user_id', userId)
         .limit(100);
 
-      const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
-      const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
+      let statsSynced = !updatedLeaksErr;
+      if (updatedLeaksErr) {
+        console.warn('[LeakDetect] Refusing to overwrite assistant stats after leak-count read failed:', updatedLeaksErr.message);
+      } else {
+        const activeLeaks = updatedLeaks.filter(l => l.status !== 'resolved').length;
+        const resolvedLeaksCount = updatedLeaks.filter(l => l.status === 'resolved').length;
 
-      // Fetch existing stats
-      const { data: existingStats } = await getSupabase()
-        .from('user_assistant_stats')
-        .select('total_hands_analyzed')
-        .eq('user_id', userId)
-        .maybeSingle();
+        // Fetch existing stats. A failed read must not be converted to zero and
+        // written back over a real lifetime total.
+        const { data: existingStats, error: existingStatsErr } = await getSupabase()
+          .from('user_assistant_stats')
+          .select('total_hands_analyzed')
+          .eq('user_id', userId)
+          .maybeSingle();
 
-      const currentHands = existingStats?.total_hands_analyzed || 0;
+        if (existingStatsErr) {
+          statsSynced = false;
+          console.warn('[LeakDetect] Refusing to overwrite assistant stats after current-total read failed:', existingStatsErr.message);
+        } else {
+          const currentHands = existingStats?.total_hands_analyzed || 0;
 
-      // Atomic Upsert for Stats Sync — SET (not accumulate) hands analyzed so
-      // re-running detection on the same hands doesn't inflate the counter.
-      // Solver decisions are not hands; one hand can expose many decisions.
-      const { error: err_user_assistant_stats_l0t65 } = await getSupabase()
-        .from('user_assistant_stats')
-        .upsert({
-          user_id: userId,
-          total_hands_analyzed: Math.max(currentHands, liveHands, clubArenaSync.handsFound || 0),
-          active_leaks_count: activeLeaks,
-          resolved_leaks_count: resolvedLeaksCount,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
-      if (err_user_assistant_stats_l0t65) console.warn('[Supabase] Silent mutation failed in user_assistant_stats:', err_user_assistant_stats_l0t65.message);
+          // Atomic Upsert for Stats Sync — SET (not accumulate) hands analyzed so
+          // re-running detection on the same hands doesn't inflate the counter.
+          // Solver decisions are not hands; one hand can expose many decisions.
+          const { error: statsWriteErr } = await getSupabase()
+            .from('user_assistant_stats')
+            .upsert({
+              user_id: userId,
+              total_hands_analyzed: Math.max(currentHands, liveHands, clubArenaSync.handsFound || 0),
+              active_leaks_count: activeLeaks,
+              resolved_leaks_count: resolvedLeaksCount,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+          if (statsWriteErr) {
+            statsSynced = false;
+            console.warn('[LeakDetect] Assistant stats sync failed:', statsWriteErr.message);
+          }
+        }
+      }
+
+      const partial = !resolutionsSynced || !statsSynced ||
+        secondarySync.handExamples?.persisted === false || !secondarySync.suggestionsPersisted;
 
       return res.status(200).json({
         success: true,
@@ -1035,7 +1087,13 @@ export default async function handler(req, res) {
         clubArenaSync,
         leaksDetected: detectedLeaks.length,
         leaks: detectedLeaks,
-        persisted,
+        persisted: true,
+        partial,
+        sync: {
+          ...secondarySync,
+          resolutionsPersisted: resolutionsSynced,
+          statsPersisted: statsSynced,
+        },
       });
 
     } catch (error) {
@@ -1183,9 +1241,9 @@ async function linkHandExamples(userId, leaksWithIds) {
 
     if (handsErr) {
       console.warn('[LeakDetect] hand_history fetch for examples failed:', handsErr.message);
-      return;
+      return { persisted: false, linked: 0, reason: 'hand_history_read_failed' };
     }
-    if (!hands || hands.length === 0) return;
+    if (!hands || hands.length === 0) return { persisted: true, linked: 0 };
 
     const examples = [];
 
@@ -1240,7 +1298,7 @@ async function linkHandExamples(userId, leaksWithIds) {
       }
     }
 
-    if (examples.length === 0) return;
+    if (examples.length === 0) return { persisted: true, linked: 0 };
 
     // Single batch upsert; duplicates are ignored via the unique index on
     // (leak_id, hand_history_id)
@@ -1251,6 +1309,7 @@ async function linkHandExamples(userId, leaksWithIds) {
     if (upsertErr) {
       // Fallback when the unique index is missing: per-row existence check
       console.warn('[LeakDetect] Batch example upsert failed, falling back:', upsertErr.message);
+      let linked = 0;
       for (const example of examples) {
         const { data: existing } = await getSupabase()
           .from('leak_hand_examples')
@@ -1259,17 +1318,23 @@ async function linkHandExamples(userId, leaksWithIds) {
           .eq('hand_history_id', example.hand_history_id)
           .maybeSingle();
 
-        if (!existing) {
+        if (existing) {
+          linked += 1;
+        } else {
           const { error: insErr } = await getSupabase().from('leak_hand_examples').insert(example);
           if (insErr) {
             console.warn('[LeakDetect] Failed to link hand example:', insErr.message);
-            break;
+            return { persisted: false, linked, reason: 'example_write_failed' };
           }
+          linked += 1;
         }
       }
+      return { persisted: true, linked };
     }
+    return { persisted: true, linked: examples.length };
   } catch (error) {
     console.warn('Error linking hand examples:', error);
+    return { persisted: false, linked: 0, reason: 'example_sync_failed' };
   }
 }
 

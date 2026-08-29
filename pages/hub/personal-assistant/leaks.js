@@ -595,7 +595,7 @@ function ConfidenceBadge({ confidence }) {
 }
 
 function SourceBadge({ source }) {
-  const isTraining = source === 'training_arena';
+  const isTraining = source === 'training_arena' || source === 'training_accountant';
   const isSolver = source === 'solver_engine' || source === 'training_solver';
   return (
     <span style={pill(isTraining || isSolver ? 'accent' : 'purple')}>
