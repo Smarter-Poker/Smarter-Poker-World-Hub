@@ -126,40 +126,14 @@ const TRAINING_ROUTES_WITH_HEADER = new Set([
   '/hub/training/tournament/[id]',
   '/hub/training/tournaments',
 ]);
-
-// Hub routes that do not mount UniversalHeader (or another shared shell) in
-// their page module receive the exact same approved header here. Keeping this
-// manifest at the app root closes legacy, dynamic, and dashboard gaps without
-// duplicating the header on pages that already own it.
-const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
-  '/hub/admin/autofix',
-  '/hub/admin/diamond-liability',
-  '/hub/commander',
-  '/hub/godmode',
-  '/hub/gto-trainer',
-  '/hub/hand-history',
-  '/hub/home-games/in',
-  '/hub/home-games/in/[state]',
-  '/hub/home-games/in/[state]/[city]',
-  '/hub/home-games/near-me',
-  '/hub/install',
-  '/hub/live/guest',
-  '/hub/lives',
-  '/hub/marketplace',
-  '/hub/my-tournaments',
-  '/hub/poker-brain',
-  '/hub/poker-near-me',
-  '/hub/poker-tools',
-  '/hub/poker/table/[tableId]',
-  '/hub/post/[id]',
-  '/hub/profile',
-  '/hub/reset-auth',
-  '/hub/session-history',
-  '/hub/settings/notifications',
-  '/hub/social-media/[slug]',
-  '/hub/social-media/compose',
-  '/hub/tournaments',
-  '/hub/trivia/survival',
+const TRAINING_STANDALONE_ART_IDS = new Set([
+  'tournament-prep',
+  'final-table-sim',
+  'quiz-gauntlet',
+  'hand-lab',
+  'bluff-catcher',
+  'mixed-strategy-lab',
+  'study-group',
 ]);
 // GlobalReportBugButton removed — bug reporting is inside every HamburgerMenu via ReportBugWidget
 // ═══════════════════════════════════════════════════════════════════════════
@@ -728,12 +702,21 @@ export default function App({ Component, pageProps }) {
   // Determine if this route requires global capitalization per User specification
   const path = router.asPath.split('?')[0];
   const isTrainingRoute = path === '/hub/training' || path.startsWith('/hub/training/');
+  const trainingPathLeaf = path.split('/').filter(Boolean).at(-1);
+  const candidateTrainingArtId = typeof router.query.gameId === 'string'
+    ? router.query.gameId
+    : TRAINING_STANDALONE_ART_IDS.has(trainingPathLeaf) ? trainingPathLeaf : null;
+  const trainingArtId = candidateTrainingArtId && /^[a-z0-9-]{3,40}$/.test(candidateTrainingArtId)
+    ? candidateTrainingArtId
+    : null;
+  const trainingRouteArt = trainingArtId
+    ? `/images/training/casino-realism/${trainingArtId}.webp`
+    : null;
 
   // Several legacy training pages already own the unchanged global header.
   // All other training routes receive the same component here so the complete
   // training library has consistent navigation without duplicating headers.
   const trainingPageOwnsHeader = TRAINING_ROUTES_WITH_HEADER.has(router.pathname);
-  const hubPageNeedsHeader = HUB_ROUTES_WITHOUT_SHARED_HEADER.has(router.pathname);
 
   // Do NOT capitalize specific poker/trainer tool screens where exact statistical/range string casing (e.g., AQs, cbet, EV) is mathematically critical
   const isPokerTool = path.includes('/training') || path.includes('/gto') || path.includes('/solver') || path.includes('/sandbox');
@@ -840,17 +823,19 @@ export default function App({ Component, pageProps }) {
                             <WorldThemeProvider>
                               <PageErrorBoundary key={router.asPath}>
                                 {isTrainingRoute ? (
-                                  <div className="sp-training-route-shell" data-training-route={router.pathname}>
+                                  <div
+                                    className="sp-training-route-shell"
+                                    data-training-route={router.pathname}
+                                    data-training-art={trainingRouteArt ? trainingArtId : undefined}
+                                    style={trainingRouteArt ? { '--sp-training-route-art': `url("${trainingRouteArt}")` } : undefined}
+                                  >
                                     {!trainingPageOwnsHeader && <UniversalHeader pageDepth={2} />}
                                     <div className="sp-training-page-stage">
                                       <Component {...pageProps} />
                                     </div>
                                   </div>
                                 ) : (
-                                  <>
-                                    {hubPageNeedsHeader && <UniversalHeader />}
-                                    <Component {...pageProps} />
-                                  </>
+                                  <Component {...pageProps} />
                                 )}
                               </PageErrorBoundary>
                               <HubErrorBoundary name="Celebrations" fallback={<></>}>

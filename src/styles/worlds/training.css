@@ -1974,6 +1974,16 @@ body.world-training .sp-training-page-stage {
     text-transform: capitalize;
 }
 
+/* Every catalog game's secondary surfaces inherit its own rendered scene.
+   The live arena is deliberately excluded: its visual contract is the Club
+   Arena table, not a decorative page background. */
+body.world-training .sp-training-route-shell[data-training-art]:not([data-training-route='/hub/training/arena/[gameId]']) .sp-training-page-stage {
+    background:
+        linear-gradient(90deg, rgba(1, 5, 8, .97) 0%, rgba(1, 7, 12, .86) 36%, rgba(1, 7, 12, .76) 68%, rgba(1, 5, 8, .94) 100%),
+        linear-gradient(180deg, rgba(1, 5, 8, .16), #02080d 76%),
+        var(--sp-training-route-art) center top / cover fixed no-repeat;
+}
+
 body.world-training .sp-training-page-stage .universal-header,
 body.world-training .sp-training-page-stage .universal-header * {
     text-transform: none;
