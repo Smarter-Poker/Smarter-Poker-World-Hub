@@ -1612,7 +1612,7 @@ export default function PokerNearMeLobby() {
     }
   }, [prefsLoaded, preferences?.locationPromptDismissed, locationPromptDismissed]);
 
-  // ─── Auto-prompt GPS on first visit / silently re-enable if previously accepted ───
+  // ─── Silently restore GPS only when previously accepted ───
   const gpsAutoRef = useRef(false);
   useEffect(() => {
     if (!prefsLoaded) return; // Wait for real preferences from Supabase before deciding
@@ -1730,7 +1730,10 @@ export default function PokerNearMeLobby() {
     }
 
     // CASE 3: FIRST VISIT (no saved preference)
-    // ── ONE-TIME-AND-DONE: If user already dismissed the prompt, never show it again ──
+    // Never open a permission sheet or browser prompt on mount. The lobby has a
+    // persistent Enable Location control, so first-time permission requests are
+    // initiated only by an explicit user action. This also prevents the location
+    // sheet and first-run tutorial from competing for focus on the same paint.
     if (locationPromptDismissed) return;
 
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -1753,8 +1756,9 @@ export default function PokerNearMeLobby() {
           { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
         );
       } else {
-        // Permission state is 'prompt' or 'denied' — show our branded popup (one time only)
-        setShowEnablePopup(true);
+        // 'prompt' and 'denied' wait for the explicit Enable Location control.
+        // A denied explicit request still opens the recovery sheet from
+        // handleGpsClick, so the manual-location fallback remains available.
       }
     }
   }, [prefsLoaded, preferences?.locationEnabled, locationPromptDismissed]); // eslint-disable-line react-hooks/exhaustive-deps
