@@ -4368,6 +4368,10 @@ body.world-training .sp-training-command--coach .sp-coach-score small {
         inset: 0;
     }
 
+    body.world-training .sp-training-command--coach .sp-coach-console-visual--quiz {
+        aspect-ratio: 2.08;
+    }
+
     body.world-training .sp-training-command--coach .sp-coach-console-content,
     body.world-training .sp-training-command--coach .sp-coach-results-content {
         padding: 27px 20px 31px;
@@ -4378,11 +4382,22 @@ body.world-training .sp-training-command--coach .sp-coach-score small {
     }
 
     body.world-training .sp-training-command--coach .sp-coach-question-panel h1 {
-        font-size: clamp(21px, 6.2vw, 27px);
+        font-size: clamp(20px, 5.65vw, 23px);
+        line-height: 1.25;
     }
 
     body.world-training .sp-training-command--coach .sp-coach-options {
         grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+        margin-top: 17px;
+    }
+
+    body.world-training .sp-training-command--coach .sp-coach-question-panel {
+        padding: 22px 20px 29px;
+    }
+
+    body.world-training .sp-training-command--coach button.sp-coach-option {
+        min-height: 66px;
     }
 
     body.world-training .sp-training-command--coach .sp-coach-results-visual {
