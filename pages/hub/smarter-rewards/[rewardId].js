@@ -3,6 +3,7 @@ import { Award, BarChart3 } from 'lucide-react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
+import RewardTelemetryConsole from '../../../src/components/store/RewardTelemetryConsole';
 import {
   STANDARD_REWARDS,
   EASTER_EGGS,
@@ -86,6 +87,7 @@ export default function RewardDetail({ reward }) {
       }
       structuredData={schema}
     >
+      <RewardTelemetryConsole reward={reward} canonical={canonical} />
       <div className={detailStyles.detailGrid}>
         <section className={detailStyles.detailCard}>
           <h2>How This Signal Unlocks</h2>

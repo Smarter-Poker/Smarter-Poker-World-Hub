@@ -6,15 +6,16 @@ const suppliedBase = args.find((arg) => !arg.startsWith('--'));
 const baseUrl = String(suppliedBase || process.env.MARKETPLACE_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 const routes = [
-  '/hub/diamond-store',
-  '/hub/vip-membership',
-  '/hub/vip-membership/compare',
-  '/hub/vip-membership/manage',
-  '/hub/merch-store',
-  '/hub/merch-store/hoodie-neural',
-  '/hub/diamond-store/orders/phase-11-proof?source=merchandise',
-  '/hub/smarter-rewards',
-  '/hub/club-shop',
+  { path: '/hub/diamond-store' },
+  { path: '/hub/vip-membership' },
+  { path: '/hub/vip-membership/compare' },
+  { path: '/hub/vip-membership/manage', marker: 'VIP Command Center' },
+  { path: '/hub/merch-store' },
+  { path: '/hub/merch-store/hoodie-neural' },
+  { path: '/hub/diamond-store/orders/phase-11-proof?source=merchandise' },
+  { path: '/hub/smarter-rewards' },
+  { path: '/hub/smarter-rewards/daily_login', marker: 'Verified Reward Telemetry' },
+  { path: '/hub/club-shop' },
 ];
 const assets = [
   '/images/store-v3/diamond-vault-hero.webp',
@@ -24,19 +25,36 @@ const assets = [
   '/images/store-v3/club-shop-hero.webp',
 ];
 
-async function probe(path, expectedType) {
+async function probe(path, expectedType, marker = '') {
   const response = await fetch(`${baseUrl}${path}`, {
     redirect: 'follow',
     headers: { 'User-Agent': 'SmarterPoker-Marketplace-Readiness/1.0' },
   });
   const contentType = response.headers.get('content-type') || '';
-  const okay = response.ok && (!expectedType || contentType.includes(expectedType));
+  const body = marker ? await response.text() : '';
+  const okay = response.ok
+    && (!expectedType || contentType.includes(expectedType))
+    && (!marker || body.includes(marker));
   return { path, okay, status: response.status, contentType };
 }
 
 const results = [];
-for (const path of routes) results.push(await probe(path, 'text/html'));
+for (const route of routes) results.push(await probe(route.path, 'text/html', route.marker));
 for (const path of assets) results.push(await probe(path, 'image/'));
+
+try {
+  const response = await fetch(`${baseUrl}/api/store/vip-membership-status`, {
+    headers: { Accept: 'application/json' },
+  });
+  results.push({
+    path: '/api/store/vip-membership-status (private)',
+    okay: response.status === 401,
+    status: response.status,
+    contentType: response.headers.get('content-type') || '',
+  });
+} catch (error) {
+  results.push({ path: '/api/store/vip-membership-status (private)', okay: false, status: 0, contentType: error.message });
+}
 
 let readiness = null;
 try {
