@@ -128,8 +128,11 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                     </a>
                 </div>
                 <button 
+                    type="button"
                     className={'fav-btn' + (isFavorited ? ' active' : '')} 
                     onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}
+                    aria-label={isFavorited ? `Remove ${s.name || s.series_name || 'series'} from saved series` : `Save ${s.name || s.series_name || 'series'}`}
+                    aria-pressed={!!isFavorited}
                     style={{ position: 'relative', zIndex: 10, background: 'none', border: 'none', cursor: 'pointer', outline: 'none' }}
                 >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
