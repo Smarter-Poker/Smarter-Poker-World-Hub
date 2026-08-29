@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
@@ -750,6 +751,8 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                 <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
                     router.back();
                 }} />
+
+                <PokerNearMeFamilyNav />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu

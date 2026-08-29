@@ -348,3 +348,175 @@
   animation: lobby-shimmer 1.5s ease-in-out infinite;
   vertical-align: middle;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SMARTER CASINO REALISM — LOBBY OVERRIDES
+   The environment is the hero; controls read as precision hardware laid over it.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pnm-lobby-page {
+  background: #020406;
+  font-family: var(--font-premium-body);
+}
+
+.pnm-lobby-page .lobby-topbar {
+  align-items: flex-start;
+  padding: 88px clamp(18px, 5vw, 72px) 12px;
+  background: linear-gradient(180deg, rgba(2, 4, 6, 0.94), rgba(2, 4, 6, 0.48) 68%, transparent);
+}
+
+.pnm-lobby-page .lobby-topbar::before {
+  content: 'POKER NEAR ME  /  DISCOVERY DECK';
+  display: block;
+  margin-bottom: 13px;
+  color: #2fa8ff;
+  font: 700 10px/1 var(--font-premium-body);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(47, 168, 255, 0.5);
+}
+
+.pnm-lobby-page .lobby-topbar > div {
+  margin: 0 !important;
+  width: min(760px, calc(100vw - 36px)) !important;
+}
+
+.pnm-lobby-page .lobby-search-form {
+  width: min(520px, 100%);
+}
+
+.pnm-lobby-page .lobby-search-wrap {
+  min-height: 50px;
+  padding: 3px 5px !important;
+  border: 1px solid rgba(151, 174, 195, 0.38) !important;
+  border-radius: 4px !important;
+  background: linear-gradient(145deg, rgba(13, 19, 27, 0.98), rgba(4, 8, 12, 0.98)) !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 0 0 2px rgba(0, 0, 0, 0.55);
+}
+
+.pnm-lobby-page .lobby-search-wrap::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: #2fa8ff;
+  box-shadow: 0 0 10px rgba(47, 168, 255, 0.7);
+}
+
+.pnm-lobby-page .lobby-search-input {
+  min-height: 44px;
+  padding-left: 43px;
+  color: #eef5fb;
+  font-size: 13px;
+  letter-spacing: 0.015em;
+}
+
+.pnm-lobby-page :is(.lobby-voice-btn, .lobby-gps-btn) {
+  width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  border-radius: 3px !important;
+  border-color: rgba(127, 145, 166, 0.26) !important;
+  background: #0a1017 !important;
+}
+
+.pnm-lobby-page :is(.lobby-voice-btn, .lobby-gps-btn):hover,
+.pnm-lobby-page :is(.lobby-voice-btn, .lobby-gps-btn):focus-visible {
+  color: #eef5fb !important;
+  border-color: rgba(47, 168, 255, 0.58) !important;
+  outline: none;
+  box-shadow: inset 0 -2px 0 #2fa8ff;
+}
+
+.pnm-lobby-page .lobby-card-scroll {
+  align-items: flex-end !important;
+  padding: 10px clamp(18px, 5vw, 72px) 28px !important;
+}
+
+.pnm-lobby-page .lobby-card-scroll > div:first-child {
+  width: min(62vw, 900px) !important;
+  margin-left: auto;
+}
+
+.pnm-lobby-page .lobby-card-scroll picture img {
+  border: 1px solid rgba(145, 168, 189, 0.3);
+  border-radius: 5px !important;
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.65), inset 0 0 0 2px rgba(0, 0, 0, 0.65);
+  filter: saturate(0.75) contrast(1.08) brightness(0.88);
+}
+
+.pnm-lobby-page .lobby-hotspot {
+  border: 1px solid transparent !important;
+  border-radius: 3px;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.pnm-lobby-page .lobby-hotspot:hover,
+.pnm-lobby-page .lobby-hotspot:focus-visible {
+  border-color: rgba(47, 168, 255, 0.62) !important;
+  background: rgba(47, 168, 255, 0.055) !important;
+  box-shadow: inset 0 0 24px rgba(47, 168, 255, 0.07), 0 0 16px rgba(47, 168, 255, 0.12);
+  outline: none;
+}
+
+.pnm-lobby-page .lobby-hotspot-label {
+  border-radius: 2px;
+  border: 1px solid rgba(47, 168, 255, 0.35);
+  background: rgba(3, 7, 11, 0.96);
+  color: #eef5fb;
+  font: 700 10px/1 var(--font-premium-body);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.pnm-lobby-page .lobby-card-scroll > div:last-child {
+  max-width: min(62vw, 900px) !important;
+  border: 1px solid rgba(145, 168, 189, 0.28) !important;
+  border-radius: 4px !important;
+  background: linear-gradient(145deg, rgba(12, 18, 26, 0.98), rgba(4, 8, 12, 0.98)) !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.pnm-lobby-page .lobby-panel {
+  border-radius: 5px 5px 0 0;
+  border-top-color: rgba(167, 185, 202, 0.42);
+  background: linear-gradient(145deg, #0d131b, #05090e);
+}
+
+@media (max-width: 800px) {
+  .pnm-lobby-page .lobby-topbar {
+    align-items: center;
+    padding: 75px 12px 8px;
+  }
+
+  .pnm-lobby-page .lobby-topbar::before {
+    width: calc(100vw - 24px);
+    margin-bottom: 9px;
+    font-size: 8px;
+  }
+
+  .pnm-lobby-page .lobby-topbar > div,
+  .pnm-lobby-page .lobby-search-form {
+    width: calc(100vw - 24px) !important;
+  }
+
+  .pnm-lobby-page .lobby-card-scroll {
+    align-items: center !important;
+    padding: 8px 12px 18px !important;
+  }
+
+  .pnm-lobby-page .lobby-card-scroll > div:first-child,
+  .pnm-lobby-page .lobby-card-scroll > div:last-child {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .pnm-lobby-page .lobby-card-scroll picture img {
+    min-height: 420px;
+    object-fit: cover;
+    object-position: center;
+  }
+}

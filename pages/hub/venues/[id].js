@@ -12,6 +12,7 @@ import { useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { claimReward } from '../../../src/lib/claimReward';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -1796,13 +1797,16 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       )}
 
       {!isIframeMode && (
-        <UniversalHeader 
-          pageDepth={2} 
-          onMenuClick={() => setMenuOpen(true)}
-          onBackClick={() => {
-            router.back();
-          }}
-        />
+        <>
+          <UniversalHeader
+            pageDepth={2}
+            onMenuClick={() => setMenuOpen(true)}
+            onBackClick={() => {
+              router.back();
+            }}
+          />
+          <PokerNearMeFamilyNav />
+        </>
       )}
 
       <HamburgerMenu

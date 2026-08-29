@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 import TourCard from '../../src/components/poker-series/TourCard';
+import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
 
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 
@@ -885,6 +886,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                 <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
                     router.back();
                 }} />
+
+                <PokerNearMeFamilyNav />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu

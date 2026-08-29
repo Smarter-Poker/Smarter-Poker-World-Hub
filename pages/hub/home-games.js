@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getAccessToken } from '../../src/lib/authUtils';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
@@ -843,6 +844,8 @@ export default function HomeGamesPage() {
                 <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
                     router.back();
                 }} />
+
+                <PokerNearMeFamilyNav />
 
                 <HamburgerMenu
                     isOpen={menuOpen}

@@ -17,6 +17,7 @@ import {
   isGroupPubliclyVisible,
 } from '../../../../../src/lib/home-games/locationUtils';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
+import PokerNearMeFamilyNav from '../../../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 
 // Phase 18 auto-hide window, mirrored from /api/public/home-games/discover
 // and from the sibling state page (in/[state]/index.js).
@@ -277,6 +278,7 @@ export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityT
         />
       </Head>
 
+      <PokerNearMeFamilyNav className="pnm-family-nav--standalone" />
       <main className="min-h-screen bg-gradient-to-b from-[#0A0F1C] to-[#0D192E] text-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-24">
           <nav aria-label="Breadcrumb" className="text-xs text-[#64748B] mb-6 flex items-center gap-2 flex-wrap">
