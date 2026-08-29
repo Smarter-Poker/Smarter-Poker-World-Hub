@@ -62,3 +62,23 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: bash .github/scripts/publish-watchdog.sh
+
+      # ─────────────────────────────────────────────────────────────────────
+      # The root service worker must be able to INSTALL.
+      #
+      # Added 2026-08-29. `/_next/dynamic-css-manifest.json` sat in the
+      # precache manifest and 404'd; workbox precaches atomically, so install()
+      # rejected, the root worker went redundant ~170ms after every register(),
+      # and web push was dead for every user of smarter.poker AND Club Arena.
+      # Nothing reported it: register() RESOLVES, the page looks fine, and only
+      # somebody tapping Enable Notifications ever finds out.
+      #
+      # It rides this workflow rather than a new schedule because it asks the
+      # same question — "is what production serves actually usable" — and
+      # section 11 of CLAUDE.md bans new GitHub `schedule:` triggers.
+      #
+      # `always()` so it still runs when the SHA comparison above alarms: a
+      # stale deploy and a broken worker are independent failures.
+      - name: Root service worker precache resolves
+        if: always()
+        run: node scripts/ci/check-sw-precache.mjs https://smarter.poker
