@@ -47,7 +47,7 @@ test('every legacy merchandise row has physical product media instead of an icon
   }
   assert.match(MERCH, /legacy-tabletop-atlas\.webp/);
   assert.match(MERCH, /backgroundSize: '400% 100%'/);
-  assert.match(MERCH, /loading="eager"/);
+  assert.match(MERCH, /loading=\{mediaPriority \? ['"]eager['"] : ['"]lazy['"]\}/);
 });
 
 test('cart, orders, and wishlist keep same-surface navigation inside a cinematic operations shell', () => {

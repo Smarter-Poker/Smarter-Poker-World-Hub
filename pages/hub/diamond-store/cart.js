@@ -376,7 +376,13 @@ export default function ShoppingCart() {
       }
       payload = { type: 'diamonds', items: lineItems };
     } else if (cardGroup === 'merchandise') {
-      payload = { type: 'merchandise', items: merchItems };
+      payload = {
+        type: 'merchandise',
+        items: merchItems.map((item) => ({
+          ...item,
+          id: item.catalogId || item.id,
+        })),
+      };
     } else {
       toast.error('VIP Memberships Are Purchased From The Diamond Store Page.');
       return;
@@ -464,7 +470,13 @@ export default function ShoppingCart() {
           Authorization: `Bearer ${token}`,
           'X-Idempotency-Key': pendingDiamondCheckout.purchaseRequestId,
         },
-        body: JSON.stringify({ items: merchItems, shipping }),
+        body: JSON.stringify({
+          items: merchItems.map((item) => ({
+            ...item,
+            id: item.catalogId || item.id,
+          })),
+          shipping,
+        }),
       });
 
       const data = await res.json().catch(() => null);

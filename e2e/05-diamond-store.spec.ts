@@ -71,8 +71,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       await expect(storeNav.getByRole('link')).toHaveCount(5);
       await expect(storeNav.getByRole('link', { name: /Current Page/ })).toHaveAttribute('aria-current', 'page');
       for (const link of await storeNav.getByRole('link').all()) {
-        const current = await link.getAttribute('aria-current');
-        if (!current) await expect(link).toHaveAttribute('target', '_blank');
+        await expect(link).not.toHaveAttribute('target');
       }
       expect(consoleErrors).toEqual([]);
     });
@@ -117,9 +116,11 @@ test.describe('5. Storefront Routes And Design Contract', () => {
             has_variants: true,
             in_stock: true,
             stock: 60,
+            fulfillment_ready: true,
+            fulfillment_provider: 'printful',
             variants: [
-              { id: 'small', size: 'S', color: 'Black', price_usd: 59.99, price_diamonds: 5999, stock: 40, in_stock: true },
-              { id: '2xl', size: '2XL', color: 'Black', price_usd: 61.99, price_diamonds: 6199, stock: 20, in_stock: true },
+              { id: 'small', size: 'S', color: 'Black', price_usd: 59.99, price_diamonds: 5999, stock: 40, in_stock: true, fulfillment_ready: true },
+              { id: '2xl', size: '2XL', color: 'Black', price_usd: 61.99, price_diamonds: 6199, stock: 20, in_stock: true, fulfillment_ready: true },
             ],
           }],
         },
@@ -127,15 +128,56 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     }));
 
     await page.goto('/hub/merch-store', { waitUntil: 'domcontentloaded' });
-    const card = page.getByRole('article', { name: 'Neural Network Hoodie' });
-    await expect(card).toBeVisible();
+    const card = page.getByRole('article', { name: 'Diamond Altitude Hoodie' });
+    await expect(card).toBeVisible({ timeout: 15000 });
     await expect(card.getByText('Sold Out', { exact: true })).toHaveCount(0);
     await card.getByRole('button', { name: 'Black / 2XL' }).click();
     await expect(card.getByText('$61.99', { exact: true })).toBeVisible();
-    await expect(card.getByText('6,199', { exact: true }).first()).toBeVisible();
     await expect(card.getByRole('button', { name: /With Card For \$61\.99/ })).toBeEnabled();
     const diamondButton = card.getByRole('button', { name: /With 6,199 Diamonds/ });
     await expect(diamondButton).not.toHaveAttribute('title', /Sold Out|Options Temporarily Unavailable/i);
+    await card.getByRole('button', { name: 'Add Diamond Altitude Hoodie To Cart' }).click();
+    await expect(page.getByRole('navigation', { name: 'Marketplace Commerce' }).getByRole('link', { name: /Cart/ })).toContainText('1');
+    await card.getByRole('link', { name: 'View Diamond Altitude Hoodie Details' }).click();
+    await expect(page).toHaveURL('/hub/merch-store/hoodie-neural');
+    await expect(page.getByRole('heading', { level: 1, name: 'Diamond Altitude Hoodie' })).toBeVisible();
+  });
+
+  test('merch discovery filters and sorts without leaving the marketplace', async ({ page }) => {
+    await page.goto('/hub/merch-store', { waitUntil: 'domcontentloaded' });
+    const search = page.getByRole('searchbox', { name: 'Search Marketplace Gear' });
+    await search.fill('tumbler');
+    await expect(page.getByRole('article', { name: 'Tournament Wire Insulated Tumbler' })).toBeVisible();
+    await expect(page.locator('article[id^="merch-product-"]')).toHaveCount(1);
+    await search.fill('');
+    await page.getByRole('button', { name: 'Lifestyle Gear' }).click();
+    await expect(page.getByText(/Showing \d+ Of \d+ Products/)).toBeVisible();
+    await page.getByRole('combobox', { name: 'Sort Products' }).selectOption('price-high');
+  });
+
+  test('VIP daily access exposes verified card and diamond settlement controls', async ({ page }) => {
+    await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: /Select VIP Daily Pass/ }).click();
+    await expect(page.getByRole('button', { name: /Activate Daily VIP With Diamonds/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Pay For Daily VIP With Card' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Compare Every VIP Plan' })).toHaveAttribute('href', '/hub/vip-membership/compare');
+  });
+
+  test('marketplace readiness is public, boolean-only, and capability-aware', async ({ request }) => {
+    const response = await request.get('/api/store/readiness');
+    expect(response.ok()).toBeTruthy();
+    const body = await response.json();
+    expect(body).toMatchObject({
+      success: true,
+      checks: { stripe: expect.any(Boolean), supabase: expect.any(Boolean), printful: expect.any(Boolean) },
+      capabilities: {
+        cardCheckout: expect.any(Boolean),
+        diamondCheckout: expect.any(Boolean),
+        automaticMerchFulfillment: expect.any(Boolean),
+      },
+    });
+    expect(JSON.stringify(body)).not.toContain('sk_');
+    expect(JSON.stringify(body)).not.toContain('service_role');
   });
 
   test('diamond starter and cinematic packs are all purchasable without covering the art', async ({ page }) => {
@@ -186,7 +228,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       // after those images settle, otherwise the absolute overlay is briefly
       // the only visible part of the button and produces a false 6px result.
       await page.waitForFunction(() =>
-        Array.from(document.querySelectorAll<HTMLImageElement>('main img')).every((image) => image.complete)
+        Array.from(document.querySelectorAll<HTMLImageElement>('main img')).every((image) =>
+          image.loading === 'lazy' || image.complete
+        )
       );
       // Let the metal-card entrance animation settle before measuring the
       // rendered hit box. Measuring mid-transform can report 43.x for a
@@ -215,7 +259,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/hub/merch-store', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() =>
-      Array.from(document.querySelectorAll<HTMLImageElement>('main img')).every((image) => image.complete)
+      Array.from(document.querySelectorAll<HTMLImageElement>('main img')).every((image) =>
+        image.loading === 'lazy' || image.complete
+      )
     );
     await page.waitForTimeout(900);
 

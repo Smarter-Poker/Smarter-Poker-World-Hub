@@ -23,6 +23,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import {
   Gem,
   Shirt,
@@ -33,6 +34,8 @@ import {
   Plus,
   RefreshCw,
   Heart,
+  Search,
+  ShoppingCart,
 } from 'lucide-react';
 
 import styles from '../diamond-store/diamondStoreStyles';
@@ -45,6 +48,7 @@ import { busEmit } from '../../engine/EventBus';
 import { captureStoreEvent, createCheckoutRequestId } from '../../lib/store/storeAnalytics';
 import MerchPurchaseDialog from './MerchPurchaseDialog';
 import { wishlistService } from '../../services/preferences-service';
+import useCartStore from '../../stores/cartStore';
 
 // ── Economy constants (mirror of the server) ──────────────────────────────
 // 1 diamond = $0.01 → 100 diamonds per USD. purchase-with-diamonds.js uses the
@@ -107,7 +111,6 @@ const UNSHIPPED_MERCH_IMAGES = new Set([
 const CYAN = '#00D4FF';
 const TEXT = '#E4E6EB';
 const MUTED = 'rgba(255, 255, 255, 0.55)';
-const GREEN = '#00d4ff';
 const RED = '#ff5f6d';
 const CARD_BG = 'rgba(255, 255, 255, 0.05)';
 const CARD_BORDER = '1px solid rgba(255, 255, 255, 0.15)';
@@ -368,8 +371,10 @@ function MerchProductCard({
   wishlistBusyKey,
   isWishlisted,
   onToggleWishlist,
+  onAddToCart,
   onBuyCard,
   onBuyDiamonds,
+  mediaPriority = false,
 }) {
   const [variantKey, setVariantKey] = useState(() => {
     const first =
@@ -473,7 +478,7 @@ function MerchProductCard({
           <img
             src={product.image}
             alt={product.name}
-            loading="eager"
+            loading={mediaPriority ? 'eager' : 'lazy'}
             decoding="async"
             onError={() => setImageFailed(true)}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -577,7 +582,7 @@ function MerchProductCard({
             {product.name}
           </h4>
           {product.description && (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>
+            <div style={{ fontSize: 12, color: 'rgba(225,240,247,0.72)', lineHeight: 1.5 }}>
               {product.description}
             </div>
           )}
@@ -745,6 +750,48 @@ function MerchProductCard({
             paddingTop: 4,
           }}
         >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <Link
+              href={`/hub/merch-store/${product.catalogId || product.key}`}
+              aria-label={`View ${product.name} Details`}
+              style={{
+                minHeight: 44,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(139,239,255,0.42)',
+                color: '#c8f5ff',
+                background: 'rgba(18,55,72,0.45)',
+                fontSize: 12,
+                fontWeight: 800,
+                textDecoration: 'none',
+              }}
+            >
+              View Details
+            </Link>
+            <button
+              type="button"
+              onClick={() => onAddToCart(product, variant, clampedQty)}
+              disabled={soldOut || busy}
+              aria-label={`Add ${product.name} To Cart`}
+              style={{
+                minHeight: 44,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                border: '1px solid rgba(255,215,0,0.54)',
+                color: soldOut || busy ? 'rgba(255,255,255,0.45)' : '#ffe87a',
+                background: 'rgba(95,75,0,0.2)',
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: soldOut || busy ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <ShoppingCart size={15} aria-hidden="true" /> Add To Cart
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => onBuyCard(product, variant, clampedQty)}
@@ -845,12 +892,16 @@ export default function MerchStore({ user = null }) {
   const [wishlistIds, setWishlistIds] = useState(() => new Set());
   const [wishlistBusyKey, setWishlistBusyKey] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [sortMode, setSortMode] = useState('featured');
   const mountedRef = useRef(true);
   // Close the event-loop gap before React can render disabled controls. This
   // prevents a fast double click from starting two Stripe sessions or two
   // diamond requests with different server idempotency windows.
   const busyRef = useRef(false);
   const catalogSourceRef = useRef(null);
+  const addCartItem = useCartStore((state) => state.addItem);
 
   const setStoreBusy = useCallback((key) => {
     busyRef.current = key !== null;
@@ -954,11 +1005,31 @@ export default function MerchStore({ user = null }) {
     captureStoreEvent('catalog_viewed', { route: 'merch', source, items: products.length });
   }, [products.length, usingFallback]);
 
+  const categories = useMemo(
+    () => Array.from(new Set(products.map((product) => product.category))).sort(),
+    [products]
+  );
+
+  const visibleProducts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const filtered = products.filter((product) => {
+      if (categoryFilter !== 'all' && product.category !== categoryFilter) return false;
+      if (!query) return true;
+      return [product.name, product.description, product.category]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+    });
+    if (sortMode === 'price-low') filtered.sort((a, b) => a.priceUsd - b.priceUsd);
+    if (sortMode === 'price-high') filtered.sort((a, b) => b.priceUsd - a.priceUsd);
+    if (sortMode === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
+    return filtered;
+  }, [categoryFilter, products, searchQuery, sortMode]);
+
   // ── Group into the page's existing category sections ──────────────────
   const sections = useMemo(() => {
     const order = [];
     const map = new Map();
-    for (const p of products) {
+    for (const p of visibleProducts) {
       if (!map.has(p.category)) {
         map.set(p.category, []);
         order.push(p.category);
@@ -980,7 +1051,7 @@ export default function MerchStore({ user = null }) {
       return rank(a) - rank(b);
     });
     return order.map((key) => ({ key, label: categoryLabel(key), items: map.get(key) }));
-  }, [products]);
+  }, [visibleProducts]);
 
   // ── Line-item builder shared by both checkout paths ───────────────────
   // `includePrice` exists only for the card endpoint's current validator,
@@ -1018,6 +1089,37 @@ export default function MerchStore({ user = null }) {
     }
     return item;
   }, []);
+
+  const handleAddToCart = useCallback(
+    (product, variant, quantity) => {
+      const catalogId = product.catalogId || product.key;
+      const variantToken = variant?.id || variant?.key || 'standard';
+      const line = buildLineItem(product, variant, quantity, { includePrice: true });
+      addCartItem({
+        ...line,
+        id: `${catalogId}::${variantToken}`,
+        catalogId,
+        name: product.name,
+        type: variant?.label ? `Merchandise — ${variant.label}` : 'Merchandise',
+        price: firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0,
+        diamonds:
+          firstFiniteNumber([variant?.priceDiamonds, product.priceDiamonds]) ||
+          Math.ceil(product.priceUsd * DIAMONDS_PER_DOLLAR),
+        image: product.image || null,
+        variantId: variant?.id || null,
+        variantLabel: variant?.label || null,
+        quantity,
+      });
+      captureStoreEvent('add_to_cart', {
+        route: 'merch',
+        product: catalogId,
+        quantity,
+        value_usd: firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0,
+      });
+      showStoreToast('success', `${product.name} Added To Cart.`);
+    },
+    [addCartItem, buildLineItem]
+  );
 
   const requireSignedIn = useCallback(() => {
     const token = getAccessToken();
@@ -1293,6 +1395,17 @@ export default function MerchStore({ user = null }) {
             scroll-behavior: auto;
           }
         }
+        .merch-discovery-controls {
+          grid-template-columns: minmax(220px, 1fr) minmax(170px, .45fr);
+        }
+        @media (max-width: 620px) {
+          .merch-discovery-controls {
+            grid-template-columns: minmax(0, 1fr);
+          }
+          .merch-discovery-controls > * {
+            grid-column: 1 !important;
+          }
+        }
       `}</style>
       <div style={styles.intro}>
         <h2 style={styles.merchTitle}>Official Merch</h2>
@@ -1323,6 +1436,101 @@ export default function MerchStore({ user = null }) {
           </div>
         )}
       </div>
+
+      <section
+        className="merch-discovery-controls"
+        aria-label="Browse Marketplace Gear"
+        style={{
+          display: 'grid',
+          gap: 10,
+          margin: '0 0 14px',
+          padding: 12,
+          border: '1px solid rgba(115,205,235,0.3)',
+          background: 'linear-gradient(180deg, rgba(16,39,53,0.92), rgba(3,10,15,0.96))',
+        }}
+      >
+        <label
+          style={{
+            minHeight: 48,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '0 12px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(0,0,0,0.34)',
+          }}
+        >
+          <Search size={17} color={CYAN} aria-hidden="true" />
+          <span className="sr-only">Search Marketplace Gear</span>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search Marketplace Gear"
+            aria-label="Search Marketplace Gear"
+            style={{
+              width: '100%',
+              minHeight: 44,
+              border: 0,
+              outline: 0,
+              color: '#effbff',
+              background: 'transparent',
+              fontSize: 14,
+            }}
+          />
+        </label>
+        <label style={{ display: 'grid', gap: 5, color: '#b9d3dc', fontSize: 12 }}>
+          Sort Products
+          <select
+            value={sortMode}
+            onChange={(event) => setSortMode(event.target.value)}
+            aria-label="Sort Products"
+            style={{
+              minHeight: 44,
+              border: '1px solid rgba(115,205,235,0.36)',
+              color: '#effbff',
+              background: '#07121a',
+              padding: '0 10px',
+              fontSize: 13,
+            }}
+          >
+            <option value="featured">Featured</option>
+            <option value="price-low">Price: Low To High</option>
+            <option value="price-high">Price: High To Low</option>
+            <option value="name">Name</option>
+          </select>
+        </label>
+        <div
+          role="group"
+          aria-label="All Categories"
+          style={{ gridColumn: '1 / -1', display: 'flex', gap: 7, flexWrap: 'wrap' }}
+        >
+          {['all', ...categories].map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => setCategoryFilter(category)}
+              aria-pressed={categoryFilter === category}
+              style={{
+                minHeight: 44,
+                padding: '7px 12px',
+                border: `1px solid ${categoryFilter === category ? CYAN : 'rgba(255,255,255,0.2)'}`,
+                color: categoryFilter === category ? '#8befff' : '#c7d5da',
+                background:
+                  categoryFilter === category ? 'rgba(0,168,255,0.16)' : 'rgba(255,255,255,0.04)',
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              {category === 'all' ? 'All Categories' : categoryLabel(category)}
+            </button>
+          ))}
+        </div>
+        <div aria-live="polite" style={{ gridColumn: '1 / -1', color: '#a9c3cd', fontSize: 12 }}>
+          Showing {visibleProducts.length} Of {products.length} Products
+        </div>
+      </section>
 
       {usingFallback && loadError && (
         <div
@@ -1407,11 +1615,17 @@ export default function MerchStore({ user = null }) {
         </div>
       )}
 
+      {!loading && products.length > 0 && visibleProducts.length === 0 && (
+        <div role="status" style={{ padding: 32, textAlign: 'center', color: '#c9d8de' }}>
+          No Products Match Those Filters. Clear The Search Or Choose All Categories.
+        </div>
+      )}
+
       {sections.map((section) => (
         <div key={section.key} style={styles.merchSection}>
           <h3 style={styles.merchCategoryTitle}>{section.label}</h3>
           <div style={styles.merchGrid}>
-            {section.items.map((product) => (
+            {section.items.map((product, productIndex) => (
               <MerchProductCard
                 key={product.key}
                 product={product}
@@ -1421,8 +1635,10 @@ export default function MerchStore({ user = null }) {
                 wishlistBusyKey={wishlistBusyKey}
                 isWishlisted={wishlistIds.has(product.catalogId || product.key)}
                 onToggleWishlist={toggleWishlist}
+                onAddToCart={handleAddToCart}
                 onBuyCard={handleBuyCard}
                 onBuyDiamonds={handleBuyDiamonds}
+                mediaPriority={section.key === sections[0]?.key && productIndex < 2}
               />
             ))}
           </div>

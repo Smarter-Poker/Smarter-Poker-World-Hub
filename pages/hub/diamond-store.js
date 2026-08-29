@@ -11,6 +11,7 @@
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 // Tiny list module on purpose — importing eggVerifiers.js here would pull 28
@@ -52,6 +53,7 @@ const StoreToast = dynamic(() => import('../../src/components/store/StoreToast')
 import { VIPCard } from '../../src/components/store/StoreCards';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
 import CheckoutStatusPanel from '../../src/components/diamond-store/CheckoutStatusPanel';
+import MarketplaceCommerceNav from '../../src/components/store/MarketplaceCommerceNav';
 import shellStyles from '../../src/components/diamond-store/DiamondStoreShell.module.css';
 
 const MerchStore = dynamic(() => import('../../src/components/store/MerchStore'), {
@@ -238,6 +240,17 @@ function storeStructuredData(activeTab) {
       url: 'https://smarter.poker/',
     },
   };
+}
+
+function RewardDetailLink({ reward, children }) {
+  return (
+    <Link
+      href={`/hub/smarter-rewards/${reward.id}`}
+      style={{ color: 'inherit', textDecorationColor: 'rgba(112, 223, 255, 0.55)' }}
+    >
+      {children}
+    </Link>
+  );
 }
 
 function useDialogFocus(isOpen, dialogRef, onDismiss, isBusy) {
@@ -428,6 +441,14 @@ export default function DiamondStorePage({ initialTab }) {
   const [pendingSpend, setPendingSpend] = useState(null);
   const [diamondMultiplier, setDiamondMultiplier] = useState(1.0);
   const [checkoutReturn, setCheckoutReturn] = useState(null);
+
+  useEffect(() => {
+    if (!router.isReady || activeTab !== 'vip') return;
+    const requestedPlan = Array.isArray(router.query.plan) ? router.query.plan[0] : router.query.plan;
+    if (['vip-daily', 'vip-monthly', 'vip-annual'].includes(requestedPlan)) {
+      setSelectedVIP(requestedPlan);
+    }
+  }, [activeTab, router.isReady, router.query.plan]);
 
   const [user, setUser] = useState(null);
 
@@ -872,13 +893,79 @@ export default function DiamondStorePage({ initialTab }) {
         if (data.newBalance != null) setDiamondBalance(Number(data.newBalance));
         broadcastSync('smarter_poker_vip_sync', 'refresh_vip');
         broadcastSync('smarter_poker_diamond_sync', 'refresh');
+        return true;
       } else {
         showStoreToast('error', data?.error || 'VIP Purchase Failed.');
+        return false;
       }
     } catch (e) {
       captureStoreEvent('diamond_purchase_failed', { route: 'vip', product: 'vip-daily' });
       showStoreToast('error', e.message);
+      return false;
     } finally {
+      setStoreProcessing(false);
+    }
+  };
+
+  /**
+   * Card-funded daily access uses the same auditable settlement model as Club
+   * Shop card purchases: Stripe funds the smallest sufficient diamond package,
+   * checkout-status verifies that receipt, and only then does the idempotent
+   * daily-pass endpoint redeem 150 diamonds. Any remainder stays in the wallet.
+   */
+  const handleDailyVipCardCheckout = async () => {
+    if (processingRef.current) return;
+    const token = getAccessToken();
+    if (!token || !user?.id) {
+      showStoreToast('error', 'Please Sign In To Purchase Daily VIP With Card.');
+      return;
+    }
+    const plan = VIP_MEMBERSHIP.daily;
+    const topUp = clubCardTopUpFor(plan.price);
+    if (!topUp) {
+      showStoreToast('error', 'Daily VIP Card Checkout Is Temporarily Unavailable.');
+      return;
+    }
+    const pending = {
+      id: plan.id,
+      purchaseRequestId: createCheckoutRequestId('vip-daily-card-redeem'),
+      expiresAt: Date.now() + 30 * 60 * 1000,
+    };
+    setStoreProcessing(true);
+    try {
+      window.localStorage.setItem(
+        'smarter_poker_pending_daily_vip_card',
+        JSON.stringify(pending)
+      );
+      const origin = window.location.origin;
+      const response = await fetch('/api/store/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-Checkout-Request-ID': createCheckoutRequestId('vip-daily-card'),
+        },
+        body: JSON.stringify({
+          type: 'diamonds',
+          items: [{ packageId: topUp.packageId, quantity: topUp.quantity }],
+          successUrl: `${origin}${TAB_ROUTES.vip}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${origin}${TAB_ROUTES.vip}?canceled=true`,
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success || !data?.data?.url) {
+        throw new Error(data?.error?.message || 'Could Not Start Daily VIP Card Checkout.');
+      }
+      captureStoreEvent('checkout_started', {
+        route: 'vip',
+        type: 'card-funded-daily-vip',
+        product: plan.id,
+        value_usd: topUp.price * topUp.quantity,
+      });
+      window.location.href = data.data.url;
+    } catch (error) {
+      window.localStorage.removeItem('smarter_poker_pending_daily_vip_card');
+      showStoreToast('error', error.message || 'Could Not Start Daily VIP Card Checkout.');
       setStoreProcessing(false);
     }
   };
@@ -1238,6 +1325,28 @@ export default function DiamondStorePage({ initialTab }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, checkoutReturn?.status]);
 
+  useEffect(() => {
+    if (activeTab !== 'vip' || checkoutReturn?.status !== 'complete') return;
+    let pending = null;
+    try {
+      pending = JSON.parse(
+        window.localStorage.getItem('smarter_poker_pending_daily_vip_card') || 'null'
+      );
+    } catch (_) {
+      window.localStorage.removeItem('smarter_poker_pending_daily_vip_card');
+    }
+    if (pending?.id !== 'vip-daily' || Number(pending.expiresAt) < Date.now()) {
+      window.localStorage.removeItem('smarter_poker_pending_daily_vip_card');
+      return;
+    }
+    runDailyPassPurchase(pending.purchaseRequestId).then((applied) => {
+      if (applied) window.localStorage.removeItem('smarter_poker_pending_daily_vip_card');
+    });
+    // The verified Stripe receipt is the one-shot trigger. The redeem endpoint
+    // carries its own durable idempotency key for reload and retry safety.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, checkoutReturn?.status]);
+
   // ═══ Club Shop: Admin — load all items (active + hidden) ═══
   const loadClubShopAdmin = useCallback(async () => {
     if (!clubShopClubId) return;
@@ -1368,7 +1477,7 @@ export default function DiamondStorePage({ initialTab }) {
         ? VIP_MEMBERSHIP.monthly
         : VIP_MEMBERSHIP.annual;
   const vipSubscribeLabel = selectedVIPPlan?.isDiamondCost
-    ? `Activate ${selectedVIPPlan?.name || '1-Day VIP Pass'} — ${Number(selectedVIPPlan?.price || 0).toLocaleString()} Diamonds`
+    ? `Activate Daily VIP With Diamonds — ${Number(selectedVIPPlan?.price || 0).toLocaleString()}`
     : `Subscribe — $${selectedVIPPlan?.price ?? '19.99'}/${selectedVIPPlan?.interval || 'month'}`;
 
   return (
@@ -1481,6 +1590,8 @@ export default function DiamondStorePage({ initialTab }) {
               busyPackageId={busyPackageId}
               onBuy={handleDirectCheckout}
             />
+
+            <MarketplaceCommerceNav active="store" />
 
             {/* Main Content (non-diamonds tabs) */}
             <div
@@ -1609,6 +1720,24 @@ export default function DiamondStorePage({ initialTab }) {
                     />
                   </div>
 
+                  <nav
+                    aria-label="VIP Membership Tools"
+                    style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 10, marginTop: 14 }}
+                  >
+                    <Link
+                      href="/hub/vip-membership/compare"
+                      style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', padding: '9px 15px', border: '1px solid #385D70', color: '#8FE8FF', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}
+                    >
+                      Compare Every VIP Plan
+                    </Link>
+                    <Link
+                      href="/hub/vip-membership/manage"
+                      style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', padding: '9px 15px', border: '1px solid #385D70', color: '#8FE8FF', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}
+                    >
+                      Open VIP Command Center
+                    </Link>
+                  </nav>
+
                   {/* Annual saving, stated in money rather than implied by a badge */}
                   {selectedVIP === 'vip-annual' && VIP_MEMBERSHIP.annual.savings > 0 && (
                     <div
@@ -1669,6 +1798,38 @@ export default function DiamondStorePage({ initialTab }) {
                       </div>
                     </button>
                   </div>
+
+                  {selectedVIPPlan?.isDiamondCost && (
+                    <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 8 }}>
+                      <button
+                        type="button"
+                        disabled={isProcessing}
+                        onClick={handleDailyVipCardCheckout}
+                        style={{
+                          display: 'inline-flex',
+                          minHeight: 44,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          padding: '11px 22px',
+                          border: '1px solid #8EC8D8',
+                          background: 'linear-gradient(180deg, #DFF9FF, #6DA7BC 48%, #1C4B61)',
+                          color: '#06131A',
+                          fontSize: 13,
+                          fontWeight: 800,
+                          cursor: isProcessing ? 'wait' : 'pointer',
+                          opacity: isProcessing ? 0.6 : 1,
+                        }}
+                      >
+                        <CreditCard size={16} aria-hidden="true" />
+                        Pay For Daily VIP With Card
+                      </button>
+                      <div style={{ fontSize: 12, color: '#A8BBC4', marginTop: 8 }}>
+                        Card Checkout Funds 200 Diamonds For $2.00, Activates The 150-Diamond Pass,
+                        And Leaves 50 Diamonds In Your Wallet.
+                      </div>
+                    </div>
+                  )}
 
                   {/* Pay in diamonds — monthly and annual only. The daily plan is
                     already priced in diamonds and has its own endpoint. */}
@@ -2426,7 +2587,9 @@ export default function DiamondStorePage({ initialTab }) {
                                 {reward.icon && <reward.icon size={24} />}
                               </span>
                               <div style={styles.rewardDetails}>
-                                <span style={styles.rewardName}>{reward.name}</span>
+                                <span style={styles.rewardName}>
+                                  <RewardDetailLink reward={reward}>{reward.name}</RewardDetailLink>
+                                </span>
                                 <span style={styles.rewardNote}>{reward.note}</span>
                               </div>
                               <span style={styles.rewardAmount}>{reward.amount}</span>
@@ -2472,7 +2635,7 @@ export default function DiamondStorePage({ initialTab }) {
                               style={styles.eggCard}
                             >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -2504,7 +2667,7 @@ export default function DiamondStorePage({ initialTab }) {
                               style={styles.eggCard}
                             >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -2536,7 +2699,7 @@ export default function DiamondStorePage({ initialTab }) {
                               style={styles.eggCard}
                             >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -2568,7 +2731,7 @@ export default function DiamondStorePage({ initialTab }) {
                               style={styles.eggCard}
                             >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -2600,7 +2763,7 @@ export default function DiamondStorePage({ initialTab }) {
                               style={styles.eggCard}
                             >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -2632,7 +2795,7 @@ export default function DiamondStorePage({ initialTab }) {
                               style={styles.eggCard}
                             >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}>{egg.name}</h4>
+                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -3343,7 +3506,7 @@ export default function DiamondStorePage({ initialTab }) {
                                         <div
                                           style={{
                                             fontSize: 11,
-                                            color: 'rgba(255,255,255,0.4)',
+                                            color: '#AABAC2',
                                             marginBottom: 10,
                                             lineHeight: 1.4,
                                             minHeight: 30,
@@ -3351,6 +3514,20 @@ export default function DiamondStorePage({ initialTab }) {
                                         >
                                           {item.description || 'No description.'}
                                         </div>
+                                        <Link
+                                          href={`/hub/club-shop/${item.id}?clubId=${clubShopClubId}`}
+                                          style={{
+                                            display: 'inline-flex',
+                                            minHeight: 44,
+                                            alignItems: 'center',
+                                            color: '#70DFFF',
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            textDecoration: 'none',
+                                          }}
+                                        >
+                                          View Item Details
+                                        </Link>
                                         <div
                                           style={{
                                             display: 'flex',
