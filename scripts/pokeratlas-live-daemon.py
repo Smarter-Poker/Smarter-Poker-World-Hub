@@ -294,29 +294,19 @@ PA_ALL_REGION_SLUGS = [
 # Track last full discovery time
 _last_discovery_date = None
 
-def load_pa_regions():
-    """Return validated regions for normal scraping.
-    
-    Only the 11 validated regions are scraped each cycle (~2-3 min).
-    A full discovery pass runs once per day to detect new regions.
-    """
-    global _last_discovery_date
-    today = datetime.now().strftime('%Y%m%d')
-    
-    # Check if we have a cached discovery file with additional regions
-    discovery_file = BASE_DIR / 'data' / 'pokeratlas-discovered-regions.json'
-    extra_regions = []
-    if discovery_file.exists():
-        try:
-            with open(discovery_file) as f:
-                data = json.load(f)
-                extra_regions = data.get('extra_validated', [])
-        except Exception:
-            pass
-    
-    # Merge validated + any discovered extras (dedup)
-    all_valid = list(dict.fromkeys(PA_VALIDATED_REGIONS + extra_regions))
-    return all_valid
+def load_pa_venues():
+    """Return ALL PokerAtlas venues from the slug map."""
+    slug_map_file = BASE_DIR / 'data' / 'pokeratlas-slug-map.json'
+    if not slug_map_file.exists():
+        log.error(f'🚨 Slug map missing at {slug_map_file}')
+        return []
+    try:
+        with open(slug_map_file) as f:
+            data = json.load(f)
+            return data.get('venues', [])
+    except Exception as e:
+        log.error(f'🚨 Failed to load slug map: {e}')
+        return []
 
 # ============================================================
 # DATA EXTRACTION
@@ -1182,114 +1172,104 @@ def run_scrape_cycle(mgr):
         'consecutive_failures': mgr.consecutive_failures,
     })
 
-    # Load validated region slugs (fast — only ~27 regions)
-    regions = load_pa_regions()
-    log.info(f'Scraping {len(regions)} validated regions...')
+    # Load all venues from slug map
+    map_venues = load_pa_venues()
+    log.info(f'Loaded {len(map_venues)} venues from slug map...')
 
-    # Scrape each region FIRST, then run discovery pass (so critical data publishes before discovery wastes time)
+    # Fast 404 cache to skip venues without cash games
+    cache_file = BASE_DIR / 'data' / 'pokeratlas-nocash-venues.json'
+    import time
+    now_ts = time.time()
+    nocash_cache = {}
+    if cache_file.exists():
+        try:
+            with open(cache_file) as f:
+                nocash_cache = json.load(f)
+        except Exception:
+            pass
 
-    # Scrape each region
+    venues_to_scrape = map_venues
+    log.info(f'Scraping {len(venues_to_scrape)} venues (skipping 404 cached)...')
+
     all_venues = []
     errors = 0
     skipped = 0
-    fetch_ok = 0          # pages that returned usable HTML (incl. REDIRECT)
-    parsed_empty = 0      # pages that returned 200 HTML but yielded zero items
+    fetch_ok = 0          
+    parsed_empty = 0      
 
     consecutive_region_failures = 0
-    for i, slug in enumerate(regions):
-        # CIRCUIT BREAKER: abort cycle if too many consecutive failures
+    for i, v in enumerate(venues_to_scrape):
         if consecutive_region_failures >= CIRCUIT_BREAKER_THRESHOLD:
             log.error(f'🔴 CIRCUIT BREAKER: {consecutive_region_failures} consecutive failures — aborting cycle, forcing reconnect')
             mgr._session_dead = True
             break
 
-        # SLOW-CYCLE WATCHDOG: if running >20min and we're <50% done, the session
-        # is crawling (browserhanging, rate-limited, etc.) — force reconnect
         elapsed_cycle_min = (datetime.now(timezone.utc) - cycle_start).total_seconds() / 60
-        progress_pct = (i / len(regions)) if regions else 1.0
+        progress_pct = (i / len(venues_to_scrape)) if venues_to_scrape else 1.0
         if elapsed_cycle_min > SLOW_CYCLE_THRESHOLD_MINUTES and progress_pct < 0.5:
             log.warning(
                 f'⏱️  SLOW-CYCLE WATCHDOG: {elapsed_cycle_min:.0f}min elapsed, '
-                f'only {i}/{len(regions)} regions done ({progress_pct:.0%}). '
+                f'only {i}/{len(venues_to_scrape)} venues done ({progress_pct:.0%}). '
                 f'Forcing session reconnect.'
             )
             mgr._session_dead = True
             break
+            
+        slug = v['slug']
+        
+        # Check cache (expire after 7 days)
+        if slug in nocash_cache:
+            if now_ts - nocash_cache[slug] < 7 * 86400:
+                skipped += 1
+                continue
+            else:
+                del nocash_cache[slug]
 
-        url = f'https://www.pokeratlas.com/poker-cash-games/{slug}'
+        url = f'https://www.pokeratlas.com/poker-room/{slug}/cash-games'
         html = mgr.fetch_with_fallback(url, expected_slug=slug)
 
-        # REDIRECT is a valid "no data" response — NOT a session failure
-        if html == 'REDIRECT':
+        if html == 'REDIRECT' or html == '404':
+            nocash_cache[slug] = now_ts
             skipped += 1
             fetch_ok += 1
+            consecutive_region_failures = 0
             continue
 
         if html is None:
-            errors += 1
+            log.error(f'  ❌ All tiers failed for {slug}')
             consecutive_region_failures += 1
-            if errors <= 3:
-                log.info(f'  [{i+1}/{len(regions)}] ❌ {slug[:30]:30} | failed')
+            errors += 1
             continue
 
-        consecutive_region_failures = 0  # Reset on success
         fetch_ok += 1
+        consecutive_region_failures = 0
 
-        venues, rhash, now = extract_games_from_region(html, slug, source_url=url)
+        region_slug = 'unknown'
+        if v.get('discovered_from'):
+            region_slug = v['discovered_from'].split('/')[-1]
 
-        if venues:
-            total_games = sum(len(v['live_games']) for v in venues)
-            total_waiting = sum(len(v['waitlist']) for v in venues)
-            log.info(
-                f'  [{i+1}/{len(regions)}] ✅ {slug[:30]:30} | '
-                f'{len(venues)} rooms | {total_games} games | {total_waiting} waitlist'
-            )
+        venues, rhash, _ = extract_games_from_region(html, region_slug, fallback_venue_name=v['name'], source_url=url)
+        
+        
+        if not venues:
+            parsed_empty += 1
+            nocash_cache[slug] = now_ts
+        else:
             all_venues.extend(venues)
-        else:
-            skipped += 1
-            # A 200 page that parses to nothing is the signature of a markup
-            # change — surface it instead of logging it as routine "no data".
-            if 'cash-games-list-item' not in html:
-                parsed_empty += 1
-                log.error(
-                    f'  [{i+1}/{len(regions)}] 🧨 PARSE ALERT {slug[:30]:30} | '
-                    f'200 OK but no "cash-games-list-item" markup found '
-                    f'({len(html)} bytes) — PokerAtlas layout may have changed'
-                )
-            elif skipped <= 5 or skipped % 10 == 0:
-                log.warning(
-                    f'  [{i+1}/{len(regions)}] ⏭️  {slug[:30]:30} | '
-                    f'items present but zero venues parsed'
-                )
-
+            if slug in nocash_cache:
+                del nocash_cache[slug]
+                
         time.sleep(RATE_LIMIT_DELAY)
+        if (i + 1) % 50 == 0:
+            log.info(f'  --- {i+1}/{len(venues_to_scrape)} | {len(all_venues)} venues | {errors} errors ---')
 
-        # Checkpoint every 15
-        if (i + 1) % 15 == 0:
-            log.info(f'  --- {i+1}/{len(regions)} | {len(all_venues)} venues | {errors} errors ---')
-
-    # ORPHAN VENUE EXPLICIT SCRAPE
-    log.info(f'Scraping {len(PA_ORPHAN_VENUES)} orphan venues (missing region mapping)...')
-    for i, orphan in enumerate(PA_ORPHAN_VENUES):
-        url = f"https://www.pokeratlas.com/poker-room/{orphan['slug']}/cash-games"
-        html = mgr.fetch_with_fallback(url, expected_slug=orphan['slug'])
+    # Save cache
+    try:
+        with open(cache_file, 'w') as f:
+            json.dump(nocash_cache, f)
+    except Exception:
+        pass
         
-        if html and html != 'REDIRECT':
-            fetch_ok += 1
-            venues, rhash, now = extract_games_from_region(
-                html, orphan['region'], fallback_venue_name=orphan['name'], source_url=url
-            )
-            if venues:
-                total_games = sum(len(v['live_games']) for v in venues)
-                log.info(f"  [Orphan {i+1}/{len(PA_ORPHAN_VENUES)}] ✅ {orphan['name'][:30]:30} | {total_games} games")
-                all_venues.extend(venues)
-            else:
-                log.info(f"  [Orphan {i+1}/{len(PA_ORPHAN_VENUES)}] ⏭️  {orphan['name'][:30]:30} | no data")
-        else:
-            log.info(f"  [Orphan {i+1}/{len(PA_ORPHAN_VENUES)}] ❌ {orphan['name'][:30]:30} | fetch failed")
-        
-        time.sleep(RATE_LIMIT_DELAY)
-
     # Build Supabase payload — using Bravo-compatible build_payload_from_results()
     log.info(f'💾 Saving {len(all_venues)} venue records to Supabase...')
 
@@ -1463,7 +1443,7 @@ def run_scrape_cycle(mgr):
         'scrape_timestamp': cycle_start.isoformat(),
         'source': 'pokeratlas',
         'source_urls': sorted({v.get('source_url') for v in all_venues if v.get('source_url')}),
-        'regions_scraped': len(regions),
+        'regions_scraped': len(venues_to_scrape),
         'venues_with_data': len(all_venues),
         'regions_skipped': skipped,
         'fetch_ok': fetch_ok,
@@ -1554,7 +1534,7 @@ def run_scrape_cycle(mgr):
         'history_insert_failed': history_failures,
         'metrics_insert_failed': metrics_failed,
         'duration_seconds': round(duration),
-        'regions_scraped': len(regions),
+        'regions_scraped': len(venues_to_scrape),
     })
 
     log.info(
