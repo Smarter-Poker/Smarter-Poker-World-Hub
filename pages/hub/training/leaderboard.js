@@ -145,10 +145,10 @@ export default function TrainingLeaderboard() {
         canonical="/hub/training/leaderboard"
       />
 
-      <div style={styles.container}>
+      <div className="sp-intelligence-page-shell" style={styles.container}>
         <UniversalHeader pageDepth={2} />
 
-        <div style={styles.content}>
+        <div className="sp-training-intelligence sp-training-intelligence--leaderboard sp-intelligence-main" style={styles.content}>
           {/* TRAIN-LEADERBOARD-A11Y-1: was 'Trophy Training Leaderboard' (a
               cleaned-emoji artifact — original title was '★ Training
               Leaderboard'). Restore the icon as proper SVG. */}

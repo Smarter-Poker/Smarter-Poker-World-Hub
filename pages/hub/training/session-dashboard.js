@@ -722,6 +722,7 @@ export default function SessionDashboard() {
       </Head>
 
       <div
+        className="sp-training-intelligence sp-training-intelligence--session-dashboard"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
@@ -730,7 +731,7 @@ export default function SessionDashboard() {
         }}
       >
         {/* Header */}
-        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="sp-intelligence-header" style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               onClick={() => router.push('/hub/training')}
@@ -766,7 +767,7 @@ export default function SessionDashboard() {
           </p>
         </div>
 
-        <div style={{ padding: '16px 24px', maxWidth: 900, margin: '0 auto' }}>
+        <div className="sp-intelligence-main" style={{ padding: '16px 24px', maxWidth: 900, margin: '0 auto' }}>
           {/* Time Range Selector */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
             {[

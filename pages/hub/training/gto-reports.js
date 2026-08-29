@@ -469,6 +469,7 @@ export default function GTOReportsPage() {
       </Head>
 
       <div
+        className="sp-training-intelligence sp-training-intelligence--gto-reports"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
@@ -478,6 +479,7 @@ export default function GTOReportsPage() {
       >
         {/* Header */}
         <div
+          className="sp-intelligence-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -521,7 +523,7 @@ export default function GTOReportsPage() {
           </div>
         </div>
 
-        <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
+        <div className="sp-intelligence-main" style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchSessions(); }} />
           {loading ? (
             <div style={{ textAlign: 'center', padding: 60, color: 'var(--sp-fg-dim)' }}>
