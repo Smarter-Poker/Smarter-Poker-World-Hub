@@ -126,6 +126,59 @@ const TRAINING_ROUTES_WITH_HEADER = new Set([
   '/hub/training/tournament/[id]',
   '/hub/training/tournaments',
 ]);
+
+// Hub routes that do not mount UniversalHeader (or another shared shell) in
+// their page module receive the exact same approved header here. Keeping this
+// manifest at the app root closes legacy, dynamic, and dashboard gaps without
+// duplicating the header on pages that already own it.
+const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
+  '/hub/admin/autofix',
+  '/hub/admin/diamond-liability',
+  '/hub/bankroll',
+  '/hub/club-shop',
+  '/hub/commander',
+  '/hub/godmode',
+  '/hub/gto-trainer',
+  '/hub/hand-history',
+  '/hub/home-games/in',
+  '/hub/home-games/in/[state]',
+  '/hub/home-games/in/[state]/[city]',
+  '/hub/home-games/near-me',
+  '/hub/install',
+  '/hub/live/guest',
+  '/hub/lives',
+  '/hub/marketplace',
+  '/hub/memory-games/achievements',
+  '/hub/memory-games/leaderboard',
+  '/hub/memory-games/stats',
+  '/hub/memory-games/tutorial',
+  '/hub/merch-store',
+  '/hub/my-tournaments',
+  '/hub/poker-brain',
+  '/hub/poker-near-me',
+  '/hub/poker-tools',
+  '/hub/poker/table/[tableId]',
+  '/hub/post/[id]',
+  '/hub/preflop-charts',
+  '/hub/preflop-charts/achievements',
+  '/hub/preflop-charts/leaderboard',
+  '/hub/preflop-charts/stats',
+  '/hub/preflop-charts/tutorial',
+  '/hub/profile',
+  '/hub/reset-auth',
+  '/hub/session-history',
+  '/hub/settings/notifications',
+  '/hub/smarter-rewards',
+  '/hub/social-media/[slug]',
+  '/hub/social-media/compose',
+  '/hub/tournaments',
+  '/hub/trivia/cash',
+  '/hub/trivia/gto',
+  '/hub/trivia/icm',
+  '/hub/trivia/mtt',
+  '/hub/trivia/survival',
+  '/hub/vip-membership',
+]);
 // GlobalReportBugButton removed — bug reporting is inside every HamburgerMenu via ReportBugWidget
 // ═══════════════════════════════════════════════════════════════════════════
 // CACHE BUSTER — Clears stale caches on new deploys
@@ -698,6 +751,7 @@ export default function App({ Component, pageProps }) {
   // All other training routes receive the same component here so the complete
   // training library has consistent navigation without duplicating headers.
   const trainingPageOwnsHeader = TRAINING_ROUTES_WITH_HEADER.has(router.pathname);
+  const hubPageNeedsHeader = HUB_ROUTES_WITHOUT_SHARED_HEADER.has(router.pathname);
 
   // Do NOT capitalize specific poker/trainer tool screens where exact statistical/range string casing (e.g., AQs, cbet, EV) is mathematically critical
   const isPokerTool = path.includes('/training') || path.includes('/gto') || path.includes('/solver') || path.includes('/sandbox');
@@ -811,7 +865,10 @@ export default function App({ Component, pageProps }) {
                                     </div>
                                   </div>
                                 ) : (
-                                  <Component {...pageProps} />
+                                  <>
+                                    {hubPageNeedsHeader && <UniversalHeader />}
+                                    <Component {...pageProps} />
+                                  </>
                                 )}
                               </PageErrorBoundary>
                               <HubErrorBoundary name="Celebrations" fallback={<></>}>

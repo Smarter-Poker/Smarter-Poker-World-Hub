@@ -31,6 +31,10 @@ const DiamondWalletModal = dynamic(() => import('../store/DiamondWalletModal'), 
   ssr: false,
   loading: () => null, // No visible flash — modal has its own skeleton
 });
+const HamburgerMenu = dynamic(() => import('./HamburgerMenu'), {
+  ssr: false,
+  loading: () => null,
+});
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { useDiamondBalance } from '../../hooks/useDiamondBalance';
@@ -53,13 +57,8 @@ const C = {
 
 /**
  * @param {Object} props
- * @param {number} [props.pageDepth=1]
- * @param {boolean} [props.showSearch=false]
- * @param {Function} [props.onSearchClick]
  * @param {Function} [props.onMenuClick]
- * @param {Function} [props.onSettingsClick]
  * @param {Function} [props.onBackClick]
- * @param {boolean} [props.hideLeftIcon=false]
  */
 // ── Header data cache freshness window ────────────────────────────────────
 // The header is rendered per-page (it is NOT mounted in _app), so it remounts on
@@ -77,21 +76,26 @@ const OVERLAY_TITLES = {
   'diamond-store': 'Diamond Store',
 };
 
+const DEFAULT_HEADER_MENU_ITEMS = [
+  { type: 'navigation', label: 'Hub', href: '/hub' },
+  { type: 'navigation', label: 'Profile', href: '/hub/profile' },
+  { type: 'navigation', label: 'Diamond Store', href: '/hub/diamond-store' },
+  { type: 'navigation', label: 'Messenger', href: '/hub/messenger' },
+  { type: 'navigation', label: 'Notifications', href: '/hub/notifications' },
+  { type: 'navigation', label: 'Settings', href: '/hub/settings' },
+];
+
 // useLayoutEffect warns when it runs during SSR, so fall back to useEffect on the
 // server. On the client this flushes BEFORE the browser paints, which means the
 // isMounted gate below never shows the un-hydrated (avatar-less) frame to the user.
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export default function UniversalHeader({
-  pageDepth = 1, // 1 = major page (show Hub button), 2+ = nested (show Back)
-  showSearch = false,
-  onSearchClick,
   onMenuClick, // Callback for hamburger menu click
-  onSettingsClick, // Override for settings gear — opens page-specific settings instead of global
   onBackClick, // Override for back navigation
-  hideLeftIcon = false, // Allows hiding the left icon (e.g. when page has an in-page back button)
 }) {
   const router = useRouter();
+  const [fallbackMenuOpen, setFallbackMenuOpen] = useState(false);
 
   // 🛡️ INSTANT UI: Single-parse helper with 24h cache TTL
   // Parses localStorage once and returns the cached header object (or null if expired/missing).
@@ -146,7 +150,7 @@ export default function UniversalHeader({
 
   // ── FULL-SCREEN OVERLAY STATES ──
   const [overlayPage, setOverlayPage] = useState(null); // null | 'profile' | 'messenger' | 'notifications' | 'settings' | 'diamond-store'
-  const [isVip, setIsVip] = useState(() => {
+  const [, setIsVip] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {
       return localStorage.getItem('sp-profile-vip') === 'true';
@@ -201,7 +205,7 @@ export default function UniversalHeader({
   });
 
   // Global Avatar State (instant caching)
-  const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
+  const { avatar: contextAvatar } = useAvatar();
 
   // Global Active Identity State (for Commander/Page Owners)
   const { isClubMode, clubPage } = useActiveIdentity();
@@ -251,13 +255,7 @@ export default function UniversalHeader({
     isClubMode && clubPage
       ? clubPage.avatar_url || contextAvatar?.imageUrl || user?.avatar
       : contextAvatar?.imageUrl || user?.avatar;
-  // BUGFIX (header-audit #26): clubPage.name can be null on a page row that has not
-  // finished syncing, and `null.charAt(0)` in the orb below would throw — taking the
-  // whole page subtree down through the error boundary. Coerce at the source.
-  const activeName = (isClubMode && clubPage ? clubPage.name : user?.name) || '';
-
   const displayAvatar = isMounted ? activeAvatarUrl || '/default-avatar.png' : null;
-  const isVipDisplay = isMounted ? !isClubMode && (isVip || contextVip) : false; // VIP badge is for personal profiles only
   const safeUnreadCount = isMounted ? unreadCount : 0;
   const safeNotificationCount = isMounted ? notificationCount : 0;
 
@@ -1196,169 +1194,199 @@ export default function UniversalHeader({
                         font-size: 18px;
                     }
                 }
+
+                /* Approved 2026-08-29 global header. The complete desktop artwork
+                   is the header at every width; mobile only scales the same row. */
+                .approved-global-header {
+                    position: sticky;
+                    top: 0;
+                    z-index: 100;
+                    width: 100%;
+                    box-sizing: border-box;
+                    padding-top: env(safe-area-inset-top, 0px);
+                    overflow: hidden;
+                    background: #000;
+                    line-height: 0;
+                    isolation: isolate;
+                }
+
+                .approved-global-header__art {
+                    display: block;
+                    width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+                    height: auto;
+                    margin-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+                    aspect-ratio: 1648 / 168;
+                    object-fit: contain;
+                    object-position: center;
+                    user-select: none;
+                    pointer-events: none;
+                }
+
+                .approved-global-header__controls {
+                    position: absolute;
+                    top: env(safe-area-inset-top, 0px);
+                    right: env(safe-area-inset-right, 0px);
+                    left: env(safe-area-inset-left, 0px);
+                    aspect-ratio: 1648 / 168;
+                }
+
+                .approved-global-header__button {
+                    position: absolute;
+                    top: 13%;
+                    height: 74%;
+                    margin: 0;
+                    padding: 0;
+                    appearance: none;
+                    border: 0;
+                    border-radius: 8px;
+                    background: transparent;
+                    cursor: pointer;
+                    -webkit-tap-highlight-color: transparent;
+                    touch-action: manipulation;
+                }
+
+                .approved-global-header__button:focus-visible {
+                    outline: 3px solid #20a9ff;
+                    outline-offset: -3px;
+                    box-shadow: 0 0 0 2px #000;
+                }
+
+                .approved-global-header__button:active { opacity: .76; }
+                .approved-global-header__menu { left: 1.7%; width: 7%; }
+                .approved-global-header__back { left: 8%; width: 12%; }
+                .approved-global-header__hub { left: 19.1%; width: 12.9%; }
+                .approved-global-header__profile { left: 66.5%; width: 7.5%; }
+                .approved-global-header__wallet { left: 73.2%; width: 7.1%; }
+                .approved-global-header__vip { left: 79.9%; width: 6.5%; }
+                .approved-global-header__messenger { left: 86%; width: 6.9%; }
+                .approved-global-header__notifications { left: 92.3%; width: 6.2%; }
+
+                .approved-global-header__avatar {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    width: 56%;
+                    height: auto;
+                    aspect-ratio: 1;
+                    transform: translate(-50%, -50%);
+                    border-radius: 50%;
+                    background: #05070a;
+                    object-fit: cover;
+                    pointer-events: none;
+                }
+
+                .approved-global-header__badge {
+                    position: absolute;
+                    top: 3px;
+                    right: 3px;
+                    display: grid;
+                    min-width: 20px;
+                    min-height: 20px;
+                    place-items: center;
+                    box-sizing: border-box;
+                    padding: 1px 5px;
+                    border: 2px solid #050505;
+                    border-radius: 999px;
+                    background: #d91136;
+                    color: #fff;
+                    box-shadow: 0 2px 8px rgba(0,0,0,.72);
+                    font: 800 11px/1 system-ui, sans-serif;
+                }
+
+                @media (display-mode: standalone), (display-mode: fullscreen) {
+                    .approved-global-header { padding-top: max(env(safe-area-inset-top, 0px), 24px); }
+                    .approved-global-header__controls { top: max(env(safe-area-inset-top, 0px), 24px); }
+                }
             `,
         }}
       />
 
-      <header className="universal-header">
-        {/* LEFT: Hamburger Menu + Back/Hub Button + "Smarter.Poker" */}
-        <div className="header-left">
-          {onMenuClick && (
-            <button
-              onClick={onMenuClick}
-              className="hamburger-btn"
-              aria-label="Open Menu"
-              style={{ padding: 0 }}
-            >
-              <img
-                src="/images/btn-hamburger-v4.png"
-                alt="Menu"
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            </button>
-          )}
-          {!hideLeftIcon && (
-            <button
-              onClick={
-                onBackClick ? onBackClick : pageDepth >= 2 ? handleBack : () => router.push('/hub')
-              }
-              className="header-img-btn header-nav-btn"
-              aria-label={pageDepth >= 2 ? 'Go back' : 'Return to Hub'}
-            >
-              <span aria-hidden="true">{pageDepth >= 2 ? 'Back' : 'Hub'}</span>
-            </button>
-          )}
-        </div>
+      {!onMenuClick && (
+        <HamburgerMenu
+          isOpen={fallbackMenuOpen}
+          onClose={() => setFallbackMenuOpen(false)}
+          direction="left"
+          theme="dark"
+          user={user}
+          menuItems={DEFAULT_HEADER_MENU_ITEMS}
+          menuKey="global-header-default"
+        />
+      )}
 
-        {/* CENTER: Brand Text — centered between nav and icons */}
-        <div className="header-center">
-          <img
-            src="/images/brand-text-clean.png"
-            alt="Smarter.Poker"
-            className="brand-text-img hide-mobile"
-            style={{ height: 45, margin: 0, padding: 0, objectFit: 'contain' }}
-          />
-          {router.pathname.includes('/messenger') && (
-            <span
-              className="hide-mobile"
-              style={{ marginLeft: 8, fontSize: 16, display: 'flex', alignItems: 'center' }}
-              title="Securely Encrypted"
-            >
-              🔒
-            </span>
-          )}
-        </div>
-
-        {/* RIGHT: Orb Icons */}
-        <div className="header-right">
-          {/* Avatar/Profile */}
-          <div
-            className={`profile-orb${!displayAvatar && !isMounted ? ' profile-orb-shimmer' : ''}`}
-            onClick={goToProfile}
-            onKeyDown={(e) => {
-              // A11Y: this advertises role="button" and sits in the tab order, but a
-              // div gets no implicit keyboard activation — Enter/Space did nothing, so
-              // keyboard and screen-reader users could focus the avatar and never open
-              // it. clubPage.name is also nullable, which made the label read "null".
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                goToProfile();
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label={isClubMode && clubPage ? clubPage.name || 'My Page' : 'My Profile'}
-            style={{
-              background: displayAvatar
-                ? `url(${displayAvatar}) center/cover`
-                : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
-              ...(isVipDisplay
-                ? {
-                    border: '2px solid #00E0FF',
-                    boxShadow: '0 0 8px rgba(0, 224, 255, 0.6), 0 0 16px rgba(0, 224, 255, 0.3)',
-                  }
-                : {}),
-            }}
-          >
-            <span
-              style={{
-                textDecoration: 'none',
-                display: 'flex',
-                width: '100%',
-                height: '100%',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: 16,
-              }}
-            >
-              {!displayAvatar && (isMounted ? activeName.charAt(0).toUpperCase() || '?' : '')}
-            </span>
-          </div>
-
-          {/* Diamond Wallet Icon */}
+      <header className="approved-global-header" data-artwork="approved-global-header">
+        <img
+          src="/images/global-header/global-header-desktop.png"
+          alt=""
+          width="1648"
+          height="168"
+          className="approved-global-header__art"
+          aria-hidden="true"
+          fetchpriority="high"
+          decoding="sync"
+        />
+        <div className="approved-global-header__controls">
           <button
-            onClick={() => setIsWalletOpen(true)}
-            className="orb-btn"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            title="Diamond Wallet"
+            type="button"
+            className="approved-global-header__button approved-global-header__menu"
+            onClick={() => (onMenuClick ? onMenuClick() : setFallbackMenuOpen(true))}
+            aria-label="Open Menu"
+          />
+          <button
+            type="button"
+            className="approved-global-header__button approved-global-header__back"
+            onClick={onBackClick || handleBack}
+            aria-label="Go back"
+          />
+          <button
+            type="button"
+            className="approved-global-header__button approved-global-header__hub"
+            onClick={() => router.push('/hub')}
+            aria-label="Go to the Hub"
+          />
+          <button
+            type="button"
+            className="approved-global-header__button approved-global-header__profile"
+            onClick={goToProfile}
+            aria-label="My Profile"
           >
             <img
-              src="/images/header-wallet-v4.png"
-              alt="Wallet"
-              style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
+              src={displayAvatar || '/default-avatar.png'}
+              alt=""
+              className="approved-global-header__avatar"
+              aria-hidden="true"
+              onError={(event) => {
+                event.currentTarget.src = '/default-avatar.png';
+              }}
             />
           </button>
-
-          {/* VIP Card Icon — only for VIP members */}
-          {isVipDisplay && (
-            <button
-              onClick={() => openOverlay('diamond-store')}
-              className="orb-btn"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-              title="VIP Member"
-            >
-              <img
-                src="/images/vip-card-v8.jpg"
-                alt="VIP Member"
-                style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
-              />
-            </button>
-          )}
-
-          {/* Messages — navigates to the full page rather than opening the overlay.
-                        PERF: this was window.location.href, a full document reload that discarded
-                        SPA state and re-downloaded the bundle on every click. router.push keeps the
-                        "no popup" behaviour the old comment was protecting. */}
           <button
+            type="button"
+            className="approved-global-header__button approved-global-header__wallet"
+            onClick={() => setIsWalletOpen(true)}
+            aria-label="Diamond Wallet"
+          />
+          <button
+            type="button"
+            className="approved-global-header__button approved-global-header__vip"
+            onClick={() => router.push('/hub/vip-membership')}
+            aria-label="VIP"
+          />
+          <button
+            type="button"
+            className="approved-global-header__button approved-global-header__messenger"
             onClick={() => router.push('/hub/messenger')}
-            className="orb-btn"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            title="Messages"
             aria-label="Messages"
           >
-            <img
-              src="/images/header-messenger-v4.png"
-              alt="Messages"
-              style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
-            />
             {safeUnreadCount > 0 && (
-              <span className="orb-badge" aria-live="polite" aria-atomic="true">
+              <span className="approved-global-header__badge" aria-live="polite" aria-atomic="true">
                 {safeUnreadCount > 99 ? '99+' : safeUnreadCount}
               </span>
             )}
           </button>
-
-          {/* Notifications - Custom Metallic Bell icon */}
           <button
+            type="button"
+            className="approved-global-header__button approved-global-header__notifications"
             onClick={() => {
-              // BUGFIX (header-audit #2): this used to zero the badge in the UI
-              // ONLY. Because liveNotificationCount was untouched, the mirror
-              // effect never re-ran — so the badge sat at 0 while rows were still
-              // unread, and the next INSERT bumped it from 0 straight to N+1,
-              // resurrecting everything the user had just dismissed. Persist the
-              // read state so the optimistic zero reflects the database.
               setNotificationCount(0);
               try {
                 localStorage.setItem('sp-notif-count', '0');
@@ -1368,73 +1396,17 @@ export default function UniversalHeader({
               markAllNotificationsRead();
               openOverlay('notifications');
             }}
-            className="orb-btn"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            title="Notifications"
             aria-label="Notifications"
           >
-            <img
-              src="/images/notification-bell-trimmed.png"
-              alt="Notifications"
-              style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
-            />
             {safeNotificationCount > 0 && (
-              <span className="orb-badge" aria-live="polite" aria-atomic="true">
+              <span className="approved-global-header__badge" aria-live="polite" aria-atomic="true">
                 {safeNotificationCount > 99 ? '99+' : safeNotificationCount}
               </span>
             )}
           </button>
-
-          {/* Settings - Custom Metallic Gear icon */}
-          <button
-            onClick={() => (onSettingsClick ? onSettingsClick() : openOverlay('settings'))}
-            className="orb-btn"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            title="Settings"
-          >
-            <img
-              src="/images/header-settings-v4.png"
-              alt="Settings"
-              style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
-            />
-          </button>
-
-          {/* Live Help - Hidden on mobile */}
-          <button
-            onClick={() => {
-              console.debug('[UniversalHeader] Live Help button clicked');
-              liveHelp.setIsOpen(true);
-            }}
-            className="orb-btn"
-            aria-label="Live Help"
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              zIndex: 10,
-              overflow: 'hidden',
-            }}
-          >
-            <img
-              src="/images/header-help-v4.png"
-              alt="Live Help"
-              style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }}
-            />
-          </button>
-
-          {/* Search - HIDE on mobile */}
-          {showSearch && (
-            <button
-              onClick={onSearchClick}
-              className="hide-mobile"
-              style={{ background: 'none', border: 'none', padding: 0 }}
-            >
-              <div className="orb-btn">🔍</div>
-            </button>
-          )}
         </div>
       </header>
+
 
       {/* Live Help Panel */}
       <LiveHelpPanel {...liveHelp} />
