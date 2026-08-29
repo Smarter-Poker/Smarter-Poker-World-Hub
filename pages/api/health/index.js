@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       const health = {
           status: 'ok',
           timestamp: new Date().toISOString(),
-          version: process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 8) || 'local',
+          version: (process.env.VERCEL_GIT_COMMIT_SHA || process.env.BUILD_COMMIT_SHA || 'local').substring(0, 8),
           uptime: Math.floor(process.uptime()),
           checks: {},
       };
