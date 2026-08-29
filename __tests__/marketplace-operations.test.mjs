@@ -276,6 +276,14 @@ test('Vercel build and scheduled health probe enforce marketplace operations wit
     const escaped = file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     assert.match(vercelIgnore, new RegExp(`!/${escaped}`));
   }
+  for (const dependency of [
+    'e2e/05-diamond-store.spec.ts',
+    'supabase/migrations/20260828010000_neural_steel_catalog_expansion.sql',
+    'supabase/migrations/20260829120000_reserve_merch_order_dry_run.sql',
+  ]) {
+    const escaped = dependency.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(vercelIgnore, new RegExp(`!/${escaped}`));
+  }
   assert.ok(vercel.crons.some((entry) => entry.path === '/api/cron/marketplace-health'));
   assert.match(cron, /withCronHealth\('marketplace-health'/);
   assert.match(cron, /requireAdminSecret/);

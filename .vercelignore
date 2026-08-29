@@ -45,7 +45,13 @@ data/pokeratlas-logs/
 .ocr/
 
 # ── Database migrations (executed separately via Supabase) ────
-/supabase/
+# The marketplace build contract reads two migrations as deployment evidence.
+# Keep only those inputs; the migration tree remains excluded otherwise.
+/supabase/*
+!/supabase/migrations/
+/supabase/migrations/*
+!/supabase/migrations/20260828010000_neural_steel_catalog_expansion.sql
+!/supabase/migrations/20260829120000_reserve_merch_order_dry_run.sql
 /database/
 /migrations/
 /sql/
@@ -59,7 +65,8 @@ _legacy_sql/
 
 # ── Test / QA ─────────────────────────────────────────────────
 /tests/
-/e2e/
+/e2e/*
+!/e2e/05-diamond-store.spec.ts
 # The Vercel build runs the compact marketplace contract suite. Keep those
 # exact files in the upload while excluding the rest of the large test tree.
 /__tests__/*
