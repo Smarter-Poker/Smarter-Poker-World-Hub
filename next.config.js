@@ -651,7 +651,7 @@ const nextConfig = {
   //   storage.googleapis.com                   — Supabase storage CDN
   //   maps.googleapis.com                      — Google Maps
   //   *.supabase.co                            — Supabase DB + auth + storage
-  //   cdn.onesignal.com, onesignal.com         — Push notifications
+  //   (onesignal.com removed 2026-08-29 — vendor retired 2026-08-19)
   //   cdn.jsdelivr.net, unpkg.com              — jsQR, tessaract.js, Leaflet
   //   api.giphy.com, media.giphy.com           — GIF search
   //   livekit.smarter.poker, *.livekit.cloud  — LiveKit voice/video
@@ -660,7 +660,12 @@ const nextConfig = {
     const csp = [
       "default-src 'self'",
       // Scripts: self + OneSignal SDK + Google Maps + jsDelivr + unpkg (Leaflet/jsQR)
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.onesignal.com https://onesignal.com https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com",
+      // OneSignal removed from this policy 2026-08-29, with the last loader
+      // that needed it (Club Arena's index.html injected the v16 SDK on every
+      // session until that day, ten days after the vendor was retired). Three
+      // allowances that would otherwise have been carried into an enforced
+      // policy for a script nothing loads.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com",
       // Styles: self + inline + Google Fonts
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net",
       // Fonts: Google Fonts CDN
@@ -684,7 +689,7 @@ const nextConfig = {
       // worst thing to lose at exactly the moment you have just changed a
       // security header. Wildcarded across both ingest domains because the
       // region prefix moves with the project.
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.onesignal.com https://onesignal.com https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
       // Media: self + blob (audio/video playback)
       "media-src 'self' blob: https://*.supabase.co",
       // Workers: self + blob (service worker, workbox)

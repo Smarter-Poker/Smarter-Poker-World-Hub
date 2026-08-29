@@ -468,7 +468,14 @@ body.world-training .sp-level-card.is-locked::after {
 body.world-training .sp-setup-console {
     padding: 0 !important;
     border-radius: 0 !important;
+    /* clip, not hidden. `hidden` on one axis computes the other to `auto`,
+       which makes this a scroll container - and WebKit then resolves fixed
+       descendants against IT instead of the viewport. On this page that is the
+       favourite-venue toast (position:fixed; top:80px) scrolling away with the
+       content, and the two full-bleed `inset:0` backgrounds sizing to the whole
+       scroll height. Same mechanism as the Club Arena footer bug, 2026-08-29. */
     overflow-x: hidden !important;
+    overflow-x: clip !important;
 }
 
 body.world-training .sp-setup-close {
@@ -3198,7 +3205,14 @@ body.world-training .sp-training-command--coach.sp-coach-casino {
     width: 100%;
     max-width: 100vw;
     min-height: 100vh;
+    /* clip, not hidden. `hidden` on one axis computes the other to `auto`,
+       which makes this a scroll container - and WebKit then resolves fixed
+       descendants against IT instead of the viewport. On this page that is the
+       favourite-venue toast (position:fixed; top:80px) scrolling away with the
+       content, and the two full-bleed `inset:0` backgrounds sizing to the whole
+       scroll height. Same mechanism as the Club Arena footer bug, 2026-08-29. */
     overflow-x: hidden;
+    overflow-x: clip;
     padding: 0 0 max(82px, env(safe-area-inset-bottom));
     color: #e9f0f3;
     background:

@@ -737,7 +737,10 @@ jobs:
             __tests__/phase-3-deliverables.test.mjs \
             __tests__/phase-4-deliverables.test.mjs \
             __tests__/scroll-lock.test.mjs \
-            __tests__/union-settlement-math.test.mjs
+            __tests__/union-settlement-math.test.mjs \
+            __tests__/public-shell-precache.test.mjs \
+            __tests__/manifest-icons.test.mjs \
+            __tests__/fixed-elements-stay-fixed.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
