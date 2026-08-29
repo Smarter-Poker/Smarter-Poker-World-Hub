@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
     // 'bravo' is no longer scraped (removed 2026-05-23) — monitoring it emitted a
     // permanent "bravo: NO DATA FOUND" issue that could never clear.
-    const sources = ['pokeratlas'];
+    const sources = []; // pokeratlas retired 2026-08-29
     const health = {};
 
     for (const source of sources) {

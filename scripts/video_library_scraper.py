@@ -25,7 +25,7 @@ Usage:
     python3 scripts/video_library_scraper.py --backfill    # Backfill dates+views only
 
 Open Claw cron (daily 6am UTC):
-    python3 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/scripts/video_library_scraper.py
+    python3 <repo>/scripts/video_library_scraper.py
 """
 
 import os
@@ -42,8 +42,19 @@ import urllib.error
 from datetime import datetime, timezone
 from pathlib import Path
 
-# ── Logging ────────────────────────────────────────────────────────────────────
-LOG_DIR = Path.home() / '.smarter-poker' / 'logs'
+# ── Paths ──────────────────────────────────────────────────────────────────────
+# Host-portability (2026-08-29). Every path below used to be the literal string
+# /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/... so this scraper
+# could only ever run on one laptop. The dispatcher schedules it as a SCRIPT_JOB
+# and skips it cleanly on any host where the file is absent, so when the Mac
+# dispatcher stopped on 2026-04-22 ingestion stopped with it and the skip looked
+# like normal operation. Resolving against the repo root makes the same file
+# runnable on the Hetzner dispatcher, in CI, and on the Mac unchanged.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# SP_LOG_DIR / SP_EVIDENCE_DIR let a deploy target place these on a writable
+# volume without editing code; both default to the previous locations.
+LOG_DIR = Path(os.environ.get('SP_LOG_DIR') or (Path.home() / '.smarter-poker' / 'logs'))
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
@@ -57,12 +68,12 @@ logging.basicConfig(
 log = logging.getLogger('video-library-scraper')
 
 # Evidence directory
-EVIDENCE_DIR = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/scrape-evidence')
+EVIDENCE_DIR = Path(os.environ.get('SP_EVIDENCE_DIR') or (REPO_ROOT / 'data' / 'scrape-evidence'))
 EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Env ─────────────────────────────────────────────────────────────────────────
 def _load_env():
-    env_file = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.env.local')
+    env_file = Path(os.environ.get('SP_ENV_FILE') or (REPO_ROOT / '.env.local'))
     if env_file.exists():
         for line in env_file.read_text().splitlines():
             line = line.strip()
