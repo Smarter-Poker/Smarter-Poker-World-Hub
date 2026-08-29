@@ -75,6 +75,7 @@
 
 /** @type {import('next').NextConfig} */
 const { withSentryConfig } = require('@sentry/nextjs');
+const { publicShellManifestEntries } = require('./scripts/pwa/public-shell-precache');
 const { execFileSync } = require('child_process');
 
 // Vercel normally supplies VERCEL_GIT_COMMIT_SHA, but CLI-created deployments
@@ -110,6 +111,9 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   // `runtimeCaching` parameter is silently ignored in v10 — that's why the mobile
   // white-screen fix from PR #503 was not taking effect.
   extendDefaultRuntimeCaching: false,
+  // NOTE: `publicExcludes` further down this object is next-pwa's own
+  // build-cost denylist and is NOT what keeps public/ out of the precache.
+  // See the additionalManifestEntries comment below for what actually does.
   workboxOptions: {
     // ─── THE ROOT SERVICE WORKER MUST BE ABLE TO INSTALL ───────────────────
     // Dan, 2026-08-29, from an iPhone: "ENABLE NOTIFICATIONS ISN'T WORKING",
@@ -143,13 +147,97 @@ const withPWA = require('@ducanh2912/next-pwa').default({
     // If a future Next release adds another unserved `_next/*.json` build
     // artifact, the symptom is identical and silent. `scripts/ci/check-sw-precache.mjs`
     // exists to catch that: it probes every precache entry against production.
+    //
+    // ─── AND IT MUST BE ABLE TO INSTALL ON A PHONE, ON CELLULAR ────────────
+    //
+    // Measured on production 2026-08-29, once the worker could install at all:
+    // 826 entries, and a first-ever install took about 55 SECONDS on a fast
+    // desktop connection. The weight was not the app:
+    //
+    //     public/ assets      200 files   34.7 MB
+    //       icons/             33          13.2 MB
+    //       usrobots/          12          10.2 MB   (a marketing slideshow)
+    //       root files         66           8.0 MB   (31 *-review.html dev pages,
+    //                                                 OneSignalSDKWorker.js,
+    //                                                 message-icon.png at 1 MB)
+    //     page JS chunks      295 files    (see below)
+    //     framework/vendor    291 files    the actual app shell
+    //
+    // Two separate problems, both fixed by the filter below.
+    //
+    // 1. THE ASSET LIBRARY WAS BEING TREATED AS THE APP SHELL. Nothing in
+    //    public/ has to be in the precache: images and fonts are CacheFirst at
+    //    runtime, so they land in the cache the first time they are used, and
+    //    the app cannot work offline anyway (it is a live poker client on a
+    //    Supabase realtime socket). Precaching 34.7 MB bought no offline
+    //    capability anybody uses and charged it to the one moment that must not
+    //    be slow — the tap on Enable Notifications, which is what registers
+    //    this worker for a Club Arena player.
+    //
+    // 2. PRECACHING PAGE CHUNKS QUIETLY DEFEATED THE NetworkOnly RULE BELOW.
+    //    `precacheAndRoute` registers its route FIRST, and workbox matches
+    //    routes in registration order — so a precached
+    //    /_next/static/chunks/pages/*.js was served from the precache and the
+    //    NetworkOnly rule underneath it never got a look in. That rule is the
+    //    Dan-fix/mobile-white-screen mitigation from PR #503: stale page chunks
+    //    after a deploy are exactly what produces a blank page on signup and
+    //    login. Dropping these entries is what makes that fix real.
+    //
+    // The rule is now an ALLOWLIST, not a growing denylist: precache the app
+    // shell under /_next/ (minus page chunks), plus the handful of public/
+    // files that genuinely belong to the shell. Anything else added to public/
+    // in future is excluded by default instead of silently joining the install.
+    //
+    // `scripts/ci/check-sw-precache.mjs` enforces both halves against the
+    // deployed worker: every entry must resolve, and the total must stay under
+    // PRECACHE_BUDGET_MB. A 30 MB folder dropped into public/ now fails there
+    // instead of quietly adding a minute to every first enrolment.
+    // ─── THIS LINE IS WHAT KEEPS public/ OUT OF THE PRECACHE ───────────────
+    //
+    // next-pwa feeds the files it globs out of public/ into workbox as
+    // `additionalManifestEntries`. Setting the option REPLACES that list — so
+    // public/ becomes opt-in, and these are the only files from it that get
+    // precached. Verified by building locally and reading the generated
+    // public/sw.js: 200 public entries before, 6 after (five shell files plus
+    // next-pwa's own custom worker, which it adds itself).
+    //
+    // Two things this is NOT, both learned the expensive way:
+    //
+    //   * It is not a `manifestTransform`. Workbox applies
+    //     `additionalManifestEntriesTransform` LAST, after every user
+    //     transform (workbox-build/build/lib/transform-manifest.js), so
+    //     entries arriving this way are invisible to filtering. The first cut
+    //     of this change filtered the page chunks correctly and left all 199
+    //     public files in place for exactly that reason.
+    //   * It is not `publicExcludes`. That option already exists further down
+    //     this object as a build-cost denylist; adding a second one here was a
+    //     duplicate key that JS silently resolved in favour of the other, and
+    //     it did nothing either way.
+    //
+    // See scripts/pwa/public-shell-precache.js for why each file is on the
+    // list — every one is bytes a person waits for before they can turn on
+    // notifications, and one 404 among them takes web push down origin-wide.
+    additionalManifestEntries: publicShellManifestEntries(__dirname),
+
     manifestTransforms: [
-      async (manifest) => ({
-        manifest: manifest.filter(
-          (entry) => !/(^|\/)dynamic-css-manifest\.json$/.test(entry.url || '')
-        ),
-        warnings: [],
-      }),
+      async (manifest) => {
+        const keep = (entry) => {
+          const url = String(entry.url || '').split('?')[0];
+
+          // Next emits this as a BUILD artifact and never serves it. One 404
+          // is all it takes: workbox precaches atomically, so this single
+          // entry is what killed install() and with it every web push on the
+          // origin until 2026-08-29.
+          if (/(^|\/)dynamic-css-manifest\.json$/.test(url)) return false;
+
+          // NetworkOnly by policy — see (2) above.
+          if (/\/chunks\/pages\//.test(url)) return false;
+
+          return true;
+        };
+
+        return { manifest: manifest.filter(keep), warnings: [] };
+      },
     ],
     runtimeCaching: [
       // ─── CRITICAL: Override next-pwa defaults that cause stale pages on mobile ───
@@ -580,7 +668,23 @@ const nextConfig = {
       // Images: self + Supabase + Google Storage + Maps static + QR + YouTube thumbs + Giphy + data URIs
       "img-src 'self' data: blob: https://*.supabase.co https://*.smarter.poker https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com",
       // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.onesignal.com https://onesignal.com https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker",
+      //
+      // Sentry added 2026-08-29. It was MISSING, and this policy is Report-Only,
+      // so the only symptom was a line in the console that nobody reads:
+      //
+      //   Connecting to 'https://o4510810580779008.ingest.us.sentry.io/api/.../envelope/'
+      //   violates the following Content Security Policy directive: "connect-src ..."
+      //   The policy is report-only, so the violation has been logged but no
+      //   further action has been taken.
+      //
+      // That is a loaded gun. The comment above this block says the plan is to
+      // "switch to Content-Security-Policy" once violations are zero — and the
+      // moment anybody does that, every Sentry envelope on the platform is
+      // blocked and error reporting goes silently dark, which is the single
+      // worst thing to lose at exactly the moment you have just changed a
+      // security header. Wildcarded across both ingest domains because the
+      // region prefix moves with the project.
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.onesignal.com https://onesignal.com https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
       // Media: self + blob (audio/video playback)
       "media-src 'self' blob: https://*.supabase.co",
       // Workers: self + blob (service worker, workbox)

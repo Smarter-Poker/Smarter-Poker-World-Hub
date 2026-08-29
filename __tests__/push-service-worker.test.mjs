@@ -72,9 +72,14 @@ test('the startup budget is realistic for a cold PWA on mobile data', () => {
     const m = CLIENT.match(/ready:\s*([0-9_]+)/);
     assert.ok(m, 'the ready timeout is gone');
     const ms = Number(m[1].replace(/_/g, ''));
+    // Floor raised 20s -> 60s on 2026-08-29, from a measurement rather than a
+    // guess: a first-ever registration against production took about 55
+    // seconds, because install precaches the entire manifest atomically before
+    // the worker can activate. At 30s the wait expired mid-install and the
+    // user was told the worker "did not start" while it was starting fine.
     assert.ok(
-        ms >= 20_000,
-        `ready budget is ${ms}ms; a cold install+activate+claim on a weak connection needs more than that`
+        ms >= 60_000,
+        `ready budget is ${ms}ms; a first-ever install precaches the whole manifest before it can activate, measured at ~55s on a FAST connection, so anything under a minute reports a healthy worker as broken`
     );
 });
 

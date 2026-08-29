@@ -45,6 +45,23 @@ const origin = (process.argv[2] || 'https://smarter.poker').replace(/\/+$/, '');
 const SW_URL = `${origin}/sw.js`;
 const CONCURRENCY = 12;
 
+/**
+ * Ceiling on the total weight of the precache, in megabytes.
+ *
+ * Everything in the manifest is downloaded, in full, before `install`
+ * resolves — and for a Club Arena player that install is triggered by the tap
+ * on Enable Notifications, so this number is a wait a real person sits through
+ * before they can subscribe. On 2026-08-29 it was 34.7 MB of `public/` (a
+ * marketing slideshow, 31 dev review pages, a 1 MB unreferenced icon) and the
+ * install took about 55 seconds on a fast desktop connection.
+ *
+ * The budget is not a style preference. A precache is atomic: the bigger it
+ * is, the more likely a phone on cellular gives up part-way, and the more URLs
+ * there are to 404 and take web push down origin-wide the way one did that
+ * morning. Raise this only with a reason written next to it.
+ */
+const PRECACHE_BUDGET_MB = 12;
+
 function fail(message) {
   console.error(`FAIL: ${message}`);
   process.exit(1);
@@ -70,6 +87,7 @@ if (entries.length === 0) {
 }
 
 const bad = [];
+const sizes = [];
 const queue = entries.slice();
 
 async function drain() {
@@ -81,7 +99,16 @@ async function drain() {
     if (revision) target.searchParams.set('__WB_REVISION__', revision);
     try {
       const res = await fetch(target.href, { cache: 'no-store', redirect: 'follow' });
-      if (!res.ok) bad.push(`${url} -> ${res.status}`);
+      if (!res.ok) {
+        bad.push(`${url} -> ${res.status}`);
+        continue;
+      }
+      // Weigh what install() will actually pull down. content-length is absent
+      // on some compressed responses; fall back to reading the body so a large
+      // asset cannot hide from the budget by omitting the header.
+      const declared = Number(res.headers.get('content-length') || 0);
+      const bytes = declared || (await res.arrayBuffer().catch(() => new ArrayBuffer(0))).byteLength;
+      sizes.push([url, bytes]);
     } catch (e) {
       bad.push(`${url} -> ${e.message}`);
     }
@@ -100,4 +127,26 @@ if (bad.length) {
   process.exit(1);
 }
 
-console.log(`OK: all ${entries.length} precache entries in ${SW_URL} resolve.`);
+const totalBytes = sizes.reduce((sum, [, bytes]) => sum + bytes, 0);
+const totalMB = totalBytes / 1024 / 1024;
+
+console.log(
+  `OK: all ${entries.length} precache entries in ${SW_URL} resolve ` +
+    `(${totalMB.toFixed(1)} MB, budget ${PRECACHE_BUDGET_MB} MB).`
+);
+
+if (totalMB > PRECACHE_BUDGET_MB) {
+  sizes.sort((a, b) => b[1] - a[1]);
+  console.error(
+    `\nFAIL: the precache is ${totalMB.toFixed(1)} MB against a ${PRECACHE_BUDGET_MB} MB budget.\n` +
+      `Every byte of this is downloaded before install() resolves, and for a Club Arena\n` +
+      `player that install is what happens when they tap Enable Notifications. Either\n` +
+      `exclude the new weight in next.config.js (workboxOptions.manifestTransforms,\n` +
+      `which is an allowlist — public/ files are opt-in) or raise the budget WITH a\n` +
+      `reason written beside it.\n\nHeaviest entries:`
+  );
+  for (const [url, bytes] of sizes.slice(0, 15)) {
+    console.error(`  ${(bytes / 1024).toFixed(0).padStart(7)} KB  ${url}`);
+  }
+  process.exit(1);
+}
