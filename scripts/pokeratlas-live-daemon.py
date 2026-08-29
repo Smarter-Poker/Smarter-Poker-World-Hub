@@ -148,6 +148,13 @@ NO_CASH_PAGE = 'NO_CASH_PAGE'
 # their slugs must not be written into the 7-day no-cash cache. See the commit
 # for the outage this prevents.
 EMPTY_PARSE_POISON_THRESHOLD = 0.8
+
+# How long ONE cycle may spend sweeping before it saves its place and returns.
+# The 710-venue sweep cannot finish in a single 15-minute interval - measured
+# 2026-08-29 against the live daemon, ~4s per venue means ~47 minutes - so it
+# is walked ACROSS cycles from a persisted cursor instead. Comfortably inside
+# SCRAPE_INTERVAL so a cycle still ends before the next one is due.
+SWEEP_SLICE_BUDGET_MINUTES = 9
 SESSION_REFRESH_MINUTES = 60   # Proactive session refresh (was 90 — too long)
 WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
 WATCHDOG_WARMUP_MINUTES = 5    # Grace period after boot before watchdog can kill (prevents boot-loop deaths)
@@ -1226,11 +1233,39 @@ def run_scrape_cycle(mgr):
         except Exception:
             pass
 
+    # ── RESUME CURSOR ─────────────────────────────────────────────────────
+    # A full sweep does not fit in one cycle, so it is walked across cycles.
+    # Without this the cycle restarted at venue 0 every 15 minutes, was aborted
+    # by the slow-cycle watchdog around venue ~250, and never reached the rest
+    # of the estate at all - which also meant the no-cash cache it depends on
+    # could never finish warming up. Measured on the live daemon 2026-08-29:
+    # the old region sweep published 148 venues in 90 seconds; the venue sweep
+    # was 7.5 minutes in and still inside California.
+    sweep_file = BASE_DIR / 'data' / 'pokeratlas-sweep-state.json'
+    sweep_state = {}
+    if sweep_file.exists():
+        try:
+            with open(sweep_file) as f:
+                sweep_state = json.load(f)
+        except Exception:
+            sweep_state = {}
+    start_at = int(sweep_state.get('cursor') or 0)
+    if start_at >= len(map_venues):
+        start_at = 0
+    # Every partial pass of one sweep is remembered, because the stale-row
+    # delete at the end must not remove rows written by an EARLIER pass of the
+    # sweep that is still in progress.
+    sweep_batch_ids = list(sweep_state.get('batch_ids') or [])
+    if start_at == 0:
+        sweep_batch_ids = []
+    sweep_batch_ids.append(batch_id)
+
     venues_to_scrape = map_venues
     cached_skips = sum(1 for v in map_venues if now_ts - nocash_cache.get(v['slug'], 0) < 7 * 86400)
     log.info(
-        f'Scraping {len(venues_to_scrape)} venues '
-        f'({cached_skips} currently no-cash cached, {len(venues_to_scrape) - cached_skips} to fetch)...'
+        f'Scraping {len(venues_to_scrape)} venues from #{start_at} '
+        f'({cached_skips} currently no-cash cached, {len(venues_to_scrape) - cached_skips} to fetch, '
+        f'pass {len(sweep_batch_ids)} of this sweep)...'
     )
 
     all_venues = []
@@ -1253,10 +1288,30 @@ def run_scrape_cycle(mgr):
     empty_slugs = []
 
     consecutive_region_failures = 0
-    for i, v in enumerate(venues_to_scrape):
+    # False whenever the loop stops before the END of the venue list. It gates
+    # the destructive stale-row delete below: a pass that covered venues 0-250
+    # must never delete the rows for 251-709, which it simply has not visited.
+    sweep_complete = True
+    next_cursor = 0
+    for idx_off, v in enumerate(venues_to_scrape[start_at:]):
+        i = start_at + idx_off
         if consecutive_region_failures >= CIRCUIT_BREAKER_THRESHOLD:
             log.error(f'🔴 CIRCUIT BREAKER: {consecutive_region_failures} consecutive failures — aborting cycle, forcing reconnect')
             mgr._session_dead = True
+            sweep_complete = False
+            next_cursor = i
+            break
+
+        # TIME BUDGET: save our place and hand the rest to the next cycle.
+        # Checked before the fetch so the cursor always points at a venue that
+        # has NOT been done, never at one done twice.
+        if (datetime.now(timezone.utc) - cycle_start).total_seconds() / 60 >= SWEEP_SLICE_BUDGET_MINUTES:
+            log.info(
+                f'⏸️  Slice budget reached at venue {i}/{len(venues_to_scrape)} — '
+                f'saving cursor, the next cycle resumes here'
+            )
+            sweep_complete = False
+            next_cursor = i
             break
 
         elapsed_cycle_min = (datetime.now(timezone.utc) - cycle_start).total_seconds() / 60
@@ -1268,6 +1323,8 @@ def run_scrape_cycle(mgr):
                 f'Forcing session reconnect.'
             )
             mgr._session_dead = True
+            sweep_complete = False
+            next_cursor = i
             break
             
         slug = v['slug']
@@ -1327,6 +1384,27 @@ def run_scrape_cycle(mgr):
         time.sleep(RATE_LIMIT_DELAY)
         if (i + 1) % 50 == 0:
             log.info(f'  --- {i+1}/{len(venues_to_scrape)} | {len(all_venues)} venues | {errors} errors ---')
+
+    # ── PERSIST THE CURSOR ────────────────────────────────────────────────
+    # A completed sweep resets to 0 and drops its batch-id list, so the next
+    # sweep starts clean.
+    try:
+        with open(sweep_file, 'w') as f:
+            json.dump(
+                {
+                    'cursor': 0 if sweep_complete else next_cursor,
+                    'batch_ids': [] if sweep_complete else sweep_batch_ids,
+                    'updated': datetime.now(timezone.utc).isoformat(),
+                },
+                f,
+            )
+    except Exception as e:
+        log.warning(f'  Sweep cursor not saved ({e}) - next cycle restarts the sweep')
+
+    if sweep_complete:
+        log.info(f'✅ Sweep COMPLETE — all {len(venues_to_scrape)} venues visited across {len(sweep_batch_ids)} pass(es)')
+    else:
+        log.info(f'⏸️  Sweep INCOMPLETE — resuming at venue {next_cursor}/{len(venues_to_scrape)} next cycle')
 
     # ── COMMIT THE NO-CASH CACHE ──────────────────────────────────────────
     # A venue that fetched fine but parsed to zero games is only cached when
@@ -1495,7 +1573,8 @@ def run_scrape_cycle(mgr):
             f'🧨 EMPTY PAYLOAD: {len(all_venues)} venues parsed, {len(filtered_venues)} after dedup, '
             f'0 records to publish (fetch_ok={fetch_ok}, no_page={no_page}, '
             f'parse_alerts={parsed_empty}). '
-            f'Stale PokerAtlas rows will be cleared so they are not served as current.'
+            f'Stale PokerAtlas rows will be cleared so they are not served as current '
+            f'— IF this sweep completed; a partial pass keeps them (see below).'
         )
 
     # ── STALE-ROW DEACTIVATION ────────────────────────────────────────────
@@ -1503,7 +1582,20 @@ def run_scrape_cycle(mgr):
     # path was not blocked — including cycles that parsed nothing. Previously
     # this was nested inside `if payload:` + `if sb_upsert(...)`, so a parser
     # break left the last good batch published for another 24 hours.
-    if write_blocked:
+    if not sweep_complete:
+        # THE PARTIAL-SWEEP GUARD. The delete below removes every PokerAtlas
+        # row that is not in this sweep - so running it after a pass that
+        # covered venues 0-250 would delete 251-709, which were never visited.
+        # With the sweep now walked across cycles this is the NORMAL state for
+        # most cycles, not an error: rows are refreshed by upsert as each pass
+        # reaches them, and nothing is removed until a full sweep has been
+        # seen. Stale data beats deleted data, and it is visible.
+        log.info(
+            f'  Stale cleanup deferred: sweep incomplete '
+            f'({next_cursor}/{len(venues_to_scrape)} visited) - rows for venues not yet '
+            f'reached this sweep are kept'
+        )
+    elif write_blocked:
         log.warning('  Stale cleanup skipped: write blocked this cycle (previous rows kept)')
     elif fetch_ok == 0:
         # fetch_ok counts venue pages we actually RETRIEVED AND PARSED. A cycle
@@ -1518,8 +1610,13 @@ def run_scrape_cycle(mgr):
             f'previous rows kept'
         )
     else:
+        # Scoped to the WHOLE sweep, not this one pass. A sweep is several
+        # passes with different batch ids, and `neq.{batch_id}` would have
+        # deleted the rows written by every earlier pass of the sweep that just
+        # completed - emptying the catalogue down to the final slice.
+        _ids = ','.join(sweep_batch_ids)
         stale_cleanup_ok = sb_delete(
-            'venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.pokeratlas'
+            'venue_live_tables', f'scrape_batch_id=not.in.({_ids})&source=eq.pokeratlas'
         )
         if stale_cleanup_ok:
             log.info('  🧹 Stale PokerAtlas rows cleared (previous batches)')
