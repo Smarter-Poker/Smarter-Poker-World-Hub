@@ -2960,6 +2960,23 @@ export type Database = {
           is_active: boolean
           created_at: string
           updated_at: string
+          leak_type: string | null
+          situation_class: string | null
+          status: string | null
+          avg_ev_loss_bb: number | null
+          occurrence_count: number | null
+          optimal_frequency: number | null
+          current_frequency: number | null
+          first_detected_at: string | null
+          last_detected_at: string | null
+          trend_data: Json | null
+          explanation: string | null
+          why_leaking_ev: string | null
+          recommended_drill: string | null
+          source_system: string | null
+          resolved_at: string | null
+          suggested_fix: string | null
+          notes: string | null
         }
         Insert: {
           id?: string
@@ -2974,6 +2991,23 @@ export type Database = {
           is_active?: boolean
           created_at?: string
           updated_at?: string
+          leak_type?: string | null
+          situation_class?: string | null
+          status?: string | null
+          avg_ev_loss_bb?: number | null
+          occurrence_count?: number | null
+          optimal_frequency?: number | null
+          current_frequency?: number | null
+          first_detected_at?: string | null
+          last_detected_at?: string | null
+          trend_data?: Json | null
+          explanation?: string | null
+          why_leaking_ev?: string | null
+          recommended_drill?: string | null
+          source_system?: string | null
+          resolved_at?: string | null
+          suggested_fix?: string | null
+          notes?: string | null
         }
         Update: {
           id?: string
@@ -2988,6 +3022,23 @@ export type Database = {
           is_active?: boolean
           created_at?: string
           updated_at?: string
+          leak_type?: string | null
+          situation_class?: string | null
+          status?: string | null
+          avg_ev_loss_bb?: number | null
+          occurrence_count?: number | null
+          optimal_frequency?: number | null
+          current_frequency?: number | null
+          first_detected_at?: string | null
+          last_detected_at?: string | null
+          trend_data?: Json | null
+          explanation?: string | null
+          why_leaking_ev?: string | null
+          recommended_drill?: string | null
+          source_system?: string | null
+          resolved_at?: string | null
+          suggested_fix?: string | null
+          notes?: string | null
         }
         Relationships: []
       }

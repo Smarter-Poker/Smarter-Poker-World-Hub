@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "private": true,
   "scripts": {
-    "test:leak-engine": "node --test __tests__/solver-leak-engine.test.mjs __tests__/leak-engine-wiring.test.mjs",
+    "test:leak-engine": "node --test __tests__/solver-leak-engine.test.mjs __tests__/leak-engine-wiring.test.mjs __tests__/leak-record-compatibility.test.mjs",
     "postinstall": "bash scripts/install-hooks.sh 2>/dev/null || true",
     "predev": "bash scripts/heal.sh --quick 2>/dev/null || true",
     "dev": "npx kill-port 3000 2>/dev/null; NODE_OPTIONS='--max-old-space-size=16384' node node_modules/next/dist/bin/next dev --webpack -p 3000",

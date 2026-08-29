@@ -197,9 +197,10 @@ export function useLeaks(statusFilter = null, authState) {
 
 /** Map an API leak row onto the shape the Leak Finder UI renders. */
 function formatLeak(leak) {
+  const leakType = leak.leak_type || null;
   return {
     id: leak.id,
-    title: formatLeakTitle(leak.leak_type),
+    title: leak.situation_class || leak.leak_name || formatLeakTitle(leakType),
     status: leak.status,
     confidence: leak.confidence,
     situationClass: leak.situation_class,
@@ -217,7 +218,7 @@ function formatLeak(leak) {
     // a SECOND time (useLeakExtras) purely to recover these, doubling the
     // request and the parse on the page's hottest path. Every field is optional
     // and defaults to null, so a missing DB column degrades gracefully.
-    leakType: leak.leak_type || null,
+    leakType,
     leakCategory: leak.leak_category || null,
     recommendedDrill: leak.recommended_drill || null,
     suggestedFix: leak.suggested_fix || null,
