@@ -25,6 +25,7 @@ import signal
 import sys
 import time
 import traceback
+import urllib.error
 import urllib.request
 import uuid
 import subprocess
@@ -126,6 +127,27 @@ SCRAPE_INTERVAL = 900  # 15 minutes (offset 7min from Bravo via launchd start)
 RATE_LIMIT_DELAY = 1.0  # seconds between region page fetches
 MAX_RETRIES = 3
 CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive regions fail
+
+# A venue that has no cash-games page at all. Across a 710-venue sweep this is
+# the single most common response, and it is NOT a failure - it is a definitive
+# answer that happens to be "nothing here".
+#
+# It needs its own sentinel because the cycle used to compare against the
+# literal string '404' that NO fetch tier has ever returned (fetch_page returns
+# HTML, None or 'REDIRECT'). So every genuine 404 fell through to the `html is
+# None` branch, was logged as an error, and incremented
+# consecutive_region_failures - five such venues in a row tripped the circuit
+# breaker and killed the cycle. It also meant each one paid for a Tier-2
+# Playwright launch and a Tier-3 urllib attempt before being counted as a
+# failure, which is most of why a cold sweep could not finish inside its
+# 15-minute interval.
+NO_CASH_PAGE = 'NO_CASH_PAGE'
+
+# If more than this fraction of the venues we actually RETRIEVED parse to zero
+# games, that is a parser break, not the entire country closing at once - so
+# their slugs must not be written into the 7-day no-cash cache. See the commit
+# for the outage this prevents.
+EMPTY_PARSE_POISON_THRESHOLD = 0.8
 SESSION_REFRESH_MINUTES = 60   # Proactive session refresh (was 90 — too long)
 WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
 WATCHDOG_WARMUP_MINUTES = 5    # Grace period after boot before watchdog can kill (prevents boot-loop deaths)
@@ -171,6 +193,9 @@ for handler in logging.getLogger().handlers:
 ERROR_CF_BLOCKED = 'ERROR_CF_BLOCKED'
 ERROR_SESSION_DEAD = 'ERROR_SESSION_DEAD'
 ERROR_SUPABASE = 'ERROR_SUPABASE'
+# Raised when the fetch tiers are healthy but the PARSER is returning nothing -
+# the failure mode that must never be cached, only shouted about.
+ERROR_PARSE = 'ERROR_PARSE'
 
 # ============================================================
 # SUPABASE HELPERS
@@ -599,6 +624,8 @@ def fallback_fetch_playwright(url, expected_slug=None):
         from scrapling.fetchers import PlayWrightFetcher
         fetcher = PlayWrightFetcher(headless=True)
         resp = fetcher.fetch(url)
+        if resp and resp.status in (404, 410):
+            return NO_CASH_PAGE
         if resp and resp.status == 200:
             html = resp.html_content or ''
             if not html:
@@ -634,6 +661,10 @@ def fallback_fetch_urllib(url, expected_slug=None):
         if 'cash-games-list-item' in html:
             log.info(f'  \U0001f504 TIER-3 (urllib) success')
             return html
+    except urllib.error.HTTPError as e:
+        if e.code in (404, 410):
+            return NO_CASH_PAGE
+        log.debug(f'  Tier-3 failed: HTTP {e.code}')
     except Exception as e:
         log.debug(f'  Tier-3 failed: {e}')
     return None
@@ -750,6 +781,13 @@ class PokerAtlasSessionManager:
         """
         try:
             resp = self.session.fetch(url, google_search=False)
+
+            if resp.status in (404, 410):
+                # Definitive: this venue has no cash-games page. Returned as a
+                # sentinel rather than None so fetch_with_fallback stops here
+                # instead of spending a Playwright launch and a urllib attempt
+                # discovering the same thing twice more.
+                return NO_CASH_PAGE
 
             if resp.status != 200:
                 log.warning(f'  ❌ HTTP {resp.status} for {url}')
@@ -1189,13 +1227,30 @@ def run_scrape_cycle(mgr):
             pass
 
     venues_to_scrape = map_venues
-    log.info(f'Scraping {len(venues_to_scrape)} venues (skipping 404 cached)...')
+    cached_skips = sum(1 for v in map_venues if now_ts - nocash_cache.get(v['slug'], 0) < 7 * 86400)
+    log.info(
+        f'Scraping {len(venues_to_scrape)} venues '
+        f'({cached_skips} currently no-cash cached, {len(venues_to_scrape) - cached_skips} to fetch)...'
+    )
 
     all_venues = []
     errors = 0
     skipped = 0
-    fetch_ok = 0          
-    parsed_empty = 0      
+    # fetch_ok MEANS: we retrieved a real venue page and ran the parser over it.
+    # It is the guard on the destructive stale-row deletion at the end of this
+    # function, so it must NOT count a redirect or a missing page. It used to:
+    # `fetch_ok += 1` fired on the REDIRECT branch, which meant a cycle where
+    # PokerAtlas redirected all 710 venues reported 710 successful fetches and
+    # zero parsed venues - and the cleanup then deleted every PokerAtlas row in
+    # venue_live_tables, because the one condition written to prevent exactly
+    # that ("cannot distinguish outage from empty") had been satisfied by
+    # responses that never contained a venue page at all.
+    fetch_ok = 0
+    no_page = 0           # definitive 404/410/redirect - an answer, not a page
+    parsed_empty = 0
+    # Buffered rather than written straight to the cache: see the commit at the
+    # end of the loop.
+    empty_slugs = []
 
     consecutive_region_failures = 0
     for i, v in enumerate(venues_to_scrape):
@@ -1228,10 +1283,14 @@ def run_scrape_cycle(mgr):
         url = f'https://www.pokeratlas.com/poker-room/{slug}/cash-games'
         html = mgr.fetch_with_fallback(url, expected_slug=slug)
 
-        if html == 'REDIRECT' or html == '404':
+        if html == 'REDIRECT' or html == NO_CASH_PAGE:
+            # A definitive "no cash games here". Cacheable, and NOT a failure -
+            # so it clears the circuit breaker. It is deliberately not counted
+            # as a successful fetch: no venue page was parsed, so it is no
+            # evidence that the parser still works.
             nocash_cache[slug] = now_ts
             skipped += 1
-            fetch_ok += 1
+            no_page += 1
             consecutive_region_failures = 0
             continue
 
@@ -1252,8 +1311,14 @@ def run_scrape_cycle(mgr):
         
         
         if not venues:
+            # BUFFERED, not cached. Writing this straight into a 7-day cache
+            # meant one bad cycle could silence the whole estate: if PokerAtlas
+            # changes its markup, every venue parses to zero, all 710 slugs are
+            # written as "no cash games", and the daemon then skips all of them
+            # for a week while reporting success. Committed below only if the
+            # empty rate is plausible.
             parsed_empty += 1
-            nocash_cache[slug] = now_ts
+            empty_slugs.append(slug)
         else:
             all_venues.extend(venues)
             if slug in nocash_cache:
@@ -1263,12 +1328,28 @@ def run_scrape_cycle(mgr):
         if (i + 1) % 50 == 0:
             log.info(f'  --- {i+1}/{len(venues_to_scrape)} | {len(all_venues)} venues | {errors} errors ---')
 
-    # Save cache
+    # ── COMMIT THE NO-CASH CACHE ──────────────────────────────────────────
+    # A venue that fetched fine but parsed to zero games is only cached when
+    # the cycle as a whole looks healthy. If most of what we retrieved came
+    # back empty, the parser is broken - caching that would convert a bug we
+    # would notice today into silence lasting a week.
+    empty_rate = (parsed_empty / fetch_ok) if fetch_ok else 0.0
+    if fetch_ok and empty_rate >= EMPTY_PARSE_POISON_THRESHOLD:
+        log.error(
+            f'{ERROR_PARSE}: {parsed_empty}/{fetch_ok} retrieved venues parsed to ZERO games '
+            f'({empty_rate:.0%}). That is a parser break, not {parsed_empty} venues closing at '
+            f'once - NOT caching them, so the next cycle retries instead of skipping them '
+            f'for 7 days.'
+        )
+    else:
+        for slug in empty_slugs:
+            nocash_cache[slug] = now_ts
+
     try:
         with open(cache_file, 'w') as f:
             json.dump(nocash_cache, f)
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning(f'  No-cash cache not saved ({e}) - next cycle re-fetches everything')
         
     # Build Supabase payload — using Bravo-compatible build_payload_from_results()
     log.info(f'💾 Saving {len(all_venues)} venue records to Supabase...')
@@ -1412,7 +1493,8 @@ def run_scrape_cycle(mgr):
     else:
         log.error(
             f'🧨 EMPTY PAYLOAD: {len(all_venues)} venues parsed, {len(filtered_venues)} after dedup, '
-            f'0 records to publish (fetch_ok={fetch_ok}, parse_alerts={parsed_empty}). '
+            f'0 records to publish (fetch_ok={fetch_ok}, no_page={no_page}, '
+            f'parse_alerts={parsed_empty}). '
             f'Stale PokerAtlas rows will be cleared so they are not served as current.'
         )
 
@@ -1424,7 +1506,17 @@ def run_scrape_cycle(mgr):
     if write_blocked:
         log.warning('  Stale cleanup skipped: write blocked this cycle (previous rows kept)')
     elif fetch_ok == 0:
-        log.warning('  Stale cleanup skipped: zero successful fetches (cannot distinguish outage from empty)')
+        # fetch_ok counts venue pages we actually RETRIEVED AND PARSED. A cycle
+        # made entirely of redirects and missing pages lands here and keeps the
+        # last good catalogue, which is the whole point of this guard: with
+        # redirects previously counted as successful fetches, a site-wide
+        # redirect would have satisfied it and deleted every PokerAtlas row in
+        # venue_live_tables.
+        log.warning(
+            f'  Stale cleanup skipped: zero venue pages retrieved this cycle '
+            f'(no_page={no_page}, errors={errors}) - cannot distinguish outage from empty, '
+            f'previous rows kept'
+        )
     else:
         stale_cleanup_ok = sb_delete(
             'venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.pokeratlas'
@@ -1447,6 +1539,7 @@ def run_scrape_cycle(mgr):
         'venues_with_data': len(all_venues),
         'regions_skipped': skipped,
         'fetch_ok': fetch_ok,
+        'no_page': no_page,
         'parse_alerts': parsed_empty,
         'total_records_saved': saved,
         'write_blocked': write_blocked,
@@ -1529,6 +1622,7 @@ def run_scrape_cycle(mgr):
         'parser_alert': parsed_empty > 0 or (fetch_ok > 0 and not all_venues),
         'parse_alerts': parsed_empty,
         'fetch_ok': fetch_ok,
+        'no_page': no_page,
         'write_blocked': write_blocked,
         'stale_cleanup_ok': stale_cleanup_ok,
         'history_insert_failed': history_failures,
