@@ -14,6 +14,7 @@ import { useRouter } from 'next/router';
 import { eventBus } from '../../../src/engine/EventBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdentityMark';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { formatGameType, decodeHtml } from '../../../src/utils/pokerFormatters';
 import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
@@ -668,35 +669,13 @@ export default function SeriesDetailPage() {
         <div className="series-header">
 
           {/* Square Venue Logo — top-left of header */}
-          {series.logo_url && (
-            <div style={{
-              width: 72,
-              height: 72,
-              flexShrink: 0,
-              borderRadius: 10,
-              overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.15)',
-              background: 'rgba(0,0,0,0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 12,
-            }}>
-              <img
-                src={series.logo_url}
-                alt={series.name}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  display: 'block',
-                  padding: 6,
-                  boxSizing: 'border-box',
-                }}
-                onError={e => { e.target.parentElement.style.display = 'none'; }}
-              />
-            </div>
-          )}
+          <PokerIdentityMark
+            src={series.logo_url}
+            name={series.name}
+            size={72}
+            className="series-identity-mark"
+            priority
+          />
 
           <div className="header-badges">
             {/* Tour Badge */}

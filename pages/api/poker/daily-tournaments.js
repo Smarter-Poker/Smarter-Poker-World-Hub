@@ -153,6 +153,8 @@ async function handler(req, res) {
           const sort = safeStr(_sort) || 'time';
           const venue_id = safeStr(_venue_id);
           const limit = safeStr(_limit) || 999;
+          const sourceWarnings = [];
+          const safeStateParam = state ? state.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50) : null;
 
           // Try to get tournaments from database first
           let query = getSupabase()
@@ -183,6 +185,27 @@ async function handler(req, res) {
               .or('is_suppressed.is.null,is_suppressed.eq.false')
               .in('data_quality', ['scraped_verified', 'scraped_inferred'])
               .order('buy_in', { ascending: true });
+
+          // Resolve state to venue IDs before the schedule query. State lives on
+          // poker_venues, not venue_daily_tournaments; fetching the full national
+          // schedule and filtering in JS was both slow and prone to DB timeouts.
+          if (safeStateParam) {
+              try {
+                  const { data: stateVenues, error: stateVenueError } = await getSupabase()
+                      .from('poker_venues')
+                      .select('id')
+                      .eq('state', safeStateParam.toUpperCase())
+                      .range(0, 999);
+                  if (stateVenueError) throw stateVenueError;
+                  const stateVenueIds = (stateVenues || []).map(v => Number(v.id)).filter(Number.isFinite);
+                  query = stateVenueIds.length > 0
+                      ? query.in('venue_id', stateVenueIds)
+                      : query.eq('venue_id', -1);
+              } catch (stateVenueErr) {
+                  sourceWarnings.push('state_venue_lookup_unavailable');
+                  console.warn('[daily-tournaments] state venue lookup failed (non-fatal):', stateVenueErr?.message || stateVenueErr);
+              }
+          }
 
           // Filter by day — use ilike for case-insensitive matching
           // (DB has mixed-case day_of_week values: 'saturday', 'MONDAY', 'Daily', etc.)
@@ -242,17 +265,16 @@ async function handler(req, res) {
               query = query.lte('buy_in', parseInt(maxBuyin, 10) || 100000);
           }
 
-          // [B2 FIX v2] Use .range(0, 4999) to bypass Supabase project-level max_rows=1000 cap.
-          // .limit() alone is bounded by the project setting; .range() uses the Range header
-          // which PostgREST serves up to the specified ceiling regardless of the project default.
+          // Use a bounded over-fetch rather than reading all 5,000 national rows.
+          // The previous ceiling repeatedly exceeded the production statement
+          // timeout even though the UI serves at most `limit` rows. Two pages of
+          // headroom preserve dedup/filter behavior without the unbounded scan.
           const rawLimit = parseInt(limit, 10);
           const parsedLimit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 999, 1), 5000);
-          // The fetch ceiling deliberately stays at 5000 rather than tracking
-          // `limit`: the state/type/time-floor filters below run in JS (state is
-          // resolved from poker_venues, not a column on this table), so narrowing
-          // the fetch to the requested page size would make `?state=IL&limit=50`
-          // miss Illinois venues that sort past the first 50 nationwide rows.
-          query = query.range(0, 4999); // Bypasses Supabase 1000-row project limit
+          const fetchCeiling = parsedLimit > 2500
+              ? parsedLimit
+              : Math.min(Math.max(parsedLimit * 2, 500), 2500);
+          query = query.range(0, fetchCeiling - 1);
 
           const { data: dbTournaments, error } = await query;
 
@@ -267,8 +289,6 @@ async function handler(req, res) {
 
           // [P2-C FIX] Run charity + tour queries IN PARALLEL — was sequential (2 round trips).
           // Promise.all reduces API latency by ~50ms on every page load.
-          const safeStateParam = state ? state.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50) : null;
-
           // [2026-08-14 unification] Both reads below targeted tables that are
           // permanently empty in production and have NO writers:
           //   - charity_events_schedule  (0 rows): all nine charity scrapers write
@@ -401,6 +421,7 @@ async function handler(req, res) {
                           (pvRows || []).forEach(v => dbVenueInfoById.set(Number(v.id), v));
                       }
                   } catch (pvErr) {
+                      sourceWarnings.push('venue_location_enrichment_unavailable');
                       console.warn('[daily-tournaments] poker_venues state/city resolve failed (non-fatal):', pvErr?.message || pvErr);
                   }
               }
@@ -418,6 +439,7 @@ async function handler(req, res) {
               });
           }
           if (error) {
+              sourceWarnings.push(error.code === '57014' ? 'schedule_query_timeout' : 'schedule_query_unavailable');
               console.warn('[daily-tournaments] venue_daily_tournaments query error (non-fatal):', error.message);
           }
 
@@ -553,6 +575,7 @@ async function handler(req, res) {
 
               const { data: dbHomeGameTourneys, error: hgErr } = await hgQuery;
               if (hgErr) {
+                  sourceWarnings.push('home_game_schedule_unavailable');
                   console.warn('[daily-tournaments] Home game UNION query error (non-fatal):', hgErr.message);
               } else if (dbHomeGameTourneys && dbHomeGameTourneys.length > 0) {
                   // Apply the 45-day activity filter client-side (PostgREST
@@ -660,6 +683,7 @@ async function handler(req, res) {
                   });
               }
           } catch (hgIntegrationErr) {
+              sourceWarnings.push('home_game_schedule_unavailable');
               console.warn('[daily-tournaments] Home game UNION failed (non-fatal):', hgIntegrationErr?.message || hgIntegrationErr);
           }
           // ═══════════════════════════════════════════════════════════
@@ -667,9 +691,9 @@ async function handler(req, res) {
           // ═══════════════════════════════════════════════════════════
 
           // Filter by state if provided (Ensures Charity/Tours are caught)
-          if (state) {
+          if (safeStateParam) {
               tournaments = tournaments.filter(t =>
-                  t.state?.toUpperCase() === state.toUpperCase()
+                  t.state?.toUpperCase() === safeStateParam.toUpperCase()
               );
           }
 
@@ -727,6 +751,7 @@ async function handler(req, res) {
                       }));
                   }
               } catch (logoErr) {
+                  sourceWarnings.push('venue_logo_enrichment_unavailable');
                   console.warn('[daily-tournaments] Logo batch-fetch failed (non-fatal):', logoErr.message);
               }
           }
@@ -772,6 +797,13 @@ async function handler(req, res) {
 
           return res.status(200).json({
               success: true,
+              meta: {
+                  generatedAt: new Date().toISOString(),
+                  degraded: sourceWarnings.length > 0,
+                  source: error ? 'supplemental_sources' : 'venue_daily_tournaments',
+                  warnings: sourceWarnings,
+                  fetchCeiling,
+              },
               day: targetDay,
               totalVenues: distinctVenues,
               lastUpdated,
@@ -803,6 +835,7 @@ async function handler(req, res) {
           return res.status(500).json({
               success: false,
               error: 'Daily tournaments query failed',
+              meta: { generatedAt: new Date().toISOString(), degraded: true, source: 'unavailable', warnings: ['request_failed'] },
               tournaments: [],
               byTimeSlot: { morning: [], afternoon: [], evening: [], tbd: [] },
               byState: {},
