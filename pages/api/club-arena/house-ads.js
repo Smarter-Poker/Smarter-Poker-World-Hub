@@ -232,7 +232,15 @@ export default async function handler(req, res) {
 
             const { data: placements, error: plErr, count: placementsTotal } = await getSupabase()
                 .from('ad_placement')
-                .select('id, ad_id, slot, club_id, audience, daily_cap, is_active', {
+                /* target_url IS READ HERE BECAUSE THE RESOLVER PREFERS IT.
+                   fn_resolve_ads serves COALESCE(pl.target_url, c.target_url),
+                   and eight live placements carry an override - every
+                   hub_promotions row and both session_summary rows. Leaving it
+                   out of this read is what made "Links To" on the ad a control
+                   that reported "Saved." and changed nothing on the surface
+                   actually serving. The panel cannot show what it never
+                   fetched. */
+                .select('id, ad_id, slot, club_id, audience, daily_cap, is_active, target_url', {
                     count: 'exact',
                 })
                 .limit(1000);
@@ -512,6 +520,17 @@ export default async function handler(req, res) {
                 });
             }
 
+            /* The per-surface destination override. Checked by the same rule
+               as the campaign's own, because the resolver hands whichever one
+               it serves to the same client. Absent means "use the ad's". */
+            const newTarget = readSitePath(b.target_url);
+            if (newTarget === false) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Not A Site Path: ${clean(b.target_url, 60)}`,
+                });
+            }
+
             const { data: placed, error: plErr } = await getSupabase()
                 .from('ad_placement')
                 .insert({
@@ -520,6 +539,7 @@ export default async function handler(req, res) {
                     club_id: clean(b.club_id, 64) || null,
                     audience: newAudience,
                     daily_cap: normaliseDailyCap(b.daily_cap),
+                    target_url: newTarget,
                     is_active: b.is_active !== false,
                 })
                 .select('id')
@@ -581,6 +601,21 @@ export default async function handler(req, res) {
             if (b.daily_cap !== undefined) patch.daily_cap = normaliseDailyCap(b.daily_cap);
             if (b.is_active !== undefined) patch.is_active = b.is_active === true;
             if (b.club_id !== undefined) patch.club_id = clean(b.club_id, 64) || null;
+            /* An empty string clears the override, which is a real edit: the
+               placement falls back to the campaign's own destination. That is
+               why this is keyed on `!== undefined` rather than on truthiness -
+               "clear it" and "leave it alone" are different instructions and
+               the panel sends both. */
+            if (b.target_url !== undefined) {
+                const t = readSitePath(b.target_url);
+                if (t === false) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Not A Site Path: ${clean(b.target_url, 60)}`,
+                    });
+                }
+                patch.target_url = t;
+            }
             if (Object.keys(patch).length === 0) {
                 return res.status(400).json({ success: false, error: 'Nothing to change' });
             }
