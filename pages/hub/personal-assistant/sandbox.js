@@ -101,6 +101,7 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { findBestGames } from '../../../src/utils/videoToTrainingMapper';
 import { PAStyles as SharedPAStyles, useAbortableFetch, isAbortError } from '../../../src/components/sandbox/paKit';
 import { readPersistenceResponse, persistenceMessage } from '../../../src/lib/personal-assistant/persistenceContract';
+import toolStyles from '../../../src/styles/worlds/PersonalAssistantTools.module.css';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -2878,7 +2879,7 @@ export default function VirtualSandbox() {
 
   return (
     <div
-      className="sandbox-page"
+      className={`sandbox-page ${toolStyles.toolPage}`}
       style={{
         width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         background: T.bg, color: T.text,
@@ -2892,9 +2893,6 @@ export default function VirtualSandbox() {
         description="Build poker scenarios, compare lines, and study solver-informed decisions in the Smarter.Poker Virtual Sandbox."
         canonical="/hub/personal-assistant/sandbox"
       />
-      <h1 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
-        Virtual Sandbox Poker Scenario Solver
-      </h1>
       <SharedPAStyles />
       {UpgradePopup}
       {/* top-right collides with the header on a 375px screen */}
@@ -2979,9 +2977,40 @@ export default function VirtualSandbox() {
         display: 'flex', flexDirection: 'column', gap: S.md,
       }}>
 
+        <section className={`${toolStyles.machineHero} ${toolStyles.sandboxHero}`} aria-labelledby="sandbox-machine-title">
+          <div className={toolStyles.machineHeroInner}>
+            <div className={toolStyles.machineHeroCopy}>
+              <span className={toolStyles.machineEyebrow}>Jarvis Scenario Engine</span>
+              <h1 id="sandbox-machine-title" className={toolStyles.machineTitle}>Virtual Sandbox</h1>
+              <p className={toolStyles.machineDescription}>
+                Build The Exact Spot, Run The Full Decision Line, And Compare Every Action Against Solver-Verified Strategy.
+              </p>
+            </div>
+            <div className={toolStyles.machineTelemetry} aria-label="Sandbox live telemetry">
+              <span className={toolStyles.telemetryCell}>
+                <span className={toolStyles.telemetryLabel}>Active Street</span>
+                <strong className={toolStyles.telemetryValue} data-tone="live">{currentStreet}</strong>
+              </span>
+              <span className={toolStyles.telemetryCell}>
+                <span className={toolStyles.telemetryLabel}>Live Pot</span>
+                <strong className={toolStyles.telemetryValue}>{Number(tablePot || 0).toFixed(1)} BB</strong>
+              </span>
+              <span className={toolStyles.telemetryCell}>
+                <span className={toolStyles.telemetryLabel}>Analysis Mode</span>
+                <strong className={toolStyles.telemetryValue} data-tone="gold">{coachMode ? 'Coach' : 'Solver'}</strong>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <div className={toolStyles.sectionRail} aria-hidden="true">
+          <strong>Scenario Control Deck</strong>
+          <span>Live Solver Instruments</span>
+        </div>
+
         {/* ── Leak practice hand-off from the Leak Finder ── */}
         {practiceFocus && (
-          <div className="sandbox-practice-banner" style={{
+          <div className={`sandbox-practice-banner ${toolStyles.instrumentPanel}`} style={{
             ...cardCompact, background: T.warnSoft, border: `1px solid rgba(255,198,109,0.3)`,
             display: 'flex', alignItems: 'center', gap: S.md, marginTop: S.md,
           }}>
@@ -3102,7 +3131,7 @@ export default function VirtualSandbox() {
 
         {/* ── First-run: three one-tap starts instead of two dashed rectangles ── */}
         {!heroHand.card1 && !heroHand.card2 && communityCards.length === 0 && (
-          <div style={{ ...cardCompact, display: 'flex', flexDirection: 'column', gap: S.sm }}>
+          <div className={toolStyles.instrumentPanel} style={{ ...cardCompact, display: 'flex', flexDirection: 'column', gap: S.sm }}>
             <h3 style={{ fontSize: F.h3, fontWeight: 700, margin: 0, color: T.text }}>Start a spot</h3>
             <p style={{ fontSize: F.bodySm, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
               Pick a hand and a board, or let the sandbox deal you one.
@@ -3128,7 +3157,7 @@ export default function VirtualSandbox() {
 
         {/* ── Hand complete ── */}
         {handOver && handResult && (
-          <div style={{
+          <div className={toolStyles.instrumentPanel} style={{
             ...cardCompact,
             background: handResult.heroWon ? T.successSoft : handResult.heroWon === false ? T.dangerSoft : T.warnSoft,
             border: `1px solid ${handResult.heroWon ? 'rgba(77,224,165,0.4)' : handResult.heroWon === false ? 'rgba(255,107,122,0.4)' : 'rgba(255,198,109,0.4)'}`,
@@ -3163,7 +3192,7 @@ export default function VirtualSandbox() {
         )}
 
         {/* ── Board strip ── */}
-        <div id="board-builder" style={{ ...cardCompact }}>
+        <div id="board-builder" className={toolStyles.instrumentPanel} style={{ ...cardCompact }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm, marginBottom: S.md }}>
             <h4 style={{ ...sectionTitle, margin: 0 }}>Board</h4>
             <div style={{ display: 'flex', gap: S.sm }}>
@@ -3202,7 +3231,7 @@ export default function VirtualSandbox() {
         />
 
         {/* ── Action line — full width, no 110px rail, no 80px clamp ── */}
-        <div id="action-history">
+        <div id="action-history" className={toolStyles.instrumentPanel}>
           <ActionReplayBar
             actions={actionHistory}
             replayIndex={replayIndex}

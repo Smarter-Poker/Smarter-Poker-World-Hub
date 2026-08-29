@@ -504,7 +504,13 @@ export default function PersonalAssistantPage() {
             <div className={styles.systemGrid}>
               {SYSTEMS.map((system) => (
                 <article className={styles.systemCard} key={system.id}>
-                  <div className={styles.systemCardInner}>
+                  <button
+                    type="button"
+                    className={styles.systemCardTrigger}
+                    onClick={() => openGuardedRoute(system.route)}
+                    aria-label={`${system.action}. ${system.description}`}
+                  >
+                  <span className={styles.systemCardInner}>
                     <div
                       className={styles.systemArt}
                       style={{ backgroundImage: `url(${system.image})` }}
@@ -522,15 +528,12 @@ export default function PersonalAssistantPage() {
                           ))}
                         </ul>
                       </div>
-                      <button
-                        type="button"
-                        className={system.id === 'sandbox' ? styles.primaryButton : styles.secondaryButton}
-                        onClick={() => openGuardedRoute(system.route)}
-                      >
+                      <span className={system.id === 'sandbox' ? styles.primaryButton : styles.secondaryButton}>
                         {system.action}<ChevronRight size={16} aria-hidden="true" />
-                      </button>
+                      </span>
                     </div>
-                  </div>
+                  </span>
+                  </button>
                 </article>
               ))}
             </div>

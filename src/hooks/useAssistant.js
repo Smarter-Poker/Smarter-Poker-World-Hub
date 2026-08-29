@@ -973,11 +973,7 @@ export function useLeakDetection() {
       }
 
       if (data.success) {
-        setDetectionResult({
-          handsAnalyzed: data.handsAnalyzed,
-          leaksDetected: data.leaksDetected,
-          leaks: data.leaks,
-        });
+        setDetectionResult(data);
 
         // 📢 Dispatch BUS LISTENER update (Leak finding affects Stats and Leak lists)
         if (typeof window !== 'undefined') {

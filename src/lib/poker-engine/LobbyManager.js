@@ -839,6 +839,22 @@ class LobbyManager {
         .filter(s => s.player)
         .map(s => ({ playerId: s.player.id, stack: s.stack }));
 
+      // The showdown event carries visible cards, while hand_complete carries
+      // the authoritative payouts, pots, and rake. Persist both halves before
+      // writing the row; otherwise Club Arena hands arrive in Leak Finder with
+      // an empty result and zero pot.
+      const result = data?.result || {};
+      if (result.type === 'fold') {
+        const winner = result.winners?.[0];
+        if (winner) history.recordFoldWin({ winnerId: winner.playerId, amount: winner.amount, rake: result.rake ?? data?.rake });
+      } else {
+        history.recordShowdown({
+          winners: result.winners,
+          pots: result.pots,
+          rake: result.rake ?? data?.rake,
+        });
+      }
+
       await history.completeHand(finalStacks);
 
       // ── Record rake to Club Arena DB via Supabase RPC ──

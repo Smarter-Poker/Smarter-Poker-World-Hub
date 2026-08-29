@@ -7,12 +7,13 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
  * - Identify statistical leaks over time, NOT single-hand mistakes
  * - A leak requires: Repetition, Same situation class, Measurable EV loss
  *
- * Phase 3: Grok AI Integration for personalized fix suggestions
+ * Club Arena hands are normalized and solver-audited before aggregation.
  */
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { aggregateSolverLeaks, gradeSolverDecision } from '../../../../src/lib/training/solverDecisionEvidence';
+import { syncClubArenaHandsForAudit } from '../../../../src/lib/training/handAuditEngine';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -253,18 +254,22 @@ async function getPlayerStats(supabase, userId) {
       finalStats = normalizeStats(altStats);
     } else {
       // Try to compute from live hand history — only fetch what we read
-      const { data: hands, error: handsErr } = await supabase
+      const queryHands = (key) => supabase
         .from('hand_history')
-        .select('actions, players, summary, created_at')
-        // 2026-08-15 CHECK 13: hand_history has no user_id column — membership
-        // lives in the players jsonb ([{userId,...}]); containment matches it.
-        .contains('players', [{ userId }])
+        .select('id, actions, players, summary, created_at')
+        .contains('players', [{ [key]: userId }])
         .order('created_at', { ascending: false })
         .limit(2000);
-
-      if (handsErr) console.warn('[LeakDetect] hand_history query failed:', handsErr.message);
-
-      if (hands && hands.length > 0) {
+      const [modern, legacy] = await Promise.all([queryHands('userId'), queryHands('id')]);
+      if (modern.error && legacy.error) {
+        console.warn('[LeakDetect] hand_history query failed:', modern.error.message);
+      }
+      const byId = new Map();
+      for (const hand of [...(modern.data || []), ...(legacy.data || [])]) {
+        byId.set(String(hand.id), hand);
+      }
+      const hands = [...byId.values()].slice(0, 2000);
+      if (hands.length > 0) {
         finalStats = computeStatsFromHands(hands, userId);
       }
     }
@@ -767,10 +772,13 @@ export default async function handler(req, res) {
     try {
       // Live tendencies and solver-graded training decisions are separate
       // evidence sets. They must never be blended into one invented frequency.
-      const [stats, solverEvidence] = await Promise.all([
+      const [stats, clubArenaSync] = await Promise.all([
         getPlayerStats(getSupabase(), userId),
-        getSolverTrainingEvidence(getSupabase(), userId),
+        syncClubArenaHandsForAudit(getSupabase(), userId, { limit: 100, maxDecisions: 250 }),
       ]);
+      // Read solver evidence after syncing so newly audited Club Arena
+      // decisions are included in this same scan.
+      const solverEvidence = await getSolverTrainingEvidence(getSupabase(), userId);
       const liveHands = stats?.handsPlayed || 0;
       const solverDecisions = solverEvidence.decisions.length;
 
@@ -780,6 +788,7 @@ export default async function handler(req, res) {
           message: 'Need more evidence to detect leaks (100 live hands or 8 server-verified solver decisions)',
           handsAnalyzed: liveHands,
           solverDecisionsAnalyzed: solverDecisions,
+          clubArenaSync,
           leaksDetected: 0,
           leaks: [],
         });
@@ -983,7 +992,9 @@ export default async function handler(req, res) {
         evidenceSources: {
           livePlay: liveHands > 0,
           trainingSolver: solverEvidence.available,
+          clubArena: clubArenaSync.available && clubArenaSync.handsFound > 0,
         },
+        clubArenaSync,
         leaksDetected: detectedLeaks.length,
         leaks: detectedLeaks,
         persisted,
