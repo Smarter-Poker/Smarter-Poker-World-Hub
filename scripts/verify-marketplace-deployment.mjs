@@ -5,6 +5,16 @@ const requireCommerce = args.includes('--require-commerce');
 const requireCheckout = args.includes('--require-checkout');
 const suppliedBase = args.find((arg) => !arg.startsWith('--'));
 const baseUrl = String(suppliedBase || process.env.MARKETPLACE_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+const timeoutMs = Math.max(1_000, Number(process.env.MARKETPLACE_PROBE_TIMEOUT_MS) || 15_000);
+const bypassSecret = String(process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '').trim();
+
+function requestHeaders(extra = {}) {
+  return {
+    'User-Agent': 'SmarterPoker-Marketplace-Readiness/1.1',
+    ...(bypassSecret ? { 'x-vercel-protection-bypass': bypassSecret } : {}),
+    ...extra,
+  };
+}
 
 const routes = [
   { path: '/hub/diamond-store' },
@@ -27,48 +37,104 @@ const assets = [
 ];
 
 async function probe(path, expectedType, marker = '') {
-  const response = await fetch(`${baseUrl}${path}`, {
-    redirect: 'follow',
-    headers: { 'User-Agent': 'SmarterPoker-Marketplace-Readiness/1.0' },
-  });
-  const contentType = response.headers.get('content-type') || '';
-  const body = marker ? await response.text() : '';
-  const okay = response.ok
-    && (!expectedType || contentType.includes(expectedType))
-    && (!marker || body.includes(marker));
-  return { path, okay, status: response.status, contentType };
+  try {
+    const response = await fetch(`${baseUrl}${path}`, {
+      redirect: 'follow',
+      headers: requestHeaders(),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const contentType = response.headers.get('content-type') || '';
+    const body = marker ? await response.text() : '';
+    const okay = response.ok
+      && (!expectedType || contentType.includes(expectedType))
+      && (!marker || body.includes(marker));
+    const reason = !response.ok
+      ? `http_${response.status}`
+      : expectedType && !contentType.includes(expectedType)
+        ? 'unexpected_content_type'
+        : marker && !body.includes(marker)
+          ? 'missing_marker'
+          : null;
+    return { path, okay, status: response.status, contentType, reason };
+  } catch (error) {
+    return {
+      path,
+      okay: false,
+      status: 0,
+      contentType: '',
+      reason: error?.name === 'TimeoutError' ? 'timeout' : 'network_error',
+    };
+  }
 }
 
-const results = [];
-for (const route of routes) results.push(await probe(route.path, 'text/html', route.marker));
-for (const path of assets) results.push(await probe(path, 'image/'));
+const results = await Promise.all([
+  ...routes.map((route) => probe(route.path, 'text/html', route.marker)),
+  ...assets.map((path) => probe(path, 'image/')),
+]);
 
 try {
   const response = await fetch(`${baseUrl}/api/store/vip-membership-status`, {
-    headers: { Accept: 'application/json' },
+    headers: requestHeaders({ Accept: 'application/json' }),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   results.push({
     path: '/api/store/vip-membership-status (private)',
     okay: response.status === 401,
     status: response.status,
     contentType: response.headers.get('content-type') || '',
+    reason: response.status === 401 ? null : `expected_401_received_${response.status}`,
   });
 } catch (error) {
-  results.push({ path: '/api/store/vip-membership-status (private)', okay: false, status: 0, contentType: error.message });
+  results.push({
+    path: '/api/store/vip-membership-status (private)',
+    okay: false,
+    status: 0,
+    contentType: '',
+    reason: error?.name === 'TimeoutError' ? 'timeout' : 'network_error',
+  });
 }
 
 let readiness = null;
 try {
-  const response = await fetch(`${baseUrl}/api/store/readiness`, { headers: { Accept: 'application/json' } });
-  readiness = await response.json();
-  results.push({ path: '/api/store/readiness', okay: response.ok && readiness?.success === true, status: response.status, contentType: 'application/json' });
+  const response = await fetch(`${baseUrl}/api/store/readiness`, {
+    headers: requestHeaders({ Accept: 'application/json' }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const contentType = response.headers.get('content-type') || '';
+  const body = await response.text();
+  try {
+    readiness = JSON.parse(body);
+  } catch (_) {
+    readiness = null;
+  }
+  const okay = response.ok && contentType.includes('application/json') && readiness?.success === true;
+  results.push({
+    path: '/api/store/readiness',
+    okay,
+    status: response.status,
+    contentType,
+    reason: !response.ok
+      ? `http_${response.status}`
+      : !contentType.includes('application/json') || !readiness
+        ? 'invalid_json_response'
+        : readiness?.success !== true
+          ? 'unhealthy_response'
+          : null,
+  });
 } catch (error) {
-  results.push({ path: '/api/store/readiness', okay: false, status: 0, contentType: error.message });
+  results.push({
+    path: '/api/store/readiness',
+    okay: false,
+    status: 0,
+    contentType: '',
+    reason: error?.name === 'TimeoutError' ? 'timeout' : 'network_error',
+  });
 }
 
 for (const result of results) {
   const signal = result.okay ? 'PASS' : 'FAIL';
-  console.log(`${signal.padEnd(4)} ${String(result.status).padEnd(3)} ${result.path}`);
+  const diagnostic = result.reason ? ` (${result.reason})` : '';
+  console.log(`${signal.padEnd(4)} ${String(result.status).padEnd(3)} ${result.path}${diagnostic}`);
 }
 if (readiness?.checks) console.log(`Commerce capabilities: ${JSON.stringify(readiness.checks)}`);
 if (readiness?.capabilities) console.log(`Checkout capabilities: ${JSON.stringify(readiness.capabilities)}`);

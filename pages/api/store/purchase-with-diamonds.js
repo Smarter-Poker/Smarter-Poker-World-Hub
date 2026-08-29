@@ -572,15 +572,16 @@ export default async function handler(req, res) {
 
       let fulfillmentStatus = null;
       if (isPrintfulOrder) {
+        let providerOrder = null;
         try {
-          const providerOrder = await createPrintfulOrder({
+          providerOrder = await createPrintfulOrder({
             orderId: order.id,
             recipient: shippingRecipient,
             items: buildPrintfulItems(resolvedItems),
             confirm: isAutoConfirmEnabled(),
           });
           fulfillmentStatus = String(providerOrder?.status || 'submitted').slice(0, 80);
-          await getSupabase()
+          const { data: providerStateRows, error: providerStateError } = await getSupabase()
             .from('merchandise_orders')
             .update({
               metadata: {
@@ -593,19 +594,29 @@ export default async function handler(req, res) {
                 submitted_at: new Date().toISOString(),
               },
             })
-            .eq('id', order.id);
+            .eq('id', order.id)
+            .select('id');
+          if (providerStateError || !providerStateRows?.length) {
+            throw providerStateError || new Error('Provider state update matched zero orders');
+          }
         } catch (fulfillmentError) {
-          fulfillmentStatus = 'submission_failed';
-          await getSupabase()
+          try { reportApiError(fulfillmentError, req); } catch (_) { /* best effort */ }
+          const providerAccepted = !!providerOrder;
+          fulfillmentStatus = providerAccepted ? 'submitted_needs_review' : 'submission_failed';
+          const { data: reviewRows, error: reviewError } = await getSupabase()
             .from('merchandise_orders')
             .update({
-              status: 'paid',
+              status: providerAccepted ? 'processing' : 'paid',
               metadata: {
                 purchase_reference: purchaseRef,
                 fulfillment_provider: 'printful',
-                fulfillment_status: 'submission_failed',
+                fulfillment_status: fulfillmentStatus,
+                printful_order_id: providerOrder?.id ? String(providerOrder.id).slice(0, 80) : null,
+                printful_external_id: sanitizeExternalOrderId(order.id),
                 needs_review: true,
-                reason: 'printful_submission_failed',
+                reason: providerAccepted
+                  ? 'printful_provider_state_persistence_failed'
+                  : 'printful_submission_failed',
                 failure_code: String(fulfillmentError?.code || 'PRINTFUL_REQUEST_FAILED').slice(
                   0,
                   80
@@ -613,7 +624,13 @@ export default async function handler(req, res) {
                 flagged_at: new Date().toISOString(),
               },
             })
-            .eq('id', order.id);
+            .eq('id', order.id)
+            .select('id');
+          if (reviewError || !reviewRows?.length) {
+            const persistenceError = reviewError || new Error('Provider state update matched zero orders');
+            try { reportApiError(persistenceError, req); } catch (_) { /* best effort */ }
+            throw persistenceError;
+          }
           console.error(
             '[DiamondPurchase] Printful submission requires review:',
             fulfillmentError?.message || fulfillmentError
@@ -638,13 +655,14 @@ export default async function handler(req, res) {
       });
     } catch (err) {
       console.warn('[DiamondPurchase] Error:', err);
+      try { reportApiError(err, req); } catch (_) { /* best effort */ }
       // Anything thrown after the reservation would otherwise consume
       // inventory for a sale that never completed.
       if (releaseReservedStock) {
         try {
           await releaseReservedStock('unhandled error');
-        } catch (_) {
-          /* already logged */
+        } catch (releaseError) {
+          try { reportApiError(releaseError, req); } catch (_) { /* best effort */ }
         }
       }
       return res.status(500).json({ success: false, error: 'Internal server error' });

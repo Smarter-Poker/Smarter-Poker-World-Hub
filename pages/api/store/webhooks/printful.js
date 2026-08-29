@@ -27,8 +27,7 @@ function safeEqual(actual, expected) {
 
 function webhookSecret(req) {
     const header = req.headers['x-smarter-poker-webhook-secret'];
-    const query = Array.isArray(req.query.secret) ? req.query.secret[0] : req.query.secret;
-    return typeof header === 'string' ? header : query;
+    return typeof header === 'string' ? header : null;
 }
 
 function clean(value, maxLength = 255) {

@@ -883,13 +883,21 @@ export default function MerchStore({
   user = null,
   focusProductId = null,
   detailMode = false,
+  initialProduct = null,
+  catalogCategory = null,
 }) {
+  const initialProducts = useMemo(() => {
+    const normalized = initialProduct
+      ? normalizeProduct(initialProduct, 0, 'catalog')
+      : null;
+    return normalized ? [normalized] : STATIC_PRODUCTS;
+  }, [initialProduct]);
   // Render the verified static lineup on the server and during the live
   // catalog refresh. The database remains the checkout price oracle, but a
   // slow catalog request no longer leaves the whole page as a loading panel.
-  const [products, setProducts] = useState(() => STATIC_PRODUCTS);
+  const [products, setProducts] = useState(() => initialProducts);
   const [loading, setLoading] = useState(true);
-  const [usingFallback, setUsingFallback] = useState(true);
+  const [usingFallback, setUsingFallback] = useState(() => !initialProduct);
   const [loadError, setLoadError] = useState(null);
   const [busyKey, setBusyKey] = useState(null);
   const [pendingDiamondPurchase, setPendingDiamondPurchase] = useState(null);
@@ -954,9 +962,11 @@ export default function MerchStore({
         // A retry or post-purchase refresh gets its own cache key so a
         // five-minute edge response cannot immediately restore stale
         // stock. The endpoint ignores this read-only query parameter.
-        const catalogUrl = reloadToken
-          ? `${CATALOG_URL}?refresh=${encodeURIComponent(reloadToken)}`
-          : CATALOG_URL;
+        const catalogParams = new URLSearchParams();
+        if (catalogCategory) catalogParams.set('category', catalogCategory);
+        if (reloadToken) catalogParams.set('refresh', String(reloadToken));
+        const catalogQuery = catalogParams.toString();
+        const catalogUrl = catalogQuery ? `${CATALOG_URL}?${catalogQuery}` : CATALOG_URL;
         const res = await fetch(catalogUrl, {
           headers: { Accept: 'application/json' },
           signal: controller.signal,
@@ -989,8 +999,11 @@ export default function MerchStore({
         setUsingFallback(false);
         setLoadError(null);
       } else {
-        setProducts(STATIC_PRODUCTS);
-        setUsingFallback(true);
+        // Detail pages arrive with their ISR product (including variants), so
+        // an unavailable refresh must not replace the selected product with a
+        // generic static catalog that may not contain it.
+        setProducts(initialProducts);
+        setUsingFallback(!initialProduct);
         setLoadError(failure);
         captureStoreEvent('catalog_fallback', { reason: failure || 'empty' });
       }
@@ -1000,7 +1013,7 @@ export default function MerchStore({
       cancelled = true;
       controller.abort();
     };
-  }, [reloadToken]);
+  }, [catalogCategory, initialProduct, initialProducts, reloadToken]);
 
   useEffect(() => {
     const source = usingFallback ? 'static' : 'live';

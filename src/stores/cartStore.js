@@ -3,7 +3,7 @@
  * Zustand store for managing cart state
  */
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { getStorage } from '../lib/storage';
 
 // Both Stripe checkout and Diamond merchandise purchase accept quantities
@@ -122,7 +122,11 @@ const useCartStore = create(
     }),
     {
       name: 'smarter-poker-cart',
-      storage: getStorage(),
+      // Zustand 5 expects a PersistStorage implementation here. Passing raw
+      // localStorage writes the state object as "[object Object]", so a reload
+      // silently loses the cart. Keep the existing SSR-safe storage selector,
+      // but wrap it with Zustand's JSON adapter.
+      storage: createJSONStorage(() => getStorage()),
       partialize: (state) => ({ items: state.items }),
     }
   )

@@ -13,6 +13,9 @@ const receipt = read('pages/hub/diamond-store/orders/[orderId].js');
 const vipManage = read('pages/hub/vip-membership/manage.js');
 const store = read('pages/hub/diamond-store.js');
 const detailShell = read('src/components/store/MarketplaceDetailExperience.jsx');
+const accountShell = read('src/components/store/MarketplaceSubpageShell.jsx');
+const cart = read('pages/hub/diamond-store/cart.js');
+const cartStore = read('src/stores/cartStore.js');
 const verifier = read('scripts/verify-marketplace-deployment.mjs');
 
 test('live catalog additions receive an ISR product detail page without a code deployment', () => {
@@ -24,6 +27,28 @@ test('live catalog additions receive an ISR product detail page without a code d
   assert.match(merchDetail, /https:\/\/schema\.org\/(?:InStock|OutOfStock)/);
   assert.match(merchDetail, /candidate\.startsWith\(['"]\/['"]\)/);
   assert.match(merchDetail, /url\.protocol === ['"]https:['"]/);
+  assert.match(merchDetail, /initialProduct=\{product\}/);
+  assert.match(merchDetail, /catalogCategory=\{product\.category\}/);
+  assert.match(merchDetail, /openGraphType="product"/);
+});
+
+test('marketplace carts persist JSON and expose mobile-safe payment controls', () => {
+  assert.match(cartStore, /createJSONStorage\(\(\) => getStorage\(\)\)/);
+  assert.match(cart, /role="radiogroup"/);
+  assert.match(cart, /role="radio"/);
+  assert.match(cart, /aria-checked=\{usingDiamonds\}/);
+  assert.match(cart, /handlePaymentChoiceKeyDown/);
+  assert.match(cart, /tabIndex=\{usingDiamonds \? 0 : -1\}/);
+  assert.match(cart, /minWidth:\s*['"]44px['"]/);
+  assert.match(cart, /cartItemMobile/);
+});
+
+test('account rails reveal the current destination and retain shared cart context', () => {
+  assert.match(accountShell, /activeRouteRef/);
+  assert.match(accountShell, /rail\.scrollTo\(/);
+  assert.match(accountShell, /aria-current=\{active === id \? ['"]page['"]/);
+  assert.match(accountShell, /useCartStore/);
+  assert.match(accountShell, /Items In Cart/);
 });
 
 test('marketplace JSON-LD cannot terminate its script element', () => {
@@ -52,6 +77,10 @@ test('club item detail closes double-submit windows and clears abandoned checkou
   assert.match(clubDetail, /Card checkout is unavailable for this item price\./);
   assert.match(clubDetail, /Sign in again before authorizing a diamond purchase\./);
   assert.match(clubDetail, /const diamondReviewTriggerRef = useRef\(null\)/);
+  assert.match(clubDetail, /const cardCharge = cardTopUp \? cardTopUp\.price \* cardTopUp\.quantity/);
+  assert.match(clubDetail, /Card checkout charges/);
+  assert.match(clubDetail, /leaves <strong>\{cardRemainder\.toLocaleString\(\)\} Diamonds/);
+  assert.match(clubDetail, /noindex/);
 });
 
 test('catalog normalization comments describe the deployed defensive contract', () => {
@@ -77,6 +106,9 @@ test('VIP FAQ and private receipts point at their now-live management context', 
   assert.match(receipt, /const authReturnPath/);
   assert.match(receipt, /source=\$\{encodeURIComponent\(source\)\}/);
   assert.match(receipt, /useRequireAuth\(authReturnPath\)/);
+  assert.match(receipt, /commerceActive="orders"/);
+  assert.match(detailShell, /openGraphType = ['"]website['"]/);
+  assert.match(detailShell, /MarketplaceCommerceNav active=\{commerceActive\}/);
 });
 
 test('deployment verification distinguishes checkout readiness from deferred fulfillment', () => {

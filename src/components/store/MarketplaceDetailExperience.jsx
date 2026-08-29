@@ -53,6 +53,8 @@ export default function MarketplaceDetailExperience({
   actions,
   structuredData,
   noindex = false,
+  commerceActive = 'store',
+  openGraphType = 'website',
   children,
 }) {
   const safeImage = resolveMarketplaceImage(image);
@@ -65,7 +67,7 @@ export default function MarketplaceDetailExperience({
         <title>{title} — Smarter.Poker Marketplace</title>
         <meta name="description" content={description} />
         <link rel="canonical" href={canonicalUrl} />
-        <meta property="og:type" content="product" />
+        <meta property="og:type" content={openGraphType} />
         <meta property="og:title" content={`${title} — Smarter.Poker Marketplace`} />
         <meta property="og:description" content={description} />
         <meta property="og:image" content={socialImage} />
@@ -81,7 +83,7 @@ export default function MarketplaceDetailExperience({
       <UniversalHeader pageDepth={2} />
       <PageTransition disableInitialAnimation>
         <main className={styles.page}>
-          <MarketplaceCommerceNav active="store" />
+          <MarketplaceCommerceNav active={commerceActive} />
 
           <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
             {breadcrumbs.map((crumb, index) => (
@@ -96,7 +98,15 @@ export default function MarketplaceDetailExperience({
 
           <article className={styles.hero}>
             <div className={styles.mediaFrame}>
-              <img src={safeImage} alt={imageAlt || ''} width={1200} height={900} loading="eager" />
+              <img
+                src={safeImage}
+                alt={imageAlt || ''}
+                width={1200}
+                height={900}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+              />
               <span className={styles.scanLine} aria-hidden="true" />
               <div className={styles.mediaBadge}>
                 <ShieldCheck size={15} aria-hidden="true" />

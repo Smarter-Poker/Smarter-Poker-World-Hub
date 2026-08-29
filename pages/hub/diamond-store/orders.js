@@ -36,6 +36,9 @@ export default function OrderHistory() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [recordLimit, setRecordLimit] = useState(50);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   // Realtime events can arrive while the initial three-source read is still
   // running. Only the newest snapshot may commit, otherwise an older response
   // can roll a just-shipped order back to "processing" on screen.
@@ -44,7 +47,7 @@ export default function OrderHistory() {
   useEffect(() => {
     if (authChecking || !user?.id) return;
     loadOrders();
-  }, [authChecking, user?.id]);
+  }, [authChecking, user?.id, recordLimit]);
   // Realtime subscription — live updates on both order pipelines
   useEffect(() => {
     if (!user?.id) return;
@@ -205,7 +208,7 @@ export default function OrderHistory() {
           )
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(recordLimit),
         supabase
           .from('merchandise_orders')
           .select(
@@ -213,7 +216,7 @@ export default function OrderHistory() {
           )
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(recordLimit),
         supabase
           .from('vip_subscriptions')
           .select(
@@ -221,7 +224,7 @@ export default function OrderHistory() {
           )
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(25),
+          .limit(recordLimit),
       ]);
 
       const failed = [];
@@ -259,7 +262,9 @@ export default function OrderHistory() {
         );
         setPartialError(null);
         setOrders([]);
+        setHasMore(false);
         setLoading(false);
+        setLoadingMore(false);
         return;
       }
 
@@ -270,14 +275,22 @@ export default function OrderHistory() {
       setPartialError(
         failed.length > 0 ? `${failed.join(' And ')} Could Not Be Loaded Right Now.` : null
       );
-      setOrders(merged.slice(0, 50));
+      setOrders(merged.slice(0, recordLimit));
+      setHasMore(
+        merged.length > recordLimit ||
+          [purchasesRes, merchRes, vipRes].some(
+            (response) => !response?.error && (response?.data || []).length >= recordLimit
+          )
+      );
       setLoading(false);
+      setLoadingMore(false);
     } catch (error) {
       if (requestId !== loadRequestRef.current) return;
       console.warn('Error loading orders:', error);
       setLoadError(error?.message || 'Could not load orders');
       setPartialError(null);
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -528,7 +541,7 @@ export default function OrderHistory() {
                   Clear Filters
                 </button>
                 <div aria-live="polite" style={styles.resultCount}>
-                  Showing {visibleOrders.length} Of {orders.length} Orders
+                  Showing {visibleOrders.length} Of {orders.length} Loaded Orders
                 </div>
               </section>
 
@@ -641,6 +654,21 @@ export default function OrderHistory() {
                   </div>
                 </div>
               ))}
+              {hasMore && (
+                <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoadingMore(true);
+                      setRecordLimit((current) => current + 50);
+                    }}
+                    disabled={loadingMore}
+                    style={{ ...styles.shopButton, border: 'none', cursor: loadingMore ? 'wait' : 'pointer' }}
+                  >
+                    {loadingMore ? 'Loading More Orders…' : 'Load 50 More Orders'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </MarketplaceSubpageShell>

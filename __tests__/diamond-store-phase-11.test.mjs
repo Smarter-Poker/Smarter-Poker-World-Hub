@@ -28,7 +28,9 @@ test('order history provides searchable filterable ledger intelligence', () => {
     assert.match(ORDERS, new RegExp(`aria-label=["']${label}["']`));
   }
   assert.match(ORDERS, /visibleOrders/);
-  assert.match(ORDERS, /Showing \{visibleOrders\.length\} Of \{orders\.length\} Orders/);
+  assert.match(ORDERS, /Showing \{visibleOrders\.length\} Of \{orders\.length\} Loaded Orders/);
+  assert.match(ORDERS, /Load 50 More Orders/);
+  assert.match(ORDERS, /setRecordLimit\(\(current\) => current \+ 50\)/);
   assert.match(ORDERS, /Clear Filters/);
   assert.match(ORDERS, /Marketplace Ledger Summary/);
 });

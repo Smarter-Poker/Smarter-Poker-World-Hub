@@ -3413,6 +3413,16 @@ export default function DiamondStorePage({ initialTab }) {
                                     ? purchaseLimit > 0 && purchasedCount >= purchaseLimit
                                     : activePurchasedIds.has(item.id);
                                   const blockedLabel = item.stackable ? 'Limit Reached' : 'Owned';
+                                  const cardTopUp = clubCardTopUpFor(item.price);
+                                  const cardCharge = cardTopUp
+                                    ? cardTopUp.price * cardTopUp.quantity
+                                    : null;
+                                  const cardDiamonds = cardTopUp
+                                    ? cardTopUp.diamonds * cardTopUp.quantity
+                                    : null;
+                                  const cardRemainder = cardDiamonds == null
+                                    ? null
+                                    : Math.max(0, cardDiamonds - Number(item.price || 0));
                                   return (
                                     <article
                                       key={item.id}
@@ -3547,8 +3557,9 @@ export default function DiamondStorePage({ initialTab }) {
                                               <Gem size={14} /> {item.price.toLocaleString()}
                                             </span>
                                             <div className={shellStyles.cardEquivalent}>
-                                              ${(Number(item.price) / 100).toFixed(2)} Card
-                                              Equivalent
+                                              {cardCharge == null
+                                                ? 'Card Limit Exceeded'
+                                                : `$${cardCharge.toFixed(2)} Card · ${cardRemainder.toLocaleString()} Diamonds Remain`}
                                             </div>
                                             {(item.purchase_count || 0) > 0 && (
                                               <div
@@ -3592,12 +3603,14 @@ export default function DiamondStorePage({ initialTab }) {
                                               <button
                                                 type="button"
                                                 onClick={() => handleClubCardCheckout(item)}
-                                                disabled={Boolean(clubShopCardProcessingId)}
+                                                disabled={Boolean(clubShopCardProcessingId) || !cardTopUp}
                                               >
                                                 <CreditCard size={12} />
                                                 {clubShopCardProcessingId === item.id
                                                   ? 'Opening...'
-                                                  : 'Card'}
+                                                  : cardCharge == null
+                                                    ? 'Card Unavailable'
+                                                    : `Card $${cardCharge.toFixed(2)}`}
                                               </button>
                                             )}
                                           </div>

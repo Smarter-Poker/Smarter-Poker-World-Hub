@@ -243,6 +243,10 @@ export default function ClubShopItemDetail() {
   const name = item?.name || 'Club Shop Equipment Record';
   const description = item?.description || state.message;
   const image = item?.image_url || '/images/store-v3/club-shop-hero.webp';
+  const cardTopUp = item ? cardTopUpFor(item.price) : null;
+  const cardCharge = cardTopUp ? cardTopUp.price * cardTopUp.quantity : null;
+  const cardDiamonds = cardTopUp ? cardTopUp.diamonds * cardTopUp.quantity : null;
+  const cardRemainder = cardDiamonds == null || !item ? null : Math.max(0, cardDiamonds - item.price);
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
@@ -264,7 +268,7 @@ export default function ClubShopItemDetail() {
         { label: 'Club Shop', href: '/hub/club-shop' },
         { label: name, href: canonical },
       ]}
-      price={item ? item.price / 100 : null}
+      price={cardCharge}
       diamondPrice={item?.price}
       status={state.kind === 'ready' ? 'Club Verified' : state.message}
       actions={item && state.kind !== 'auth' ? (
@@ -273,7 +277,8 @@ export default function ClubShopItemDetail() {
             <Gem size={16} aria-hidden="true" /> Review Diamond Purchase
           </button>
           <button type="button" onClick={purchaseWithCard} disabled={state.kind === 'processing'}>
-            <CreditCard size={16} aria-hidden="true" /> Buy With Card
+            <CreditCard size={16} aria-hidden="true" />
+            {cardCharge == null ? 'Buy With Card' : `Buy With Card — $${cardCharge.toFixed(2)}`}
           </button>
         </>
       ) : (
@@ -292,12 +297,20 @@ export default function ClubShopItemDetail() {
         </>
       )}
       structuredData={schema}
+      noindex
     >
       <div role="status" aria-live="polite" className={detailStyles.detailCard}>
         <h2>Live Purchase Console</h2>
         <p>{state.message}</p>
         {balance != null && <p>Verified wallet balance: <strong>{balance.toLocaleString()} Diamonds</strong>.</p>}
-        <p>Card purchases fund only the diamonds required for this item, then redeem it through the same idempotent club inventory endpoint used by direct wallet purchases.</p>
+        {cardTopUp && (
+          <p>
+            Card checkout charges <strong>${cardCharge.toFixed(2)}</strong> for{' '}
+            <strong>{cardDiamonds.toLocaleString()} Diamonds</strong>, redeems{' '}
+            <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong> for this item, and
+            leaves <strong>{cardRemainder.toLocaleString()} Diamonds</strong> in your wallet.
+          </p>
+        )}
       </div>
       {item && diamondReviewOpen && (
         <section className={detailStyles.detailCard} aria-labelledby="club-diamond-review-title">

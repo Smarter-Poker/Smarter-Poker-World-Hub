@@ -224,6 +224,7 @@ export default function MarketplaceReceiptPage() {
         url: `https://smarter.poker${canonical}`,
       }}
       noindex
+      commerceActive="orders"
     >
       <div role="status" aria-live="polite" className={detailStyles.detailCard}>
         <h2>

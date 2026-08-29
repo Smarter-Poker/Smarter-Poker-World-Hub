@@ -144,7 +144,7 @@ test('physical merch and Club Shop items expose both card and diamond purchase p
   assert.match(STORE, /<CreditCard size=\{12\}/);
 });
 
-test('Club Shop currency, ownership, refresh, failure, and stock rollback match the API contract', () => {
+test('Club Shop currency, ownership, refresh, and atomic purchase match the API contract', () => {
   assert.match(STORE, /Spend Diamonds On Time Banks/);
   assert.match(STORE, /Price In Diamonds/);
   assert.match(STORE, /clubDiamondBalance/);
@@ -155,10 +155,9 @@ test('Club Shop currency, ownership, refresh, failure, and stock rollback match 
     /item\.stackable[\s\S]*?purchaseLimit > 0 && purchasedCount >= purchaseLimit/
   );
   assert.match(STORE, /Retry Club Shop/);
-  const claimIndex = CLUB_PURCHASE.indexOf('stockClaimed = avail.stock_claimed === true');
-  const balanceIndex = CLUB_PURCHASE.indexOf('if (balance < price)');
-  const releaseIndex = CLUB_PURCHASE.indexOf('await releaseStock();', balanceIndex);
-  assert.ok(claimIndex > -1 && claimIndex < balanceIndex && releaseIndex > balanceIndex);
+  assert.match(CLUB_PURCHASE, /fn_purchase_club_shop_item_diamonds/);
+  assert.match(CLUB_PURCHASE, /p_charge_reference: chargeReference/);
+  assert.doesNotMatch(CLUB_PURCHASE, /releaseStock|stockClaimed =/);
 });
 
 test('diamond merch returns the locked RPC balance and verifies refund business results', () => {

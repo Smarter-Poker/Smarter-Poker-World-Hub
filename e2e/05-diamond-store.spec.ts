@@ -178,31 +178,35 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   });
 
   test('product detail owns one focused purchase console and shared cart flow', async ({ page }) => {
-    await page.route('**/api/store/merch-catalog*', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: {
-          items: [{
-            id: 'hoodie-neural',
-            name: 'Diamond Altitude Hoodie',
-            description: 'Heavyweight Black Hoodie With The Diamond Altitude Circuit Graphic',
-            category: 'apparel',
-            price_usd: 59.99,
-            price_diamonds: 5999,
-            has_variants: true,
-            in_stock: true,
-            stock: 20,
-            fulfillment_ready: true,
-            fulfillment_provider: 'printful',
-            variants: [
-              { id: 'small', size: 'S', color: 'Black', price_usd: 59.99, price_diamonds: 5999, stock: 20, in_stock: true, fulfillment_ready: true },
-            ],
-          }],
-        },
-      }),
-    }));
+    let catalogRequestUrl = '';
+    await page.route('**/api/store/merch-catalog*', async (route) => {
+      catalogRequestUrl = route.request().url();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            items: [{
+              id: 'hoodie-neural',
+              name: 'Diamond Altitude Hoodie',
+              description: 'Heavyweight Black Hoodie With The Diamond Altitude Circuit Graphic',
+              category: 'apparel',
+              price_usd: 59.99,
+              price_diamonds: 5999,
+              has_variants: true,
+              in_stock: true,
+              stock: 20,
+              fulfillment_ready: true,
+              fulfillment_provider: 'printful',
+              variants: [
+                { id: 'small', size: 'S', color: 'Black', price_usd: 59.99, price_diamonds: 5999, stock: 20, in_stock: true, fulfillment_ready: true },
+              ],
+            }],
+          },
+        }),
+      });
+    });
 
     await page.goto('/hub/merch-store/hoodie-neural', { waitUntil: 'domcontentloaded' });
     const purchaseConsole = page.locator('#purchase-console');
@@ -211,8 +215,57 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(page.getByRole('searchbox', { name: 'Search Marketplace Gear' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Open Purchase Console' })).toHaveAttribute('href', /#purchase-console$/);
     await expect(page.getByRole('link', { name: 'Open Purchase Console' })).not.toHaveAttribute('target');
+    await expect(page.locator('meta[property="og:type"][content="product"]')).toHaveCount(1);
+    await expect.poll(() => catalogRequestUrl).toContain('category=apparel');
     await purchaseConsole.getByRole('button', { name: 'Add Diamond Altitude Hoodie To Cart' }).click();
+    const cartLink = page.getByRole('navigation', { name: 'Marketplace Commerce' }).getByRole('link', { name: /Cart/ });
+    await expect(cartLink).toContainText('1');
+    const persistedCart = await page.evaluate(() => JSON.parse(localStorage.getItem('smarter-poker-cart') || '{}'));
+    expect(persistedCart.state.items).toHaveLength(1);
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('navigation', { name: 'Marketplace Commerce' }).getByRole('link', { name: /Cart/ })).toContainText('1');
+  });
+
+  test('populated cart fits 320px and exposes accessible payment choices', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.addInitScript(() => {
+      window.localStorage.setItem('smarter-poker-cart', JSON.stringify({
+        state: {
+          items: [{
+            id: 'hoodie-neural',
+            name: 'Diamond Altitude Hoodie With A Deliberately Long Product Name',
+            price: 59.99,
+            priceDiamonds: 5999,
+            quantity: 1,
+            type: 'merchandise',
+            image: '/images/merch/neural-steel/mockups/diamond-altitude-hoodie.webp',
+          }],
+        },
+        version: 0,
+      }));
+    });
+
+    await page.goto('/hub/diamond-store/cart', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { level: 1, name: 'Your Cart' })).toBeVisible({ timeout: 15000 });
+    const paymentChoices = page.getByRole('radiogroup', { name: 'Payment Method' });
+    await expect(paymentChoices.getByRole('radio')).toHaveCount(2);
+    await expect(paymentChoices.getByRole('radio', { name: /Pay With Card/ })).toHaveAttribute('aria-checked', 'true');
+
+    const widths = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      document: document.documentElement.scrollWidth,
+      body: document.body.scrollWidth,
+      main: document.querySelector('main')?.scrollWidth || 0,
+    }));
+    expect(widths.document).toBeLessThanOrEqual(widths.viewport);
+    expect(widths.body).toBeLessThanOrEqual(widths.viewport);
+    expect(widths.main).toBeLessThanOrEqual(widths.viewport);
+
+    for (const control of await page.getByRole('button', { name: /Decrease|Increase|Remove/ }).all()) {
+      const box = await control.boundingBox();
+      expect(box?.height || 0).toBeGreaterThanOrEqual(44);
+      expect(box?.width || 0).toBeGreaterThanOrEqual(44);
+    }
   });
 
   test('private order receipt route owns noindex metadata before authentication', async ({ request }) => {

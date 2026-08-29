@@ -303,6 +303,25 @@ export default function ShoppingCart() {
   // path would charge the user and deliver nothing.
   const hasDiamondItems = diamondItems.length > 0;
   const usingDiamonds = payWithDiamonds && !hasDiamondItems;
+  const handlePaymentChoiceKeyDown = (event) => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
+      return;
+    }
+    const choices = Array.from(
+      event.currentTarget.querySelectorAll('[role="radio"]:not(:disabled)')
+    );
+    if (choices.length < 2) return;
+    const currentIndex = Math.max(0, choices.indexOf(document.activeElement));
+    const nextIndex =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? choices.length - 1
+          : (currentIndex + (event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1) + choices.length) % choices.length;
+    event.preventDefault();
+    choices[nextIndex].click();
+    choices[nextIndex].focus();
+  };
 
   // Integer-cent subtotal avoids IEEE-754 drift (e.g. 7 x $0.01 -> 0.07000000000000001)
   const subtotalCentsOf = (list) =>
@@ -525,11 +544,19 @@ export default function ShoppingCart() {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p style={styles.loadingText}>Loading Cart...</p>
-        <style>{`@keyframes dsSpin { to { transform: rotate(360deg); } }`}</style>
-      </div>
+      <>
+        <SEOHead
+          title="Shopping Cart — Diamond Store"
+          description="View And Manage Items In Your Diamond Store Shopping Cart."
+          canonical="/hub/diamond-store/cart"
+          noindex={true}
+        />
+        <main style={styles.loadingContainer} aria-busy="true" aria-label="Shopping Cart">
+          <div style={styles.spinner} aria-hidden="true"></div>
+          <p role="status" style={styles.loadingText}>Loading Cart...</p>
+          <style>{`@keyframes dsSpin { to { transform: rotate(360deg); } }`}</style>
+        </main>
+      </>
     );
   }
 
@@ -574,6 +601,7 @@ export default function ShoppingCart() {
                     <CartItem
                       key={item.id}
                       {...item}
+                      isMobile={isMobile}
                       onUpdateQuantity={(qty) => updateQuantity(item.id, qty)}
                       onRemove={() => removeItem(item.id)}
                     />
@@ -628,8 +656,14 @@ export default function ShoppingCart() {
                 )}
 
                 {/* ═══ Payment Method Selection ═══ */}
-                <div style={{ marginBottom: '16px' }}>
+                <div
+                  role="radiogroup"
+                  aria-labelledby="marketplace-payment-method-label"
+                  onKeyDown={handlePaymentChoiceKeyDown}
+                  style={{ marginBottom: '16px' }}
+                >
                   <p
+                    id="marketplace-payment-method-label"
                     style={{
                       fontSize: '13px',
                       color: '#9ca3af',
@@ -646,6 +680,9 @@ export default function ShoppingCart() {
                   {!hasDiamondItems && (
                     <button
                       type="button"
+                      role="radio"
+                      aria-checked={usingDiamonds}
+                      tabIndex={usingDiamonds ? 0 : -1}
                       onClick={() => setPayWithDiamonds(true)}
                       style={{
                         width: '100%',
@@ -666,7 +703,7 @@ export default function ShoppingCart() {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Gem size={22} color="#00E0FF" />
+                        <Gem size={22} color="#00E0FF" aria-hidden="true" />
                         <div style={{ textAlign: 'left' }}>
                           <span
                             style={{
@@ -726,6 +763,9 @@ export default function ShoppingCart() {
                   {/* Pay with Card Option */}
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={!usingDiamonds}
+                    tabIndex={!usingDiamonds ? 0 : -1}
                     onClick={() => setPayWithDiamonds(false)}
                     style={{
                       width: '100%',
@@ -745,7 +785,7 @@ export default function ShoppingCart() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <CreditCard size={22} color="#00E0FF" />
+                      <CreditCard size={22} color="#00E0FF" aria-hidden="true" />
                       <div style={{ textAlign: 'left' }}>
                         <span
                           style={{
@@ -889,16 +929,24 @@ export default function ShoppingCart() {
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CartItem({ id, name, price, quantity, image, type, onUpdateQuantity, onRemove }) {
+function CartItem({ id, name, price, quantity, image, type, isMobile, onUpdateQuantity, onRemove }) {
   return (
     <motion.div
-      style={styles.cartItem}
+      style={{ ...styles.cartItem, ...(isMobile ? styles.cartItemMobile : {}) }}
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
       layout
     >
-      {image && <img src={image} alt={name} style={styles.itemImage} loading="lazy" />}
+      {image && (
+        <img
+          src={image}
+          alt={name}
+          style={{ ...styles.itemImage, ...(isMobile ? styles.itemImageMobile : {}) }}
+          loading="lazy"
+          decoding="async"
+        />
+      )}
 
       <div style={styles.itemDetails}>
         <h4 style={styles.itemName}>{name}</h4>
@@ -906,7 +954,7 @@ function CartItem({ id, name, price, quantity, image, type, onUpdateQuantity, on
         <p style={styles.itemPrice}>${(Number(price) || 0).toFixed(2)}</p>
       </div>
 
-      <div style={styles.itemActions}>
+      <div style={{ ...styles.itemActions, ...(isMobile ? styles.itemActionsMobile : {}) }}>
         <div style={styles.quantityControl}>
           <button
             type="button"
@@ -980,14 +1028,23 @@ const styles = {
     borderRadius: 0,
     boxShadow: 'inset 0 1px 0 rgba(235,251,255,0.38), inset 0 0 0 4px #03080c',
   },
+  cartItemMobile: {
+    flexWrap: 'wrap',
+    gap: '12px',
+    padding: '14px',
+  },
   itemImage: {
     width: '100px',
     height: '100px',
+    flexShrink: 0,
     objectFit: 'cover',
     borderRadius: 0,
   },
+  itemImageMobile: { width: '72px', height: '72px' },
   itemDetails: {
     flex: 1,
+    minWidth: 0,
+    overflowWrap: 'anywhere',
   },
   itemName: {
     fontSize: '18px',
@@ -1010,6 +1067,12 @@ const styles = {
     gap: '12px',
     alignItems: 'flex-end',
   },
+  itemActionsMobile: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   quantityControl: {
     display: 'flex',
     alignItems: 'center',
@@ -1019,8 +1082,9 @@ const styles = {
     padding: '4px',
   },
   quantityButton: {
-    width: '32px',
-    height: '32px',
+    width: '44px',
+    minWidth: '44px',
+    height: '44px',
     background: 'transparent',
     border: 'none',
     color: '#FFFFFF',
@@ -1037,6 +1101,7 @@ const styles = {
   },
   removeButton: {
     padding: '6px 12px',
+    minHeight: '44px',
     background: 'transparent',
     border: '1px solid rgba(255, 68, 68, 0.5)',
     color: '#FF4444',

@@ -57,18 +57,23 @@ async function catalogProduct(productId) {
   const { data: variants, error: variantError } = item.has_variants
     ? await supabase
         .from('merchandise_item_variants')
-        .select('stock, metadata')
+        .select('id, sku, size, color, price_usd, price_diamonds, stock, sort_order, metadata')
         .eq('item_id', productId)
         .eq('is_active', true)
+        .order('sort_order', { ascending: true })
     : { data: [], error: null };
   if (variantError) return null;
 
   const metadata = item.metadata && typeof item.metadata === 'object' ? item.metadata : {};
   const fulfillmentProvider = metadata.fulfillment_provider || null;
   let fulfillmentReady = false;
+  let printfulReady = false;
+  let resolvePrintfulMapping = null;
   if (fulfillmentProvider === 'printful') {
-    const { isPrintfulReady, resolvePrintfulMapping } = require('../../../src/lib/store/printfulFulfillment');
-    if (isPrintfulReady()) {
+    const printful = require('../../../src/lib/store/printfulFulfillment');
+    printfulReady = printful.isPrintfulReady();
+    resolvePrintfulMapping = printful.resolvePrintfulMapping;
+    if (printfulReady) {
       fulfillmentReady = item.has_variants
         ? (variants || []).some((variant) => Boolean(resolvePrintfulMapping(null, variant.metadata)))
         : Boolean(resolvePrintfulMapping(metadata, null));
@@ -91,6 +96,26 @@ async function catalogProduct(productId) {
     price,
     priceDiamonds: Math.max(1, Number(item.price_diamonds) || Math.ceil(price * 100)),
     inStock,
+    hasVariants: item.has_variants === true,
+    variants: (variants || []).map((variant) => {
+      const variantPrice = Number(variant.price_usd);
+      const resolvedPrice = Number.isFinite(variantPrice) && variantPrice > 0 ? variantPrice : price;
+      return {
+        id: variant.id,
+        sku: variant.sku,
+        size: variant.size,
+        color: variant.color,
+        priceUsd: resolvedPrice,
+        priceDiamonds: Math.max(
+          1,
+          Number(variant.price_diamonds) || Math.ceil(resolvedPrice * 100)
+        ),
+        stock: Math.max(0, Number(variant.stock) || 0),
+        fulfillmentReady:
+          fulfillmentProvider !== 'printful' ||
+          (printfulReady && Boolean(resolvePrintfulMapping?.(null, variant.metadata))),
+      };
+    }),
     fulfillmentReady,
     fulfillmentProvider,
   };
@@ -162,6 +187,7 @@ export default function MerchProductDetail({ product }) {
         </>
       }
       structuredData={[productSchema, breadcrumbSchema]}
+      openGraphType="product"
     >
       <div className={detailStyles.detailGrid}>
         <section className={detailStyles.detailCard}>
@@ -197,7 +223,13 @@ export default function MerchProductDetail({ product }) {
             fulfillment record is verified.
           </p>
         </div>
-        <MerchStore user={user} focusProductId={product.id} detailMode />
+        <MerchStore
+          user={user}
+          focusProductId={product.id}
+          detailMode
+          initialProduct={product}
+          catalogCategory={product.category}
+        />
       </section>
     </MarketplaceDetailExperience>
   );

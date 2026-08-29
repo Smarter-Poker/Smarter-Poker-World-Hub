@@ -65,6 +65,7 @@ test('navigation, touch scrolling, and focused HUD controls cannot regress', () 
 });
 
 test('migration verification fails when a declared RPC is absent', () => {
-  assert.match(GATE, /if \(!fns\.has\(f\)\) failures\.push/);
+  assert.match(GATE, /if \(!fns\.has\(fn\.name\)\)/);
+  assert.match(GATE, /failures\.push\(\[file, 'function', `\$\{fn\.name\}/);
   assert.doesNotMatch(GATE, /warnings\.push\(\[file, 'function'/);
 });

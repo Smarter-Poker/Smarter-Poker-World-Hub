@@ -209,6 +209,54 @@ async function createPrintfulOrder({
     }
 }
 
+async function cancelPrintfulOrder({
+    orderId,
+    providerOrderId,
+    fetchImpl = globalThis.fetch,
+    env = process.env,
+    apiBase = PRINTFUL_API_BASE,
+}) {
+    const token = cleanString(env.PRINTFUL_API_TOKEN, 4096);
+    if (!token) throw new PrintfulConfigurationError('Printful API token is not configured');
+    if (typeof fetchImpl !== 'function') throw new PrintfulConfigurationError('A fetch implementation is required');
+
+    const numericProviderId = positiveInteger(providerOrderId);
+    const orderReference = numericProviderId
+        ? String(numericProviderId)
+        : `@${sanitizeExternalOrderId(orderId)}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const headers = { Authorization: `Bearer ${token}` };
+    const storeId = cleanString(env.PRINTFUL_STORE_ID, 64);
+    if (storeId) headers['X-PF-Store-ID'] = storeId;
+
+    try {
+        const response = await fetchImpl(
+            `${String(apiBase).replace(/\/$/, '')}/orders/${encodeURIComponent(orderReference)}`,
+            { method: 'DELETE', headers, signal: controller.signal },
+        );
+        const payload = await response.json().catch(() => null);
+        // DELETE is idempotent for our reconciliation purposes: a provider
+        // order that is already absent cannot subsequently be fulfilled.
+        if (response.status === 404) return { canceled: true, already_absent: true };
+        if (!response.ok) {
+            throw new PrintfulRequestError(
+                `Printful rejected the cancellation request (${response.status || 502})`,
+                response.status || 502,
+            );
+        }
+        return payload?.result || { canceled: true };
+    } catch (error) {
+        if (error?.name === 'AbortError') {
+            throw new PrintfulRequestError('Printful cancellation request timed out', 504);
+        }
+        if (error instanceof PrintfulRequestError || error instanceof PrintfulConfigurationError) throw error;
+        throw new PrintfulRequestError('Printful cancellation request failed', 502);
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
 module.exports = {
     PRINTFUL_API_BASE,
     PrintfulConfigurationError,
@@ -223,4 +271,5 @@ module.exports = {
     normalizePrintfulRecipient,
     publicShippingAddress,
     createPrintfulOrder,
+    cancelPrintfulOrder,
 };
