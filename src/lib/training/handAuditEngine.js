@@ -373,8 +373,37 @@ async function fetchClubHandsForKey(db, userId, key, limit) {
     .limit(limit);
 }
 
+const MAX_DECISIONS_PER_HAND = 12;
+const EXISTING_AUDIT_BATCH_SIZE = 40;
+const DEFAULT_UNPRICED_RETRY_MS = 24 * 60 * 60 * 1000;
+
+async function fetchExistingAuditRows(db, userId, externalIds) {
+  const rows = [];
+  for (let index = 0; index < externalIds.length; index += EXISTING_AUDIT_BATCH_SIZE) {
+    const batch = externalIds.slice(index, index + EXISTING_AUDIT_BATCH_SIZE);
+    const result = await db.from('hand_audit_decisions')
+      .select('hand_external_id, solver_verified, audited_at, updated_at')
+      .eq('user_id', userId)
+      .in('hand_external_id', batch)
+      .limit(batch.length * MAX_DECISIONS_PER_HAND);
+    if (result.error) return { data: rows, error: result.error };
+    rows.push(...(result.data || []));
+  }
+  return { data: rows, error: null };
+}
+
+function auditRowTime(row) {
+  const value = new Date(row?.updated_at || row?.audited_at || 0).getTime();
+  return Number.isFinite(value) ? value : 0;
+}
+
 /** Idempotently audit recent Club Arena hands before Leak Finder aggregates them. */
-export async function syncClubArenaHandsForAudit(db, userId, { limit = 100, maxDecisions = 250 } = {}) {
+export async function syncClubArenaHandsForAudit(db, userId, {
+  limit = 100,
+  maxDecisions = 250,
+  retryUnpricedAfterMs = DEFAULT_UNPRICED_RETRY_MS,
+  nowMs = Date.now(),
+} = {}) {
   const [modern, legacy] = await Promise.all([
     fetchClubHandsForKey(db, userId, 'userId', limit),
     fetchClubHandsForKey(db, userId, 'id', limit),
@@ -388,28 +417,67 @@ export async function syncClubArenaHandsForAudit(db, userId, { limit = 100, maxD
   const handRows = [...byId.values()].slice(0, limit);
   const normalized = handRows.map(row => normalizeClubArenaHand(row, userId)).filter(Boolean);
   if (normalized.length === 0) {
-    return { available: true, handsFound: handRows.length, handsEligible: 0, handsAudited: 0, decisionsAnalyzed: 0, solverVerified: 0, persisted: true };
+    return {
+      available: true,
+      handsFound: handRows.length,
+      handsEligible: 0,
+      handsAudited: 0,
+      handsAlreadyCurrent: 0,
+      handsQueuedForRetry: 0,
+      decisionsAnalyzed: 0,
+      solverVerified: 0,
+      unpriced: 0,
+      persisted: true,
+    };
   }
 
   const externalIds = normalized.map(hand => hand.id);
-  const { data: existing, error: existingError } = await db.from('hand_audit_decisions')
-    .select('hand_external_id')
-    .eq('user_id', userId)
-    .in('hand_external_id', externalIds)
-    .limit(maxDecisions);
+  const { data: existing, error: existingError } = await fetchExistingAuditRows(db, userId, externalIds);
   if (existingError && existingError.code !== '42P01') {
     console.warn('[HandAudit] Existing Club Arena audit lookup failed:', existingError.message);
   }
-  const auditedIds = new Set((existing || []).map(row => row.hand_external_id));
-  const pending = normalized.filter(hand => !auditedIds.has(hand.id));
+
+  const rowsByHand = new Map();
+  for (const row of existing || []) {
+    const key = String(row.hand_external_id);
+    if (!rowsByHand.has(key)) rowsByHand.set(key, []);
+    rowsByHand.get(key).push(row);
+  }
+
+  let handsQueuedForRetry = 0;
+  let handsAlreadyCurrent = 0;
+  const retryCutoff = nowMs - Math.max(0, Number(retryUnpricedAfterMs) || 0);
+  const pending = normalized.filter(hand => {
+    if (existingError) return true;
+    const rows = rowsByHand.get(String(hand.id)) || [];
+    if (rows.length === 0) return true;
+
+    const expectedDecisions = Math.min(
+      MAX_DECISIONS_PER_HAND,
+      getHeroDecisionPoints(hand).length,
+    );
+    const partialAudit = rows.length < expectedDecisions;
+    const hasUnpricedDecision = rows.some(row => row.solver_verified !== true);
+    const newestAuditAt = rows.reduce((latest, row) => Math.max(latest, auditRowTime(row)), 0);
+    const staleUnpricedAudit = hasUnpricedDecision && newestAuditAt <= retryCutoff;
+    if (partialAudit || staleUnpricedAudit) {
+      handsQueuedForRetry += 1;
+      return true;
+    }
+    handsAlreadyCurrent += 1;
+    return false;
+  });
   const result = await auditParsedHands(db, userId, pending, { maxDecisions, persist: true });
   return {
     available: true,
     handsFound: handRows.length,
     handsEligible: normalized.length,
     handsAudited: result.handsParsed,
+    handsAlreadyCurrent,
+    handsQueuedForRetry,
     decisionsAnalyzed: result.decisionsAnalyzed,
     solverVerified: result.solverVerified,
+    unpriced: result.unpriced,
     persisted: result.persisted,
     truncated: result.truncated,
   };

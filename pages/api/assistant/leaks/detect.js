@@ -680,20 +680,22 @@ async function getSolverTrainingEvidence(db, userId) {
       .order('answered_at', { ascending: false })
       .limit(2000);
   }
+  let trainingAvailable = !result.error;
   if (result.error) {
     console.warn('[LeakDetect] training_answers evidence query failed:', result.error.message);
-    return { available: false, decisions: [], leaks: [] };
   }
 
-  const rows = result.data || [];
+  const rows = trainingAvailable ? (result.data || []) : [];
   const decisions = [];
+  let trainingDecisionCount = 0;
   if (rows.length > 0) {
     let canonical;
     try {
       canonical = await fetchCanonicalQuestionMap(db, rows);
     } catch (error) {
       console.warn('[LeakDetect] canonical question lookup failed:', error.message);
-      return { available: false, decisions: [], leaks: [] };
+      trainingAvailable = false;
+      canonical = new Map();
     }
 
     for (const row of rows) {
@@ -717,6 +719,7 @@ async function getSolverTrainingEvidence(db, userId) {
         optimal_frequency: grade.optimalFrequency,
         ev_loss_measured: grade.evLossMeasured,
       });
+      trainingDecisionCount += 1;
     }
   }
 
@@ -731,14 +734,42 @@ async function getSolverTrainingEvidence(db, userId) {
   if (auditResult.error && auditResult.error.code !== '42P01') {
     console.warn('[LeakDetect] hand_audit_decisions query failed:', auditResult.error.message);
   }
+  let handAuditDecisionCount = 0;
   for (const row of auditResult.data || []) {
     decisions.push({ ...row, answered_at: row.audited_at });
+    handAuditDecisionCount += 1;
   }
 
   return {
-    available: auditAvailable,
+    // A failure in one evidence source must never erase healthy evidence from
+    // the other. Club Arena audits remain usable if training-answer lookup is
+    // degraded, and vice versa.
+    available: trainingAvailable || auditAvailable,
+    sources: {
+      training: { available: trainingAvailable, decisions: trainingDecisionCount },
+      handAudit: { available: auditAvailable, decisions: handAuditDecisionCount },
+    },
     decisions,
     leaks: aggregateSolverLeaks(decisions),
+  };
+}
+
+function evidenceReceipt({ liveHands, solverEvidence, clubArenaSync }) {
+  const trainingDecisions = solverEvidence?.sources?.training?.decisions || 0;
+  const handAuditDecisions = solverEvidence?.sources?.handAudit?.decisions || 0;
+  const auditedThisRun = clubArenaSync?.decisionsAnalyzed || 0;
+  const verifiedThisRun = clubArenaSync?.solverVerified || 0;
+  return {
+    liveHands,
+    verifiedDecisions: solverEvidence?.decisions?.length || 0,
+    trainingDecisions,
+    handAuditDecisions,
+    auditedThisRun,
+    verifiedThisRun,
+    unpricedThisRun: clubArenaSync?.unpriced || 0,
+    verificationRate: auditedThisRun > 0
+      ? +((verifiedThisRun / auditedThisRun) * 100).toFixed(1)
+      : null,
   };
 }
 
@@ -781,6 +812,13 @@ export default async function handler(req, res) {
       const solverEvidence = await getSolverTrainingEvidence(getSupabase(), userId);
       const liveHands = stats?.handsPlayed || 0;
       const solverDecisions = solverEvidence.decisions.length;
+      const evidenceCoverage = evidenceReceipt({ liveHands, solverEvidence, clubArenaSync });
+      const evidenceSources = {
+        livePlay: liveHands > 0,
+        trainingSolver: solverEvidence.sources?.training?.available === true,
+        handAudit: solverEvidence.sources?.handAudit?.available === true,
+        clubArena: clubArenaSync.available === true,
+      };
 
       if (liveHands < 100 && solverDecisions < 8) {
         return res.status(200).json({
@@ -789,6 +827,8 @@ export default async function handler(req, res) {
           handsAnalyzed: liveHands,
           solverDecisionsAnalyzed: solverDecisions,
           clubArenaSync,
+          evidenceSources,
+          evidenceCoverage,
           leaksDetected: 0,
           leaks: [],
         });
@@ -973,12 +1013,13 @@ export default async function handler(req, res) {
       const currentHands = existingStats?.total_hands_analyzed || 0;
 
       // Atomic Upsert for Stats Sync — SET (not accumulate) hands analyzed so
-      // re-running detection on the same hands doesn't inflate the counter
+      // re-running detection on the same hands doesn't inflate the counter.
+      // Solver decisions are not hands; one hand can expose many decisions.
       const { error: err_user_assistant_stats_l0t65 } = await getSupabase()
         .from('user_assistant_stats')
         .upsert({
           user_id: userId,
-          total_hands_analyzed: Math.max(currentHands, liveHands + solverDecisions),
+          total_hands_analyzed: Math.max(currentHands, liveHands, clubArenaSync.handsFound || 0),
           active_leaks_count: activeLeaks,
           resolved_leaks_count: resolvedLeaksCount,
           updated_at: new Date().toISOString()
@@ -989,11 +1030,8 @@ export default async function handler(req, res) {
         success: true,
         handsAnalyzed: liveHands,
         solverDecisionsAnalyzed: solverDecisions,
-        evidenceSources: {
-          livePlay: liveHands > 0,
-          trainingSolver: solverEvidence.available,
-          clubArena: clubArenaSync.available && clubArenaSync.handsFound > 0,
-        },
+        evidenceSources,
+        evidenceCoverage,
         clubArenaSync,
         leaksDetected: detectedLeaks.length,
         leaks: detectedLeaks,
