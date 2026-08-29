@@ -8,6 +8,7 @@
   margin: 0 auto;
   padding: 92px 0 110px;
   color: #e9f4f8;
+  font-family: 'Inter', sans-serif;
 }
 
 .routeRail {
@@ -53,31 +54,28 @@
 
 .commandHeader {
   position: relative;
-  display: flex;
-  min-height: 190px;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 32px;
+  display: grid;
+  min-height: 310px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(380px, 1.1fr);
+  align-items: stretch;
+  gap: 12px;
   margin-top: 22px;
-  padding: 36px 40px;
+  padding: 11px;
   overflow: hidden;
-  border: 1px solid #6a8494;
+  border: 1px solid #8da4b0;
   border-radius: 0;
-  background:
-    linear-gradient(90deg, rgba(0, 193, 255, 0.08), transparent 38%),
-    radial-gradient(circle at 86% 38%, rgba(0, 177, 255, 0.18), transparent 28%),
-    linear-gradient(145deg, #162832 0, #050a0f 42%, #010305 100%);
+  background: linear-gradient(180deg, #263641 0, #050b10 6%, #010306 94%, #14242e 100%);
   box-shadow:
-    inset 0 1px 0 rgba(238, 252, 255, 0.7),
-    inset 0 0 0 7px #03080c,
-    inset 0 0 0 8px rgba(65, 101, 122, 0.72),
+    inset 0 1px 0 rgba(245, 253, 255, 0.86),
+    inset 0 0 0 5px #020509,
+    inset 0 0 0 6px rgba(84, 113, 130, 0.82),
     0 24px 50px #000;
 }
 
 .commandHeader::before {
   position: absolute;
-  inset: 10px 10px auto;
-  height: 3px;
+  inset: 6px 14% auto;
+  height: 2px;
   background: linear-gradient(
     90deg,
     transparent,
@@ -92,17 +90,9 @@
 
 .commandHeader::after {
   position: absolute;
-  right: 42px;
-  bottom: 28px;
-  width: min(36vw, 430px);
-  height: 86px;
-  border: 1px solid rgba(116, 166, 192, 0.18);
-  background: repeating-linear-gradient(
-    90deg,
-    transparent 0 28px,
-    rgba(0, 197, 255, 0.08) 29px 30px
-  );
-  clip-path: polygon(12% 0, 100% 0, 88% 100%, 0 100%);
+  inset: 18px;
+  border: 1px solid rgba(132, 169, 189, 0.28);
+  clip-path: polygon(0 12px, 12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
   content: '';
   pointer-events: none;
 }
@@ -115,6 +105,8 @@
 
 .headerCopy {
   max-width: 720px;
+  align-self: center;
+  padding: 42px 18px 42px 34px;
 }
 
 .eyebrow {
@@ -149,7 +141,111 @@
 }
 
 .headerActions {
-  flex: 0 0 auto;
+  position: absolute;
+  z-index: 3;
+  left: 45px;
+  bottom: 30px;
+}
+
+.operationsVisual {
+  position: relative;
+  z-index: 1;
+  min-height: 286px;
+  overflow: hidden;
+  border: 1px solid #506c7d;
+  background-color: #010306;
+  background-image: url('/images/store-v3/commerce-operations-atlas.webp');
+  background-position: 0 center;
+  background-repeat: no-repeat;
+  background-size: 300% 100%;
+  box-shadow:
+    inset 0 1px 0 rgba(235, 250, 255, 0.48),
+    inset 0 0 0 5px rgba(0, 0, 0, 0.72),
+    -18px 0 46px rgba(0, 0, 0, 0.45);
+}
+
+.stage[data-active='orders'] .operationsVisual {
+  background-position: 50% center;
+}
+
+.stage[data-active='wishlist'] .operationsVisual {
+  background-position: 100% center;
+}
+
+.stage[data-active='store'] .operationsVisual {
+  background-image: url('/images/store-v3/diamond-vault-hero.webp');
+  background-position: 58% center;
+  background-size: cover;
+}
+
+.operationsVisual::before {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.44), transparent 24%),
+    linear-gradient(180deg, transparent 54%, rgba(0, 0, 0, 0.84));
+  content: '';
+}
+
+.operationsVisual::after {
+  position: absolute;
+  inset: 9px;
+  border: 1px solid rgba(181, 216, 231, 0.34);
+  content: '';
+  pointer-events: none;
+}
+
+.visualReadout {
+  position: absolute;
+  z-index: 2;
+  right: 24px;
+  bottom: 22px;
+  left: 24px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  padding: 11px 13px;
+  border-top: 1px solid rgba(132, 206, 232, 0.66);
+  border-bottom: 1px solid rgba(47, 83, 101, 0.72);
+  background: rgba(0, 5, 9, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.visualReadout strong {
+  color: #e8f8fc;
+  font: 600 14px 'Rajdhani', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.visualReadout small {
+  grid-column: 2;
+  color: #849ba7;
+  font: 600 9px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bayCode {
+  grid-row: 1 / span 2;
+  align-self: center;
+  padding-right: 12px;
+  border-right: 1px solid #2f5668;
+  color: #4edcff;
+  font: 800 9px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.12em;
+}
+
+.scanLine {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  bottom: 10px;
+  left: 12px;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, #63e7ff, transparent);
+  box-shadow: 0 0 12px #00b9ff;
+  opacity: 0.6;
 }
 
 .headerActions :is(a, button) {
@@ -176,7 +272,7 @@
   position: relative;
   margin-top: 22px;
   padding: 30px;
-  border: 1px solid #526e7f;
+  border: 1px solid #6f8997;
   border-radius: 0;
   background:
     linear-gradient(120deg, rgba(0, 177, 255, 0.05), transparent 32%),
@@ -184,6 +280,7 @@
   box-shadow:
     inset 0 1px 0 rgba(235, 251, 255, 0.38),
     inset 0 0 0 6px #03080c,
+    inset 0 0 0 7px rgba(67, 96, 112, 0.6),
     0 24px 56px #000;
 }
 
@@ -227,20 +324,23 @@
   }
 
   .commandHeader {
-    min-height: 220px;
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 30px 24px;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 9px;
   }
 
-  .commandHeader::after {
-    right: 12px;
-    bottom: 16px;
-    width: 72vw;
+  .headerCopy {
+    padding: 34px 20px 24px;
+  }
+
+  .operationsVisual {
+    min-height: min(72vw, 330px);
   }
 
   .headerActions {
-    width: 100%;
+    position: static;
+    width: auto;
+    padding: 0 20px 18px;
   }
 
   .headerActions :is(a, button) {

@@ -72,11 +72,11 @@ const TX_TYPES = {
     game_cost: { Icon: Gamepad2, label: 'Game Entry', color: '#ef4444' },
     arcade_entry: { Icon: Joystick, label: 'Arcade Entry', color: '#ef4444' },
     // Bonuses & Rewards
-    bonus: { Icon: Gift, label: 'Bonus', color: '#a855f7' },
-    signup_bonus: { Icon: PartyPopper, label: 'Welcome Bonus', color: '#a855f7' },
+    bonus: { Icon: Gift, label: 'Bonus', color: '#8aa8b8' },
+    signup_bonus: { Icon: PartyPopper, label: 'Welcome Bonus', color: '#8aa8b8' },
     daily_bonus: { Icon: Calendar, label: 'Daily Bonus', color: '#3b82f6' },
     daily_login: { Icon: Calendar, label: 'Daily Login', color: '#3b82f6' },
-    daily_trivia: { Icon: Puzzle, label: 'Daily Trivia', color: '#8b5cf6' },
+    daily_trivia: { Icon: Puzzle, label: 'Daily Trivia', color: '#7395a8' },
     streak_reward: { Icon: Flame, label: 'Streak Reward', color: '#ffffff' },
     vip_reward: { Icon: Crown, label: 'VIP Reward', color: '#eab308' },
     vip_stipend: { Icon: Crown, label: 'VIP Stipend', color: '#eab308' },
@@ -86,32 +86,32 @@ const TX_TYPES = {
     // Competition
     tournament_prize: { Icon: Medal, label: 'Tournament Prize', color: '#eab308' },
     tournament_refund: { Icon: RotateCcw, label: 'Tournament Refund', color: '#94a3b8' },
-    pvp_win: { Icon: Swords, label: 'PvP Win', color: '#22c55e' },
+    pvp_win: { Icon: Swords, label: 'PvP Win', color: '#00a8e8' },
     pvp_refund: { Icon: RotateCcw, label: 'PvP Refund', color: '#94a3b8' },
-    game_reward: { Icon: Target, label: 'Game Reward', color: '#22c55e' },
-    trivia_reward: { Icon: Brain, label: 'Trivia Reward', color: '#8b5cf6' },
+    game_reward: { Icon: Target, label: 'Game Reward', color: '#00a8e8' },
+    trivia_reward: { Icon: Brain, label: 'Trivia Reward', color: '#7395a8' },
     // Social & Community
-    social_post: { Icon: PenLine, label: 'Social Post', color: '#ec4899' },
+    social_post: { Icon: PenLine, label: 'Social Post', color: '#c4d3da' },
     follow: { Icon: UserPlus, label: 'Follow Reward', color: '#06b6d4' },
     reaction: { Icon: Heart, label: 'Reaction Reward', color: '#f43f5e' },
     comment: { Icon: MessageCircle, label: 'Comment Reward', color: '#06b6d4' },
     share: { Icon: Link2, label: 'Share Reward', color: '#3b82f6' },
-    referral: { Icon: Users, label: 'Referral Bonus', color: '#10b981' },
+    referral: { Icon: Users, label: 'Referral Bonus', color: '#189fd0' },
     // Profile & Content
-    profile_complete: { Icon: CheckCircle, label: 'Profile Bonus', color: '#22c55e' },
+    profile_complete: { Icon: CheckCircle, label: 'Profile Bonus', color: '#00a8e8' },
     profile_pic: { Icon: Camera, label: 'Profile Pic Bonus', color: '#06b6d4' },
-    video_watch: { Icon: Video, label: 'Video Watch', color: '#8b5cf6' },
+    video_watch: { Icon: Video, label: 'Video Watch', color: '#7395a8' },
     video_favorite: { Icon: Star, label: 'Video Favorite', color: '#eab308' },
-    hendonmob_link: { Icon: Link2, label: 'HendonMob Link', color: '#10b981' },
+    hendonmob_link: { Icon: Link2, label: 'HendonMob Link', color: '#189fd0' },
     venue_review: { Icon: MapPin, label: 'Venue Review', color: '#f59e0b' },
-    promo_code: { Icon: Ticket, label: 'Promo Code', color: '#a855f7' },
+    promo_code: { Icon: Ticket, label: 'Promo Code', color: '#8aa8b8' },
     // Gifts / Transfers
     diamond_gift_sent: { Icon: Send, label: 'Gift Sent', color: '#ffffff' },
-    diamond_gift_received: { Icon: Gift, label: 'Gift Received', color: '#22c55e' },
+    diamond_gift_received: { Icon: Gift, label: 'Gift Received', color: '#00a8e8' },
     // Written by pages/api/store/diamond-transfer.js when a transfer is rolled back
-    diamond_gift_refund: { Icon: RotateCcw, label: 'Gift Refunded', color: '#22c55e' },
+    diamond_gift_refund: { Icon: RotateCcw, label: 'Gift Refunded', color: '#00a8e8' },
     // Written by pages/api/store/diamond-transfer.js on the recipient's ledger
-    diamond_received: { Icon: Gift, label: 'Diamonds Received', color: '#22c55e' },
+    diamond_received: { Icon: Gift, label: 'Diamonds Received', color: '#00a8e8' },
     // Written by pages/api/store/purchase-daily-vip.js
     vip_daily: { Icon: Crown, label: 'Daily VIP Pass', color: '#eab308' },
     // Other
@@ -261,7 +261,7 @@ function showConfettiAnimation() {
     const container = document.createElement('div');
     container.id = 'wallet-confetti';
     container.style.cssText = 'position:fixed;inset:0;z-index:99999;pointer-events:none;overflow:hidden;';
-    const colors = ['#00d4ff', '#4ade80', '#f59e0b', '#a855f7', '#f43f5e', '#FFD700'];
+    const colors = ['#00d4ff', '#58d9ff', '#f59e0b', '#8aa8b8', '#f43f5e', '#FFD700'];
     for (let i = 0; i < 60; i++) {
         const p = document.createElement('div');
         const c = colors[i % colors.length];
@@ -278,7 +278,7 @@ const EmptyStateDiamond = () => (
         <defs>
             <linearGradient id="diamondGrad" x1="20" y1="0" x2="60" y2="80" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stopColor="#00d4ff" />
-                <stop offset="50%" stopColor="#a855f7" />
+                <stop offset="50%" stopColor="#8aa8b8" />
                 <stop offset="100%" stopColor="#3b82f6" />
             </linearGradient>
             <linearGradient id="diamondHighlight" x1="30" y1="10" x2="50" y2="40" gradientUnits="userSpaceOnUse">
@@ -465,7 +465,7 @@ const BalanceSparkline = ({ transactions }) => {
 
     // Determine trend color
     const isUp = points[points.length - 1] >= points[0];
-    const lineColor = isUp ? '#4ade80' : '#f87171';
+    const lineColor = isUp ? '#58d9ff' : '#f87171';
 
     return (
         <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
@@ -484,7 +484,7 @@ const BalanceSparkline = ({ transactions }) => {
                 {/* Line */}
                 <path d={pathData} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span style={{ fontSize: 10, color: isUp ? '#4ade80' : '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 10, color: isUp ? '#58d9ff' : '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>
                 {isUp ? '▲' : '▼'} {Math.abs(points[points.length - 1] - points[0]).toLocaleString()}
             </span>
         </div>
@@ -1267,7 +1267,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         };
 
         // R8-I6: Donut chart data — category breakdown with colors
-        const categoryColors = ['#00d4ff', '#4ade80', '#f59e0b', '#a855f7', '#ef4444', '#ec4899', '#3b82f6', '#06b6d4'];
+        const categoryColors = ['#00d4ff', '#58d9ff', '#f59e0b', '#8aa8b8', '#ef4444', '#c4d3da', '#3b82f6', '#06b6d4'];
         const donutData = topSources.map(([name, amount], i) => ({
             label: name,
             value: amount,
@@ -1617,7 +1617,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             background: showStats
                                 ? 'rgba(168, 85, 247, 0.15)'
                                 : 'rgba(255, 255, 255, 0.04)',
-                            color: showStats ? '#a855f7' : 'rgba(255, 255, 255, 0.4)',
+                            color: showStats ? '#8aa8b8' : 'rgba(255, 255, 255, 0.4)',
                             fontSize: 11,
                             fontWeight: 600,
                             cursor: 'pointer',
@@ -1652,7 +1652,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             <div style={{ marginBottom: 10 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>
                                     <span>Today: {dailyLimitInfo.sent.toLocaleString()} / {dailyLimitInfo.limit.toLocaleString()}</span>
-                                    <span style={{ color: dailyLimitInfo.sent >= dailyLimitInfo.limit * 0.8 ? '#f87171' : '#4ade80' }}>
+                                    <span style={{ color: dailyLimitInfo.sent >= dailyLimitInfo.limit * 0.8 ? '#f87171' : '#58d9ff' }}>
                                         {(dailyLimitInfo.limit - dailyLimitInfo.sent).toLocaleString()} remaining
                                     </span>
                                 </div>
@@ -1662,7 +1662,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                         height: '100%', borderRadius: 2, transition: 'width 0.3s ease',
                                         background: dailyLimitInfo.sent >= dailyLimitInfo.limit * 0.8
                                             ? 'linear-gradient(90deg, #ffffff, #ef4444)'
-                                            : 'linear-gradient(90deg, #4ade80, #22c55e)',
+                                            : 'linear-gradient(90deg, #58d9ff, #00a8e8)',
                                     }} />
                                 </div>
                             </div>
@@ -1888,7 +1888,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             </div>
                         )}
                         {transferSuccess && (
-                            <div style={{ marginTop: 8, fontSize: 11, color: '#4ade80', padding: '6px 10px', background: 'rgba(74,222,128,0.08)', borderRadius: 6 }}>
+                            <div style={{ marginTop: 8, fontSize: 11, color: '#58d9ff', padding: '6px 10px', background: 'rgba(74,222,128,0.08)', borderRadius: 6 }}>
                                 {transferSuccess}
                             </div>
                         )}
@@ -1965,7 +1965,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                             <div style={{ background: 'rgba(74, 222, 128, 0.08)', borderRadius: 8, padding: '8px 10px' }}>
                                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Total Earned</div>
-                                <div style={{ fontSize: 16, fontWeight: 700, color: '#4ade80', fontFamily: 'Rajdhani, monospace' }}>+{stats.totalEarned.toLocaleString()}</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: '#58d9ff', fontFamily: 'Rajdhani, monospace' }}>+{stats.totalEarned.toLocaleString()}</div>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>This week: +{stats.weekEarned.toLocaleString()}</div>
                             </div>
                             <div style={{ background: 'rgba(248, 113, 113, 0.08)', borderRadius: 8, padding: '8px 10px' }}>
@@ -2009,13 +2009,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                     <div style={{ background: 'rgba(0,212,255,0.06)', borderRadius: 8, padding: '6px 10px' }}>
                                         <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>This Month Earned</div>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'Rajdhani, monospace' }}>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#58d9ff', fontFamily: 'Rajdhani, monospace' }}>
                                             +{stats.monthlyTrend.thisMonthEarned.toLocaleString()}
                                         </div>
                                         {stats.monthlyTrend.earnedChange !== 0 && (
                                             <div style={{
                                                 fontSize: 9,
-                                                color: stats.monthlyTrend.earnedChange >= 0 ? '#4ade80' : '#f87171',
+                                                color: stats.monthlyTrend.earnedChange >= 0 ? '#58d9ff' : '#f87171',
                                                 marginTop: 2,
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -2036,7 +2036,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                         {stats.monthlyTrend.spentChange !== 0 && (
                                             <div style={{
                                                 fontSize: 9,
-                                                color: stats.monthlyTrend.spentChange <= 0 ? '#4ade80' : '#f87171',
+                                                color: stats.monthlyTrend.spentChange <= 0 ? '#58d9ff' : '#f87171',
                                                 marginTop: 2,
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -2070,7 +2070,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             </div>
                             <div style={{ background: 'rgba(74,222,128,0.08)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Received</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'Rajdhani, monospace' }}>{stats.giftsReceived.toLocaleString()}</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#58d9ff', fontFamily: 'Rajdhani, monospace' }}>{stats.giftsReceived.toLocaleString()}</div>
                             </div>
                             <div style={{ background: 'rgba(0,212,255,0.08)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Gifts</div>
@@ -2317,7 +2317,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                     fontFamily: 'Rajdhani, monospace',
                                                     fontSize: 18,
                                                     fontWeight: 700,
-                                                    color: isPositive ? '#4ade80' : '#f87171',
+                                                    color: isPositive ? '#58d9ff' : '#f87171',
                                                 }}>
                                                     {isPositive ? '+' : ''}{(tx.amount ?? 0).toLocaleString()}
                                                 </span>
@@ -2384,7 +2384,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                         background: copiedTxId === tx.id ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.04)',
                                                         border: `1px solid ${copiedTxId === tx.id ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.08)'}`,
                                                         borderRadius: 6,
-                                                        color: copiedTxId === tx.id ? '#4ade80' : 'rgba(255,255,255,0.4)',
+                                                        color: copiedTxId === tx.id ? '#58d9ff' : 'rgba(255,255,255,0.4)',
                                                         fontSize: 10,
                                                         fontWeight: 600,
                                                         cursor: 'pointer',

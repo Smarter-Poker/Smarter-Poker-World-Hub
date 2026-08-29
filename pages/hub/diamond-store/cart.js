@@ -639,7 +639,7 @@ export default function ShoppingCart() {
                         width: '100%',
                         padding: '14px 16px',
                         background: usingDiamonds
-                          ? 'linear-gradient(135deg, rgba(0, 224, 255, 0.15), rgba(138, 43, 226, 0.15))'
+                          ? 'linear-gradient(135deg, rgba(0, 224, 255, 0.15), rgba(36, 96, 126, 0.15))'
                           : 'rgba(255, 255, 255, 0.03)',
                         border: usingDiamonds
                           ? '2px solid #00E0FF'
@@ -796,7 +796,7 @@ export default function ShoppingCart() {
                     ...styles.checkoutButton,
                     background: usingDiamonds
                       ? affordable
-                        ? 'linear-gradient(135deg, #00E0FF, #8A2BE2)'
+                        ? 'linear-gradient(135deg, #00E0FF, #446F86)'
                         : 'rgba(255, 255, 255, 0.1)'
                       : 'linear-gradient(135deg, #00E0FF, #0099FF)',
                     opacity:

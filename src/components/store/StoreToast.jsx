@@ -3,7 +3,7 @@
  *  STORE TOAST — Premium notification system for Diamond Store
  *  ═══════════════════════════════════════════════════════════════════════════════
  *  Replaces all native alert() calls with animated, auto-dismiss toasts.
- *  4 types: success (green), error (red), info (cyan), warning (amber)
+ *  4 types: success (cyan), error (red), info (cyan), warning (amber)
  *
  *  Usage from anywhere:
  *    import { showStoreToast } from './StoreToast';
@@ -32,10 +32,10 @@ export function showStoreToast(type, message) {
 // ── Type styles ──
 const TOAST_STYLES = {
     success: {
-        bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95))',
-        border: 'rgba(52, 211, 153, 0.6)',
+        bg: 'linear-gradient(135deg, rgba(0, 119, 170, 0.98), rgba(2, 36, 54, 0.98))',
+        border: 'rgba(99, 231, 255, 0.72)',
         IconCol: CheckCircle,
-        glow: 'rgba(16, 185, 129, 0.4)',
+        glow: 'rgba(0, 180, 255, 0.34)',
     },
     error: {
         bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(185, 28, 28, 0.95))',

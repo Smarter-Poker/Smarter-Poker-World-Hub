@@ -76,6 +76,17 @@ const NEURAL_STEEL_MERCH = {
   },
 };
 
+// The original tabletop rows were seeded before their product photography
+// existed. A single production atlas gives each one a real, deterministic
+// physical-product bay without issuing legacy /merch/*.jpg requests.
+const LEGACY_TABLETOP_ATLAS = {
+  'card-protector-gold': '0% center',
+  'card-protector-black': '33.333% center',
+  'deck-premium': '66.667% center',
+  'chip-set-100': '100% center',
+  'chip-set-500': '100% center',
+};
+
 // These paths were seeded before their product photography was shipped. Let
 // the card render its deliberate category placeholder immediately instead of
 // issuing a guaranteed 404 and swapping to the same placeholder afterward.
@@ -96,7 +107,7 @@ const UNSHIPPED_MERCH_IMAGES = new Set([
 const CYAN = '#00D4FF';
 const TEXT = '#E4E6EB';
 const MUTED = 'rgba(255, 255, 255, 0.55)';
-const GREEN = '#00ff88';
+const GREEN = '#00d4ff';
 const RED = '#ff5f6d';
 const CARD_BG = 'rgba(255, 255, 255, 0.05)';
 const CARD_BORDER = '1px solid rgba(255, 255, 255, 0.15)';
@@ -273,6 +284,7 @@ function normalizeProduct(raw, index, source) {
     description:
       branded?.description || firstString([raw.description, raw.subtitle, raw.blurb]) || '',
     image: image && !UNSHIPPED_MERCH_IMAGES.has(image) ? image : null,
+    atlasPosition: rawId ? LEGACY_TABLETOP_ATLAS[rawId] || null : null,
     category: (
       firstString([raw.category, raw.product_type, raw.collection]) || 'merch'
     ).toLowerCase(),
@@ -461,10 +473,25 @@ function MerchProductCard({
           <img
             src={product.image}
             alt={product.name}
-            loading="lazy"
+            loading="eager"
             decoding="async"
             onError={() => setImageFailed(true)}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : product.atlasPosition ? (
+          <div
+            role="img"
+            aria-label={product.name}
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundImage:
+                "url('/images/merch/neural-steel/legacy-tabletop-atlas.webp')",
+              backgroundPosition: product.atlasPosition,
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: '400% 100%',
+              filter: 'contrast(1.04) saturate(1.04)',
+            }}
           />
         ) : (
           <Icon size={44} color="#a8b2d1" />

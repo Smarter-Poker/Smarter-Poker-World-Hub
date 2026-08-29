@@ -280,13 +280,13 @@ export default function OrderHistory() {
 
   const getStatusBadge = (status) => {
     const statusStyles = {
-      completed: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', label: 'Completed' },
+      completed: { bg: 'rgba(34, 197, 94, 0.15)', color: '#00a8e8', label: 'Completed' },
       pending: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', label: 'Pending' },
       processing: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'Processing' },
       paid: { bg: 'rgba(59, 130, 246, 0.15)', color: '#77c9ff', label: 'Paid — Review' },
       shipped: { bg: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', label: 'Shipped' },
-      delivered: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', label: 'Delivered' },
-      active: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', label: 'Active' },
+      delivered: { bg: 'rgba(34, 197, 94, 0.15)', color: '#00a8e8', label: 'Delivered' },
+      active: { bg: 'rgba(34, 197, 94, 0.15)', color: '#00a8e8', label: 'Active' },
       trialing: { bg: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', label: 'Trial' },
       past_due: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', label: 'Past Due' },
       unpaid: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Unpaid' },

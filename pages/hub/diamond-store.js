@@ -200,6 +200,29 @@ const TAB_SOCIAL_IMAGE = {
   'club-shop': '/images/store-v3/club-shop-hero.webp',
 };
 
+const LOWER_SECTION_META = {
+  vip: {
+    code: 'HIGH LIMIT ACCESS',
+    title: 'The Membership Vault',
+    description: 'Choose an access tier, review every included system, and activate with card or diamonds.',
+  },
+  merch: {
+    code: 'NEURAL STEEL COLLECTION',
+    title: 'The Equipment Gallery',
+    description: 'Made-to-order apparel and table gear presented as physical casino hardware.',
+  },
+  rewards: {
+    code: 'VERIFIED REWARD INTELLIGENCE',
+    title: 'The Trophy Vault',
+    description: 'Live earning caps, streak multipliers, standard rewards, and hidden achievements.',
+  },
+  'club-shop': {
+    code: 'CLUB EQUIPMENT BAY',
+    title: 'Outfit The Table',
+    description: 'Time banks, table skins, throwables, emotes, avatars, and club-only access.',
+  },
+};
+
 function storeStructuredData(activeTab) {
   const meta = TAB_META[activeTab] || TAB_META.diamonds;
   return {
@@ -1468,6 +1491,27 @@ export default function DiamondStorePage({ initialTab }) {
                 ...(activeTab === 'vip' ? { paddingTop: 8 } : {}),
               }}
             >
+              {LOWER_SECTION_META[activeTab] && (
+                <section
+                  className={shellStyles.sectionThreshold}
+                  data-section={activeTab}
+                  aria-labelledby={`${activeTab}-commerce-heading`}
+                >
+                  <div className={shellStyles.thresholdImage} aria-hidden="true" />
+                  <div className={shellStyles.thresholdCopy}>
+                    <span>{LOWER_SECTION_META[activeTab].code}</span>
+                    <h2 id={`${activeTab}-commerce-heading`}>
+                      {LOWER_SECTION_META[activeTab].title}
+                    </h2>
+                    <p>{LOWER_SECTION_META[activeTab].description}</p>
+                  </div>
+                  <div className={shellStyles.thresholdReadout} aria-hidden="true">
+                    <span>SECURE COMMERCE</span>
+                    <strong>LIVE</strong>
+                  </div>
+                </section>
+              )}
+
               {/* ═══════════════════════════════════════════════════════════════════ */}
               {/* VIP MEMBERSHIP TAB */}
               {/* ═══════════════════════════════════════════════════════════════════ */}
@@ -1572,7 +1616,7 @@ export default function DiamondStorePage({ initialTab }) {
                         textAlign: 'center',
                         marginTop: 10,
                         fontSize: 13,
-                        color: '#4ADE80',
+                        color: '#58d9ff',
                         fontWeight: 600,
                       }}
                     >
@@ -1985,8 +2029,8 @@ export default function DiamondStorePage({ initialTab }) {
                       background:
                         diamondMultiplier > 1.0
                           ? 'linear-gradient(135deg, rgba(245,158,11,0.18), rgba(251,191,36,0.12))'
-                          : 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))',
-                      border: `1px solid ${diamondMultiplier > 1.0 ? 'rgba(245,158,11,0.45)' : 'rgba(99,102,241,0.3)'}`,
+                          : 'linear-gradient(135deg, rgba(0,180,255,0.12), rgba(36,96,126,0.08))',
+                      border: `1px solid ${diamondMultiplier > 1.0 ? 'rgba(245,158,11,0.45)' : 'rgba(0,180,255,0.3)'}`,
                     }}
                   >
                     <div
@@ -2013,14 +2057,14 @@ export default function DiamondStorePage({ initialTab }) {
                             background:
                               diamondMultiplier > 1.0
                                 ? 'rgba(245,158,11,0.2)'
-                                : 'rgba(99,102,241,0.2)',
+                                : 'rgba(0,180,255,0.2)',
                             fontSize: 20,
                           }}
                         >
                           {diamondMultiplier > 1.0 ? (
                             <Zap size={20} color="#f59e0b" />
                           ) : (
-                            <Gem size={20} color="#818cf8" />
+                            <Gem size={20} color="#83c9e2" />
                           )}
                         </div>
                         <div>
@@ -2028,7 +2072,7 @@ export default function DiamondStorePage({ initialTab }) {
                             style={{
                               fontSize: 14,
                               fontWeight: 700,
-                              color: diamondMultiplier > 1.0 ? '#f59e0b' : '#818cf8',
+                              color: diamondMultiplier > 1.0 ? '#f59e0b' : '#83c9e2',
                             }}
                           >
                             {diamondMultiplier > 1.0
@@ -2050,8 +2094,8 @@ export default function DiamondStorePage({ initialTab }) {
                       >
                         {[
                           { label: 'Streak 3d', mult: '1.2×', color: '#60a5fa' },
-                          { label: 'Expert 7d', mult: '1.5×', color: '#34d399' },
-                          { label: 'Master 14d', mult: '1.75×', color: '#818cf8' },
+                          { label: 'Expert 7d', mult: '1.5×', color: '#00d4ff' },
+                          { label: 'Master 14d', mult: '1.75×', color: '#83c9e2' },
                           { label: 'Legend 30d', mult: '2.0×', color: '#f59e0b' },
                         ].map((tier) => (
                           <span
@@ -2149,7 +2193,7 @@ export default function DiamondStorePage({ initialTab }) {
                       </p>
 
                       <div className={shellStyles.responsiveGrid} style={styles.overviewGrid}>
-                        <div style={styles.overviewCard}>
+                        <div className={shellStyles.casinoDataCard} style={styles.overviewCard}>
                           <div style={styles.overviewIcon}>
                             <Gem size={40} color="#00D4FF" />
                           </div>
@@ -2157,7 +2201,7 @@ export default function DiamondStorePage({ initialTab }) {
                           <p style={styles.overviewCardText}>
                             Earn Diamonds Through Daily Logins, Training, Social Engagement, And
                             Referrals.
-                            <strong style={{ color: '#00ff88' }}>
+                            <strong style={{ color: '#00d4ff' }}>
                               {' '}
                               Daily Cap: {DAILY_CAP.free} {GEM} ({DAILY_CAP.vip} VIP)
                             </strong>{' '}
@@ -2167,7 +2211,7 @@ export default function DiamondStorePage({ initialTab }) {
                           </p>
                         </div>
 
-                        <div style={styles.overviewCard}>
+                        <div className={shellStyles.casinoDataCard} style={styles.overviewCard}>
                           <div style={styles.overviewIcon}>
                             <Crown size={40} color="#FFD700" />
                           </div>
@@ -2279,9 +2323,9 @@ export default function DiamondStorePage({ initialTab }) {
                           </a>
                         </div>
 
-                        <div style={styles.overviewCard}>
+                        <div className={shellStyles.casinoDataCard} style={styles.overviewCard}>
                           <div style={styles.overviewIcon}>
-                            <Gift size={40} color="#00ff88" />
+                            <Gift size={40} color="#00d4ff" />
                           </div>
                           <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                           <p style={styles.overviewCardText}>
@@ -2422,7 +2466,11 @@ export default function DiamondStorePage({ initialTab }) {
                         </h3>
                         <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                           {EASTER_EGGS.performance.map((egg) => (
-                            <div key={egg.id} style={styles.eggCard}>
+                            <div
+                              key={egg.id}
+                              className={shellStyles.casinoProductCard}
+                              style={styles.eggCard}
+                            >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
                               <h4 style={styles.eggName}>{egg.name}</h4>
                               <div
@@ -2450,7 +2498,11 @@ export default function DiamondStorePage({ initialTab }) {
                         </h3>
                         <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                           {EASTER_EGGS.timing_loyalty.map((egg) => (
-                            <div key={egg.id} style={styles.eggCard}>
+                            <div
+                              key={egg.id}
+                              className={shellStyles.casinoProductCard}
+                              style={styles.eggCard}
+                            >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
                               <h4 style={styles.eggName}>{egg.name}</h4>
                               <div
@@ -2478,7 +2530,11 @@ export default function DiamondStorePage({ initialTab }) {
                         </h3>
                         <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                           {EASTER_EGGS.strategy_mastery.map((egg) => (
-                            <div key={egg.id} style={styles.eggCard}>
+                            <div
+                              key={egg.id}
+                              className={shellStyles.casinoProductCard}
+                              style={styles.eggCard}
+                            >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
                               <h4 style={styles.eggName}>{egg.name}</h4>
                               <div
@@ -2506,7 +2562,11 @@ export default function DiamondStorePage({ initialTab }) {
                         </h3>
                         <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                           {EASTER_EGGS.social_viral.map((egg) => (
-                            <div key={egg.id} style={styles.eggCard}>
+                            <div
+                              key={egg.id}
+                              className={shellStyles.casinoProductCard}
+                              style={styles.eggCard}
+                            >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
                               <h4 style={styles.eggName}>{egg.name}</h4>
                               <div
@@ -2534,7 +2594,11 @@ export default function DiamondStorePage({ initialTab }) {
                         </h3>
                         <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                           {EASTER_EGGS.discovery.map((egg) => (
-                            <div key={egg.id} style={styles.eggCard}>
+                            <div
+                              key={egg.id}
+                              className={shellStyles.casinoProductCard}
+                              style={styles.eggCard}
+                            >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
                               <h4 style={styles.eggName}>{egg.name}</h4>
                               <div
@@ -2562,7 +2626,11 @@ export default function DiamondStorePage({ initialTab }) {
                         </h3>
                         <div className={shellStyles.responsiveGrid} style={styles.eggGrid}>
                           {EASTER_EGGS.legacy_milestones.map((egg) => (
-                            <div key={egg.id} style={styles.eggCard}>
+                            <div
+                              key={egg.id}
+                              className={shellStyles.casinoProductCard}
+                              style={styles.eggCard}
+                            >
                               <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
                               <h4 style={styles.eggName}>{egg.name}</h4>
                               <div
@@ -2601,14 +2669,14 @@ export default function DiamondStorePage({ initialTab }) {
                         top: 80,
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        background: 'linear-gradient(135deg, #00ff88, #00cc66)',
+                        background: 'linear-gradient(135deg, #00d4ff, #007fbd)',
                         color: '#000',
                         padding: '12px 28px',
                         borderRadius: 12,
                         fontWeight: 700,
                         fontSize: 15,
                         zIndex: 9999,
-                        boxShadow: '0 4px 20px rgba(0,255,136,0.4)',
+                        boxShadow: '0 4px 20px rgba(0, 212, 255,0.4)',
                         animation: 'fadeIn 0.3s ease',
                       }}
                     >
@@ -2767,7 +2835,7 @@ export default function DiamondStorePage({ initialTab }) {
                               style={{
                                 fontSize: 20,
                                 fontWeight: 700,
-                                color: '#00ff88',
+                                color: '#00d4ff',
                                 marginTop: 4,
                               }}
                             >
@@ -3209,7 +3277,7 @@ export default function DiamondStorePage({ initialTab }) {
                                         style={{
                                           height: 120,
                                           background:
-                                            'linear-gradient(135deg, rgba(0,180,255,0.08), rgba(138,43,226,0.08))',
+                                            'linear-gradient(135deg, rgba(0,180,255,0.08), rgba(36,96,126,0.08))',
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
@@ -3924,12 +3992,12 @@ export default function DiamondStorePage({ initialTab }) {
                                         fontWeight: 700,
                                         cursor: 'pointer',
                                         background: item.is_active
-                                          ? 'rgba(0,255,136,0.1)'
+                                          ? 'rgba(0, 212, 255,0.1)'
                                           : 'rgba(255,255,255,0.05)',
                                         border: item.is_active
-                                          ? '1px solid rgba(0,255,136,0.3)'
+                                          ? '1px solid rgba(0, 212, 255,0.3)'
                                           : '1px solid rgba(255,255,255,0.1)',
-                                        color: item.is_active ? '#00ff88' : 'rgba(255,255,255,0.4)',
+                                        color: item.is_active ? '#00d4ff' : 'rgba(255,255,255,0.4)',
                                       }}
                                     >
                                       {item.is_active ? (
