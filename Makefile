@@ -1,7 +1,7 @@
 # Smarter.Poker Development Makefile
 # Run 'make help' for available commands
 
-.PHONY: help dev build start test lint format clean install deploy
+.PHONY: help dev build start test lint format clean install
 
 # Colors
 GREEN := $(shell tput setaf 2)
@@ -62,13 +62,6 @@ db-reset: ## Reset database
 db-types: ## Generate TypeScript types from database
 	npx supabase gen types typescript --local > src/types/database.types.ts
 
-## Deployment
-deploy: build ## Deploy to production
-	npx vercel --prod
-
-deploy-preview: build ## Deploy preview
-	npx vercel
-
 ## Cleanup
 clean: ## Clean build artifacts
 	rm -rf .next
@@ -110,6 +103,5 @@ poker-shutdown: ## Stop development environment
 
 ## Quick commands
 q: dev ## Quick: start dev server
-p: deploy ## Quick: deploy to production
 t: test ## Quick: run tests
 l: lint ## Quick: run linter

@@ -33,6 +33,7 @@ const SKIP = new Set(['node_modules', 'dist', '.git', '.next', 'playwright-repor
                       'test-results', '_to_delete', 'coverage', '.venv', '.agent-trees',
                       'public']);
 const EXTS = /\.(sh|ya?ml|mjs|cjs|js|ts|json|command)$/;
+const SPECIAL_FILENAMES = new Set(['Makefile']);
 
 /** The sole sanctioned deploy-hook caller (see header). */
 const ALLOWED = new Set(['.github/workflows/club-arena-scheduled-deploy.yml']);
@@ -41,14 +42,36 @@ const ALLOWED = new Set(['.github/workflows/club-arena-scheduled-deploy.yml']);
    Vercel API to ask what a deployment did is how verify-deploy.js and the
    publish watchdog diagnose failures; banning reads would delete the tools
    that catch this class of problem. Match the command forms only. */
+const PROD_FLAG = /\bvercel(?:\s+(?![;&|])\S+)*\s+--prod\b/;
+const BARE_DEPLOY = /(?:^\s*|[;&|]\s*|\bnpx(?:\s+-\S+)*\s+)vercel(?:\s+(?:\.|\.\/\S+))?\s*(?:$|[;&|])/;
 const PATTERNS = [
-  [/\bvercel\s+(--prod|deploy\b)/, 'invokes `vercel --prod` / `vercel deploy`'],
-  [/\bnpx\s+vercel\s+(--prod|deploy\b)/, 'invokes `npx vercel --prod`'],
+  [PROD_FLAG, 'invokes the Vercel CLI with the production flag'],
+  [BARE_DEPLOY, 'invokes the Vercel CLI without a read-only subcommand'],
+  [/\bvercel\s+deploy\b/, 'invokes `vercel deploy`'],
   [/api\.vercel\.com\/v\d+\/deployments['"`\s]*,?\s*\{[^}]*method:\s*['"`]POST/i,
    'POSTs to the Vercel deployments API'],
   [/vercel\.com\/v\d+\/integrations\/deploy\//, 'calls a Vercel deploy hook URL'],
   [/DEPLOY_HOOK/, 'references a deploy hook secret'],
 ];
+
+// Regression examples from the 2026-08-29 dirty-feature-branch production
+// incident. The old patterns missed flags inserted between `vercel` and
+// `--prod`, so `npx -y vercel --force --prod` survived CHECK 18 for months.
+for (const command of [
+  'vercel --prod',
+  'vercel --force --prod',
+  'npx vercel --force --prod',
+  'npx -y vercel --force --prod',
+]) {
+  if (!PROD_FLAG.test(command)) {
+    throw new Error(`production-deploy guard does not recognize: ${command}`);
+  }
+}
+for (const command of ['vercel', 'npx vercel', 'npx -y vercel', 'npx vercel .']) {
+  if (!BARE_DEPLOY.test(command)) {
+    throw new Error(`bare-deploy guard does not recognize: ${command}`);
+  }
+}
 
 const findings = [];
 (function walk(dir) {
@@ -56,7 +79,7 @@ const findings = [];
     if (SKIP.has(e.name)) continue;
     const p = join(dir, e.name);
     if (e.isDirectory()) { walk(p); continue; }
-    if (!EXTS.test(e.name)) continue;
+    if (!EXTS.test(e.name) && !SPECIAL_FILENAMES.has(e.name)) continue;
     if (statSync(p).size > 512 * 1024) continue;
     const rel = relative(ROOT, p);
     if (ALLOWED.has(rel)) continue;
