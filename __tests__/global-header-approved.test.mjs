@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, sep } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,6 +28,34 @@ const pageRoute = (file) => {
     .replace(/\.(js|jsx|tsx)$/, '')
     .replace(/\/index$/, '');
   return route || '/';
+};
+
+const moduleExtensions = ['.js', '.jsx', '.ts', '.tsx'];
+const sharedHeaderRender = /<(?:UniversalHeader|CommanderLayout|CommanderPageShell|DiscoveryLayout|HubLayout)\b/;
+
+const resolveRelativeModule = (fromFile, specifier) => {
+  if (!specifier.startsWith('.')) return null;
+  const base = resolve(dirname(fromFile), specifier);
+  return [
+    base,
+    ...moduleExtensions.map((extension) => `${base}${extension}`),
+    ...moduleExtensions.map((extension) => join(base, `index${extension}`)),
+  ].find((candidate) => existsSync(candidate) && statSync(candidate).isFile()) || null;
+};
+
+const moduleOwnsHeader = (entryFile, seen = new Set()) => {
+  if (!entryFile || seen.has(entryFile)) return false;
+  seen.add(entryFile);
+  const source = readFileSync(entryFile, 'utf8');
+  if (sharedHeaderRender.test(source)) return true;
+
+  const imports = [...source.matchAll(
+    /(?:import\s+(?:[^'";]+?\s+from\s+)?|import\s*\(|require\s*\()\s*['"]([^'"]+)['"]/g
+  )];
+  return imports.some((match) => {
+    const dependency = resolveRelativeModule(entryFile, match[1]);
+    return dependency ? moduleOwnsHeader(dependency, seen) : false;
+  });
 };
 
 test('approved source and lossless desktop crop are present', () => {
@@ -75,24 +103,31 @@ test('Commander consumes the same approved row and live profile image', () => {
 
 test('all 254 Hub page modules own the shared header or inherit the app-root fallback', () => {
   const files = walk(join(root, 'pages/hub'));
-  const pageOwnsHeader = /UniversalHeader|CommanderLayout|CommanderPageShell|DiscoveryLayout|HubLayout/;
+  const filesByRoute = new Map(files.map((file) => [pageRoute(file), file]));
+  const fallbackBlock = appRoot.match(
+    /const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set\(\[([\s\S]*?)\]\);/
+  );
+  assert.ok(fallbackBlock);
   const fallbackRoutes = new Set(
-    [...appRoot.matchAll(/^  '([^']+)',$/gm)]
-      .map((match) => match[1])
-      .filter((route) => route.startsWith('/hub'))
+    [...fallbackBlock[1].matchAll(/^  '([^']+)',$/gm)].map((match) => match[1])
   );
 
   const uncovered = files
     .filter((file) => {
       const route = pageRoute(file);
-      if (pageOwnsHeader.test(readFileSync(file, 'utf8'))) return false;
+      if (moduleOwnsHeader(file)) return false;
       if (route === '/hub/training' || route.startsWith('/hub/training/')) return false;
       return !fallbackRoutes.has(route);
     })
     .map(pageRoute);
 
+  const duplicateHeaders = [...fallbackRoutes]
+    .filter((route) => moduleOwnsHeader(filesByRoute.get(route)))
+    .sort();
+
   assert.equal(files.length, 254);
   assert.deepEqual(uncovered, []);
+  assert.deepEqual(duplicateHeaders, []);
   assert.match(appRoot, /!trainingPageOwnsHeader && <UniversalHeader/);
   assert.match(appRoot, /hubPageNeedsHeader && <UniversalHeader/);
 });
