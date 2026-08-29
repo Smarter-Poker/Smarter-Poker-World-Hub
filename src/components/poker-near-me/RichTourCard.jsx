@@ -70,11 +70,13 @@ function formatDateRange(startDate, endDate) {
 function TourCardSkeleton({ venue }) {
     const code = venue.tour_code || '';
     const tourColor = TOUR_COLORS[code] || TOUR_COLORS.default;
+    const [logoFailed, setLogoFailed] = React.useState(false);
     return (
         <div className="entity-card tour-card rich-tour-card" style={{ minHeight: 120 }}>
             <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {venue.logo_url ? (
+                {venue.logo_url && !logoFailed ? (
                     <img src={venue.logo_url} alt={code}
+                        onError={() => setLogoFailed(true)}
                         style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'contain', background: 'rgba(255,255,255,0.9)', padding: 2 }} />
                 ) : (
                     <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -147,6 +149,11 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
     const tourColor = TOUR_COLORS[tourCode] || TOUR_COLORS.default;
     const tourTypeLabel = TOUR_TYPE_LABELS[displayTour.tour_type] || displayTour.tour_type || '';
     const logoUrl = displayTour.logo_url || venue.logo_url;
+    const [logoFailed, setLogoFailed] = React.useState(false);
+
+    React.useEffect(() => {
+        setLogoFailed(false);
+    }, [logoUrl]);
 
     // Buy-in range
     const buyins = displayTour.typical_buyins;
@@ -166,9 +173,11 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
         >
             {/* Fav button */}
             <button
+                type="button"
                 className={'fav-btn' + (isFavorited ? ' active' : '')}
                 onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}
-                aria-label="Favorite"
+                aria-label={isFavorited ? `Remove ${displayTour.tour_name || venue.tour_name || venue.name || 'tour'} from saved tours` : `Save ${displayTour.tour_name || venue.tour_name || venue.name || 'tour'}`}
+                aria-pressed={!!isFavorited}
             >
                 <svg width="16" height="16" viewBox="0 0 24 24"
                     fill={isFavorited ? '#ef4444' : 'none'}
@@ -180,8 +189,9 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
 
             {/* Header Row: logo + badges */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                {logoUrl ? (
+                {logoUrl && !logoFailed ? (
                     <img src={logoUrl} alt={tourCode}
+                        onError={() => setLogoFailed(true)}
                         style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'contain',
                             background: 'rgba(255,255,255,0.95)', padding: 3, border: '1px solid rgba(255,255,255,0.15)',
                             flexShrink: 0 }} />

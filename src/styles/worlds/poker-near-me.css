@@ -233,6 +233,157 @@ body.world-poker-near-me :is(.pnm-subtitle, .hg-subtitle, .ec-subtitle, .dt-head
     text-transform: uppercase;
 }
 
+/* ─── Live operations rail: provenance and freshness, not decorative stats ─── */
+body.world-poker-near-me .pnm-status-rail {
+    width: fit-content;
+    max-width: 100%;
+    margin: 20px 0 0;
+    padding: 0;
+    display: flex;
+    align-items: stretch;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border: 1px solid rgba(142, 162, 181, 0.24);
+    border-radius: 3px;
+    background: rgba(4, 8, 12, 0.82);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+
+body.world-poker-near-me .pnm-status-rail::-webkit-scrollbar { display: none; }
+
+body.world-poker-near-me .pnm-status-rail__item {
+    min-width: max-content;
+    margin: 0;
+    padding: 10px 15px 11px;
+    border-right: 1px solid rgba(142, 162, 181, 0.14);
+}
+
+body.world-poker-near-me .pnm-status-rail__item:last-child { border-right: 0; }
+
+body.world-poker-near-me .pnm-status-rail dt {
+    margin-bottom: 5px;
+    color: #637183;
+    font: 700 8px/1 var(--font-premium-body);
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-status-rail dd {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #c7d3dd;
+    font: 650 11px/1.15 var(--font-premium-body);
+    letter-spacing: 0.025em;
+}
+
+body.world-poker-near-me .pnm-status-rail__signal {
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    border-radius: 50%;
+    background: var(--pnm-success);
+    box-shadow: 0 0 8px rgba(82, 209, 139, 0.56);
+}
+
+body.world-poker-near-me .pnm-status-rail__item--modeled .pnm-status-rail__signal {
+    background: var(--pnm-gold);
+    box-shadow: 0 0 8px rgba(200, 164, 93, 0.48);
+}
+
+body.world-poker-near-me .pnm-status-rail__item--offline .pnm-status-rail__signal {
+    background: var(--pnm-danger);
+    box-shadow: 0 0 8px rgba(255, 91, 98, 0.5);
+}
+
+body.world-poker-near-me .pnm-status-rail__item--pending .pnm-status-rail__signal {
+    background: var(--pnm-steel);
+    box-shadow: none;
+}
+
+/* The shared location component keeps its legacy treatment elsewhere. Inside
+   this route family it becomes a compact physical instruction panel. */
+body.world-poker-near-me .location-enable-modal {
+    padding: 14px !important;
+    background: rgba(1, 3, 5, 0.9) !important;
+    backdrop-filter: none;
+}
+
+body.world-poker-near-me .location-enable-modal__frame {
+    width: min(440px, 96vw) !important;
+    max-height: min(760px, 90dvh) !important;
+    border: 1px solid rgba(160, 180, 198, 0.42) !important;
+    border-radius: 4px !important;
+    background: linear-gradient(150deg, rgba(14, 20, 28, 0.995), rgba(4, 8, 12, 0.995)) !important;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.72), inset 0 0 0 2px rgba(0, 0, 0, 0.66), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: none !important;
+}
+
+body.world-poker-near-me .location-enable-modal__header {
+    padding: 17px 19px !important;
+    border-bottom: 1px solid rgba(142, 162, 181, 0.2) !important;
+    background: linear-gradient(180deg, rgba(47, 168, 255, 0.075), transparent) !important;
+    box-shadow: inset 0 2px 0 rgba(190, 210, 226, 0.13);
+}
+
+body.world-poker-near-me .location-enable-modal__header > div > div:first-child {
+    border-radius: 3px !important;
+    border-color: rgba(47, 168, 255, 0.44) !important;
+    background: rgba(47, 168, 255, 0.1) !important;
+}
+
+body.world-poker-near-me .location-enable-modal__title {
+    color: var(--pnm-white) !important;
+    font-family: var(--font-premium-display) !important;
+    font-weight: 560 !important;
+    letter-spacing: 0.02em !important;
+    text-transform: uppercase;
+}
+
+body.world-poker-near-me .location-enable-modal__description { color: var(--pnm-muted) !important; }
+
+body.world-poker-near-me .location-enable-modal__close {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 !important;
+    border: 1px solid rgba(127, 145, 166, 0.24) !important;
+    border-radius: 3px !important;
+    color: #a8b6c4 !important;
+    background: rgba(4, 8, 12, 0.72) !important;
+}
+
+body.world-poker-near-me .location-enable-modal__body { padding: 18px !important; }
+
+body.world-poker-near-me :is(
+    .location-enable-modal__primary, .location-enable-modal__reload,
+    .location-enable-modal__manual, .location-enable-modal__skip
+) {
+    min-height: 46px;
+    border-radius: 3px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.055em;
+}
+
+body.world-poker-near-me .location-enable-modal__primary {
+    border-color: rgba(47, 168, 255, 0.58) !important;
+    background: linear-gradient(180deg, rgba(47, 168, 255, 0.26), rgba(47, 168, 255, 0.11)) !important;
+    box-shadow: inset 0 -2px 0 rgba(47, 168, 255, 0.5), 0 0 18px rgba(47, 168, 255, 0.1) !important;
+}
+
+body.world-poker-near-me .location-enable-modal__instructions {
+    border-color: rgba(200, 164, 93, 0.24) !important;
+    border-radius: 3px !important;
+    background: rgba(200, 164, 93, 0.035) !important;
+}
+
+body.world-poker-near-me .location-enable-modal__manual {
+    border-color: rgba(127, 145, 166, 0.28) !important;
+    background: rgba(127, 145, 166, 0.055) !important;
+    color: #b6c3ce !important;
+}
+
 /* ─── Physical chrome frames: panel → inner stroke → content ─── */
 body.world-poker-near-me :is(
     .pnm-filter-bar, .pnm-top-filters, .ec-filter-bar, .day-selector,
@@ -493,12 +644,44 @@ body.world-poker-near-me .skeleton-pulse {
         scrollbar-width: none;
     }
 
+    body.world-poker-near-me .pnm-filter-bar {
+        min-height: 86px;
+        flex: 0 0 86px;
+        overflow-y: hidden;
+    }
+
     body.world-poker-near-me :is(.pnm-filter-bar, .pnm-top-filters, .ec-filter-bar) > * {
         flex: 0 0 auto;
     }
 
     body.world-poker-near-me :is(input, select, textarea, button) {
         min-height: 44px;
+    }
+
+    body.world-poker-near-me .pnm-status-rail {
+        width: 100%;
+        margin-top: 15px;
+    }
+
+    body.world-poker-near-me .pnm-status-rail__item {
+        padding: 9px 12px 10px;
+    }
+
+    body.world-poker-near-me :is(.fav-btn, .vc3-fav, .vc3-icon-btn, .map-recenter-btn) {
+        width: 44px !important;
+        min-width: 44px !important;
+        height: 44px !important;
+        min-height: 44px !important;
+    }
+
+    body.world-poker-near-me .location-enable-modal {
+        align-items: flex-end !important;
+        padding: 8px !important;
+    }
+
+    body.world-poker-near-me .location-enable-modal__frame {
+        width: 100% !important;
+        max-height: 82dvh !important;
     }
 
     body.world-poker-near-me :is(.card-grid, .tours-grid, .hg-card-grid, .bravo-live-games-grid, .info-grid, .nearby-venues-grid, .venue-news-grid) {

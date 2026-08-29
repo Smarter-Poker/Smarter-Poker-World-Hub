@@ -5,7 +5,7 @@
  * and shows step-by-step instructions for enabling location services.
  * Includes "Enter Manually" fallback and auto-retry button.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
  * Detect device type from user agent
@@ -88,6 +88,7 @@ export default function LocationEnableModal({
   const [isPwa, setIsPwa] = useState(false);
   const [permissionState, setPermissionState] = useState('denied');
   const [retrying, setRetrying] = useState(false);
+  const closeButtonRef = useRef(null);
 
   useEffect(() => {
     setDeviceType(detectDeviceType());
@@ -109,6 +110,21 @@ export default function LocationEnableModal({
       });
     }
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const previouslyFocused = document.activeElement;
+    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose?.();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [isOpen, onClose]);
 
   const handleRetry = useCallback(() => {
     setRetrying(true);
@@ -148,14 +164,20 @@ export default function LocationEnableModal({
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
 
   return (
-    <div style={{
+    <div
+      className="location-enable-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="location-enable-title"
+      aria-describedby="location-enable-description"
+      style={{
       position: 'fixed', inset: 0, zIndex: 99998,
       background: 'rgba(3,4,8,0.88)',
       display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
       animation: 'locModalFadeIn 0.25s ease-out',
       padding: isMobile ? '16px 8px env(safe-area-inset-bottom, 8px)' : '20px',
     }}>
-      <div style={{
+      <div className="location-enable-modal__frame" style={{
         width: isMobile ? 'min(420px, 96vw)' : 'min(460px, 94vw)',
         maxHeight: isMobile ? '70vh' : '90vh',
         overflowY: 'auto',
@@ -169,7 +191,7 @@ export default function LocationEnableModal({
         WebkitBackdropFilter: 'blur(16px)',
       }}>
         {/* Header */}
-        <div style={{
+        <div className="location-enable-modal__header" style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: isMobile ? '14px 16px' : '20px 24px', borderBottom: '1px solid rgba(148,163,184,0.1)',
           background: 'linear-gradient(180deg, rgba(212,168,83,0.06), transparent)',
@@ -188,23 +210,28 @@ export default function LocationEnableModal({
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#e6edf5', letterSpacing: '-0.3px' }}>Enable Location</div>
-              <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 1 }}>Find poker rooms near you instantly</div>
+              <div id="location-enable-title" className="location-enable-modal__title" style={{ fontSize: 18, fontWeight: 800, color: '#e6edf5', letterSpacing: '-0.3px' }}>Enable Location</div>
+              <div id="location-enable-description" className="location-enable-modal__description" style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 1 }}>Find poker rooms near you instantly</div>
             </div>
           </div>
           <button
+            ref={closeButtonRef}
+            type="button"
             onClick={onClose}
+            className="location-enable-modal__close"
             style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.45)', cursor: 'pointer', fontSize: 24, padding: 4, lineHeight: 1 }}
             aria-label="Close"
           >&times;</button>
         </div>
 
         {/* Body */}
-        <div style={{ padding: isMobile ? '14px 16px' : '24px' }}>
+        <div className="location-enable-modal__body" style={{ padding: isMobile ? '14px 16px' : '24px' }}>
           {/* Primary CTA */}
           <button
+            type="button"
             onClick={handleRetry}
             disabled={retrying}
+            className="location-enable-modal__primary"
             style={{
               width: '100%', padding: '12px 0', borderRadius: 12,
               border: '1px solid rgba(34,197,94,0.45)',
@@ -227,7 +254,7 @@ export default function LocationEnableModal({
           </button>
 
           {/* Device-specific instructions — ALWAYS show (Safari doesn't support Permissions API for geolocation) */}
-          <div style={{
+          <div className="location-enable-modal__instructions" style={{
             background: 'rgba(212,168,83,0.05)',
             border: '1.5px solid rgba(148,163,184,0.12)',
             borderRadius: 12, padding: '12px 14px',
@@ -261,7 +288,9 @@ export default function LocationEnableModal({
             {/* Desktop: Reload page CTA */}
             {deviceType === 'desktop' && (
               <button
+                type="button"
                 onClick={() => window.location.reload()}
+                className="location-enable-modal__reload"
                 style={{
                   width: '100%', padding: '10px 0', borderRadius: 10, marginTop: 14,
                   border: '1.5px solid rgba(148,163,184,0.18)',
@@ -290,7 +319,9 @@ export default function LocationEnableModal({
           {/* Manual Entry CTA */}
           {onManualEntry && (
             <button
+              type="button"
               onClick={() => { onClose(); onManualEntry(); }}
+              className="location-enable-modal__manual"
               style={{
                 width: '100%', padding: '12px 0', borderRadius: 12,
                 border: '1.5px solid rgba(148,163,184,0.15)',
@@ -311,7 +342,9 @@ export default function LocationEnableModal({
 
           {/* Skip / Close */}
           <button
+            type="button"
             onClick={onClose}
+            className="location-enable-modal__skip"
             style={{
               width: '100%', padding: '10px 0', borderRadius: 10,
               border: 'none',

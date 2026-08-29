@@ -29,6 +29,7 @@ import { eventBus, busEmit, EventType } from '../../../src/engine/EventBus';
 import useTourMapStops from '../../../src/hooks/useTourMapStops';
 import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import DiscoveryStatusRail from '../../../src/components/poker-near-me/DiscoveryStatusRail';
 const GlobalSearchOverlay = dynamic(
   () => import('../../../src/components/poker-near-me/GlobalSearchOverlay'),
   { ssr: false }
@@ -1687,7 +1688,7 @@ export default function PokerNearMePage() {
 
     // Request fresh GPS — silent refresh if we already have saved GPS location
     // SKIP entirely if a saved city was restored (user chose a city, not GPS)
-    if (!hasSavedCity && typeof navigator !== 'undefined' && navigator.geolocation) {
+    if (hasSavedLocation && !hasSavedCity && typeof navigator !== 'undefined' && navigator.geolocation) {
       // LEAK FIX: this timer (up to 2s) and the geolocation callback it schedules
       // used to survive unmount — navigating away inside the window still fired
       // requestGpsLocation()/getCurrentPosition, whose success handler called
@@ -1713,11 +1714,14 @@ export default function PokerNearMePage() {
               },
               { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
             );
-          } else {
-            requestGpsLocation();
           }
+          // Privacy and UX: do not request geolocation on mount when no saved
+          // location exists. A browser denial used to open the instruction modal
+          // over every secondary/tertiary route before the user interacted with
+          // the page. First-time permission requests now happen only from an
+          // explicit location control; saved GPS users still get a silent refresh.
         },
-        hasSavedLocation ? 2000 : 600
+        2000
       );
     }
 
@@ -3880,7 +3884,11 @@ export default function PokerNearMePage() {
                     too; and when data_mode is 'none' there is nothing live to
                     report, so the figure renders as 0 rather than a stale count
                     under a "Live Tables" heading. data_age_minutes qualifies it. */}
-                {liveDataMode === 'none' ? '0' : liveTableCount.toLocaleString()}{' '}
+                {liveDataMode == null
+                  ? '—'
+                  : liveDataMode === 'none'
+                    ? '0'
+                    : liveTableCount.toLocaleString()}{' '}
                 {liveDataMode === 'estimated' || liveDataMode === 'mixed'
                   ? 'Tables (Approx.)'
                   : 'Live Tables'}
@@ -3906,6 +3914,18 @@ export default function PokerNearMePage() {
               </>
             )}
           </p>
+          <DiscoveryStatusRail
+            venueCount={dbStats.total}
+            liveTableCount={liveTableCount}
+            liveDataMode={liveDataMode}
+            liveDataAgeMinutes={liveDataAgeMinutes}
+            tournamentCount={dbStats.tournaments}
+            tournamentDay={
+              !dbStats.tournamentsDay || dbStats.tournamentsDay === getCurrentDay()
+                ? 'today'
+                : dbStats.tournamentsDay
+            }
+          />
         </div>
 
         {/* ═══ PRIMARY TAB STRIP ═══

@@ -78,17 +78,34 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
 
     // For venue-table entries, derive a short code from the name
     const shortCode = tour.tour_code || (tour.name || '').replace(/[^A-Z]/g, '').slice(0, 4) || 'TOUR';
+    const logoUrl = tour.logo_url || null;
+    const [logoFailed, setLogoFailed] = React.useState(false);
+
+    React.useEffect(() => {
+        setLogoFailed(false);
+    }, [logoUrl]);
 
     return (
         <div className="entity-card tour-card" onClick={() => onNavigate && onNavigate(detailUrl)} style={{ cursor: 'pointer' }}>
-            <button className={'fav-btn' + (isFavorited ? ' active' : '')} onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}>
+            <button
+                type="button"
+                className={'fav-btn' + (isFavorited ? ' active' : '')}
+                onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}
+                aria-label={isFavorited ? `Remove ${displayName} from saved tours` : `Save ${displayName}`}
+                aria-pressed={!!isFavorited}
+            >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
                     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                 </svg>
             </button>
             <div className="card-header">
-                {tour.logo_url ? (
-                    <img src={tour.logo_url} alt={shortCode} style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'contain', background: 'rgba(255,255,255,0.9)', padding: 2, border: '1px solid rgba(255,255,255,0.1)' }} />
+                {logoUrl && !logoFailed ? (
+                    <img
+                        src={logoUrl}
+                        alt={`${displayName} logo`}
+                        onError={() => setLogoFailed(true)}
+                        style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'contain', background: 'rgba(255,255,255,0.9)', padding: 2, border: '1px solid rgba(255,255,255,0.1)' }}
+                    />
                 ) : (
                     <TourBadge tourCode={shortCode} />
                 )}
@@ -129,7 +146,16 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
             <div className="card-footer">
                 {tour.established && <span className="established">Est. {tour.established}</span>}
                 <div className="card-actions">
-                    <span className="action-btn primary">Details</span>
+                    <button
+                        type="button"
+                        className="action-btn primary"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onNavigate?.(detailUrl);
+                        }}
+                    >
+                        Details
+                    </button>
                     {(tour.official_website || tour.website) && (() => {
                         // BUG FIX: Sanitize URL — block javascript: protocol XSS
                         const raw = tour.official_website || tour.website;

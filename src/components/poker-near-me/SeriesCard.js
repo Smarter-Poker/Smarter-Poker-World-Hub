@@ -28,7 +28,13 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
 
     return (
         <div className="entity-card series-card" onClick={() => onNavigate && onNavigate(detailUrl)} style={{ cursor: 'pointer' }}>
-            <button className={'fav-btn' + (isFavorited ? ' active' : '')} onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}>
+            <button
+                type="button"
+                className={'fav-btn' + (isFavorited ? ' active' : '')}
+                onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}
+                aria-label={isFavorited ? `Remove ${s.name || 'series'} from saved series` : `Save ${s.name || 'series'}`}
+                aria-pressed={!!isFavorited}
+            >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
                     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                 </svg>
@@ -63,7 +69,16 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
             )}
             <div className="card-footer">
                 <div className="card-actions">
-                    <span className="action-btn primary">Details</span>
+                    <button
+                        type="button"
+                        className="action-btn primary"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onNavigate?.(detailUrl);
+                        }}
+                    >
+                        Details
+                    </button>
                     {(() => {
                         const href = safeHref(s.source_url || s.website);
                         if (!href) return null;
