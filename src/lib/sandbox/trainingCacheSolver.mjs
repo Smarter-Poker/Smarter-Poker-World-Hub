@@ -166,7 +166,14 @@ export function mapTrainingQuestionToAnalysis(question, { facingBet = false } = 
   const priced = actions.map(action => action.ev).filter(value => typeof value === 'number');
   const heroEV = finite(question.evData?.heroHandEV ?? question.evData?.heroEV);
   const displayEV = heroEV === null ? 0 : heroEV;
-  const maxEV = finite(question.evData?.optimalEV) ?? (priced.length ? Math.max(...priced) : displayEV);
+  // Canonical cache generations do not all use the same unit for `optimalEV`:
+  // older rows may store a normalized 0..1 quality score there while the
+  // per-action values are measured in BB. Never compare those unlike units.
+  // When action EVs exist they are the internally consistent pricing source;
+  // `optimalEV` is only a fallback for rows without per-action pricing.
+  const maxEV = priced.length
+    ? Math.max(...priced)
+    : finite(question.evData?.optimalEV) ?? displayEV;
   const minEV = priced.length ? Math.min(...priced) : displayEV;
   const avgEV = priced.length ? priced.reduce((sum, value) => sum + value, 0) / priced.length : displayEV;
 
