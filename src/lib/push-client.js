@@ -46,7 +46,19 @@ const T = {
     permission: 90_000, // a human needs time to read the OS dialog
     vapid: 10_000,
     register: 10_000,
-    ready: 30_000,   // cold PWA launch on a weak connection; see getRegistration
+    // Raised from 30s on 2026-08-29, measured. `install` on this worker
+    // precaches the whole manifest atomically before it can activate, and a
+    // first-ever registration on production took about 55 SECONDS on a fast
+    // desktop connection. Under 30s the wait expired while the worker was
+    // still legitimately installing, `reg.active` was still null, and the user
+    // was told the worker "did not start" — for a worker that was starting
+    // fine. The precache is much lighter now (see workboxOptions in
+    // next.config.js) but a cold phone on cellular is not, and the cost of
+    // being wrong in this direction is a false error on somebody who is in the
+    // middle of saying yes. Club Arena's copy of this client carries the same
+    // 90s for the same reason; the two share one subscription and must not
+    // disagree about when to give up.
+    ready: 90_000,
     getSubscription: 8_000,
     subscribe: 20_000,
     save: 10_000,

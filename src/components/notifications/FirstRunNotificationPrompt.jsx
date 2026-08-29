@@ -48,7 +48,34 @@ import {
 } from '../../lib/push-client';
 import InstallAppSheet from '../pwa/InstallAppSheet';
 
-const KEY_PREFIX = 'sp_firstrun_notif_';
+/**
+ * ONE re-offer, on purpose. Read this before changing the suffix again.
+ *
+ * This prompt asks once per account per browser and then closes that door for
+ * good. Between 2026-08-19 and 2026-08-29 the door was being closed against a
+ * question nobody could answer yes to: /sw.js — the only worker on this origin
+ * with a `push` handler — could not install at all, because one entry in its
+ * precache manifest 404'd (PR #929). Everyone who saw this sheet in that window
+ * and said Not Now, or tapped Enable and hit the error, had
+ * `sp_firstrun_notif_<uid>` written anyway, permanently.
+ *
+ * Measured the day the worker was fixed: 1 subscribed user out of 1,023
+ * profiles, against 2,437 pushes in seven days skipped for `no_subscription`.
+ * Shipping the fix without this line would have fixed push for an audience that
+ * could never be asked again.
+ *
+ * `_v2` gives everybody exactly one more ask. It is NOT a re-prompt lever to
+ * reach for whenever enrolment looks low — bumping it again re-asks a thousand
+ * people who already said no, and the honest reading of a second no is that
+ * they meant the first one. Bump it only if the enrolment path is broken again
+ * in a way that made their answer meaningless, and say here what broke.
+ *
+ * MUST stay in step with Club Arena's copy of this key
+ * (club-arena src/components/notifications/FirstRunPushPrompt.tsx). Same
+ * origin, same device, one subscription behind both apps: if one app re-offers
+ * and the other does not, a player gets asked twice about the same thing.
+ */
+const KEY_PREFIX = 'sp_firstrun_notif_v2_';
 const SHOW_DELAY_MS = 20_000; // let the user land before asking for anything
 
 // The install nudge uses its OWN key with a cooldown rather than the permanent
@@ -135,7 +162,21 @@ export default function FirstRunNotificationPrompt({ userId }) {
         const result = await enablePush();
         if (!mounted.current) return;
         setBusy(false);
-        markDone();
+
+        // ONLY AN ANSWER SPENDS THE ASK.
+        //
+        // markDone() used to run here unconditionally, so a user who tapped
+        // Enable and hit a TECHNICAL failure -- worker still installing, a
+        // dropped VAPID fetch, a flaky minute of signal -- had their one and
+        // only prompt recorded as spent. They wanted notifications. They said
+        // so. The platform wrote down "asked, done" and never offered again.
+        //
+        // That is how the 2026-08-19..29 outage turned a fixable bug into a
+        // permanent loss of audience. The outage is over; the mechanism is not.
+        //
+        // Success and a DENIED permission are both real answers and are
+        // recorded. Anything else leaves the door open for the next session.
+        if (result.ok || notificationPermission() === 'denied') markDone();
         if (result.ok) {
             setState('success');
             setTimeout(() => { if (mounted.current) setState(null); }, 2600);
