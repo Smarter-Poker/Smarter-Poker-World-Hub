@@ -127,8 +127,94 @@ function normalizeRadiusMiles(value) {
 
 // Tab order for swipe navigation
 const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
+const PRIMARY_TABS = [
+  { id: 'venues', label: 'Venues' },
+  { id: 'events', label: 'Events' },
+  { id: 'live', label: 'Live' },
+  { id: 'map', label: 'Map' },
+  { id: 'saved', label: 'Saved' },
+  { id: 'more', label: 'More' },
+];
 const EVENTS_SUB_TABS = ['tours', 'series', 'daily', 'calendar'];
 const MORE_SUB_TABS = ['overview', 'roadtrip', 'social', 'alerts', 'nearmenow', 'tripcost'];
+
+const ROUTE_META = {
+  venues: {
+    heading: 'POKER NEAR ME',
+    breadcrumb: 'Venues',
+    title: 'Poker Near Me — Find Live Poker Rooms & Casinos',
+    description: 'Discover live poker rooms, casinos, and card rooms near you with current schedules, map discovery, and venue details across the United States.',
+  },
+  map: {
+    heading: 'POKER ROOM MAP',
+    breadcrumb: 'Map',
+    title: 'Poker Room Map — Casinos & Card Rooms Near You',
+    description: 'Explore poker rooms, casinos, card rooms, and live-game locations on an interactive map with location-aware discovery.',
+  },
+  saved: {
+    heading: 'SAVED POKER PLACES',
+    breadcrumb: 'Saved',
+    title: 'Saved Poker Rooms, Casinos & Card Rooms',
+    description: 'Return to your saved poker rooms, casinos, card rooms, tours, and series in one private discovery workspace.',
+  },
+  'live-games': {
+    heading: 'CASH GAMES NEAR ME',
+    breadcrumb: 'Live Games',
+    title: 'Live Cash Games — Find Poker Rooms & Casinos Near You',
+    description: 'Discover live cash games, poker rooms, casinos, and card rooms near you with observed and modeled table availability clearly identified.',
+  },
+  tours: {
+    heading: 'POKER TOURS',
+    breadcrumb: 'Tours',
+    title: 'Poker Tours — Circuits & Tour Stops Near You',
+    description: 'Explore poker tours, traveling circuits, upcoming stops, schedules, and host venues across the live poker network.',
+  },
+  series: {
+    heading: 'POKER SERIES',
+    breadcrumb: 'Series',
+    title: 'Poker Series — Tournament Series Near You',
+    description: 'Find current and upcoming poker series, festival schedules, host venues, buy-ins, and guarantees.',
+  },
+  'daily-tournaments': {
+    heading: 'DAILY TOURNAMENTS',
+    breadcrumb: 'Daily Tournaments',
+    title: 'Daily Poker Tournaments Near You',
+    description: 'Find daily poker tournaments by day, game, buy-in, guarantee, distance, and venue.',
+  },
+  'events-calendar': {
+    heading: 'EVENTS CALENDAR',
+    breadcrumb: 'Events Calendar',
+    title: 'Poker Events Calendar — Tournaments Near You',
+    description: 'Browse poker tournaments and live events in a location-aware calendar with clear schedules and venue details.',
+  },
+  more: {
+    heading: 'DISCOVERY TOOLS',
+    breadcrumb: 'Tools',
+    title: 'Poker Discovery Tools — Trends, Alerts & Trip Planning',
+    description: 'Plan poker trips, compare venues, review game trends, configure alerts, and use community discovery tools.',
+  },
+  roadtrip: {
+    heading: 'POKER ROAD TRIP',
+    breadcrumb: 'Road Trip Planner',
+    title: 'Poker Road Trip Planner — Rooms Along Your Route',
+    description: 'Plan a poker road trip and find casinos, card rooms, tournaments, and poker stops along your route.',
+  },
+  alerts: {
+    heading: 'TOURNAMENT ALERTS',
+    breadcrumb: 'Alerts',
+    title: 'Poker Tournament Alerts — Games Near You',
+    description: 'Configure location-aware poker tournament and live-game alerts by distance, schedule, and game type.',
+  },
+};
+
+function normalizeRouteSlug(value) {
+  const slug = Array.isArray(value) ? value[0] : value;
+  if (slug === 'live') return 'live-games';
+  if (slug === 'daily') return 'daily-tournaments';
+  if (slug === 'calendar') return 'events-calendar';
+  if (slug === 'events') return 'series';
+  return ROUTE_META[slug] ? slug : null;
+}
 
 // Venue types this page is willing to accept from localStorage, deep links and
 // voice input. NOTE: 'poker_tour' is deliberately absent — VoiceSearch emits it
@@ -565,6 +651,19 @@ export default function PokerNearMePage() {
       setShowLiveTab(false);
       setActiveTab(val);
     }
+  };
+  const activePrimaryTab = showLiveTab ? 'live' : activeTab;
+  const handlePrimaryTabKeyDown = (event, index) => {
+    let nextIndex = null;
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % PRIMARY_TABS.length;
+    if (event.key === 'ArrowLeft') nextIndex = (index - 1 + PRIMARY_TABS.length) % PRIMARY_TABS.length;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = PRIMARY_TABS.length - 1;
+    if (nextIndex == null) return;
+    event.preventDefault();
+    const nextTab = PRIMARY_TABS[nextIndex];
+    activateTab(nextTab.id);
+    requestAnimationFrame(() => document.getElementById(`pnm-tab-${nextTab.id}`)?.focus());
   };
   const setActiveEventTab = (val) => setUiFilter('activeEventTab', val);
   const setActiveMoreTab = (val) => setUiFilter('activeMoreTab', val);
@@ -3659,7 +3758,16 @@ export default function PokerNearMePage() {
 
   // ═══ SEO: canonical slug + structured data ═══
   // Both the canonical tag and the deep-link writer read the same slug table.
-  const canonicalSlug = getTabSlug({ showLiveTab, activeTab, activeEventTab, activeMoreTab });
+  const stateCanonicalSlug = getTabSlug({ showLiveTab, activeTab, activeEventTab, activeMoreTab });
+  // The server render cannot read local persisted tab state. Use the requested
+  // dynamic route until the mount parser has absorbed it, then let UI state own
+  // the canonical URL. This prevents /venues, /series, etc. from initially
+  // publishing the persisted/default /map identity to crawlers.
+  const requestedCanonicalSlug = normalizeRouteSlug(router.query.pnmTab);
+  const canonicalSlug = !paramsAbsorbed.current && requestedCanonicalSlug
+    ? requestedCanonicalSlug
+    : stateCanonicalSlug;
+  const routeMeta = ROUTE_META[canonicalSlug] || ROUTE_META.venues;
 
   // SEO FIX: the highest-intent commercial query on the platform shipped a title,
   // a meta description, an H1 and an empty shell — every content panel is
@@ -3724,6 +3832,14 @@ export default function PokerNearMePage() {
             name: 'Poker Near Me',
             item: 'https://smarter.poker/hub/poker-near-me/venues',
           },
+          ...(canonicalSlug !== 'venues'
+            ? [{
+                '@type': 'ListItem',
+                position: 3,
+                name: routeMeta.breadcrumb,
+                item: `https://smarter.poker/hub/poker-near-me/${canonicalSlug}`,
+              }]
+            : []),
         ],
       },
       {
@@ -3780,16 +3896,8 @@ export default function PokerNearMePage() {
           same getTabSlug table, so the crawled URL is the canonical URL. The page
           also shipped no structured data at all — see pageJsonLd above. */}
       <SEOHead
-        title={
-          showLiveTab
-            ? 'Live Cash Games — Find Live Poker Rooms & Casinos Near You'
-            : 'Poker Near Me — Find Live Poker Rooms & Casinos'
-        }
-        description={
-          showLiveTab
-            ? 'Discover Live Cash Games, Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps Across The United States.'
-            : 'Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps Across The United States.'
-        }
+        title={routeMeta.title}
+        description={routeMeta.description}
         canonical={`/hub/poker-near-me/${canonicalSlug}`}
         jsonLd={pageJsonLd}
       />
@@ -3872,7 +3980,7 @@ export default function PokerNearMePage() {
 
         {/* ═══ PAGE TITLE ═══ */}
         <div className="pnm-title-bar">
-          <h1 className="pnm-title">{showLiveTab ? 'CASH GAMES NEAR ME' : 'POKER NEAR ME'}</h1>
+          <h1 className="pnm-title">{routeMeta.heading}</h1>
           <p className="pnm-subtitle">
             {dbStats.total === 0 && liveTableCount === 0 ? (
               'Loading Live Data...'
@@ -3939,29 +4047,26 @@ export default function PokerNearMePage() {
           aria-label="Poker Near Me sections"
           style={{ flexWrap: 'wrap', justifyContent: 'center', gap: 6, padding: '0 12px 10px' }}
         >
-          {[
-            { id: 'venues', label: 'Venues' },
-            { id: 'events', label: 'Events' },
-            { id: 'live', label: 'Live' },
-            { id: 'map', label: 'Map' },
-            { id: 'saved', label: 'Saved' },
-            { id: 'more', label: 'More' },
-          ].map((tab) => {
-            const selected = showLiveTab ? tab.id === 'live' : tab.id === activeTab;
+          {PRIMARY_TABS.map((tab, index) => {
+            const selected = tab.id === activePrimaryTab;
             return (
               <button
                 key={tab.id}
+                id={`pnm-tab-${tab.id}`}
                 type="button"
                 role="tab"
                 aria-selected={selected}
+                aria-controls="pnm-primary-panel"
+                tabIndex={selected ? 0 : -1}
                 className={
                   'pnm-top-tab' +
                   (tab.id === 'live' ? ' live' : '') +
                   (selected ? ' active' : '')
                 }
                 onClick={() => activateTab(tab.id)}
+                onKeyDown={(event) => handlePrimaryTabKeyDown(event, index)}
               >
-                {tab.id === 'live' && <span className="pnm-live-dot" />}
+                {tab.id === 'live' && <span className="pnm-live-dot" aria-hidden="true" />}
                 {tab.label}
               </button>
             );
@@ -4228,7 +4333,14 @@ export default function PokerNearMePage() {
 
               {/* Push notification setup moved to the 'more' settings tab */}
 
-              <TabErrorBoundary>{renderContent()}</TabErrorBoundary>
+              <div
+                id="pnm-primary-panel"
+                role="tabpanel"
+                aria-labelledby={`pnm-tab-${activePrimaryTab}`}
+                tabIndex={0}
+              >
+                <TabErrorBoundary>{renderContent()}</TabErrorBoundary>
+              </div>
 
               {/* Venues button — below the map */}
               {activeTab === 'map' && (

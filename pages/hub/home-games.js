@@ -833,7 +833,7 @@ export default function HomeGamesPage() {
     return (
         <>
             <SEOHead
-                title="Home Games — Find Poker Home Games Near You | Smarter.Poker"
+                title="Home Games — Find Poker Home Games Near You"
                 description="Discover poker home games near you. Find local private games, join the community, and host your own."
                 canonical="/hub/home-games"
             />
