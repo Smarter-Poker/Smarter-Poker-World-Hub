@@ -59,8 +59,15 @@ const CONCURRENCY = 12;
  * is, the more likely a phone on cellular gives up part-way, and the more URLs
  * there are to 404 and take web push down origin-wide the way one did that
  * morning. Raise this only with a reason written next to it.
+ *
+ * Set to 15 against a MEASURED 11.0 MB on production the day the trim shipped
+ * (339 entries, first-ever install 19.9s). The first draft said 12, which is
+ * 9% headroom — one ordinary chunk away from a red build for no reason, and a
+ * guard that cries wolf gets raised reflexively until it means nothing. 15
+ * still fails loudly on the shape of regression this exists for: somebody
+ * dropping a folder of media into public/, which was 34.7 MB when it happened.
  */
-const PRECACHE_BUDGET_MB = 12;
+const PRECACHE_BUDGET_MB = 15;
 
 function fail(message) {
   console.error(`FAIL: ${message}`);
