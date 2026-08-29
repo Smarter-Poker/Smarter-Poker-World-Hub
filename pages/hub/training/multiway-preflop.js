@@ -30,7 +30,7 @@ const MULTIWAY_SCENARIOS = {
   btn_open_sb_3bet_bb_cold: {
     name: 'BTN Open → SB 3-Bet → BB Cold-Call',
     positions: ['BTN', 'SB', 'BB'],
-    desc: 'Common 3-way pot scenario. BTN opens, SB 3-bets, BB decides to cold-call or fold.',
+    desc: 'Action Folds To The Button, Who Raises. The Small Blind 3-Bets, Then The Big Blind Decides Whether To Cold-Call, Raise, Or Fold.',
     tip: 'BB should cold-call with pocket pairs and suited broadway that play well multiway.',
     ranges: {
       BTN: {
@@ -43,7 +43,7 @@ const MULTIWAY_SCENARIOS = {
   utg_open_mp_3bet_co_cold: {
     name: 'UTG Open → MP 3-Bet → CO Decision',
     positions: ['UTG', 'MP', 'CO'],
-    desc: 'Tight 3-way spot. UTG opens from early position, MP 3-bets, CO must decide with a tight range.',
+    desc: 'Action Folds To Under The Gun, Who Raises. Middle Position 3-Bets, Then The Cutoff Must Respond With A Tight Continuing Range.',
     tip: 'CO should mostly fold here — only continue with hands that dominate MP\u2019s 3-bet range.',
     ranges: {
       UTG: { open: 'AA-66, AKs-ATs, KQs-KJs, QJs, JTs, AKo-AJo, KQo' },
@@ -118,7 +118,7 @@ const MULTIWAY_SCENARIOS = {
   sb_open_bb_3bet_btn_overcall: {
     name: 'SB Open → BB 3-Bet → BTN Over-Call',
     positions: ['SB', 'BB', 'BTN'],
-    desc: 'SB opens, BB 3-bets, BTN makes an unusual over-call creating a 3-way pot.',
+    desc: 'Action Folds To The Small Blind, Who Raises. The Big Blind 3-Bets, Then The Button Makes An Unusual Cold-Call To Create A Three-Way Pot.',
     tip: 'BTN over-call range should be hands that play well multiway — suited broadways and pairs.',
     ranges: {
       SB: {

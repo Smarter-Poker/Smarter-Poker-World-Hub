@@ -40,7 +40,7 @@ const SQUEEZE_SPOTS = [
     flatRange: '99-22, AJs-ATs, KQs-KTs, QJs-QTs, JTs, T9s, 98s, AQo-ATo, KQo',
     foldRange: 'Worst offsuit hands, disconnected',
     evGain: '+4.1 bb/100',
-    reasoning: 'BTN opens very wide (42%). SB cold-call is capped. BB can squeeze wide and profitably — both opponents fold frequently.',
+    reasoning: 'Action Folds To The Button, Who Raises A Wide First-In Range. The Small Blind\'s Call Is Capped, So The Big Blind Can Profitably Squeeze More Hands When Both Opponents Over-Fold.',
     tips: ['Widest squeeze spot in poker', 'Both opponents have capped ranges', 'Size to ~5x, larger if SB is sticky'],
   },
   {

@@ -137,15 +137,10 @@ function authoredQuestionViolations() {
       const answerKey = ['options', 'answers', 'choices'].find((key) => fields[key]?.type === 'ArrayExpression');
       if (answerKey) {
         const answers = fields[answerKey].elements.filter(Boolean);
-        const prompt = literalValue(fields.question)
-          || literalValue(fields.q)
-          || literalValue(fields.prompt)
-          || literalValue(fields.situation)
-          || literalValue(fields.scenario)
-          || literalValue(fields.title)
-          || literalValue(fields.description)
-          || literalValue(fields.action)
-          || '';
+        const authoredText = ['question', 'q', 'prompt', 'situation', 'scenario', 'title', 'description', 'action']
+          .map((key) => literalValue(fields[key]))
+          .filter(Boolean);
+        const prompt = authoredText[0] || '';
         const hasGrading = fields.correct || fields.correctAnswer || fields.explanation
           || answers.some((answer) => answer.type === 'ObjectExpression'
             && answer.properties.some((property) => ['correct', 'isCorrect'].includes(propertyName(property))));
@@ -171,7 +166,7 @@ function authoredQuestionViolations() {
           if (answers.length !== 4 && !yesNo && !pushFold && !transitionOnly) {
             violations.push(`${path.relative(repoRoot, file)}:${node.loc?.start.line} has ${answers.length} choices`);
           }
-          if (/\b(?:Button|BTN|Small Blind|SB|Big Blind|BB|Cutoff|CO|Hijack|HJ|Under The Gun|UTG|Middle Position|MP)\s+opens\b/i.test(prompt)) {
+          if (authoredText.some((text) => /\b(?:Button|BTN|Small Blind|SB|Big Blind|BB|Cutoff|CO|Hijack|HJ|Under The Gun|UTG|Middle Position|MP)\s+opens\b/i.test(text))) {
             violations.push(`${path.relative(repoRoot, file)}:${node.loc?.start.line} uses ambiguous “position opens” wording`);
           }
         }
@@ -233,6 +228,14 @@ test('feedback remains until an explicit Next click', () => {
   assert.match(read('src/games/SpeedDrillGame.js'), /action: 'allin'/);
   assert.match(read('pages/hub/training/blind-defense.js'), /label="3-Bet All-In"/);
   assert.match(read('pages/hub/training/quiz-gauntlet.js'), /q\.options\.map/);
+
+  const positionQuiz = read('src/components/training/PositionAwarenessQuiz.jsx');
+  assert.match(positionQuiz, /sp-command-verdict/);
+  assert.match(positionQuiz, /Your Answer/);
+  assert.match(positionQuiz, /Correct Answer/);
+  assert.match(positionQuiz, /This Result Will Stay Open Until You Click Next/);
+  assert.match(positionQuiz, /Next Question →/);
+  assert.doesNotMatch(positionQuiz, /setTimeout/);
 
   const demo = read('pages/training-table-demo.js');
   const clubTable = read('src/components/poker/TrainingGameTable.jsx');

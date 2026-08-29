@@ -342,6 +342,7 @@ export default function DailyChallengePage() {
       </Head>
 
       <div
+        className="sp-training-command sp-training-command--daily"
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
@@ -351,6 +352,7 @@ export default function DailyChallengePage() {
       >
         {/* Header */}
         <div
+          className="sp-command-header"
           style={{
             padding: '20px 24px 12px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -403,7 +405,7 @@ export default function DailyChallengePage() {
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
-              PHASE 24
+              Daily Solver Spot
             </span>
           </div>
           {expiresAt && (
@@ -413,9 +415,10 @@ export default function DailyChallengePage() {
           )}
         </div>
 
-        <div style={{ padding: '16px 24px', maxWidth: 600, margin: '0 auto' }}>
+        <div className="sp-command-main" style={{ padding: '16px 24px', maxWidth: 600, margin: '0 auto' }}>
           {/* Streak + Stats Bar */}
           <div
+            className="sp-command-metric-grid"
             style={{
               display: 'flex',
               gap: 8,
@@ -575,7 +578,7 @@ export default function DailyChallengePage() {
 
           {/* Challenge Display */}
           {!loading && challenge && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <motion.div className="sp-command-card-stage" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               {/* Already completed banner */}
               {alreadyCompleted && (
                 <div

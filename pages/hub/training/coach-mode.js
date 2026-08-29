@@ -74,32 +74,32 @@ const LESSONS = [
     color: 'var(--sp-accent-blue)',
     desc: 'Open ranges, positions, and sizing fundamentals',
     concepts: [
-      'In 6-max poker, there are 6 positions: UTG, HJ, CO, BTN, SB, BB. Each has a different opening range — tighter from early position, wider from late.',
-      'The standard open raise is 2.5x the Big-Blind from any position. Do NOT vary your sizing based on hand strength — this gives away information.',
-      'Your BTN opening range should be ~45% of hands. Your UTG range should be ~15%. This asymmetry exists because of positional advantage.',
+      'In a 100 BB, 6-max cash game without antes, each position uses a different first-in range. Under The Gun enters tighter because five players remain; the Button can enter wider because only the blinds remain.',
+      'This lesson uses 2.5 BB as a simple first-in baseline. Real strategy can vary by format and stack depth, but your sizing should not reveal whether your hand is strong or weak.',
+      'For this lesson, use approximately 15% first-in from Under The Gun and 45% from the Button. The contrast teaches how fewer players behind and postflop position increase profitable entries.',
     ],
     quiz: [
-      { q: 'What is the standard open raise size?', opts: ['2x', '2.5x', '3x', '4x'], answer: 1 },
-      { q: 'Which position opens the widest range?', opts: ['UTG', 'HJ', 'CO', 'BTN'], answer: 3 },
+      { q: 'In A 100 BB, 6-Max Cash Game Without Antes, What First-In Raise Size Does This Lesson Use As Its Baseline?', opts: ['2 BB', '2.5 BB', '3 BB', '4 BB'], answer: 1 },
+      { q: 'In A 100 BB, 6-Max Cash Game Without Antes, Action Folds To You. From Which Position Can You Usually Enter With The Widest First-In Range?', opts: ['Under The Gun', 'Hijack', 'Cutoff', 'Button'], answer: 3 },
       {
-        q: 'Approximately what % of hands should UTG open?',
+        q: 'In This Lesson\'s 100 BB, 6-Max Baseline, Approximately What Percentage Of Hands Enter First-In From Under The Gun?',
         opts: ['5%', '15%', '30%', '45%'],
         answer: 1,
       },
       {
-        q: 'Should you vary open raise size by hand strength?',
+        q: 'In A 100 BB Cash Game, Action Folds To You And You Decide To Raise. Which Sizing Plan Avoids Revealing Your Hand Strength?',
         opts: [
-          'Yes, raise bigger with AA',
-          'No, use consistent sizing',
-          'Only with premium hands',
-          'Depends on opponent',
+          'Use 2.5 BB With The Entire First-In Range',
+          'Use 5 BB With Premium Pairs And 2 BB With Bluffs',
+          'Use 4 BB With Suited Hands And 2 BB With Offsuit Hands',
+          'Change The Size According To The Exact Two Cards',
         ],
-        answer: 1,
+        answer: 0,
       },
       {
-        q: 'What advantage does BTN have?',
-        opts: ['Bigger stack', 'Position (acts last postflop)', 'Better cards', 'More time'],
-        answer: 1,
+        q: 'In A Heads-Up Pot After The Flop, What Is The Button\'s Main Positional Advantage?',
+        opts: ['It Acts Last On Every Postflop Street', 'It Receives Better Starting Cards', 'It Posts A Smaller Mandatory Blind', 'It Automatically Wins Tied Hands'],
+        answer: 0,
       },
     ],
   },
@@ -111,41 +111,41 @@ const LESSONS = [
     color: 'var(--sp-accent-purple)',
     desc: 'When and how to re-raise preflop',
     concepts: [
-      "A 3-bet is a re-raise over an initial open raise. It's the most powerful preflop weapon for building pots with strong hands and isolating players.",
-      'Your 3-bet range should be polarized: premium value hands (AA, KK, QQ, AK) and bluffs (suited aces like A5s, A4s). Avoid 3-betting medium hands.',
-      'Standard 3-bet sizing: 3x the open in position, 3.5-4x out of position. The extra OOP sizing compensates for positional disadvantage.',
+      'A 3-bet is the first re-raise before the flop. It builds a larger pot with strong hands and can deny equity to the original raiser\'s weakest hands.',
+      'This lesson studies a selective polarized 3-bet structure: premium value hands plus suited blocker bluffs such as A5s. Some positions and matchups instead use linear or mixed ranges, so always read the stated configuration.',
+      'At 100 BB, this lesson uses roughly three times the raise in position and four times the raise out of position. The larger out-of-position size charges the caller for realizing equity with position.',
     ],
     quiz: [
       {
-        q: 'What type of range should your 3-bet be?',
-        opts: ['Linear', 'Polarized', 'Merged', 'Random'],
+        q: 'At 100 BB, The Cutoff Raises To 2.5 BB And You Are On The Button. Which Structure Matches This Lesson\'s Selective 3-Bet Strategy?',
+        opts: ['Premium Value Hands Plus Selected Suited Blocker Bluffs', 'Broadway Hands And Medium Pairs Only', 'Suited Connectors And Small Pairs Only', 'Every Hand That Would Otherwise Call'],
+        answer: 0,
+      },
+      { q: 'At 100 BB, The Button Raises To 2.5 BB And You Are In The Small Blind. Which Hand Best Fits The Suited-Blocker Bluff Category In This Lesson?', opts: ['KJo', 'A5s', 'QTo', '87o'], answer: 1 },
+      {
+        q: 'At 100 BB, The Cutoff Raises To 2.5 BB And You Are On The Button. Which In-Position 3-Bet Size Matches This Lesson\'s Baseline?',
+        opts: ['5 BB', '7.5 BB', '10 BB', '25 BB'],
         answer: 1,
       },
-      { q: 'Which hand is a good 3-bet bluff?', opts: ['KJo', 'A5s', 'QTo', '87o'], answer: 1 },
       {
-        q: 'What is the standard IP 3-bet size?',
-        opts: ['2x the open', '3x the open', '4x the open', 'Pot-sized'],
-        answer: 1,
-      },
-      {
-        q: 'Why 3-bet larger OOP?',
+        q: 'At 100 BB, The Button Raises To 2.5 BB And You 3-Bet From The Big Blind. Why Does This Lesson Use A Larger Size Than It Uses In Position?',
         opts: [
-          'To scare opponents',
-          'Compensate for positional disadvantage',
-          'Bigger pot = more money',
-          'It is a bluff',
+          'To Charge The Caller For Realizing Equity With Position',
+          'To Keep The Postflop Stack-To-Pot Ratio Higher',
+          'To Preserve More Chips For Later Streets',
+          'To Transfer Postflop Position To The Big Blind',
         ],
-        answer: 1,
+        answer: 0,
       },
       {
-        q: 'Should you 3-bet KJo for value?',
+        q: 'At 100 BB, The Button Raises To 2.5 BB And You Are In The Small Blind. Which Hand Most Clearly Belongs In The Value Portion Of A Selective 3-Bet Range?',
         opts: [
-          'Yes, always',
-          'Only vs loose openers',
-          'No, it plays better as a call',
-          'Only from SB',
+          'A♠A♥',
+          'K♣J♦',
+          '8♠7♠',
+          '5♣4♦',
         ],
-        answer: 2,
+        answer: 0,
       },
     ],
   },
@@ -157,43 +157,43 @@ const LESSONS = [
     color: 'var(--sp-accent-green)',
     desc: 'When to continuation bet and sizing selection',
     concepts: [
-      "A continuation bet (c-bet) is a bet by the preflop raiser on the flop. It's profitable because you have range advantage on most boards as the preflop aggressor.",
-      'C-bet at high frequency on dry boards (K-7-2 rainbow). C-bet less on wet boards (J-T-9 two-tone) where defender has many strong hands.',
-      'Two main c-bet sizes: small (33% pot) for high frequency on dry boards, large (66-75%) for selective betting on wet boards with strong hands.',
+      'A continuation bet is a flop bet by the last preflop aggressor. Its profitability depends on the two ranges, the board, position, sizing, and stack depth—not merely on having raised before the flop.',
+      'In a heads-up, single-raised pot, the raiser can often bet frequently on dry high-card boards such as K-7-2 rainbow. Connected boards such as J-T-9 two-tone usually require more checking because the caller has more strong made hands and draws.',
+      'This lesson compares a small 33% pot range bet on favorable dry boards with selective 66–75% pot betting on connected boards. Large bets should be supported by strong value and suitable bluffs.',
     ],
     quiz: [
       {
-        q: 'On which board should you c-bet most often?',
+        q: 'You Raise Under The Gun, The Big Blind Calls, And Checks The Flop. On Which Board Does This Lesson Support The Highest Continuation-Bet Frequency?',
         opts: ['J♠T♥9♦', 'K♣7♦2♠', '8♠7♠6♠', 'Q♥J♥T♣'],
         answer: 1,
       },
       {
-        q: 'What is a "small c-bet" size?',
+        q: 'You Raise Under The Gun, The Big Blind Calls, And Checks K♣7♦2♠. Which Size Is The Small Continuation-Bet Baseline In This Lesson?',
         opts: ['10% pot', '33% pot', '75% pot', 'Pot-sized'],
         answer: 1,
       },
       {
-        q: 'Why does the preflop raiser have range advantage?',
+        q: 'Under The Gun Raises And The Big Blind Calls. Why Can Under The Gun Hold A Range Advantage On Many High-Card Flops?',
         opts: [
-          'They bet first',
-          'Their range is stronger on most boards',
-          'They have more chips',
-          'They have position',
+          'The Big Blind Must Fold Every Unpaired Hand',
+          'Under The Gun Retains More Premium Pairs And Strong Broadway Hands',
+          'The Big Blind Cannot Hold A King',
+          'Under The Gun Is Guaranteed To Have Position',
         ],
         answer: 1,
       },
       {
-        q: 'When should you use a large c-bet?',
-        opts: ['Always', 'On dry boards', 'On wet boards with strong hands', 'When bluffing'],
+        q: 'You Are The Preflop Raiser On A Connected Flop. Which Plan Matches This Lesson\'s Selective Large-Bet Strategy?',
+        opts: ['Bet 75% Pot With The Entire Range', 'Bet 33% Pot With The Entire Range', 'Check More Often, Then Bet 66–75% With Strong Value And Suitable Bluffs', 'Check The Entire Range'],
         answer: 2,
       },
       {
-        q: 'Should you c-bet every flop?',
+        q: 'You Are The Preflop Raiser In A Heads-Up Pot. Which Plan Best Avoids Overusing Continuation Bets Across Different Flop Textures?',
         opts: [
-          'Yes, always',
-          'No, check some boards especially wet ones',
-          'Only with pairs or better',
-          'Only in position',
+          'Bet The Entire Range On Every Flop',
+          'Bet Favorable Dry Boards Often And Check More On Connected Boards',
+          'Check The Entire Range On Every Flop',
+          'Bet Only When You Hold A Pair Or Better',
         ],
         answer: 1,
       },
@@ -207,28 +207,28 @@ const LESSONS = [
     color: 'var(--sp-accent-amber)',
     desc: 'The math behind calling and defense decisions',
     concepts: [
-      'Pot odds = bet size / (pot + bet size). A half-pot bet gives 25% odds, meaning you need 25% equity to break even on a call.',
+      'Call break-even equity equals the call amount divided by the final pot after your call. If the pot is 100 and Villain bets 50, calling 50 contests a final pot of 200, so the break-even equity is 25%.',
       'MDF (Minimum Defense Frequency) = 1 - (bet / (pot + bet)). Against a pot-sized bet, you must defend 50% of your range to prevent auto-profit.',
       'The Rule of 2 and 4: multiply your outs by 4 on the flop (2 cards to come) or by 2 on the turn (1 card) for approximate equity.',
     ],
     quiz: [
       {
-        q: 'What equity do you need to call a half-pot bet?',
+        q: 'The Pot Is 100 Chips And Villain Bets 50 Chips. Ignoring Future Action, What Equity Does A 50-Chip Call Need To Break Even?',
         opts: ['20%', '25%', '33%', '50%'],
         answer: 1,
       },
-      { q: 'What is MDF against a pot-sized bet?', opts: ['33%', '50%', '67%', '75%'], answer: 1 },
+      { q: 'Villain Bets 100 Chips Into A 100-Chip Pot. What Minimum Defense Frequency Prevents An Immediate Any-Two-Card Bluff From Profiting?', opts: ['33%', '50%', '67%', '75%'], answer: 1 },
       {
-        q: 'You have 9 outs on the flop (2 cards to come). Approx equity?',
+        q: 'On The Flop, You Have Nine Clean Outs With Two Cards To Come. Using The Rule Of Four, What Is Your Approximate Equity?',
         opts: ['18%', '27%', '36%', '45%'],
         answer: 2,
       },
       {
-        q: 'You have 9 outs on the turn (1 card). Approx equity?',
+        q: 'On The Turn, You Have Nine Clean Outs With One Card To Come. Using The Rule Of Two, What Is Your Approximate Equity?',
         opts: ['9%', '18%', '27%', '36%'],
         answer: 1,
       },
-      { q: 'A flush draw has how many outs?', opts: ['4', '8', '9', '15'], answer: 2 },
+      { q: 'You Hold Four Cards Of One Suit Between Your Hand And The Board, And No Same-Suit Cards Are Known Elsewhere. How Many Unseen Cards Complete The Flush?', opts: ['4', '8', '9', '15'], answer: 2 },
     ],
   },
   {
@@ -240,39 +240,39 @@ const LESSONS = [
     desc: 'Second barrel decisions and range evolution',
     concepts: [
       'The turn is where the pot grows significantly. Betting 66% pot on the turn after a 33% flop c-bet means the pot is now 3x the original flop size.',
-      'Double barrel on turns that improve your range. Overcards, completing draws, and paired boards favor the preflop aggressor.',
-      'Check back medium-strength hands like top pair weak kicker. These hands have showdown value but cannot handle aggression well.',
+      'A second barrel works best when the turn improves the bettor\'s range or fold equity. Whether an overcard, completed draw, or paired card helps depends on the exact preflop ranges and flop action.',
+      'In position, checking back medium-strength hands can preserve showdown value and control the pot. It is a baseline, not an automatic rule; opponent range, board, and sizing still matter.',
     ],
     quiz: [
       {
-        q: 'When should you double barrel the turn?',
+        q: 'You Raise Under The Gun, The Big Blind Calls, You Bet K♣7♦2♠, And The Big Blind Calls. The A♥ Arrives On The Turn. Which Strategic Reason Best Supports A Second Barrel?',
         opts: [
-          'Always',
-          'When the card improves your range',
-          'Only with the nuts',
-          'Never, always check',
+          'The Ace Strengthens The Big Blind\'s Capped Calling Range More Often',
+          'The Ace Improves Under The Gun\'s Uncapped Range More Often',
+          'The Ace Gives Both Ranges Exactly The Same Strong Hands',
+          'The Ace Removes Under The Gun\'s Fold Equity',
         ],
         answer: 1,
       },
       {
-        q: 'What should you do with top pair weak kicker on the turn?',
-        opts: ['Bet big', 'Check back', 'Go all-in', 'Fold'],
+        q: 'In Position On A Blank Turn, You Hold Top Pair With A Weak Kicker And No Clear Three-Street Value. Which Pot-Control Line Matches This Lesson\'s Baseline?',
+        opts: ['Bet 150% Pot', 'Check Back', 'Raise All-In Without Facing A Bet', 'Fold Without Facing A Bet'],
         answer: 1,
       },
       {
-        q: 'An overcard on the turn generally favors:',
-        opts: ['The caller', 'The preflop raiser', 'Neither player', 'The Big-Blind'],
+        q: 'Under The Gun Raises, The Big Blind Calls, And The Flop Is 8♣7♦2♠. After A Small Bet And Call, The A♥ Arrives. Which Range Usually Gains More Strong Top-Pair Combinations?',
+        opts: ['The Big Blind\'s Calling Range', 'Under The Gun\'s Raising Range', 'Both Ranges Gain Exactly The Same Combinations', 'Neither Range Can Contain An Ace'],
         answer: 1,
       },
       {
-        q: 'Why does the pot grow fast on the turn?',
-        opts: ['Blinds increase', 'Geometric betting compounds', 'Antes kick in', 'More players'],
+        q: 'The Pot Is 100 Chips On The Flop. One Player Bets 33 Chips And The Other Calls, Making 166 Chips On The Turn. Approximately How Large Is A 66% Pot Turn Bet?',
+        opts: ['83 Chips', '110 Chips', '149 Chips', '166 Chips'],
         answer: 1,
       },
       {
-        q: 'A turn card that pairs the board favors:',
-        opts: ['The caller', 'Both equally', 'The preflop aggressor', 'Neither'],
-        answer: 2,
+        q: 'The Flop Is K♣7♦2♠ And The Turn Is K♥. Which Hand-Class Change Follows Directly From The Paired Turn?',
+        opts: ['One-Pair Kx Becomes Trips And K7 Or K2 Becomes A Full House', 'Pocket Pairs Become Straights', 'Flush Draws Gain Two Additional Outs', 'Every Two-Pair Hand Becomes A Flush'],
+        answer: 0,
       },
     ],
   },
@@ -290,38 +290,78 @@ const LESSONS = [
     ],
     quiz: [
       {
-        q: 'What type of range should you bet with on the river?',
-        opts: ['Linear', 'Merged', 'Polarized', 'Only value'],
+        q: 'On The River, You Choose A Large Bet Size With Both Value Hands And Bluffs. Which Range Structure Matches That Plan?',
+        opts: ['A Linear Range Of Only Medium Hands', 'A Merged Range With Every Pair', 'A Polarized Range Of Strong Value And Bluffs', 'A Range Containing Only Bluffs'],
         answer: 2,
       },
       {
-        q: 'With medium-strength hands on the river, you should:',
-        opts: ['Always bet', 'Check and call/fold', 'Always fold', 'Go all-in'],
+        q: 'You Reach The River In Position With Medium Showdown Value And No Clear Thin-Value Target. Which Baseline Action Preserves Showdown Value?',
+        opts: ['Bet 150% Pot', 'Check Back', 'Fold Without Facing A Bet', 'Raise All-In Without Facing A Bet'],
         answer: 1,
       },
       {
-        q: 'For a pot-sized river bet, what % of your bets should be bluffs?',
+        q: 'In A Simplified Heads-Up River Model, You Bet The Pot With A Polarized Range. What Percentage Of That Betting Range Should Be Bluffs At Equilibrium?',
         opts: ['0%', '25%', '33%', '50%'],
         answer: 2,
       },
       {
-        q: 'Why do hands have fixed equity on the river?',
-        opts: [
-          'All chips are committed',
-          'No more cards to come',
-          'Position is irrelevant',
-          'Pot odds change',
-        ],
-        answer: 1,
+        q: 'Once The River Card Has Been Dealt, How Many Community Cards Remain To Change Either Player\'s Final Five-Card Hand?',
+        opts: ['Zero', 'One', 'Two', 'Three'],
+        answer: 0,
       },
       {
-        q: 'A larger river bet gets called by:',
-        opts: ['A wider range', 'A narrower range', 'The same range', 'Only premium hands'],
+        q: 'Against A Balanced Polarized River Range, How Should A Defender\'s Calling Threshold Change As The Bet Size Increases?',
+        opts: ['Call A Wider Range', 'Call A Narrower And Stronger Range', 'Call The Same Range At Every Size', 'Call Only The Absolute Nuts'],
         answer: 1,
       },
     ],
   },
 ];
+
+const COACH_EXPLANATIONS = {
+  'preflop-basics': [
+    'A consistent 2.5x baseline builds the pot without revealing hand strength through sizing.',
+    'The Button has the fewest players left to act and retains position after the flop, so it can profitably enter the widest range.',
+    'Under The Gun has five players left to act, so this lesson uses a much tighter first-in baseline of approximately 15%.',
+    'Keeping one opening size across strong and weak hands prevents opponents from reading your hand strength from the bet size.',
+    'The Button acts last after the flop, gaining more information before every decision.',
+  ],
+  'three-bet': [
+    'A polarized 3-bet range combines premium value hands with selected bluffs while medium-strength hands retain their calling value.',
+    'A5s blocks strong Ax continues and keeps useful wheel and flush equity when called.',
+    'In position, roughly three times the original raise applies pressure without risking the extra chips required out of position.',
+    'A larger out-of-position 3-bet charges the caller and compensates for having less information after the flop.',
+    'Pocket Aces are the clearest value 3-bet because they dominate every other starting hand and benefit from building the pot.',
+  ],
+  'cbet-basics': [
+    'K♣7♦2♠ is dry and favors the preflop raiser’s strong-card advantage, allowing frequent small continuation bets.',
+    'A small continuation bet is approximately one-third of the pot and is designed for high-frequency range betting.',
+    'The preflop raiser retains more premium pairs and strong broadway combinations on most flops.',
+    'Large continuation bets work best selectively on connected boards when strong hands need protection and value.',
+    'Wet boards connect strongly with the caller, so an automatic continuation bet would over-bluff weak parts of the raiser’s range.',
+  ],
+  'pot-odds': [
+    'Calling a half-pot bet risks 0.5 pot to win a final pot of 2 pots, so the break-even equity is 25%.',
+    'Against a pot-sized bet, defending half of your range prevents the bettor from profiting automatically with any two cards.',
+    'With two cards to come, the Rule Of Four estimates nine outs at roughly 36% equity.',
+    'With one card to come, the Rule Of Two estimates nine outs at roughly 18% equity.',
+    'A four-card flush has nine unseen cards of the same suit remaining in the deck.',
+  ],
+  'turn-play': [
+    'A turn card that strengthens the aggressor’s range supports a second barrel because it improves value density and fold equity.',
+    'Top pair with a weak kicker often benefits from checking back to realize showdown value without facing a large raise.',
+    'Turn overcards improve the preflop raiser’s uncapped broadway range more often than the caller’s condensed range.',
+    'After the 33-chip flop bet is called, the turn pot is 166 chips; 66% of 166 is approximately 110 chips.',
+    'When the King pairs, a one-pair Kx hand becomes trips while K7 and K2 improve from two pair to a full house.',
+  ],
+  'river-play': [
+    'River betting ranges are polarized around strong value and bluffs because medium-strength hands prefer to reach showdown.',
+    'Medium-strength river hands usually check, then call or fold according to blockers, sizing, and the opponent’s range.',
+    'A pot-sized river bet gives the caller 2-to-1 odds, so one bluff for every two value hands makes the caller indifferent.',
+    'No cards remain to be dealt on the river, so every hand’s showdown equity is fixed.',
+    'As the river bet grows, the caller needs more equity and must continue with a narrower, stronger range.',
+  ],
+};
 
 export default function CoachModePage() {
   // TRAIN-WIRE-FEEDBACK-HOOK-1 — wire useTrainingFeedback for fb.correct() / fb.incorrect()
@@ -397,6 +437,7 @@ export default function CoachModePage() {
           <title>{activeLesson.name} | Coach Mode</title>
         </Head>
         <div
+          className="sp-training-command sp-training-command--coach"
           style={{
             minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
             background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -405,6 +446,7 @@ export default function CoachModePage() {
           }}
         >
           <div
+            className="sp-command-header"
             style={{
               padding: '16px 20px',
               borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -444,7 +486,7 @@ export default function CoachModePage() {
               </div>
             </div>
           </div>
-          <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+          <div className="sp-command-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
             {/* Progress Bar */}
             <div
               style={{
@@ -529,6 +571,8 @@ export default function CoachModePage() {
                       key={i}
                       whileTap={selected === null ? { scale: 0.98 } : {}}
                       onClick={() => handleAnswer(i)}
+                      aria-pressed={selected === i}
+                      aria-disabled={selected !== null}
                       style={{
                         padding: '14px 16px',
                         borderRadius: 10,
@@ -560,25 +604,36 @@ export default function CoachModePage() {
                   ))}
                 </div>
                 {selected !== null && (
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={nextQuizQuestion}
-                    style={{
-                      width: '100%',
-                      padding: '14px',
-                      borderRadius: 12,
-                      border: 'none',
-                      background: `linear-gradient(135deg, ${activeLesson.color}, ${activeLesson.color}aa)`,
-                      color: '#fff',
-                      fontSize: 14,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
+                  <motion.section
+                    className={`sp-command-verdict ${selected === activeLesson.quiz[quizIdx].answer ? 'is-correct' : 'is-incorrect'}`}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    aria-live="assertive"
+                    aria-atomic="true"
                   >
-                    {quizIdx < activeLesson.quiz.length - 1 ? 'Next Question' : 'See Results'}
-                  </motion.button>
+                    <strong>{selected === activeLesson.quiz[quizIdx].answer ? 'Correct' : 'Incorrect'}</strong>
+                    <div><span>Your Answer</span><b>{activeLesson.quiz[quizIdx].opts[selected]}</b></div>
+                    <div><span>Correct Answer</span><b>{activeLesson.quiz[quizIdx].opts[activeLesson.quiz[quizIdx].answer]}</b></div>
+                    <p>{COACH_EXPLANATIONS[activeLesson.id]?.[quizIdx] || 'Review the lesson concept before moving to the next question.'}</p>
+                    <em>This Result Will Stay Open Until You Click Next.</em>
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      onClick={nextQuizQuestion}
+                      style={{
+                        width: '100%',
+                        padding: '14px',
+                        borderRadius: 0,
+                        border: 'none',
+                        background: `linear-gradient(135deg, ${activeLesson.color}, ${activeLesson.color}aa)`,
+                        color: '#fff',
+                        fontSize: 14,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {quizIdx < activeLesson.quiz.length - 1 ? 'Next Question' : 'See Results'}
+                    </motion.button>
+                  </motion.section>
                 )}
               </motion.div>
             )}
@@ -642,6 +697,7 @@ export default function CoachModePage() {
         <title>Coach Mode | Smarter.Poker GTO Training</title>
       </Head>
       <div
+        className="sp-training-command sp-training-command--coach"
         style={{
           minHeight: '100vh',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -650,6 +706,7 @@ export default function CoachModePage() {
         }}
       >
         <div
+          className="sp-command-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -688,7 +745,7 @@ export default function CoachModePage() {
             {completed.size}/{LESSONS.length} complete
           </div>
         </div>
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className="sp-command-main sp-command-grid sp-command-grid--lessons" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {LESSONS.map((lesson, i) => (
             <motion.button
               key={lesson.id}
