@@ -7,8 +7,6 @@
  * 
  * Props:
  *   title       - page title for <Head> tag
- *   backHref    - where Back button navigates (default: /commander/dashboard)
- *   hideBack    - set true on dashboard to hide the back button
  *   children    - page content
  */
 import { useState, useEffect, useCallback } from 'react';
@@ -58,12 +56,29 @@ const NAV_ITEMS = [
   { label: 'Settings', href: '/commander/settings', icon: Settings },
 ];
 
-export default function CommanderLayout({ children, title, backHref = '/commander/dashboard', hideBack }) {
+export default function CommanderLayout({ children, title }) {
   // ── Cross-tab EventBus bridge ──
   useBusBridge();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [staff, setStaff] = useState(null);
+  const [profileAvatar, setProfileAvatar] = useState('/default-avatar.png');
+
+  useEffect(() => {
+    try {
+      const cachedHeader = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
+      const cachedAuth = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+      const nextAvatar =
+        staff?.avatar_url ||
+        staff?.avatar ||
+        cachedHeader?.avatar_url ||
+        cachedHeader?.avatar ||
+        cachedAuth?.user?.user_metadata?.avatar_url;
+      if (nextAvatar) setProfileAvatar(nextAvatar);
+    } catch (_) {
+      // Keep the neutral fallback inside the approved profile frame.
+    }
+  }, [staff]);
   const [showClubPagePopup, setShowClubPagePopup] = useState(false);
   const [clubPageId, setClubPageId] = useState(null); // Set when venue has an existing club page
   const [showUpgradeModal, setShowUpgradeModal] = useState(null); // null or { label, requiredTier }
@@ -726,50 +741,110 @@ export default function CommanderLayout({ children, title, backHref = '/commande
           color: #ccc;
           border-color: rgba(255,255,255,0.25);
         }
+
+        /* Approved global header: one complete desktop row, uniformly scaled at every width. */
+        .cmd-approved-header {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          width: 100%;
+          box-sizing: border-box;
+          padding-top: env(safe-area-inset-top, 0px);
+          overflow: hidden;
+          background: #000;
+          line-height: 0;
+          isolation: isolate;
+        }
+        .cmd-approved-header__art {
+          display: block;
+          width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+          height: auto;
+          margin-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+          aspect-ratio: 1648 / 168;
+          object-fit: contain;
+          object-position: center;
+          user-select: none;
+          pointer-events: none;
+        }
+        .cmd-approved-header__controls {
+          position: absolute;
+          top: env(safe-area-inset-top, 0px);
+          right: env(safe-area-inset-right, 0px);
+          left: env(safe-area-inset-left, 0px);
+          aspect-ratio: 1648 / 168;
+        }
+        .cmd-approved-header__button {
+          position: absolute;
+          top: 13%;
+          height: 74%;
+          margin: 0;
+          padding: 0;
+          appearance: none;
+          border: 0;
+          border-radius: 8px;
+          background: transparent;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+        }
+        .cmd-approved-header__button:focus-visible {
+          outline: 3px solid #20a9ff;
+          outline-offset: -3px;
+          box-shadow: 0 0 0 2px #000;
+        }
+        .cmd-approved-header__button:active { opacity: .76; }
+        .cmd-approved-header__menu { left: 1.7%; width: 7%; }
+        .cmd-approved-header__back { left: 8%; width: 12%; }
+        .cmd-approved-header__hub { left: 19.1%; width: 12.9%; }
+        .cmd-approved-header__profile { left: 66.5%; width: 7.5%; }
+        .cmd-approved-header__wallet { left: 73.2%; width: 7.1%; }
+        .cmd-approved-header__vip { left: 79.9%; width: 6.5%; }
+        .cmd-approved-header__messenger { left: 86%; width: 6.9%; }
+        .cmd-approved-header__notifications { left: 92.3%; width: 6.2%; }
+        .cmd-approved-header__avatar {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 56%;
+          height: auto;
+          aspect-ratio: 1;
+          transform: translate(-50%, -50%);
+          border-radius: 50%;
+          background: #05070a;
+          object-fit: cover;
+          pointer-events: none;
+        }
+        @media (display-mode: standalone), (display-mode: fullscreen) {
+          .cmd-approved-header { padding-top: max(env(safe-area-inset-top, 0px), 24px); }
+          .cmd-approved-header__controls { top: max(env(safe-area-inset-top, 0px), 24px); }
+        }
       `}</style>
 
       <CommanderErrorBoundary>
-        {/* ── GLOBAL HEADER BAR ── */}
-        <div className="cmd-global-header">
-          <div className="cmd-global-left">
-            <button className="cmd-hamburger" onClick={() => setMenuOpen(true)}>
-              <img src="/images/commander/btn-hamburger.png" alt="Menu" />
-            </button>
-            {hideBack ? (
-              /* Dashboard: show HUB button */
-              <button
-                className="cmd-hub-btn"
-                onClick={() => router.push('/hub')}
-                title="Back To Smarter.Poker Hub"
-              >
-                <span aria-hidden="true">Hub</span>
-              </button>
-            ) : (
-              /* All other pages: show metallic BACK image */
-              <button
-                className="cmd-back-img-btn"
-                onClick={() => router.back()}
-                title="Go Back"
-              >
-                <span aria-hidden="true">Back</span>
-              </button>
-            )}
-          </div>
-          <div className="cmd-global-center">
-            {title && !hideBack && (
-              <div className="cmd-global-page-title">
-                {title.replace(/\s*\|.*$/, '').replace(/^Commander\s*-\s*/, '')}
-              </div>
-            )}
-          </div>
-          <div className="cmd-global-right">
-            <div>
-              <div className="cmd-global-title">Club Commander</div>
-              <div className="cmd-global-venue">{venueName}</div>
-            </div>
-          </div>
-        </div>
 
+        <header className="cmd-approved-header" data-artwork="approved-global-header">
+        <img src="/images/global-header/global-header-desktop.png" alt="" width="1648" height="168" className="cmd-approved-header__art" aria-hidden="true" fetchpriority="high" decoding="sync" />
+          <div className="cmd-approved-header__controls">
+            <button type="button" className="cmd-approved-header__button cmd-approved-header__menu" onClick={() => setMenuOpen(true)} aria-label="Open Menu" />
+            <button type="button" className="cmd-approved-header__button cmd-approved-header__back" onClick={() => router.back()} aria-label="Go back" />
+            <button type="button" className="cmd-approved-header__button cmd-approved-header__hub" onClick={() => router.push('/hub')} aria-label="Go to the Hub" />
+            <button type="button" className="cmd-approved-header__button cmd-approved-header__profile" onClick={() => router.push('/hub/profile')} aria-label="My Profile">
+              <img
+                src={profileAvatar}
+                alt=""
+                className="cmd-approved-header__avatar"
+                aria-hidden="true"
+                onError={(event) => { event.currentTarget.src = '/default-avatar.png'; }}
+              />
+            </button>
+            <button type="button" className="cmd-approved-header__button cmd-approved-header__wallet" onClick={() => router.push('/hub/diamond-store')} aria-label="Diamond Wallet" />
+            <button type="button" className="cmd-approved-header__button cmd-approved-header__vip" onClick={() => router.push('/hub/vip-membership')} aria-label="VIP" />
+            <button type="button" className="cmd-approved-header__button cmd-approved-header__messenger" onClick={() => router.push('/hub/messenger')} aria-label="Messages" />
+            <button type="button" className="cmd-approved-header__button cmd-approved-header__notifications" onClick={() => router.push('/hub/notifications')} aria-label="Notifications" />
+          </div>
+        </header>
+
+        {/* ── GLOBAL HEADER BAR ── */}
         {/* ── OFFLINE DETECTION BANNER ── */}
         {isOffline && (
           <div style={{
