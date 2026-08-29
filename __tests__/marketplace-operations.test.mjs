@@ -259,9 +259,10 @@ test('deployment verifier preserves a non-JSON readiness HTTP status', async (t)
 });
 
 test('Vercel build and scheduled health probe enforce marketplace operations without reordering platform prerequisites', async () => {
-  const [pkgText, vercelText, cron] = await Promise.all([
+  const [pkgText, vercelText, vercelIgnore, cron] = await Promise.all([
     readFile(new URL('../package.json', import.meta.url), 'utf8'),
     readFile(new URL('../vercel.json', import.meta.url), 'utf8'),
+    readFile(new URL('../.vercelignore', import.meta.url), 'utf8'),
     readFile(new URL('../pages/api/cron/marketplace-health.js', import.meta.url), 'utf8'),
   ]);
   const pkg = JSON.parse(pkgText);
@@ -271,6 +272,18 @@ test('Vercel build and scheduled health probe enforce marketplace operations wit
   assert.ok(vercel.buildCommand.indexOf('prune-platform-bins') < vercel.buildCommand.indexOf('patch-next'));
   assert.ok(vercel.buildCommand.indexOf('patch-next') < vercel.buildCommand.indexOf('test:marketplace'));
   assert.ok(vercel.buildCommand.indexOf('test:marketplace') < vercel.buildCommand.indexOf('next build'));
+  for (const file of pkg.scripts['test:marketplace'].match(/__tests__\/[^ ]+\.mjs/g) || []) {
+    const escaped = file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(vercelIgnore, new RegExp(`!/${escaped}`));
+  }
+  for (const dependency of [
+    'e2e/05-diamond-store.spec.ts',
+    'supabase/migrations/20260828010000_neural_steel_catalog_expansion.sql',
+    'supabase/migrations/20260829120000_reserve_merch_order_dry_run.sql',
+  ]) {
+    const escaped = dependency.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(vercelIgnore, new RegExp(`!/${escaped}`));
+  }
   assert.ok(vercel.crons.some((entry) => entry.path === '/api/cron/marketplace-health'));
   assert.match(cron, /withCronHealth\('marketplace-health'/);
   assert.match(cron, /requireAdminSecret/);
