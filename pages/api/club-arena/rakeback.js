@@ -8,11 +8,16 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  *   open  — Owner starts a new rakeback period
  *   close — Owner closes the administrative period marker.
  *           It does NOT credit players. Per-player rakeback is written solely
- *           by the engine's RakebackSettlerService, which splits each hand's
- *           rake EQUALLY among the players dealt in (DECISION D-001/FIX 144).
- *           A contribution-weighted crediting path used to live here and wrote
- *           to the same rakeback_periods table with different math; it was
- *           removed 2026-08-15 (see the comment in the close branch).
+ *           by the engine's RakebackSettlerService. ATTRIBUTION (Dan
+ *           2026-08-29, supersedes DECISION D-001/FIX 144): WEIGHTED
+ *           CONTRIBUTED rake — each player's credit is proportional to their
+ *           eligible contribution to the rakeable pot, allocated by the
+ *           canonical fn_allocate_rake_credits / rakeAllocation.ts pair;
+ *           historical DEALT_EQUAL rows keep their historical equal split
+ *           (per-row rake_records.rake_method). A crediting path used to live
+ *           here and wrote to the same rakeback_periods table with different
+ *           math; it was removed 2026-08-15 (see the comment in the close
+ *           branch).
  *   claim — Player claims their pending rakeback
  *
  * Auth: Bearer token
@@ -239,21 +244,22 @@ export default async function handler(req, res) {
           if (!openPeriod) return res.status(400).json({ success: false, error: 'No open rakeback period found' });
 
           // Get club's rakeback rate
-          // ── Dan 2026-08-15 — CONTRIBUTION-WEIGHTED CREDITING REMOVED ──
-          //
-          // Ruling: "It's supposed to be evenly distributed and credited to
-          // every player dealt in. Only use this model and delete anything
-          // that conflicts with this."
+          // ── Dan 2026-08-15 — API-SIDE CREDITING REMOVED ──
+          // (Attribution note 2026-08-29: Dan's 2026-08-15 "evenly
+          // distributed" ruling was REVERSED — cash rake credit is now
+          // WEIGHTED CONTRIBUTED, per rake_records.rake_method. The removal
+          // below stands for its own reason: ONE writer of per-player
+          // rakeback, the engine's RakebackSettlerService, whatever the
+          // formula of the day is.)
           //
           // This branch used to be a SECOND, competing rakeback settlement
           // engine. It aggregated rake_records.player_contributions per player
           // and credited each one proportionally to what they personally put
           // into the pots, then INSERTed those rows into rakeback_periods —
           // the same table the engine's RakebackSettlerService owns and
-          // upserts using equal-share math (DECISION D-001 / FIX 144). Two
-          // systems, two different formulas, one table, no coordination:
-          // whichever ran last decided what a player was owed, and a player
-          // could be credited twice for the same week.
+          // upserts with its own math. Two systems, two formulas, one table,
+          // no coordination: whichever ran last decided what a player was
+          // owed, and a player could be credited twice for the same week.
           //
           // Verified before removal (2026-08-15): rakeback_periods held 2,376
           // rows, zero duplicate (user_id, club_id, period_start) tuples, and
@@ -284,13 +290,13 @@ export default async function handler(req, res) {
             success: true,
             periodClosed: openPeriod.id,
             // No per-player crediting happens here, by design. The engine's
-            // RakebackSettlerService (30-min interval, equal share among the
-            // players dealt in) is the sole writer of per-player rows.
+            // RakebackSettlerService (30-min interval, weighted contributed
+            // rake — Dan 2026-08-29) is the sole writer of per-player rows.
             creditedBy: 'RakebackSettlerService',
             playersProcessed: 0,
             totalRakebackDistributed: 0,
           };
-          logAudit(supabaseAdmin, { actionType: 'rakeback_closed', userId: user.id, clubId, ip: extractIP(req), details: { periodClosed: openPeriod.id, crediting: 'deferred_to_equal_share_settler' } });
+          logAudit(supabaseAdmin, { actionType: 'rakeback_closed', userId: user.id, clubId, ip: extractIP(req), details: { periodClosed: openPeriod.id, crediting: 'deferred_to_settler' } });
           cacheResponse(req, 200, responseObj);
           return res.status(200).json(responseObj);
         }
