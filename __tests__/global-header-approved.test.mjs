@@ -50,7 +50,7 @@ const moduleOwnsHeader = (entryFile, seen = new Set()) => {
   if (sharedHeaderRender.test(source)) return true;
 
   const imports = [...source.matchAll(
-    /(?:import\s+(?:[^'";]+?\s+from\s+)?|import\s*\(|require\s*\()\s*['"]([^'"]+)['"]/g
+    /(?:import\s+(?:[^'";]+?\s+from\s+)?|export\s+(?:\*|\{[^}]*\})\s+from\s+|import\s*\(|require\s*\()\s*['"]([^'"]+)['"]/g
   )];
   return imports.some((match) => {
     const dependency = resolveRelativeModule(entryFile, match[1]);
