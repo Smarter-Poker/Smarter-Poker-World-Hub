@@ -389,7 +389,11 @@ test('the destination is validated where it is written, not only where it is fol
     // Create and edit both refuse, and both name the value they refused.
     assert.match(route, /const targetUrl = readSitePath\(b\.target_url\)/);
     assert.match(route, /const t = readSitePath\(b\.target_url\)/);
-    assert.equal(route.match(/Not A Site Path: /g)?.length, 4, 'target and image, on both verbs');
+    // Four here; the placement verbs add two more, pinned separately below.
+    assert.ok(
+        (route.match(/Not A Site Path: /g)?.length || 0) >= 4,
+        'target and image, on both ad verbs'
+    );
     // The stored value is the checked one, never the raw column.
     assert.match(route, /target_url: targetUrl,/);
     assert.doesNotMatch(route, /target_url: clean\(b\.target_url/);
@@ -441,4 +445,46 @@ test('an insert that could not be read back is not a bare 500', () => {
     const route = read('pages/api/club-arena/house-ads.js');
     assert.match(route, /if \(!created\?\.id\)/);
     assert.match(route, /could not be read back/);
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2026-08-29 — "LINKS TO" COULD NOT CHANGE WHERE THE AD WENT
+
+   fn_resolve_ads serves COALESCE(pl.target_url, c.target_url), and eight of the
+   eighteen live placements carry an override - every hub_promotions row and
+   both session_summary rows. vip_upsell reads /vip on the campaign and serves
+   /hub/vip-membership on the Hub.
+
+   This route never selected that column and neither placement verb wrote it, so
+   the panel's only destination control was the campaign's, and editing it on
+   any of those eight answered "Saved." and changed nothing on the surface
+   actually serving.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+test('the placement read includes the override the resolver prefers', () => {
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /'id, ad_id, slot, club_id, audience, daily_cap, is_active, target_url'/);
+});
+
+test('both placement verbs write the override, through the same check', () => {
+    const route = read('pages/api/club-arena/house-ads.js');
+    // Create.
+    assert.match(route, /const newTarget = readSitePath\(b\.target_url\)/);
+    assert.match(route, /target_url: newTarget,/);
+    // Edit, keyed on !== undefined so that "clear it" and "leave it alone"
+    // stay different instructions on the wire.
+    const patch = route.slice(route.indexOf("String(req.query.kind) === 'placement'"));
+    assert.match(patch, /if \(b\.target_url !== undefined\) \{/);
+    assert.doesNotMatch(patch, /if \(b\.target_url\) \{/);
+});
+
+test('a placement destination is refused by the same rule as the campaign one', () => {
+    /* The resolver hands whichever of the two it serves to the same client, so
+       a rule that applied to only one of them would be no rule at all. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.equal(
+        route.match(/Not A Site Path: /g)?.length,
+        6,
+        'target and image on the ad verbs, plus target on both placement verbs'
+    );
 });
