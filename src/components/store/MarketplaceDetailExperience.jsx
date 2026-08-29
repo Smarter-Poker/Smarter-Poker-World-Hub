@@ -8,6 +8,37 @@ import PageTransition from '../transitions/PageTransition';
 import MarketplaceCommerceNav from './MarketplaceCommerceNav';
 import styles from './MarketplaceDetailExperience.module.css';
 
+const DEFAULT_MARKETPLACE_IMAGE = '/images/store-v3/diamond-vault-hero.webp';
+
+function resolveMarketplaceImage(value) {
+  if (typeof value !== 'string' || !value.trim()) return DEFAULT_MARKETPLACE_IMAGE;
+  const candidate = value.trim();
+  if (candidate.startsWith('/') && !candidate.startsWith('//')) return candidate;
+  try {
+    const url = new URL(candidate);
+    return url.protocol === 'https:' ? url.toString() : DEFAULT_MARKETPLACE_IMAGE;
+  } catch (_) {
+    return DEFAULT_MARKETPLACE_IMAGE;
+  }
+}
+
+function absoluteMarketplaceUrl(value) {
+  if (typeof value === 'string' && /^https:\/\//i.test(value)) return value;
+  return `https://smarter.poker${value}`;
+}
+
+// JSON.stringify alone leaves `</script>` intact. Catalog and club inventory
+// fields can originate in the database, so escape every character with HTML
+// significance before placing JSON-LD inside a script element.
+function serializeStructuredData(value) {
+  return JSON.stringify(value ?? {})
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
 export default function MarketplaceDetailExperience({
   canonical,
   title,
@@ -24,22 +55,26 @@ export default function MarketplaceDetailExperience({
   noindex = false,
   children,
 }) {
+  const safeImage = resolveMarketplaceImage(image);
+  const canonicalUrl = absoluteMarketplaceUrl(canonical);
+  const socialImage = absoluteMarketplaceUrl(safeImage);
+
   return (
     <>
       <Head>
         <title>{title} — Smarter.Poker Marketplace</title>
         <meta name="description" content={description} />
-        <link rel="canonical" href={`https://smarter.poker${canonical}`} />
+        <link rel="canonical" href={canonicalUrl} />
         <meta property="og:type" content="product" />
         <meta property="og:title" content={`${title} — Smarter.Poker Marketplace`} />
         <meta property="og:description" content={description} />
-        <meta property="og:image" content={`https://smarter.poker${image}`} />
-        <meta property="og:url" content={`https://smarter.poker${canonical}`} />
+        <meta property="og:image" content={socialImage} />
+        <meta property="og:url" content={canonicalUrl} />
         <meta name="twitter:card" content="summary_large_image" />
         {noindex && <meta name="robots" content="noindex,nofollow" />}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          dangerouslySetInnerHTML={{ __html: serializeStructuredData(structuredData) }}
         />
       </Head>
 
@@ -61,7 +96,7 @@ export default function MarketplaceDetailExperience({
 
           <article className={styles.hero}>
             <div className={styles.mediaFrame}>
-              <img src={image} alt={imageAlt} width={1200} height={900} loading="eager" />
+              <img src={safeImage} alt={imageAlt || ''} width={1200} height={900} loading="eager" />
               <span className={styles.scanLine} aria-hidden="true" />
               <div className={styles.mediaBadge}>
                 <ShieldCheck size={15} aria-hidden="true" />

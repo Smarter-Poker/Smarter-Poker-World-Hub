@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+const AXE_PATH = require.resolve('axe-core/axe.min.js');
+
 const ROUTES = [
   { path: '/hub/diamond-store', title: 'Diamond Store — Smarter.Poker', heading: 'Play At Your Own Altitude.', hero: 'diamond-vault-hero.webp' },
   { path: '/hub/vip-membership', title: 'VIP Membership — Smarter.Poker', heading: 'Your Edge, Compounded.', hero: 'vip-hero.webp' },
@@ -90,6 +92,38 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       }));
     }
     expect(new Set(headerMarkup).size).toBe(1);
+  });
+
+  test('marketplace canvases have no serious automated WCAG A or AA violations', async ({ page }) => {
+    for (const route of ROUTES) {
+      await page.goto(route.path, { waitUntil: 'domcontentloaded' });
+      await page.addScriptTag({ path: AXE_PATH });
+      const violations = await page.evaluate(async () => {
+        const axe = (window as typeof window & {
+          axe?: {
+            run: (...args: unknown[]) => Promise<{
+              violations: Array<{
+                id: string;
+                impact: string | null;
+                nodes: Array<{ target?: string[] }>;
+              }>;
+            }>;
+          };
+        }).axe;
+        if (!axe) throw new Error('axe-core did not load');
+        const result = await axe.run('main', {
+          runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] },
+        });
+        return result.violations
+          .filter((violation) => violation.impact === 'critical' || violation.impact === 'serious')
+          .map((violation) => ({
+            id: violation.id,
+            impact: violation.impact,
+            nodes: violation.nodes.map((node) => node.target || []),
+          }));
+      });
+      expect(violations, `${route.path} accessibility violations`).toEqual([]);
+    }
   });
 
   test('merchandise renders immediately and refreshes without blanking the catalog', async ({ page }) => {
@@ -326,6 +360,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
 
     await page.goto('/hub/vip-membership/manage', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Switch To Annual' }).click();
+    const planDialog = page.getByRole('dialog', { name: 'Confirm Plan Switch' });
+    await expect(planDialog).toBeVisible();
+    await planDialog.getByRole('button', { name: /Confirm Annual Plan/i }).click();
     await expect(page.getByText('Annual plan verified.')).toBeVisible();
     expect(requestedPlan).toBe('annual');
 
@@ -337,6 +374,53 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(page.getByText('Cancellation scheduled at renewal.')).toBeVisible();
     expect(cancellationReason).toBe('missing_features');
     await expect(page).toHaveURL('/hub/vip-membership/manage');
+  });
+
+  test('club item detail reviews one diamond settlement before submitting it', async ({ page }) => {
+    const clubId = '00000000-0000-4000-8000-000000000013';
+    const itemId = '00000000-0000-4000-8000-000000000014';
+    await page.addInitScript(() => {
+      const user = { id: '00000000-0000-4000-8000-000000000015', email: 'phase13@example.test', role: 'authenticated' };
+      window.localStorage.setItem('smarter-poker-auth', JSON.stringify({
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMTUiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJleHAiOjQxMDI0NDQ4MDB9.phase13signature',
+        refresh_token: 'phase-13-refresh',
+        expires_at: 4102444800,
+        expires_in: 2147483647,
+        token_type: 'bearer',
+        user,
+      }));
+    });
+    await page.route('**/api/club-arena/marketplace-items?*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        balance: 5000,
+        items: [{ id: itemId, name: 'Phase 13 Time Bank', description: 'Verified test item', price: 1500, category: 'Time Banks' }],
+      }),
+    }));
+    let purchaseRequests = 0;
+    await page.route('**/api/club-arena/marketplace-purchase', async (route) => {
+      purchaseRequests += 1;
+      await new Promise((resolve) => setTimeout(resolve, 75));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, newBalance: 3500, pricePaid: 1500 }),
+      });
+    });
+
+    await page.goto(`/hub/club-shop/${itemId}?clubId=${clubId}`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { level: 1, name: 'Phase 13 Time Bank' })).toBeVisible();
+    await page.getByRole('button', { name: 'Review Diamond Purchase' }).click();
+    const reviewTitle = page.getByRole('heading', { name: 'Confirm Diamond Purchase' });
+    await expect(reviewTitle).toBeFocused();
+    const confirm = page.getByRole('button', { name: 'Confirm 1,500 Diamonds' });
+    await confirm.evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
+    await expect(
+      page.getByRole('status').getByText('Phase 13 Time Bank is now in your club inventory.'),
+    ).toBeVisible();
+    expect(purchaseRequests).toBe(1);
   });
 
   test('marketplace readiness is public, boolean-only, and capability-aware', async ({ request }) => {

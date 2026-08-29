@@ -2,6 +2,7 @@
 
 const args = process.argv.slice(2);
 const requireCommerce = args.includes('--require-commerce');
+const requireCheckout = args.includes('--require-checkout');
 const suppliedBase = args.find((arg) => !arg.startsWith('--'));
 const baseUrl = String(suppliedBase || process.env.MARKETPLACE_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
 
@@ -70,11 +71,20 @@ for (const result of results) {
   console.log(`${signal.padEnd(4)} ${String(result.status).padEnd(3)} ${result.path}`);
 }
 if (readiness?.checks) console.log(`Commerce capabilities: ${JSON.stringify(readiness.checks)}`);
+if (readiness?.capabilities) console.log(`Checkout capabilities: ${JSON.stringify(readiness.capabilities)}`);
+if (readiness?.capabilities) {
+  console.log(`Automatic merchandise fulfillment: ${readiness.capabilities.automaticMerchFulfillment === true ? 'ready' : 'deferred'}`);
+}
 
 const surfaceFailed = results.some((result) => !result.okay);
 const commerceFailed = requireCommerce && readiness?.ready !== true;
-if (surfaceFailed || commerceFailed) {
+const checkoutFailed = requireCheckout && !(
+  readiness?.capabilities?.cardCheckout === true
+  && readiness?.capabilities?.diamondCheckout === true
+);
+if (surfaceFailed || commerceFailed || checkoutFailed) {
   if (commerceFailed) console.error('FAIL marketplace provider configuration is incomplete.');
+  if (checkoutFailed) console.error('FAIL marketplace checkout configuration is incomplete.');
   process.exitCode = 1;
 } else {
   console.log(`PASS marketplace deployment verified at ${baseUrl}`);

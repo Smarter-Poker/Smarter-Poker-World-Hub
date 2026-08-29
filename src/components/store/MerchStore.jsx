@@ -14,9 +14,9 @@
  *
  *   Both endpoints resolve the real price SERVER-SIDE from merchandise_items
  *   whenever the line item carries a catalog `id`, so this component sends the
- *   catalog id + quantity and never a price for catalogued goods. The static
- *   fallback rows have no database row (their ids are slugs, not uuids), so
- *   they are sent as name + price and are priced by the server's sanity band.
+ *   catalog id + quantity and never a price for catalogued goods. Seed ids are
+ *   slugs too; the checkout API resolves each id against the live catalog and
+ *   rejects an unknown row instead of trusting browser-supplied pricing.
  *
  * Visual language matches src/components/diamond-store/diamondStoreStyles.js —
  * inline style objects, same dark/cyan palette. No CSS modules.
@@ -163,9 +163,9 @@ function firstBoolean(candidates) {
 const isCatalogId = (v) => typeof v === 'string' && v.trim().length > 0;
 
 // ── Normalisation ─────────────────────────────────────────────────────────
-// The catalog endpoint is owned by another agent and is not deployed yet, so
-// every field is read defensively across the plausible column names rather
-// than assuming one exact shape.
+// The deployed catalog API and database schema have evolved over time, so
+// every field is read defensively across supported column names rather than
+// assuming one exact response shape.
 
 function stockOf(raw) {
   const explicit = firstFiniteNumber([

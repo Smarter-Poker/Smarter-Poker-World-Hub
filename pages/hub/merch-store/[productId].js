@@ -6,20 +6,113 @@ import detailStyles from '../../../src/components/store/MarketplaceDetailExperie
 import MerchStore from '../../../src/components/store/MerchStore';
 import { MERCHANDISE } from '../../../src/data/diamondStoreData';
 import { useAuthUser } from '../../../src/lib/authUtils';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const LEGACY_IMAGE = '/images/merch/neural-steel/legacy-tabletop-atlas.webp';
+const FALLBACK_IMAGE = '/images/store-v3/merch-hero.webp';
+
+function publicImage(value) {
+  if (typeof value !== 'string' || !value.trim()) return FALLBACK_IMAGE;
+  const candidate = value.trim();
+  if (candidate.startsWith('/merch/')) return LEGACY_IMAGE;
+  if (candidate.startsWith('/') && !candidate.startsWith('//')) return candidate;
+  try {
+    const url = new URL(candidate);
+    return url.protocol === 'https:' ? url.toString() : FALLBACK_IMAGE;
+  } catch (_) {
+    return FALLBACK_IMAGE;
+  }
+}
+
+function absoluteImage(value) {
+  return /^https:\/\//i.test(value) ? value : `https://smarter.poker${value}`;
+}
+
+function staticProduct(product) {
+  if (!product) return null;
+  return {
+    ...product,
+    image: publicImage(product.image),
+    priceDiamonds: Math.round(Number(product.price || 0) * 100),
+    inStock: true,
+    fulfillmentReady: false,
+    fulfillmentProvider: null,
+  };
+}
+
+async function catalogProduct(productId) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+
+  const supabase = createClient(url, key);
+  const { data: item, error } = await supabase
+    .from('merchandise_items')
+    .select('id, name, description, category, image_url, price_usd, price_diamonds, stock, has_variants, metadata')
+    .eq('id', productId)
+    .eq('is_active', true)
+    .maybeSingle();
+  if (error || !item) return null;
+
+  const { data: variants, error: variantError } = item.has_variants
+    ? await supabase
+        .from('merchandise_item_variants')
+        .select('stock, metadata')
+        .eq('item_id', productId)
+        .eq('is_active', true)
+    : { data: [], error: null };
+  if (variantError) return null;
+
+  const metadata = item.metadata && typeof item.metadata === 'object' ? item.metadata : {};
+  const fulfillmentProvider = metadata.fulfillment_provider || null;
+  let fulfillmentReady = false;
+  if (fulfillmentProvider === 'printful') {
+    const { isPrintfulReady, resolvePrintfulMapping } = require('../../../src/lib/store/printfulFulfillment');
+    if (isPrintfulReady()) {
+      fulfillmentReady = item.has_variants
+        ? (variants || []).some((variant) => Boolean(resolvePrintfulMapping(null, variant.metadata)))
+        : Boolean(resolvePrintfulMapping(metadata, null));
+    }
+  }
+
+  const variantStock = (variants || []).reduce((sum, variant) => sum + Math.max(0, Number(variant.stock) || 0), 0);
+  const inStock = item.has_variants
+    ? variantStock > 0
+    : item.stock == null || Number(item.stock) > 0;
+  const price = Number(item.price_usd);
+  if (!Number.isFinite(price) || price <= 0) return null;
+
+  return {
+    id: item.id,
+    name: item.name,
+    description: item.description || 'Official Smarter.Poker marketplace equipment.',
+    category: item.category || 'equipment',
+    image: publicImage(item.image_url),
+    price,
+    priceDiamonds: Math.max(1, Number(item.price_diamonds) || Math.ceil(price * 100)),
+    inStock,
+    fulfillmentReady,
+    fulfillmentProvider,
+  };
+}
 
 export default function MerchProductDetail({ product }) {
   const { user } = useAuthUser();
-  const diamondPrice = Math.round(Number(product.price) * 100);
+  const diamondPrice = Number(product.priceDiamonds) || Math.round(Number(product.price) * 100);
   const canonical = `/hub/merch-store/${product.id}`;
-  const image = product.image.startsWith('/merch/') ? LEGACY_IMAGE : product.image;
+  const image = publicImage(product.image);
+  const available = product.inStock !== false && product.fulfillmentReady === true;
+  const inventoryStatus = available
+    ? 'Available For Card Or Diamonds'
+    : product.inStock === false
+      ? 'Sold Out'
+      : 'Preview — Fulfillment Pending';
 
   const productSchema = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
-    image: [`https://smarter.poker${image}`],
+    image: [absoluteImage(image)],
     description: product.description,
     sku: product.id,
     brand: { '@type': 'Brand', name: 'Smarter.Poker' },
@@ -28,7 +121,9 @@ export default function MerchProductDetail({ product }) {
       url: `https://smarter.poker${canonical}`,
       priceCurrency: 'USD',
       price: Number(product.price).toFixed(2),
-      availability: 'https://schema.org/PreOrder',
+      availability: available
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
       itemCondition: 'https://schema.org/NewCondition',
     },
   };
@@ -57,7 +152,7 @@ export default function MerchProductDetail({ product }) {
       ]}
       price={product.price}
       diamondPrice={diamondPrice}
-      status="Preview — Fulfillment Pending"
+      status={inventoryStatus}
       actions={
         <>
           <Link href="#purchase-console">
@@ -76,7 +171,7 @@ export default function MerchProductDetail({ product }) {
           </p>
           <ul>
             <li>Official Smarter.Poker neural steel design</li>
-            <li>Made-to-order fulfillment prevents stale inventory</li>
+            <li>Live fulfillment readiness and stock are revalidated before checkout</li>
             <li>Card and diamond pricing stay visible before checkout</li>
           </ul>
         </section>
@@ -111,11 +206,26 @@ export default function MerchProductDetail({ product }) {
 export function getStaticPaths() {
   return {
     paths: MERCHANDISE.map((product) => ({ params: { productId: product.id } })),
-    fallback: false,
+    // Stable Admin can publish a catalog row without a code deployment. The
+    // first request builds that item's full detail page and ISR keeps it fresh.
+    fallback: 'blocking',
   };
 }
 
-export function getStaticProps({ params }) {
-  const product = MERCHANDISE.find((item) => item.id === params.productId);
-  return product ? { props: { product } } : { notFound: true };
+export async function getStaticProps({ params }) {
+  const productId = typeof params?.productId === 'string' ? params.productId.trim() : '';
+  if (!/^[a-z0-9][a-z0-9_-]{0,159}$/i.test(productId)) {
+    return { notFound: true, revalidate: 60 };
+  }
+
+  let product = null;
+  try {
+    product = await catalogProduct(productId);
+  } catch (error) {
+    console.warn('[merch-product-detail] Live catalog lookup failed:', error?.message || error);
+  }
+  product ||= staticProduct(MERCHANDISE.find((item) => item.id === productId));
+  return product
+    ? { props: { product }, revalidate: 300 }
+    : { notFound: true, revalidate: 60 };
 }

@@ -40,15 +40,21 @@ export default function VipManagePage() {
   const [view, setView] = useState({ status: 'loading', membership: EMPTY_MEMBERSHIP, message: '' });
   const [action, setAction] = useState({ status: 'idle', message: '' });
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState(null);
   const [cancelReason, setCancelReason] = useState('not_using');
   const dialogTitleRef = useRef(null);
   const dialogRef = useRef(null);
   const cancelTriggerRef = useRef(null);
+  const dialogReturnFocusRef = useRef(null);
+  const actionBusyRef = useRef(false);
+  const membershipRequestRef = useRef(0);
 
   const loadMembership = useCallback(async () => {
+    const requestId = ++membershipRequestRef.current;
     setView((current) => ({ ...current, status: 'loading', message: '' }));
     const user = getAuthUser() || (await ensureAuthReady(supabase));
     if (!user?.id) {
+      if (requestId !== membershipRequestRef.current) return;
       setView({ status: 'signed-out', membership: EMPTY_MEMBERSHIP, message: '' });
       return;
     }
@@ -59,8 +65,10 @@ export default function VipManagePage() {
       });
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.success) throw new Error(body?.error || 'Could not read your membership record.');
+      if (requestId !== membershipRequestRef.current) return;
       setView({ status: 'ready', membership: { ...EMPTY_MEMBERSHIP, ...body.membership }, message: '' });
     } catch (error) {
+      if (requestId !== membershipRequestRef.current) return;
       setView({ status: 'error', membership: EMPTY_MEMBERSHIP, message: error?.message || 'Could not read your membership record.' });
     }
   }, []);
@@ -68,12 +76,14 @@ export default function VipManagePage() {
   useEffect(() => { void loadMembership(); }, [loadMembership]);
 
   useEffect(() => {
-    if (!confirmOpen) return undefined;
+    if (!confirmOpen && !pendingPlan) return undefined;
     const releaseScrollLock = acquireScrollLock('VipMembershipCancelDialog');
+    dialogReturnFocusRef.current = document.activeElement;
     dialogTitleRef.current?.focus();
     const handleDialogKey = (event) => {
       if (event.key === 'Escape') {
         setConfirmOpen(false);
+        setPendingPlan(null);
         return;
       }
       if (event.key !== 'Tab') return;
@@ -93,12 +103,13 @@ export default function VipManagePage() {
     return () => {
       document.removeEventListener('keydown', handleDialogKey);
       releaseScrollLock();
-      cancelTriggerRef.current?.focus();
+      dialogReturnFocusRef.current?.focus?.();
     };
-  }, [confirmOpen]);
+  }, [confirmOpen, pendingPlan]);
 
   const runAction = async (endpoint, body, successUpdate) => {
-    if (action.status === 'busy') return;
+    if (actionBusyRef.current) return;
+    actionBusyRef.current = true;
     setAction({ status: 'busy', message: '' });
     try {
       const response = await authedFetch(endpoint, {
@@ -111,8 +122,11 @@ export default function VipManagePage() {
       setView((current) => ({ ...current, membership: { ...current.membership, ...successUpdate } }));
       setAction({ status: 'success', message: payload.message || 'Your membership record was updated.' });
       setConfirmOpen(false);
+      setPendingPlan(null);
     } catch (error) {
       setAction({ status: 'error', message: error?.message || 'The membership change could not be completed.' });
+    } finally {
+      actionBusyRef.current = false;
     }
   };
 
@@ -233,13 +247,13 @@ export default function VipManagePage() {
                     <span className={styles.planLabel}>Flexible Access</span>
                     <strong>$19.99 / Month</strong>
                     <p>Monthly renewal with full VIP access.</p>
-                    <button className={styles.button} type="button" disabled={!membership.canSwitch || membership.tier === 'monthly' || action.status === 'busy'} onClick={() => switchPlan('monthly')}>Switch To Monthly</button>
+                    <button className={styles.button} type="button" disabled={!membership.canSwitch || membership.tier === 'monthly' || action.status === 'busy'} onClick={() => setPendingPlan('monthly')}>Switch To Monthly</button>
                   </div>
                   <div className={`${styles.plan} ${membership.tier === 'annual' ? styles.planActive : ''}`}>
                     <span className={styles.planLabel}>Best Card Rate</span>
                     <strong>$199.99 / Year</strong>
                     <p>Annual renewal with the same full VIP suite.</p>
-                    <button className={styles.button} type="button" disabled={!membership.canSwitch || membership.tier === 'annual' || action.status === 'busy'} onClick={() => switchPlan('annual')}>Switch To Annual</button>
+                    <button className={styles.button} type="button" disabled={!membership.canSwitch || membership.tier === 'annual' || action.status === 'busy'} onClick={() => setPendingPlan('annual')}>Switch To Annual</button>
                   </div>
                 </div>
                 {membership.canCancel && <button ref={cancelTriggerRef} className={styles.dangerButton} type="button" onClick={() => setConfirmOpen(true)}>Schedule End Of Membership</button>}
@@ -254,23 +268,37 @@ export default function VipManagePage() {
         </div>
       )}
 
-      {confirmOpen && (
+      {(confirmOpen || pendingPlan) && (
         <div className={styles.dialogBackdrop}>
-          <section ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="cancel-vip-title" aria-describedby="cancel-vip-copy">
-            <h2 id="cancel-vip-title" ref={dialogTitleRef} tabIndex={-1}>Confirm End Of Membership</h2>
-            <p id="cancel-vip-copy">Your card will not renew. VIP access stays active until the current paid period ends.</p>
-            <label htmlFor="cancel-reason">Why are you leaving?</label>
-            <select id="cancel-reason" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)}>
-              <option value="not_using">Not using it enough</option>
-              <option value="too_expensive">Price</option>
-              <option value="missing_features">Missing features</option>
-              <option value="technical_issues">Technical issues</option>
-              <option value="other">Other</option>
-            </select>
+          <section ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="vip-action-title" aria-describedby="vip-action-copy">
+            <h2 id="vip-action-title" ref={dialogTitleRef} tabIndex={-1}>
+              {pendingPlan ? 'Confirm Plan Switch' : 'Confirm End Of Membership'}
+            </h2>
+            <p id="vip-action-copy">
+              {pendingPlan
+                ? `Switch to the ${pendingPlan} plan while keeping your current renewal date? Stripe will apply eligible unused paid time as a prorated credit on your next invoice.`
+                : 'Your card will not renew. VIP access stays active until the current paid period ends.'}
+            </p>
+            {confirmOpen && (
+              <>
+                <label htmlFor="cancel-reason">Why are you leaving?</label>
+                <select id="cancel-reason" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)}>
+                  <option value="not_using">Not using it enough</option>
+                  <option value="too_expensive">Price</option>
+                  <option value="missing_features">Missing features</option>
+                  <option value="technical_issues">Technical issues</option>
+                  <option value="other">Other</option>
+                </select>
+              </>
+            )}
             {action.status === 'error' && <div className={`${styles.notice} ${styles.noticeError}`} role="alert">{action.message}</div>}
             <div className={styles.dialogActions}>
-              <button className={styles.secondaryButton} type="button" disabled={action.status === 'busy'} onClick={() => setConfirmOpen(false)}><X size={15} aria-hidden="true" /> Keep Membership</button>
-              <button className={styles.dangerButton} type="button" disabled={action.status === 'busy'} onClick={scheduleCancellation}>{action.status === 'busy' ? 'Scheduling…' : 'Confirm End At Renewal'}</button>
+              <button className={styles.secondaryButton} type="button" disabled={action.status === 'busy'} onClick={() => { setConfirmOpen(false); setPendingPlan(null); }}><X size={15} aria-hidden="true" /> {pendingPlan ? 'Keep Current Plan' : 'Keep Membership'}</button>
+              {pendingPlan ? (
+                <button className={styles.button} type="button" disabled={action.status === 'busy'} onClick={() => switchPlan(pendingPlan)}>{action.status === 'busy' ? 'Switching…' : `Confirm ${pendingPlan} Plan`}</button>
+              ) : (
+                <button className={styles.dangerButton} type="button" disabled={action.status === 'busy'} onClick={scheduleCancellation}>{action.status === 'busy' ? 'Scheduling…' : 'Confirm End At Renewal'}</button>
+              )}
             </div>
           </section>
         </div>

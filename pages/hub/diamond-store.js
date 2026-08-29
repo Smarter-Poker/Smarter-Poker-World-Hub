@@ -315,16 +315,14 @@ function useDialogFocus(isOpen, dialogRef, onDismiss, isBusy) {
 // VIP FREQUENTLY ASKED QUESTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 // Rewritten 2026-08-25. Every answer was checked against the code that runs it.
-// Two answers changed materially:
-//   • Plan switching is not yet exposed on this page. The billing API exists,
-//     but storefront copy cannot promise self-service until a verified control
-//     is actually wired to it.
-//   • "Select crypto options" was removed. No crypto processor is wired.
+// Keep these answers aligned with the live VIP Command Center. Self-service
+// plan switching and end-of-term cancellation are now wired there; no crypto
+// processor is wired or promised.
 // House style: first letter of every word is capitalized, per Dan.
 const VIP_FAQ = [
   {
     q: 'Can I Cancel Anytime?',
-    a: 'Yes. Cancel From Account Settings At Any Time And Your VIP Benefits Stay Active Through The End Of The Period You Have Already Paid For. There Is No Cancellation Fee, And No Partial Refund For The Days Remaining.',
+    a: 'Yes. Schedule Cancellation From The VIP Command Center At Any Time And Your Benefits Stay Active Through The End Of The Period You Have Already Paid For. There Is No Cancellation Fee, And No Partial Refund For The Days Remaining.',
   },
   {
     q: 'What Are My Options For Getting VIP?',
@@ -360,7 +358,7 @@ const VIP_FAQ = [
   },
   {
     q: 'Can I Switch Between Monthly And Annual?',
-    a: 'Not Automatically From This Page Yet. Cancel Your Current Plan, Keep Every Benefit Through The End Of The Paid Period, Then Choose The Other Plan. We Do Not Promise Self-Service Proration Until A Verified Switch Control Is Available Here.',
+    a: 'Yes. Switch Plans From The VIP Command Center Without Leaving The Marketplace. Your Renewal Date Stays In Place And Stripe Applies Unused Paid Time As A Prorated Credit To The Next Invoice.',
   },
   {
     q: 'What Payment Methods Are Accepted?',

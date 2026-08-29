@@ -123,7 +123,10 @@ export default function MarketplaceReceiptPage() {
   const canonical = rawOrderId
     ? `/hub/diamond-store/orders/${encodeURIComponent(rawOrderId)}`
     : '/hub/diamond-store/orders';
-  const { user, checking } = useRequireAuth(canonical);
+  // The source selects the owner-scoped table. Preserve it through login or a
+  // valid receipt link returns without enough context to load its record.
+  const authReturnPath = source ? `${canonical}?source=${encodeURIComponent(source)}` : canonical;
+  const { user, checking } = useRequireAuth(authReturnPath);
   const [record, setRecord] = useState(null);
   const [state, setState] = useState({ kind: 'loading', message: 'Reading verified commerce record…' });
 

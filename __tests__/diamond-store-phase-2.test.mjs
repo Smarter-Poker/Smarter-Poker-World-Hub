@@ -65,7 +65,7 @@ test('exposes rewards, club filters, fields, and status changes semantically', (
 });
 
 test('gives merchandise cards useful structure and product-specific purchase names', () => {
-  assert.match(merch, /<article\s+aria-labelledby=\{titleId\}/);
+  assert.match(merch, /<article[\s\S]{0,240}aria-labelledby=\{titleId\}/);
   assert.match(merch, /<h4\s+id=\{titleId\}/);
   assert.match(merch, /aria-label=\{`Buy \$\{product\.name\} With Card For/);
   assert.match(
