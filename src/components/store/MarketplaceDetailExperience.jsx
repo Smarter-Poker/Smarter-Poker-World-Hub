@@ -21,6 +21,7 @@ export default function MarketplaceDetailExperience({
   status = 'Available',
   actions,
   structuredData,
+  noindex = false,
   children,
 }) {
   return (
@@ -35,6 +36,7 @@ export default function MarketplaceDetailExperience({
         <meta property="og:image" content={`https://smarter.poker${image}`} />
         <meta property="og:url" content={`https://smarter.poker${canonical}`} />
         <meta name="twitter:card" content="summary_large_image" />
+        {noindex && <meta name="robots" content="noindex,nofollow" />}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}

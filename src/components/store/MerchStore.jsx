@@ -879,7 +879,11 @@ function MerchProductCard({
 // ═══════════════════════════════════════════════════════════════════════════
 // Storefront
 // ═══════════════════════════════════════════════════════════════════════════
-export default function MerchStore({ user = null }) {
+export default function MerchStore({
+  user = null,
+  focusProductId = null,
+  detailMode = false,
+}) {
   // Render the verified static lineup on the server and during the live
   // catalog refresh. The database remains the checkout price oracle, but a
   // slow catalog request no longer leaves the whole page as a loading panel.
@@ -1012,7 +1016,14 @@ export default function MerchStore({ user = null }) {
 
   const visibleProducts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
+    const focusedId = String(focusProductId || '').trim();
     const filtered = products.filter((product) => {
+      if (
+        focusedId &&
+        ![product.catalogId, product.key].some((value) => String(value || '') === focusedId)
+      ) {
+        return false;
+      }
       if (categoryFilter !== 'all' && product.category !== categoryFilter) return false;
       if (!query) return true;
       return [product.name, product.description, product.category]
@@ -1023,7 +1034,7 @@ export default function MerchStore({ user = null }) {
     if (sortMode === 'price-high') filtered.sort((a, b) => b.priceUsd - a.priceUsd);
     if (sortMode === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
     return filtered;
-  }, [categoryFilter, products, searchQuery, sortMode]);
+  }, [categoryFilter, focusProductId, products, searchQuery, sortMode]);
 
   // ── Group into the page's existing category sections ──────────────────
   const sections = useMemo(() => {
@@ -1407,48 +1418,86 @@ export default function MerchStore({ user = null }) {
           }
         }
       `}</style>
-      <div style={styles.intro}>
-        <h2 style={styles.merchTitle}>Official Merch</h2>
-        <p style={styles.introText}>
-          Neural Steel Apparel, Headwear, Table Gear, And Lifestyle Products Are Created After
-          Purchase, Then Packed And Shipped Directly By A Fulfillment Partner. We Never Hold Or Ship
-          Inventory.
-        </p>
+      <div
+        id={detailMode ? 'purchase-console' : undefined}
+        aria-label={detailMode ? 'Live Product Purchase Console' : undefined}
+        style={detailMode ? { scrollMarginTop: 96 } : undefined}
+      >
+        {!detailMode && (
+          <div style={styles.intro}>
+            <h2 style={styles.merchTitle}>Official Merch</h2>
+            <p style={styles.introText}>
+              Neural Steel Apparel, Headwear, Table Gear, And Lifestyle Products Are Created After
+              Purchase, Then Packed And Shipped Directly By A Fulfillment Partner. We Never Hold Or Ship
+              Inventory.
+            </p>
 
-        {user?.id && (
+            {user?.id && (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginTop: 14,
+                  background: 'rgba(0, 212, 255, 0.1)',
+                  border: '1px solid rgba(0, 212, 255, 0.3)',
+                  borderRadius: 0,
+                  padding: '8px 16px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: TEXT,
+                }}
+              >
+                <Gem size={15} color={CYAN} />
+                Your Balance: <span style={{ color: CYAN }}>{fmt(balance)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {detailMode && (
           <div
+            role="status"
+            aria-live="polite"
             style={{
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
               gap: 8,
-              marginTop: 14,
-              background: 'rgba(0, 212, 255, 0.1)',
-              border: '1px solid rgba(0, 212, 255, 0.3)',
+              marginBottom: 14,
+              background: 'linear-gradient(180deg, rgba(20,52,68,0.96), rgba(3,10,15,0.98))',
+              border: '1px solid rgba(139,239,255,0.42)',
               borderRadius: 0,
-              padding: '8px 16px',
-              fontSize: 13,
+              padding: '14px 16px',
+              fontSize: 12,
               fontWeight: 700,
               color: TEXT,
             }}
           >
-            <Gem size={15} color={CYAN} />
-            Your Balance: <span style={{ color: CYAN }}>{fmt(balance)}</span>
+            <span>
+              Live price, option, stock, wishlist, cart, card, and diamond controls are verified
+              below.
+            </span>
+            <span style={{ color: CYAN }}>
+              {user?.id ? `Wallet: ${fmt(balance)} Diamonds` : 'Sign In To Purchase'}
+            </span>
           </div>
         )}
-      </div>
 
-      <section
-        className="merch-discovery-controls"
-        aria-label="Browse Marketplace Gear"
-        style={{
-          display: 'grid',
-          gap: 10,
-          margin: '0 0 14px',
-          padding: 12,
-          border: '1px solid rgba(115,205,235,0.3)',
-          background: 'linear-gradient(180deg, rgba(16,39,53,0.92), rgba(3,10,15,0.96))',
-        }}
-      >
+      {!detailMode && (
+        <section
+          className="merch-discovery-controls"
+          aria-label="Browse Marketplace Gear"
+          style={{
+            display: 'grid',
+            gap: 10,
+            margin: '0 0 14px',
+            padding: 12,
+            border: '1px solid rgba(115,205,235,0.3)',
+            background: 'linear-gradient(180deg, rgba(16,39,53,0.92), rgba(3,10,15,0.96))',
+          }}
+        >
         <label
           style={{
             minHeight: 48,
@@ -1530,7 +1579,8 @@ export default function MerchStore({ user = null }) {
         <div aria-live="polite" style={{ gridColumn: '1 / -1', color: '#a9c3cd', fontSize: 12 }}>
           Showing {visibleProducts.length} Of {products.length} Products
         </div>
-      </section>
+        </section>
+      )}
 
       {usingFallback && loadError && (
         <div
@@ -1623,7 +1673,7 @@ export default function MerchStore({ user = null }) {
 
       {sections.map((section) => (
         <div key={section.key} style={styles.merchSection}>
-          <h3 style={styles.merchCategoryTitle}>{section.label}</h3>
+          {!detailMode && <h3 style={styles.merchCategoryTitle}>{section.label}</h3>}
           <div style={styles.merchGrid}>
             {section.items.map((product, productIndex) => (
               <MerchProductCard
@@ -1645,12 +1695,13 @@ export default function MerchStore({ user = null }) {
         </div>
       ))}
 
-      {products.length > 0 && (
+      {!detailMode && products.length > 0 && (
         <p style={{ ...styles.introText, fontSize: 12, marginTop: 8, textAlign: 'center' }}>
           Card And Diamond Orders Ship To The United States And Canada. A Shipping Address Is
           Collected Securely Before A Physical Order Is Placed.
         </p>
       )}
+      </div>
 
       <MerchPurchaseDialog
         purchase={pendingDiamondPurchase}

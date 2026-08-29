@@ -53,9 +53,9 @@ test('wishlist saves are conflict-safe and refreshes cannot commit stale results
   assert.match(WISHLIST, /requestId !== loadRequestRef\.current/);
 });
 
-test('wishlist merchandise links deep-link to a stable in-page product target', () => {
+test('wishlist merchandise links open the dedicated product page in the same surface', () => {
   assert.match(WISHLIST, /item\.product_type === 'diamond'/);
-  assert.match(WISHLIST, /\/hub\/merch-store#\$\{productAnchorId\(item\.product_id\)\}/);
+  assert.match(WISHLIST, /\/hub\/merch-store\/\$\{encodeURIComponent\(item\.product_id\)\}/);
   assert.match(MERCH, /id=\{productAnchorId\(product\.catalogId \|\| product\.key\)\}/);
   assert.match(MERCH, /article\[id\^='merch-product-'\]:target/);
   assert.match(MERCH, /scrollMarginTop: 96/);

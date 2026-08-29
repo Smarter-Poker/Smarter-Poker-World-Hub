@@ -143,6 +143,53 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Diamond Altitude Hoodie' })).toBeVisible();
   });
 
+  test('product detail owns one focused purchase console and shared cart flow', async ({ page }) => {
+    await page.route('**/api/store/merch-catalog*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          items: [{
+            id: 'hoodie-neural',
+            name: 'Diamond Altitude Hoodie',
+            description: 'Heavyweight Black Hoodie With The Diamond Altitude Circuit Graphic',
+            category: 'apparel',
+            price_usd: 59.99,
+            price_diamonds: 5999,
+            has_variants: true,
+            in_stock: true,
+            stock: 20,
+            fulfillment_ready: true,
+            fulfillment_provider: 'printful',
+            variants: [
+              { id: 'small', size: 'S', color: 'Black', price_usd: 59.99, price_diamonds: 5999, stock: 20, in_stock: true, fulfillment_ready: true },
+            ],
+          }],
+        },
+      }),
+    }));
+
+    await page.goto('/hub/merch-store/hoodie-neural', { waitUntil: 'domcontentloaded' });
+    const purchaseConsole = page.locator('#purchase-console');
+    await expect(purchaseConsole).toBeVisible();
+    await expect(purchaseConsole.getByRole('article')).toHaveCount(1);
+    await expect(page.getByRole('searchbox', { name: 'Search Marketplace Gear' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Open Purchase Console' })).toHaveAttribute('href', /#purchase-console$/);
+    await expect(page.getByRole('link', { name: 'Open Purchase Console' })).not.toHaveAttribute('target');
+    await purchaseConsole.getByRole('button', { name: 'Add Diamond Altitude Hoodie To Cart' }).click();
+    await expect(page.getByRole('navigation', { name: 'Marketplace Commerce' }).getByRole('link', { name: /Cart/ })).toContainText('1');
+  });
+
+  test('private order receipt route owns noindex metadata before authentication', async ({ request }) => {
+    const response = await request.get('/hub/diamond-store/orders/phase-11-proof?source=merchandise');
+    expect(response.status()).toBeLessThan(400);
+    const html = await response.text();
+    expect(html).toContain('Private Marketplace Receipt');
+    expect(html).toContain('name="robots" content="noindex,nofollow"');
+    expect(html).toContain('/hub/diamond-store/orders');
+  });
+
   test('merch discovery filters and sorts without leaving the marketplace', async ({ page }) => {
     await page.goto('/hub/merch-store', { waitUntil: 'domcontentloaded' });
     const search = page.getByRole('searchbox', { name: 'Search Marketplace Gear' });

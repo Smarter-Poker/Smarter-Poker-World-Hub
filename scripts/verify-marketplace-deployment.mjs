@@ -12,6 +12,7 @@ const routes = [
   '/hub/vip-membership/manage',
   '/hub/merch-store',
   '/hub/merch-store/hoodie-neural',
+  '/hub/diamond-store/orders/phase-11-proof?source=merchandise',
   '/hub/smarter-rewards',
   '/hub/club-shop',
 ];

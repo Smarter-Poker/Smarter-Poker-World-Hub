@@ -3,11 +3,14 @@ import { ShoppingCart } from 'lucide-react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
+import MerchStore from '../../../src/components/store/MerchStore';
 import { MERCHANDISE } from '../../../src/data/diamondStoreData';
+import { useAuthUser } from '../../../src/lib/authUtils';
 
 const LEGACY_IMAGE = '/images/merch/neural-steel/legacy-tabletop-atlas.webp';
 
 export default function MerchProductDetail({ product }) {
+  const { user } = useAuthUser();
   const diamondPrice = Math.round(Number(product.price) * 100);
   const canonical = `/hub/merch-store/${product.id}`;
   const image = product.image.startsWith('/merch/') ? LEGACY_IMAGE : product.image;
@@ -25,7 +28,7 @@ export default function MerchProductDetail({ product }) {
       url: `https://smarter.poker${canonical}`,
       priceCurrency: 'USD',
       price: Number(product.price).toFixed(2),
-      availability: 'https://schema.org/InStock',
+      availability: 'https://schema.org/PreOrder',
       itemCondition: 'https://schema.org/NewCondition',
     },
   };
@@ -54,12 +57,13 @@ export default function MerchProductDetail({ product }) {
       ]}
       price={product.price}
       diamondPrice={diamondPrice}
+      status="Preview — Fulfillment Pending"
       actions={
         <>
-          <Link href={`/hub/merch-store#merch-product-${product.id}`}>
-            <ShoppingCart size={16} aria-hidden="true" /> Configure And Add To Cart
+          <Link href="#purchase-console">
+            <ShoppingCart size={16} aria-hidden="true" /> Open Purchase Console
           </Link>
-          <Link href="/hub/diamond-store/cart">Buy With Card Or Diamonds</Link>
+          <Link href="/hub/diamond-store/cart">Open Shared Cart</Link>
         </>
       }
       structuredData={[productSchema, breadcrumbSchema]}
@@ -89,6 +93,17 @@ export default function MerchProductDetail({ product }) {
         <div><strong>Order Telemetry</strong><span>Track order state from the marketplace Orders page.</span></div>
         <div><strong>Same-Surface Flow</strong><span>Details, cart, checkout return, and account records remain inside Smarter.Poker.</span></div>
       </div>
+      <section aria-labelledby="purchase-console-title">
+        <div className={detailStyles.detailCard}>
+          <h2 id="purchase-console-title">Live Purchase Console</h2>
+          <p>
+            Choose the current option, save the item, add it to the shared cart, or use either
+            settlement path from this page. Physical checkout remains locked until the connected
+            fulfillment record is verified.
+          </p>
+        </div>
+        <MerchStore user={user} focusProductId={product.id} detailMode />
+      </section>
     </MarketplaceDetailExperience>
   );
 }

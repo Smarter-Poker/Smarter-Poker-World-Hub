@@ -18,12 +18,6 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 import { Heart, RefreshCw, ShoppingBag, Trash2 } from 'lucide-react';
 
-const productAnchorId = (value) =>
-  `merch-product-${String(value || 'item')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')}`;
-
 export default function Wishlist() {
   const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/wishlist');
   useTrainingBus('diamond-store-wishlist');
@@ -139,7 +133,7 @@ export default function Wishlist() {
                     ? '/hub/vip-membership'
                     : item.product_type === 'diamond' || item.product_type === 'diamonds'
                       ? '/hub/diamond-store'
-                      : `/hub/merch-store#${productAnchorId(item.product_id)}`;
+                      : `/hub/merch-store/${encodeURIComponent(item.product_id)}`;
                 return (
                   <article key={item.id ?? item.product_id} style={styles.wishlistItem}>
                     <div style={styles.productMedia}>

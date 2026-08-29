@@ -6,7 +6,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -33,6 +33,9 @@ export default function OrderHistory() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [partialError, setPartialError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   // Realtime events can arrive while the initial three-source read is still
   // running. Only the newest snapshot may commit, otherwise an older response
   // can roll a just-shipped order back to "processing" on screen.
@@ -280,13 +283,13 @@ export default function OrderHistory() {
 
   const getStatusBadge = (status) => {
     const statusStyles = {
-      completed: { bg: 'rgba(34, 197, 94, 0.15)', color: '#00a8e8', label: 'Completed' },
+      completed: { bg: 'rgba(0, 168, 232, 0.15)', color: '#74dcff', label: 'Completed' },
       pending: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', label: 'Pending' },
       processing: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'Processing' },
       paid: { bg: 'rgba(59, 130, 246, 0.15)', color: '#77c9ff', label: 'Paid — Review' },
       shipped: { bg: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', label: 'Shipped' },
-      delivered: { bg: 'rgba(34, 197, 94, 0.15)', color: '#00a8e8', label: 'Delivered' },
-      active: { bg: 'rgba(34, 197, 94, 0.15)', color: '#00a8e8', label: 'Active' },
+      delivered: { bg: 'rgba(0, 168, 232, 0.15)', color: '#74dcff', label: 'Delivered' },
+      active: { bg: 'rgba(0, 168, 232, 0.15)', color: '#74dcff', label: 'Active' },
       trialing: { bg: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', label: 'Trial' },
       past_due: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', label: 'Past Due' },
       unpaid: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Unpaid' },
@@ -353,6 +356,47 @@ export default function OrderHistory() {
       { label: 'Shipped', complete: currentRank >= 2, date: order?.shippedAt },
       { label: 'Delivered', complete: currentRank >= 3, date: order?.deliveredAt },
     ].map((step, index) => ({ ...step, current: index === currentStep }));
+  };
+
+  const statusOptions = useMemo(
+    () => Array.from(new Set(orders.map((order) => String(order.status || 'pending')))).sort(),
+    [orders]
+  );
+
+  const visibleOrders = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return orders.filter((order) => {
+      if (sourceFilter !== 'all' && order.source !== sourceFilter) return false;
+      if (statusFilter !== 'all' && order.status !== statusFilter) return false;
+      if (!query) return true;
+      return [
+        order.id,
+        order.title,
+        order.status,
+        order.source,
+        ...(order.items || []).map((item) => item.name),
+      ].some((value) => String(value || '').toLowerCase().includes(query));
+    });
+  }, [orders, searchQuery, sourceFilter, statusFilter]);
+
+  const ledgerSummary = useMemo(
+    () => ({
+      records: orders.length,
+      merchandise: orders.filter((order) => order.source === 'merchandise').length,
+      vip: orders.filter((order) => order.source === 'vip').length,
+      active: orders.filter((order) =>
+        ['pending', 'paid', 'processing', 'shipped', 'active', 'trialing'].includes(
+          String(order.status || '').toLowerCase()
+        )
+      ).length,
+    }),
+    [orders]
+  );
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSourceFilter('all');
+    setStatusFilter('all');
   };
 
   return (
@@ -424,7 +468,81 @@ export default function OrderHistory() {
                   {partialError}
                 </div>
               )}
-              {orders.map((order) => (
+              <section aria-label="Marketplace Ledger Summary" style={styles.ledgerSummary}>
+                {[
+                  ['Verified Records', ledgerSummary.records],
+                  ['Merch Orders', ledgerSummary.merchandise],
+                  ['VIP Records', ledgerSummary.vip],
+                  ['Active Signals', ledgerSummary.active],
+                ].map(([label, value]) => (
+                  <div key={label} style={styles.ledgerMetric}>
+                    <span style={styles.ledgerMetricLabel}>{label}</span>
+                    <strong style={styles.ledgerMetricValue}>{value}</strong>
+                  </div>
+                ))}
+              </section>
+
+              <section aria-label="Filter Marketplace Orders" style={styles.filterDeck}>
+                <label style={styles.searchControl}>
+                  <span style={styles.controlLabel}>Search Orders</span>
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    aria-label="Search Orders"
+                    placeholder="Order number, item, or status"
+                    style={styles.controlInput}
+                  />
+                </label>
+                <label style={styles.filterControl}>
+                  <span style={styles.controlLabel}>Order Type</span>
+                  <select
+                    value={sourceFilter}
+                    onChange={(event) => setSourceFilter(event.target.value)}
+                    aria-label="Order Type"
+                    style={styles.controlInput}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="diamonds">Diamond Packages</option>
+                    <option value="merchandise">Merchandise</option>
+                    <option value="vip">VIP Memberships</option>
+                  </select>
+                </label>
+                <label style={styles.filterControl}>
+                  <span style={styles.controlLabel}>Order Status</span>
+                  <select
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value)}
+                    aria-label="Order Status"
+                    style={styles.controlInput}
+                  >
+                    <option value="all">All Statuses</option>
+                    {statusOptions.map((status) => (
+                      <option value={status} key={status}>
+                        {status.replaceAll('_', ' ')}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button type="button" onClick={clearFilters} style={styles.clearFiltersButton}>
+                  Clear Filters
+                </button>
+                <div aria-live="polite" style={styles.resultCount}>
+                  Showing {visibleOrders.length} Of {orders.length} Orders
+                </div>
+              </section>
+
+              {visibleOrders.length === 0 && (
+                <div role="status" style={styles.filteredEmpty}>
+                  <h2 style={styles.emptyTitle}>No Orders Match Those Filters</h2>
+                  <p style={styles.emptyText}>Clear the search or choose a different ledger signal.</p>
+                  <button type="button" onClick={clearFilters} style={styles.shopButton}>
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+
+              {visibleOrders.map((order) => (
                 <div key={order.key} style={styles.orderCard}>
                   <div style={styles.orderHeader}>
                     <div>
@@ -508,10 +626,18 @@ export default function OrderHistory() {
                   )}
 
                   <div style={styles.orderFooter}>
-                    <div style={styles.totalLabel}>Total</div>
-                    <div style={styles.totalAmount}>
-                      {formatAmount(order.amount, order.currency)}
+                    <div>
+                      <div style={styles.totalLabel}>Total</div>
+                      <div style={styles.totalAmount}>
+                        {formatAmount(order.amount, order.currency)}
+                      </div>
                     </div>
+                    <Link
+                      href={`/hub/diamond-store/orders/${order.id}?source=${order.source}`}
+                      style={styles.receiptLink}
+                    >
+                      View Receipt →
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -573,6 +699,85 @@ const styles = {
   },
   loadingText: { marginTop: '16px', color: '#9ca3af' },
   ordersList: { display: 'grid', gap: '20px' },
+  ledgerSummary: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+    border: '1px solid #5e7d8e',
+    background:
+      'linear-gradient(90deg, rgba(0,190,255,0.11), transparent 42%), linear-gradient(180deg, #102630, #03090d)',
+    boxShadow: 'inset 0 1px 0 rgba(235,251,255,0.32), inset 0 0 0 4px #03080c',
+  },
+  ledgerMetric: {
+    minHeight: 88,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    gap: 6,
+    padding: '16px 18px',
+    borderRight: '1px solid rgba(129,173,194,0.22)',
+  },
+  ledgerMetricLabel: {
+    color: '#90a8b5',
+    fontFamily: 'IBM Plex Mono, monospace',
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+  },
+  ledgerMetricValue: { color: '#8befff', fontSize: 27, lineHeight: 1 },
+  filterDeck: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))',
+    gap: 10,
+    alignItems: 'end',
+    padding: 14,
+    border: '1px solid rgba(115,205,235,0.34)',
+    background: 'linear-gradient(180deg, rgba(16,39,53,0.94), rgba(3,10,15,0.98))',
+  },
+  searchControl: { display: 'grid', gap: 6 },
+  filterControl: { display: 'grid', gap: 6 },
+  controlLabel: {
+    color: '#9db6c2',
+    fontFamily: 'IBM Plex Mono, monospace',
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+  },
+  controlInput: {
+    width: '100%',
+    minHeight: 44,
+    boxSizing: 'border-box',
+    border: '1px solid #526f80',
+    borderRadius: 0,
+    padding: '0 12px',
+    color: '#effbff',
+    background: '#061017',
+    fontSize: 13,
+  },
+  clearFiltersButton: {
+    minHeight: 44,
+    border: '1px solid #c7eaf3',
+    borderRadius: 0,
+    padding: '0 14px',
+    color: '#071017',
+    background: 'linear-gradient(180deg, #e4faff, #6faec3 48%, #244f62)',
+    fontSize: 11,
+    fontWeight: 800,
+    cursor: 'pointer',
+  },
+  resultCount: {
+    gridColumn: '1 / -1',
+    color: '#9db6c2',
+    fontFamily: 'IBM Plex Mono, monospace',
+    fontSize: 11,
+  },
+  filteredEmpty: {
+    padding: '44px 20px',
+    border: '1px dashed #526f80',
+    textAlign: 'center',
+    background: 'rgba(3,10,15,0.8)',
+  },
   orderCard: {
     background: 'linear-gradient(145deg, #172933, #050a0f 34%, #010305)',
     border: '1px solid #526f80',
@@ -610,6 +815,9 @@ const styles = {
   orderFooter: {
     display: 'flex',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 16,
+    flexWrap: 'wrap',
     paddingTop: '16px',
     borderTop: '1px solid rgba(255, 255, 255, 0.1)',
   },
@@ -698,12 +906,18 @@ const styles = {
     overflowWrap: 'anywhere',
   },
   receiptLink: {
-    display: 'block',
-    marginTop: '16px',
-    textAlign: 'center',
-    color: '#00D4FF',
+    display: 'inline-flex',
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 15px',
+    border: '1px solid #8ed9eb',
+    color: '#06131a',
+    background: 'linear-gradient(180deg, #dff9ff, #6da7bc 48%, #1c4b61)',
     textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: 600,
+    fontFamily: 'IBM Plex Mono, monospace',
+    fontSize: '10px',
+    fontWeight: 800,
+    textTransform: 'uppercase',
   },
 };
