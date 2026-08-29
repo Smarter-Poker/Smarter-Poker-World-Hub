@@ -40,25 +40,48 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 
 const LIB = 'src/lib/hubAds.js';
-const STRIP = 'src/components/ui/HubPromoStrip.js';
+/* THE HUB HOME CARRIES NO ADVERT (Dan 2026-08-29). HubPromoStrip is deleted;
+   every rule it used to be pinned on is pinned on the rail below, which is the
+   surviving Hub surface. See "no advert is mounted on the Hub home". */
+const RAIL = 'src/components/ads/HubPromoRail.jsx';
+const PROMOS_PAGE = 'pages/hub/promotions.js';
 const PAGE = 'pages/hub/index.js';
 
-test('the Hub ad client and strip both exist', () => {
-    for (const f of [LIB, STRIP]) {
+test('the Hub ad client and rail both exist', () => {
+    for (const f of [LIB, RAIL]) {
         assert.ok(existsSync(join(ROOT, f)), `${f} is missing`);
     }
 });
 
-test('the strip is actually rendered on the Hub home, not merely defined', () => {
-    const page = read(PAGE);
-    assert.match(page, /import\s+HubPromoStrip\s+from\s+'\.\.\/\.\.\/src\/components\/ui\/HubPromoStrip'/);
-    assert.match(page, /<HubPromoStrip\s*\/>/, 'HubPromoStrip is imported but never rendered');
-    // An advert must never take the page down with it.
-    assert.match(
-        page,
-        /HubErrorBoundary[^>]*name="Hub Promotions"[\s\S]{0,200}<HubPromoStrip/,
-        'HubPromoStrip must be wrapped in a HubErrorBoundary'
-    );
+test('no advert is mounted on the Hub home', () => {
+    /* Dan 2026-08-29, verbatim: "DO NOT PUT ADS IN RANDOM PLACES OR OVERLAPPING
+       IMAGES EVER."
+
+       HubPromoStrip was mounted here on 2026-08-28 behind a comment reasoning
+       that the 3D carousel is position:fixed "so nothing moves". That is
+       exactly why it was wrong: a fixed carousel is not in the flow, so a strip
+       placed in the flow does not sit above it in an empty band, it sits ON it.
+       In production it covered the featured cards, which are the page.
+
+       This asserts the absence, because the mistake was easy to make once and
+       will be easy to make again. */
+    // A comment may name the component and say why it is gone; a code path
+    // must not reference it. The page carries exactly such a comment.
+    const code = read(PAGE)
+        .replace(/\{?\/\*[\s\S]*?\*\/\}?/g, '')
+        .replace(/^\s*\/\/.*$/gm, '');
+    assert.ok(!existsSync(join(ROOT, 'src/components/ui/HubPromoStrip.js')), 'the strip is back');
+    assert.doesNotMatch(code, /HubPromoStrip/);
+    assert.doesNotMatch(code, /HubPromoRail/, 'the rail belongs on /hub/promotions, not the home');
+    assert.doesNotMatch(code, /hub_promotions/);
+});
+
+test('the rail is actually rendered on the promotions page, not merely defined', () => {
+    // The estate's recurring bug shape is a component that exists and is
+    // imported by nothing.
+    const page = read(PROMOS_PAGE);
+    assert.match(page, /import\s+HubPromoRail\s+from\s+'\.\.\/\.\.\/src\/components\/ads\/HubPromoRail'/);
+    assert.match(page, /<HubPromoRail\b/, 'HubPromoRail is imported but never rendered');
 });
 
 test('the Hub resolves ads through fn_resolve_ads on the hub_promotions slot', () => {
@@ -95,12 +118,12 @@ test('clicks are not de-duplicated', () => {
     );
 });
 
-test('the click is logged before the navigation that would unmount the strip', () => {
-    const strip = read(STRIP);
-    const click = strip.indexOf('logHubClick(visible.adId)');
-    const push = strip.indexOf('router.push(visible.targetUrl)');
-    assert.ok(click > -1, 'the strip does not log a click at all');
-    assert.ok(push > -1, 'the strip does not navigate');
+test('the click is logged before the navigation that would unmount the rail', () => {
+    const rail = read(RAIL);
+    const click = rail.indexOf('logHubClick(ad.adId)');
+    const push = rail.indexOf('router.push(ad.targetUrl)');
+    assert.ok(click > -1, 'the rail does not log a click at all');
+    assert.ok(push > -1, 'the rail does not navigate');
     assert.ok(click < push, 'the click must be logged BEFORE navigating away');
 });
 
@@ -115,10 +138,10 @@ test('a Club Arena destination gets a real navigation, not a router push', () =>
     assert.match(lib, /export function leavesTheNextRouter/);
     assert.match(lib, /startsWith\('\/hub\/club-arena'\)/);
 
-    const strip = read(STRIP);
-    const click = strip.indexOf('logHubClick(visible.adId)');
-    const assign = strip.indexOf('window.location.assign(visible.targetUrl)');
-    const push = strip.indexOf('router.push(visible.targetUrl)');
+    const rail = read(RAIL);
+    const click = rail.indexOf('logHubClick(ad.adId)');
+    const assign = rail.indexOf('window.location.assign(ad.targetUrl)');
+    const push = rail.indexOf('router.push(ad.targetUrl)');
     assert.ok(assign > -1, 'no hard navigation for destinations outside the Next router');
     assert.ok(click < assign, 'the click must be logged before a full page navigation');
     assert.ok(assign < push, 'the SPA case must be handled before falling through to router.push');
@@ -128,22 +151,22 @@ test('an ad destination is checked before a browser is sent to it', () => {
     const lib = read(LIB);
     assert.match(lib, /export function isSafeHubDestination/);
     assert.match(lib, /url\.startsWith\('\/\/'\)/, 'a protocol-relative URL is another site');
-    const strip = read(STRIP);
-    assert.match(strip, /isSafeHubDestination\(visible\.targetUrl\)/);
+    const rail = read(RAIL);
+    assert.match(rail, /isSafeHubDestination\(ad\.targetUrl\)/);
 });
 
 test('a dismissal expires with the page load and is counted', () => {
-    const strip = read(STRIP);
+    const rail = read(RAIL);
     assert.ok(
-        !strip.includes('localStorage') && !strip.includes('sessionStorage'),
+        !rail.includes('localStorage') && !rail.includes('sessionStorage'),
         'a persisted dismissal is the absorbing state PR #1505 was about'
     );
-    assert.match(strip, /logHubAdEvent\(visible\.adId, 'dismiss'\)/);
+    assert.match(rail, /logHubAdEvent\(adId, 'dismiss'\)/);
 });
 
 test('VIP suppression is absent, in both directions', () => {
     // Dan 2026-08-27: "even vips will see ads remove that for now."
-    const both = read(LIB) + read(STRIP);
+    const both = read(LIB) + read(RAIL);
     assert.ok(!both.includes('isVip'), 'no VIP gate belongs in the client');
     assert.ok(!both.includes('is_vip'), 'no VIP gate belongs in the client');
     assert.ok(!both.includes('Ad-Free'), 'do not re-advertise an ad-free tier');
@@ -157,7 +180,7 @@ test('no emoji in either source file', () => {
        glyph set itself, which is why this matches the pictographic planes
        instead. Those are the ones that break the SWC compiler. */
     const emoji = /[\u{1F000}-\u{1FAFF}\u{FE0F}]/u;
-    for (const f of [LIB, STRIP]) {
+    for (const f of [LIB, RAIL]) {
         assert.ok(!emoji.test(read(f)), `${f} contains an emoji`);
     }
 });
@@ -418,12 +441,7 @@ test('a refusal is a 400, not a null the operator has to notice', () => {
 });
 
 test('the click is logged only where a click went somewhere', () => {
-    const strip = read(STRIP);
-    const guard = strip.indexOf('if (!isSafeHubDestination(visible.targetUrl)) return;');
-    const click = strip.indexOf('logHubClick(visible.adId)');
-    assert.ok(guard > -1 && click > guard, 'the strip logs before it checks');
-
-    const rail = read('src/components/ads/HubPromoRail.jsx');
+    const rail = read(RAIL);
     const railGuard = rail.indexOf('if (!isSafeHubDestination(ad.targetUrl)) return;');
     const railClick = rail.indexOf('logHubClick(ad.adId)');
     assert.ok(railGuard > -1 && railClick > railGuard, 'the rail logs before it checks');
