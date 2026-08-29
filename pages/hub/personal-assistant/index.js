@@ -62,6 +62,27 @@ const SYSTEMS = [
   },
 ];
 
+function normalizeDailyHandPayload(payload) {
+  const raw = payload?.hand || payload?.question;
+  if (!raw || typeof raw !== 'object') return null;
+  const scenario = raw.scenario && typeof raw.scenario === 'object' ? raw.scenario : {};
+  const board = raw.board || raw.board_cards || raw.boardCards || scenario.board || null;
+  const exactHeroCards = Array.isArray(raw.heroCards) && raw.heroCards.length >= 2
+    ? raw.heroCards.slice(0, 2).join('')
+    : null;
+  const heroHand = exactHeroCards || raw.heroHand || raw.hero_hand || scenario.heroHand || null;
+  if (!heroHand) return null;
+  return {
+    ...raw,
+    id: raw.id || payload?.dailyId || null,
+    heroHand,
+    position: raw.position || raw.hero_position || scenario.heroPosition || null,
+    board,
+    pot: raw.pot ?? raw.pot_size ?? scenario.potSize ?? null,
+    title: raw.title || raw.scenario_text || raw.question || scenario.context || 'What Is The Best Line?',
+  };
+}
+
 const SectionBar = ({ title, meta, id }) => (
   <div className={styles.sectionBar} id={id}>
     <h2>{title}</h2>
@@ -111,7 +132,7 @@ export default function PersonalAssistantPage() {
     fetch('/api/training/hand-of-the-day')
       .then((response) => (response.ok ? response.json() : null))
       .then((json) => {
-        if (!cancelled && json?.hand) setDailyHand(json.hand);
+        if (!cancelled) setDailyHand(normalizeDailyHandPayload(json));
       })
       .catch((error) => console.warn('[App] Handled promise rejection:', error?.message || error));
     return () => { cancelled = true; };

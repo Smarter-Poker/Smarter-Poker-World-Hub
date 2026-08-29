@@ -20,6 +20,10 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { checkSandboxAccess } from '../../../../src/lib/personal-assistant/contextAuthority';
+import {
+  chooseTrainingCacheMatch,
+  mapTrainingQuestionToAnalysis,
+} from '../../../../src/lib/sandbox/trainingCacheSolver.mjs';
 import { getGrokClient } from '../../../../src/lib/grokClient';
 import { rateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
@@ -283,12 +287,84 @@ function heroHandToNotation(heroHand) {
 }
 
 /**
- * 3-Tier board matching against solved_spots_gold
- * Same pattern as DeterministicGTOEngine.queryNextStreet
+ * Query the canonical Training Arena question cache first. This is the same
+ * solver-verified data served by the training games and consumed by Leak Finder.
+ * Raw solved_spots_gold remains a compatibility fallback for a hand that has
+ * not yet been canonicalized into training_question_cache.
  */
 async function querySolverData(params) {
-  const { heroStack, gameType, board } = params;
+  const { heroHand, heroPosition, heroStack, gameType, board, facingBet } = params;
   const street = getStreet(board);
+  const heroNotation = heroHandToNotation(heroHand);
+  const boardCards = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
+  const cacheGameType = gameType === 'tournament' || gameType === 'mtt'
+    ? 'tournament'
+    : gameType === 'spin' || gameType === 'sng' ? 'sng' : 'cash';
+
+  if (heroNotation && heroPosition) {
+    const select = 'id, question_id, game_id, engine_type, game_type, level, question_data';
+    const runCacheQuery = async (boardFilter) => {
+      let query = getSupabase()
+        .from('training_question_cache')
+        .select(select)
+        .eq('game_type', cacheGameType)
+        .in('engine_type', ['PIO', 'CHART'])
+        .ilike('question_data->scenario->>street', street)
+        .ilike('question_data->scenario->>heroPosition', heroPosition)
+        .ilike('question_data->scenario->>heroHand', heroNotation);
+      if (boardFilter?.type === 'exact') {
+        query = query.in('question_data->scenario->>board', boardFilter.values);
+      } else if (boardFilter?.type === 'prefix') {
+        query = query.ilike('question_data->scenario->>board', `${boardFilter.value}%`);
+      }
+      return query.limit(100);
+    };
+
+    const flop = boardCards.slice(0, 3);
+    const tail = boardCards.slice(3);
+    const flopOrders = flop.length === 3
+      ? [
+          [flop[0], flop[1], flop[2]], [flop[0], flop[2], flop[1]],
+          [flop[1], flop[0], flop[2]], [flop[1], flop[2], flop[0]],
+          [flop[2], flop[0], flop[1]], [flop[2], flop[1], flop[0]],
+        ]
+      : [flop];
+    const exactBoards = [...new Set(flopOrders.map(order => [...order, ...tail].join(' ')))];
+    const spacedBoard = boardCards.join(' ');
+    const filters = spacedBoard
+      ? [
+          { type: 'exact', values: exactBoards },
+          ...(boardCards.length > 3 ? [{ type: 'prefix', value: boardCards.slice(0, 3).join(' ') }] : []),
+        ]
+      : [null];
+
+    for (const filter of filters) {
+      const { data, error } = await runCacheQuery(filter);
+      if (error) {
+        console.warn('[Sandbox] Training cache query failed:', error.message);
+        break;
+      }
+      const match = chooseTrainingCacheMatch(data, {
+        heroNotation,
+        heroPosition,
+        heroStack,
+        street,
+        boardCards,
+        facingBet,
+      });
+      if (match) {
+        const source = match.matchTier === 1
+          ? 'Training Solver — Exact Hand And Board'
+          : 'Training Solver — Flop-Matched Hand';
+        return {
+          trainingQuestion: match.question,
+          cacheRow: match.row,
+          matchTier: match.matchTier,
+          source,
+        };
+      }
+    }
+  }
 
   if (street === 'preflop') {
     return queryPreflopData(params);
@@ -1060,6 +1136,91 @@ function buildExplanation(handAnalysis, matchTier, street, exploitMode, villainA
   return explanation.trim();
 }
 
+/**
+ * Persist every authenticated analysis, including responses served from the
+ * in-memory solver cache. Previously the cache returned before this code path,
+ * leaving holes in Recent Sessions, Study Deck, and dashboard totals.
+ */
+async function persistSandboxAnalysis({
+  userId,
+  heroHand,
+  heroPosition,
+  heroStack,
+  gameType,
+  villains,
+  board,
+  betSizing,
+  calculatedPot,
+  actionHistory,
+  responseData,
+  explanation,
+}) {
+  if (!userId) return null;
+  try {
+    const { data: session, error: sessionError } = await getSupabase()
+      .from('sandbox_sessions')
+      .insert({
+        user_id: userId,
+        hero_hand: `${heroHand?.card1 || ''}${heroHand?.card2 || ''}`,
+        hero_position: heroPosition,
+        hero_stack_bb: heroStack,
+        game_type: gameType,
+        num_opponents: villains?.length || 0,
+        board_flop: board?.flop?.join('') || null,
+        board_turn: board?.turn || null,
+        board_river: board?.river || null,
+        villain_config: villains || [],
+        action_history: actionHistory || [],
+        bet_sizing_preset: betSizing || 'standard',
+        pot_size_bb: calculatedPot,
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (sessionError || !session?.id) {
+      console.warn('[Sandbox] Session persistence failed:', sessionError?.message || 'No session id returned');
+      return null;
+    }
+
+    const { error: resultsError } = await getSupabase().from('sandbox_results').insert({
+      session_id: session.id,
+      primary_action: responseData.optimalAction?.label,
+      primary_frequency: responseData.optimalAction?.frequency,
+      alternative_actions: responseData.actions?.filter(action => !action.isOptimal),
+      data_source: responseData.matchTier <= 3 ? 'solver_verified' : 'ai_approx',
+      confidence: responseData.confidence?.toLowerCase(),
+      sensitivity_flags: Number(heroStack) < 50 ? ['stack_sensitive'] : [],
+      why_not_check: explanation,
+      full_analysis: responseData,
+      truth_seal: {
+        source: responseData.matchTier <= 2
+          ? 'solver_verified'
+          : responseData.matchTier === 3 ? 'solver_approx' : 'ai_approx',
+        matchTier: responseData.matchTier,
+        canonicalQuestionId: responseData.canonicalQuestionId || null,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    if (resultsError) console.warn('[Sandbox] Results persistence failed:', resultsError.message);
+
+    // Counters are derived from authoritative tables by /api/assistant/stats.
+    // Only record recency here; read-modify-write counter increments raced and
+    // could lose updates when two analyses completed together.
+    const now = new Date().toISOString();
+    const { error: statsError } = await getSupabase().from('user_assistant_stats').upsert({
+      user_id: userId,
+      last_sandbox_at: now,
+      updated_at: now,
+    }, { onConflict: 'user_id' });
+    if (statsError) console.warn('[Sandbox] Stats recency sync failed:', statsError.message);
+
+    return String(session.id);
+  } catch (error) {
+    console.warn('[Sandbox] Session persistence failed:', error.message);
+    return null;
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════
@@ -1139,7 +1300,18 @@ export default async function handler(req, res) {
       });
       const cached = analysisCache.get(cacheKey);
       if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
-        return res.status(200).json({ success: true, cached: true, ...cached.data });
+        const savedSessionId = await persistSandboxAnalysis({
+          userId, heroHand, heroPosition, heroStack, gameType, villains, board,
+          betSizing, calculatedPot, actionHistory,
+          responseData: cached.data,
+          explanation: cached.data.explanation,
+        });
+        return res.status(200).json({
+          success: true,
+          cached: true,
+          ...cached.data,
+          sessionId: savedSessionId,
+        });
       }
 
       // ━━━ QUERY SOLVER DATA ━━━
@@ -1150,14 +1322,22 @@ export default async function handler(req, res) {
       let explanation = '';
 
       const solverResult = await querySolverData({
-        heroHand, heroPosition, heroStack, gameType, board,
+        heroHand, heroPosition, heroStack, gameType, board, facingBet,
       });
 
       if (solverResult) {
         matchTier = solverResult.matchTier;
         source = solverResult.source;
 
-        if (solverResult.isPreflop && solverResult.chart) {
+        if (solverResult.trainingQuestion) {
+          // Canonical Training Arena question: this path guarantees Sandbox,
+          // Training, and Leak Finder read the same action ids/frequencies.
+          analysis = mapTrainingQuestionToAnalysis(solverResult.trainingQuestion, { facingBet });
+          if (analysis) {
+            explanation = analysis.explanation
+              || buildExplanation(analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor);
+          }
+        } else if (solverResult.isPreflop && solverResult.chart) {
           // Preflop chart data (short-stack push/fold only)
           analysis = parsePreflopChart(solverResult.chart, heroNotation);
           if (analysis) {
@@ -1212,6 +1392,7 @@ export default async function handler(req, res) {
         matchTier,
         street,
         confidence: matchTier <= 2 ? 'High' : matchTier === 3 ? 'Medium' : 'Low',
+        canonicalQuestionId: solverResult?.cacheRow?.question_id || null,
 
         // Range heatmap (may be null for Grok fallback)
         rangeHeatmap,
@@ -1238,82 +1419,10 @@ export default async function handler(req, res) {
         keysToDelete.forEach(k => analysisCache.delete(k));
       }
 
-      // Save session — only for authenticated users. Guest analyses must not
-      // write null-user rows into sandbox_sessions / user_assistant_stats.
-      // savedSessionId is echoed back to the client so a coach verdict logged
-      // right after this analysis can be linked to the exact hand instead of
-      // relying on the spot+timestamp heuristic. Stays null whenever the row
-      // could not be written (guest, missing table, DB error).
-      let savedSessionId = null;
-      if (userId) {
-       try {
-        const { data: session } = await getSupabase()
-          .from('sandbox_sessions')
-          .insert({
-            user_id: userId,
-            hero_hand: `${heroHand?.card1 || ''}${heroHand?.card2 || ''}`,
-            hero_position: heroPosition,
-            hero_stack_bb: heroStack,
-            game_type: gameType,
-            num_opponents: villains?.length || 0,
-            board_flop: board?.flop?.join('') || null,
-            board_turn: board?.turn || null,
-            board_river: board?.river || null,
-            villain_config: villains || [],
-            action_history: actionHistory || [],
-            bet_sizing_preset: betSizing || 'standard',
-            pot_size_bb: calculatedPot,
-          })
-          .select()
-          .maybeSingle();
-
-        if (session) {
-          // Normalise to a string — the id may come back as a bigint/number
-          // depending on the column type, and every consumer treats it as text.
-          savedSessionId = (session.id === null || session.id === undefined || session.id === '')
-            ? null
-            : String(session.id);
-
-          const { error: resultsErr } = await getSupabase().from('sandbox_results').insert({
-            session_id: session.id,
-            primary_action: analysis.optimalAction?.label,
-            primary_frequency: analysis.optimalAction?.frequency,
-            alternative_actions: analysis.actions?.filter(a => !a.isOptimal),
-            data_source: matchTier <= 3 ? 'solver_verified' : 'ai_approx',
-            confidence: responseData.confidence?.toLowerCase(),
-            sensitivity_flags: heroStack < 50 ? ['stack_sensitive'] : [],
-            why_not_check: explanation,
-            full_analysis: responseData,
-            truth_seal: {
-              source: matchTier <= 2 ? 'solver_verified' : matchTier === 3 ? 'solver_approx' : 'ai_approx',
-              matchTier,
-              timestamp: new Date().toISOString(),
-            },
-          });
-          if (resultsErr) console.warn('[Sandbox] Results insert failed:', resultsErr.message);
-
-          // Update user stats. NOTE: total_sessions_reviewed means "reviewed
-          // sessions" elsewhere in the app — analyzing a spot is not a review,
-          // so only the sandbox/hand counters move here.
-          const { data: existing } = await getSupabase()
-            .from('user_assistant_stats')
-            .select('sandbox_sessions_count, total_hands_analyzed')
-            .eq('user_id', userId)
-            .maybeSingle();
-
-          const { error: statsErr } = await getSupabase().from('user_assistant_stats').upsert({
-            user_id: userId,
-            sandbox_sessions_count: (existing?.sandbox_sessions_count || 0) + 1,
-            total_hands_analyzed: (existing?.total_hands_analyzed || 0) + 1,
-            last_sandbox_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'user_id' });
-          if (statsErr) console.warn('[Sandbox] Stats upsert failed:', statsErr.message);
-        }
-       } catch (dbErr) {
-        console.warn('[Sandbox] Session save error (non-fatal):', dbErr.message);
-       }
-      }
+      const savedSessionId = await persistSandboxAnalysis({
+        userId, heroHand, heroPosition, heroStack, gameType, villains, board,
+        betSizing, calculatedPot, actionHistory, responseData, explanation,
+      });
 
       // sessionId is spread last so a stray key inside responseData can never
       // shadow the real row id. Null for guests / failed writes, which the
