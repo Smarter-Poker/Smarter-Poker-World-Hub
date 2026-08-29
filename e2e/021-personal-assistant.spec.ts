@@ -43,6 +43,39 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
+  test('strategy hub exposes recovery and restores the Daily Hand after a feed interruption', async ({ page }) => {
+    let feedHealthy = false;
+    await page.route('**/api/training/hand-of-the-day', route => {
+      if (!feedHealthy) {
+        return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary interruption' }) });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          question: {
+            id: 'recovered-daily-hand',
+            heroCards: ['Ah', 'Kd'],
+            hero_position: 'CO',
+            board_cards: ['Qs', '7c', '2d'],
+            scenario_text: 'Recovered Solver Decision',
+            scenario: { pot: 8 },
+          },
+        }),
+      });
+    });
+
+    await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('Daily Hand Temporarily Unavailable', { exact: true })).toBeVisible();
+    feedHealthy = true;
+    await page.getByRole('button', { name: 'Retry Daily Hand' }).click();
+    const dailySection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Hand Of The Day' }) });
+    await expect(dailySection.getByRole('heading', { name: 'Recovered Solver Decision' })).toBeVisible();
+    await expect(dailySection.getByText('CO · Pot 8 BB')).toBeVisible();
+    await expectHealthyLayout(page);
+  });
+
   test('Sandbox setup sheet opens, traps context, and closes with Escape', async ({ page }) => {
     const response = await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
