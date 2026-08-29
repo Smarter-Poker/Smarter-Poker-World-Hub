@@ -335,12 +335,15 @@ export async function auditParsedHands(db, userId, hands, {
         hero_hand: handNotation(point.holeCards),
         board_cards: point.board || [],
         player_action: point.action,
-        solver_action: grade?.optimalAction || null,
-        selected_frequency: grade?.selectedFrequency ?? null,
-        optimal_frequency: grade?.optimalFrequency ?? null,
-        classification: grade?.classification || 'unpriced',
-        ev_loss: grade?.evLoss ?? null,
-        ev_loss_measured: !!grade?.evLossMeasured,
+        // A looser candidate can help explain why a node stayed unpriced, but
+        // it cannot grade the player's action. Persist solver conclusions only
+        // when the hand, board and node matched exactly.
+        solver_action: solverVerified ? grade.optimalAction : null,
+        selected_frequency: solverVerified ? grade.selectedFrequency : null,
+        optimal_frequency: solverVerified ? grade.optimalFrequency : null,
+        classification: solverVerified ? grade.classification : 'unpriced',
+        ev_loss: solverVerified ? grade.evLoss : null,
+        ev_loss_measured: solverVerified && !!grade.evLossMeasured,
         solver_verified: solverVerified,
         solver_source: candidate?.question_data?.source || null,
         match_tier: candidate?.matchTier || null,
@@ -402,7 +405,7 @@ async function fetchExistingAuditRows(db, userId, externalIds) {
   for (let index = 0; index < externalIds.length; index += EXISTING_AUDIT_BATCH_SIZE) {
     const batch = externalIds.slice(index, index + EXISTING_AUDIT_BATCH_SIZE);
     const result = await db.from('hand_audit_decisions')
-      .select('hand_external_id, solver_verified, audited_at, updated_at')
+      .select('hand_external_id, solver_verified, classification, audited_at, updated_at')
       .eq('user_id', userId)
       .in('hand_external_id', batch)
       .limit(batch.length * MAX_DECISIONS_PER_HAND);
@@ -478,9 +481,11 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     );
     const partialAudit = rows.length < expectedDecisions;
     const hasUnpricedDecision = rows.some(row => row.solver_verified !== true);
+    const hasUntrustedClassification = rows.some(row =>
+      row.solver_verified !== true && row.classification !== 'unpriced');
     const newestAuditAt = rows.reduce((latest, row) => Math.max(latest, auditRowTime(row)), 0);
     const staleUnpricedAudit = hasUnpricedDecision && newestAuditAt <= retryCutoff;
-    if (partialAudit || staleUnpricedAudit) {
+    if (partialAudit || hasUntrustedClassification || staleUnpricedAudit) {
       handsQueuedForRetry += 1;
       return true;
     }
