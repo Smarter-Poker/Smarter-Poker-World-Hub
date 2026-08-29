@@ -49,88 +49,50 @@ export default async function handler(req, res) {
     const userId = authUser.id;
 
     try {
-      // Try to get real stats
-      const { data: stats, error } = await getSupabase()
-        .from('user_assistant_stats')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (error || !stats) {
-        // Count sandbox sessions
-        const { count: sandboxCount } = await getSupabase()
+      // The aggregate row is a projection, not the source of truth. Sandbox
+      // session counters used to drift because cached analyses skipped writes
+      // and concurrent read-modify-write increments could overwrite each other.
+      // Always count the owned session rows and active leaks live; retain the
+      // stored hand total only for Club Arena scans, whose unique-hand count is
+      // deliberately persisted by the deterministic audit endpoint.
+      const [storedRes, sandboxRes, leakStats] = await Promise.all([
+        getSupabase()
+          .from('user_assistant_stats')
+          .select('sandbox_sessions_count, total_sessions_reviewed, total_hands_analyzed')
+          .eq('user_id', userId)
+          .maybeSingle(),
+        getSupabase()
           .from('sandbox_sessions')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId);
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId),
+        getLeakStats(userId),
+      ]);
 
-        // Count real analyzed hands: sandbox_results rows belonging to this
-        // user's sessions. Falls back to the session count if the results
-        // table is missing or the joined count fails.
-        let handsAnalyzed = sandboxCount || 0;
-        try {
-          const { count: resultsCount, error: resultsError } = await getSupabase()
-            .from('sandbox_results')
-            .select('id, sandbox_sessions!inner(user_id)', { count: 'exact', head: true })
-            .eq('sandbox_sessions.user_id', userId);
-          if (!resultsError && typeof resultsCount === 'number') {
-            handsAnalyzed = resultsCount;
-          }
-        } catch (resultsErr) {
-          console.warn('Sandbox results count error:', resultsErr?.message || resultsErr);
-        }
-
-        const { activeLeaks, resolvedLeaks, avgEvLoss } = await getLeakStats(userId);
-
-        return res.status(200).json({
-          success: true,
-          stats: {
-            sessionsReviewed: sandboxCount || 0,
-            handsAnalyzed,
-            leaksFound: activeLeaks,
-            resolvedLeaks,
-            sandboxSessions: sandboxCount || 0,
-            avgEvLoss
-          },
-          isDemo: !sandboxCount
-        });
-      }
-
-      // `total_sessions_reviewed` has no writer anywhere in the app, so reading
-      // it straight off the row pins the tile at 0 forever. Derive it from a
-      // live count on sandbox_sessions — exactly how the no-row branch above
-      // does it — and only fall back to the column if the count is unavailable.
-      let sessionsReviewed = stats.total_sessions_reviewed || 0;
-      try {
-        const { count: sandboxCount, error: countError } = await getSupabase()
-          .from('sandbox_sessions')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId);
-        if (!countError && typeof sandboxCount === 'number') sessionsReviewed = sandboxCount;
-      } catch (countErr) {
-        console.warn('Sandbox session count error:', countErr?.message || countErr);
-      }
-
-      // Real stats row: prefer a stored avg_ev_loss column, otherwise compute
-      // the aggregate from user_leaks (never a hardcoded placeholder).
-      let avgEvLoss = 0;
-      if (typeof stats.avg_ev_loss === 'number' && Number.isFinite(stats.avg_ev_loss)) {
-        avgEvLoss = stats.avg_ev_loss;
-      } else if ((stats.active_leaks_count || 0) > 0) {
-        const leakStats = await getLeakStats(userId);
-        avgEvLoss = leakStats.avgEvLoss;
-      }
+      const stored = storedRes?.data || {};
+      const sandboxCount = !sandboxRes?.error && typeof sandboxRes?.count === 'number'
+        ? sandboxRes.count
+        : Number(stored.sandbox_sessions_count ?? stored.total_sessions_reviewed) || 0;
+      const handsAnalyzed = Math.max(
+        sandboxCount,
+        Number(stored.total_hands_analyzed) || 0,
+      );
 
       return res.status(200).json({
         success: true,
         stats: {
-          sessionsReviewed,
-          handsAnalyzed: stats.total_hands_analyzed || 0,
-          leaksFound: stats.active_leaks_count || 0,
-          resolvedLeaks: stats.resolved_leaks_count || 0,
-          sandboxSessions: stats.sandbox_sessions_count || 0,
-          avgEvLoss
+          sessionsReviewed: sandboxCount,
+          handsAnalyzed,
+          leaksFound: leakStats.activeLeaks,
+          resolvedLeaks: leakStats.resolvedLeaks,
+          sandboxSessions: sandboxCount,
+          avgEvLoss: leakStats.avgEvLoss,
         },
-        isDemo: false
+        isDemo: false,
+        dataSources: {
+          sandboxSessions: sandboxRes?.error ? 'stored_fallback' : 'live_count',
+          handsAnalyzed: handsAnalyzed > sandboxCount ? 'deterministic_audit_total' : 'sandbox_sessions',
+          leaks: 'live_aggregate',
+        },
       });
 
     } catch (error) {

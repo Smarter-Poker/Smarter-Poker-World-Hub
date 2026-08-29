@@ -2799,6 +2799,8 @@ export default function VirtualSandbox() {
       ? { bg: T.purpleSoft, border: T.purple, text: T.purple, label: 'Forced preview' }
       : displayResults.offline
       ? { bg: T.warnSoft, border: T.warn, text: T.warn, label: 'Offline estimate' }
+      : displayResults.canonicalQuestionId
+        ? { bg: T.successSoft, border: T.accent, text: T.accent, label: 'Training Solver Synced' }
       : displayResults.matchTier <= 2 ? { bg: T.successSoft, border: T.success, text: T.success, label: 'PIO Verified' }
         : displayResults.matchTier === 3 ? { bg: T.warnSoft, border: T.warn, text: T.warn, label: 'PIO Approximated' }
           : { bg: T.purpleSoft, border: T.purple, text: T.purple, label: 'AI Analysis' }
