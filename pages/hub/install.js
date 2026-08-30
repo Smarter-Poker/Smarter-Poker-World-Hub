@@ -7,7 +7,6 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { Smartphone, Tablet, ArrowRight, CheckCircle2 } from 'lucide-react';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import {
     triggerInstall, canPromptInstall, isRunningAsApp, isIos,
     subscribeInstallState,
@@ -276,7 +275,6 @@ export default function InstallPage() {
                         </p>
                     </div>
                 </div>
-              <BottomNavBar />
             </div>
         </>
     );

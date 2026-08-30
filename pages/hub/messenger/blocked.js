@@ -11,7 +11,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getBlockedUsers, unblockUser } from '../../../src/services/privacy-service';
-import BottomNavBar, { BOTTOM_NAV_CLEARANCE } from '../../../src/components/ui/BottomNavBar';
 
 export default function BlockedUsers() {
     const [user, setUser] = useState(null);
@@ -121,13 +120,12 @@ export default function BlockedUsers() {
                     )}
                 </div>
             </div>
-              <BottomNavBar />
     </PageTransition>
     );
 }
 
 const styles = {
-    container: { minHeight: '100vh', paddingBottom: BOTTOM_NAV_CLEARANCE, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0a0a', color: '#FFFFFF' },
+    container: { minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0a0a', color: '#FFFFFF' },
     content: { maxWidth: '800px', margin: '0 auto', padding: '80px 24px 40px' },
     title: { fontSize: '32px', fontWeight: 700, marginBottom: '32px' },
     emptyState: { textAlign: 'center', padding: '80px 24px' },

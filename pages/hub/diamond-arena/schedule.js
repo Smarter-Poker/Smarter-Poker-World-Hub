@@ -10,7 +10,6 @@ import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function DiamondArenaSchedule() {
     const router = useRouter();
@@ -197,7 +196,6 @@ export default function DiamondArenaSchedule() {
                         )}
                     </div>
                 </div>
-                  <BottomNavBar />
     </PageTransition>
         </>
     );

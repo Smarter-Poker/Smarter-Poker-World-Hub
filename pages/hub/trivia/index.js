@@ -16,7 +16,6 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import styles from '../../../src/styles/trivia/TriviaHub.module.css';
@@ -240,7 +239,6 @@ export default function TriviaHubPage() {
                 </main>
             </div>
 
-              <BottomNavBar />
     </PageTransition>
     );
 }

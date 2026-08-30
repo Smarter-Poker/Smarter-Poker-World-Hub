@@ -9,7 +9,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { supabase } from '../../../src/lib/supabase';
 
 const C = {
@@ -783,7 +782,6 @@ export default function CreateSocialPage() {
                         )}
                     </div>
                 </div>
-              <BottomNavBar />
             </div>
             <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }

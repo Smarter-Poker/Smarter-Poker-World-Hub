@@ -26,7 +26,6 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 // FIX(audit): shared prize schedule — same percentages the payout engine
 // (tournament-lifecycle.js) uses, so the advertised split matches what is paid.
 import { prizeSchedule, splitPrizePool } from '../../../src/lib/trivia/prizeSchedule';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import useVIPGate from '../../../src/hooks/useVIPGate';
 import VIPGateModal from '../../../src/components/ui/VIPGateModal';
 
@@ -2024,7 +2023,6 @@ export default function TournamentsPage() {
                 featureConfig={featureConfig}
             />
 
-            <BottomNavBar />
     </PageTransition>
         </TriviaErrorBoundary>
     );

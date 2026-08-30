@@ -12,7 +12,6 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { supabase } from '../../../src/lib/supabase';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const CARDS = [
     {
@@ -181,7 +180,6 @@ export default function TokeTrackerLanding() {
                 }
                 .toke-card-hover:hover { transform: translateY(-4px) scale(1.02) !important; }
             `}</style>
-              <BottomNavBar />
     </PageTransition>
     );
 }

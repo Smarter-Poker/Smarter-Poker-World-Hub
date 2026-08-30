@@ -20,7 +20,6 @@ import HashtagRenderer from '../../src/components/social/HashtagRenderer';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import { busEmit } from '../../src/engine/EventBus';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -317,7 +316,6 @@ export default function SavedPostsPage() {
                         )}
                     </div>
                 </div>
-                  <BottomNavBar />
     </PageTransition>
         </>
     );

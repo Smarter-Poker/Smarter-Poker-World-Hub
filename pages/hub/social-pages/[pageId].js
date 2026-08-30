@@ -13,7 +13,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../src/lib/supabase';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 // Shared social utilities & components (extracted from social-media)
 import { SOCIAL_COLORS, timeAgo as sharedTimeAgo, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl } from '../../../src/lib/socialHelpers';
 import { SharedAvatar } from '../../../src/components/social/SharedAvatar';
@@ -3414,7 +3413,6 @@ export default function SocialPageDetail() {
                         </div>
                     </div>
                 </div>
-              <BottomNavBar />
 
               {/* Invite Friends Modal */}
               {showInviteModal && (

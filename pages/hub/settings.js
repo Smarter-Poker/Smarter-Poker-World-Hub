@@ -33,7 +33,6 @@ import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
 import { getBlockedUsers, unblockUser } from '../../src/services/privacy-service';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import styles from '../../src/components/settings/settingsStyles';
 import PushNotificationToggle from '../../src/components/notifications/PushNotificationToggle';
 
@@ -2612,7 +2611,6 @@ export default function SettingsPage() {
                     setLocalUser={setLocalUser}
                 />
             )}
-              {!isInIframe && <BottomNavBar />}
     </PageTransition>
     );
 }

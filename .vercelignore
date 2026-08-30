@@ -84,6 +84,7 @@ _legacy_sql/
 !/__tests__/diamond-store-phase-13.test.mjs
 !/__tests__/diamond-store-phase-14.test.mjs
 !/__tests__/diamond-store-phase-15.test.mjs
+!/__tests__/diamond-store-phase-16.test.mjs
 !/__tests__/printful-fulfillment.test.mjs
 !/__tests__/merch-catalog-admin.test.mjs
 !/__tests__/marketplace-operations.test.mjs

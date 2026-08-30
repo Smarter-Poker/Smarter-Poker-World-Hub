@@ -10,7 +10,6 @@ import Link from 'next/link';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import DeepRouteSignalDeck from '../../../../src/components/poker-near-me/DeepRouteSignalDeck';
-import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import { createClient } from '@supabase/supabase-js';
 
@@ -537,7 +536,6 @@ export default function HomeGameDashboard() {
           </section>
         </main>
 
-        <BottomNavBar />
       </div>
     </>
   );

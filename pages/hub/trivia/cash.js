@@ -7,7 +7,6 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import StrategyTrivia from '../../../src/components/trivia/StrategyTrivia';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function CASHPage() {
     useTrainingBus('trivia-cash');
@@ -30,7 +29,6 @@ export default function CASHPage() {
                         height: calc(100dvh - 70px);
                     }
                 `}</style>
-                <BottomNavBar />
             </div>
         </TriviaErrorBoundary>
     );

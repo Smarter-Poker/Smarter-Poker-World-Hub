@@ -9,7 +9,6 @@ import { supabase } from '../../../../src/lib/supabase';
 import LivePokerTable from '../../../../src/components/poker/LivePokerTable';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { getAuthUser } from '../../../../src/lib/authUtils';
-import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 
 export default function PokerTablePage() {
   const router = useRouter();
@@ -71,7 +70,6 @@ export default function PokerTablePage() {
         fontFamily: "'Segoe UI', system-ui, sans-serif",
       }}>
         Loading table...
-        <BottomNavBar />
       </div>
     );
   }

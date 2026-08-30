@@ -12,7 +12,6 @@ import { getOrbById } from '../../src/orbs/manifest/registry';
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // ORB METADATA — Descriptions and icons for each orb world
 const ORB_METADATA = {
@@ -247,7 +246,6 @@ export default function OrbPage() {
           </div>
         </div>
       </div>
-      <BottomNavBar />
     </PageTransition>
   );
 }

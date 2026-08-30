@@ -49,16 +49,6 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'POST only' });
     }
 
-    const allowed = new Set(['clubId', 'itemId']);
-    const bodyString = JSON.stringify(req.body || {});
-    if (bodyString.length > 512) {
-      return res.status(413).json({ success: false, error: 'Request body too large' });
-    }
-    const unknown = Object.keys(req.body || {}).filter((key) => !allowed.has(key));
-    if (unknown.length) {
-      return res.status(400).json({ success: false, error: `Unknown fields: ${unknown.join(', ')}` });
-    }
-
     if (!applyRateLimit(req, res, 'club-arena/marketplace-purchase')) return;
 
     const supabase = getSupabase();
@@ -81,6 +71,16 @@ export default async function handler(req, res) {
       emailGate = await requireEmailVerifiedByUserId(supabase, user.id);
     }
     if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
+
+    const allowed = new Set(['clubId', 'itemId']);
+    const bodyString = JSON.stringify(req.body || {});
+    if (bodyString.length > 512) {
+      return res.status(413).json({ success: false, error: 'Request body too large' });
+    }
+    const unknown = Object.keys(req.body || {}).filter((key) => !allowed.has(key));
+    if (unknown.length) {
+      return res.status(400).json({ success: false, error: `Unknown fields: ${unknown.join(', ')}` });
+    }
 
     const { clubId, itemId } = req.body || {};
     if (!clubId || !itemId) {

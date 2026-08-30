@@ -11,7 +11,6 @@ import Link from 'next/link';
 import {
     calculateEquity, makeCard, GAME_CONFIGS, PRESETS, parsePresetHands
 } from '../../src/lib/poker/pokerOddsEngine';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace UTF chars / emoji
 import {
     ArrowLeft, Menu as MenuIcon, X, UserPlus, Crown, RotateCcw, Play, Loader2,
@@ -714,7 +713,6 @@ export default function PokerToolsPage() {
                 </div>
 
 
-              <BottomNavBar />
             </div>
             {/* 2026-05-07 — UI-UX-Pro-Max: spin keyframes + reduced-motion guard */}
             <style jsx global>{`

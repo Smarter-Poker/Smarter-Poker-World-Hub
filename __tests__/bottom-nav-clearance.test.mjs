@@ -1,87 +1,79 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
- *  BOTTOM NAV CLEARANCE — one number, not eighty-one
- * ═══════════════════════════════════════════════════════════════════════════
+ * WORLD HUB BOTTOM NAVIGATION — one app-shell mount, one clearance contract.
  *
- * Dan, 2026-08-25: the same padding as Club Arena on every mobile page, and
- * the extra padding at the bottom footer gone.
- *
- * The cause is not that a token was missing. BOTTOM_NAV_CLEARANCE has existed
- * in BottomNavBar.jsx the whole time:
- *
- *     BOTTOM_NAV_H         = calc(56px + env(safe-area-inset-bottom, 0px))
- *     BOTTOM_NAV_CLEARANCE = calc(56px + 16px + env(safe-area-inset-bottom, 0px))
- *
- * When measured, 81 pages rendered <BottomNavBar> and exactly ONE imported the
- * token. 66 hardcoded their own paddingBottom instead, in values of 0, 4, 6,
- * 8, 10, 16, 24, 40, 60, 70, 72 and 80. The most common was 70 — which is not
- * 56+16, and accounts for none of the home-indicator inset, so on any iPhone
- * with a home indicator those pages sat ~34px short and content hid behind
- * the bar.
- *
- * This is the same shape as the notification resolver and the toggle
- * component: a canonical thing existed and nothing used it.
- *
- * This guard covers the pages migrated so far and grows with each batch,
- * rather than failing the build for the ~57 not yet converted.
- *
- * Run: node --test __tests__/bottom-nav-clearance.test.mjs
+ * Route pages used to import and mount BottomNavBar independently. That left
+ * 76 opportunities for a missing footer, duplicate footer, guessed padding,
+ * iframe regression, or stale theme. The app shell now owns all of it and the
+ * JSON policy is the auditable list of routes that receive the footer.
  */
-import { test } from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import fs from 'node:fs';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const manifest = JSON.parse(
+  fs.readFileSync(path.join(ROOT, 'src/config/bottom-nav-routes.json'), 'utf8')
+);
 
-// Batch 1 — the mobile-critical surfaces. Append as later batches land.
-const MIGRATED = [
-    'pages/hub/friends.js',
-    'pages/hub/index.js',
-    'pages/hub/notifications.js',
-    'pages/hub/profile.js',
-    'pages/hub/poker/lobby.js',
-    'pages/hub/messenger/blocked.js',
-    'pages/hub/messenger/requests.js',
-    'pages/hub/trivia/settings.js',
-    'pages/hub/diamond-arena/table-settings.js',
-];
+function walk(dir) {
+  return fs.readdirSync(dir).flatMap((entry) => {
+    const full = path.join(dir, entry);
+    return fs.statSync(full).isDirectory() ? walk(full) : [full];
+  });
+}
 
-test('the clearance token still exists and still accounts for the safe area', () => {
-    const nav = readFileSync(join(ROOT, 'src/components/ui/BottomNavBar.jsx'), 'utf8');
-    assert.match(nav, /export const BOTTOM_NAV_CLEARANCE/, 'the token is gone');
-    assert.match(
-        nav,
-        /BOTTOM_NAV_CLEARANCE\s*=\s*'calc\([^']*env\(safe-area-inset-bottom/,
-        'the clearance must include env(safe-area-inset-bottom) or every iPhone hides content behind the bar'
+function routeFiles(route) {
+  return route === '/hub' ? ['pages/hub/index.js'] : [`pages${route}.js`, `pages${route}/index.js`];
+}
+
+test('the route policy preserves the complete previously approved surface', () => {
+  const routes = Object.keys(manifest);
+  assert.equal(
+    routes.length,
+    76,
+    'a footer route was added or removed without updating this contract'
+  );
+  assert.equal(manifest['/hub'].theme, 'dark');
+  assert.equal(manifest['/hub'].noSafeArea, true);
+  assert.equal(manifest['/hub/video-library'].theme, 'dark');
+  assert.equal(manifest['/hub/settings'].hideInIframe, true);
+  assert.equal(manifest['/hub/notifications'].hideInIframe, true);
+  assert.equal(manifest['/hub/club-arena'], undefined, 'Club Arena owns its own chrome');
+
+  for (const route of routes) {
+    assert.ok(
+      routeFiles(route).some((candidate) => fs.existsSync(path.join(ROOT, candidate))),
+      `${route} points to a page that no longer exists`
     );
+  }
 });
 
-test('migrated pages use the token and no hardcoded pad', () => {
-    for (const rel of MIGRATED) {
-        const p = join(ROOT, rel);
-        assert.ok(existsSync(p), `${rel} is gone; update this list`);
-        const src = readFileSync(p, 'utf8');
-
-        assert.match(src, /BOTTOM_NAV_CLEARANCE/, `${rel} no longer uses the clearance token`);
-        assert.ok(
-            !/paddingBottom: *70\b/.test(src),
-            `${rel} has gone back to a hardcoded paddingBottom: 70, which ignores the home-indicator inset`
-        );
+test('pages cannot mount, import, or size the shared footer independently', () => {
+  const offenders = [];
+  for (const file of walk(path.join(ROOT, 'pages')).filter((name) => /\.(?:js|jsx)$/.test(name))) {
+    if (file.endsWith(`${path.sep}_app.js`)) continue;
+    const source = fs.readFileSync(file, 'utf8');
+    if (/<BottomNavBar\b|import[^\n]*BottomNavBar|BOTTOM_NAV_CLEARANCE/.test(source)) {
+      offenders.push(path.relative(ROOT, file));
     }
+  }
+  assert.deepEqual(offenders, [], `page-level footer wiring returned:\n${offenders.join('\n')}`);
 });
 
-test('a page that uses the token also imports it', () => {
-    // Using the identifier without importing it is a ReferenceError at
-    // runtime and, in this codebase, a blank page rather than a stack trace.
-    for (const rel of MIGRATED) {
-        const src = readFileSync(join(ROOT, rel), 'utf8');
-        if (!/BOTTOM_NAV_CLEARANCE/.test(src)) continue;
-        assert.match(
-            src,
-            /import\s+BottomNavBar,\s*\{[^}]*BOTTOM_NAV_CLEARANCE[^}]*\}\s*from/,
-            `${rel} uses BOTTOM_NAV_CLEARANCE without importing it`
-        );
-    }
+test('the app shell mounts one footer and one safe-area-aware spacer', () => {
+  const app = fs.readFileSync(path.join(ROOT, 'pages/_app.js'), 'utf8');
+  const nav = fs.readFileSync(path.join(ROOT, 'src/components/ui/BottomNavBar.jsx'), 'utf8');
+
+  assert.equal((app.match(/<BottomNavBar\b/g) || []).length, 1);
+  assert.equal((app.match(/<BottomNavSpacer\b/g) || []).length, 1);
+  assert.match(app, /bottomNavRoutes\[router\.pathname\]/);
+  assert.match(app, /resolvedPath === '\/hub\/club-arena'/);
+  assert.match(app, /resolvedPath\.startsWith\('\/hub\/club-arena\/'\)/);
+  assert.match(app, /isClubArenaRoute \? null : bottomNavRoutes\[router\.pathname\]/);
+  assert.match(app, /showBottomNav && <BottomNavSpacer/);
+  assert.match(nav, /BOTTOM_NAV_CLEARANCE\s*=\s*'calc\([^']*env\(safe-area-inset-bottom/);
+  assert.match(nav, /data-bottom-nav-clearance="true"/);
+  assert.match(nav, /height:\s*BOTTOM_NAV_CLEARANCE/);
 });

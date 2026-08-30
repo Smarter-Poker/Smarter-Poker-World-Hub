@@ -59,7 +59,8 @@ test('diamond checkout accepts a validated client idempotency key', () => {
   assert.match(DIAMOND_PURCHASE, /buildRequestHash/);
   assert.match(DIAMOND_PURCHASE, /createHash\('sha256'\)/);
   assert.match(DIAMOND_PURCHASE, /purchase_merch_with_diamonds_atomic/);
-  assert.match(MERCH, /purchaseRequestId: createCheckoutRequestId/);
+  assert.match(MERCH, /purchaseRequestId: getOrCreateCommerceRequestId/);
+  assert.match(MERCH, /clearCommerceRequestId\(pendingDiamondPurchase\.commerceIntent\)/);
   assert.match(MERCH, /'X-Idempotency-Key': pendingDiamondPurchase\.purchaseRequestId/);
 });
 

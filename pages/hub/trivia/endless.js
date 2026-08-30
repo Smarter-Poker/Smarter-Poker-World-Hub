@@ -34,7 +34,6 @@ import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
@@ -1352,7 +1351,6 @@ export default function EndlessModePage() {
                         )}
                     </div>
                 </div>
-                  <BottomNavBar />
     </PageTransition >
         </TriviaErrorBoundary>
     );

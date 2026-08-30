@@ -17,11 +17,13 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import toast from '../../../src/stores/toastStore';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import useCartStore from '../../../src/stores/cartStore';
 import MerchPurchaseDialog from '../../../src/components/store/MerchPurchaseDialog';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
-import { createCheckoutRequestId } from '../../../src/lib/store/storeAnalytics';
+import {
+  clearCommerceRequestId,
+  getOrCreateCommerceRequestId,
+} from '../../../src/lib/store/checkoutIntentStore';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 
 // Legacy standalone key used by earlier versions of this page. It is folded
@@ -407,7 +409,7 @@ export default function ShoppingCart() {
   const handleCheckout = async () => {
     if (checkingOut) return;
     const token = getAccessToken();
-    if (!token) {
+    if (!token || !user?.id) {
       toast.error('Please Sign In Again To Check Out');
       return;
     }
@@ -448,7 +450,20 @@ export default function ShoppingCart() {
 
     setCheckingOut(true);
     try {
-      const checkoutRequestId = createCheckoutRequestId(`cart-${cardGroup}`);
+      const commerceIntent = {
+        scope: `cart-${cardGroup}`,
+        userId: user.id,
+        paymentMethod: 'card',
+        intent: {
+          type: payload.type,
+          items: payload.items.map((item) => ({
+            id: item.catalogId || item.id || item.packageId,
+            variantId: item.variantId || item.variant_id || null,
+            quantity: Math.max(1, Number(item.quantity) || 1),
+          })),
+        },
+      };
+      const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
       const res = await fetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -478,6 +493,10 @@ export default function ShoppingCart() {
 
   const beginDiamondCheckout = () => {
     if (checkingOut) return;
+    if (!user?.id) {
+      toast.error('Please Sign In Again To Check Out');
+      return;
+    }
     if (hasDiamondItems) {
       toast.error('Diamond Packages Cannot Be Purchased With Diamonds. Please Pay With Card.');
       return;
@@ -486,6 +505,18 @@ export default function ShoppingCart() {
       toast.error('There Is Nothing In Your Cart That Can Be Paid For With Diamonds.');
       return;
     }
+    const commerceIntent = {
+      scope: 'cart-diamond-merch',
+      userId: user.id,
+      paymentMethod: 'diamonds',
+      intent: {
+        items: merchItems.map((item) => ({
+          id: item.catalogId || item.id,
+          variantId: item.variantId || item.variant_id || null,
+          quantity: Math.max(1, Number(item.quantity) || 1),
+        })),
+      },
+    };
     setPendingDiamondCheckout({
       product: {
         name: `${unitsOf(merchItems)} Merchandise ${unitsOf(merchItems) === 1 ? 'Item' : 'Items'}`,
@@ -496,7 +527,8 @@ export default function ShoppingCart() {
       quantity: unitsOf(merchItems),
       cost: getDiamondCost(),
       requiresShipping: true,
-      purchaseRequestId: createCheckoutRequestId('cart-diamond-merch'),
+      commerceIntent,
+      purchaseRequestId: getOrCreateCommerceRequestId(commerceIntent),
     });
   };
 
@@ -559,6 +591,7 @@ export default function ShoppingCart() {
             : `Purchased With ${spent.toLocaleString()} Diamonds. New Balance: ${newBalance.toLocaleString()}.`
         );
         if (!replayed) busEmit.diamondsSpent(spent, 'Diamond Store Purchase');
+        clearCommerceRequestId(pendingDiamondCheckout.commerceIntent);
         setDiamondBalance(newBalance);
         window.dispatchEvent(new CustomEvent('smarter-poker:diamond-balance', {
           detail: { balance: Number(newBalance) || 0, userId: user?.id, source: 'merch-cart' },
@@ -950,7 +983,6 @@ export default function ShoppingCart() {
           onConfirm={confirmDiamondCheckout}
         />
       )}
-      <BottomNavBar />
     </PageTransition>
   );
 }

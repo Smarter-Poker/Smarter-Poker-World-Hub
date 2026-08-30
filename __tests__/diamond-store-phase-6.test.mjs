@@ -130,7 +130,8 @@ test('store purchase controls close synchronous double-submit gaps', () => {
     STORE,
     /if \(!purchaseTarget \|\| !targetClubId \|\| clubShopProcessingRef\.current\) return/
   );
-  assert.match(STORE, /purchaseRequestId: createCheckoutRequestId/);
+  assert.match(STORE, /purchaseRequestId:[\s\S]*getOrCreateCommerceRequestId\(commerceIntent\)/);
+  assert.match(STORE, /clearCommerceRequestId\(purchaseTarget\.commerceIntent\)/);
   assert.match(STORE, /const idempotencyKey = purchaseTarget\.purchaseRequestId/);
 });
 

@@ -112,6 +112,7 @@ export default async function handler(req, res) {
         diamonds: record?.diamonds || null,
         redemptionStatus: record?.redemptionStatus || null,
         redemptionError: record?.redemptionError || null,
+        requestId: session.metadata?.checkout_request_id || null,
       },
     });
   } catch (err) {

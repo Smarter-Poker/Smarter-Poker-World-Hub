@@ -39,7 +39,6 @@ import {
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { TRAINING_LIBRARY, getGamesByCategory } from '../../src/data/TRAINING_LIBRARY';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
@@ -468,7 +467,6 @@ export default function TrainingPage() {
 
           </main>
 
-          <BottomNavBar />
         </>
       )}
     </PageTransition>

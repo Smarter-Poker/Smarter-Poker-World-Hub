@@ -7,7 +7,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getYouTubeThumbnail } from '../../../src/lib/socialHelpers';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function MyReels() {
     const [reels, setReels] = useState([]);
@@ -61,7 +60,6 @@ export default function MyReels() {
                         : <div className="wire-grid">{reels.map((reel, index) => <ReelTile key={reel.id} reel={reel} index={index} />)}</div>}
                 </div>
             </main>
-            <BottomNavBar />
             <WireStyles />
         </PageTransition>
     );

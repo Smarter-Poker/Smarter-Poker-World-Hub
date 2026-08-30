@@ -16,7 +16,6 @@ import TokeCalendar from '../../../src/components/bankroll/TokeCalendar';
 import { fetchGigs } from '../../../src/lib/bankroll/tokeSelectors';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { supabase } from '../../../src/lib/supabase';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function VenueIntelPage() {
     const router = useRouter();
@@ -151,7 +150,6 @@ export default function VenueIntelPage() {
                     </div>
                 </div>
             </div>
-              <BottomNavBar />
     </PageTransition>
     );
 }

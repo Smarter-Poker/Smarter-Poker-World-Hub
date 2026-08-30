@@ -789,32 +789,43 @@ const nextConfig = {
             key: 'Content-Security-Policy-Report-Only',
             value: csp,
           },
-          {
-            /**
-             * Dan 2026-08-20: upgrade-insecure-requests used to sit inside the
-             * Report-Only policy above, where it did NOTHING. The spec says the
-             * directive is ignored in report-only mode, and Chrome announces
-             * that on every page load:
-             *
-             *   "The Content Security Policy directive
-             *    'upgrade-insecure-requests' is ignored when delivered in a
-             *    report-only policy."
-             *
-             * So the one directive in that policy meant to CHANGE behaviour was
-             * the one directive guaranteed not to, while adding a console error
-             * to every route (it was also tripping the E2E console-error specs).
-             *
-             * Delivered on its own enforced header it actually applies, and the
-             * rest of the policy stays report-only as the staged rollout above
-             * intends. Enforcing this alone is safe here: it only rewrites
-             * http:// SUB-RESOURCE requests to https://, the site is already
-             * HSTS-preloaded with includeSubDomains, and Vercel redirects
-             * http->https at the edge — so in practice it catches stray http
-             * URLs in user-generated content and nothing else.
-             */
-            key: 'Content-Security-Policy',
-            value: 'upgrade-insecure-requests',
-          },
+          ...(process.env.VERCEL
+            ? [
+                {
+                  /**
+                   * Dan 2026-08-20: upgrade-insecure-requests used to sit inside the
+                   * Report-Only policy above, where it did NOTHING. The spec says the
+                   * directive is ignored in report-only mode, and Chrome announces
+                   * that on every page load:
+                   *
+                   *   "The Content Security Policy directive
+                   *    'upgrade-insecure-requests' is ignored when delivered in a
+                   *    report-only policy."
+                   *
+                   * So the one directive in that policy meant to CHANGE behaviour was
+                   * the one directive guaranteed not to, while adding a console error
+                   * to every route (it was also tripping the E2E console-error specs).
+                   *
+                   * Delivered on its own enforced header it actually applies, and the
+                   * rest of the policy stays report-only as the staged rollout above
+                   * intends. Enforcing this alone is safe here: it only rewrites
+                   * http:// SUB-RESOURCE requests to https://, the site is already
+                   * HSTS-preloaded with includeSubDomains, and Vercel redirects
+                   * http->https at the edge — so in practice it catches stray http
+                   * URLs in user-generated content and nothing else.
+                   *
+                   * Vercel-only is intentional. `next start` serves HTTP locally;
+                   * WebKit correctly applies this directive there and upgrades every
+                   * same-origin chunk to HTTPS, leaving the page blank and making a
+                   * real Safari CI pass impossible. Vercel always serves HTTPS, so
+                   * production retains the enforced policy while localhost remains
+                   * a faithful runnable test target.
+                   */
+                  key: 'Content-Security-Policy',
+                  value: 'upgrade-insecure-requests',
+                },
+              ]
+            : []),
         ],
       },
       // ─── CLUB ARENA CACHE POLICY (perf pass 2026-08-22) ─────────────────────

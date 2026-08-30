@@ -7,7 +7,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getYouTubeThumbnail } from '../../../src/lib/socialHelpers';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function SavedReels() {
     const [user, setUser] = useState(null);
@@ -44,7 +43,7 @@ export default function SavedReels() {
                 : !user ? <SavedState icon={<Bookmark />} text="Sign in to open your saved reel archive." action={<Link href="/login">Sign in</Link>} />
                 : savedReels.length === 0 ? <SavedState icon={<Bookmark />} text="No saved signals yet. Save a reel and it will appear here." action={<Link href="/hub/reels">Explore reels</Link>} />
                 : <div className="saved-grid">{savedReels.map((item, index) => <SavedTile key={item.id} item={item} index={index} onRemove={unsaveReel} />)}</div>}
-        </div></main><BottomNavBar /><SavedStyles /></PageTransition>;
+        </div></main><SavedStyles /></PageTransition>;
 }
 
 function SavedTile({ item, index, onRemove }) {

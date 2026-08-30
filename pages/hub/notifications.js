@@ -21,7 +21,6 @@ import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAccessToken } from '../../src/lib/authUtils';
-import BottomNavBar, { BOTTOM_NAV_CLEARANCE } from '../../src/components/ui/BottomNavBar';
 import { homeGameUrl } from '../../src/lib/home-games/urls';
 import { resolveNotificationRoute } from '../../src/lib/notificationRoute';
 
@@ -614,7 +613,7 @@ function NotificationsPage() {
         return (
             <PageTransition>
                 <SEOHead title="Notifications" description="Loading notifications..." canonical="/hub/notifications" noindex={true} />
-                <div style={{ minHeight: '100vh', paddingBottom: BOTTOM_NAV_CLEARANCE, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
+                <div style={{ minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                     {!isInIframe && <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />}
                     <div style={{ maxWidth: 680, margin: '0 auto', padding: 16 }}>
                         {[1,2,3,4,5].map(i => (
@@ -1070,7 +1069,6 @@ function NotificationsPage() {
                 {/* Bottom padding for mobile nav — CSS .notifications-page handles 70px clearance for non-iframe */}
                 <div style={{ height: isInIframe ? 20 : 0 }} />
             </div>
-              {!isInIframe && <BottomNavBar />}
     </PageTransition>
     );
 }

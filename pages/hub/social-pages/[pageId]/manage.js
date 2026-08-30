@@ -11,7 +11,6 @@ import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
 import SkeletonLight from '../../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../../src/lib/supabase';
-import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -1065,7 +1064,6 @@ export default function ManageSocialPage() {
                         </div>
                     </div>
                 </div>
-              <BottomNavBar />
             </div>
 
             {/* #9: Delete Confirmation Modal */}

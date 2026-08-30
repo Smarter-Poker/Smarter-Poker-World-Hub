@@ -14,7 +14,6 @@ import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
-import BottomNavBar, { BOTTOM_NAV_CLEARANCE } from '../../../src/components/ui/BottomNavBar';
 
 export default function MessageRequests() {
     const [user, setUser] = useState(null);
@@ -355,13 +354,12 @@ export default function MessageRequests() {
                     )}
                 </div>
             </div>
-            <BottomNavBar />
         </PageTransition>
     );
 }
 
 const styles = {
-    container: { minHeight: '100vh', paddingBottom: BOTTOM_NAV_CLEARANCE, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0a0a', color: '#FFFFFF' },
+    container: { minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0a0a', color: '#FFFFFF' },
     content: { maxWidth: '700px', margin: '0 auto', padding: '80px 24px 40px' },
     header: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' },
     title: { fontSize: '28px', fontWeight: 700, margin: 0 },

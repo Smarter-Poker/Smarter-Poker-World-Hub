@@ -22,7 +22,6 @@ import {
     fireworksCelebration
 } from '../../src/utils/confetti';
 import { staggerContainer, staggerItem } from '../../src/utils/animations';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 export default function GodModeDemoPage() {
     const [loading, setLoading] = useState(false);
@@ -266,7 +265,6 @@ export default function GodModeDemoPage() {
                     </AnimatedButton>
                 </div>
             </AnimatedModal>
-              <BottomNavBar />
     </PageTransition>
     );
 }

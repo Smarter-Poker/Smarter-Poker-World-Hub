@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { eventBus } from '../../src/engine/EventBus';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const getSupabase = () => typeof window !== 'undefined' ? supabase : null;
 
@@ -560,7 +559,6 @@ export default function SessionHistoryPage() {
           )}
         </AnimatePresence>
       </div>
-      <BottomNavBar />
     </div>
   );
 }

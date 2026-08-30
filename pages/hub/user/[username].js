@@ -42,7 +42,6 @@ import HashtagRenderer from '../../../src/components/social/HashtagRenderer';
 import SharePostModal from '../../../src/components/social/SharePostModal';
 import ReactionPicker from '../../../src/components/social/ReactionPicker';
 import PostImageLightbox from '../../../src/components/social/PostImageLightbox';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ViralGrowthModule from '../../../src/components/social/ViralGrowthModule';
 import CrewDashboard from '../../../src/components/social/CrewDashboard';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
@@ -7400,7 +7399,6 @@ export default function UserProfilePage() {
         currentUserId={currentUser?.id}
         socialIdRef={socialIdRef}
       />
-      <BottomNavBar />
     </PageTransition>
   );
 }
