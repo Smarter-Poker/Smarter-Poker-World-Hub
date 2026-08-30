@@ -42,6 +42,7 @@ import { dirname, join } from 'node:path';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ROTATE = readFileSync(join(ROOT, 'pages/api/push/rotate.js'), 'utf8');
 const SUBSCRIBE = readFileSync(join(ROOT, 'pages/api/push/subscribe.js'), 'utf8');
+const HEALTH = readFileSync(join(ROOT, 'pages/api/cron/push-health.js'), 'utf8');
 
 /** Source with comments stripped, so a test never passes on its own prose. */
 function code(src) {
@@ -126,5 +127,42 @@ test('the device_id contract is still validated, not trusted', () => {
     code(SUBSCRIBE),
     /\^\[A-Za-z0-9-\]\{8,64\}\$/,
     'subscribe.js must keep validating the deviceId shape before storing it.'
+  );
+});
+
+test('push-health alarms when one device holds two live subscriptions', () => {
+  // The bug was invisible for a day because nothing asked this question. Each
+  // row looked healthy on its own; only the person holding the phone saw the
+  // duplicate.
+  const src = code(HEALTH);
+  assert.match(
+    src,
+    /more than one live subscription/,
+    'push-health must report devices holding more than one live subscription.'
+  );
+  assert.match(
+    src,
+    /activeWithoutDeviceId/,
+    'push-health must report how many active rows still have no device_id -- ' +
+      'those are the rows the partial unique index cannot see.'
+  );
+});
+
+test('push-health only REPORTS duplicates, it does not silently retire them', () => {
+  // The zombie check retires what it finds, because a dead endpoint is
+  // unambiguous. A duplicate is not: with the client and rotate fixes in
+  // place, a new one means a NEW bug, and healing it quietly would hide
+  // exactly the failure this file exists to surface.
+  const src = code(HEALTH);
+  const start = src.indexOf('more than one live subscription');
+  assert.ok(start > -1, 'expected the duplicate-device check');
+  // Look at the whole check block, from its query to the reporting line.
+  const blockStart = src.lastIndexOf('const { data: liveRows', 0 + start);
+  assert.ok(blockStart > -1, 'expected the duplicate-device query');
+  const block = src.slice(blockStart, start);
+  assert.ok(
+    !/is_active:\s*false/.test(block),
+    'the duplicate-device check must not deactivate rows. Report it; let a ' +
+      'human or a targeted migration decide which row is the real device.'
   );
 });

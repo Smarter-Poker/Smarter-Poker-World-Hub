@@ -103,9 +103,13 @@ Both fixes ship with tests that fail against the unfixed code:
   Until then those devices are still outside the index — the cleanup holds
   because nothing is creating new rows for them, not because the constraint is
   enforcing it.
-- Nothing yet alarms on "an account holds more than one live row for one
-  device". The migration asserts it once, at apply time. A recurring check
-  belongs with the push-health cron.
+- ~~Nothing alarms on "an account holds more than one live row for one
+  device".~~ **Closed in this batch.** `push-health` CHECK 2b groups active
+  rows by `device_id` where present and by `device_label` where it is null,
+  and reports both the duplicate count and how many active rows still carry no
+  `device_id`. It deliberately REPORTS rather than retires: with the client and
+  rotate fixes in place, a new duplicate means a new bug, and healing it
+  quietly would hide the thing the check exists to surface.
 - `__tests__/club-arena-can-subscribe-to-push.test.ts` in the Club Arena repo
   carries a comment asserting that upserting on `(user_id, endpoint)` keeps one
   subscription per device. That reasoning is what allowed this bug: the

@@ -277,6 +277,64 @@ async function handler(req, res) {
         problems.push(`staff check failed: ${e?.message || e}`);
     }
 
+    // ---- CHECK 2b: one live subscription per device ------------------------
+    // push-dispatch sends to EVERY active row for a recipient, so a device
+    // holding two live rows shows every banner twice. That is what Dan reported
+    // on 2026-08-30, and nothing on the platform noticed it: the rows looked
+    // healthy one at a time, and only the person holding the phone could see
+    // the duplicate.
+    //
+    // `push_subscriptions_one_active_per_device_uidx` now prevents it at write
+    // time -- but only WHERE device_id IS NOT NULL, so it cannot see a row
+    // whose device_id was never populated. That is precisely how the bug got
+    // in: Club Arena's client never sent one, and /api/push/rotate dropped the
+    // one it had. Both are fixed; this check is what would say so if either
+    // ever regresses, or if a third client arrives without the field.
+    //
+    // DELIBERATELY AN ALARM, NOT A REPAIR. The zombie check above retires what
+    // it finds because a dead endpoint is unambiguous. A duplicate is not: with
+    // both fixes in place a new one means a NEW bug, and silently healing it
+    // would hide exactly the kind of failure this file exists to surface.
+    try {
+        const { data: liveRows, error: liveErr } = await supabase
+            .from('push_subscriptions')
+            .select('user_id, device_label, device_id')
+            .eq('is_active', true);
+
+        // A failed query must not read as "no duplicates, all healthy".
+        if (liveErr) throw new Error(liveErr.message);
+
+        const perDevice = new Map();
+        let withoutDeviceId = 0;
+        for (const r of liveRows || []) {
+            if (!r.device_id) withoutDeviceId += 1;
+            // Group on device_id where we have it -- that is exact. Fall back to
+            // device_label only for rows that have none, which are the only rows
+            // the unique index cannot already vouch for.
+            const key = r.device_id
+                ? `${r.user_id}|id:${r.device_id}`
+                : `${r.user_id}|label:${r.device_label || '(unlabelled)'}`;
+            perDevice.set(key, (perDevice.get(key) || 0) + 1);
+        }
+
+        const duplicated = [...perDevice.values()].filter((n) => n > 1);
+        // Leading indicator: a row with no device_id is outside the index. Some
+        // are legacy and heal on that device's next app load, so this is
+        // reported rather than alarmed on.
+        report.activeWithoutDeviceId = withoutDeviceId;
+        report.devicesWithDuplicateSubs = duplicated.length;
+
+        if (duplicated.length > 0) {
+            const extraBanners = duplicated.reduce((sum, n) => sum + (n - 1), 0);
+            problems.push(
+                `${duplicated.length} device(s) hold more than one live subscription -- ` +
+                    `${extraBanners} duplicate banner(s) on every notification`
+            );
+        }
+    } catch (e) {
+        problems.push(`duplicate-device check failed: ${e?.message || e}`);
+    }
+
     // ---- CHECK 3: configuration -------------------------------------------
     if (!isPushConfigured()) {
         report.configOk = false;
