@@ -8,6 +8,7 @@ import detailStyles from '../../../src/components/store/MarketplaceDetailExperie
 import { ensureAuthReady, getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
 import { createCheckoutRequestId } from '../../../src/lib/store/storeAnalytics';
 import supabase from '../../../src/lib/supabase';
+import { broadcastSync } from '../../../src/lib/broadcastSync';
 
 const PACKAGE_OPTIONS = [
   { packageId: 'micro', diamonds: 100, price: 1 },
@@ -37,6 +38,7 @@ export default function ClubShopItemDetail() {
   const [balance, setBalance] = useState(null);
   const [state, setState] = useState({ kind: 'loading', message: 'Loading verified club inventory…' });
   const [diamondReviewOpen, setDiamondReviewOpen] = useState(false);
+  const [diamondPurchaseRequestId, setDiamondPurchaseRequestId] = useState(null);
   const loadRequestRef = useRef(0);
   const processingRef = useRef(false);
   const diamondReviewTriggerRef = useRef(null);
@@ -116,11 +118,11 @@ export default function ClubShopItemDetail() {
     const targetClub = target?.clubId || target?.club_id || clubId;
     if (!token) {
       setState({ kind: 'auth', message: 'Sign in again before authorizing a diamond purchase.' });
-      return;
+      return false;
     }
     if (!target || !targetClub) {
       setState({ kind: 'error', message: 'Verified club item context is unavailable. Reload inventory and try again.' });
-      return;
+      return false;
     }
     processingRef.current = true;
     setState({ kind: 'processing', message: 'Authorizing diamond wallet settlement…' });
@@ -130,25 +132,31 @@ export default function ClubShopItemDetail() {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'X-Idempotency-Key': target.purchaseRequestId || createCheckoutRequestId(`club-detail-${target.id}`),
+          'X-Idempotency-Key': target.purchaseRequestId || diamondPurchaseRequestId,
         },
         body: JSON.stringify({ clubId: targetClub, itemId: target.id }),
       });
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.success) {
         setState({ kind: 'error', message: body?.error || 'Purchase could not be completed.' });
-        return;
+        return false;
       }
-      window.localStorage.removeItem('smarter_poker_pending_club_detail_card_purchase');
       setBalance(Number(body.newBalance) || 0);
       setDiamondReviewOpen(false);
+      setDiamondPurchaseRequestId(null);
+      window.dispatchEvent(new CustomEvent('smarter-poker:diamond-balance', {
+        detail: { balance: Number(body.newBalance) || 0, userId: getAuthUser()?.id, source: 'club-shop' },
+      }));
+      broadcastSync('smarter_poker_diamond_sync', 'refresh');
       setState({ kind: 'complete', message: `${target.name} is now in your club inventory.` });
+      return true;
     } catch (error) {
       setState({ kind: 'error', message: error?.message || 'Purchase could not be completed.' });
+      return false;
     } finally {
       processingRef.current = false;
     }
-  }, [clubId, item]);
+  }, [clubId, diamondPurchaseRequestId, item]);
 
   const purchaseWithCard = async () => {
     if (processingRef.current) return;
@@ -168,14 +176,7 @@ export default function ClubShopItemDetail() {
     }
     processingRef.current = true;
     setState({ kind: 'processing', message: 'Opening secure card checkout…' });
-    const pending = {
-      ...item,
-      clubId,
-      purchaseRequestId: createCheckoutRequestId(`club-detail-card-redeem-${item.id}`),
-      expiresAt: Date.now() + 30 * 60 * 1000,
-    };
     try {
-      window.localStorage.setItem('smarter_poker_pending_club_detail_card_purchase', JSON.stringify(pending));
       const origin = window.location.origin;
       const response = await fetch('/api/store/create-checkout-session', {
         method: 'POST',
@@ -187,6 +188,7 @@ export default function ClubShopItemDetail() {
         body: JSON.stringify({
           type: 'diamonds',
           items: [{ packageId: topUp.packageId, quantity: topUp.quantity }],
+          redemptionIntent: { kind: 'club_shop', clubId, itemId: item.id },
           successUrl: `${origin}${canonical}?clubId=${clubId}&success=true&session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${origin}${canonical}?clubId=${clubId}&canceled=true`,
         }),
@@ -197,7 +199,6 @@ export default function ClubShopItemDetail() {
       }
       window.location.href = body.data.url;
     } catch (error) {
-      window.localStorage.removeItem('smarter_poker_pending_club_detail_card_purchase');
       setState({ kind: 'error', message: error?.message || 'Card checkout could not start.' });
     } finally {
       processingRef.current = false;
@@ -205,40 +206,64 @@ export default function ClubShopItemDetail() {
   };
 
   useEffect(() => {
-    if (!router.isReady || router.query.canceled !== 'true') return;
-    window.localStorage.removeItem('smarter_poker_pending_club_detail_card_purchase');
-  }, [router.isReady, router.query.canceled]);
-
-  useEffect(() => {
     if (!router.isReady || router.query.success !== 'true' || !router.query.session_id) return;
     const token = getAccessToken();
-    let pending = null;
-    try {
-      pending = JSON.parse(window.localStorage.getItem('smarter_poker_pending_club_detail_card_purchase') || 'null');
-    } catch (_) {
-      window.localStorage.removeItem('smarter_poker_pending_club_detail_card_purchase');
-    }
     if (!token) {
       setState({ kind: 'auth', message: 'Sign in again to verify this card settlement.' });
       return;
     }
-    if (!pending?.id || Number(pending.expiresAt) < Date.now()) {
-      window.localStorage.removeItem('smarter_poker_pending_club_detail_card_purchase');
-      setState({ kind: 'error', message: 'This card checkout return expired. No club item was redeemed.' });
-      return;
-    }
-    setState({ kind: 'processing', message: 'Verifying card settlement before granting the item…' });
-    fetch(`/api/store/checkout-status?session_id=${encodeURIComponent(router.query.session_id)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((response) => response.json().then((body) => ({ response, body })))
-      .then(({ response, body }) => {
-        if (!response.ok || body?.data?.status !== 'complete') throw new Error('Card settlement is still pending.');
-        router.replace(`${canonical}?clubId=${pending.clubId}`, undefined, { shallow: true });
-        return purchaseWithDiamonds(pending);
-      })
-      .catch((error) => setState({ kind: 'error', message: error.message }));
-  }, [canonical, purchaseWithDiamonds, router.isReady, router.query.session_id, router.query.success]);
+    let cancelled = false;
+    let retryTimer = null;
+    const verify = async () => {
+      setState({ kind: 'processing', message: 'Verifying card settlement before granting the item…' });
+      for (let attempt = 0; attempt < 6 && !cancelled; attempt += 1) {
+        try {
+          const response = await fetch(
+            `/api/store/checkout-status?session_id=${encodeURIComponent(router.query.session_id)}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const body = await response.json().catch(() => null);
+          if (response.ok && body?.data?.status === 'complete') {
+            if (!cancelled) {
+              if (body.data?.redemptionStatus === 'needs_review') {
+                await router.replace(`${canonical}?clubId=${clubId}`, undefined, { shallow: true });
+                setState({
+                  kind: 'error',
+                  message: 'Your card payment and Diamonds are recorded, but this item was not purchased. Your Diamonds remain available—use Buy With Diamonds to finish without another card payment.',
+                });
+                return;
+              }
+              await loadItem();
+              await router.replace(`${canonical}?clubId=${clubId}`, undefined, { shallow: true });
+            }
+            return;
+          }
+          if (!response.ok && response.status !== 409) {
+            throw new Error(body?.error || 'Card settlement verification failed.');
+          }
+        } catch (error) {
+          if (attempt === 5 && !cancelled) {
+            setState({ kind: 'error', message: error.message || 'Card settlement verification failed.' });
+            return;
+          }
+        }
+        await new Promise((resolve) => {
+          retryTimer = window.setTimeout(resolve, 1200);
+        });
+      }
+      if (!cancelled) {
+        setState({
+          kind: 'error',
+          message: 'Card settlement is still pending. Reload this page to resume the same purchase.',
+        });
+      }
+    };
+    void verify();
+    return () => {
+      cancelled = true;
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
+  }, [canonical, clubId, loadItem, router.isReady, router.query.session_id, router.query.success]);
 
   const name = item?.name || 'Club Shop Equipment Record';
   const description = item?.description || state.message;
@@ -273,7 +298,15 @@ export default function ClubShopItemDetail() {
       status={state.kind === 'ready' ? 'Club Verified' : state.message}
       actions={item && state.kind !== 'auth' ? (
         <>
-          <button ref={diamondReviewTriggerRef} type="button" onClick={() => setDiamondReviewOpen(true)} disabled={state.kind === 'processing'}>
+          <button
+            ref={diamondReviewTriggerRef}
+            type="button"
+            onClick={() => {
+              setDiamondPurchaseRequestId(createCheckoutRequestId(`club-detail-${item.id}`));
+              setDiamondReviewOpen(true);
+            }}
+            disabled={state.kind === 'processing'}
+          >
             <Gem size={16} aria-hidden="true" /> Review Diamond Purchase
           </button>
           <button type="button" onClick={purchaseWithCard} disabled={state.kind === 'processing'}>
@@ -326,6 +359,7 @@ export default function ClubShopItemDetail() {
               type="button"
               onClick={() => {
                 setDiamondReviewOpen(false);
+                setDiamondPurchaseRequestId(null);
                 window.requestAnimationFrame(() => diamondReviewTriggerRef.current?.focus());
               }}
               disabled={state.kind === 'processing'}

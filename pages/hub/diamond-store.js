@@ -604,7 +604,14 @@ export default function DiamondStorePage({ initialTab }) {
           if (cancelled) return;
 
           const status = body.data?.status === 'complete' ? 'complete' : 'pending';
-          setCheckoutReturn({ status, receipt: body.data });
+          const needsRedemptionReview = body.data?.redemptionStatus === 'needs_review';
+          setCheckoutReturn({
+            status,
+            receipt: body.data,
+            ...(needsRedemptionReview ? {
+              message: 'Your card payment and Diamonds are recorded, but the item was not purchased. Your Diamonds remain available—buy the item separately without paying by card again.',
+            } : {}),
+          });
           if (status === 'complete') {
             captureStoreEvent('checkout_complete', {
               route: activeTab,
@@ -809,6 +816,10 @@ export default function DiamondStorePage({ initialTab }) {
   // annual tiers go straight to a Stripe Checkout subscription session.
   const handleVIPSubscribe = async () => {
     if (processingRef.current) return;
+    if (vipTier === 'lifetime') {
+      showStoreToast('success', 'Lifetime VIP Already Includes Every VIP Plan.');
+      return;
+    }
     const plan =
       selectedVIP === 'vip-daily'
         ? VIP_MEMBERSHIP.daily
@@ -845,6 +856,10 @@ export default function DiamondStorePage({ initialTab }) {
   /** The daily pass, once the in-page confirmation has been accepted. */
   const runDailyPassPurchase = async (idempotencyKey) => {
     if (processingRef.current) return;
+    if (vipTier === 'lifetime') {
+      showStoreToast('success', 'Lifetime VIP Already Includes The Daily Pass.');
+      return true;
+    }
     const plan = VIP_MEMBERSHIP.daily;
     const token = getAccessToken();
     if (!token || !user?.id) {
@@ -923,17 +938,8 @@ export default function DiamondStorePage({ initialTab }) {
       showStoreToast('error', 'Daily VIP Card Checkout Is Temporarily Unavailable.');
       return;
     }
-    const pending = {
-      id: plan.id,
-      purchaseRequestId: createCheckoutRequestId('vip-daily-card-redeem'),
-      expiresAt: Date.now() + 30 * 60 * 1000,
-    };
     setStoreProcessing(true);
     try {
-      window.localStorage.setItem(
-        'smarter_poker_pending_daily_vip_card',
-        JSON.stringify(pending)
-      );
       const origin = window.location.origin;
       const response = await fetch('/api/store/create-checkout-session', {
         method: 'POST',
@@ -945,6 +951,7 @@ export default function DiamondStorePage({ initialTab }) {
         body: JSON.stringify({
           type: 'diamonds',
           items: [{ packageId: topUp.packageId, quantity: topUp.quantity }],
+          redemptionIntent: { kind: 'vip_daily' },
           successUrl: `${origin}${TAB_ROUTES.vip}?success=true&session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${origin}${TAB_ROUTES.vip}?canceled=true`,
         }),
@@ -961,7 +968,6 @@ export default function DiamondStorePage({ initialTab }) {
       });
       window.location.href = data.data.url;
     } catch (error) {
-      window.localStorage.removeItem('smarter_poker_pending_daily_vip_card');
       showStoreToast('error', error.message || 'Could Not Start Daily VIP Card Checkout.');
       setStoreProcessing(false);
     }
@@ -979,6 +985,10 @@ export default function DiamondStorePage({ initialTab }) {
    */
   const runDiamondPlanPurchase = async (planKey, idempotencyKey) => {
     if (processingRef.current) return;
+    if (vipTier === 'lifetime') {
+      showStoreToast('success', 'Lifetime VIP Already Includes This Membership.');
+      return true;
+    }
     const token = getAccessToken();
     if (!token || !user?.id) {
       showStoreToast('error', 'Please sign in to purchase VIP.');
@@ -1027,12 +1037,15 @@ export default function DiamondStorePage({ initialTab }) {
         if (data.newBalance != null) setDiamondBalance(Number(data.newBalance));
         broadcastSync('smarter_poker_vip_sync', 'refresh_vip');
         broadcastSync('smarter_poker_diamond_sync', 'refresh');
+        return true;
       } else {
         showStoreToast('error', data?.error || 'VIP Purchase Failed.');
+        return false;
       }
     } catch (e) {
       captureStoreEvent('diamond_purchase_failed', { route: 'vip', product: planKey });
       showStoreToast('error', e.message);
+      return false;
     } finally {
       setStoreProcessing(false);
     }
@@ -1222,11 +1235,6 @@ export default function DiamondStorePage({ initialTab }) {
       // cross-tab channel as every other diamond purchase.
       broadcastSync('smarter_poker_diamond_sync', 'refresh');
       setClubShopBuyTarget(null);
-      try {
-        window.localStorage.removeItem('smarter_poker_pending_club_card_purchase');
-      } catch (_) {
-        /* storage is optional */
-      }
       clubShopLoadingRef.current = false;
       loadClubShop(true);
     } catch (err) {
@@ -1250,20 +1258,8 @@ export default function DiamondStorePage({ initialTab }) {
       return;
     }
     const checkoutRequestId = createCheckoutRequestId(`club-card-${item.id}`);
-    const pending = {
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      clubId: clubShopClubId,
-      purchaseRequestId: createCheckoutRequestId(`club-card-redeem-${item.id}`),
-      expiresAt: Date.now() + 30 * 60 * 1000,
-    };
     setClubShopCardProcessingId(item.id);
     try {
-      window.localStorage.setItem(
-        'smarter_poker_pending_club_card_purchase',
-        JSON.stringify(pending)
-      );
       captureStoreEvent('checkout_started', {
         route: 'club-shop',
         type: 'card-funded-item',
@@ -1281,6 +1277,7 @@ export default function DiamondStorePage({ initialTab }) {
         body: JSON.stringify({
           type: 'diamonds',
           items: [{ packageId: topUp.packageId, quantity: topUp.quantity }],
+          redemptionIntent: { kind: 'club_shop', clubId: clubShopClubId, itemId: item.id },
           successUrl: `${origin}${TAB_ROUTES['club-shop']}?success=true&session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${origin}${TAB_ROUTES['club-shop']}?canceled=true`,
         }),
@@ -1291,11 +1288,6 @@ export default function DiamondStorePage({ initialTab }) {
       }
       window.location.href = data.data.url;
     } catch (error) {
-      try {
-        window.localStorage.removeItem('smarter_poker_pending_club_card_purchase');
-      } catch (_) {
-        /* storage is optional */
-      }
       setClubShopCardProcessingId(null);
       showStoreToast('error', error.message || 'Could Not Start Card Checkout.');
     }
@@ -1303,46 +1295,8 @@ export default function DiamondStorePage({ initialTab }) {
 
   useEffect(() => {
     if (activeTab !== 'club-shop' || checkoutReturn?.status !== 'complete') return;
-    let pending = null;
-    try {
-      pending = JSON.parse(
-        window.localStorage.getItem('smarter_poker_pending_club_card_purchase') || 'null'
-      );
-    } catch (_) {
-      window.localStorage.removeItem('smarter_poker_pending_club_card_purchase');
-    }
-    if (!pending?.id || !pending?.clubId || Number(pending.expiresAt) < Date.now()) {
-      window.localStorage.removeItem('smarter_poker_pending_club_card_purchase');
-      return;
-    }
-    setClubShopCardProcessingId(pending.id);
-    handleClubPurchase(pending).finally(() => setClubShopCardProcessingId(null));
-    // The verified checkout status is the one-shot trigger. Re-running for the
-    // same receipt would only exercise the durable idempotency guard.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, checkoutReturn?.status]);
-
-  useEffect(() => {
-    if (activeTab !== 'vip' || checkoutReturn?.status !== 'complete') return;
-    let pending = null;
-    try {
-      pending = JSON.parse(
-        window.localStorage.getItem('smarter_poker_pending_daily_vip_card') || 'null'
-      );
-    } catch (_) {
-      window.localStorage.removeItem('smarter_poker_pending_daily_vip_card');
-    }
-    if (pending?.id !== 'vip-daily' || Number(pending.expiresAt) < Date.now()) {
-      window.localStorage.removeItem('smarter_poker_pending_daily_vip_card');
-      return;
-    }
-    runDailyPassPurchase(pending.purchaseRequestId).then((applied) => {
-      if (applied) window.localStorage.removeItem('smarter_poker_pending_daily_vip_card');
-    });
-    // The verified Stripe receipt is the one-shot trigger. The redeem endpoint
-    // carries its own durable idempotency key for reload and retry safety.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, checkoutReturn?.status]);
+    loadClubShop(true);
+  }, [activeTab, checkoutReturn?.status, loadClubShop]);
 
   // ═══ Club Shop: Admin — load all items (active + hidden) ═══
   const loadClubShopAdmin = useCallback(async () => {
@@ -1755,13 +1709,13 @@ export default function DiamondStorePage({ initialTab }) {
                   <div style={styles.vipSubscribeSection}>
                     <button
                       type="button"
-                      disabled={isProcessing}
+                      disabled={isProcessing || vipTier === 'lifetime'}
                       aria-busy={isProcessing}
                       aria-label={isProcessing ? 'Processing' : vipSubscribeLabel}
                       onClick={handleVIPSubscribe}
                       style={{
-                        cursor: isProcessing ? 'wait' : 'pointer',
-                        opacity: isProcessing ? 0.6 : 1,
+                        cursor: isProcessing ? 'wait' : vipTier === 'lifetime' ? 'not-allowed' : 'pointer',
+                        opacity: isProcessing || vipTier === 'lifetime' ? 0.6 : 1,
                         transition: 'transform 0.15s ease, filter 0.15s ease',
                         display: 'inline-block',
                         padding: 0,
@@ -1800,7 +1754,7 @@ export default function DiamondStorePage({ initialTab }) {
                     <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 8 }}>
                       <button
                         type="button"
-                        disabled={isProcessing}
+                        disabled={isProcessing || vipTier === 'lifetime'}
                         onClick={handleDailyVipCardCheckout}
                         style={{
                           display: 'inline-flex',
@@ -1814,8 +1768,8 @@ export default function DiamondStorePage({ initialTab }) {
                           color: '#06131A',
                           fontSize: 13,
                           fontWeight: 800,
-                          cursor: isProcessing ? 'wait' : 'pointer',
-                          opacity: isProcessing ? 0.6 : 1,
+                          cursor: isProcessing ? 'wait' : vipTier === 'lifetime' ? 'not-allowed' : 'pointer',
+                          opacity: isProcessing || vipTier === 'lifetime' ? 0.6 : 1,
                         }}
                       >
                         <CreditCard size={16} aria-hidden="true" />
@@ -1839,7 +1793,7 @@ export default function DiamondStorePage({ initialTab }) {
                         const cost = Math.round(Number(selectedVIPPlan.price) * 100);
                         const known = diamondBalance != null;
                         const short = known ? cost - diamondBalance : 0;
-                        const canAfford = !known || short <= 0;
+                        const canAfford = vipTier !== 'lifetime' && (!known || short <= 0);
                         return (
                           <>
                             <button
@@ -1877,6 +1831,8 @@ export default function DiamondStorePage({ initialTab }) {
                             <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 8 }}>
                               {!known
                                 ? 'Sign In To Pay With Diamonds.'
+                                : vipTier === 'lifetime'
+                                  ? 'Lifetime VIP Already Includes This Membership.'
                                 : canAfford
                                   ? `You Have ${Number(diamondBalance).toLocaleString()} Diamonds.`
                                   : `You Have ${Number(diamondBalance).toLocaleString()} And Need ${Number(short).toLocaleString()} More.`}
@@ -1980,11 +1936,14 @@ export default function DiamondStorePage({ initialTab }) {
                             disabled={isProcessing}
                             onClick={async () => {
                               const spend = pendingSpend;
-                              setPendingSpend(null);
+                              let applied = false;
                               if (spend.kind === 'daily') {
-                                await runDailyPassPurchase(spend.idempotencyKey);
+                                applied = await runDailyPassPurchase(spend.idempotencyKey);
                               } else
-                                await runDiamondPlanPurchase(spend.planKey, spend.idempotencyKey);
+                                applied = await runDiamondPlanPurchase(spend.planKey, spend.idempotencyKey);
+                              // Keep the same operation identity through an
+                              // ambiguous response or retryable failure.
+                              if (applied) setPendingSpend(null);
                             }}
                             style={{
                               flex: 1,

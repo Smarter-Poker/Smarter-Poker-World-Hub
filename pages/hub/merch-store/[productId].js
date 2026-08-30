@@ -35,7 +35,8 @@ function staticProduct(product) {
     image: publicImage(product.image),
     priceDiamonds: Math.round(Number(product.price || 0) * 100),
     inStock: true,
-    fulfillmentReady: false,
+    fulfillmentReady: true,
+    automaticFulfillmentReady: false,
     fulfillmentProvider: null,
   };
 }
@@ -66,7 +67,8 @@ async function catalogProduct(productId) {
 
   const metadata = item.metadata && typeof item.metadata === 'object' ? item.metadata : {};
   const fulfillmentProvider = metadata.fulfillment_provider || null;
-  let fulfillmentReady = false;
+  const fulfillmentReady = true;
+  let automaticFulfillmentReady = false;
   let printfulReady = false;
   let resolvePrintfulMapping = null;
   if (fulfillmentProvider === 'printful') {
@@ -74,7 +76,7 @@ async function catalogProduct(productId) {
     printfulReady = printful.isPrintfulReady();
     resolvePrintfulMapping = printful.resolvePrintfulMapping;
     if (printfulReady) {
-      fulfillmentReady = item.has_variants
+      automaticFulfillmentReady = item.has_variants
         ? (variants || []).some((variant) => Boolean(resolvePrintfulMapping(null, variant.metadata)))
         : Boolean(resolvePrintfulMapping(metadata, null));
     }
@@ -111,12 +113,15 @@ async function catalogProduct(productId) {
           Number(variant.price_diamonds) || Math.ceil(resolvedPrice * 100)
         ),
         stock: Math.max(0, Number(variant.stock) || 0),
-        fulfillmentReady:
-          fulfillmentProvider !== 'printful' ||
-          (printfulReady && Boolean(resolvePrintfulMapping?.(null, variant.metadata))),
+        fulfillmentReady: true,
+        automaticFulfillmentReady:
+          fulfillmentProvider === 'printful'
+          && printfulReady
+          && Boolean(resolvePrintfulMapping?.(null, variant.metadata)),
       };
     }),
     fulfillmentReady,
+    automaticFulfillmentReady,
     fulfillmentProvider,
   };
 }
@@ -219,8 +224,8 @@ export default function MerchProductDetail({ product }) {
           <h2 id="purchase-console-title">Live Purchase Console</h2>
           <p>
             Choose the current option, save the item, add it to the shared cart, or use either
-            settlement path from this page. Physical checkout remains locked until the connected
-            fulfillment record is verified.
+            settlement path from this page. Orders enter automatic fulfillment when connected;
+            otherwise they enter the audited manual fulfillment queue.
           </p>
         </div>
         <MerchStore

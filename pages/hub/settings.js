@@ -737,11 +737,11 @@ export default function SettingsPage() {
         try {
             const headers = { 'Authorization': `Bearer ${getAccessToken()}` };
 
-            // Fetch orders, transactions, VIP sub, and profile in parallel
+            // Fetch orders, transactions, the private VIP read model, and profile in parallel.
             const [ordersRes, txRes, vipRes, profileRes] = await Promise.allSettled([
                 supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
                 fetch(`/api/store/diamond-transactions?limit=10`, { headers }).then(r => r.json()),
-                supabase.from('vip_subscriptions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+                fetch('/api/store/vip-membership-status', { headers }).then(r => r.json()),
                 supabase.from('profiles').select('diamonds').eq('id', user.id).maybeSingle(),
             ]);
 
@@ -751,8 +751,16 @@ export default function SettingsPage() {
             if (txRes.status === 'fulfilled') {
                 setBillingTransactions(txRes.value.transactions || txRes.value.data || []);
             }
-            if (vipRes.status === 'fulfilled' && vipRes.value.data) {
-                setBillingVipSub(vipRes.value.data);
+            if (vipRes.status === 'fulfilled' && vipRes.value?.membership) {
+                const membership = vipRes.value.membership;
+                setBillingVipSub({
+                    tier: membership.tier,
+                    source: membership.source,
+                    current_period_end: membership.currentPeriodEnd || membership.expiresAt,
+                    cancel_at_period_end: membership.cancelAtPeriodEnd,
+                    can_cancel: membership.canCancel,
+                    recurring: membership.recurring,
+                });
             }
             if (profileRes.status === 'fulfilled' && profileRes.value.data) {
                 setBillingDiamonds(profileRes.value.data.diamonds || 0);
@@ -1703,6 +1711,8 @@ export default function SettingsPage() {
                                                             <div style={{ fontSize: 17, fontWeight: 700, color: '#e4e6eb' }}>Active VIP Member</div>
                                                             <div style={{ fontSize: 13, color: '#65676b', marginTop: 4 }}>
                                                                 {billingVipSub?.tier ? `${billingVipSub.tier.charAt(0).toUpperCase() + billingVipSub.tier.slice(1)} Plan` : 'Premium Plan'}
+                                                                {billingVipSub?.source === 'diamonds' ? ' · Paid With Diamonds' : ''}
+                                                                {billingVipSub?.source === 'lifetime' ? ' · Lifetime Access' : ''}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1714,7 +1724,9 @@ export default function SettingsPage() {
                                                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                                         }}>
                                                             <span style={{ fontSize: 13, color: '#65676b' }}>
-                                                                {billingVipSub.cancel_at_period_end ? 'Cancels On' : 'Next Billing Date'}
+                                                                {billingVipSub.cancel_at_period_end
+                                                                    ? 'Cancels On'
+                                                                    : billingVipSub.recurring ? 'Next Billing Date' : 'Access Through'}
                                                             </span>
                                                             <span style={{ fontSize: 14, fontWeight: 600, color: billingVipSub.cancel_at_period_end ? '#f02849' : '#e4e6eb' }}>
                                                                 {new Date(billingVipSub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -1732,7 +1744,7 @@ export default function SettingsPage() {
                                                         </div>
                                                     )}
 
-                                                    {!billingVipSub?.cancel_at_period_end && (
+                                                    {billingVipSub?.can_cancel && !billingVipSub?.cancel_at_period_end && (
                                                         <button
                                                             onClick={() => {
                                                                 setShowCancelModal(true);

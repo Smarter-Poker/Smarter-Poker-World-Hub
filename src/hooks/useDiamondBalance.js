@@ -93,6 +93,15 @@ export function useDiamondBalance(userId) {
     // ── Event listener: diamond-balance-refresh custom event ──
     useEffect(() => {
         window.addEventListener('diamond-balance-refresh', refreshBalance);
+        const applyDirectBalance = (event) => {
+            const detail = event?.detail || {};
+            if (detail.userId && detail.userId !== userId) return;
+            const next = Number(detail.balance);
+            if (!Number.isFinite(next) || next < 0) return;
+            setBalance(next);
+            updateCachedBalance(next, userId);
+        };
+        window.addEventListener('smarter-poker:diamond-balance', applyDirectBalance);
 
         // Listen to global EventBus for robust real-time synchronization
         const unsubscribeEarned = eventBus.on(EventType.DIAMONDS_EARNED, refreshBalance);
@@ -100,10 +109,11 @@ export function useDiamondBalance(userId) {
 
         return () => {
             window.removeEventListener('diamond-balance-refresh', refreshBalance);
+            window.removeEventListener('smarter-poker:diamond-balance', applyDirectBalance);
             unsubscribeEarned();
             unsubscribeSpent();
         };
-    }, [refreshBalance]);
+    }, [refreshBalance, userId]);
 
     // ── Shared profile channel: diamonds field updates ──
     // Replaces the old dedicated `diamonds:{userId}` supabase.channel() call.

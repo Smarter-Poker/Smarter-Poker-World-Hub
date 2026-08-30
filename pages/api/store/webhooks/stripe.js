@@ -29,9 +29,9 @@ async function getRawBody(req) {
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[stripe-webhook] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; writes may be silently blocked by RLS');
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) throw new Error('Stripe webhook database is not configured');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -108,21 +108,21 @@ export default async function handler(req, res) {
       // exist.
       // ═════════════════════════════════════════════════════════════════════
       if (event?.id) {
-          const { data: claimed, error: claimErr } = await getSupabase()
-              .from('stripe_webhook_events')
-              .insert({ event_id: event.id, event_type: event.type })
-              .select('event_id')
-              .maybeSingle();
-
-          if (claimErr && claimErr.code === '23505') {
-              console.info(`[stripe-webhook] duplicate delivery of ${event.id} (${event.type}) — already processed`);
-              return res.status(200).json({ received: true, duplicate: true });
-          }
+          const { data: claim, error: claimErr } = await getSupabase().rpc(
+              'claim_stripe_webhook_event',
+              { p_event_id: event.id, p_event_type: event.type, p_lease_seconds: 300 }
+          );
           if (claimErr) {
               console.warn(`[stripe-webhook] could not claim event ${event.id}, processing anyway:`, claimErr.message);
-          } else if (!claimed) {
-              console.info(`[stripe-webhook] duplicate delivery of ${event.id} (${event.type}) — already processed`);
-              return res.status(200).json({ received: true, duplicate: true });
+          } else if (!claim?.claimed) {
+              if (claim?.state === 'done') {
+                  console.info(`[stripe-webhook] duplicate delivery of ${event.id} (${event.type}) — already processed`);
+                  return res.status(200).json({ received: true, duplicate: true });
+              }
+              // Another worker owns a live lease. A retryable response ensures
+              // a process crash cannot turn that temporary lease into lost
+              // paid work; the next delivery may reclaim it after expiry.
+              return res.status(409).json({ received: false, processing: true });
           }
       }
 
@@ -170,6 +170,13 @@ export default async function handler(req, res) {
               default:
           }
 
+          if (event?.id) {
+              const { error: completionError } = await getSupabase().rpc(
+                  'complete_stripe_webhook_event',
+                  { p_event_id: event.id }
+              );
+              if (completionError) throw completionError;
+          }
           return res.status(200).json({ received: true });
       } catch (error) {
           console.warn('Webhook handler error:', error);
@@ -213,63 +220,31 @@ async function handleCheckoutCompleted(session) {
         // One-time payment (diamonds or merchandise)
         // metadata can be null for sessions created outside this app (e.g. payment links)
         if (metadata?.type === 'diamonds' && metadata.purchase_id) {
-            // IDEMPOTENCY: Only credit diamonds if purchase was still pending
-            const { data: purchase, error: completeErr } = await getSupabase()
+            const { data: purchaseState, error: purchaseStateError } = await getSupabase()
                 .from('diamond_purchases')
-                .update({
-                    status: 'completed',
-                    stripe_checkout_session_id: id,
-                    stripe_payment_intent_id: session.payment_intent || null,
-                    completed_at: new Date().toISOString()
-                })
+                .select('status, stripe_checkout_session_id')
                 .eq('id', metadata.purchase_id)
-                .eq('status', 'pending') // Only update if still pending — prevents double-credit on retries
-                .select()
                 .maybeSingle();
-
-            if (completeErr) {
-                // Paid purchase must not be dropped — throw so Stripe retries.
-                console.warn('[stripe-webhook] purchase completion update failed for', metadata.purchase_id, '— Stripe will retry:', completeErr.message);
-                throw completeErr;
+            if (purchaseStateError || !purchaseState) {
+                throw purchaseStateError || new Error(`Diamond purchase ${metadata.purchase_id} was not found`);
             }
-
-            if (purchase) {
-                // Add diamonds to user balance
-                const totalDiamonds = purchase.diamonds_amount + (purchase.bonus_diamonds || 0);
-                const { error: creditErr } = await getSupabase().rpc('add_diamonds_to_balance', {
-                    p_user_id: metadata.user_id,
-                    p_amount: totalDiamonds,
-                    p_type: 'purchase',
-                    p_description: `Purchased ${purchase.package_name} (${totalDiamonds} diamonds)`,
-                    p_reference_id: metadata.purchase_id
-                });
-
-                if (creditErr) {
-                    // CRITICAL: user paid real money but the diamond credit RPC failed.
-                    // Roll back the status='completed' lock so the next Stripe webhook
-                    // retry can re-process. Then throw to return 500 — Stripe retries
-                    // failed webhooks for ~3 days with exponential backoff, so the
-                    // credit will eventually succeed instead of being silently lost.
-                    try {
-                        // The row count matters more here than almost anywhere
-                        // else on the platform. This rollback is what releases the
-                        // idempotency lock; if it matches zero rows the purchase
-                        // stays 'completed', every Stripe retry is dismissed as a
-                        // duplicate, and the customer has paid for diamonds they
-                        // will never receive. Silence is not an option.
-                        const { data: rolledBack, error: err_diamond_purchases_26t3a } = await getSupabase()
-                          .from('diamond_purchases')
-                          .update({ status: 'pending', completed_at: null })
-                            .eq('id', metadata.purchase_id)
-                            .select('id');
-                        if (err_diamond_purchases_26t3a) console.error('[stripe-webhook] CRITICAL: rollback to pending FAILED for purchase', metadata.purchase_id, '- diamonds paid for and not credited:', err_diamond_purchases_26t3a.message);
-                        else if (!rolledBack || rolledBack.length === 0) console.error('[stripe-webhook] CRITICAL: rollback to pending MATCHED ZERO ROWS for purchase', metadata.purchase_id, '- the idempotency lock is stuck completed, retries will be dismissed, and the customer paid for diamonds they will never receive.');
-                    } catch (rollbackErr) {
-                        console.warn('[stripe-webhook] Rollback to pending failed for purchase', metadata.purchase_id, rollbackErr?.message || rollbackErr);
-                    }
-                    console.warn('[stripe-webhook] add_diamonds_to_balance failed for purchase', metadata.purchase_id, '— rolled back, Stripe will retry:', creditErr);
-                    throw creditErr;
+            if (purchaseState.status === 'refunded'
+                && purchaseState.stripe_checkout_session_id === id) return;
+            const paymentIntentId = typeof session.payment_intent === 'string'
+                ? session.payment_intent
+                : session.payment_intent?.id || null;
+            const { data: settlement, error: settlementError } = await getSupabase().rpc(
+                'settle_diamond_card_purchase_atomic',
+                {
+                    p_purchase_id: metadata.purchase_id,
+                    p_session_id: id,
+                    p_payment_intent_id: paymentIntentId,
                 }
+            );
+            if (settlementError || !settlement?.success) {
+                throw settlementError || new Error(
+                    `Diamond card settlement refused: ${settlement?.error || 'unknown_error'}`
+                );
             }
         } else if (metadata?.type === 'merchandise' && metadata.order_id) {
             const { data: orderRow, error: orderReadError } = await getSupabase()
@@ -280,6 +255,7 @@ async function handleCheckoutCompleted(session) {
             if (orderReadError || !orderRow) {
                 throw orderReadError || new Error(`Paid merchandise order ${metadata.order_id} was not found`);
             }
+            if (orderRow.status === 'refunded') return;
 
             const orderItems = Array.isArray(orderRow.items) ? orderRow.items : [];
             const orderMetadata = orderRow.metadata && typeof orderRow.metadata === 'object'
@@ -290,125 +266,65 @@ async function handleCheckoutCompleted(session) {
                 : session.payment_intent?.id || null;
             const isPrintfulOrder = orderItems.length > 0
                 && orderItems.every(item => item?.fulfillmentProvider === 'printful');
-
-            // Local inventory orders still use the existing reservation path.
-            // Printful merchandise is made to order and must never decrement a
-            // fictional warehouse quantity.
-            let stockTaken = true;
-            if (!isPrintfulOrder) {
-                try {
-                    const lines = orderItems
-                        .filter((l) => l && (l.id || l.catalogId))
-                        .map((l) => ({
-                            id: l.id || l.catalogId,
-                            variant_id: l.variantId || l.variant_id || null,
-                            qty: Math.min(Math.max(parseInt(l.quantity ?? l.qty) || 1, 1), 10),
-                        }))
-                    if (lines.length > 0) {
-                        const { data: resRaw, error: resErr } = await getSupabase()
-                            .rpc('reserve_merch_order', { p_items: lines });
-                        const reserved = typeof resRaw === 'string' ? JSON.parse(resRaw) : resRaw || {};
-                        if (resErr || !reserved.success) {
-                            stockTaken = false;
-                            console.error(
-                                `[stripe-webhook] STOCK NOT TAKEN for paid order ${metadata.order_id}:`,
-                                resErr?.message || reserved.error,
-                            );
-                        }
-                    }
-                } catch (stockErr) {
-                    stockTaken = false;
-                    console.error(`[stripe-webhook] stock reservation threw for order ${metadata.order_id}:`, stockErr?.message || stockErr);
-                }
-            }
+            const fulfillmentMode = orderMetadata.fulfillment_mode === 'automatic'
+                ? 'automatic'
+                : 'manual';
+            const requiresShipping = orderItems.some(
+                item => item?.fulfillmentProvider !== 'digital'
+            );
 
             let recipient = null;
-            if (isPrintfulOrder) {
+            let addressBlocked = false;
+            if (requiresShipping) {
                 try {
                     recipient = normalizePrintfulRecipient(session);
                 } catch (addressError) {
-                    const now = new Date().toISOString();
-                    const { data: blockedOrder, error: addressUpdateError } = await getSupabase()
-                        .from('merchandise_orders')
-                        .update({
-                            status: 'paid',
-                            stripe_checkout_session_id: id,
-                            stripe_payment_intent_id: paymentIntentId,
-                            metadata: {
-                                ...orderMetadata,
-                                fulfillment_provider: 'printful',
-                                fulfillment_status: 'blocked',
-                                needs_review: true,
-                                reason: 'shipping_address_incomplete',
-                                flagged_at: now,
-                            },
-                            updated_at: now,
-                        })
-                        .eq('id', metadata.order_id)
-                        .select('id');
-                    if (addressUpdateError || !blockedOrder?.length) {
-                        throw addressUpdateError || new Error('Printful address exception matched zero orders');
-                    }
-                    // Retrying cannot add an address to the immutable Checkout
-                    // Session. Persist the paid exception for support instead
-                    // of making Stripe redeliver it forever.
-                    return;
+                    addressBlocked = true;
                 }
             }
-
-            // A paid order whose stock could not be taken must NOT flow into
-            // normal fulfilment unreviewed. It is held at 'paid' — money
-            // received, not yet being fulfilled — instead of advancing to
-            // 'processing', with the reason recorded in metadata so it is
-            // queryable rather than living only in a log line.
-            //
-            // 'paid' is used deliberately rather than inventing a status:
-            // merchandise_orders_status_check permits only pending/processing/
-            // paid/completed/shipped/delivered/canceled/cancelled/failed/
-            // refunded. It is marked NOT VALID, which exempts pre-existing rows
-            // but STILL enforces new writes — so an invented value would throw
-            // here, and because this handler rethrows, Stripe would retry
-            // forever on an order the customer has already paid for.
-            const orderUpdate = {
-                status: stockTaken ? 'processing' : 'paid',
-                stripe_checkout_session_id: id,
-                stripe_payment_intent_id: paymentIntentId,
-                ...(recipient ? { shipping_address: publicShippingAddress(recipient) } : {}),
-                metadata: {
-                    ...orderMetadata,
-                    ...(isPrintfulOrder ? {
-                        fulfillment_provider: 'printful',
-                        fulfillment_status: 'submitting',
-                    } : {}),
-                    ...(!stockTaken ? {
-                        needs_review: true,
-                        reason: 'stock_unavailable_at_payment',
-                        flagged_at: new Date().toISOString(),
-                    } : {}),
-                },
-                updated_at: new Date().toISOString()
+            const settledMode = addressBlocked ? 'manual' : fulfillmentMode;
+            const settlementMetadata = {
+                ...orderMetadata,
+                fulfillment_provider: settledMode === 'automatic'
+                    ? (orderMetadata.catalog_provider || 'printful')
+                    : 'manual',
+                catalog_provider: orderMetadata.catalog_provider
+                    || (isPrintfulOrder ? 'printful' : 'manual'),
+                fulfillment_mode: settledMode,
+                fulfillment_status: addressBlocked
+                    ? 'blocked'
+                    : settledMode === 'automatic'
+                        ? 'submitting'
+                        : 'awaiting_manual_fulfillment',
+                needs_review: settledMode !== 'automatic',
+                ...(addressBlocked
+                    ? { reason: 'shipping_address_incomplete', flagged_at: new Date().toISOString() }
+                    : settledMode !== 'automatic'
+                        ? { reason: 'automatic_fulfillment_deferred' }
+                        : {}),
             };
-
-            // A paid order that is never marked paid is never fulfilled, and a
-            // zero-row match here returns 200 so Stripe stops retrying.
-            const { data: paidOrder, error: err_merchandise_orders_16ujp } = await getSupabase()
-              .from('merchandise_orders')
-              .update(orderUpdate)
-                .eq('id', metadata.order_id)
-                .select('id');
-            if (err_merchandise_orders_16ujp) {
-                // Paid order must not be silently lost — throw so the webhook
-                // returns 500 and Stripe retries the event.
-                console.warn('[stripe-webhook] merchandise order update failed for order', metadata.order_id, '— Stripe will retry:', err_merchandise_orders_16ujp.message);
-                throw err_merchandise_orders_16ujp;
+            const { data: settlement, error: settlementError } = await getSupabase().rpc(
+                'settle_paid_merch_order_atomic',
+                {
+                    p_order_id: metadata.order_id,
+                    p_session_id: id,
+                    p_payment_intent_id: paymentIntentId,
+                    p_shipping_address: recipient ? publicShippingAddress(recipient) : null,
+                    p_metadata: settlementMetadata,
+                }
+            );
+            if (settlementError || !settlement?.success) {
+                throw settlementError || new Error(
+                    `Paid merchandise settlement refused: ${settlement?.error || 'unknown_error'}`
+                );
             }
-            if (!paidOrder || paidOrder.length === 0) {
-                const msg = `[stripe-webhook] PAID ORDER ${metadata.order_id} MATCHED ZERO ROWS — the customer has paid and the order was never marked paid, so it will never be fulfilled. Throwing so Stripe retries.`;
-                console.error(msg);
-                throw new Error(msg);
-            }
+            const stockTaken = settlement.stock_taken === true;
+            const settledMetadata = settlement.metadata || settlementMetadata;
 
-            if (isPrintfulOrder && stockTaken) {
+            if (isPrintfulOrder
+                && stockTaken
+                && settledMode === 'automatic'
+                && settledMetadata.fulfillment_status === 'submitting') {
                 try {
                     const providerOrder = await createPrintfulOrder({
                         orderId: metadata.order_id,
@@ -423,7 +339,7 @@ async function handleCheckoutCompleted(session) {
                         .update({
                             status: 'processing',
                             metadata: {
-                                ...orderMetadata,
+                                ...settledMetadata,
                                 fulfillment_provider: 'printful',
                                 fulfillment_status: providerStatus,
                                 printful_order_id: providerOrder?.id ? String(providerOrder.id).slice(0, 80) : null,
@@ -445,11 +361,12 @@ async function handleCheckoutCompleted(session) {
                         .update({
                             status: 'paid',
                             metadata: {
-                                ...orderMetadata,
+                                ...settledMetadata,
                                 fulfillment_provider: 'printful',
-                                fulfillment_status: 'submission_failed',
+                                fulfillment_mode: 'automatic',
+                                fulfillment_status: 'provider_unknown',
                                 needs_review: true,
-                                reason: 'printful_submission_failed',
+                                reason: 'printful_submission_state_unknown',
                                 failure_code: String(fulfillmentError?.code || 'PRINTFUL_REQUEST_FAILED').slice(0, 80),
                                 flagged_at: failedAt,
                             },
@@ -458,12 +375,13 @@ async function handleCheckoutCompleted(session) {
                         .eq('id', metadata.order_id)
                         .select('id');
                     if (failedUpdateError || !failedOrder?.length) {
-                        console.error('[stripe-webhook] failed to flag Printful exception:', failedUpdateError?.message || 'matched zero orders');
+                        throw failedUpdateError || new Error(
+                            'Printful submission failed and its review quarantine could not be recorded'
+                        );
                     }
-                    // A provider timeout/outage is retryable. Event claim release
-                    // plus Printful external_id/update_existing makes the retry
-                    // safe even if their first response was lost in transit.
-                    throw fulfillmentError;
+                    // The immutable external id is retained for reconciliation.
+                    // Do not retry submission blindly: a timeout may mean the
+                    // provider accepted the order and only its response was lost.
                 }
             }
 
@@ -686,11 +604,14 @@ async function handleSubscriptionUpdate(subscription) {
         const renewalExpiry = new Date(current_period_end * 1000).toISOString();
         const existingExpiryMs = profile.vip_expires_at ? Date.parse(profile.vip_expires_at) : 0;
         const renewalExpiryMs = Date.parse(renewalExpiry);
+        const preservesLifetime = profile.vip_tier === 'lifetime';
         const preservesPrepaidExtension = Number.isFinite(existingExpiryMs)
             && existingExpiryMs > renewalExpiryMs;
         const tierRank = { daily: 1, monthly: 2, annual: 3, lifetime: 4 };
         const renewalTier = metadata?.vip_tier || 'monthly';
-        const effectiveTier = preservesPrepaidExtension
+        const effectiveTier = preservesLifetime
+            ? 'lifetime'
+            : preservesPrepaidExtension
             && (tierRank[profile.vip_tier] || 0) > (tierRank[renewalTier] || 0)
             ? profile.vip_tier
             : renewalTier;
@@ -699,7 +620,9 @@ async function handleSubscriptionUpdate(subscription) {
             .update({
                 is_vip: true,
                 vip_tier: effectiveTier,
-                vip_expires_at: preservesPrepaidExtension ? profile.vip_expires_at : renewalExpiry,
+                vip_expires_at: preservesLifetime || preservesPrepaidExtension
+                    ? profile.vip_expires_at
+                    : renewalExpiry,
                 updated_at: new Date().toISOString(),
             })
             .eq('id', profile.id)
@@ -714,7 +637,8 @@ async function handleSubscriptionUpdate(subscription) {
             throw new Error(msg);
         }
     } else {
-        const hasActiveDailyPass = profile.vip_expires_at && new Date(profile.vip_expires_at) > new Date();
+        const hasActiveDailyPass = profile.vip_tier === 'lifetime'
+            || (profile.vip_expires_at && new Date(profile.vip_expires_at) > new Date());
         if (!hasActiveDailyPass) {
             const { data: revokedSync, error: vipSyncErr } = await getSupabase()
                 .from('profiles')
@@ -898,19 +822,55 @@ async function handleRefund(charge) {
     // still have been picked, packed and shipped — the customer got their money
     // back AND the goods. The stock taken at payment was never returned either.
     // ═══════════════════════════════════════════════════════════════════════
-    const { data: order, error: orderReadError } = await getSupabase()
+    let { data: order, error: orderReadError } = await getSupabase()
         .from('merchandise_orders')
         .select('id, items, status, metadata, refunded_amount_cents')
         .eq('stripe_payment_intent_id', payment_intent)
         .maybeSingle();
     if (orderReadError) throw orderReadError;
 
-    if (!order) return;
+    if (!order) {
+        const sessions = await stripe.checkout.sessions.list({ payment_intent, limit: 10 });
+        const checkoutSession = sessions.data.find((entry) => (
+            entry.metadata?.purchase_id || entry.metadata?.order_id
+        ));
+        if (checkoutSession?.metadata?.type === 'diamonds' && checkoutSession.metadata.purchase_id) {
+            const { data: pendingPurchase, error: pendingReadError } = await getSupabase()
+                .from('diamond_purchases')
+                .select('id')
+                .eq('id', checkoutSession.metadata.purchase_id)
+                .maybeSingle();
+            if (pendingReadError || !pendingPurchase) {
+                throw pendingReadError || new Error('Refunded Diamond checkout could not be correlated');
+            }
+            const { data: result, error: reconcileError } = await getSupabase()
+                .rpc('reconcile_diamond_purchase_refund', {
+                    p_purchase_id: pendingPurchase.id,
+                    p_charge_amount_cents: chargeAmount,
+                    p_refunded_amount_cents: cumulativeRefund,
+                });
+            if (reconcileError || !result?.success) {
+                throw reconcileError || new Error(`Diamond refund reconciliation failed: ${result?.error || 'unknown_error'}`);
+            }
+            return;
+        }
+        if (checkoutSession?.metadata?.type === 'merchandise' && checkoutSession.metadata.order_id) {
+            const recovered = await getSupabase()
+                .from('merchandise_orders')
+                .select('id, items, status, metadata, refunded_amount_cents')
+                .eq('id', checkoutSession.metadata.order_id)
+                .maybeSingle();
+            if (recovered.error || !recovered.data) {
+                throw recovered.error || new Error('Refunded merchandise checkout could not be correlated');
+            }
+            order = recovered.data;
+        } else {
+            throw new Error('Stripe refund could not be correlated to a commerce record');
+        }
+    }
     const previousRefund = Number(order.refunded_amount_cents) || 0;
-    const nextRefund = Math.min(chargeAmount, cumulativeRefund);
-    const effectiveRefund = Math.max(previousRefund, nextRefund);
+    const effectiveRefund = Math.max(previousRefund, Math.min(chargeAmount, cumulativeRefund));
     const fullyRefunded = effectiveRefund >= chargeAmount;
-    const newlyFullyRefunded = fullyRefunded && previousRefund < chargeAmount;
     const existingMetadata = order.metadata && typeof order.metadata === 'object' ? order.metadata : {};
     const isPrintfulOrder = existingMetadata.fulfillment_provider === 'printful'
         || (Array.isArray(order.items) && order.items.length > 0
@@ -931,11 +891,7 @@ async function handleRefund(charge) {
     }
 
     const now = new Date().toISOString();
-    const update = {
-        refunded_amount_cents: effectiveRefund,
-        status: fullyRefunded ? 'refunded' : order.status,
-        updated_at: now,
-        metadata: {
+    const metadataPatch = {
             ...existingMetadata,
             refund_status: fullyRefunded ? 'full' : 'partial',
             refunded_amount_cents: effectiveRefund,
@@ -951,39 +907,24 @@ async function handleRefund(charge) {
                 reason: 'printful_cancellation_failed_after_refund',
                 flagged_at: now,
             } : {}),
-        },
     };
-    let updateQuery = getSupabase().from('merchandise_orders').update(update).eq('id', order.id);
-    if (nextRefund > previousRefund) updateQuery = updateQuery.eq('refunded_amount_cents', previousRefund);
-    const { data: updatedRows, error: orderErr } = await updateQuery.select('id');
-    if (orderErr || !updatedRows?.length) {
-        throw orderErr || new Error('Merchandise refund reconciliation matched zero orders');
+    const { data: refundResult, error: orderErr } = await getSupabase()
+        .rpc('reconcile_card_merch_refund_atomic', {
+            p_order_id: order.id,
+            p_charge_amount_cents: chargeAmount,
+            p_refunded_amount_cents: cumulativeRefund,
+            p_metadata_patch: metadataPatch,
+        });
+    if (orderErr || !refundResult?.success) {
+        throw orderErr || new Error(
+            `Merchandise refund reconciliation failed: ${refundResult?.error || 'unknown_error'}`
+        );
     }
 
     // Retry transient provider failures after recording the refunded state and
     // review flag. Permanent 4xx responses need human recovery, not webhook churn.
     if (cancellationError && (!cancellationError.status || cancellationError.status >= 500)) {
         throw cancellationError;
-    }
-
-    // Put local stock back only once, and only when the cumulative refund is full.
-    const lines = Array.isArray(order.items)
-        ? order.items
-            .filter((l) => l && (l.id || l.catalogId))
-            .map((l) => ({
-                id: l.id || l.catalogId,
-                variant_id: l.variantId || l.variant_id || null,
-                qty: Math.min(Math.max(parseInt(l.quantity ?? l.qty) || 1, 1), 10),
-            }))
-        : [];
-
-    if (newlyFullyRefunded && !isPrintfulOrder && lines.length > 0) {
-        const { error: relErr } = await getSupabase()
-            .rpc('release_merch_order', { p_lines: lines });
-        if (relErr) {
-            console.error(`[stripe-webhook] STOCK NOT RETURNED for refunded order ${order.id}:`, relErr.message);
-            try { reportApiError(relErr, null); } catch (_) { /* best effort */ }
-        }
     }
 }
 

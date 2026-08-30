@@ -67,10 +67,14 @@ export default async function handler(req, res) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
-    // Include authenticated identity and route in the durable key namespace so
-    // a raw key reused by another user or endpoint can never replay this body.
-    const { proceed } = await beginIdempotent(supabase, req, res, `marketplace-purchase:${user.id}`);
-    if (!proceed) return;
+    const clientKey = req.headers['x-idempotency-key'];
+    if (typeof clientKey !== 'string'
+        || !/^[A-Za-z0-9._:-]{8,180}$/.test(clientKey.trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'A valid X-Idempotency-Key header is required',
+      });
+    }
 
     let emailGate = requireEmailVerified(user);
     if (!emailGate.ok && typeof user.email_confirmed_at === 'undefined') {
@@ -86,10 +90,32 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'Invalid clubId or itemId format' });
     }
 
+    // Bind the short response cache to the normalized intent. The permanent
+    // financial reference intentionally remains key-only below, so a changed
+    // payload reaches PostgreSQL and is rejected as reference_conflict rather
+    // than replaying the prior item's successful response.
+    const intentHash = crypto
+      .createHash('sha256')
+      .update(`${clubId}\u0000${itemId}`)
+      .digest('hex');
+    const { proceed } = await beginIdempotent(
+      supabase,
+      req,
+      res,
+      `marketplace-purchase:${user.id}:${intentHash}`
+    );
+    if (!proceed) return;
+
     const lock = await checkSettlementLock(supabase, clubId);
     if (lock.locked) return sendLockedResponse(res, lock);
 
-    const chargeReference = `ca-shop-${user.id}-${crypto.randomUUID()}`;
+    // This is the financial idempotency boundary. Unlike the five-minute
+    // response cache, it persists on the purchase row forever and remains the
+    // same across lambda instances, cache outages, crashes, and late retries.
+    const chargeReference = `ca-shop-${crypto
+      .createHash('sha256')
+      .update(`marketplace-purchase\u0000${user.id}\u0000${clientKey.trim()}`)
+      .digest('hex')}`;
     const { data: result, error: purchaseError } = await supabase.rpc(
       'fn_purchase_club_shop_item_diamonds',
       {
@@ -110,6 +136,7 @@ export default async function handler(req, res) {
       return res.status(status).json({
         success: false,
         error: message,
+        code: code === 'reference_conflict' ? 'IDEMPOTENCY_CONFLICT' : undefined,
         reason: code,
         soldOut: code === 'sold_out',
         alreadyOwned: code === 'already_owned',

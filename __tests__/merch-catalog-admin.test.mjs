@@ -83,6 +83,7 @@ test('Stable Admin and storefront are wired to the editable expanded catalog', a
   assert.match(store, /eyewear: 'Sunglasses'/);
   assert.match(store, /tabletop: 'Poker Table Gear'/);
   for (const id of NEW_WEARABLES) assert.match(fallback, new RegExp(`id: '${id}'`));
-  assert.match(checkout, /FULFILLMENT_NOT_CONFIGURED/);
-  assert.match(checkout, /provider !== 'printful'/);
+  assert.match(checkout, /fulfillmentMode: automaticFulfillment \? 'automatic' : 'manual'/);
+  assert.match(checkout, /catalogProvider/);
+  assert.doesNotMatch(checkout, /FULFILLMENT_NOT_CONFIGURED/);
 });

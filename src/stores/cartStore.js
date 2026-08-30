@@ -21,7 +21,17 @@ const useCartStore = create(
   persist(
     (set, get) => ({
       items: [],
+      // Persist the authenticated owner with the cart. An ownerless legacy
+      // cart is treated as guest-only and is never imported into an account.
+      ownerId: 'guest',
       isOpen: false,
+
+      setOwner: (ownerId) => {
+        const nextOwner = ownerId || 'guest';
+        set((state) => state.ownerId === nextOwner
+          ? state
+          : { ownerId: nextOwner, items: [] });
+      },
 
       // Add item to cart
       addItem: (item) => {
@@ -127,7 +137,12 @@ const useCartStore = create(
       // silently loses the cart. Keep the existing SSR-safe storage selector,
       // but wrap it with Zustand's JSON adapter.
       storage: createJSONStorage(() => getStorage()),
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({ items: state.items, ownerId: state.ownerId }),
+      version: 2,
+      migrate: (persisted, version) => {
+        if (version < 2) return { ...persisted, items: [], ownerId: 'guest' };
+        return persisted;
+      },
     }
   )
 );

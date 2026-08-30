@@ -21,6 +21,7 @@ import useCartStore from '../../../src/stores/cartStore';
 import MerchPurchaseDialog from '../../../src/components/store/MerchPurchaseDialog';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 import { createCheckoutRequestId } from '../../../src/lib/store/storeAnalytics';
+import { broadcastSync } from '../../../src/lib/broadcastSync';
 
 // Legacy standalone key used by earlier versions of this page. It is folded
 // into the shared zustand cart once and then removed.
@@ -50,6 +51,8 @@ export default function ShoppingCart() {
   const storeUpdateQuantity = useCartStore((state) => state.updateQuantity);
   const storeRemoveItem = useCartStore((state) => state.removeItem);
   const storeClearCart = useCartStore((state) => state.clearCart);
+  const cartOwnerId = useCartStore((state) => state.ownerId);
+  const setCartOwner = useCartStore((state) => state.setOwner);
 
   const [loading, setLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
@@ -65,6 +68,8 @@ export default function ShoppingCart() {
   // Timestamp of the last edit made in this tab — a realtime echo must not
   // stomp an edit the user just made here
   const lastLocalEditRef = useRef(0);
+  const cartOwnerRef = useRef(null);
+  const cartLoadRequestRef = useRef(0);
 
   const DIAMONDS_PER_DOLLAR = 100;
 
@@ -79,8 +84,23 @@ export default function ShoppingCart() {
 
   useEffect(() => {
     if (authChecking) return;
-    loadCart();
-  }, [authChecking, user?.id]);
+    const nextOwner = user?.id || 'guest';
+    if (cartOwnerId !== nextOwner) {
+      // A persisted browser cart is never allowed to cross an account
+      // boundary. This also rejects ownerless/global carts from older builds
+      // on the first authenticated mount, before any server mirroring occurs.
+      setCartOwner(nextOwner);
+      hydratedRef.current = false;
+      lastSyncedRef.current = null;
+      setHydrated(false);
+    }
+    cartOwnerRef.current = nextOwner;
+    const requestId = ++cartLoadRequestRef.current;
+    loadCart(undefined, nextOwner, requestId);
+    return () => {
+      if (cartLoadRequestRef.current === requestId) cartLoadRequestRef.current += 1;
+    };
+  }, [authChecking, cartOwnerId, setCartOwner, user?.id]);
   // Realtime subscription — live updates
   useEffect(() => {
     if (!user?.id) return;
@@ -90,7 +110,8 @@ export default function ShoppingCart() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` },
         () => {
-          loadCart();
+          const requestId = ++cartLoadRequestRef.current;
+          loadCart(undefined, user.id, requestId);
         }
       )
       .on(
@@ -102,7 +123,8 @@ export default function ShoppingCart() {
           filter: `user_id=eq.${user?.id}`,
         },
         () => {
-          loadCart();
+          const requestId = ++cartLoadRequestRef.current;
+          loadCart(undefined, user.id, requestId);
         }
       )
       .subscribe();
@@ -126,7 +148,13 @@ export default function ShoppingCart() {
 
   // Push a Supabase copy of the cart into the shared store. Local edits win
   // over a realtime echo that may already be stale.
-  const applyRemoteCart = (remoteItems) => {
+  const isCurrentCartLoad = (ownerId, requestId) =>
+    cartOwnerRef.current === ownerId
+    && cartLoadRequestRef.current === requestId
+    && useCartStore.getState().ownerId === ownerId;
+
+  const applyRemoteCart = (remoteItems, ownerId, requestId) => {
+    if (!isCurrentCartLoad(ownerId, requestId)) return;
     const remoteJson = JSON.stringify(remoteItems);
     const currentItems = useCartStore.getState().items;
     if (remoteJson === JSON.stringify(currentItems)) {
@@ -141,7 +169,7 @@ export default function ShoppingCart() {
     setCartItems(remoteItems);
   };
 
-  const loadCart = async (signal) => {
+  const loadCart = async (signal, ownerId = user?.id || 'guest', requestId = cartLoadRequestRef.current) => {
     try {
       // Cart contents come from the shared store; Supabase only hydrates it
       if (user?.id) {
@@ -152,8 +180,9 @@ export default function ShoppingCart() {
             .eq('user_id', user.id)
             .maybeSingle();
           const savedCart = prefData?.preferences?.diamond_cart;
+          if (!isCurrentCartLoad(ownerId, requestId)) return;
           if (Array.isArray(savedCart)) {
-            applyRemoteCart(savedCart);
+            applyRemoteCart(savedCart, ownerId, requestId);
           } else if (!hydratedRef.current) {
             // No server cart yet — seed it from the shared store, or from
             // the legacy standalone cart if the store is empty.
@@ -163,6 +192,7 @@ export default function ShoppingCart() {
               if (storeItems.length === 0) setCartItems(seed);
               // Only drop the legacy copy once the Supabase write succeeds
               const saved = await saveCart(seed);
+              if (!isCurrentCartLoad(ownerId, requestId)) return;
               if (saved) {
                 lastSyncedRef.current = JSON.stringify(seed);
                 localStorage.removeItem(LEGACY_CART_KEY);
@@ -181,6 +211,8 @@ export default function ShoppingCart() {
         }
       }
 
+      if (!isCurrentCartLoad(ownerId, requestId)) return;
+
       hydratedRef.current = true;
       setHydrated(true);
 
@@ -193,16 +225,16 @@ export default function ShoppingCart() {
           });
           if (!res.ok) throw new Error(`Request failed (${res.status})`);
           const data = await res.json();
-          if (data.success) {
+          if (data.success && isCurrentCartLoad(ownerId, requestId)) {
             setDiamondBalance(data.balance || 0);
           }
         }
       }
 
-      setLoading(false);
+      if (isCurrentCartLoad(ownerId, requestId)) setLoading(false);
     } catch (error) {
       console.warn('Error loading cart:', error);
-      setLoading(false);
+      if (isCurrentCartLoad(ownerId, requestId)) setLoading(false);
     }
   };
 
@@ -353,12 +385,19 @@ export default function ShoppingCart() {
   // conversion for items it can't find in the catalog. The authoritative figure
   // is the diamonds_spent the server returns.
   const getDiamondCost = () => {
-    // 100 diamonds per dollar == 1 diamond per cent
-    return subtotalCentsOf(merchItems) * (DIAMONDS_PER_DOLLAR / 100);
+    return merchItems.reduce((total, item) => {
+      const explicit = Number(item?.diamonds ?? item?.priceDiamonds ?? item?.price_diamonds);
+      const perUnit = Number.isFinite(explicit) && explicit > 0
+        ? Math.round(explicit)
+        : Math.round((Number(item?.price) || 0) * DIAMONDS_PER_DOLLAR);
+      return total + perUnit * (Number(item?.quantity) || 0);
+    }, 0);
   };
 
   // Any item carrying an id may be priced from the catalog instead
-  const diamondCostIsEstimate = merchItems.some((item) => !!item?.id);
+  const diamondCostIsEstimate = merchItems.some((item) => (
+    !Number.isFinite(Number(item?.diamonds ?? item?.priceDiamonds ?? item?.price_diamonds))
+  ));
 
   const canAffordWithDiamonds = () => {
     return diamondBalance >= getDiamondCost();
@@ -446,16 +485,6 @@ export default function ShoppingCart() {
       toast.error('There Is Nothing In Your Cart That Can Be Paid For With Diamonds.');
       return;
     }
-    if (!canAffordWithDiamonds()) {
-      const estimated = getDiamondCost().toLocaleString();
-      toast.error(
-        diamondCostIsEstimate
-          ? `Not Enough Diamonds. This Order Costs About ${estimated} Diamonds And You Have ${diamondBalance.toLocaleString()}.`
-          : `Not Enough Diamonds. This Order Costs ${estimated} Diamonds And You Have ${diamondBalance.toLocaleString()}.`
-      );
-      return;
-    }
-
     setPendingDiamondCheckout({
       product: {
         name: `${unitsOf(merchItems)} Merchandise ${unitsOf(merchItems) === 1 ? 'Item' : 'Items'}`,
@@ -530,6 +559,10 @@ export default function ShoppingCart() {
         );
         if (!replayed) busEmit.diamondsSpent(spent, 'Diamond Store Purchase');
         setDiamondBalance(newBalance);
+        window.dispatchEvent(new CustomEvent('smarter-poker:diamond-balance', {
+          detail: { balance: Number(newBalance) || 0, userId: user?.id, source: 'merch-cart' },
+        }));
+        broadcastSync('smarter_poker_diamond_sync', 'refresh');
         setPendingDiamondCheckout(null);
       } else {
         throw new Error(data?.error || 'Diamond purchase failed');
@@ -841,24 +874,20 @@ export default function ShoppingCart() {
                   type="button"
                   onClick={usingDiamonds ? beginDiamondCheckout : handleCheckout}
                   disabled={
-                    checkingOut || (usingDiamonds && !affordable) || (!usingDiamonds && !cardGroup)
+                    checkingOut || (!usingDiamonds && !cardGroup)
                   }
                   style={{
                     ...styles.checkoutButton,
                     background: usingDiamonds
-                      ? affordable
-                        ? 'linear-gradient(135deg, #00E0FF, #446F86)'
-                        : 'rgba(255, 255, 255, 0.1)'
+                      ? 'linear-gradient(135deg, #00E0FF, #446F86)'
                       : 'linear-gradient(135deg, #00E0FF, #0099FF)',
                     opacity:
                       checkingOut ||
-                      (usingDiamonds && !affordable) ||
                       (!usingDiamonds && !cardGroup)
                         ? 0.5
                         : 1,
                     cursor:
                       checkingOut ||
-                      (usingDiamonds && !affordable) ||
                       (!usingDiamonds && !cardGroup)
                         ? 'not-allowed'
                         : 'pointer',
@@ -897,8 +926,9 @@ export default function ShoppingCart() {
                       marginBottom: '12px',
                     }}
                   >
-                    You need {diamondCostIsEstimate ? 'about ' : ''}
-                    {(diamondCost - diamondBalance).toLocaleString()} more diamonds
+                    Displayed cart pricing indicates a shortfall of {diamondCostIsEstimate ? 'about ' : ''}
+                    {(diamondCost - diamondBalance).toLocaleString()} diamonds. You may continue;
+                    the server will confirm the current catalog price before any debit.
                   </p>
                 )}
 

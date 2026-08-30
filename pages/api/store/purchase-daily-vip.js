@@ -18,9 +18,9 @@ import { VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[purchase-daily-vip] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; writes may be silently blocked by RLS');
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) throw new Error('VIP purchase database is not configured');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -43,7 +43,6 @@ function resolveDailyCost() {
 // twice and granted 48h. Now every purchase carries a reference id derived
 // from user + key, backed by a short in-memory double-submit guard.
 const IDEMPOTENCY_TTL_MS = 10 * 60 * 1000;
-const AUTO_KEY_WINDOW_MS = 60 * 1000;
 const KEY_PATTERN = /^[A-Za-z0-9._:-]{8,128}$/;
 
 const _submissions = new Map(); // referenceId -> { state, status, body, expiresAt }
@@ -69,8 +68,7 @@ function readClientKey(req) {
 }
 
 function buildReferenceId(userId, clientKey) {
-    const suffix = clientKey || ('auto-' + Math.floor(Date.now() / AUTO_KEY_WINDOW_MS));
-    return 'vip-daily:' + userId + ':' + suffix;
+    return 'vip-daily:' + userId + ':' + clientKey;
 }
 
 export default async function handler(req, res) {
@@ -110,10 +108,10 @@ export default async function handler(req, res) {
           const COST = resolveDailyCost();
           // ── Idempotency key ──────────────────────────────────────────────
           const { key: clientKey, invalid: keyInvalid } = readClientKey(req);
-          if (keyInvalid) {
+          if (keyInvalid || !clientKey) {
               return res.status(400).json({
                   success: false,
-                  error: 'Invalid idempotency key (8-128 chars, letters/digits/._:- only)'
+                  error: 'A valid X-Idempotency-Key is required (8-128 chars, letters/digits/._:- only)'
               });
           }
           referenceId = buildReferenceId(user.id, clientKey);
@@ -141,7 +139,7 @@ export default async function handler(req, res) {
           };
 
           // The wallet debit and entitlement extension are a single transaction.
-          const { data: purchaseResult, error: purchaseError } = await getSupabase().rpc('purchase_vip_with_diamonds_atomic', {
+          const { data: purchaseResult, error: purchaseError } = await getSupabase().rpc('purchase_vip_with_diamonds_atomic_v2', {
               p_user_id: user.id,
               p_cost: COST,
               p_days: 1,
@@ -159,9 +157,12 @@ export default async function handler(req, res) {
           if (!purchaseResult?.success) {
               _submissions.delete(referenceId);
               referenceId = null;
-              return res.status(purchaseResult?.error === 'insufficient_diamonds' ? 400 : 500).json({
+              const isLifetime = purchaseResult?.error === 'already_lifetime';
+              return res.status(isLifetime ? 409 : purchaseResult?.error === 'insufficient_diamonds' ? 400 : 500).json({
                   success: false,
-                  error: purchaseResult?.error === 'insufficient_diamonds'
+                  error: isLifetime
+                      ? 'Lifetime VIP already includes this pass'
+                      : purchaseResult?.error === 'insufficient_diamonds'
                       ? 'Insufficient diamonds'
                       : (purchaseResult?.error || 'Failed to process payment'),
                   required: COST,

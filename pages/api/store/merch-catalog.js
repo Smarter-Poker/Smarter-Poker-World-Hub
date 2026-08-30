@@ -158,6 +158,7 @@ export default async function handler(req, res) {
             const fulfillmentProvider = itemMetadata.fulfillment_provider || null;
             const madeToOrder = itemMetadata.made_to_order === true || fulfillmentProvider === 'printful';
 
+            const requiresShipping = fulfillmentProvider !== 'digital';
             const variants = (variantsByItem[item.id] || []).map(v => {
                 // NULL variant price = inherit the parent item price.
                 const vUsd = toNumber(v.price_usd);
@@ -179,7 +180,12 @@ export default async function handler(req, res) {
                     price_diamonds: priceDiamonds,
                     stock,
                     in_stock: stock > 0,
-                    fulfillment_ready: Boolean(printfulReady && variantMapping)
+                    // Checkout can always fall back to the audited manual
+                    // fulfillment queue. Automatic readiness is reported
+                    // separately and never makes a purchasable item look sold
+                    // out merely because Printful is deliberately deferred.
+                    fulfillment_ready: true,
+                    automatic_fulfillment_ready: Boolean(printfulReady && variantMapping)
                 };
             });
 
@@ -199,9 +205,11 @@ export default async function handler(req, res) {
             const itemMapping = fulfillmentProvider === 'printful'
                 ? resolvePrintfulMapping(itemMetadata, null)
                 : null;
-            const fulfillmentReady = hasVariants
-                ? variants.some(variant => variant.fulfillment_ready)
-                : Boolean(printfulReady && itemMapping);
+            const fulfillmentReady = true;
+            const automaticFulfillmentReady = fulfillmentProvider === 'printful'
+                && (hasVariants
+                    ? variants.some(variant => variant.automatic_fulfillment_ready)
+                    : Boolean(printfulReady && itemMapping));
 
             return {
                 id: item.id,
@@ -220,7 +228,10 @@ export default async function handler(req, res) {
                 metadata: itemMetadata,
                 made_to_order: madeToOrder,
                 fulfillment_provider: fulfillmentProvider,
-                fulfillment_ready: fulfillmentReady
+                fulfillment_ready: fulfillmentReady,
+                automatic_fulfillment_ready: automaticFulfillmentReady,
+                fulfillment_mode: automaticFulfillmentReady ? 'automatic' : 'manual',
+                requires_shipping: requiresShipping
             };
         });
 
@@ -242,7 +253,8 @@ export default async function handler(req, res) {
                 diamonds_per_dollar: DIAMONDS_PER_DOLLAR,
                 catalog_available: true,
                 variants_available: variantsAvailable,
-                print_on_demand_available: printfulReady
+                print_on_demand_available: printfulReady,
+                manual_fulfillment_available: true
             }
         });
 

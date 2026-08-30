@@ -146,17 +146,20 @@ test('checkout, webhooks, catalog, and Diamond fulfillment stay wired together',
     ),
   ]);
 
-  assert.match(checkout, /FULFILLMENT_NOT_CONFIGURED/);
+  assert.match(checkout, /automaticFulfillment \? 'automatic' : 'manual'/);
+  assert.doesNotMatch(checkout, /FULFILLMENT_NOT_CONFIGURED/);
   assert.match(checkout, /resolvePrintfulMapping/);
   assert.match(stripeWebhook, /createPrintfulOrder/);
-  assert.match(stripeWebhook, /update_existing/);
+  assert.match(stripeWebhook, /provider_unknown/);
+  assert.match(stripeWebhook, /settle_paid_merch_order_atomic/);
   assert.match(stripeWebhook, /if \(releaseError\) throw releaseError/);
   assert.match(printfulWebhook, /timingSafeEqual/);
   assert.match(printfulWebhook, /package_shipped/);
   assert.match(catalog, /print_on_demand_available/);
   assert.match(diamondPurchase, /SHIPPING_ADDRESS_INCOMPLETE/);
   assert.match(diamondPurchase, /createPrintfulOrder/);
-  assert.match(diamondPurchase, /p_dry_run: true/);
+  assert.match(diamondPurchase, /purchase_merch_with_diamonds_atomic/);
+  assert.match(diamondPurchase, /p_request_hash: requestHash/);
   assert.match(merchStore, /requiresShipping/);
   assert.doesNotMatch(merchStore, /Card Checkout Required For Shipping/);
   assert.match(merchStore, /Made To Order/);
