@@ -37,6 +37,27 @@ body.world-training {
     --world-border: rgba(255, 255, 255, 0.10);
 }
 
+/* Hub-owned tokens stay inside Training surfaces. The dashboard previously
+   injected these through :root, allowing page-local decisions to bleed into
+   the approved global header and every other world. */
+body.world-training .sp-main,
+body.world-training [role='dialog'][aria-labelledby='sp-setup-title'],
+body.world-training .sp-arena-shell {
+    --sp-line: rgba(255, 255, 255, 0.07);
+    --sp-line-2: rgba(255, 255, 255, 0.12);
+    --sp-ink-0: #f8fafc;
+    --sp-ink-1: #cbd5e1;
+    --sp-ink-2: #94a3b8;
+    --sp-ink-3: #64748b;
+    --sp-primary: #00d4ff;
+    --sp-primary-ink: #001a22;
+    --sp-warn: #f59e0b;
+    --sp-good: #22c55e;
+    --sp-bad: #ef4444;
+    --sp-r-md: 12px;
+    --sp-r-lg: 16px;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    TRAINING ARENA LOBBY — pressed-metal bridge into Club Arena gameplay
    ═══════════════════════════════════════════════════════════════════════════ */

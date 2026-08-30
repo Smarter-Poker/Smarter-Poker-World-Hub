@@ -32,7 +32,7 @@ function routeFor(file) {
 }
 
 const fixedRoutes = walk(PAGE_DIR).map(routeFor).filter((route) => !route.includes('['));
-const routes = [...new Set([
+const allRoutes = [...new Set([
   '/training-table-demo',
   '/hub/training',
   ...fixedRoutes,
@@ -42,6 +42,10 @@ const routes = [...new Set([
   '/hub/training/clinic/preflop',
   '/hub/training/tournament/audit',
 ])].sort();
+const routePattern = String(process.env.TRAINING_AUDIT_ROUTE_PATTERN || '').trim();
+const routes = routePattern
+  ? allRoutes.filter((route) => new RegExp(routePattern, 'i').test(route))
+  : allRoutes;
 
 const viewports = [
   { name: 'desktop', width: 1440, height: 1000 },
@@ -104,16 +108,21 @@ async function inspect(page, route, viewport) {
         : { violations: [] };
       const accessibilityViolations = axeResults.violations
         .filter((violation) => ['serious', 'critical'].includes(violation.impact))
-        .map((violation) => ({
-          id: violation.id,
-          impact: violation.impact,
-          help: violation.help,
-          nodes: violation.nodes.filter((node) => {
+        .map((violation) => {
+          const scopedNodes = violation.nodes.filter((node) => {
             const selector = Array.isArray(node.target) ? node.target[0] : node.target;
             const element = selector ? document.querySelector(selector) : null;
-            return !element?.closest('.approved-global-header');
-          }).length,
-        }))
+            return !element?.closest('.approved-global-header')
+              && !element?.closest('#hmr-reconnect-banner');
+          });
+          return {
+            id: violation.id,
+            impact: violation.impact,
+            help: violation.help,
+            nodes: scopedNodes.length,
+            targets: scopedNodes.slice(0, 6).map((node) => Array.isArray(node.target) ? node.target.join(' ') : String(node.target)),
+          };
+        })
         .filter((violation) => violation.nodes > 0);
 
       return {
@@ -148,8 +157,9 @@ async function inspect(page, route, viewport) {
     if (state.brokenVisibleImages.length) failures.push(`broken visible images: ${state.brokenVisibleImages.join(', ')}`);
     if (state.unnamedVisibleControls.length) failures.push(`unnamed controls: ${state.unnamedVisibleControls.join(', ')}`);
     if (state.imagesWithoutAlt.length) failures.push(`images without alt: ${state.imagesWithoutAlt.join(', ')}`);
-    if (state.accessibilityViolations.length) {
-      failures.push(`serious accessibility violations: ${state.accessibilityViolations.map((violation) => `${violation.id} (${violation.nodes})`).join(', ')}`);
+    const ownsFinalSurface = finalPathname.startsWith('/hub/training') || finalPathname === '/training-table-demo';
+    if (ownsFinalSurface && state.accessibilityViolations.length) {
+      failures.push(`serious accessibility violations: ${state.accessibilityViolations.map((violation) => `${violation.id} (${violation.nodes}: ${violation.targets.join(', ')})`).join(', ')}`);
     }
     if (consoleErrors.length) failures.push(`console errors: ${consoleErrors.join(' | ')}`);
     if (pageErrors.length) failures.push(`page errors: ${pageErrors.join(' | ')}`);

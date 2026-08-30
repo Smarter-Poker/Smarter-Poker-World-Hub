@@ -15,11 +15,10 @@
  *   - Touch targets >=44pt, focus rings visible, prefers-reduced-motion honoured
  *
  * Existing imports preserved so the page slots into the codebase 1:1:
- *   - TRAINING_LIBRARY, getGamesByCategory  (src/data/TRAINING_LIBRARY)
+ *   - TRAINING_LIBRARY                      (src/data/TRAINING_LIBRARY)
  *   - useTrainingProgress                    (src/hooks/useTrainingProgress)
  *   - useTrainingStore                       (src/stores/trainingStore)
- *   - JarvisRecommendations                  (src/components/training/JarvisRecommendations)
- *   - LeakSignalAnalyzer                     (src/engine/LeakSignalAnalyzer)
+ *   - LeakService                            (src/services/LeakService)
  *   - GodModeArena (lazy)                    (src/components/training/GodModeArena)
  *   - UniversalHeader / BottomNavBar         (src/components/ui)
  *   - SEOHead, PageTransition                (existing)
@@ -28,7 +27,7 @@
  */
 
 import { useRouter } from 'next/router';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Play, Shuffle, Target, Clock, Layers, Zap, AlertTriangle, Wrench,
@@ -39,32 +38,21 @@ import {
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import PageTransition from '../../src/components/transitions/PageTransition';
-import { TRAINING_LIBRARY, getGamesByCategory } from '../../src/data/TRAINING_LIBRARY';
+import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { useTrainingStore } from '../../src/stores/trainingStore';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
-import DiamondEngine from '../../src/services/DiamondEngine';
-import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
 import SessionSetupModal from '../../src/components/training/SessionSetupModal';
-import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
+import { leakService } from '../../src/services/LeakService';
 import { scrollLockCount, clearBodyScrollLockIfUnheld } from '../../src/lib/scrollLock';
 
 const GodModeArena = dynamic(() => import('../../src/components/training/GodModeArena'), {
   ssr: false,
   loading: () => <ArenaSkeleton />,
 });
-
-const t = {
-  bg0: '#060912', bg1: '#0a0e1c', bg2: '#0f1424',
-  line: 'rgba(255,255,255,0.07)',
-  line2: 'rgba(255,255,255,0.12)',
-  ink0: '#f8fafc', ink1: '#cbd5e1', ink2: '#94a3b8', ink3: '#64748b',
-  primary: '#00D4FF', primaryInk: '#001a22',
-  warn: '#F59E0B', good: '#22C55E', bad: '#EF4444',
-  rSm: 8, rMd: 12, rLg: 16, rPill: 9999,
-};
 
 const CATEGORY_META = {
   MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#FB923C', glow: 'rgba(251,146,60,0.25)' },
@@ -95,14 +83,14 @@ export default function TrainingPage() {
   const setShowArena = useTrainingStore(s => s.setShowArena);
   const setActiveGame= useTrainingStore(s => s.setActiveGame);
 
-  const { progress, getGameProgress } = useTrainingProgress();
+  const { getGameProgress } = useTrainingProgress();
 
   const [authUser, setAuthUser] = useState(null);
-  const [diamondBalance, setDiamondBalance] = useState(0);
 
   const [activeCat, setActiveCat] = useState('ALL');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const libraryHeadingRef = useRef(null);
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQuery(query), 120);
@@ -112,7 +100,6 @@ export default function TrainingPage() {
   useEffect(() => {
     const user = getAuthUser();
     setAuthUser(user);
-    if (user?.id) DiamondEngine.getBalance(user.id).then(setDiamondBalance).catch(() => {});
   }, []);
 
   // Real data from RPC + Jarvis API — no hardcoded fallbacks
@@ -121,7 +108,11 @@ export default function TrainingPage() {
   // training_answers position aggregates. Empty history renders an honest
   // "No sessions yet" — never invented numbers.
   const { lifetimeSessions, positionAccuracy, progressLoading } = useLifetimeProgress(authUser);
-  const biggestLeak = useMemo(() => leakAnalyzer.getBiggest?.(authUser?.id) ?? null, [authUser]);
+  // The old hub called an optional getBiggest() method that does not exist on
+  // LeakSignalAnalyzer, so this entire real-data panel was permanently dead.
+  // Read the authenticated, persisted leak lifecycle instead and rank only
+  // evidence-backed records returned by Supabase.
+  const biggestLeak = useActiveTrainingLeak(authUser);
   // Use the real recommendation when available; null otherwise (UI handles empty state)
   const jarvisPick = recommendation;
 
@@ -153,6 +144,22 @@ export default function TrainingPage() {
 
   const handleSetupClose = useCallback(() => {
     setSetupGame(null);
+  }, []);
+
+  const browseTrainingLibrary = useCallback(() => {
+    setActiveCat('ALL');
+    setQuery('');
+    setDebouncedQuery('');
+    if (typeof window === 'undefined') return;
+    window.requestAnimationFrame(() => {
+      const heading = libraryHeadingRef.current;
+      if (!heading) return;
+      heading.focus({ preventScroll: true });
+      heading.closest('section')?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    });
   }, []);
 
   // 2026-07-26 UX FIX: this discarded the prefs the user just picked, so the
@@ -324,7 +331,7 @@ export default function TrainingPage() {
                   >
                     <Play size={18} aria-hidden /> {jarvisPick ? "Start Today's Drill" : 'Start First Drill'}
                   </button>
-                  <button className="sp-cta sp-cta-secondary" onClick={() => setActiveCat('ALL')}>
+                  <button className="sp-cta sp-cta-secondary" onClick={browseTrainingLibrary}>
                     <Shuffle size={18} aria-hidden /> Pick A Different Drill
                   </button>
                 </div>
@@ -336,23 +343,29 @@ export default function TrainingPage() {
             {biggestLeak && (
               <section aria-labelledby="leak-h" className="sp-leak">
                 <div>
-                  <span className="sp-leak-eyebrow"><AlertTriangle size={12} aria-hidden /> Leak detected</span>
+                  <span className="sp-leak-eyebrow"><AlertTriangle size={12} aria-hidden /> Priority Leak Detected</span>
                   <h2 id="leak-h" className="sp-leak-title">
-                    You're losing {biggestLeak.bbPer100.toFixed(1)} BB/100 from the {biggestLeak.position}.
+                    {biggestLeak.name}
                   </h2>
                   <p className="sp-leak-body">
-                    Across the last {biggestLeak.handsAnalysed} hands, your {biggestLeak.spotLabel} is calling
-                    {' '}<b>{biggestLeak.deviationPct}% wider</b> than GTO. Fix this and you'll move to
-                    {' '}<b>{biggestLeak.targetGrade}</b> in about {biggestLeak.handsToTarget} hands.
+                    {biggestLeak.spotLabel ? <><b>{biggestLeak.spotLabel}.</b>{' '}</> : null}
+                    {biggestLeak.explanation || 'Review this measured pattern and train the matching decisions.'}
+                    {biggestLeak.sampleCount != null ? <> Evidence: <b>{biggestLeak.sampleCount} Observations</b>.</> : null}
+                    {biggestLeak.errorRatePct != null ? <> Error Rate: <b>{biggestLeak.errorRatePct}%</b>.</> : null}
                   </p>
-                  <Sparkline data={biggestLeak.recent10 || []} />
                 </div>
-                <button
-                  className="sp-cta sp-cta-secondary sp-cta-warn"
-                  onClick={() => startDrill(biggestLeak.recommendedGame)}
-                >
-                  <Wrench size={18} aria-hidden /> Train this spot
-                </button>
+                {biggestLeak.recommendedGame ? (
+                  <button
+                    className="sp-cta sp-cta-secondary sp-cta-warn"
+                    onClick={() => startDrill(biggestLeak.recommendedGame)}
+                  >
+                    <Wrench size={18} aria-hidden /> Train This Spot
+                  </button>
+                ) : (
+                  <a className="sp-cta sp-cta-secondary sp-cta-warn" href="/hub/training/weakness-scanner">
+                    <Wrench size={18} aria-hidden /> Open Leak Scanner
+                  </a>
+                )}
               </section>
             )}
 
@@ -412,9 +425,9 @@ export default function TrainingPage() {
               />
             </section>
 
-            <section aria-labelledby="lib-h">
+            <section id="training-library" aria-labelledby="lib-h">
               <div className="sp-section-head">
-                <h2 id="lib-h" className="sp-section-title">Browse The Training Library</h2>
+                <h2 ref={libraryHeadingRef} id="lib-h" className="sp-section-title" tabIndex={-1}>Browse The Training Library</h2>
                 <span className="sp-section-link" aria-live="polite">
                   {filtered.length === TRAINING_LIBRARY.length ? `${TRAINING_LIBRARY.length} games` : `${filtered.length} of ${TRAINING_LIBRARY.length}`}
                 </span>
@@ -467,6 +480,7 @@ export default function TrainingPage() {
 
           </main>
 
+          <BottomNavBar />
         </>
       )}
     </PageTransition>
@@ -604,7 +618,7 @@ function renderHeroHeadline({ authUser, stats, jarvisPick, statsLoading, recomme
   const nextGrade = stats?.next_grade;
   if (jarvisPick && hasGradeData && delta != null && nextGrade) {
     const noun = delta === 1 ? 'correct hand' : 'correct hands';
-    return <>{greet} <em>{delta} {noun}</em> away from {nextGrade}.</>;
+    return <>{greet} <em>{delta} {noun}</em> away from Grade {nextGrade}.</>;
   }
   if (jarvisPick && !hasGradeData) {
     return <>{greet} Ready to start training?</>;
@@ -708,7 +722,7 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
 
 function ArenaSkeleton() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: t.ink2 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--sp-ink-2, #94a3b8)' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="sp-spin" />
         <div style={{ marginTop: 12 }}>Loading arena…</div>
@@ -808,6 +822,73 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
       </ul>
     </div>
   );
+}
+
+function leakPriority(leak) {
+  const occurrenceCount = Number(leak?.occurrence_count ?? leak?.total_samples ?? 0) || 0;
+  const evLoss = leak?.ev_loss_measured ? Math.abs(Number(leak?.avg_ev_loss_bb) || 0) : 0;
+  const errorRateRaw = Number(leak?.error_rate);
+  const errorRate = Number.isFinite(errorRateRaw)
+    ? (errorRateRaw <= 1 ? errorRateRaw : errorRateRaw / 100)
+    : 0;
+  return evLoss > 0 ? evLoss * Math.max(occurrenceCount, 1) : errorRate * Math.max(occurrenceCount, 1);
+}
+
+function normalizeActiveLeak(leak) {
+  if (!leak || typeof leak !== 'object') return null;
+  const drillId = String(leak.recommended_drill || '').trim().toLowerCase();
+  const recommendedGame = TRAINING_LIBRARY.find(game => game.id.toLowerCase() === drillId) || null;
+  const sampleRaw = Number(leak.total_samples ?? leak.occurrence_count);
+  const errorRateRaw = Number(leak.error_rate);
+  const errorRatePct = Number.isFinite(errorRateRaw)
+    ? Math.round((errorRateRaw <= 1 ? errorRateRaw * 100 : errorRateRaw) * 10) / 10
+    : null;
+  return {
+    id: leak.id || leak.leak_type || leak.leak_name,
+    name: leak.leak_name || leak.leak_type || 'Training Pattern',
+    spotLabel: leak.situation_class || leak.leak_category || null,
+    explanation: leak.why_leaking_ev || leak.explanation || null,
+    sampleCount: Number.isFinite(sampleRaw) && sampleRaw > 0 ? Math.round(sampleRaw) : null,
+    errorRatePct: Number.isFinite(errorRatePct) ? Math.max(0, Math.min(100, errorRatePct)) : null,
+    recommendedGame,
+  };
+}
+
+/**
+ * useActiveTrainingLeak — authenticated leak lifecycle from Supabase.
+ * The hub previously called leakAnalyzer.getBiggest?.(), but that method never
+ * existed, making the entire feature unreachable. This hook only displays
+ * persisted evidence and never invents an EV rate, sample, grade, or drill.
+ */
+function useActiveTrainingLeak(authUser) {
+  const [biggestLeak, setBiggestLeak] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!authUser?.id) {
+      setBiggestLeak(null);
+      return () => { cancelled = true; };
+    }
+
+    leakService.getActiveLeaks(authUser.id)
+      .then((rows) => {
+        if (cancelled) return;
+        const activeRows = (Array.isArray(rows) ? rows : [])
+          .filter(row => row && row.is_active !== false && !row.resolved_at)
+          .sort((a, b) => leakPriority(b) - leakPriority(a));
+        setBiggestLeak(normalizeActiveLeak(activeRows[0]));
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setBiggestLeak(null);
+          console.warn('[Training] active leaks fetch failed:', error?.message || error);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [authUser?.id]);
+
+  return biggestLeak;
 }
 
 /**
@@ -936,13 +1017,6 @@ function fmtTrend(curr, prev, unit = '') {
 function GlobalStyle() {
   return (
     <style jsx global>{`
-      :root {
-        --sp-line: ${t.line}; --sp-line-2: ${t.line2};
-        --sp-ink-0: ${t.ink0}; --sp-ink-1: ${t.ink1}; --sp-ink-2: ${t.ink2}; --sp-ink-3: ${t.ink3};
-        --sp-primary: ${t.primary}; --sp-primary-ink: ${t.primaryInk};
-        --sp-warn: ${t.warn}; --sp-good: ${t.good}; --sp-bad: ${t.bad};
-        --sp-r-md: ${t.rMd}px; --sp-r-lg: ${t.rLg}px;
-      }
       .sp-skip { position: absolute; left: -9999px; }
       .sp-skip:focus { left: 16px; top: 16px; padding: 10px 14px; background: var(--sp-primary); color: var(--sp-primary-ink); border-radius: var(--sp-r-md); z-index: 1000; }
       .sp-num { font-family: var(--font-orbitron), 'Orbitron', ui-monospace, monospace; font-feature-settings: 'tnum'; letter-spacing: 0.5px; }
