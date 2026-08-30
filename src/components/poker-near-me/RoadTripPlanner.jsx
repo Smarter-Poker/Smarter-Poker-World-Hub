@@ -6,6 +6,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
 import { haversineMiles, escapeHtml } from './pnm-utils';
 import { openNativeMaps, openMultiStopRoute } from '../../utils/openNativeMaps';
+import { loadPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
 
 const CORRIDOR_OPTIONS = [25, 50, 100];
 
@@ -294,10 +295,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     }, [origin, destination, waypoints, corridorMi, dateRange, venues, dailyTournaments, series]);
 
     // Render Leaflet route map when result is available.
-    // BUG FIX: this used to bail out unless `window.L` existed. Only VenueMap.jsx
-    // ever sets that global (via a CDN script tag) and the lobby renders this pod
-    // without it, so the map silently stayed an empty box. Load the npm `leaflet`
-    // module here instead — the same approach VenueMapPanel.jsx uses.
+    // Use the shared, locally vendored runtime so this secondary map receives
+    // the same Leaflet assets and accessible controls as every discovery map.
     useEffect(() => {
         if (!routeResult || typeof window === 'undefined') return undefined;
 
@@ -306,14 +305,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
 
         const buildMap = async () => {
             try {
-                if (!document.querySelector('link[href*="leaflet"]')) {
-                    const link = document.createElement('link');
-                    link.rel = 'stylesheet';
-                    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-                    document.head.appendChild(link);
-                }
-
-                const L = window.L || (await import('leaflet')).default;
+                const { L } = await loadPokerMapRuntime();
                 if (cancelled || !mapRef.current) return;
 
                 if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
