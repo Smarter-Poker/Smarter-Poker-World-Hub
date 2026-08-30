@@ -1,5 +1,5 @@
 // TRAIN-CSS-TOKENS-BATCH5-59 — hex sweep batch 5: literals routed to --sp-* tokens
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -103,7 +103,7 @@ export default function TournamentPrepPlanner() {
   const [activeTab, setActiveTab] = useState('structure');
 
   // Planner settings are durable tool state, not a scored training session.
-  const savePlannerState = async () => {
+  const savePlannerState = useCallback(async () => {
     if (!getAccessToken()) return;
     try {
       const response = await authedFetch('/api/training/tool-records', {
@@ -124,13 +124,13 @@ export default function TournamentPrepPlanner() {
     } catch (e) {
       console.warn('Failed to sync tournament plan:', e);
     }
-  };
+  }, [blindLevelLength, buyIn, currentLevel, startStack]);
 
   useEffect(() => {
     if (!plannerLoaded) return undefined;
     const timer = setTimeout(savePlannerState, 400);
     return () => clearTimeout(timer);
-  }, [buyIn, startStack, blindLevelLength, currentLevel, plannerLoaded]);
+  }, [buyIn, startStack, blindLevelLength, currentLevel, plannerLoaded, savePlannerState]);
 
   return (
     <>
@@ -166,9 +166,11 @@ export default function TournamentPrepPlanner() {
               <h3 style={styles.cardTitle}>Tournament Settings</h3>
 
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Buy-In ($)</label>
+                <label htmlFor="tournament-buy-in" style={styles.label}>Buy-In ($)</label>
                 <input
+                  id="tournament-buy-in"
                   type="number"
+                  inputMode="decimal"
                   value={buyIn}
                   onChange={(e) => {
                     const v = Number(e.target.value);
@@ -179,9 +181,11 @@ export default function TournamentPrepPlanner() {
               </div>
 
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Starting Stack</label>
+                <label htmlFor="tournament-starting-stack" style={styles.label}>Starting Stack</label>
                 <input
+                  id="tournament-starting-stack"
                   type="number"
+                  inputMode="numeric"
                   value={startStack}
                   onChange={(e) => {
                     const v = Number(e.target.value);
@@ -192,9 +196,11 @@ export default function TournamentPrepPlanner() {
               </div>
 
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Blind Level Length (min)</label>
+                <label htmlFor="tournament-blind-level-length" style={styles.label}>Blind Level Length (Min)</label>
                 <input
+                  id="tournament-blind-level-length"
                   type="number"
+                  inputMode="numeric"
                   value={blindLevelLength}
                   onChange={(e) => {
                     const v = Number(e.target.value);
@@ -205,8 +211,9 @@ export default function TournamentPrepPlanner() {
               </div>
 
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Current Level</label>
+                <label htmlFor="tournament-current-level" style={styles.label}>Current Level</label>
                 <input
+                  id="tournament-current-level"
                   type="range"
                   min="1"
                   max="12"

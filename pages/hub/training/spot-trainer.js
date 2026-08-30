@@ -214,7 +214,7 @@ export default function SpotTrainerPage() {
       } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     },
-    [showResult, spot, bus]
+    [showResult, spot, bus, fb]
   );
 
   const accuracy = totalDrills > 0 ? Math.round((correctDrills / totalDrills) * 100) : 0;

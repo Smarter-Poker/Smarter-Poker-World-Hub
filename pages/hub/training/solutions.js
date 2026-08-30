@@ -408,7 +408,7 @@ function SolutionsBrowserInner({ setError }) {
   useEffect(() => {
     const stacks = STACK_DEPTHS[gameType] || [100];
     if (!stacks.includes(stackDepth)) {
-      setStackDepth(stacks[stacks.length - 1]);
+      setFilter('stackDepth', stacks[stacks.length - 1]);
     }
     setPage(1);
     setSelectedSpot(null);
@@ -418,7 +418,7 @@ function SolutionsBrowserInner({ setError }) {
     setClassificationGroups([]);
     setRunoutData({});
     setActiveTab('grid');
-  }, [gameType]);
+  }, [gameType, setFilter, stackDepth]);
 
   // Phase 16: Range Locking
   const [lockedClassifications, setLockedClassifications] = useState([]);
@@ -582,6 +582,10 @@ function SolutionsBrowserInner({ setError }) {
       if (position) params.set('position', position);
 
       const res = await authedFetch(`/api/training/browse-solutions?${params}`);
+      if (res.status === 401) {
+        await router.replace('/auth/login?redirect=/hub/training/solutions');
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
 
@@ -600,7 +604,7 @@ function SolutionsBrowserInner({ setError }) {
     } finally {
       setLoading(false);
     }
-  }, [gameType, stackDepth, position, page]);
+  }, [gameType, stackDepth, position, page, router]);
 
   useEffect(() => {
     fetchSpots();
@@ -935,7 +939,7 @@ function SolutionsBrowserInner({ setError }) {
                   key={tex}
                   onClick={() => {
                     setBoardTexture(tex);
-                    saveFilter('rxTexture', tex);
+                    setFilter('rxTexture', tex);
                     setPage(1);
                   }}
                   style={{

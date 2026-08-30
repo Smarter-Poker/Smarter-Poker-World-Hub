@@ -146,6 +146,7 @@ export default function FinalTableSimulator() {
                       {p.name}
                     </div>
                     <input
+                      aria-label={`${p.name} Stack`}
                       type="number"
                       value={p.stack}
                       onChange={(e) => updateStack(p.id, e.target.value)}

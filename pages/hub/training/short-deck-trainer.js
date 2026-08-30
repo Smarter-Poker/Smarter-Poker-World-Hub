@@ -189,7 +189,7 @@ export default function ShortDeckTrainerPage() {
       setQuizAnswer(option);
       setQuizScore((p) => ({ total: p.total + 1, correct: p.correct + (isCorrect ? 1 : 0) }));
     },
-    [quiz, quizAnswer]
+    [quiz, quizAnswer, fb]
   );
 
   const nextQuiz = useCallback(() => {
@@ -238,7 +238,7 @@ export default function ShortDeckTrainerPage() {
         savedRef.current = false;
       }, 1000);
     }
-  }, [quizScore.total]);
+  }, [quizScore.correct, quizScore.total]);
 
   // EventBus listener
   useEffect(() => {
@@ -458,6 +458,7 @@ export default function ShortDeckTrainerPage() {
                   Villain Benchmark Hand
                 </label>
                 <select
+                  aria-label="Short Deck Training Scenario"
                   value={villainHand}
                   onChange={(e) => { setVillainHand(e.target.value); setEquity(null); setSimulationError(''); }}
                   style={{

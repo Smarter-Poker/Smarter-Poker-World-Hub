@@ -107,7 +107,7 @@ export default function PreflopCharts() {
     if (!stacks.includes(stackDepth)) {
       setStackDepth(stacks[0]);
     }
-  }, [gameType]);
+  }, [gameType, stackDepth]);
 
   // Displayed positions depend on scenario
   const displayedPositions = useMemo(() => {

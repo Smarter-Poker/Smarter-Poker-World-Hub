@@ -504,6 +504,7 @@ export default function DrillBuilderPage() {
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input
+                  aria-label="Minimum Stack Depth In Big Blinds"
                   type="number"
                   value={stackMin}
                   onChange={(e) => setStackMin(Number(e.target.value))}
@@ -521,6 +522,7 @@ export default function DrillBuilderPage() {
                 />
                 <span style={{ color: 'var(--sp-fg-faint)' }}>to</span>
                 <input
+                  aria-label="Maximum Stack Depth In Big Blinds"
                   type="number"
                   value={stackMax}
                   onChange={(e) => setStackMax(Number(e.target.value))}

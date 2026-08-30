@@ -178,29 +178,6 @@ export default function StreaksPage() {
     if (u) setUser(u);
     return () => _c.abort();
   }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`train-streaks:${user?.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'jarvis_training_sessions',
-          filter: `user_id=eq.${user?.id}`,
-        },
-        () => {
-          refreshStreak();
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(_ch);
-    };
-  }, [user?.id]);
-
   const swrKey = user ? `/api/training/streak?userId=${user.id}` : null;
   const {
     data: swrData,
@@ -234,6 +211,30 @@ export default function StreaksPage() {
       trainingDays: uniqueDays,
     };
   });
+
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`train-streaks:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'jarvis_training_sessions',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          refreshStreak();
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(_ch);
+    };
+  }, [refreshStreak, user?.id]);
+
   const streak = swrData?.streak || {
     currentStreak: 0,
     longestStreak: 0,
@@ -309,16 +310,20 @@ export default function StreaksPage() {
 
   if (loading) {
     return (
-      <div style={{ ...styles.loadingContainer, padding: 24 }} role="status" aria-label="Loading streak data">
-        <SkeletonLoader variant="profile" style={{ maxWidth: 480, margin: '0 auto 24px' }} />
-        <SkeletonLoader variant="card" count={2} style={{ maxWidth: 480, margin: '0 auto' }} />
-      </div>
+      <>
+        <SEOHead title="Training Streaks — Stay Consistent" description="Build And Maintain Your Daily Training Streaks On Smarter.Poker." canonical="/hub/training/streaks" noindex={true} />
+        <div style={{ ...styles.loadingContainer, padding: 24 }} role="status" aria-label="Loading Streak Data">
+          <SkeletonLoader variant="profile" style={{ maxWidth: 480, margin: '0 auto 24px' }} />
+          <SkeletonLoader variant="card" count={2} style={{ maxWidth: 480, margin: '0 auto' }} />
+        </div>
+      </>
     );
   }
 
   if (!user) {
     return (
       <PageTransition>
+        <SEOHead title="Training Streaks — Stay Consistent" description="Build And Maintain Your Daily Training Streaks On Smarter.Poker." canonical="/hub/training/streaks" noindex={true} />
         <div style={styles.container}>
           <UniversalHeader pageDepth={2} />
           <TrainerEmptyState

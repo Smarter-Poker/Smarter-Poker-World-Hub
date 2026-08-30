@@ -212,7 +212,7 @@ export default function GtoPreloaderPage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Preloader</div>
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Real Offline Question Pack Sync</div>
+              <div style={{ fontSize: 11, color: '#b9cbd4' }}>Real Offline Question Pack Sync</div>
             </div>
           </div>
         </div>

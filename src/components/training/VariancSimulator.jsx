@@ -6,7 +6,9 @@
  */
 import React, { useState, useMemo, useCallback } from 'react';
 
-function generateSimulation(winRate, stdDev, numHands, numSims) {
+function generateSimulation(winRate, stdDev, numHands, numSims, simulationRun) {
+  // A new run intentionally invalidates the memoized Monte Carlo sample.
+  void simulationRun;
   const results = [];
   for (let sim = 0; sim < numSims; sim++) {
     let cumulative = 0;
@@ -67,7 +69,7 @@ function VarianceSimulator() {
   const [simKey, setSimKey] = useState(0);
 
   const results = useMemo(() => {
-    return generateSimulation(winRate, stdDev, numHands, simCount);
+    return generateSimulation(winRate, stdDev, numHands, simCount, simKey);
   }, [winRate, stdDev, numHands, simCount, simKey]);
 
   const stats = useMemo(() => {

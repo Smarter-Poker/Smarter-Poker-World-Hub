@@ -356,7 +356,7 @@ function getRangeActionColor(action) {
     return 'var(--sp-fg-faint)';
 }
 
-function RangeMatrixViewer({ rawFrequencies, correctAnswer, show, heroHand }) {
+function RangeMatrixViewer({ rawFrequencies, show, heroHand }) {
     // Build multi-action 13x13 matrix
     const { matrix, actionLegend } = useMemo(() => {
         if (!rawFrequencies) return { matrix: [], actionLegend: [] };
@@ -408,7 +408,7 @@ function RangeMatrixViewer({ rawFrequencies, correctAnswer, show, heroHand }) {
         });
 
         return { matrix: grid, actionLegend: legend };
-    }, [rawFrequencies, correctAnswer, heroHand]);
+    }, [rawFrequencies, heroHand]);
 
     if (!show || !rawFrequencies || matrix.length === 0) return null;
 
@@ -1867,7 +1867,7 @@ function UniversalDynamicTable({
             prevQRef.current = questionNumber;
             setActiveMode('trainer');
         }
-    }, [questionNumber]);
+    }, [questionNumber, question?.gameId]);
 
     // ═══ CARD PARSING (moved up — must be before handStrength useMemo) ═══
     const scenario = question?.scenario || {};
@@ -2217,7 +2217,7 @@ function UniversalDynamicTable({
         const elapsed = (Date.now() - answerStartTime.current) / 1000;
         if (onAnswer) onAnswer(answerId, { answerTimeSeconds: elapsed });
         try { busEmit('ARENA_HAND_ANSWERED', { answerId, timeSeconds: elapsed, questionNumber, isCorrect: answerId === correctAnswer }); } catch (e) { console.warn('[App] Handled exception:', e); }
-    }, [showFeedback, onAnswer, options, questionNumber, correctAnswer]);
+    }, [showFeedback, onAnswer, questionNumber, correctAnswer]);
 
     // Phase 25: Keyboard Shortcuts — UNIFIED handler (1-4, F/C/R, Space/Enter, Esc)
     // This is the SINGLE keyboard handler. Do NOT add duplicates.
@@ -2243,7 +2243,7 @@ function UniversalDynamicTable({
             // NOTE: per-card deal sounds are played by the board cards'
             // onAnimationComplete handler — do NOT schedule them here too.
         }
-    }, [questionNumber]);
+    }, [question?.gameId, questionNumber]);
 
     // ═══ MULTI-STREET: Detect street transitions and track new cards ═══
     useEffect(() => {
@@ -2951,7 +2951,7 @@ function UniversalDynamicTable({
     // ARENA_HAND_LOADED is a per-HAND event, so it stays keyed on the hand.
     React.useEffect(() => {
         try { busEmit('ARENA_HAND_LOADED', { questionNumber, gameId: question?.gameId || null }); } catch (e) { console.warn('[App] Handled exception:', e); }
-    }, [questionNumber]);
+    }, [question?.gameId, questionNumber]);
 
 
 
@@ -5747,7 +5747,6 @@ function UniversalDynamicTable({
                                     {showRangeGrid && fq?.rawFrequencies && (
                                         <RangeMatrixViewer
                                             rawFrequencies={fq.rawFrequencies}
-                                            correctAnswer={correctAnswer}
                                             show={showRangeGrid}
                                             heroHand={fq?.heroHand || fScenario.heroHand}
                                         />
@@ -6900,7 +6899,7 @@ const styles = {
         maxWidth: 605,
         aspectRatio: '605 / 1000',
         borderRadius: 0,
-        background: 'transparent url("/hub/club-arena/assets/skin_carbon_ion-CuncF2Ud-v6.png") center / 100% 100% no-repeat',
+        background: 'transparent url("/hub/club-arena/assets/skin_carbon_ion-DknFfmaT-v6.png") center / 100% 100% no-repeat',
         // OUTER GOLD RING of the racetrack rail. The rail reads as two
         // concentric BRIGHT gold hoops with a black channel between them: this
         // border is hoop one, `feltSurface`'s ring is hoop two. Both hoops carry

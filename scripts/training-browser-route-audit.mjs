@@ -1,9 +1,12 @@
-import { readdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const require = createRequire(import.meta.url);
+const AXE_SOURCE = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 const PAGE_DIR = join(ROOT, 'pages/hub/training');
 const BASE_URL = String(process.env.TRAINING_AUDIT_BASE_URL || process.argv[2] || 'http://127.0.0.1:3000').replace(/\/$/, '');
 const IS_REMOTE_AUDIT = !/^https?:\/\/(?:127\.0\.0\.1|localhost)(?::|\/|$)/i.test(BASE_URL);
@@ -30,6 +33,7 @@ function routeFor(file) {
 
 const fixedRoutes = walk(PAGE_DIR).map(routeFor).filter((route) => !route.includes('['));
 const routes = [...new Set([
+  '/training-table-demo',
   '/hub/training',
   ...fixedRoutes,
   '/hub/training/arena/cash-001?level=1',
@@ -43,7 +47,11 @@ const viewports = [
   { name: 'desktop', width: 1440, height: 1000 },
   { name: 'mobile', width: 390, height: 844 },
 ];
-const immersiveRoute = (route) => route.startsWith('/hub/training/arena/') || route.startsWith('/hub/training/play/');
+const immersiveRoute = (route) => (
+  route === '/training-table-demo'
+  || route.startsWith('/hub/training/arena/')
+  || route.startsWith('/hub/training/play/')
+);
 const ignoredConsoleError = (message) => (
   message.includes('/_next/hmr')
   || /Failed to load resource:.*\b401\b/.test(message)
@@ -69,7 +77,7 @@ async function inspect(page, route, viewport) {
     await page.waitForTimeout(150);
 
     const finalPathname = new URL(page.url()).pathname;
-    const state = await page.evaluate(() => {
+    const state = await page.evaluate(async () => {
       const visible = (element) => {
         const rect = element.getBoundingClientRect();
         const style = getComputedStyle(element);
@@ -88,7 +96,30 @@ async function inspect(page, route, viewport) {
         || ''
       ).trim();
 
+      const axeResults = window.axe
+        ? await window.axe.run(document, {
+          resultTypes: ['violations'],
+          runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+        })
+        : { violations: [] };
+      const accessibilityViolations = axeResults.violations
+        .filter((violation) => ['serious', 'critical'].includes(violation.impact))
+        .map((violation) => ({
+          id: violation.id,
+          impact: violation.impact,
+          help: violation.help,
+          nodes: violation.nodes.filter((node) => {
+            const selector = Array.isArray(node.target) ? node.target[0] : node.target;
+            const element = selector ? document.querySelector(selector) : null;
+            return !element?.closest('.approved-global-header');
+          }).length,
+        }))
+        .filter((violation) => violation.nodes > 0);
+
       return {
+        documentTitle: document.title.trim(),
+        domNodes: document.getElementsByTagName('*').length,
+        interactiveControls: document.querySelectorAll('button, a[href], input, select, textarea, [role="button"]').length,
         bodyTextLength: (document.body?.innerText || '').trim().length,
         overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
         approvedHeaders: document.querySelectorAll('.approved-global-header').length,
@@ -101,12 +132,15 @@ async function inspect(page, route, viewport) {
         imagesWithoutAlt: [...document.images]
           .filter((image) => !image.hasAttribute('alt'))
           .map((image) => image.currentSrc || image.src),
+        accessibilityViolations,
       };
     });
 
     const failures = [];
     if (!response || response.status() >= 400) failures.push(`HTTP ${response?.status() || 0}`);
     if (state.bodyTextLength < 20) failures.push(`empty body (${state.bodyTextLength} characters)`);
+    if (finalPathname.startsWith('/hub/training') && !state.documentTitle) failures.push('missing document title');
+    if (state.domNodes > 7_500) failures.push(`excessive DOM size ${state.domNodes}`);
     if (state.overflow > 1) failures.push(`horizontal overflow ${state.overflow}px`);
     if (finalPathname.startsWith('/hub/training') && !immersiveRoute(finalPathname) && state.approvedHeaders !== 1) {
       failures.push(`approved global header count ${state.approvedHeaders}`);
@@ -114,6 +148,9 @@ async function inspect(page, route, viewport) {
     if (state.brokenVisibleImages.length) failures.push(`broken visible images: ${state.brokenVisibleImages.join(', ')}`);
     if (state.unnamedVisibleControls.length) failures.push(`unnamed controls: ${state.unnamedVisibleControls.join(', ')}`);
     if (state.imagesWithoutAlt.length) failures.push(`images without alt: ${state.imagesWithoutAlt.join(', ')}`);
+    if (state.accessibilityViolations.length) {
+      failures.push(`serious accessibility violations: ${state.accessibilityViolations.map((violation) => `${violation.id} (${violation.nodes})`).join(', ')}`);
+    }
     if (consoleErrors.length) failures.push(`console errors: ${consoleErrors.join(' | ')}`);
     if (pageErrors.length) failures.push(`page errors: ${pageErrors.join(' | ')}`);
 
@@ -137,6 +174,12 @@ const contextOptions = (viewport) => ({
   reducedMotion: 'reduce',
 });
 
+async function createAuditContext(viewport) {
+  const context = await browser.newContext(contextOptions(viewport));
+  await context.addInitScript({ content: AXE_SOURCE });
+  return context;
+}
+
 try {
   if (IS_REMOTE_AUDIT) {
     let routesSinceLaunch = 0;
@@ -150,7 +193,7 @@ try {
         let result;
         for (let attempt = 1; attempt <= REMOTE_MAX_ATTEMPTS; attempt += 1) {
           if (!browser.isConnected()) browser = await launchBrowser();
-          const context = await browser.newContext(contextOptions(viewport));
+          const context = await createAuditContext(viewport);
           try {
             result = await inspect(await context.newPage(), route, viewport);
           } finally {
@@ -166,7 +209,7 @@ try {
     }
   } else {
     for (const viewport of viewports) {
-      const context = await browser.newContext(contextOptions(viewport));
+      const context = await createAuditContext(viewport);
       const pending = [...routes];
       const workers = await Promise.all(Array.from(
         { length: Math.min(AUDIT_CONCURRENCY, pending.length) },

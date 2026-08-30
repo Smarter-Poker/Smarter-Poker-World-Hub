@@ -28,7 +28,7 @@
  */
 // TRAIN-FEEDBACK-FX-1 — audit-marker registry token
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 const STORAGE_SOUND = 'sp.training.sound';
 const STORAGE_HAPTICS = 'sp.training.haptics';
@@ -153,7 +153,7 @@ export function useTrainingFeedback() {
     haptics: readPref(STORAGE_HAPTICS) === 'on',
   }), []);
 
-  return {
+  return useMemo(() => ({
     correct,
     incorrect,
     click,
@@ -162,7 +162,7 @@ export function useTrainingFeedback() {
     setSoundEnabled,
     setHapticsEnabled,
     getPrefs,
-  };
+  }), [click, complete, correct, getPrefs, incorrect, setHapticsEnabled, setSoundEnabled, warning]);
 }
 
 export default useTrainingFeedback;

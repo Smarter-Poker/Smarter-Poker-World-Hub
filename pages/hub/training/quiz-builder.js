@@ -121,6 +121,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
             YOUR POS
           </div>
           <select
+            aria-label={`Question ${index + 1} Game Type`}
             value={question.position}
             onChange={(e) => update('position', e.target.value)}
             style={{
@@ -153,6 +154,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
             VILLAIN
           </div>
           <select
+            aria-label={`Question ${index + 1} Difficulty`}
             value={question.vilPosition}
             onChange={(e) => update('vilPosition', e.target.value)}
             style={{
@@ -185,6 +187,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
             STREET
           </div>
           <select
+            aria-label={`Question ${index + 1} Position`}
             value={question.street}
             onChange={(e) => update('street', e.target.value)}
             style={{
@@ -252,6 +255,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
           CORRECT ACTION
         </div>
         <select
+          aria-label={`Question ${index + 1} Correct Answer`}
           value={question.correctAction}
           onChange={(e) => update('correctAction', e.target.value)}
           style={{

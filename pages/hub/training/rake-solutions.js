@@ -266,6 +266,7 @@ export default function RakeSolutionsPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>Compare with:</span>
             <select
+              aria-label="Rake Structure"
               value={compareRake?.id || ''}
               onChange={(e) =>
                 setCompareRake(RAKE_PRESETS.find((r) => r.id === e.target.value) || null)

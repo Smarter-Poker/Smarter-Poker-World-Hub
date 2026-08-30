@@ -118,7 +118,7 @@ export default function StudyGroupFinderPage() {
     }
   };
 
-  const joinGroup = async (group) => {
+  const joinGroup = useCallback(async (group) => {
     if (busy) return;
     if (group.joined) {
       router.push(`/hub/training/study-group?roomId=${group.id}`);
@@ -136,7 +136,7 @@ export default function StudyGroupFinderPage() {
     } finally {
       setBusy(null);
     }
-  };
+  }, [busy, router]);
 
   useEffect(() => {
     if (!router.isReady || inviteHandled || groups.length === 0 || !router.query.join) return;
@@ -144,7 +144,7 @@ export default function StudyGroupFinderPage() {
     setInviteHandled(true);
     if (invited) joinGroup(invited);
     else setNotice({ type: 'error', text: 'That study group invite is no longer available.' });
-  }, [router.isReady, router.query.join, inviteHandled, groups]); // joinGroup intentionally uses current state
+  }, [router.isReady, router.query.join, inviteHandled, groups, joinGroup]);
 
   const filtered = useMemo(() => {
     let list = groups;

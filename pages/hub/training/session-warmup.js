@@ -184,11 +184,13 @@ export default function SessionWarmupPage() {
   useEffect(() => {
     if (completed && !savedRef.current) {
       savedRef.current = true;
-      const newCount = completionCount + 1;
-      setCompletionCount(newCount);
-      try {
-        localStorage.setItem('warmup-count', String(newCount));
-      } catch (e) { console.warn('[App] Handled exception:', e); }
+      setCompletionCount((currentCount) => {
+        const newCount = currentCount + 1;
+        try {
+          localStorage.setItem('warmup-count', String(newCount));
+        } catch (e) { console.warn('[App] Handled exception:', e); }
+        return newCount;
+      });
     }
   }, [completed]);
 

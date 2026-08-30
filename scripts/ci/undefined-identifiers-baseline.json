@@ -4,7 +4,6 @@
   "violations": {
     "pages/hub/pages.js::setPages": 1,
     "pages/hub/social-pages/[pageId].js::imageInputRef": 1,
-    "pages/hub/training/solutions.js::saveFilter": 1,
     "src/components/memory-games/modals/MemoryGamesFilters.js::filterScenarios": 1,
     "src/components/memory-games/modals/MemoryGamesFilters.js::LEVEL_1_SCENARIOS": 2,
     "src/components/memory-games/modals/MemoryGamesFilters.js::LEVEL_10_SCENARIOS": 2,
@@ -32,7 +31,6 @@
     "src/components/social/SmarterPokerLayout.jsx::authUser": 2,
     "src/components/social/SmarterPokerLayout.jsx::setNotifications": 2,
     "src/components/social/SmarterPokerLayout.jsx::setUnreadCount": 2,
-    "src/components/training/TableDynamicsPanel.jsx::motion": 1,
     "src/content-engine/pipeline/post-news.js::openai": 1,
     "src/content-engine/services/HorseBehaviorService.js::FollowerCount": 1,
     "src/content-engine/services/HorseBehaviorService.js::Hour": 4,

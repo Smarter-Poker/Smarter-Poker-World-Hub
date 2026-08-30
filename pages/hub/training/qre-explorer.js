@@ -229,6 +229,7 @@ export default function QREExplorerPage() {
               </div>
             </div>
             <input
+              aria-label="Rationality Lambda"
               type="range"
               min="0.1"
               max="10"

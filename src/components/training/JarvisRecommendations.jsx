@@ -5,7 +5,7 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { authedFetch } from '../../lib/authUtils';
 
@@ -14,13 +14,7 @@ export default function JarvisRecommendations({ userId, onGameClick }) {
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (userId) {
-            fetchRecommendations();
-        }
-    }, [userId]);
-
-    const fetchRecommendations = async () => {
+    const fetchRecommendations = useCallback(async () => {
         try {
             const res = await authedFetch(`/api/training/recommendations?userId=${userId}`);
             const data = await res.json();
@@ -33,7 +27,13 @@ export default function JarvisRecommendations({ userId, onGameClick }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [userId]);
+
+    useEffect(() => {
+        if (userId) {
+            fetchRecommendations();
+        }
+    }, [userId, fetchRecommendations]);
 
     if (loading) {
         return (

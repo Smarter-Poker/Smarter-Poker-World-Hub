@@ -94,7 +94,7 @@ export default function HandMatrixViewer() {
         return { ...strat, label, isPair, isSuited, ri, ci };
       })
     );
-  }, [spotIdx]);
+  }, [spot]);
 
   const hoveredCell = hovered ? matrix[hovered.r][hovered.c] : null;
 

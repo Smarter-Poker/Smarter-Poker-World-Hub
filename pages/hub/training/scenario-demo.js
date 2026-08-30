@@ -202,7 +202,7 @@ export default function ScenarioDemoPage() {
       setQuizAnswer(opt);
       setQuizScore((p) => ({ total: p.total + 1, correct: p.correct + (isCorrect ? 1 : 0) }));
     },
-    [quizAnswer, quizQ]
+    [quizAnswer, quizQ, fb]
   );
 
   const nextQuizQ = useCallback(() => {
@@ -253,7 +253,7 @@ export default function ScenarioDemoPage() {
       };
       save();
     }
-  }, [completed]);
+  }, [completed, quizScore.correct, quizScore.total]);
 
   return (
     <>

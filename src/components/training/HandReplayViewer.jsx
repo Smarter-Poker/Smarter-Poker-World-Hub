@@ -794,7 +794,7 @@ function RunoutHeatmapSection({ boardCards, heldCards, gridData, actions }) {
         }
 
         return { runoutData: data, deadCards: dead };
-    }, [boardCards, heldCards, gridData, actions]);
+    }, [boardCards, heldCards, gridData]);
 
     if (!runoutData || Object.keys(runoutData || {}).length === 0) return null;
 

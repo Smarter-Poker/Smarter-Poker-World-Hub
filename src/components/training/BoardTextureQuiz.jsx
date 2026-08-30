@@ -82,13 +82,6 @@ function BoardTextureQuiz() {
     setPhase('strategy');
   }, [selectedProps, board]);
 
-  const checkFrequency = useCallback(() => {
-    const diff = Math.abs((selectedFreq || 0) - board.cbetFreq);
-    const correct = diff <= 15;
-    setStats(prev => ({ correct: prev.correct + (correct ? 1 : 0), total: prev.total + 1 }));
-    nextBoard();
-  }, [selectedFreq, board]);
-
   const nextBoard = useCallback(() => {
     setCurrentIdx((currentIdx + 1) % BOARDS.length);
     setPhase('classify');
@@ -96,6 +89,13 @@ function BoardTextureQuiz() {
     setSelectedProps({});
     setSelectedFreq(null);
   }, [currentIdx]);
+
+  const checkFrequency = useCallback(() => {
+    const diff = Math.abs((selectedFreq || 0) - board.cbetFreq);
+    const correct = diff <= 15;
+    setStats(prev => ({ correct: prev.correct + (correct ? 1 : 0), total: prev.total + 1 }));
+    nextBoard();
+  }, [selectedFreq, board, nextBoard]);
 
   const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
 

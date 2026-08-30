@@ -154,6 +154,7 @@ export default function IcmSimulatorPage() {
                   </div>
                   <div style={{ fontSize: 14, color: 'var(--sp-accent-green)', marginRight: 8 }}>$</div>
                   <input
+                    aria-label={`${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'} Place Payout`}
                     type="number"
                     value={p}
                     onChange={(e) => {
@@ -229,6 +230,7 @@ export default function IcmSimulatorPage() {
                   style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 12 }}
                 >
                   <input
+                    aria-label={`Player ${i + 1} Name`}
                     value={p.name}
                     onChange={(e) => {
                       const arr = [...players];
@@ -249,6 +251,7 @@ export default function IcmSimulatorPage() {
                     }}
                   />
                   <input
+                    aria-label={`${p.name || `Player ${i + 1}`} Stack`}
                     type="number"
                     value={p.stack}
                     onChange={(e) => {
