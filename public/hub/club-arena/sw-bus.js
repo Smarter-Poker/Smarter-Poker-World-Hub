@@ -21,7 +21,7 @@ const sw = self;
 // DEPLOY VERSION — updated by CI/build to bust the service worker cache.
 // When this changes, the browser detects a new SW → install → activate → clears old caches.
 // Format: ISO timestamp of last deploy. Update via: sed -i "s/DEPLOY_TS.*/DEPLOY_TS = '$(date -u +%Y%m%d%H%M%S)';/" public/sw-bus.js
-const DEPLOY_TS = '20260830080216';
+const DEPLOY_TS = '20260830081016';
 // PERF PASS 2026-08-22: two caches instead of one.
 // - CHUNK_CACHE is versioned by deploy: hashed JS/CSS filenames change every
 //   build, so old entries are dead weight the moment a new SW activates.
@@ -58,7 +58,7 @@ const MAX_MEDIA_ENTRIES = 600; // Cards (104/deck-style) + tiles + icons + logos
 // DEPLOY_TS above with the build time. With this, a returning player gets the
 // whole shell from cache even if HTTP cache was evicted, and the new SW
 // pre-fetches the new hashed chunks the moment a deploy lands.
-const PRECACHE_URLS = ["/hub/club-arena/fonts/fonts-2d4eda7dd6.css","/hub/club-arena/assets/index-nIc64kuy-v6.js","/hub/club-arena/assets/vendor-react-C2kmzSSi-v6.js","/hub/club-arena/assets/vendor-supabase-BLlQ2fJ4-v6.js","/hub/club-arena/assets/index-CcKpY_5N-v6.css","/hub/club-arena/assets/HomePage-5dqfkl45-v6.js"];
+const PRECACHE_URLS = ["/hub/club-arena/fonts/fonts-2d4eda7dd6.css","/hub/club-arena/assets/index-CbDa_znA-v6.js","/hub/club-arena/assets/vendor-react-C2kmzSSi-v6.js","/hub/club-arena/assets/vendor-supabase-BLlQ2fJ4-v6.js","/hub/club-arena/assets/index-CcKpY_5N-v6.css","/hub/club-arena/assets/HomePage-D_PkJuZT-v6.js"];
 
 // The canonical cache key for the SPA shell document. Every /hub/club-arena/*
 // navigation serves the same index.html (SPA fallback rewrite), so all of
