@@ -20,7 +20,7 @@
  *   - useTrainingStore                       (src/stores/trainingStore)
  *   - LeakService                            (src/services/LeakService)
  *   - GodModeArena (lazy)                    (src/components/training/GodModeArena)
- *   - UniversalHeader / BottomNavBar         (src/components/ui)
+ *   - UniversalHeader                        (src/components/ui)
  *   - SEOHead, PageTransition                (existing)
  *
  * Author: redesign generated 2026-05-06
@@ -38,7 +38,6 @@ import {
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
@@ -480,7 +479,6 @@ export default function TrainingPage() {
 
           </main>
 
-          <BottomNavBar />
         </>
       )}
     </PageTransition>
