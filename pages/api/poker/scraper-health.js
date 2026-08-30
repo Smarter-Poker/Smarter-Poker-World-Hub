@@ -49,7 +49,15 @@ export default async function handler(req, res) {
 
     // 'bravo' is no longer scraped (removed 2026-05-23) — monitoring it emitted a
     // permanent "bravo: NO DATA FOUND" issue that could never clear.
-    const sources = []; // pokeratlas retired 2026-08-29
+    // DO NOT RETIRE POKERATLAS WITHOUT CHECKING scraper_metrics FIRST.
+    // It was removed on 2026-08-29 on the belief that it was decommissioned.
+    // It was not - it was six days into an outage, and it recovered the same
+    // evening (watchdog: "ALL CLEAR ... recovered! Data is now 7 min fresh."
+    // at 20:00:06 UTC). An empty sources list makes this endpoint report
+    // "healthy" while monitoring nothing, which is worse than no endpoint.
+    // A silent scraper and a retired scraper look identical from here; the
+    // difference is visible in scraper_metrics.cycle_start. Check that.
+    const sources = ['pokeratlas'];
     const health = {};
 
     for (const source of sources) {
