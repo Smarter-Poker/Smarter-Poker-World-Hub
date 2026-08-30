@@ -201,7 +201,7 @@ body.world-training .sp-arena-lobby__back {
 
     body.world-training .sp-arena-lobby__content {
         width: 100% !important;
-        padding: 16px 12px 108px !important;
+        padding: 16px 12px calc(164px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
     body.world-training .sp-arena-lobby__heading {
@@ -220,7 +220,10 @@ body.world-training .sp-arena-lobby__back {
         position: fixed;
         z-index: 30;
         right: 14px;
-        bottom: max(10px, env(safe-area-inset-bottom));
+        /* The approved global footer is 56px plus the device safe area. Keep
+           the primary session action fully above it so the footer can never
+           intercept the tap. */
+        bottom: calc(56px + 10px + env(safe-area-inset-bottom, 0px));
         left: 14px;
         padding: 4px;
         border: 1px solid rgba(164, 228, 248, 0.28);

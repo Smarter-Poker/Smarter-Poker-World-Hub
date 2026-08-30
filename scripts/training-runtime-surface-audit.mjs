@@ -363,10 +363,16 @@ async function auditBatch(viewport, batch) {
     const queue = [...batch];
     const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) });
     await Promise.all(workers.map(async () => {
-      while (queue.length) {
+      while (true) {
+        // Claim the game synchronously before awaiting page creation. If two
+        // workers both observed `queue.length === 1` and yielded first, the
+        // second worker previously dequeued `undefined`, rejected the batch,
+        // and caused every valid surface in that batch to be replayed.
+        const game = queue.shift();
+        if (!game) break;
         const page = await context.newPage();
         try {
-          batchResults.push(...await auditGame(page, queue.shift(), viewport));
+          batchResults.push(...await auditGame(page, game, viewport));
         } finally {
           await page.close().catch(() => {});
         }

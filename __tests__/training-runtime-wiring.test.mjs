@@ -156,6 +156,34 @@ test('every poker game reaches the shared Club Arena table surface', () => {
   assert.match(table, /data-training-ui="club-arena-table"/);
 });
 
+test('runtime matrix workers claim a game before yielding to page creation', () => {
+  const audit = fs.readFileSync(
+    path.join(ROOT, 'scripts/training-runtime-surface-audit.mjs'),
+    'utf8'
+  );
+  const claimIndex = audit.indexOf('const game = queue.shift()');
+  const pageIndex = audit.indexOf('const page = await context.newPage()', claimIndex);
+
+  assert.ok(claimIndex >= 0, 'runtime matrix must claim a queued game');
+  assert.ok(pageIndex > claimIndex, 'game ownership must be claimed before an awaited page creation');
+  assert.doesNotMatch(audit, /auditGame\(page, queue\.shift\(\)/);
+});
+
+test('mobile arena launch remains tappable above global overlays', () => {
+  const trainingCss = fs.readFileSync(path.join(ROOT, 'src/styles/worlds/training.css'), 'utf8');
+  const notificationPrompt = fs.readFileSync(
+    path.join(ROOT, 'src/components/notifications/FirstRunNotificationPrompt.jsx'),
+    'utf8'
+  );
+
+  assert.match(
+    trainingCss,
+    /sp-arena-lobby__launch[\s\S]*bottom:\s*calc\(56px \+ 10px \+ env\(safe-area-inset-bottom, 0px\)\)/
+  );
+  assert.match(notificationPrompt, /'\/hub\/training\/arena'/);
+  assert.match(notificationPrompt, /'\/hub\/club-arena'/);
+});
+
 test('offline packs cache real questions and are consumed by the arena', () => {
   const preloader = fs.readFileSync(path.join(ROOT, 'pages/hub/training/gto-preloader.js'), 'utf8');
   const trainer = fs.readFileSync(path.join(ROOT, 'src/hooks/useGTOTrainer.js'), 'utf8');

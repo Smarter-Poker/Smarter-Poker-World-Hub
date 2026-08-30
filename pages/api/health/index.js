@@ -8,6 +8,8 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // Node.js runtime (default) — uses process.uptime and process.memoryUsage which are not edge-compatible
 
 let _supabase = null;
+const DB_HEALTH_TIMEOUT_MS = 3000;
+
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
@@ -15,6 +17,31 @@ function getSupabase() {
         _supabase = createClient(url, key);
     }
     return _supabase;
+}
+
+async function checkDatabaseWithDeadline(supabase) {
+    const controller = new AbortController();
+    let timeoutId;
+    const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+            controller.abort();
+            const error = new Error('Database health check timed out');
+            error.code = 'HEALTH_DB_TIMEOUT';
+            reject(error);
+        }, DB_HEALTH_TIMEOUT_MS);
+    });
+
+    try {
+        const query = supabase
+            .from('profiles')
+            .select('id')
+            .limit(1)
+            .abortSignal(controller.signal)
+            .maybeSingle();
+        return await Promise.race([query, timeout]);
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 
@@ -50,11 +77,7 @@ export default async function handler(req, res) {
               health.checks.db = { status: 'skip', reason: 'Missing env vars' };
           } else {
               const supabase = getSupabase();
-              const { data, error } = await supabase
-                  .from('profiles')
-                  .select('id')
-                  .limit(1)
-                  .maybeSingle();
+              const { error } = await checkDatabaseWithDeadline(supabase);
 
               if (error && error.code !== 'PGRST116') {
                   health.checks.db = { status: 'error', message: error.message };
@@ -64,7 +87,12 @@ export default async function handler(req, res) {
               }
           }
       } catch (e) {
-          health.checks.db = { status: 'error', message: e.message };
+          health.checks.db = {
+              status: 'error',
+              message: e?.code === 'HEALTH_DB_TIMEOUT'
+                  ? 'Database health check timed out'
+                  : e.message,
+          };
           health.status = 'degraded';
       }
 
