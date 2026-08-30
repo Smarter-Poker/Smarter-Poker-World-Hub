@@ -12,7 +12,6 @@ import {
   AlertTriangle, CheckCircle, BarChart3, Zap
 } from 'lucide-react';
 import { getAccessToken } from '../../src/lib/authUtils';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 export default function GodModePage() {
   const router = useRouter();
@@ -301,7 +300,6 @@ export default function GodModePage() {
             </>
           )}
         </main>
-        <BottomNavBar />
       </div>
     </>
   );

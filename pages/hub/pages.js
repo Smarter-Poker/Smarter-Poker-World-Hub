@@ -11,7 +11,6 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const CATEGORIES = [
     { key: 'all', label: 'All Pages' },
@@ -431,7 +430,6 @@ export default function PokerPagesPage() {
                         </a>
                     </Link>
                 </div>
-              <BottomNavBar />
             </div>
 
             <style>{`

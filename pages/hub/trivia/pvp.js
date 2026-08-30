@@ -34,7 +34,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import { Trophy, Gem, Clock, XCircle, Loader } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const STAKE_OPTIONS = [10, 25, 50, 100];
 // How long a finished player waits for their opponent before being offered an
@@ -1273,7 +1272,6 @@ export default function PvPPage() {
                 featureConfig={featureConfig}
             />
 
-            <BottomNavBar />
             </div>
 
             <style>{`

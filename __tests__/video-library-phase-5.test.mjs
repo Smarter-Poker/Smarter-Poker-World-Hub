@@ -4,18 +4,54 @@ import test from 'node:test';
 
 const PAGE = readFileSync(new URL('../pages/hub/video-library.js', import.meta.url), 'utf8');
 const DATA = readFileSync(new URL('../src/data/videoLibraryData.js', import.meta.url), 'utf8');
-const HISTORY = readFileSync(new URL('../src/services/videoWatchHistory.js', import.meta.url), 'utf8');
-const FAVORITES = readFileSync(new URL('../src/services/videoFavorites.js', import.meta.url), 'utf8');
+const HISTORY = readFileSync(
+  new URL('../src/services/videoWatchHistory.js', import.meta.url),
+  'utf8'
+);
+const FAVORITES = readFileSync(
+  new URL('../src/services/videoFavorites.js', import.meta.url),
+  'utf8'
+);
 const LATER = readFileSync(new URL('../src/services/videoWatchLater.js', import.meta.url), 'utf8');
-const PREFS = readFileSync(new URL('../src/services/videoLibraryPreferences.js', import.meta.url), 'utf8');
+const PREFS = readFileSync(
+  new URL('../src/services/videoLibraryPreferences.js', import.meta.url),
+  'utf8'
+);
 const MENU = readFileSync(new URL('../src/config/hamburgerMenus.js', import.meta.url), 'utf8');
 const REWARD = readFileSync(new URL('../src/lib/claimReward.js', import.meta.url), 'utf8');
-const CSS = readFileSync(new URL('../src/styles/worlds/video-library.css', import.meta.url), 'utf8');
-const YOUTUBE_HOOK = readFileSync(new URL('../src/hooks/useYouTubeErrorManager.js', import.meta.url), 'utf8');
-const PLAYLISTS = readFileSync(new URL('../src/services/videoPlaylists.js', import.meta.url), 'utf8');
-const MIGRATION = readFileSync(new URL('../supabase/migrations/20260827000001_video_library_phase5_reliability.sql', import.meta.url), 'utf8');
-const HARDENING = readFileSync(new URL('../supabase/migrations/20260827000002_video_library_phase6_hardening.sql', import.meta.url), 'utf8');
-const CATALOG_API = readFileSync(new URL('../pages/api/video-library/catalog.js', import.meta.url), 'utf8');
+const CSS = readFileSync(
+  new URL('../src/styles/worlds/video-library.css', import.meta.url),
+  'utf8'
+);
+const YOUTUBE_HOOK = readFileSync(
+  new URL('../src/hooks/useYouTubeErrorManager.js', import.meta.url),
+  'utf8'
+);
+const PLAYLISTS = readFileSync(
+  new URL('../src/services/videoPlaylists.js', import.meta.url),
+  'utf8'
+);
+const MIGRATION = readFileSync(
+  new URL(
+    '../supabase/migrations/20260827000001_video_library_phase5_reliability.sql',
+    import.meta.url
+  ),
+  'utf8'
+);
+const HARDENING = readFileSync(
+  new URL(
+    '../supabase/migrations/20260827000002_video_library_phase6_hardening.sql',
+    import.meta.url
+  ),
+  'utf8'
+);
+const CATALOG_API = readFileSync(
+  new URL('../pages/api/video-library/catalog.js', import.meta.url),
+  'utf8'
+);
+const BOTTOM_NAV_ROUTES = JSON.parse(
+  readFileSync(new URL('../src/config/bottom-nav-routes.json', import.meta.url), 'utf8')
+);
 
 test('the playable fallback catalog canonicalizes IDs and rejects placeholder embeds', () => {
   assert.match(PAGE, /STATIC_VIDEO_ALIASES/);
@@ -23,12 +59,18 @@ test('the playable fallback catalog canonicalizes IDs and rejects placeholder em
   assert.match(PAGE, /legacyId: video\.id, id: video\.videoId/);
   assert.match(CATALOG_API, /id: row\.youtube_video_id/);
   assert.match(PAGE, /legacyId: STATIC_VIDEO_CANONICAL_ALIASES\.get\(video\.videoId\)/);
-  assert.ok((DATA.match(/videoId: 'FAKE/g) || []).length > 0, 'guard must exercise real legacy placeholders');
+  assert.ok(
+    (DATA.match(/videoId: 'FAKE/g) || []).length > 0,
+    'guard must exercise real legacy placeholders'
+  );
 });
 
 test('legacy persisted aliases remain visible and removable after canonicalization', () => {
   assert.match(PAGE, /canonicalStoredVideoId/);
-  assert.match(PAGE, /new Set\(favoriteResult\.value\.map\(item => canonicalStoredVideoId\(item\.video_id\)\)\)/);
+  assert.match(
+    PAGE,
+    /new Set\(favoriteResult\.value\.map\(item => canonicalStoredVideoId\(item\.video_id\)\)\)/
+  );
   assert.match(PAGE, /canonicalProgress = new Map/);
   assert.match(FAVORITES, /\.in\('video_id', videoIds\)/);
   assert.match(LATER, /\.in\('video_id', videoIds\)/);
@@ -110,6 +152,7 @@ test('desktop actions, playlist wiring, touch controls, and safe-area layout rem
   assert.match(PAGE, /e\.metaKey \|\| e\.ctrlKey \|\| e\.altKey/);
   assert.match(YOUTUBE_HOOK, /e\.source !== iframeRef\.current\.contentWindow/);
   assert.match(PAGE, /top: 0, bottom: 64/);
-  assert.match(PAGE, /<BottomNavBar theme="dark"/);
+  assert.equal(BOTTOM_NAV_ROUTES['/hub/video-library']?.theme, 'dark');
+  assert.doesNotMatch(PAGE, /<BottomNavBar/);
   assert.ok((CSS.match(/env\(safe-area-inset-bottom/g) || []).length >= 2);
 });

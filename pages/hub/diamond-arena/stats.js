@@ -8,7 +8,6 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function DiamondArenaStats() {
     const bus = useTrainingBus('diamond-arena-stats');
@@ -77,7 +76,6 @@ export default function DiamondArenaStats() {
                         </div>
                     </div>
                 </div>
-                  <BottomNavBar />
     </PageTransition>
         </>
     );

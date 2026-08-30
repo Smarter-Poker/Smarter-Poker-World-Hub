@@ -9,7 +9,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import toast from '../../../src/stores/toastStore';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function BankrollExport() {
     const router = useRouter();
@@ -182,7 +181,6 @@ export default function BankrollExport() {
                         </div>
                     </div>
                 </div>
-                  <BottomNavBar />
     </PageTransition>
         </>
     );

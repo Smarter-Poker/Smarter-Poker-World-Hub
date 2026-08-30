@@ -36,7 +36,6 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useRecentSessions, useAssistantStats } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import styles from '../../../src/styles/worlds/PersonalAssistantHub.module.css';
 
 const SYSTEMS = [
@@ -744,7 +743,6 @@ export default function PersonalAssistantPage() {
       </div>
 
       {UpgradePopup}
-      <BottomNavBar />
     </PageTransition>
   );
 }

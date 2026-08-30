@@ -70,7 +70,6 @@ import {
 } from '../../src/lib/preflopRangeLab';
 // 2026-05-07 — Lucide icons replace emoji in the menu surface (UI-UX-Pro-Max no-emoji-icons rule)
 import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck, BrainCircuit, ChevronRight, Gem, Clock3, Lightbulb, Send, RotateCcw, ArrowRight, Undo2, Redo2, Trash2 } from 'lucide-react';
-const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 
 const ALL_TRAINING_SCENARIOS = [
     ...LEVEL_1_SCENARIOS,
@@ -2969,7 +2968,6 @@ export default function MemoryGamesPage() {
                     50% { transform: scale(1.1); }
                 }
             `}</style >
-              <BottomNavBar />
     </PageTransition >
     );
 }

@@ -14,7 +14,6 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 // Single source of truth for the CST day boundary (Phase 73). This page used to
 // re-implement getTodayCST/getDateDaysAgo locally, via the
 // `new Date(now.toLocaleString(...))` round-trip that the shared lib explicitly
@@ -342,7 +341,6 @@ export default function TriviaLeaderboard() {
                         )}
                     </div>
                 </div>
-                  <BottomNavBar />
     </PageTransition>
         </>
         </TriviaErrorBoundary>

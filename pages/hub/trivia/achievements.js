@@ -21,7 +21,6 @@ import {
     Moon, Sunrise, RefreshCw, Footprints
 } from 'lucide-react';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { busEmit } from '../../../src/engine/EventBus';
 import {
     TRIVIA_ACHIEVEMENTS,
@@ -493,7 +492,6 @@ export default function TriviaAchievements() {
                         )}
                     </div>
                 </div>
-                  <BottomNavBar />
     </PageTransition>
         </>
         </TriviaErrorBoundary>

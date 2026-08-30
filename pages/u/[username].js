@@ -8,7 +8,6 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { createClient } from '@supabase/supabase-js';
 import { homeGameUrl } from '../../src/lib/home-games/urls';
 
@@ -188,7 +187,6 @@ export default function PublicProfilePage() {
           </div>
         )}
 
-        <BottomNavBar />
       </div>
     </>
   );

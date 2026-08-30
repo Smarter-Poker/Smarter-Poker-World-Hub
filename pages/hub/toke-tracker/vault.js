@@ -16,7 +16,6 @@ import TaxSummaryModal from '../../../src/components/bankroll/TaxSummaryModal';
 import { fetchGigs } from '../../../src/lib/bankroll/tokeSelectors';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { supabase } from '../../../src/lib/supabase';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function DealerVaultPage() {
     const router = useRouter();
@@ -168,7 +167,6 @@ export default function DealerVaultPage() {
                     )}
                 </div>
             </div>
-              <BottomNavBar />
     </PageTransition>
     );
 }

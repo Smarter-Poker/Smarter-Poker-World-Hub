@@ -31,7 +31,6 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { useLeaks, useAssistantStats, useLeakDetection, useLeakHandExamples } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { getAccessToken } from '../../../src/lib/authUtils';
@@ -2787,7 +2786,6 @@ export default function LeakFinderPage() {
           duration: 3500,
         }}
       />
-      <BottomNavBar />
     </PageTransition>
   );
 }

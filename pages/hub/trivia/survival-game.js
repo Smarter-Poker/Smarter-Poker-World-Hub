@@ -38,7 +38,6 @@ import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { DAILY_DIAMOND_CAPS, calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
@@ -1681,7 +1680,6 @@ export default function SurvivalGamePage() {
                         )}
                     </div>
                 </div>
-                  <BottomNavBar />
     </PageTransition>
         </TriviaErrorBoundary>
     );

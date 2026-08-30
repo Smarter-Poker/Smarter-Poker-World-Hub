@@ -13,7 +13,6 @@ import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import HubPromoRail from '../../src/components/ads/HubPromoRail';
 
@@ -318,7 +317,6 @@ export default function PromotionsPage() {
                     )}
                 </div>
 
-              <BottomNavBar />
             </div>
 
             <style>{`

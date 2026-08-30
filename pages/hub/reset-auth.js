@@ -12,7 +12,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 export default function ResetAuthPage() {
     const router = useRouter();
@@ -193,7 +192,6 @@ export default function ResetAuthPage() {
                     to { transform: rotate(360deg); }
                 }
             `}</style>
-          <BottomNavBar />
         </div>
     );
 }

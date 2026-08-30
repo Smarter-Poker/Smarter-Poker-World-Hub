@@ -42,7 +42,6 @@ import { getStreakTier, calculateRewardWithMultiplier } from '../../../src/confi
 // Phase 2 Enhancement Imports
 import { Gem } from 'lucide-react';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // Category source of truth is triviaEngine's CATEGORY_MAPPINGS — do not
 // re-declare category arrays here (three parallel maps had silently drifted).
@@ -1492,7 +1491,6 @@ export default function TriviaModePage() {
                         unmount/remount the confetti mid-celebration */}
                     {celebrations.CelebrationComponents()}
                 </div>
-              <BottomNavBar />
             </div>
 
             <style>{`

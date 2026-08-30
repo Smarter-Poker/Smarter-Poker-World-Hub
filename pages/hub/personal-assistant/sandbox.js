@@ -95,7 +95,6 @@ const EquityHeatmapOverlay = dynamic(() => import('../../../src/components/sandb
 const NodeLockExploits = dynamic(() => import('../../../src/components/sandbox/NodeLockExploits'), { ssr: false });
 const ImportHHModal = dynamic(() => import('../../../src/components/sandbox/ImportHHModal'), { ssr: false });
 import { idbSaveSessionLog, idbLoadSessionLog } from '../../../src/utils/indexeddb-pwa';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { findBestGames } from '../../../src/utils/videoToTrainingMapper';
@@ -4231,7 +4230,6 @@ export default function VirtualSandbox() {
         }
       ` }} />
 
-      <BottomNavBar />
     </div>
   );
 }

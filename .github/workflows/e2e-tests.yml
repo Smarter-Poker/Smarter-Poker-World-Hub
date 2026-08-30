@@ -44,7 +44,7 @@ jobs:
           fi
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Build Next.js
         # `npm run build`, NOT a bare `npx next build`.
@@ -115,7 +115,7 @@ jobs:
           exit 1
 
       - name: Run Playwright tests
-        run: npx playwright test --project=chromium --project=mobile-chrome
+        run: npx playwright test --project=chromium --project=mobile-chrome --project=footer-chromium --project=footer-webkit
         env:
           CI: true
           # e2e/00-auth.setup.ts signs in as the standing test account and every

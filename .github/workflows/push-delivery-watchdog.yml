@@ -51,6 +51,28 @@ jobs:
         # one is still building — or fail on a 404 that is merely early.
         run: sleep 240
 
+      - name: Checkout footer probe
+        uses: actions/checkout@v4
+
+      - name: Setup Node for footer probe
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+
+      - name: Install footer probe dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install WebKit for the footer probe
+        run: npx playwright install --with-deps webkit
+
+      - name: Probe production footer geometry in WebKit
+        id: footer-probe
+        continue-on-error: true
+        env:
+          PLAYWRIGHT_BASE_URL: https://smarter.poker
+        run: npx playwright test e2e/global-footer-visual.spec.ts --project=footer-webkit --reporter=line --retries=1
+
       - name: Probe production push delivery
         id: probe
         run: |
@@ -164,3 +186,67 @@ jobs:
               });
             }
             core.setFailed('Production push delivery probe failed.');
+
+      - name: Raise or clear the footer alarm
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          FOOTER_OUTCOME: ${{ steps.footer-probe.outcome }}
+        with:
+          script: |
+            const TITLE = 'Global footer is broken in production';
+            const failed = process.env.FOOTER_OUTCOME !== 'success';
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = open.find(issue => issue.title === TITLE);
+
+            if (!failed) {
+              if (existing) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.number,
+                  body: `WebKit verified both World Hub and Club Arena footers healthy again at ${context.sha.slice(0, 10)}. Closing.`,
+                });
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.number,
+                  state: 'closed',
+                });
+              }
+              core.info('Production footer geometry is healthy in WebKit.');
+              return;
+            }
+
+            const body = [
+              '**The live footer contract failed in WebKit after deployment.**',
+              '',
+              'The probe checks the World Hub footer, the footerless Club Arena lobby,',
+              'the Club Arena footer health route, all six controls, viewport bounds,',
+              'fixed positioning, and desktop height.',
+              '',
+              `Commit: \`${context.sha}\``,
+              `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            ].join('\n');
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: TITLE,
+                body,
+              });
+            }
+            core.setFailed('Production footer geometry probe failed.');

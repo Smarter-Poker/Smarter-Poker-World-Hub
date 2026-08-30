@@ -48,7 +48,6 @@ const PokerInfoSection = dynamic(() => import('../../src/components/profile-edit
 const PokerResumeSection = dynamic(() => import('../../src/components/profile-edit/PokerResumeSection'), { ssr: false });
 const CardDeckPreferenceSection = dynamic(() => import('../../src/components/profile-edit/CardDeckPreferenceSection'), { ssr: false });
 
-const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 
 // Light Theme Colors
 

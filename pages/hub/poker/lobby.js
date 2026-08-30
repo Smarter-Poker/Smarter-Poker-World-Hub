@@ -10,7 +10,6 @@ import PokerLobby from '../../../src/components/poker/PokerLobby';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getAuthUser } from '../../../src/lib/authUtils';
-import BottomNavBar, { BOTTOM_NAV_CLEARANCE } from '../../../src/components/ui/BottomNavBar';
 
 export default function PokerLobbyPage() {
   const router = useRouter();
@@ -41,7 +40,7 @@ export default function PokerLobbyPage() {
   };
 
   return (
-    <div style={{ paddingBottom: BOTTOM_NAV_CLEARANCE }}>
+    <div>
       <SEOHead
         title="Poker Lobby | Smarter.Poker"
         description="Browse and join live poker tables. No Limit Hold'em, PLO, Short Deck — play real-time multiplayer poker."
@@ -53,7 +52,6 @@ export default function PokerLobbyPage() {
         userId={userId}
         onJoinTable={handleJoinTable}
       />
-      <BottomNavBar />
     </div>
   );
 }

@@ -17,7 +17,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import toast from '../../../src/stores/toastStore';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import useCartStore from '../../../src/stores/cartStore';
 import MerchPurchaseDialog from '../../../src/components/store/MerchPurchaseDialog';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
@@ -920,7 +919,6 @@ export default function ShoppingCart() {
           onConfirm={confirmDiamondCheckout}
         />
       )}
-      <BottomNavBar />
     </PageTransition>
   );
 }

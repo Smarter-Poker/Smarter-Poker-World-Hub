@@ -29,7 +29,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned } from '../../../src/lib/trivia/diamondCap';
 import { calculateDiamonds, DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
@@ -700,7 +699,6 @@ export default function MixedModePage() {
                         </div>
                     )}
                 </div>
-              <BottomNavBar />
             </div>
 
             <style>{`

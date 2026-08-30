@@ -25,7 +25,6 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // Guest bookmarks share the same localStorage key as /hub/news so the two
 // surfaces stay in sync (news.js loads this key on mount).
@@ -853,7 +852,6 @@ export default function ArticlePage() {
                     }
                 `}</style>
             </div>
-            <BottomNavBar />
         </PageTransition>
         </>
     );

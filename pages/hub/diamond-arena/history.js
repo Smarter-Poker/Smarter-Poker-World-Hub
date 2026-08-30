@@ -8,7 +8,6 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function DiamondArenaHistory() {
     const bus = useTrainingBus('diamond-arena-history');
@@ -72,7 +71,6 @@ export default function DiamondArenaHistory() {
                         </div>
                     </div>
                 </div>
-                  <BottomNavBar />
     </PageTransition>
         </>
     );

@@ -12,7 +12,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch, useRequireAuth } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 
 export default function OrderHistory() {
@@ -522,7 +521,6 @@ export default function OrderHistory() {
           )}
         </MarketplaceSubpageShell>
       </div>
-      <BottomNavBar />
     </PageTransition>
   );
 }
