@@ -69,7 +69,9 @@ async function inspect(page, route, viewport) {
   const consoleErrors = [];
   const pageErrors = [];
   const onConsole = (message) => {
-    if (message.type() === 'error' && !ignoredConsoleError(message.text())) consoleErrors.push(message.text());
+    if (message.type() !== 'error' || ignoredConsoleError(message.text())) return;
+    const sourceUrl = message.location()?.url;
+    consoleErrors.push(sourceUrl ? `${message.text()} [source: ${sourceUrl}]` : message.text());
   };
   const onPageError = (error) => pageErrors.push(error?.message || String(error));
   page.on('console', onConsole);
