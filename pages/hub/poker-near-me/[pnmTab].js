@@ -1535,10 +1535,12 @@ export default function PokerNearMePage() {
     }
   }, [filters.venueType]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load all venues for the map (from static JSON) on mount — with offline cache
+  // Load the integrity-assessed API directory for the map on mount, with an
+  // integrity-versioned offline cache. The static export remains a degraded
+  // fallback, but it must never masquerade as boundary-verified data.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const CACHE_KEY = 'sp-offline-venues';
+    const CACHE_KEY = 'sp-offline-venues-integrity-v1';
     let hadCacheHit = false;
     let idleHandle = null;
     let idleTimer = null;
@@ -1556,6 +1558,36 @@ export default function PokerNearMePage() {
         });
       }
     };
+
+    const scheduleCacheWrite = (activeArr) => {
+      if (hadCacheHit) return;
+      const writeCache = () => {
+        if (cancelledCacheWrite) return;
+        try {
+          safeSetItem(CACHE_KEY, JSON.stringify({ venues: activeArr, time: Date.now() }));
+        } catch (e) {
+          console.warn('[App] Handled exception:', e?.message || e);
+        }
+      };
+      if (typeof window.requestIdleCallback === 'function') {
+        idleHandle = window.requestIdleCallback(writeCache, { timeout: 5000 });
+      } else {
+        idleTimer = setTimeout(writeCache, 1500);
+      }
+    };
+
+    const activeVenues = (input, fallback = false) => (Array.isArray(input) ? input : [])
+      .filter((venue) => venue?.is_active !== false && venue?.id !== 3109)
+      .map((venue) => fallback && !venue.location_quality
+        ? {
+            ...venue,
+            location_quality: {
+              status: 'unverified',
+              mappable: true,
+              reason: 'offline_snapshot',
+            },
+          }
+        : venue);
 
     // Try offline cache first
     try {
@@ -1575,58 +1607,43 @@ export default function PokerNearMePage() {
     } catch (e) {
       console.warn('[App] Handled exception:', e?.message || e);
     }
-    // [PNM1 FIX] Was ?v=Date.now() — busted Vercel edge cache on every page load.
-    // [GAP 6.3 FIX] Changed to daily cache-buster to ensure daily updates aren't frozen indefinitely.
-    const dailyBuster = new Date().toISOString().split('T')[0];
-    fetch(`/data/all-venues.json?v=${dailyBuster}`)
+    const loadStaticFallback = () => {
+      // The daily token prevents an old static snapshot from staying frozen
+      // indefinitely without destroying Vercel edge-cache reuse.
+      const dailyBuster = new Date().toISOString().split('T')[0];
+      return fetch(`/data/all-venues.json?v=${dailyBuster}`)
+        .then(function (response) {
+          if (!response.ok) throw new Error(`Static venue snapshot returned ${response.status}`);
+          return response.json();
+        })
+        .then(function (json) {
+          const snapshot = activeVenues(json.venues || json.data || json || [], true);
+          setGlobalVenues(snapshot);
+        });
+    };
+
+    fetch('/api/poker/venues?limit=1000&offset=0')
       .then(function (r) {
+        if (!r.ok) throw new Error(`Venue directory returned ${r.status}`);
         return r.json();
       })
       .then(function (json) {
-        var v = json.venues || json.data || json || [];
-        var arr = Array.isArray(v) ? v : [];
-        // CRITICAL: Exclude inactive venues (is_active:false) from the map — these are venues
-        // that no longer operate permanent cash games (e.g. Ameristar East Chicago, which only
-        // activates during MSPT tour stops). Also exclude Grand Victoria duplicate (ID 3109).
-        var activeArr = arr.filter(function (venue) {
-          return venue.is_active !== false && venue.id !== 3109;
-        });
+        const directory = Array.isArray(json.data) ? json.data : [];
+        const carriesIntegrity = directory.length > 0
+          && directory.every((venue) => venue?.location_quality?.status);
+        if (!json.success || !json.data_integrity || !carriesIntegrity) {
+          throw new Error('Venue directory did not include signal integrity metadata');
+        }
+        const activeArr = activeVenues(directory);
         setGlobalVenues(activeArr);
-        // PERF FIX: all-venues.json is ~1.7 MB. This used to JSON.stringify the
-        // whole filtered array straight back into localStorage on the main thread
-        // during first paint, on EVERY mount, even when the cache we had just read
-        // was still inside its TTL — and it bypassed safeSetItem, so a quota
-        // failure was swallowed with no eviction attempt.
-        //   1. Skip the rewrite entirely when a fresh cache was already served
-        //      (the file only changes once a day; the cache TTL is one hour).
-        //   2. Defer the write to idle time so it never competes with first paint.
-        //   3. Route it through safeSetItem so quota pressure evicts cache blobs
-        //      instead of silently dropping the write.
-        if (!hadCacheHit) {
-          const writeCache = () => {
-            if (cancelledCacheWrite) return;
-            try {
-              safeSetItem(CACHE_KEY, JSON.stringify({ venues: activeArr, time: Date.now() }));
-            } catch (e) {
-              console.warn('[App] Handled exception:', e?.message || e);
-            }
-          };
-          if (typeof window.requestIdleCallback === 'function') {
-            idleHandle = window.requestIdleCallback(writeCache, { timeout: 5000 });
-          } else {
-            idleTimer = setTimeout(writeCache, 1500);
-          }
-        }
-
-        // ─── [HOME-GAMES MERGE REMOVED] ──────────────────────────────
-        // Home games are now merged in the backend via /api/poker/venues.js
-        // so we just rely on `activeArr`.
+        scheduleCacheWrite(activeArr);
       })
-      .catch(function () {
-        // Only show error if we have no cached data at all
-        if (!hadCacheHit) {
+      .catch(function (error) {
+        console.warn('[Poker Near Me] Integrity directory unavailable:', error?.message || error);
+        if (hadCacheHit) return;
+        loadStaticFallback().catch(function () {
           setFetchError('Unable to load venue data. Check your connection.');
-        }
+        });
       });
 
     return () => {
