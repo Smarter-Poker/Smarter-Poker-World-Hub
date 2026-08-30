@@ -14,13 +14,14 @@
  * - /public/data/us-mask-outer.json
  */
 
-import React, { useRef, useState, useEffect, useCallback, useId } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useId, useMemo } from 'react';
 import { radiusToZoom, escapeHtml, getOpenStatus } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 import MapPreferenceChooser from './MapPreferenceChooser';
 import MapCoverageReadout from './MapCoverageReadout';
 import { addPokerMapLayers, createPokerClusterOptions, loadPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
 import { capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
+import { isVenueMapEligible, summarizeVenueIntegrity } from '../../lib/poker-near-me/venueIntegrity';
 
 // ─── Constants ───
 const VENUE_TYPE_LABELS = {
@@ -612,6 +613,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   const venuesRef = useRef(venues || []);
   const loadStartedAtRef = useRef(Date.now());
   const telemetrySentRef = useRef(false);
+  const integritySummary = useMemo(() => summarizeVenueIntegrity(venues || []), [venues]);
   venuesRef.current = venues || [];
 
   // Unconditional unmount handler for background polling safety
@@ -929,7 +931,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     // parent state change re-ran buildPopupHtml for the whole dataset and snapped shut any
     // popup the user had open. Compare a content signature of everything the pins and
     // popups actually display and bail out when nothing meaningful changed.
-    const drawnVenues = (venues || []).filter(function(v) { return v && v.latitude && v.longitude && !v.hideOnMap; });
+    const drawnVenues = (venues || []).filter(function(v) { return v && isVenueMapEligible(v) && !v.hideOnMap; });
     const signature = [
       drawnVenues.map(function(v) {
         const fav = isFavorited && isFavorited('venue', v.id) ? 1 : 0;
@@ -1103,12 +1105,15 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         clustering: disableClustering ? 'disabled' : clusteringAvailable ? 'available' : 'fallback',
         runtime_source: 'local',
         zoom_level: mapInstanceRef.current.getZoom(),
+        verified_count: integritySummary.verified,
+        approximate_count: integritySummary.approximate,
+        held_count: integritySummary.held,
       });
     }
   // [VM2 FIX] Added isFavorited and userLocation to deps — missing caused:
   //   - Favorites gold ring never appearing after a favorite action
   //   - Distance/nearest venue not recomputing when GPS location resolves
-  }, [venues, uniformColor, mapReady, isFavorited, userLocation, clusterTourStops]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [venues, uniformColor, mapReady, isFavorited, userLocation, clusterTourStops, integritySummary]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update user location marker
   useEffect(() => {
@@ -1242,6 +1247,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         data-map-load-ms={mapLoadMs == null ? '' : mapLoadMs}
         data-map-clustering={disableClustering ? 'disabled' : clusteringAvailable ? 'available' : 'fallback'}
         data-map-style-source="local"
+        data-map-integrity-held={integritySummary.held}
         tabIndex={0}
         style={{
           width: '100%',
@@ -1297,6 +1303,9 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         ready={mapReady}
         clustering={!disableClustering && clusteringAvailable && visibleCount >= 20}
         gps={!!userLocation}
+        verified={integritySummary.verified}
+        approximate={integritySummary.approximate}
+        held={integritySummary.held}
       />
     </div>
   );

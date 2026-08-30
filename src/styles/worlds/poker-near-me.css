@@ -1242,6 +1242,9 @@ body.world-poker-near-me .pnm-location-listing__state small { color: var(--pnm-m
 .pnm-map-coverage__copy > div { margin-top: 4px; font: 500 12px/1 var(--font-inter, sans-serif); color: #bac9d5; white-space: nowrap; }
 .pnm-map-coverage__copy strong { color: #fff; font: 500 23px/0.9 var(--font-rajdhani, sans-serif); letter-spacing: 0.03em; }
 .pnm-map-coverage__copy small { color: #778b9c; font-size: 9px; letter-spacing: 0.04em; }
+.pnm-map-coverage__integrity { display: flex; gap: 7px; margin-top: 5px !important; color: #7fb6d3 !important; font: 700 7px/1 var(--font-space-grotesk, sans-serif) !important; letter-spacing: 0.09em; text-transform: uppercase; white-space: normal !important; }
+.pnm-map-coverage__integrity span + span::before { content: '◆'; margin-right: 7px; color: #33566a; font-size: 5px; }
+.pnm-map-coverage__integrity .pnm-map-coverage__held { color: #d6a84b; }
 .pnm-map-coverage__copy p { margin: 5px 0 0; overflow: hidden; color: #7f93a3; font: 600 8px/1.1 var(--font-space-grotesk, sans-serif); letter-spacing: 0.08em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .pnm-map-coverage__actions { display: flex; align-items: center; gap: 5px; }
 .pnm-map-coverage__actions button { min-height: 44px; padding: 0 10px; border: 1px solid rgba(106, 199, 245, 0.32); border-radius: 2px; color: #dceaf3; background: #0a141d; font: 700 9px/1 var(--font-space-grotesk, sans-serif); letter-spacing: 0.05em; cursor: pointer; }
@@ -1278,6 +1281,8 @@ body.world-poker-near-me .pnm-location-listing__state small { color: var(--pnm-m
     .pnm-map-coverage__signal { flex-basis: 36px; min-height: 44px; }
     .pnm-map-coverage__copy > div { white-space: normal; }
     .pnm-map-coverage__copy small { display: block; margin-top: 2px; }
+    .pnm-map-coverage__integrity { gap: 5px; }
+    .pnm-map-coverage__integrity span + span::before { margin-right: 5px; }
     .pnm-map-coverage__copy p { max-width: 150px; }
     .pnm-map-coverage__actions { flex-direction: column; align-items: stretch; }
     .pnm-map-coverage__actions button { min-width: 92px; }
