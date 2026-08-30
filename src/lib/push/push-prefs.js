@@ -73,6 +73,17 @@ export const PUSH_TYPES = [
     { key: 'vip', group: 'Rewards and Account', label: 'VIP Status', desc: 'VIP renewals, stipends and expiry warnings' },
     { key: 'venue_claim', group: 'Rewards and Account', label: 'Venue Claims', desc: 'Updates on a venue you claimed' },
     { key: 'system', group: 'Rewards and Account', label: 'System and Security', desc: 'Account, security and platform notices' },
+
+    // Added 2026-08-30 with the #1498 triggers. Cash-outs, credit decisions and
+    // settlement disputes had NO server-side notification at all until that
+    // migration — the client called a transport retired on 2026-08-19 — so this
+    // key has no legacy users and no migration to do.
+    //
+    // It is its own toggle rather than being folded into `system` because the
+    // two are not the same promise: `system` is security and platform notices,
+    // and somebody who mutes those should not thereby stop being told that
+    // their money moved.
+    { key: 'cashier', group: 'Rewards and Account', label: 'Cashier and Credit', desc: 'Cash-outs, credit decisions and settlement disputes' },
 ];
 
 export const PUSH_TYPE_KEYS = new Set(PUSH_TYPES.map((t) => t.key));
@@ -149,6 +160,51 @@ const EVENT_ALIASES = {
     // daily cap, or that toggle -- there was almost nobody subscribed to push
     // to set them. Enrolment shipped on 2026-08-27, so both were about to.
     waitlist_seat_open: 'seat_open',
+
+    // ── CASHIER, CREDIT AND DISPUTES (added 2026-08-30 with #1498) ──────────
+    //
+    // These are the event strings the new database triggers write into
+    // `notifications.type`, which the mirror trigger copies verbatim into
+    // `push_outbox.event`:
+    //
+    //   NEW (club-arena 20260830_notify_money_flows_server_side.sql):
+    //     fn_notify_credit_request -> credit_request | credit_approved | credit_denied
+    //     fn_notify_dispute        -> settlement_dispute_filed | dispute_resolved
+    //
+    //   PRE-EXISTING, and unregistered here until today, which is its own
+    //   instance of the bug described above — cash-outs have been notifying
+    //   correctly server-side all along, ungated:
+    //     fn_notify_agent_on_cashout -> cashout_request
+    //     fn_cashout_approve         -> cashout_approved
+    //     fn_cashout_release         -> cashout_cancelled | cashout_denied
+    //     fn_cashout_request         -> cashout_request_escrow
+    //     fn_expire_stale_cashouts   -> cashout_expired_refund
+    //
+    // These are read out of pg_proc, not guessed. An earlier draft of this list
+    // carried four event names I had invented for a trigger of my own
+    // (cashout_requested / _completed / _rejected / _expired); that trigger was
+    // dropped once the catalogue showed the RPCs already owned the flow, and
+    // the invented names went with it. A mapping for an event nothing emits is
+    // not harmless — it reads as coverage.
+    //
+    // They are registered HERE, in the same change that starts emitting them,
+    // for the reason written at length above `waitlist_seat_open`: an event this
+    // file cannot name returns null from eventToTypeKey, and null means
+    // "unknown, allow it". That silently forfeits consent — the Cashier and
+    // Credit toggle would render in Settings, write `push_type_prefs.cashier`,
+    // and do absolutely nothing. That bug has already happened once here, to
+    // 95% of all outbox traffic. Not again on the money paths.
+    cashout_request: 'cashier',
+    cashout_request_escrow: 'cashier',
+    cashout_approved: 'cashier',
+    cashout_cancelled: 'cashier',
+    cashout_denied: 'cashier',
+    cashout_expired_refund: 'cashier',
+    credit_request: 'cashier',
+    credit_approved: 'cashier',
+    credit_denied: 'cashier',
+    settlement_dispute_filed: 'cashier',
+    dispute_resolved: 'cashier',
 };
 
 // Test pushes are never gated by per-type preferences -- if a user clicks
