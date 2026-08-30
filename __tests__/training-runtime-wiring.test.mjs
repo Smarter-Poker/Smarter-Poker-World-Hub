@@ -248,10 +248,29 @@ test('journal, playbook, and tournament planner use isolated durable tool record
   assert.match(migration, /unique \(user_id, tool_id, record_key\)/i);
   assert.match(api, /\.eq\('user_id', user\.id\)/);
   assert.match(api, /onConflict: 'user_id,tool_id,record_key'/);
+  assert.match(api, /\.maybeSingle\(\)/);
+  assert.match(api, /if \(!saved\) throw new Error/);
   for (const source of [journal, playbook, planner]) {
     assert.match(source, /api\/training\/tool-records/);
     assert.doesNotMatch(source, /api\/training\/save-session|training:session-complete/);
   }
+});
+
+test('training writes fail closed without unsafe single-row coercion', () => {
+  const messagesApi = fs.readFileSync(
+    path.join(ROOT, 'pages/api/training/study-groups/[groupId]/messages.js'),
+    'utf8'
+  );
+  const toolRecordsApi = fs.readFileSync(
+    path.join(ROOT, 'pages/api/training/tool-records.js'),
+    'utf8'
+  );
+
+  for (const source of [messagesApi, toolRecordsApi]) {
+    assert.doesNotMatch(source, /\.single\(\)/);
+    assert.match(source, /\.maybeSingle\(\)/);
+  }
+  assert.match(messagesApi, /error \|\| !message/);
 });
 
 test('retired heuristic trainers route to the matching authored Club Arena games', () => {

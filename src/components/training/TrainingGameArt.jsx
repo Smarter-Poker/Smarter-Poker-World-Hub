@@ -3,7 +3,7 @@ import { getGameImageSources } from '../../data/GAME_IMAGES';
 export default function TrainingGameArt({
   gameId,
   alt = '',
-  className,
+  className = '',
   sizes = '(max-width: 700px) 92vw, (max-width: 1200px) 46vw, 360px',
   loading = 'lazy',
   fetchPriority,

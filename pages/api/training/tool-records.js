@@ -80,8 +80,9 @@ export default async function handler(req, res) {
           updated_at: now,
         }, { onConflict: 'user_id,tool_id,record_key' })
         .select('id, tool_id, record_type, record_key, data, created_at, updated_at')
-        .single();
+        .maybeSingle();
       if (error) throw error;
+      if (!saved) throw new Error('Tool record write returned no row');
       return res.status(200).json({ success: true, record: saved });
     }
 

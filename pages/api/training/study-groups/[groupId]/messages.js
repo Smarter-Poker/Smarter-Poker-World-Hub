@@ -50,8 +50,8 @@ export default async function handler(req, res) {
       .from('training_study_group_messages')
       .insert({ group_id: groupId, user_id: user.id, body })
       .select('id, user_id, body, created_at')
-      .single();
-    if (error) return res.status(500).json({ success: false, error: 'Message could not be sent' });
+      .maybeSingle();
+    if (error || !message) return res.status(500).json({ success: false, error: 'Message could not be sent' });
     return res.status(201).json({ success: true, message: { ...message, mine: true } });
   }
 
