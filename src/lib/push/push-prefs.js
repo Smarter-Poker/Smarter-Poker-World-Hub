@@ -161,6 +161,21 @@ const EVENT_ALIASES = {
     // to set them. Enrolment shipped on 2026-08-27, so both were about to.
     waitlist_seat_open: 'seat_open',
 
+    /* The lapse notice belongs to the SAME toggle as the offer (2026-08-30).
+       Somebody who has turned "Seat Available" off has said they do not want
+       to hear about seats, and being told about one they did not get is still
+       hearing about seats. Mapping it also stops it falling through
+       eventToTypeKey as null, which means "unknown, allow it" — the exact
+       failure documented at length above.
+
+       In practice `fn_offer_open_seat` and `fn_sweep_stale_waitlists` both
+       write this row with `data->>'_push' = 'skip'`, so the mirror trigger
+       returns before an outbox row exists and this gate is never consulted.
+       That is a decision about INTERRUPTING, not about consent, and it can be
+       revisited — the mapping is here so revisiting it cannot silently ship
+       an ungated push. */
+    waitlist_offer_expired: 'seat_open',
+
     // ── CASHIER, CREDIT AND DISPUTES (added 2026-08-30 with #1498) ──────────
     //
     // These are the event strings the new database triggers write into

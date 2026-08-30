@@ -91,6 +91,40 @@ const DIGEST_LABEL = {
     diamond_received: 'diamond gifts',
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// A PUSH ABOUT SOMETHING THAT EXPIRES MUST EXPIRE WITH IT (Dan 2026-08-30)
+//
+// `sendWebPush` defaults to a 24-hour TTL, which is right for almost
+// everything: a phone that is off still gets the message when it comes back.
+// It is exactly wrong for a SEAT OFFER. That offer is dead after three minutes
+// (`fn_offer_open_seat`, p_offer_ttl), so a phone that reconnects twenty
+// minutes later gets "A Seat Just Opened. Tap To Claim It." for a seat long
+// since given to somebody else — and tapping it lands them on a full table.
+//
+// From the player's side a push about a seat that is gone is indistinguishable
+// from a push that was never theirs, which is the report Dan opened this whole
+// thread with. The TTL is the only lever that stops the push service holding it
+// past its own lifetime; nothing downstream can un-send it.
+//
+// A short grace is added on top of the offer window so a device reconnecting
+// right at the boundary still gets a banner it can act on, rather than one that
+// lapses between delivery and the tap.
+//
+// Keyed on the RAW event string (what push_outbox.event holds), like
+// DIGEST_LABEL above. Anything not listed keeps the 24h default.
+const EVENT_TTL_SECONDS = {
+    waitlist_seat_open: 3 * 60 + 30,
+    waitlist_offer_expired: 10 * 60,
+};
+
+// Notifications that REPLACE a banner rather than announcing something new.
+// They share a tag with the thing they supersede (the mirror trigger groups
+// seat events by table since 20260830030000), and `renotify` is what decides
+// whether the OS re-alerts on a tag it already has on screen. Buzzing a phone
+// to tell somebody an offer they already missed has now formally lapsed is a
+// second interruption for strictly less news than the first.
+const QUIET_EVENTS = new Set(['waitlist_offer_expired']);
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) _supabase = createClient();
@@ -396,13 +430,33 @@ async function handler(req, res) {
                 data: { event: row.event, outboxId: row.id },
             };
 
+            // Dan 2026-08-30 — see EVENT_TTL_SECONDS. A seat offer dies after
+            // three minutes; without this the push service holds it for a day
+            // and delivers it to a phone that reconnects long after the seat
+            // was given away.
+            const ttl = EVENT_TTL_SECONDS[row.event];
+            if (typeof ttl === 'number') {
+                // `expiresAt` rides along so the service worker can close a
+                // banner that outlived its offer while the device was awake —
+                // the TTL only governs delivery, not what is already on screen.
+                payload.data.expiresAt = Date.parse(row.created_at || Date.now()) + ttl * 1000;
+            }
+            if (QUIET_EVENTS.has(row.event)) {
+                // Replaces the banner it shares a tag with, without a second buzz.
+                payload.renotify = false;
+            }
+
             let accepted = 0;
             let lastError = null;
 
             // One recipient's devices go out in parallel. A slow Apple endpoint
             // must not delay that user's Android tablet, and sequential sends
             // across 100 recipients is what pushes this run past its budget.
-            const results = await Promise.all(subs.map((sub) => sendWebPush(sub, payload)));
+            const results = await Promise.all(
+                subs.map((sub) =>
+                    sendWebPush(sub, payload, typeof ttl === 'number' ? { ttl } : undefined)
+                )
+            );
 
             await Promise.all(results.map(async (result, i) => {
                 const sub = subs[i];

@@ -45,6 +45,50 @@ self.addEventListener('message', (event) => {
     if (event?.data?.type === 'SP_SKIP_WAITING') self.skipWaiting();
 });
 
+/**
+ * CLOSE A BANNER THAT HAS OUTLIVED WHAT IT DESCRIBES (Dan 2026-08-30).
+ *
+ * A seat offer dies after three minutes. Until now nothing dismissed the
+ * banner, so "A Seat Just Opened. Tap To Claim It." sat on the lock screen for
+ * a seat long since given away, and tapping it landed the player on a full
+ * table. From their side that is indistinguishable from a push that was never
+ * theirs — the report this whole thread started with.
+ *
+ * DELIBERATELY NOT A TIMER. A service worker is killed whenever the browser
+ * feels like it, so `setTimeout(close, threeMinutes)` is a promise the runtime
+ * has no obligation to keep, and the one time it matters (phone in a pocket,
+ * worker long since evicted) is exactly when it will not fire. Instead the
+ * sweep runs at the two moments the worker is provably alive and already
+ * looking at the notification list: when another push arrives, and when the
+ * user taps one. Both are cheap — getNotifications() is a local read.
+ *
+ * The delivery-side TTL is the other half and does the heavier lifting: it
+ * stops the push service handing over a stale offer at all. This half covers
+ * the banner that was already on screen when the offer lapsed.
+ */
+function sweepExpiredNotifications() {
+    return self.registration
+        .getNotifications()
+        .then((list) => {
+            const now = Date.now();
+            for (const n of list || []) {
+                const expiresAt = n && n.data && n.data.expiresAt;
+                if (typeof expiresAt === 'number' && expiresAt > 0 && expiresAt <= now) {
+                    try {
+                        n.close();
+                    } catch (e) {
+                        /* one stubborn banner must not stop the rest */
+                    }
+                }
+            }
+        })
+        .catch(() => {
+            /* Sweeping is a courtesy. It must never take down the push handler
+               it is attached to — a thrown getNotifications() here would mean
+               the notification that triggered it is never shown. */
+        });
+}
+
 self.addEventListener('push', (event) => {
     let data = {};
     try {
@@ -67,20 +111,36 @@ self.addEventListener('push', (event) => {
         badge: data.badge || '/icons/icon-192.png',
         image: data.image || undefined,
         // notificationclick reads this back to decide where to go.
-        data: { url, event: data.event || null, outboxId: data.outboxId || null },
+        // `expiresAt` (2026-08-30) is the wall-clock ms after which this banner
+        // is describing something that no longer exists — a seat offer dies
+        // after three minutes. sweepExpired() below reads it back.
+        data: {
+            url,
+            event: data.event || null,
+            outboxId: data.outboxId || null,
+            expiresAt: typeof data.expiresAt === 'number' ? data.expiresAt : null,
+        },
         vibrate: data.vibrate || [120, 60, 120],
         requireInteraction: data.requireInteraction === true,
         // CHROME TRAP: showNotification throws and displays NOTHING when
         // renotify is true without a tag. Never set renotify unconditionally.
         tag: data.tag || undefined,
-        renotify: data.tag ? true : undefined,
+        // A sender may ask for a REPLACEMENT rather than a fresh alert: an
+        // expiry notice shares a tag with the offer it supersedes, and buzzing
+        // twice for strictly less news is worse than not buzzing again.
+        renotify: data.renotify === false ? false : data.tag ? true : undefined,
         actions: Array.isArray(data.actions) ? data.actions.slice(0, 2) : undefined,
         timestamp: data.sentAt || Date.now(),
     };
 
     event.waitUntil(
-        self.registration
-            .showNotification(title, options)
+        // Sweep FIRST, so a stale seat-offer banner is gone before the new one
+        // lands beside it. They share a tag now (the mirror trigger groups seat
+        // events by table), so the OS would replace it anyway — this covers the
+        // case where the new push is about a DIFFERENT table and the dead
+        // banner would otherwise just sit there.
+        sweepExpiredNotifications()
+            .then(() => self.registration.showNotification(title, options))
             // A rejected showNotification means the OS refused these options.
             // Retry with the bare minimum rather than showing nothing at all.
             .catch(() => self.registration.showNotification(title, { body: options.body }))
@@ -113,6 +173,9 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
+    // The second moment the worker is provably alive. Opening one banner is a
+    // good time to clear any sibling that has outlived what it described.
+    event.waitUntil(sweepExpiredNotifications());
     try {
         if (self.navigator && self.navigator.clearAppBadge) {
             self.navigator.clearAppBadge().catch(() => {});

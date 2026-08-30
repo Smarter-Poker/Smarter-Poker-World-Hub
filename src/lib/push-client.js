@@ -131,6 +131,49 @@ function applicationServerKeyMatches(subscription, vapidKey) {
     }
 }
 
+/**
+ * A STABLE ID FOR THIS BROWSER PROFILE (Dan 2026-08-30).
+ *
+ * The endpoint is not stable — a service-worker reinstall, cleared site data or
+ * a PWA re-add makes the browser mint a fresh one — and `user_agent` is not
+ * unique, because two identical iPhones on one account produce byte-identical
+ * strings. So neither can be the key for "retire the endpoint this one
+ * replaces", and without a key, superseded rows accumulate: measured on
+ * 2026-08-29, one account held eleven active subscriptions of which nine were
+ * redundant, and a single seat offer was delivered to the same iPhone twice.
+ *
+ * `replacesEndpoint` already covers the case where the client still remembers
+ * what it is replacing. This covers the case where it does not.
+ *
+ * Random, not derived. It is deliberately NOT a fingerprint — no user agent, no
+ * screen size, nothing about the machine. It identifies a browser profile to
+ * itself and to nothing else, and clearing site data legitimately produces a
+ * new one (that browser genuinely cannot be reached at the old endpoint any
+ * more, so the server retiring it is correct).
+ *
+ * Returns null rather than throwing when storage is unavailable — private
+ * windows and locked-down browsers throw on localStorage access. A missing
+ * device id costs a duplicate banner; a thrown one would cost the whole
+ * subscription, which is far worse.
+ */
+const DEVICE_ID_KEY = 'smarter-poker-push-device-id';
+
+function deviceId() {
+    try {
+        const existing = window.localStorage.getItem(DEVICE_ID_KEY);
+        if (existing && /^[a-z0-9-]{8,64}$/i.test(existing)) return existing;
+
+        const fresh =
+            typeof crypto !== 'undefined' && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+        window.localStorage.setItem(DEVICE_ID_KEY, fresh);
+        return fresh;
+    } catch {
+        return null;
+    }
+}
+
 function deviceLabel() {
     const ua = navigator.userAgent || '';
     if (/iPhone/.test(ua)) return 'iPhone';
@@ -244,6 +287,10 @@ async function persistSubscription(subscription, replacedEndpoint) {
                 keys: json.keys,
                 userAgent: navigator.userAgent,
                 deviceLabel: deviceLabel(),
+                // Stable across re-subscribes on this browser profile, so the
+                // server can retire an endpoint this one supersedes even when
+                // `replacesEndpoint` is unknown. See deviceId().
+                deviceId: deviceId() || undefined,
                 // The endpoint this one supersedes, so the server can retire it.
                 // Without this the old row stays is_active=true forever: it
                 // inflates the device count on /admin/push-health and every send

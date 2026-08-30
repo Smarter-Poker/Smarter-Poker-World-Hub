@@ -219,6 +219,16 @@ ALL_CRONS = [
     # just collapses toward 2x/3x and players notice before anyone else does.
     # 30-minute lookback deliberately overlaps two runs.
     ('/api/cron/spin-sweep',                dict(minute='*/15')),
+    # ── Waitlist TTL sweep (2026-08-30) ──────────────────────────────────
+    # fn_offer_open_seat applies both waitlist TTLs already, but only when a
+    # seat opens AT THAT TABLE. On a table nobody leaves, nothing runs: the
+    # lobby's "Waiting N" counts people who left days ago, and a player whose
+    # three-minute seat offer lapsed is never told — they just stop being in
+    # the line. This reaches those tables, with the same two rules and the
+    # same notification, so a sweep and an offer cannot disagree.
+    # Ten minutes: soon enough to tell somebody their offer went, far cheaper
+    # than every minute for a rule measured in hours.
+    ('/api/cron/waitlist-sweep',            dict(minute='*/10')),
     # ── Phase 49 (2026-05-05) — two-track trivia refill ───────────────────
     # Track A (deterministic engine, $0 cost): generates strategy-category
     # questions from solved_spots_gold + memory_charts_gold via the same

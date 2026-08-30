@@ -110,6 +110,17 @@ export function resolveNotificationRoute(n) {
         return `${CA}/waitlist`;
     }
 
+    /* An offer that LAPSED goes to the waitlist, never to the table (Dan
+       2026-08-30). The seat is gone — that is what this notification says —
+       so sending the tap to `/table/<id>` lands the player on a full table
+       with nothing to do, which reads as the app being broken rather than as
+       "you missed it". The waitlist page is where they can rejoin the queue,
+       which is the only action left. The table id is deliberately not used
+       even though it is in the payload. */
+    if (t === 'waitlist_offer_expired') {
+        return `${CA}/waitlist`;
+    }
+
     if (t === 'table_invite' || t === 'your_turn' || t === 'your_turn_reminder' || t === 'time_bank_active' || t === 'hand_won') {
         const tableId = pick(d, 'table_id', 'tableId');
         if (tableId) return `${CA}/table/${tableId}`;
