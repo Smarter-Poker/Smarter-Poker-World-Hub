@@ -810,7 +810,7 @@ export const EASTER_EGGS = {
     name: 'The Optimizer',
     rarity: 'uncommon',
     diamonds: 40,
-    hint: 'Close out a Leak Signal on your very first corrective attempt.',
+    hint: 'Coming Soon: Master a Leak Signal, then confirm the fix through recorder-verified Club Arena play.',
     category: 'performance',
     verifiable: true,
     icon: 'Wrench',

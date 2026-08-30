@@ -21,7 +21,8 @@
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Zap, Check, X, Flame, RotateCcw, AlertTriangle, CalendarDays } from 'lucide-react';
-import { getAccessToken } from '../../lib/authUtils';
+import { authedFetch } from '../../lib/authUtils';
+import { lockedDrillResult } from '../../lib/personal-assistant/lockedDrillResult';
 import { readPersistenceResponse } from '../../lib/personal-assistant/persistenceContract';
 import { gradeReview, migrateRecord, SCHEMA_VERSION as REVIEW_SCHEMA_VERSION } from '../../lib/sandbox/leakReview';
 import { T, F, S, R, btn, pill, numeric } from './paTokens';
@@ -186,6 +187,7 @@ function mapDrillRow(row) {
         options: rawOptions.map(o => String(o).trim()).filter(Boolean),
         correct_answer: row.correct_answer ?? meta.correct_answer ?? null,
         gto_explanation: row.gto_explanation || meta.gto_explanation || meta.explanation || row.explanation || null,
+        answer_locked: row.answer_locked === true,
     };
 }
 
@@ -196,6 +198,10 @@ function mapDrillRow(row) {
  * answer in (padding to four plausible choices) rather than shipping it broken.
  */
 function ensureAnswerable(q) {
+    if (q?.answer_locked === true) {
+        const options = (q.options || []).map(o => String(o).trim()).filter(Boolean);
+        return options.length >= 2 ? { ...q, options, correct_answer: null, gto_explanation: null } : null;
+    }
     if (!q || q.correct_answer == null || String(q.correct_answer).trim() === '') return null;
     const correct = String(q.correct_answer).trim();
     const options = (q.options || []).map(o => String(o).trim()).filter(Boolean);
@@ -224,6 +230,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
     const [timer, setTimer] = useState(DURATION);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(null);
+    const [loadErrorPermanent, setLoadErrorPermanent] = useState(false);
     const [finished, setFinished] = useState(false);
     const [confirmQuit, setConfirmQuit] = useState(false);
     const [announcement, setAnnouncement] = useState('');
@@ -233,6 +240,8 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
     // null when this is not a review run. Otherwise:
     // { status: 'saving' | 'done' | 'skipped' | 'error', intervalDays, persisted }
     const [review, setReview] = useState(null);
+    const [drillToken, setDrillToken] = useState(null);
+    const [answerError, setAnswerError] = useState(null);
 
     const deadlineRef = useRef(DURATION * 1000);
     const remainingRef = useRef(DURATION);
@@ -241,6 +250,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
     const questionsRef = useRef([]);
     const abortRef = useRef(null);
     const lastOutcomeRef = useRef(null);
+    const answerLockedRef = useRef(false);
 
     useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
     useEffect(() => { questionsRef.current = questions; }, [questions]);
@@ -252,6 +262,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
     const load = useCallback(async () => {
         setLoading(true);
         setLoadError(null);
+        setLoadErrorPermanent(false);
         try {
             const savedLevel = parseInt(safeStorage.get(LEVEL_KEY, '1'), 10);
             const startLevel = Number.isFinite(savedLevel) && savedLevel > 0 ? savedLevel : 1;
@@ -259,7 +270,8 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
 
             let fetchUrl = '/api/training/hand-of-the-day';
             if (activeParams) {
-                const query = new URLSearchParams(activeParams).toString();
+                const reviewParams = reviewLeakId ? { ...activeParams, leak: reviewLeakId } : activeParams;
+                const query = new URLSearchParams(reviewParams).toString();
                 fetchUrl = `/api/sandbox/custom-drill?${query}`;
             } else if (startLevel > 1) {
                 fetchUrl = `/api/training/hand-of-the-day?level=${startLevel}`;
@@ -269,9 +281,14 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
             abortRef.current = ctrl;
 
-            const res = await fetch(fetchUrl, ctrl ? { signal: ctrl.signal } : undefined);
+            const requestOptions = ctrl ? { signal: ctrl.signal } : {};
+            const res = await authedFetch(fetchUrl, requestOptions);
             const json = await res.json().catch(() => null);
-            if (!res.ok || json?.success === false) throw new Error(`Drill request failed (${res.status})`);
+            if (!res.ok || json?.success === false) {
+                const error = new Error(json?.error || `Drill request failed (${res.status})`);
+                error.reason = json?.reason;
+                throw error;
+            }
 
             // custom-drill responds under `pool`; the raw training route uses
             // `questions`. Accept either, plus the single-question shape.
@@ -282,8 +299,11 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                     : (json?.question ? [json.question] : []));
 
             const mapped = rawPool.map(mapDrillRow).map(ensureAnswerable).filter(Boolean);
-            const cap = Math.max(1, Math.min(Number(activeParams?.limit) || 10, 20));
+            const cap = typeof json?.drillToken === 'string'
+                ? mapped.length
+                : Math.max(1, Math.min(Number(activeParams?.limit) || 10, 20));
             setQuestions(shuffle(mapped).slice(0, cap));
+            setDrillToken(typeof json?.drillToken === 'string' ? json.drillToken : null);
             setCurrentIdx(0);
             setAnswer(null);
             setRevealed(false);
@@ -292,16 +312,21 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             setMisses([]);
             setStreak(0);
             setReview(null);
+            setAnswerError(null);
             lastOutcomeRef.current = null;
+            answerLockedRef.current = false;
         } catch (e) {
             if (e?.name === 'AbortError') return;
             console.warn('[QuickSpotDrill] Load error:', e?.message || e);
-            setLoadError('Could not load drills. Check your connection and try again.');
+            setLoadError(e?.reason === 'insufficient_verified_questions'
+                ? e.message
+                : 'Could not load drills. Check your connection and try again.');
+            setLoadErrorPermanent(e?.reason === 'insufficient_verified_questions');
             setQuestions([]);
         } finally {
             setLoading(false);
         }
-    }, [activeParams]);
+    }, [activeParams, reviewLeakId]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -321,12 +346,9 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
         };
         let persisted = false;
         try {
-            const token = getAccessToken();
-            const headers = { 'Content-Type': 'application/json' };
-            if (token) headers.Authorization = `Bearer ${token}`;
-            const response = await fetch('/api/sandbox/coach-result', {
+            const response = await authedFetch('/api/sandbox/coach-result', {
                 method: 'POST',
-                headers,
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
             const result = await readPersistenceResponse(response);
@@ -369,14 +391,13 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
         let reached = false;
 
         try {
-            const token = getAccessToken();
-            const headers = { 'Content-Type': 'application/json' };
-            if (token) headers.Authorization = `Bearer ${token}`;
             const outcome = { correct, total, reviewId };
-            const res = await fetch('/api/assistant/leaks/review', {
+            const requestBody = { leakId: reviewLeakId, outcome };
+            if (typeof drillToken === 'string' && drillToken) requestBody.drillToken = drillToken;
+            const res = await authedFetch('/api/assistant/leaks/review', {
                 method: 'POST',
-                headers,
-                body: JSON.stringify({ leakId: reviewLeakId, outcome }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody),
             });
             const ct = res.headers.get('content-type') || '';
             if (ct.includes('application/json')) {
@@ -389,6 +410,11 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             }
         } catch (e) {
             console.warn('[QuickSpotDrill] review post failed:', e?.message || e);
+        }
+
+        if (drillToken && !reached) {
+            setReview({ status: 'error', intervalDays: null, persisted: false, verificationPending: true });
+            return;
         }
 
         // Build the record to keep locally.
@@ -434,14 +460,20 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             intervalDays: record.intervalDays,
             persisted: persisted && reached,
             stored,
+            verified: serverState?.lastOutcome?.serverVerified === true,
         });
 
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('pa-leak-review-updated', {
                 detail: { leakId: String(reviewLeakId), intervalDays: record.intervalDays, persisted },
             }));
+            if (serverState?.lastOutcome?.remediationMastered === true) {
+                window.dispatchEvent(new CustomEvent('pa-data-updated', {
+                    detail: { leakId: String(reviewLeakId), remediationMastered: true, source: 'verified-drill' },
+                }));
+            }
         }
-    }, [reviewLeakId]);
+    }, [reviewLeakId, drillToken]);
 
     const retryReview = useCallback(() => {
         const last = lastOutcomeRef.current;
@@ -460,16 +492,79 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
         }]);
     }, []);
 
-    const handleTimeout = useCallback(() => {
-        const q = questionsRef.current[currentIdxRef.current];
+    const lockVerifiedAnswer = useCallback(async (question, pick, timedOut) => {
+        if (!drillToken || !reviewLeakId || question?.answer_locked !== true) {
+            const isCorrect = !timedOut && String(pick).toLowerCase() === String(question?.correct_answer || '').toLowerCase();
+            return { ...question, isCorrect, selectedAnswer: timedOut ? null : pick, timedOut: timedOut === true };
+        }
+        const response = await authedFetch('/api/assistant/leaks/drill-answer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                leakId: reviewLeakId,
+                drillToken,
+                questionId: String(question.id),
+                selectedAnswer: timedOut ? null : String(pick),
+                timedOut: timedOut === true,
+            }),
+        });
+        const json = await response.json().catch(() => null);
+        if (!response.ok || !json?.success || !json?.result) throw new Error(json?.error || 'Answer could not be verified');
+        const result = json.result;
+        const updated = {
+            ...question,
+            correct_answer: result.correctAnswer,
+            gto_explanation: result.explanation,
+            answer_locked: false,
+            isCorrect: result.correct === true,
+            selectedAnswer: result.selectedAnswer,
+            timedOut: result.timedOut === true,
+        };
+        setQuestions(prev => prev.map((item, index) => index === currentIdxRef.current ? updated : item));
+        questionsRef.current = questionsRef.current.map((item, index) => index === currentIdxRef.current ? updated : item);
+        return updated;
+    }, [drillToken, reviewLeakId]);
+
+    // A retry may arrive through a different interaction than the answer that
+    // the server already locked (choice -> timeout or timeout -> choice). The
+    // immutable ledger result, never the retry trigger, owns every UI effect.
+    const applyLockedResult = useCallback((graded, fallbackPick) => {
+        const locked = lockedDrillResult(graded, fallbackPick);
+        setAnswer(locked.timedOut ? null : locked.pick);
         setRevealed(true);
-        setStreak(0);
-        setScore(prev => ({ ...prev, total: prev.total + 1 }));
-        recordMiss(q, 'Ran out of time');
-        setAnnouncement(`Time up. The solver prefers ${q?.correct_answer || 'another line'}.`);
-        try { navigator.vibrate?.(30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-        persistResult(q, 'timeout', false);
+        setScore(prev => ({
+            correct: prev.correct + (locked.correct ? 1 : 0),
+            total: prev.total + 1,
+        }));
+        setStreak(prev => (locked.correct ? prev + 1 : 0));
+        if (!locked.correct) recordMiss(graded, locked.pick);
+        setAnnouncement(locked.timedOut
+            ? `Time up. The solver prefers ${graded?.correct_answer || 'another line'}.`
+            : locked.correct
+                ? 'Correct — this action is inside the solver range.'
+                : `Incorrect. You picked ${locked.pick}; the solver prefers ${graded?.correct_answer}.`);
+        try { navigator.vibrate?.(locked.correct ? 10 : 30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        persistResult(graded, locked.timedOut ? 'timeout' : locked.pick, locked.correct);
     }, [persistResult, recordMiss]);
+
+    const handleTimeout = useCallback(async () => {
+        if (answerLockedRef.current) return;
+        answerLockedRef.current = true;
+        const q = questionsRef.current[currentIdxRef.current];
+        pausedRef.current = true;
+        let graded;
+        try {
+            graded = await lockVerifiedAnswer(q, null, true);
+            setAnswerError(null);
+        } catch (error) {
+            answerLockedRef.current = false;
+            pausedRef.current = false;
+            setAnswerError(error?.message || 'Could not verify the timeout. Retrying the timer.');
+            setAnnouncement('Timeout was not recorded. The timer has restarted.');
+            return;
+        }
+        applyLockedResult(graded, null);
+    }, [applyLockedResult, lockVerifiedAnswer]);
 
     // ── countdown (wall-clock, pauses while hidden) ───────────────────────
     useEffect(() => {
@@ -491,7 +586,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
         }, 250);
 
         return () => clearInterval(id);
-    }, [currentIdx, loading, revealed, finished, confirmQuit, questions.length, handleTimeout]);
+    }, [currentIdx, loading, revealed, finished, confirmQuit, questions.length, handleTimeout, answerError]);
 
     // Backgrounding a phone for ten seconds must not auto-fail the question.
     useEffect(() => {
@@ -513,27 +608,24 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
     const accuracy = score.total > 0 ? Math.round(100 * score.correct / score.total) : 0;
     const answeredSoFar = score.total;
 
-    const handlePick = useCallback((option) => {
-        if (revealed) return;
+    const handlePick = useCallback(async (option) => {
+        if (revealed || answerLockedRef.current) return;
+        answerLockedRef.current = true;
         const question = questions[currentIdx];
-        const isCorrect = String(option).toLowerCase() === String(question?.correct_answer || '').toLowerCase();
-
         pausedRef.current = true;
-        setAnswer(option);
-        setRevealed(true);
-        setScore(prev => ({
-            correct: prev.correct + (isCorrect ? 1 : 0),
-            total: prev.total + 1,
-        }));
-        setStreak(prev => (isCorrect ? prev + 1 : 0));
-        if (!isCorrect) recordMiss(question, option);
-        setAnnouncement(isCorrect
-            ? `Correct — the solver prefers ${question?.correct_answer}.`
-            : `Incorrect. You picked ${option}; the solver prefers ${question?.correct_answer}.`);
-
-        try { navigator.vibrate?.(isCorrect ? 10 : 30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-        persistResult(question, option, isCorrect);
-    }, [questions, currentIdx, revealed, persistResult, recordMiss]);
+        let graded;
+        try {
+            graded = await lockVerifiedAnswer(question, option, false);
+            setAnswerError(null);
+        } catch (error) {
+            answerLockedRef.current = false;
+            pausedRef.current = false;
+            setAnswerError(error?.message || 'Could not verify that answer. Tap again to retry.');
+            setAnnouncement('Answer not recorded. Tap your choice again to retry.');
+            return;
+        }
+        applyLockedResult(graded, option);
+    }, [questions, currentIdx, revealed, applyLockedResult, lockVerifiedAnswer]);
 
     const celebrate = useCallback(async () => {
         if (reduce) return;
@@ -548,6 +640,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
 
     const handleNext = useCallback(() => {
         if (currentIdx + 1 < questions.length) {
+            answerLockedRef.current = false;
             setCurrentIdx(prev => prev + 1);
             setAnswer(null);
             setRevealed(false);
@@ -684,9 +777,9 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                 </div>
             ) : loadError ? (
                 <ErrorState
-                    title="Could not load drills"
+                    title={loadErrorPermanent ? 'Verified Drill Not Available Yet' : 'Could Not Load Drills'}
                     body={loadError}
-                    onRetry={load}
+                    onRetry={loadErrorPermanent ? undefined : load}
                 />
             ) : questions.length === 0 ? (
                 <EmptyState
@@ -760,6 +853,21 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                                                 ? 'Saved on this device for now — it will move to your account once your review schedule is available.'
                                                 : 'This browser is blocking storage, so the date above could not be saved. The leak stays in your queue.'}
                                     </span>
+                                    {review.verified === true && (
+                                        <>
+                                            <span style={{ fontSize: F.caption, color: T.success }}>
+                                                Result Verified Against The Server-Owned Solver Batch.
+                                            </span>
+                                            <span style={{ fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
+                                                Corrective Mastery Is Recorded. The Leak Signal Stays Open Until Fresh Club Arena Hands Confirm The Fix.
+                                            </span>
+                                        </>
+                                    )}
+                                    {review.verified === false && (
+                                        <span style={{ fontSize: F.caption, color: T.warn }}>
+                                            The review was scheduled, but this run was not eligible for a verified achievement.
+                                        </span>
+                                    )}
                                 </>
                             )}
 
@@ -939,6 +1047,16 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                             );
                         })}
                     </div>
+
+                    {answerError && (
+                        <div role="alert" style={{
+                            fontSize: F.caption, color: T.danger, lineHeight: 1.45,
+                            background: T.dangerSoft, border: '1px solid rgba(255,107,122,0.5)',
+                            borderRadius: R.sm, padding: S.sm,
+                        }}>
+                            {answerError}
+                        </div>
+                    )}
 
                     {revealed && q?.gto_explanation && (
                         <p style={{
