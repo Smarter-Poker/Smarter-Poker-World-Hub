@@ -37,10 +37,10 @@ export const DIFFICULTY_MODES = {
 // it its own button; a player drilling sizing categories has to be able to
 // pick it. The boundary is the pot.
 export const SIZING_GROUPS = {
-    SMALL: { label: 'Small Bet', min: 0, max: 40, color: '#3b82f6' },
-    MEDIUM: { label: 'Medium Bet', min: 41, max: 80, color: '#f59e0b' },
-    LARGE: { label: 'Large Bet', min: 81, max: 100, color: '#ef4444' },
-    OVERBET: { label: 'Overbet', min: 101, max: Infinity, color: '#dc2626' },
+    SMALL: { label: 'Small Bet · Up To 40% Pot', min: 0, max: 40, color: '#3b82f6' },
+    MEDIUM: { label: 'Medium Bet · 41–80% Pot', min: 41, max: 80, color: '#f59e0b' },
+    LARGE: { label: 'Large Bet · 81–100% Pot', min: 81, max: 100, color: '#ef4444' },
+    OVERBET: { label: 'Overbet · More Than 100% Pot', min: 101, max: Infinity, color: '#dc2626' },
 };
 
 /**

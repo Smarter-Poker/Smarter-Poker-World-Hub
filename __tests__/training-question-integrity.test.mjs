@@ -55,6 +55,74 @@ test('legitimate bet-size percentages are preserved and generic padding is forbi
   assert.equal(validateTrainingQuestion(question).valid, true);
 });
 
+test('grouped sizing choices stay mutually exclusive when padded to four', () => {
+  const question = enforceTrainingQuestionContract({
+    question: 'The Big Blind checks to you on the flop. Which sizing band is best?',
+    scenario: { street: 'flop', action: 'The Big Blind checks to you.' },
+    correctAnswer: 'grouped_small',
+    options: [
+      { id: 'check', text: 'Check' },
+      { id: 'grouped_small', text: 'Small Bet · Up To 40% Pot' },
+      { id: 'grouped_medium', text: 'Medium Bet · 41–80% Pot' },
+    ],
+    _difficultyApplied: 'standard',
+  });
+
+  assert.deepEqual(question.options.map((option) => option.text), [
+    'Check',
+    'Small Bet · Up To 40% Pot',
+    'Medium Bet · 41–80% Pot',
+    'Large Bet · 81–100% Pot',
+  ]);
+  assert.doesNotMatch(question.options.map((option) => option.text).join(' | '), /Bet 33% Pot/);
+  assert.equal(validateTrainingQuestion(question).valid, true);
+});
+
+test('validation rejects exact sizes mixed with overlapping sizing bands', () => {
+  const rawQuestion = {
+    question: 'The Big Blind checks to you on the flop. What is your best action?',
+    scenario: { street: 'flop', action: 'The Big Blind checks to you.' },
+    correctAnswer: 'check',
+    options: [
+      { id: 'check', text: 'Check' },
+      { id: 'bet33', text: 'Bet 33% Pot' },
+      { id: 'grouped_small', text: 'Small Bet · Up To 40% Pot' },
+      { id: 'grouped_medium', text: 'Medium Bet · 41–80% Pot' },
+    ],
+  };
+  const audit = validateTrainingQuestion(rawQuestion);
+
+  assert.equal(audit.valid, false);
+  assert.ok(audit.issues.some((issue) => /overlapping sizing band/i.test(issue)));
+
+  const repaired = enforceTrainingQuestionContract(rawQuestion);
+  assert.equal(validateTrainingQuestion(repaired).valid, true);
+  assert.equal(repaired.options.length, 4);
+  assert.doesNotMatch(repaired.options.map((option) => option.text).join(' | '), /Bet 33% Pot/);
+});
+
+test('numeric overbets remain exact sizing choices when a sparse tree is padded', () => {
+  const question = enforceTrainingQuestionContract({
+    question: 'The Big Blind checks to you on the river. What is your best action?',
+    scenario: { street: 'river', action: 'The Big Blind checks to you.' },
+    correctAnswer: 'b182',
+    options: [
+      { id: 'c', text: 'Check' },
+      { id: 'b182', text: 'Overbet 182%' },
+      { id: 'b412', text: 'Overbet 412%' },
+    ],
+  });
+
+  assert.equal(validateTrainingQuestion(question).valid, true);
+  assert.deepEqual(question.options.map((option) => option.text), [
+    'Check',
+    'Overbet 182%',
+    'Overbet 412%',
+    'Bet 33% Pot',
+  ]);
+  assert.doesNotMatch(question.options.map((option) => option.text).join(' | '), /Small Bet/);
+});
+
 test('only literal Yes/No and Push/Fold decisions may have two choices', () => {
   const yesNo = enforceTrainingQuestionContract({
     question: 'The Button is all-in at 11 BB effective. You hold A♠Q♠. Should you call?',

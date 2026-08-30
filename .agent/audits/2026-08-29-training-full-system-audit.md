@@ -35,6 +35,11 @@ joining.
   questions.
 - Some question paths did not consistently expose four meaningful options.
   Literal Yes/No and Push/Fold remain the only two-choice exceptions.
+- A live C-Bet Academy browser session exposed overlapping sizing vocabulary:
+  an exact choice such as “Bet 33% Pot” could appear beside the “Small Bet”
+  band that contains it. Exact sizing and grouped sizing are now mutually
+  exclusive, every grouped label states its numerical boundary, and sparse
+  exact-overbet trees remain in exact vocabulary when padded to four choices.
 - Feedback could advance before a player had time to read it. Correct/Incorrect
   state is now explicit and persists until the player clicks Next.
 - The signed-out Training Hub primary CTA was disabled when no recommendation
@@ -94,13 +99,15 @@ applied. No historical migration row was repaired or rewritten.
 - Every standard poker decision has four choices; only literal Yes/No and
   Push/Fold decisions can have two.
 - Answer labels are checked for grading hints.
+- Exact sizing choices cannot overlap grouped sizing bands in the same answer
+  set; the exhaustive live rerun completed with zero contract failures.
 
 ### Application And Routes
 
 - Focused Training regression suites: 44 passed, zero failed after the final
   auth/CTA, retired-XP, and fabricated-fixture corrections.
 - Full application build after merging the latest `origin/main`: 454 prebuild
-  tests, 36 Training build tests, 17 leak-engine tests, 63 marketplace tests,
+  tests, 39 Training build tests, 17 leak-engine tests, 63 marketplace tests,
   and 7 trivia-authority tests passed; Next generated 402 of 402 static pages.
 - Route wiring audit: 94 Training page files, zero missing default exports,
   page routes, or API routes.
