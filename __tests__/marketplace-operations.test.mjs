@@ -80,10 +80,12 @@ test('catalog readiness paginates, counts the full catalog, and scopes mappings 
   assert.equal(result.allFulfillmentReady, true);
 });
 
-test('catalog readiness fails closed when exact counts exceed its bounded scan', async () => {
+test('catalog readiness fails closed when a sentinel row exceeds its bounded scan', async () => {
   const client = marketplaceClient({
-    items: [{ id: 'first', has_variants: false, metadata: { fulfillment_provider: 'manual' } }],
-    itemCount: 2,
+    items: [
+      { id: 'first', has_variants: false, metadata: { fulfillment_provider: 'manual' } },
+      { id: 'second', has_variants: false, metadata: { fulfillment_provider: 'manual' } },
+    ],
   });
   const result = await catalogReadiness(client, {
     resolvePrintfulMapping: resolveMapping,

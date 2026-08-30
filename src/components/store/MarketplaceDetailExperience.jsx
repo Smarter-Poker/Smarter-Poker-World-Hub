@@ -1,6 +1,7 @@
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { ChevronRight, Gem, ShieldCheck, Sparkles } from 'lucide-react';
+import { ChevronRight, Gem, ShieldCheck, Sparkles, X, ZoomIn } from 'lucide-react';
 
 import UniversalHeader from '../ui/UniversalHeader';
 import BottomNavBar from '../ui/BottomNavBar';
@@ -45,6 +46,7 @@ export default function MarketplaceDetailExperience({
   description,
   eyebrow,
   image,
+  galleryImages = [],
   imageAlt,
   breadcrumbs,
   price,
@@ -58,13 +60,52 @@ export default function MarketplaceDetailExperience({
   children,
 }) {
   const safeImage = resolveMarketplaceImage(image);
+  const media = useMemo(() => [...new Set([
+    safeImage,
+    ...(Array.isArray(galleryImages) ? galleryImages : []).map(resolveMarketplaceImage),
+  ])].slice(0, 8), [safeImage, galleryImages]);
+  const [selectedMedia, setSelectedMedia] = useState(0);
+  const [mediaExpanded, setMediaExpanded] = useState(false);
+  const mediaDialogId = useId();
+  const inspectButtonRef = useRef(null);
+  const closeMediaRef = useRef(null);
   const canonicalUrl = absoluteMarketplaceUrl(canonical);
   const socialImage = absoluteMarketplaceUrl(safeImage);
+
+  useEffect(() => {
+    if (selectedMedia >= media.length) setSelectedMedia(0);
+  }, [media.length, selectedMedia]);
+
+  useEffect(() => {
+    if (!mediaExpanded) return undefined;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const containMediaFocus = (event) => {
+      if (event.key === 'Escape') {
+        setMediaExpanded(false);
+        requestAnimationFrame(() => inspectButtonRef.current?.focus());
+      }
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        closeMediaRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', containMediaFocus);
+    return () => {
+      window.removeEventListener('keydown', containMediaFocus);
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [mediaExpanded]);
+
+  const closeMedia = () => {
+    setMediaExpanded(false);
+    requestAnimationFrame(() => inspectButtonRef.current?.focus());
+  };
 
   return (
     <>
       <Head>
-        <title>{title} — Smarter.Poker Marketplace</title>
+        <title>{`${title} — Smarter.Poker Marketplace`}</title>
         <meta name="description" content={description} />
         <link rel="canonical" href={canonicalUrl} />
         <meta property="og:type" content={openGraphType} />
@@ -98,20 +139,72 @@ export default function MarketplaceDetailExperience({
 
           <article className={styles.hero}>
             <div className={styles.mediaFrame}>
-              <img
-                src={safeImage}
-                alt={imageAlt || ''}
-                width={1200}
-                height={900}
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-              />
+              <div className={styles.mediaStage}>
+                <img
+                  src={media[selectedMedia]}
+                  alt={selectedMedia === 0 ? imageAlt || '' : `${imageAlt || title} detail ${selectedMedia + 1}`}
+                  width={1200}
+                  height={900}
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
+                />
+                <button
+                  type="button"
+                  ref={inspectButtonRef}
+                  className={styles.inspectButton}
+                  aria-label={`Inspect ${title} image full screen`}
+                  aria-controls={mediaDialogId}
+                  aria-expanded={mediaExpanded}
+                  onClick={() => setMediaExpanded(true)}
+                >
+                  <ZoomIn size={17} aria-hidden="true" /> Inspect
+                </button>
+              </div>
+              {media.length > 1 && (
+                <div className={styles.mediaRail} role="group" aria-label={`${title} image gallery`}>
+                  {media.map((source, index) => (
+                    <button
+                      type="button"
+                      key={source}
+                      aria-label={`Show ${title} image ${index + 1}`}
+                      aria-pressed={selectedMedia === index}
+                      onClick={() => setSelectedMedia(index)}
+                    >
+                      <img src={source} alt="" loading={index === 0 ? 'eager' : 'lazy'} decoding="async" />
+                    </button>
+                  ))}
+                </div>
+              )}
               <span className={styles.scanLine} aria-hidden="true" />
               <div className={styles.mediaBadge}>
                 <ShieldCheck size={15} aria-hidden="true" />
                 Secure Marketplace Item
               </div>
+              {mediaExpanded && (
+                <div
+                  className={styles.mediaDialog}
+                  id={mediaDialogId}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={`${title} image inspection`}
+                  onMouseDown={(event) => {
+                    if (event.target === event.currentTarget) closeMedia();
+                  }}
+                >
+                  <button
+                    type="button"
+                    ref={closeMediaRef}
+                    className={styles.closeMedia}
+                    aria-label="Close image inspection"
+                    autoFocus
+                    onClick={closeMedia}
+                  >
+                    <X size={22} aria-hidden="true" /> Close
+                  </button>
+                  <img src={media[selectedMedia]} alt={imageAlt || title} />
+                </div>
+              )}
             </div>
 
             <div className={styles.commandPanel}>
