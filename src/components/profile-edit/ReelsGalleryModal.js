@@ -2,8 +2,6 @@ import React from 'react';
 import { getProfileJwt } from './utils';
 import { busEmit } from '../../engine/EventBus';
 import { broadcastSync } from '../../lib/broadcastSync';
-import dynamic from 'next/dynamic';
-const BottomNavBar = dynamic(() => import('../ui/BottomNavBar'), { ssr: false });
 
 export default function ReelsGalleryModal({ isOpen, onClose, userReels }) {
     if (!isOpen) return null;
