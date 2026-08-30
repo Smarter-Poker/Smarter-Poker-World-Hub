@@ -7,7 +7,7 @@ import {
 } from '../home-games/locationUtils';
 import { createClient } from '../supabaseServerClient';
 import { fetchVenueDirectoryResilient } from './venueDirectoryServer';
-import allVenuesData from '../../../data/all-venues.json';
+import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 
 const SITE_ORIGIN = 'https://smarter.poker';
 const LOCATION_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -26,6 +26,7 @@ function normalizeVenue(row) {
     cover_photo_url: row.cover_photo_url || row.image_url || '',
     trust_score: Number(row.trust_score) || 0,
     is_featured: !!row.is_featured,
+    location_quality: row.location_quality || null,
     updated_at: row.updated_at || row.last_verified_at || row.last_scraped_at || null,
   };
 }
@@ -40,7 +41,8 @@ export async function fetchPokerVenueLocation({ state, city }) {
     const payload = await fetchVenueDirectoryResilient({
       supabase: createClient(),
       params: { limit: 1000, state, city },
-      fallbackVenues: allVenuesData.venues || [],
+      fallbackVenues: directorySnapshotData.venues || [],
+      fallbackMetadata: directorySnapshotData.metadata || {},
       onFallback: (error) => {
         console.warn('[poker-near-me] Location directory database unavailable; using snapshot:', error?.message || error);
       },
@@ -54,6 +56,9 @@ export async function fetchPokerVenueLocation({ state, city }) {
     return {
       venues,
       degraded: payload.degraded === true,
+      dataSource: payload.data_source || 'unavailable',
+      dataRevision: payload.data_revision || null,
+      snapshot: payload.snapshot || null,
       fetchedAt: new Date().toISOString(),
     };
   })();
@@ -68,7 +73,14 @@ export async function fetchPokerVenueLocation({ state, city }) {
     return value;
   } catch (error) {
     console.warn('[poker-near-me] Location directory fallback failed:', error?.message || error);
-    const value = { venues: [], degraded: true, fetchedAt: new Date().toISOString() };
+    const value = {
+      venues: [],
+      degraded: true,
+      dataSource: 'unavailable',
+      dataRevision: null,
+      snapshot: null,
+      fetchedAt: new Date().toISOString(),
+    };
     locationRequestCache.set(cacheKey, { value, expiresAt: Date.now() + 60_000 });
     return value;
   }

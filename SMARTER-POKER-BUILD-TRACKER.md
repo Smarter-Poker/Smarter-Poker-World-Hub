@@ -1375,3 +1375,22 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 **Current coverage:** 429 directory-driven route URLs (11 discovery plus 418 location URLs), the public directory API, and the cinematic lobby.
 
 **Verification:** 508/508 repository prebuild tests, 9/9 focused Phase 10–11 contracts, 4/4 desktop/mobile Playwright journeys, forced no-database API/SSR smoke, client-bundle dataset exclusion, and the exact webpack production build passed. Full evidence: `.agent/audits/2026-08-30-poker-near-me-phase-11.md`.
+
+---
+
+## PHASE 61 — Poker Near Me Directory Parity + Regional Discovery (2026-08-30)
+
+| Deliverable | Detail |
+|---|---|
+| Exact public snapshot | Dedicated server/browser projections carry generation time, deployment source, public/candidate counts, SHA-256, revision, and source freshness. Current parity is 399 live IDs vs. 399 snapshot IDs with zero drift. |
+| Build-time drift/freshness gate | Prebuild fails on copy mismatch, payload/hash/count mismatch, age over 30 days, degraded refresh sources, or live drift beyond five rows/two percent. |
+| Progressive live hydration | 160-row idle-scheduled pages replace the duplicate nationwide post-SSR request; ID merging, cancellation, revision-aware caching, partial-live recovery, and exact static fallback are wired. |
+| Honest provenance | API revision/snapshot headers, source timestamps, location schema `dateModified`, bounded source telemetry, accurate profile/location language, and visible degraded dates prevent cached data from appearing live. |
+| Regional rendered system | Four purpose-built fictional Pacific, Southwest, Heartland, and Atlantic #SmarterCasinoRealism WebPs propagate to 342 current state/city routes with route-specific social previews. |
+| Accessibility + mobile | Axe, keyboard skip navigation, 390×844, 200% zoom, zero overflow, and effective 44px tutorial/search/retry targets are permanently covered. |
+| False-empty resilience | A live zero projection degrades only when matching snapshot rows exist, eliminating false state-page 404s without inventing genuinely empty locations. |
+| CI clock-skew unblock | Shared CI transport now retries only `PGRST303` + `JWT issued at future`; other authentication failures remain fail-fast. |
+
+**Current coverage:** 11 discovery routes plus one national, 40 state, and 302 city routes (354 directory-driven URLs), the public directory API, and the cinematic lobby.
+
+**Verification:** 514/514 repository prebuild checks, 18/18 focused Phase 8–12 contracts, 399/399 live parity, TypeScript, 12/12 compiled-production desktop/mobile journeys (including Leaflet runtime), and the exact webpack production build (402 static pages) are green. PR/merge, deployment, and live-production evidence are tracked in `.agent/audits/2026-08-30-poker-near-me-phase-12.md`.

@@ -279,6 +279,19 @@ body.world-poker-near-me .pnm-directory-source {
     letter-spacing: 0.04em;
 }
 
+body.world-poker-near-me .pnm-directory-source[data-directory-source='supabase'] {
+    border-color: rgba(44, 168, 255, 0.34);
+    border-left-color: var(--pnm-blue);
+    background: rgba(5, 16, 26, 0.9);
+    color: #c9e9ff;
+}
+
+body.world-poker-near-me .pnm-directory-source[data-directory-source='partial_live'] {
+    border-color: rgba(201, 145, 48, 0.42);
+    border-left-color: #d8a343;
+    background: rgba(22, 15, 5, 0.9);
+}
+
 body.world-poker-near-me .pnm-directory-source button {
     min-height: 44px;
     flex: 0 0 auto;

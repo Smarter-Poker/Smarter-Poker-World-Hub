@@ -17,6 +17,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { captureError, addBreadcrumb } from '../../../src/lib/sentry';
 import allVenuesData from '../../../data/all-venues.json';
+import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 // Home-group coordinate privacy. See src/lib/home-games/geoPrivacy.js —
@@ -719,7 +720,8 @@ export default async function handler(req, res) {
               const directory = await fetchVenueDirectoryResilient({
                   supabase: getSupabase(),
                   params: req.query,
-                  fallbackVenues: allVenuesData.venues || [],
+                  fallbackVenues: directorySnapshotData.venues || [],
+                  fallbackMetadata: directorySnapshotData.metadata || {},
                   onFallback: (directoryError) => {
                       console.warn('[venues] Directory database unavailable; serving projected snapshot:', directoryError?.message || directoryError);
                       captureError(directoryError, {
@@ -729,6 +731,10 @@ export default async function handler(req, res) {
                   },
               });
               res.setHeader('X-PNM-Data-Source', directory.data_source);
+              if (directory.data_revision) res.setHeader('X-PNM-Data-Revision', directory.data_revision);
+              if (directory.snapshot?.generated_at) {
+                  res.setHeader('X-PNM-Snapshot-Generated-At', directory.snapshot.generated_at);
+              }
               if (directory.degraded) res.setHeader('Cache-Control', 'no-store');
               return res.status(200).json({ success: true, ...directory, home_groups: [], total_home_groups: 0 });
           } catch (directoryError) {

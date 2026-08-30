@@ -98,8 +98,9 @@ test('venue API and both shared maps enforce the integrity contract', async () =
   assert.match(detail, /!locationConflict && venue\.latitude/);
   assert.match(activity, /held_count:/);
   assert.doesNotMatch(activity, /\blatitude\b|\blongitude\b/);
-  assert.match(tabPage, /sp-offline-venues-integrity-v1/);
-  assert.match(tabPage, /fetch\('\/api\/poker\/venues\?view=directory&limit=1000&offset=0'\)/);
+  assert.match(tabPage, /sp-offline-venues-integrity-v2/);
+  assert.match(tabPage, /DIRECTORY_PAGE_SIZE = 160/);
+  assert.match(tabPage, /view=directory&limit=\$\{DIRECTORY_PAGE_SIZE\}&offset=\$\{offset\}/);
   assert.match(tabPage, /Venue directory did not include signal integrity metadata/);
   assert.match(tabPage, /reason: 'offline_snapshot'/);
 });

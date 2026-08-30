@@ -9,7 +9,7 @@ test.describe('Poker Near Me phase 11 resilience and accessibility', () => {
   test.setTimeout(90_000);
 
   test('discovery identifies projected snapshot mode and exposes live retry', async ({ page }) => {
-    await page.route('**/api/poker/venues?view=directory&limit=1000&offset=0', async (route) => {
+    await page.route('**/api/poker/venues?view=directory&limit=160&offset=0', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -31,7 +31,7 @@ test.describe('Poker Near Me phase 11 resilience and accessibility', () => {
           }],
           total: 1,
           offset: 0,
-          limit: 1000,
+          limit: 160,
           home_groups: [],
           total_home_groups: 0,
         }),
@@ -44,20 +44,28 @@ test.describe('Poker Near Me phase 11 resilience and accessibility', () => {
     const status = page.locator('.pnm-directory-source');
     await expect(page.getByRole('main', { name: 'Poker Near Me discovery results' })).toBeVisible();
     await expect(status).toHaveAttribute('data-directory-source', 'static_snapshot');
-    await expect(status).toContainText('last published venue snapshot');
+    await expect(status).toContainText('published venue snapshot');
     await expect(page.getByRole('button', { name: 'Retry live registry' })).toBeVisible();
     await expectNoOverflow(page, route);
   });
 
-  test('lobby has a main landmark, keyboard skip path, and 44px local search controls', async ({ page }) => {
+  test('lobby has a main landmark, keyboard skip path, and 44px local search controls', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(() => localStorage.setItem('pnm_lobby_tutorial_seen', '1'));
     const route = '/hub/poker-near-me/lobby';
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBe(200);
     await expect(page.getByRole('main', { name: 'Poker Near Me discovery lobby' })).toBeVisible();
 
-    await page.keyboard.press('Tab');
-    await expect(page.getByRole('link', { name: 'Skip to Poker Near Me choices' })).toBeFocused();
+    // Touch-emulated mobile projects do not expose desktop Tab traversal.
+    // The Chromium project owns the keyboard-order assertion; mobile still
+    // verifies that the skip link exists and the touch controls are sized.
+    const skipLink = page.getByRole('link', { name: 'Skip to Poker Near Me choices' });
+    await expect(skipLink).toBeAttached();
+    if (!testInfo.project.name.includes('mobile')) {
+      await page.keyboard.press('Tab');
+      await expect(skipLink).toBeFocused();
+    }
 
     for (const name of ['Voice search', 'Use GPS location']) {
       const control = page.getByRole('button', { name });
