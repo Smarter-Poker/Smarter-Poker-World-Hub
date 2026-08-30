@@ -40,7 +40,8 @@ test('VIP command center reads a private server-owned membership record', () => 
   const verifier = read('scripts/verify-marketplace-deployment.mjs');
   assert.match(verifier, /smarter-rewards\/daily_login/);
   assert.match(verifier, /Verified Reward Telemetry/);
-  assert.match(verifier, /vip-membership-status \(private\)/);
+  assert.match(verifier, /'\/api\/store\/vip-membership-status'/);
+  assert.match(verifier, /`\$\{privatePath\} \(private\)`/);
 });
 
 test('VIP plan switching and cancellation stay inside the marketplace page', () => {

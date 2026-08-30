@@ -20,6 +20,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PokerIdentityMark from '../../src/components/poker-near-me/PokerIdentityMark';
 import { homeGameUrl } from '../../src/lib/home-games/urls';
+import { buildDailyTournamentSchema, serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -304,6 +305,10 @@ export default function DailyTournaments() {
         }
         return list;
     }, [tournaments, distanceFilter, userLocation]);
+    const scheduleSchema = useMemo(
+        () => buildDailyTournamentSchema(sortedTournaments, scheduleMeta?.generatedAt || scheduleFreshness),
+        [scheduleFreshness, scheduleMeta?.generatedAt, sortedTournaments]
+    );
 
     // [DT3 FIX] today memoized — was computed + mutated on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -373,6 +378,7 @@ export default function DailyTournaments() {
             >
 
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(scheduleSchema) }} />
 
             </SEOHead>
 

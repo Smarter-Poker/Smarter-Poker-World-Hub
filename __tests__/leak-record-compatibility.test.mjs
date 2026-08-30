@@ -9,6 +9,7 @@ const {
   confidenceTier,
   normalizeUserLeakRow,
   toUserLeakPersistenceRow,
+  leakStatusPersistenceFields,
 } = await import(moduleUrl);
 
 test('detector confidence tiers are converted to the live numeric schema', () => {
@@ -42,6 +43,23 @@ test('deterministic leaks include every required legacy persistence field', () =
   assert.equal(row.error_rate, 0.4);
   assert.equal(row.is_active, true);
   assert.equal('_sample_count' in row, false);
+});
+
+test('leak lifecycle transitions keep modern and legacy activity fields synchronized', () => {
+  const at = '2026-08-29T12:00:00.000Z';
+  assert.deepEqual(leakStatusPersistenceFields('resolved', { now: at }), {
+    status: 'resolved', resolved_at: at, is_active: false,
+  });
+  assert.deepEqual(leakStatusPersistenceFields('persistent', { resolvedAt: at, now: at }), {
+    status: 'persistent', resolved_at: null, is_active: true,
+  });
+
+  const reemerged = toUserLeakPersistenceRow({
+    leak_type: 'river_overfold', status: 'emerging', resolved_at: at,
+    occurrence_count: 4, confidence: 'medium',
+  }, { userId: '1f114e4c-6c27-4db3-bcad-8f88c85b463d' });
+  assert.equal(reemerged.resolved_at, null);
+  assert.equal(reemerged.is_active, true);
 });
 
 test('legacy training rows no longer render as unknown leaks', () => {
@@ -89,4 +107,18 @@ test('secondary sync reads cannot erase real assistant totals with fallback zero
   assert.match(detect, /Refusing to overwrite assistant stats after current-total read failed/);
   assert.match(detect, /statsPersisted: statsSynced/);
   assert.match(detect, /handExamples: handExamplesSync/);
+});
+
+test('status endpoints fail closed and update both leak stores', () => {
+  const route = fs.readFileSync('pages/api/assistant/leaks/index.js', 'utf8');
+  assert.match(route, /PATCH_STATUSES/);
+  assert.match(route, /leakStatusPersistenceFields/);
+  assert.match(route, /from\('user_training_leaks'\)[\s\S]*?fixed_at/);
+  assert.match(route, /Refusing to overwrite assistant leak counts after recount failed/);
+  assert.match(route, /statsSynced/);
+
+  const detect = fs.readFileSync('pages/api/assistant/leaks/detect.js', 'utf8');
+  assert.match(detect, /is_active: false/);
+  assert.match(detect, /allSolverEvidenceAvailable/);
+  assert.match(detect, /clubArenaSync\.complete === false/);
 });

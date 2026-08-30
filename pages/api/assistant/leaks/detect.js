@@ -729,6 +729,10 @@ async function getSolverTrainingEvidence(db, userId) {
     .select('game_id, question_id, hero_position, villain_position, street, classification, ev_loss, spot_type, audited_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured')
     .eq('user_id', userId)
     .eq('solver_verified', true)
+    // Matcher v2 proves street order, concrete postflop combos, variant,
+    // stack/table identity and action sizing. Legacy rows are deliberately
+    // excluded until the idempotent Club Arena sync re-audits their hands.
+    .like('solver_source', '%|hand-audit-v2')
     .order('audited_at', { ascending: false })
     .limit(2000);
   const auditAvailable = !auditResult.error;
@@ -1006,10 +1010,12 @@ export default async function handler(req, res) {
       // Only resolve leak types this engine owns (LEAK_PATTERNS) AND whose
       // inputs were measured this run — never touch POSTed/training/custom
       // leak types, and never resolve a leak we simply couldn't measure.
+      const allSolverEvidenceAvailable = solverEvidence.sources?.training?.available === true
+        && solverEvidence.sources?.handAudit?.available === true;
       const resolvedIds = Object.entries(existingLeakMap || {})
         .filter(([leakType, existingLeak]) =>
           ((LEAK_PATTERNS[leakType] && stats && patternIsMeasured(stats, leakType)) ||
-            (['training_solver', 'solver_engine'].includes(existingLeak.source_system) && solverEvidence.available)) &&
+            (['training_solver', 'solver_engine'].includes(existingLeak.source_system) && allSolverEvidenceAvailable)) &&
           !detectedLeaks.find(l => l.leak_type === leakType) &&
           existingLeak.status !== 'resolved'
         )
@@ -1019,7 +1025,8 @@ export default async function handler(req, res) {
       if (resolvedIds.length > 0) {
         const { error: err_user_leaks_fs60f } = await getSupabase()
           .from('user_leaks')
-          .update({ status: 'resolved', resolved_at: now, updated_at: now })
+          .update({ status: 'resolved', resolved_at: now, is_active: false, updated_at: now })
+          .eq('user_id', userId)
           .in('id', resolvedIds);
         if (err_user_leaks_fs60f) {
           resolutionsSynced = false;
@@ -1076,6 +1083,7 @@ export default async function handler(req, res) {
       }
 
       const partial = !resolutionsSynced || !statsSynced ||
+        clubArenaSync.persisted === false || clubArenaSync.complete === false ||
         secondarySync.handExamples?.persisted === false || !secondarySync.suggestionsPersisted;
 
       return res.status(200).json({

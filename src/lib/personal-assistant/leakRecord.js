@@ -54,6 +54,21 @@ export function leakTypeTitle(value) {
     .replace(/\b\w/g, character => character.toUpperCase());
 }
 
+const ACTIVE_STATUSES = new Set(['emerging', 'persistent', 'improving']);
+
+/**
+ * Keep the hybrid user_leaks lifecycle fields in lockstep. Modern readers use
+ * status/resolved_at while the training accountant still uses is_active.
+ */
+export function leakStatusPersistenceFields(status, { resolvedAt = null, now = new Date().toISOString() } = {}) {
+  const normalized = String(status || 'emerging').trim().toLowerCase();
+  if (normalized === 'resolved') {
+    return { status: 'resolved', resolved_at: resolvedAt || now, is_active: false };
+  }
+  const activeStatus = ACTIVE_STATUSES.has(normalized) ? normalized : 'emerging';
+  return { status: activeStatus, resolved_at: null, is_active: true };
+}
+
 /**
  * Convert either generation of user_leaks rows into the API's canonical
  * record. The table is intentionally shared with the original training
@@ -106,6 +121,7 @@ export function toUserLeakPersistenceRow(leak = {}, options = {}) {
 
   return {
     ...publicFields,
+    ...leakStatusPersistenceFields(leak.status, { resolvedAt: leak.resolved_at }),
     user_id: userId,
     leak_type: leakType,
     leak_name: leak.leak_name || leak.situation_class || leakTypeTitle(leakType),
@@ -113,7 +129,6 @@ export function toUserLeakPersistenceRow(leak = {}, options = {}) {
     confidence: confidenceScore(leak.confidence),
     total_samples: samples,
     mistake_count: Math.min(mistakes, samples),
-    is_active: leak.status !== 'resolved',
   };
 }
 
@@ -122,6 +137,7 @@ export default {
   confidenceTier,
   leakTypeSlug,
   leakTypeTitle,
+  leakStatusPersistenceFields,
   normalizeUserLeakRow,
   toUserLeakPersistenceRow,
 };

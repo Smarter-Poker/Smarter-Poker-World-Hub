@@ -30,7 +30,7 @@ test('order history provides searchable filterable ledger intelligence', () => {
   assert.match(ORDERS, /visibleOrders/);
   assert.match(ORDERS, /Showing \{visibleOrders\.length\} Of \{orders\.length\} Loaded Orders/);
   assert.match(ORDERS, /Load 50 More Orders/);
-  assert.match(ORDERS, /setRecordLimit\(\(current\) => current \+ 50\)/);
+  assert.match(ORDERS, /loadOrders\(\{ append: true, cursor: nextCursor \}\)/);
   assert.match(ORDERS, /Clear Filters/);
   assert.match(ORDERS, /Marketplace Ledger Summary/);
 });
@@ -43,7 +43,9 @@ test('every order can open a private same-surface receipt route', () => {
   assert.match(ORDERS, /\/hub\/diamond-store\/orders\/\$\{order\.id\}/);
   assert.match(receipt, /useRequireAuth/);
   assert.match(receipt, /ORDER_SOURCES/);
-  assert.match(receipt, /\.eq\('user_id', user\.id\)/);
+  assert.match(receipt, /authedFetch/);
+  assert.match(receipt, /\/api\/store\/order-ledger\?source=/);
+  assert.doesNotMatch(receipt, /\.from\(['"](?:diamond_purchases|merchandise_orders|vip_subscriptions)['"]\)/);
   assert.doesNotMatch(receipt, /select\(['"]\*['"]\)/);
   assert.doesNotMatch(receipt, /shipping_address|target=["']_blank|window\.open/);
   assert.match(receipt, /MarketplaceDetailExperience/);

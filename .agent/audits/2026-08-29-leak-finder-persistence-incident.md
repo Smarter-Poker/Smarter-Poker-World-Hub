@@ -75,3 +75,39 @@ writer now nulls every solver conclusion and EV field unless the match is exact,
 stores `classification = 'unpriced'`, and immediately retries older rows that
 carry this inconsistent provenance instead of waiting for the normal refresh
 window.
+
+## Phase Two Deterministic Evidence And Lifecycle Audit
+
+An independent engine, API, and UI review found that the first exact-matcher
+generation was still too permissive. It sorted the complete board, could grade
+Omaha against Hold'em ranges, reduced postflop holdings to rank notation, and
+could map an action to a sized solver option without knowing the recorded
+pot-relative size. It also treated forced blind postings as hero decisions and
+made a transient question-cache failure indistinguishable from a complete
+unpriced audit.
+
+Matcher v2 now preserves turn/river order, requires Hold'em and the concrete
+postflop combo, validates available table/stack identity, excludes forced
+actions, and refuses ambiguous sized bets or raises. Legacy PIO cache prompts
+are admitted only when their server-owned action prompt unambiguously identifies
+one of the two supported postflop node classes. Verified decisions are stamped
+with `hand-audit-v2`; Leak Finder excludes every legacy verification until the
+idempotent Club Arena sync re-audits its hand. Lookup and persistence failures
+are explicit incomplete/partial receipts rather than clean evidence.
+
+The lifecycle review also found two generations of status state. Modern rows
+used `status`/`resolved_at`, while legacy readers used `is_active`; Memory Matrix
+cards lived in `user_training_leaks` and could not be resolved through the
+combined page. Status transitions now update the modern fields atomically,
+keep `is_active` synchronized, support the owned training record store, and
+recount both sources without replacing valid cached totals when a read fails.
+Automatic solver-leak resolution now requires both evidence sources to be
+available. Review scheduling refuses to overwrite an unreadable prior state,
+and its server interval cap once again matches the shared scheduler.
+
+The UI now routes the exact derived drill street, hero position, and bounded
+length into the sandbox. Frequency-only evidence and Memory Matrix repetition
+signals remain visibly unpriced and no longer manufacture `0.00 BB`, pseudo
+frequencies, or total-loss claims. Regression coverage exercises reordered
+boards, Omaha, blockers/suits, ambiguous sizing, forced actions, lookup
+failures, provenance, lifecycle transitions, and both persistence stores.

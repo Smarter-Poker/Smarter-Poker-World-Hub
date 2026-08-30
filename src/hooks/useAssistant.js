@@ -207,6 +207,7 @@ function formatLeak(leak) {
     optimalFrequency: leak.optimal_frequency,
     currentFrequency: leak.current_frequency,
     evLossBB: leak.avg_ev_loss_bb,
+    evLossMeasured: leak.ev_loss_measured === true,
     occurrenceCount: leak.occurrence_count,
     firstDetected: leak.first_detected_at,
     trendData: leak.trend_data || [],

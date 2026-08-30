@@ -63,7 +63,7 @@ test('leaks require verified opportunities and count actual mistakes', () => {
   assert.equal(leaks.length, 1);
   assert.equal(leaks[0].occurrence_count, 4);
   assert.equal(leaks[0]._sample_count, 9);
-  assert.equal(leaks[0].avg_ev_loss_bb, 0);
+  assert.equal(leaks[0].avg_ev_loss_bb, null);
   assert.match(leaks[0].why_leaking_ev, /no BB loss is invented/i);
 });
 

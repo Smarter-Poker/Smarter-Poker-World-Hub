@@ -72,26 +72,31 @@ const results = await Promise.all([
   ...assets.map((path) => probe(path, 'image/')),
 ]);
 
-try {
-  const response = await fetch(`${baseUrl}/api/store/vip-membership-status`, {
-    headers: requestHeaders({ Accept: 'application/json' }),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  results.push({
-    path: '/api/store/vip-membership-status (private)',
-    okay: response.status === 401,
-    status: response.status,
-    contentType: response.headers.get('content-type') || '',
-    reason: response.status === 401 ? null : `expected_401_received_${response.status}`,
-  });
-} catch (error) {
-  results.push({
-    path: '/api/store/vip-membership-status (private)',
-    okay: false,
-    status: 0,
-    contentType: '',
-    reason: error?.name === 'TimeoutError' ? 'timeout' : 'network_error',
-  });
+for (const privatePath of [
+  '/api/store/vip-membership-status',
+  '/api/store/order-ledger',
+]) {
+  try {
+    const response = await fetch(`${baseUrl}${privatePath}`, {
+      headers: requestHeaders({ Accept: 'application/json' }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    results.push({
+      path: `${privatePath} (private)`,
+      okay: response.status === 401,
+      status: response.status,
+      contentType: response.headers.get('content-type') || '',
+      reason: response.status === 401 ? null : `expected_401_received_${response.status}`,
+    });
+  } catch (error) {
+    results.push({
+      path: `${privatePath} (private)`,
+      okay: false,
+      status: 0,
+      contentType: '',
+      reason: error?.name === 'TimeoutError' ? 'timeout' : 'network_error',
+    });
+  }
 }
 
 let readiness = null;
