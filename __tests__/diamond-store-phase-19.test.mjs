@@ -88,3 +88,14 @@ test('production verification exercises canonical cache behavior and ships Phase
   assert.match(pkg, /__tests__\/diamond-store-phase-19\.test\.mjs/);
   assert.match(ignore, /!\/__tests__\/diamond-store-phase-19\.test\.mjs/);
 });
+
+test('merchandise detail builds bound live catalog latency and preserve the static fallback', async () => {
+  const source = await read('pages/hub/merch-store/[productId].js');
+  assert.match(source, /async function boundedCatalogProduct\(productId, timeoutMs = 5000\)/);
+  assert.match(source, /new AbortController\(\)/);
+  assert.match(source, /Promise\.race\(\[/);
+  assert.match(source, /controller\.abort\(\)/);
+  assert.match(source, /\.abortSignal\(signal\)/);
+  assert.match(source, /product = await boundedCatalogProduct\(productId\)/);
+  assert.match(source, /product \|\|= staticProduct\(MERCHANDISE\.find/);
+});

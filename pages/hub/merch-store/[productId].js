@@ -54,7 +54,7 @@ function staticProduct(product) {
   };
 }
 
-async function catalogProduct(productId) {
+async function catalogProduct(productId, signal) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return null;
@@ -65,6 +65,7 @@ async function catalogProduct(productId) {
     .select('id, name, description, category, image_url, price_usd, price_diamonds, stock, has_variants, metadata')
     .eq('id', productId)
     .eq('is_active', true)
+    .abortSignal(signal)
     .maybeSingle();
   if (error || !item) return null;
 
@@ -75,6 +76,7 @@ async function catalogProduct(productId) {
         .eq('item_id', productId)
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
+        .abortSignal(signal)
     : { data: [], error: null };
   if (variantError) return null;
 
@@ -138,6 +140,24 @@ async function catalogProduct(productId) {
     automaticFulfillmentReady,
     fulfillmentProvider,
   };
+}
+
+async function boundedCatalogProduct(productId, timeoutMs = 5000) {
+  const controller = new AbortController();
+  let timer = null;
+  try {
+    return await Promise.race([
+      catalogProduct(productId, controller.signal),
+      new Promise((resolve) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          resolve(null);
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 export default function MerchProductDetail({ product }) {
@@ -273,7 +293,7 @@ export async function getStaticProps({ params }) {
 
   let product = null;
   try {
-    product = await catalogProduct(productId);
+    product = await boundedCatalogProduct(productId);
   } catch (error) {
     console.warn('[merch-product-detail] Live catalog lookup failed:', error?.message || error);
   }
