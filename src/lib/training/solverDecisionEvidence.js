@@ -18,6 +18,12 @@ const VERIFIED_SOURCES = new Set([
 
 const GOOD_CLASSIFICATIONS = new Set(['best', 'correct']);
 
+export function verifiedSolverSource(question) {
+  const source = String(question?.source || question?.solverProvenance?.source || '').trim();
+  if (source) return source.slice(0, 100);
+  return question?.solverProvenance?.verified === true ? 'SOLVER_PROVENANCE_VERIFIED' : null;
+}
+
 function finiteNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
@@ -128,7 +134,7 @@ export function gradeSolverDecision(question, selectedAnswer) {
 
   return {
     solverVerified: isVerifiedSolverQuestion(question),
-    solverSource: question?.source || null,
+    solverSource: verifiedSolverSource(question),
     classification: frequencyGrade.classification,
     isCorrect: GOOD_CLASSIFICATIONS.has(frequencyGrade.classification),
     selectedFrequency: frequencyGrade.selectedFrequency,
@@ -151,6 +157,17 @@ function safeSlug(value, fallback) {
 function displayToken(value, fallback) {
   const text = String(value || fallback || 'Unknown').replace(/[_-]+/g, ' ').trim();
   return text.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+export function solverDecisionGroupKey({ evidenceScope, gameId, street, position, spotType } = {}) {
+  return [
+    'solver',
+    safeSlug(evidenceScope, 'training'),
+    safeSlug(gameId, 'training'),
+    safeSlug(street, 'all_streets'),
+    safeSlug(position, 'all_positions'),
+    safeSlug(spotType, 'general'),
+  ].join('_').slice(0, 180);
 }
 
 export function summarizeSolverDecisionGroups(rows, { minSamples = 8, targetErrorRate = 15 } = {}) {
@@ -195,7 +212,7 @@ export function summarizeSolverDecisionGroups(rows, { minSamples = 8, targetErro
     const errorRate = group.samples > 0 ? (group.mistakes / group.samples) * 100 : 0;
     return {
       ...group,
-      leakType: `solver_${group.evidenceScope}_${group.gameId}_${group.street}_${group.position}_${group.spotType}`.slice(0, 180),
+      leakType: solverDecisionGroupKey(group),
       errorRate,
       recoveryEligible: group.samples >= minSamples && errorRate < targetErrorRate + 10,
     };
@@ -273,4 +290,4 @@ export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, ta
     .sort((a, b) => b.current_frequency - a.current_frequency || b._sample_count - a._sample_count);
 }
 
-export default { isVerifiedSolverQuestion, classifyFrequencyDecision, gradeSolverDecision, summarizeSolverDecisionGroups, canResolveSolverLeakScope, aggregateSolverLeaks };
+export default { isVerifiedSolverQuestion, classifyFrequencyDecision, gradeSolverDecision, solverDecisionGroupKey, summarizeSolverDecisionGroups, canResolveSolverLeakScope, aggregateSolverLeaks };

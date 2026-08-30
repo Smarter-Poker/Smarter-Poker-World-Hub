@@ -576,6 +576,10 @@ export const EGG_VERIFIERS = {
  * is visible to whoever next opens the file.
  */
 export const UNVERIFIABLE_EGGS = {
+    // The current Club Arena hand-history table is user-writable. Remediation
+    // mastery is safely recorded, but it cannot carry monetary value until a
+    // service-only recorder receipt proves the later live-play recovery.
+    the_optimizer: 'needs immutable server-recorder-attested Club Arena recovery evidence',
     // Needs per-question telemetry: answer latency, hint usage, EV delta per
     // decision. training_sessions stores only session aggregates today.
     gto_machine: 'needs per-question hint-usage tracking',
@@ -602,7 +606,6 @@ export const UNVERIFIABLE_EGGS = {
     indifference_point: 'needs per-line indifference solve',
     small_baller: 'needs per-decision sizing log',
     zero_leak: 'needs hands-since-last-leak counter',
-    the_optimizer: 'needs server-verified per-question drill telemetry',
     deep_diver: 'needs time-on-page telemetry for Charts',
     window_shopper: 'needs store page-view telemetry',
     data_miner: 'needs hand-history export logging',

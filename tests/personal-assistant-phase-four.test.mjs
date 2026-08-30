@@ -194,9 +194,9 @@ test('scoped recovery uses a bounded recent window instead of lifetime-table com
   assert.doesNotMatch(solverEvidenceSource, /training\?\.complete === true/);
 });
 
-test('manual resolution cannot earn the deterministic optimizer reward', () => {
-  assert.match(rewards, /the_optimizer: 'needs server-verified per-question drill telemetry'/);
-  assert.doesNotMatch(rewards, /the_optimizer: async/);
+test('optimizer reward cannot rely on manual lifecycle state alone', () => {
+  assert.doesNotMatch(rewards, /the_optimizer:\s*async/);
+  assert.match(rewards, /the_optimizer: 'needs immutable server-recorder-attested Club Arena recovery evidence'/);
 });
 
 test('stats preserve unavailable values instead of fabricating zeroes', () => {

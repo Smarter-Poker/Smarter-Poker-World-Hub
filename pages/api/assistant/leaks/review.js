@@ -5,10 +5,11 @@
  *
  * POST /api/assistant/leaks/review
  *   Records a drill outcome and persists the next review schedule.
- *   Body: { leakId, outcome: { correct, total, reviewId } }
+ *   Body: { leakId, outcome: { correct, total, reviewId }, drillToken? }
  *
- * The next state is computed SERVER-SIDE (src/lib/sandbox/leakReview) so a
- * client cannot post an arbitrary due date and hand itself an easy schedule.
+ * Signed drill batches are regraded from training_question_cache. The next
+ * state is computed SERVER-SIDE (src/lib/sandbox/leakReview) so a client cannot
+ * post an arbitrary score, due date, leak closure, or achievement claim.
  *
  * DEGRADATION CONTRACT — `leak_review_state` does not exist on first deploy:
  *   GET  -> 200 { success: true, records: [], persisted: false }
@@ -21,6 +22,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import * as leakReviewModule from '../../../../src/lib/sandbox/leakReview';
+import { openDrillBatch } from '../../../../src/lib/personal-assistant/drillTelemetry';
 
 let _supabase = null;
 function getSupabase() {
@@ -74,6 +76,10 @@ const MAX_DRILL_QUESTIONS = 500;
 const LEAK_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_:.-]{0,63}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REVIEW_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{7,95}$/;
+function readReviewId(value) {
+    const id = typeof value === 'string' ? value.trim() : '';
+    return REVIEW_ID_RE.test(id) ? id : null;
+}
 
 // ─── schema-drift detection ───────────────────────────────────────────────────
 
@@ -286,14 +292,14 @@ function readLeakId(value) {
  * EV provenance is deliberately absent here: the endpoint reads the current
  * measured value from the caller's owned leak row after validation.
  */
-function readOutcome(raw) {
+function readOutcome(raw, authoritative = null) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false };
 
-    const totalNum = Number(raw.total);
+    const totalNum = Number(authoritative?.total ?? raw.total);
     if (!Number.isFinite(totalNum) || totalNum < 1) return { ok: false };
     const total = Math.min(MAX_DRILL_QUESTIONS, Math.floor(totalNum));
 
-    const correctNum = Number(raw.correct);
+    const correctNum = Number(authoritative?.correct ?? raw.correct);
     if (!Number.isFinite(correctNum) || correctNum < 0) return { ok: false };
     const correct = Math.min(total, Math.floor(correctNum));
 
@@ -304,6 +310,14 @@ function readOutcome(raw) {
         return { ok: false, reason: 'invalid_review_id' };
     }
     if (reviewId) outcome.reviewId = reviewId;
+
+    if (authoritative?.serverVerified === true) {
+        outcome.serverVerified = true;
+        outcome.batchId = authoritative.batchId;
+        outcome.attemptNumber = authoritative.attemptNumber;
+        outcome.remediationMastered = authoritative.remediationMastered === true;
+        outcome.firstAttempt = authoritative.firstAttempt === true;
+    }
 
     outcome.at = new Date().toISOString();
     return { ok: true, outcome };
@@ -494,7 +508,68 @@ async function handlePost(req, res, userId) {
         return res.status(400).json({ success: false, error: 'leakId required' });
     }
 
-    const { ok, outcome, reason: outcomeReason } = readOutcome(body.outcome);
+    const supabase = getSupabase();
+    let verifiedDrill = null;
+    if (body.answers !== undefined) {
+        return res.status(400).json({ success: false, error: 'Final answer arrays are not accepted' });
+    }
+    if (typeof body.drillToken === 'string' && body.drillToken.length > 0) {
+        let batch;
+        try { batch = openDrillBatch(body.drillToken, userId, leakId); }
+        catch (_) { return res.status(400).json({ success: false, error: 'Invalid or expired drill session' }); }
+        const reviewId = readReviewId(body?.outcome?.reviewId);
+        if (!reviewId) return res.status(400).json({ success: false, error: 'outcome.reviewId is invalid' });
+        const { data: attemptData, error: attemptError } = await supabase.rpc(
+            'record_verified_leak_drill_attempt',
+            {
+                p_user_id: userId,
+                p_leak_id: leakId,
+                p_review_id: reviewId,
+                p_batch_id: batch.batchId,
+                p_question_ids: batch.questionIds,
+            },
+        );
+        if (attemptError || attemptData?.success !== true) {
+            const reason = attemptData?.error || 'telemetry_write_failed';
+            if (!isMissingSchema(attemptError)) {
+                console.warn('[leaks/review] verified attempt ledger failed:', attemptError?.message || reason);
+            }
+            return res.status(reason === 'incomplete_drill' ? 409 : 503).json({
+                success: false,
+                error: reason === 'incomplete_drill'
+                    ? 'Every question must be answered before completing this drill.'
+                    : 'Verified drill completion is temporarily unavailable. Please retry.',
+                reason,
+            });
+        }
+        const attempt = attemptData.attempt || {};
+        if (attemptData.idempotent === true && attempt.review_id !== reviewId) {
+            return res.status(409).json({
+                success: false,
+                error: 'This verified drill session has already been completed.',
+                reason: 'drill_session_consumed',
+            });
+        }
+        verifiedDrill = {
+            ok: true,
+            correct: Number(attempt.correct_answers),
+            total: Number(attempt.total_questions),
+            batchId: batch.batchId,
+            attemptNumber: Number(attempt.attempt_number) || null,
+            remediationMastered: attempt.remediation_mastered === true,
+            firstAttempt: attempt.first_attempt === true,
+        };
+    }
+
+    const { ok, outcome, reason: outcomeReason } = readOutcome(body.outcome, verifiedDrill ? {
+        correct: verifiedDrill.correct,
+        total: verifiedDrill.total,
+        serverVerified: true,
+        batchId: verifiedDrill.batchId,
+        attemptNumber: verifiedDrill.attemptNumber,
+        remediationMastered: verifiedDrill.remediationMastered,
+        firstAttempt: verifiedDrill.firstAttempt,
+    } : null);
     if (!ok) {
         return res.status(400).json({
             success: false,
@@ -504,9 +579,7 @@ async function handlePost(req, res, userId) {
         });
     }
 
-    const supabase = getSupabase();
     const now = new Date();
-
     // 1. Existing state (best effort — no row, or no table, both mean "new").
     let prev = null;
     let tableAvailable = true;
@@ -552,12 +625,15 @@ async function handlePost(req, res, userId) {
         prev?.lastOutcome?.reviewId === outcome.reviewId
         || prev?.history?.some(entry => entry?.reviewId === outcome.reviewId)
     )) {
+        const replayState = verifiedDrill
+            ? { ...prev, lastOutcome: { ...(prev?.lastOutcome || {}), ...outcome } }
+            : prev;
         return res.status(200).json({
             success: true,
             persisted: true,
             idempotent: true,
-            state: prev,
-            record: prev,
+            state: replayState,
+            record: replayState,
         });
     }
 
@@ -583,6 +659,8 @@ async function handlePost(req, res, userId) {
             outcome.evDelta = Math.round((outcome.evLossBB - prevEv) * 100) / 100;
         }
     }
+
+    if (verifiedDrill) outcome.serverVerified = true;
 
     // 2. Next state — computed here, never accepted from the client.
     const scheduler = resolveScheduler();
