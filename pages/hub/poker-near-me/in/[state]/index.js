@@ -23,6 +23,7 @@ export default function PokerStatePage({ state, ...props }) {
     <PokerNearMeLocationPage
       {...props}
       stateCode={state.code}
+      stateName={state.name}
       title={`Poker Rooms in ${state.name}`}
       description={`Explore casino poker rooms and cardrooms across ${state.name}, with direct venue profiles, room details, schedules, and live discovery tools.`}
       canonical={venueLocationCanonical(state.code)}

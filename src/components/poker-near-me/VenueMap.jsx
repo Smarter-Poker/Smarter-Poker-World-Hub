@@ -8,17 +8,17 @@
  * - Futuristic Metal themed popups and controls
  * 
  * Dependencies:
- * - Leaflet (loaded dynamically via script injection)
- * - leaflet.markercluster (loaded dynamically)
+ * - Leaflet + leaflet.markercluster (loaded from pinned npm packages)
  * - Dark tile layer from CartoDB
  * - /public/data/us-states-simplified.json
  * - /public/data/us-mask-outer.json
  */
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useId } from 'react';
 import { radiusToZoom, escapeHtml, getOpenStatus } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 import MapPreferenceChooser from './MapPreferenceChooser';
+import { addPokerMapLayers, createPokerClusterOptions, loadPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
 
 // ─── Constants ───
 const VENUE_TYPE_LABELS = {
@@ -598,7 +598,7 @@ function buildPopupHtml(venue) {
 }
 
 // ─── Main Map Component ───
-export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor, onOpenIframeModal, disableClustering = false, isFavorited }) {
+export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor, onOpenIframeModal, disableClustering = false, clusterTourStops = false, isFavorited }) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [visibleCount, setVisibleCount] = useState(0);
   const mapContainerRef = useRef(null);
@@ -624,88 +624,23 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   // Content signature of the markers currently drawn — see the marker effect below.
   const renderedSignatureRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
+  const [clusteringAvailable, setClusteringAvailable] = useState(false);
+  const mapInstructionsId = `pnm-map-instructions-${useId().replace(/:/g, '')}`;
 
   // Keep the refs current without triggering re-init
   useEffect(() => { onOpenIframeModalRef.current = onOpenIframeModal; }, [onOpenIframeModal]);
   useEffect(() => { onVenueClickRef.current = onVenueClick; }, [onVenueClick]);
 
-  // Dynamically load Leaflet scripts
+  // Load the shared, locally bundled Leaflet runtime once per browser session.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
-    if (window.L && window.L.MarkerClusterGroup) {
-      setMapReady(true);
-      return;
-    }
-
-    const loadScript = (src) => {
-      return new Promise((resolve, reject) => {
-        const existing = document.querySelector(`script[src="${src}"]`);
-        if (existing) {
-          // [VM1/VM6 FIX] Check dataset.loaded FIRST before adding listener.
-          // Previous order added listener then checked — if already loaded, listener was
-          // orphaned (load event never re-fires). Also handles race where script is in DOM
-          // but dataset.loaded not yet set by our onload handler (which means it was injected
-          // by a different code path). In that case, fall through and add the load listener.
-          if (existing.dataset.loaded === 'true') { resolve(); return; }
-          existing.addEventListener('load', () => resolve(), { once: true });
-          return;
-        }
-
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = false;
-        script.onload = () => {
-          script.dataset.loaded = 'true';
-          resolve();
-        };
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    };
-
-    const loadLeaflet = async () => {
-      try {
-        // Load CSS
-        if (!document.querySelector('link[href*="leaflet@1.9.4"]')) {
-          const leafletCSS = document.createElement('link');
-          leafletCSS.rel = 'stylesheet';
-          leafletCSS.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-          document.head.appendChild(leafletCSS);
-        }
-        if (!document.querySelector('link[href*="MarkerCluster"]')) {
-          const clusterCSS = document.createElement('link');
-          clusterCSS.rel = 'stylesheet';
-          clusterCSS.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
-          document.head.appendChild(clusterCSS);
-          const clusterDefaultCSS = document.createElement('link');
-          clusterDefaultCSS.rel = 'stylesheet';
-          clusterDefaultCSS.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
-          document.head.appendChild(clusterDefaultCSS);
-        }
-
-        await loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
-        await new Promise(r => setTimeout(r, 100));
-        await loadScript('https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js');
-
-        const checkReady = (attempts = 0) => {
-          if (!mountedRef.current) return; // Component unmounted — stop polling
-          if (window.L && window.L.MarkerClusterGroup) {
-            setMapReady(true);
-          } else if (attempts < 50) {
-            setTimeout(() => checkReady(attempts + 1), 100);
-          } else {
-            console.warn('MarkerClusterGroup never loaded after 5s — continuing without clustering');
-            if (window.L && mountedRef.current) setMapReady(true);
-          }
-        };
-        checkReady();
-      } catch (err) {
-        console.warn('Failed to load Leaflet scripts:', err);
-      }
-    };
-
-    loadLeaflet();
+    loadPokerMapRuntime()
+      .then((runtime) => {
+        if (!mountedRef.current) return;
+        setClusteringAvailable(runtime.clusteringAvailable);
+        setMapReady(true);
+      })
+      .catch((err) => console.warn('Failed to load local Leaflet runtime:', err));
   }, []);
 
   // Inject custom CSS once
@@ -868,20 +803,15 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     loadOverlays();
 
     // ═══ VENUE MARKERS — Cluster group (populated by separate useEffect) ═══
-    // [VM-A1 FIX] Guard: if markercluster CDN failed to load (5s timeout path),
-    // L.markerClusterGroup is undefined → crash. Fall back to plain L.layerGroup().
+    // If the optional cluster plugin cannot initialize, preserve a functional plain map.
     const clusterGroup = (disableClustering || typeof L.markerClusterGroup !== 'function')
       ? L.layerGroup()
-      : L.markerClusterGroup({
-      maxClusterRadius: 30,
-      iconCreateFunction: function(cluster) {
-        return createClusterIcon(L, cluster);
-      },
-      spiderfyOnMaxZoom: true,
-      showCoverageOnHover: false,
-      zoomToBoundsOnClick: true,
-      disableClusteringAtZoom: 8,
-    });
+      : L.markerClusterGroup(createPokerClusterOptions({
+        iconCreateFunction: function(cluster) {
+          return createClusterIcon(L, cluster);
+        },
+        disableClusteringAtZoom: 8,
+      }));
     map.addLayer(clusterGroup);
     clusterGroupRef.current = clusterGroup;
 
@@ -1023,6 +953,8 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     // Update visible count
     setVisibleCount(validVenues.length);
 
+    const clusteredMarkers = [];
+    const tourMarkers = [];
     validVenues.forEach(function(venue) {
       // ═══ TOUR STOPS — NEVER clustered, always distinct red/gold pins ═══
       const isTourStop = (venue.venue_type === 'tour_stop' || venue.venue_type === 'poker_tour') && venue.tour_code;
@@ -1121,17 +1053,20 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         if (!isTourStop && onVenueClickRef.current) onVenueClickRef.current(venue);
       });
 
-      if (isTourStop) {
-        // ← Tour stops go to NON-CLUSTERED layer — always visible, never hidden in a cluster ball
-        if (tourLayer) tourLayer.addLayer(marker);
+      if (isTourStop && !clusterTourStops) {
+        // Live tour maps keep priority tour pins visible. Dense national series
+        // directories can opt into clustering without changing marker identity.
+        tourMarkers.push(marker);
       } else {
-        clusterGroup.addLayer(marker);
+        clusteredMarkers.push(marker);
       }
     });
+    addPokerMapLayers(clusterGroup, clusteredMarkers);
+    addPokerMapLayers(tourLayer, tourMarkers);
   // [VM2 FIX] Added isFavorited and userLocation to deps — missing caused:
   //   - Favorites gold ring never appearing after a favorite action
   //   - Distance/nearest venue not recomputing when GPS location resolves
-  }, [venues, uniformColor, mapReady, isFavorited, userLocation]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [venues, uniformColor, mapReady, isFavorited, userLocation, clusterTourStops]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update user location marker
   useEffect(() => {
@@ -1256,8 +1191,11 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         ref={mapContainerRef}
         role="region"
         aria-label="Interactive poker venue map"
-        aria-description="Use arrow keys to pan, plus and minus to zoom, and Tab to move between venue markers."
+        aria-describedby={mapInstructionsId}
         aria-busy={!mapReady}
+        data-map-ready={mapReady ? 'true' : 'false'}
+        data-map-marker-count={visibleCount}
+        data-map-clustering={disableClustering ? 'disabled' : clusteringAvailable ? 'available' : 'fallback'}
         tabIndex={0}
         style={{
           width: '100%',
@@ -1271,6 +1209,9 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
           boxShadow: fullHeight ? 'none' : '0 4px 24px rgba(0,0,0,0.4)',
         }}
       />
+      <p id={mapInstructionsId} className="sr-only">
+        Interactive poker venue map. Use arrow keys to pan, plus and minus to zoom, and Tab to move between venue markers.
+      </p>
       {/* ═══ VENUE TYPE LEGEND ═══ */}
       {mapReady && !hideLegend && (
         // A11Y: the legend is the collapse/expand control, so it needs a role, a tab

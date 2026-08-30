@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { radiusToZoom, escapeHtml } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
+import { addPokerMapLayers, createPokerClusterOptions, loadPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
 
 /**
  * VenueMapPanel — Leaflet map rendering for Poker Near Me venues.
@@ -307,6 +308,9 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   // Geography-only signature — gates fitBounds independently of pin/popup content refreshes
   const fittedGeoSignatureRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
+  const [clusteringAvailable, setClusteringAvailable] = useState(false);
+  const mapInstructionsId = `pnm-panel-map-instructions-${useId().replace(/:/g, '')}`;
+  const mappedVenueCount = venues.filter(v => v.latitude && v.longitude).length;
 
   // Keep callback ref current without triggering marker re-render
   useEffect(() => { onVenueSelectRef.current = onVenueSelect; }, [onVenueSelect]);
@@ -329,29 +333,13 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
     if (!mapRef.current) return;
 
     const loadLeaflet = async () => {
-      if (!document.querySelector('link[href*="leaflet"]')) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
-      // MarkerCluster CSS
-      if (!document.querySelector('link[href*="MarkerCluster"]')) {
-        const mcLink = document.createElement('link');
-        mcLink.rel = 'stylesheet';
-        mcLink.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
-        document.head.appendChild(mcLink);
-        const mcDefault = document.createElement('link');
-        mcDefault.rel = 'stylesheet';
-        mcDefault.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
-        document.head.appendChild(mcDefault);
-      }
-
-      const L = (await import('leaflet')).default;
+      const runtime = await loadPokerMapRuntime();
+      const { L } = runtime;
 
       if (!mountedRef.current || !mapRef.current) return;
 
       leafletRef.current = L;
+      setClusteringAvailable(runtime.clusteringAvailable);
 
       const center = userLocation
         ? [userLocation.lat, userLocation.lng]
@@ -380,25 +368,15 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         .addAttribution('Powered By <a href="https://smarter.poker">Smarter.Poker</a>')
         .addTo(map);
 
-      // Create marker cluster group with logo-pin cluster icons
-      let MCG;
-      try {
-        const mcModule = await import('leaflet.markercluster');
-        MCG = mcModule.default || mcModule;
-      } catch (e) {
-        console.warn('MarkerCluster not available, falling back to layer group');
-      }
-      markersLayerRef.current = MCG
-        ? L.markerClusterGroup({
-            maxClusterRadius: 30,
+      // Create a density-aware cluster group. The shared runtime falls back to
+      // a plain layer if the optional clustering plugin cannot initialize.
+      markersLayerRef.current = runtime.clusteringAvailable
+        ? L.markerClusterGroup(createPokerClusterOptions({
             iconCreateFunction: function (cluster) {
               return createClusterIcon(L, cluster);
             },
-            spiderfyOnMaxZoom: true,
-            showCoverageOnHover: false,
-            zoomToBoundsOnClick: true,
             disableClusteringAtZoom: 9,
-          })
+          }))
         : L.layerGroup();
       markersLayerRef.current.addTo(map);
 
@@ -519,7 +497,9 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       userMarkerRef.current = null;
     }
 
-    // Add venue markers with logo pins
+    // Build markers first, then add them in bulk so MarkerCluster can yield
+    // between chunks on dense national result sets.
+    const venueMarkers = [];
     validVenues.forEach(v => {
       // ═══ TOUR STOPS — distinct red pin + tour popup ═══
       const isTourStop = (v.venue_type === 'tour_stop' || v.venue_type === 'poker_tour') && v.tour_code;
@@ -602,8 +582,9 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         marker.on('click', () => onVenueSelectRef.current(v));
       }
 
-      layer.addLayer(marker);
+      venueMarkers.push(marker);
     });
+    addPokerMapLayers(layer, venueMarkers);
 
     // Add user location marker
     if (userLocation) {
@@ -650,15 +631,18 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>
-      <p id="pnm-map-instructions" className="sr-only">
+      <p id={mapInstructionsId} className="sr-only">
         Interactive poker venue map. Use arrow keys to pan, plus and minus to zoom, and Tab to move between venue markers.
       </p>
       <div
         ref={mapRef}
         role="region"
         aria-label="Poker venues map"
-        aria-describedby="pnm-map-instructions"
+        aria-describedby={mapInstructionsId}
         aria-busy={!mapReady}
+        data-map-ready={mapReady ? 'true' : 'false'}
+        data-map-marker-count={mappedVenueCount}
+        data-map-clustering={clusteringAvailable ? 'available' : 'fallback'}
         tabIndex={0}
         style={{
           width: '100%', height: '100%', minHeight: 300, borderRadius: 12, overflow: 'hidden',
@@ -680,7 +664,8 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         marginTop: 8, fontSize: 12, color: 'rgba(200,214,229,0.4)',
         textAlign: 'center',
       }}>
-        {venues.filter(v => v.latitude && v.longitude).length} venues on map
+        {mappedVenueCount} venues on map
+        {mappedVenueCount >= 20 && clusteringAvailable && ' • density clustering active'}
         {userLocation && ' • GPS active'}
       </div>
     </div>
