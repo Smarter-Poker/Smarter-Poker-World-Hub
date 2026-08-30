@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { getAuthUser, getSessionToken } from '../lib/authUtils';
+import { authedFetch, getAuthUser } from '../lib/authUtils';
 import TRAINING_CONFIG, {
   checkLevelPassed,
   getRequiredCorrect,
@@ -366,16 +366,13 @@ export default function useGTOTrainer(
     const nextLevel = level + 1;
 
     try {
-      const token = getSessionToken();
       const params = new URLSearchParams({
         gameId,
         level: nextLevel.toString(),
         count: effectiveQuestionsPerLevel.toString(),
       });
 
-      const response = await fetch(`/api/training/batch-preload?${params}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await authedFetch(`/api/training/batch-preload?${params}`);
 
       const textResponse = await response.text();
       const data = JSON.parse(textResponse);
@@ -418,10 +415,7 @@ export default function useGTOTrainer(
         count: '1',
       });
 
-      const token = getSessionToken();
-      const response = await fetch(`/api/training/batch-preload?${params}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await authedFetch(`/api/training/batch-preload?${params}`);
 
       // Safe JSON parsing
       let data;
@@ -461,7 +455,6 @@ export default function useGTOTrainer(
     setError(null);
 
     try {
-      const token = getSessionToken();
       let apiUrl;
       let params;
 
@@ -551,9 +544,7 @@ export default function useGTOTrainer(
       }
 
       if (!data) {
-        response = await fetch(apiUrl, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        response = await authedFetch(apiUrl);
 
         // Safe JSON parsing to prevent Unexpected Token '<' HTML crash
         const textResponse = await response.text();
@@ -718,13 +709,11 @@ export default function useGTOTrainer(
         ? crypto.randomUUID()
         : `${questionId}:${Date.now()}:${selectedAnswer}`;
       try {
-        const token = getSessionToken();
         for (let attempt = 0; attempt < 3; attempt++) {
-          const response = await fetch('/api/training/record-question', {
+          const response = await authedFetch('/api/training/record-question', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({
               userId,
@@ -1443,7 +1432,6 @@ export default function useGTOTrainer(
       setLastGTOFrequencies(null);
 
       // Call API endpoint to get next-street question
-      const token = getSessionToken();
       const params = new URLSearchParams({
         gameId,
         heroHand: hand.heroHand,
@@ -1457,9 +1445,7 @@ export default function useGTOTrainer(
         params.set('heroCards', hand.heroCards.join(','));
       }
 
-      const response = await fetch(`/api/training/next-street?${params}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await authedFetch(`/api/training/next-street?${params}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -1535,9 +1521,6 @@ export default function useGTOTrainer(
     if (!mistakes || mistakes.length === 0) return;
 
     try {
-      const token = getSessionToken();
-      if (!token) return;
-
       const mistakePayloads = mistakes.map((q) => {
         const scenario = q.scenario || {};
         return {
@@ -1555,11 +1538,10 @@ export default function useGTOTrainer(
         };
       });
 
-      await fetch('/api/training/spaced-repetition', {
+      await authedFetch('/api/training/spaced-repetition', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ mistakes: mistakePayloads }),
       });
@@ -1584,10 +1566,8 @@ export default function useGTOTrainer(
       if (!userId || !gameId) return;
 
       try {
-        const token = getSessionToken();
         const headers = {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
 
         // Calculate diamond rewards using LevelRegistry multipliers
@@ -1600,7 +1580,7 @@ export default function useGTOTrainer(
           effectiveQuestionsPerLevel
         );
 
-        const response = await fetch('/api/training/save-progress', {
+        const response = await authedFetch('/api/training/save-progress', {
           method: 'POST',
           headers,
           body: JSON.stringify({

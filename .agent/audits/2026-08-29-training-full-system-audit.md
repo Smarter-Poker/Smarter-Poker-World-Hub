@@ -40,6 +40,12 @@ joining.
   band that contains it. Exact sizing and grouped sizing are now mutually
   exclusive, every grouped label states its numerical boundary, and sparse
   exact-overbet trees remain in exact vocabulary when padded to four choices.
+- A second exact-revision production browser pass exposed an expired-token
+  failure while C-Bet Academy preloaded questions. The trainer hook was still
+  attaching a synchronously read token to raw `fetch` calls, bypassing the
+  platform's silent refresh and one-time retry. Every trainer API call now uses
+  the canonical authenticated fetcher, including preload, fallback, answer
+  evidence, next street, progress, and spaced-repetition writes.
 - Feedback could advance before a player had time to read it. Correct/Incorrect
   state is now explicit and persists until the player clicks Next.
 - The signed-out Training Hub primary CTA was disabled when no recommendation
@@ -101,6 +107,8 @@ applied. No historical migration row was repaired or rewritten.
 - Answer labels are checked for grading hints.
 - Exact sizing choices cannot overlap grouped sizing bands in the same answer
   set; the exhaustive live rerun completed with zero contract failures.
+- The active trainer contains no raw API `fetch` path; a source guard requires
+  the canonical refresh-capable authenticated fetcher.
 
 ### Application And Routes
 
