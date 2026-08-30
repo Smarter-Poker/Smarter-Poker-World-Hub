@@ -75,6 +75,7 @@ function isTransientStatus(status) {
 }
 
 function isTransientBody(body) {
+  // Keep the auth exception body-specific; a generic 401 must still fail fast.
   return body.includes('57014')
     || body.includes('PGRST002')
     || (body.includes('PGRST303') && body.toLowerCase().includes('jwt issued at future'));
