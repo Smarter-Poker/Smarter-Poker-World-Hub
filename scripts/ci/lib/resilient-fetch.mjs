@@ -59,14 +59,17 @@
  * and the step simply sits there.
  *
  * So: a per-attempt AbortSignal ceiling, AND a wall-clock budget across all
- * attempts so seven 60s attempts cannot become seven minutes.
+ * attempts so seven 60s attempts cannot grow without a release-gate ceiling.
+ * The six-minute budget deliberately leaves room for a fifth attempt after
+ * three full schema timeouts plus one fast clock-skew response; the former
+ * four-minute budget expired before that recovery attempt could start.
  */
 
 const ATTEMPTS = 7;
 const STEP_MS = 5_000;
 const MAX_WAIT_MS = 30_000;
 const PER_ATTEMPT_TIMEOUT_MS = 60_000;
-const TOTAL_BUDGET_MS = 240_000;
+const TOTAL_BUDGET_MS = 360_000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

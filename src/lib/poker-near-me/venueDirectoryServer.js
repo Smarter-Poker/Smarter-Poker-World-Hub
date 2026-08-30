@@ -33,6 +33,36 @@ function compareDirectoryVenues(a, b) {
     || String(a?.name || '').localeCompare(String(b?.name || ''));
 }
 
+function isoOrNull(value) {
+  const parsed = Date.parse(String(value || ''));
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
+}
+
+function snapshotEnvelope(metadata = {}, publicCount = 0) {
+  const snapshot = metadata?.directory_snapshot || metadata || {};
+  const projectedHash = text(snapshot.projected_sha256, 64);
+  const generatedAt = isoOrNull(snapshot.generated_at || metadata?.generated_at);
+  return {
+    schema_version: Number(snapshot.schema_version) || 1,
+    generated_at: generatedAt,
+    projected_sha256: projectedHash || null,
+    public_count: Number(snapshot.public_count) || publicCount,
+    source_count: Number(snapshot.source_count) || Number(metadata?.total) || publicCount,
+    newest_source_at: isoOrNull(snapshot.newest_source_at),
+    oldest_source_at: isoOrNull(snapshot.oldest_source_at),
+  };
+}
+
+function liveDirectoryRevision({ data = [], total = 0 } = {}) {
+  const revisions = data.map((venue) => Number(venue?.location_integrity_revision) || 0);
+  const newest = data
+    .flatMap((venue) => [venue?.last_verified_at, venue?.last_scraped_at, venue?.last_scraped])
+    .map((value) => Date.parse(String(value || '')))
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a)[0];
+  return `supabase:${Number(total) || data.length}:${Math.max(0, ...revisions)}:${newest || 0}`;
+}
+
 function projectDirectoryVenue(venue) {
   const projected = {};
   VENUE_DIRECTORY_FIELD_LIST.forEach((field) => {
@@ -57,7 +87,7 @@ function snapshotMatchesSearch(venue, search) {
  * This is deliberately projection-only: private/contact and scraper-internal
  * fields in all-venues.json never cross the API or SSR boundary.
  */
-export function buildSnapshotVenueDirectory({ params = {}, venues = [] } = {}) {
+export function buildSnapshotVenueDirectory({ params = {}, venues = [], metadata = {} } = {}) {
   const limit = integer(params.limit, 100, 1, 1000);
   const offset = integer(params.offset, 0, 0, 1_000_000);
   const { bounds, error: boundsError } = parsePokerMapBounds(params);
@@ -94,6 +124,7 @@ export function buildSnapshotVenueDirectory({ params = {}, venues = [] } = {}) {
     && isVenueWithinPokerMapBounds(venue, bounds)
   ));
 
+  const snapshot = snapshotEnvelope(metadata, mappable.length);
   return {
     data: mappable.slice(offset, offset + limit).map(projectDirectoryVenue),
     total: mappable.length,
@@ -103,6 +134,10 @@ export function buildSnapshotVenueDirectory({ params = {}, venues = [] } = {}) {
     data_integrity: integrity.summary,
     degraded: true,
     data_source: 'static_snapshot',
+    data_revision: snapshot.projected_sha256
+      ? `snapshot:${snapshot.projected_sha256.slice(0, 16)}`
+      : `snapshot:legacy:${snapshot.public_count}`,
+    snapshot,
   };
 }
 
@@ -165,7 +200,7 @@ export async function fetchVenueDirectory({ supabase, params = {} }) {
     && isVenueWithinPokerMapBounds(venue, bounds)
   ));
   const page = bounds ? filtered.slice(offset, offset + limit) : filtered;
-  return {
+  const result = {
     data: page,
     total: bounds ? filtered.length : (count ?? page.length),
     offset,
@@ -173,6 +208,7 @@ export async function fetchVenueDirectory({ supabase, params = {} }) {
     viewport: bounds,
     data_integrity: integrity.summary,
   };
+  return { ...result, data_revision: liveDirectoryRevision(result) };
 }
 
 /**
@@ -183,15 +219,24 @@ export async function fetchVenueDirectoryResilient({
   supabase,
   params = {},
   fallbackVenues = [],
+  fallbackMetadata = {},
   onFallback,
 } = {}) {
   try {
     const directory = await fetchVenueDirectory({ supabase, params });
+    if (directory.total === 0 && fallbackVenues.length > 0) {
+      const snapshot = buildSnapshotVenueDirectory({ params, venues: fallbackVenues, metadata: fallbackMetadata });
+      if (snapshot.total > 0) {
+        const error = new Error('Live venue directory returned an unexpected empty projection');
+        if (typeof onFallback === 'function') onFallback(error);
+        return snapshot;
+      }
+    }
     return { ...directory, degraded: false, data_source: 'supabase' };
   } catch (error) {
     if (error?.statusCode === 400) throw error;
     if (typeof onFallback === 'function') onFallback(error);
-    return buildSnapshotVenueDirectory({ params, venues: fallbackVenues });
+    return buildSnapshotVenueDirectory({ params, venues: fallbackVenues, metadata: fallbackMetadata });
   }
 }
 
@@ -200,4 +245,5 @@ export const venueDirectoryServerContract = Object.freeze({
   maximumPageSize: 1000,
   excludesCanonicalAliases: true,
   publicSnapshotFallback: true,
+  snapshotProvenance: true,
 });

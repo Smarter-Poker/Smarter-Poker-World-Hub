@@ -82,6 +82,39 @@ test('public directory degrades to the projected snapshot without exposing the d
   assert.doesNotMatch(JSON.stringify(result), /JWT issued at future/);
 });
 
+test('an unexpected empty live projection uses snapshot rows without inventing empty locations', async () => {
+  const emptyQuery = {
+    select() { return emptyQuery; },
+    eq() { return emptyQuery; },
+    neq() { return emptyQuery; },
+    is() { return emptyQuery; },
+    not() { return emptyQuery; },
+    ilike() { return emptyQuery; },
+    textSearch() { return emptyQuery; },
+    order() { return emptyQuery; },
+    range() { return emptyQuery; },
+    then(resolve) { return Promise.resolve({ data: [], error: null, count: 0 }).then(resolve); },
+  };
+  const supabase = { from() { return emptyQuery; } };
+  const fallbackVenues = [venue({ state: 'NV' })];
+
+  const matched = await fetchVenueDirectoryResilient({
+    supabase,
+    params: { state: 'NV' },
+    fallbackVenues,
+  });
+  assert.equal(matched.degraded, true);
+  assert.equal(matched.total, 1);
+
+  const genuinelyEmpty = await fetchVenueDirectoryResilient({
+    supabase,
+    params: { state: 'AK' },
+    fallbackVenues,
+  });
+  assert.equal(genuinelyEmpty.degraded, false);
+  assert.equal(genuinelyEmpty.total, 0);
+});
+
 test('invalid viewport requests remain 400-class errors instead of entering snapshot mode', async () => {
   await assert.rejects(
     fetchVenueDirectoryResilient({

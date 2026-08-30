@@ -86,7 +86,7 @@ test('first discovery and location pages use the fast server directory', async (
   const venuePage = await source('pages/hub/venues/[id].js');
   const reviewsApi = await source('pages/api/poker/reviews.js');
   assert.match(page, /export async function getServerSideProps/);
-  assert.match(page, /view=directory&limit=1000/);
+  assert.match(page, /view=directory&limit=\$\{DIRECTORY_PAGE_SIZE\}/);
   assert.match(page, /pnm-ssr-directory/);
   assert.match(locations, /fetchVenueDirectory/);
   assert.doesNotMatch(locations, /\/api\/poker\/venues/);
