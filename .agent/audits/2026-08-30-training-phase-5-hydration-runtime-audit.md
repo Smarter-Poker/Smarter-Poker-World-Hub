@@ -55,6 +55,12 @@ The browser matrix also no longer replays an expired one-time refresh token into
 
 The concurrent batch runner now claims each queued game synchronously before awaiting browser-page creation. Previously two workers could both observe the final queued item, one could dequeue `undefined`, and the entire otherwise-valid batch would be replayed. An explicit regression contract locks the dequeue-before-await ordering.
 
+### Mobile Session Launch Was Covered By Global Overlays
+
+The mobile arena launch bar was fixed 10 pixels above the viewport bottom at z-index 30 while the approved global footer occupied the bottom 56 pixels at z-index 90. The visible Start Training button therefore sat underneath the footer, which intercepted the tap. If the browser kept retrying, the delayed first-run notification modal could then cover the same control.
+
+The launch bar now sits above the footer plus the device safe area, and the lobby reserves matching scroll clearance. First-run notification prompts are suppressed on Training Arena and Club Arena gameplay routes so they cannot interrupt a session launch or a live decision. The global header and footer components themselves remain unchanged.
+
 ## Verification Results
 
 ### Live Production-Source Question Matrix
@@ -84,7 +90,7 @@ The concurrent batch runner now claims each queued game synchronously before awa
 
 ### Regression And Build Gates
 
-- 40 focused auth, question-integrity, and runtime-wiring tests passed.
+- 41 focused auth, question-integrity, and runtime-wiring tests passed.
 - All authored Training questions passed the static question contract.
 - Manual Next feedback invariants passed.
 - The authenticated login setup regression passed after the cold-service timeout correction.
