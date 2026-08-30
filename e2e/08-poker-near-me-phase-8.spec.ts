@@ -23,7 +23,7 @@ test.describe('Poker Near Me phase 8 signal integrity', () => {
     }
   });
 
-  test('map console exposes signal integrity without horizontal overflow', async ({ page }) => {
+  test('map console hydrates verified signal integrity without horizontal overflow', async ({ page }) => {
     const route = '/hub/poker-near-me/map';
     await page.goto(route, { waitUntil: 'domcontentloaded' });
     const map = page.locator('[data-map-ready="true"]').first();
@@ -31,7 +31,7 @@ test.describe('Poker Near Me phase 8 signal integrity', () => {
     await expect(map).toHaveAttribute('data-map-integrity-held', /^\d+$/);
     const coverage = page.locator('[data-map-coverage="true"]').first();
     await expect(coverage).toBeVisible();
-    await expect(coverage).toHaveAttribute('data-map-verified-count', /^\d+$/);
+    await expect(coverage).toHaveAttribute('data-map-verified-count', /^[1-9]\d*$/);
     await expect(coverage).toHaveAttribute('data-map-approximate-count', /^\d+$/);
     await expect(coverage).toHaveAttribute('data-map-integrity-held', /^\d+$/);
     await expectNoOverflow(page, route);
