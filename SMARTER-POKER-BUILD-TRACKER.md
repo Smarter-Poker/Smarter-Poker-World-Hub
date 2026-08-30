@@ -1337,3 +1337,23 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Systematic browser audit | 107 of 107 game cards clicked one by one; 107 unique artwork URLs; 0px mobile overflow; sharp card geometry verified. |
 
 **Verification:** 439 prebuild checks passed, Training question integrity passed, the new casino-realism catalog suite passed, and the optimized Next.js build completed successfully. Full evidence: `.agent/audits/2026-08-29-training-casino-realism-catalog.md`.
+
+---
+
+## PHASE 59 — Poker Near Me Indexed Operations + SSR Directory (2026-08-30)
+
+| Deliverable | Detail |
+|---|---|
+| Indexed integrity registry | 603 venue rows now carry exact location, completeness, freshness, duplicate, revision, and search state in a protected indexed table. |
+| Operator completion workflow | Server-paged queue, exact rescan, boundary correction, source-backed enrichment, immutable evidence, and safe canonical duplicate retirement are fully wired and MFA-gated. |
+| Safe route preservation | Retired duplicate IDs permanently redirect to their canonical venue while all referenced schedules, reviews, claims, and history remain intact. |
+| Fast public directory | A projection-only `view=directory` path replaces the nationwide rich-enrichment request for first paint and location SSR. |
+| Server-rendered discovery | Dynamic Poker Near Me tab routes render an initial directory, venue links, and structured data before client hydration. |
+| Location family optimization | The location index plus 41 state and 376 city pages query the shared directory directly, with static degraded fallback retained. |
+| Review identity hardening | Synthetic social-page IDs are filtered client-side and rejected at the integer review-stats API boundary, eliminating invalid database casts. |
+| Responsive/accessibility audit | Desktop, mobile, and exact 390×844 checks cover the directory, location pages, and protected admin console with zero page overflow. |
+| Regression gate | Phase 10 source/data contracts, authenticated API/UI coverage, repository prebuild, and production webpack build are green. |
+
+**Production data state:** 603 synchronized rows; 573 active public records; 333 actionable signals; 3 conflicts; 80 missing coordinates; 5 boundary-unavailable; 204 incomplete profiles; 255 stale sources; 0 current duplicate rows.
+
+**Verification:** 491 repository prebuild tests, 12 Phase 8–10 contracts, 6 production-artifact desktop/mobile Playwright journeys, ledger verification for both migrations, and the env-backed webpack production build passed. Full evidence: `.agent/audits/2026-08-30-poker-near-me-phase-10.md`.

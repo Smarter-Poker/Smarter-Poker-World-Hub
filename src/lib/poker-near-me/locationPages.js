@@ -5,26 +5,13 @@ import {
   stateCodeToSlug,
   stateSlugToCode,
 } from '../home-games/locationUtils';
+import { createClient } from '../supabaseServerClient';
+import { fetchVenueDirectory } from './venueDirectoryServer';
+import allVenuesData from '../../../data/all-venues.json';
 
 const SITE_ORIGIN = 'https://smarter.poker';
 const LOCATION_CACHE_TTL_MS = 5 * 60 * 1000;
 const locationRequestCache = new Map();
-
-function requestOrigin(req) {
-  const host = String(req?.headers?.['x-forwarded-host'] || req?.headers?.host || '').split(',')[0].trim();
-  const proto = String(req?.headers?.['x-forwarded-proto'] || 'https').split(',')[0].trim();
-  return host ? `${proto}://${host}` : SITE_ORIGIN;
-}
-
-function forwardedHeaders(req) {
-  const headers = { 'User-Agent': 'sp-location-ssr' };
-  const realIp = String(req?.headers?.['x-real-ip'] || '').split(',')[0].trim();
-  const forwardedFor = String(req?.headers?.['x-forwarded-for'] || '').trim();
-  if (realIp) headers['x-real-ip'] = realIp;
-  if (forwardedFor) headers['x-forwarded-for'] = forwardedFor;
-  else if (realIp) headers['x-forwarded-for'] = realIp;
-  return headers;
-}
 
 function normalizeVenue(row) {
   if (!row || !row.id || !row.name || ['series', 'tour', 'home_game'].includes(row.venue_type)) return null;
@@ -43,23 +30,17 @@ function normalizeVenue(row) {
   };
 }
 
-export async function fetchPokerVenueLocation({ req, state, city }) {
+export async function fetchPokerVenueLocation({ state, city }) {
   const cacheKey = `${state || 'all'}:${city || 'all'}`.toLowerCase();
   const cached = locationRequestCache.get(cacheKey);
   if (cached?.value && cached.expiresAt > Date.now()) return cached.value;
   if (cached?.promise) return cached.promise;
 
-  const query = new URLSearchParams({ limit: '1000' });
-  if (state) query.set('state', state);
-  if (city) query.set('city', city);
-
   const promise = (async () => {
-    const response = await fetch(`${requestOrigin(req)}/api/poker/venues?${query.toString()}`, {
-      headers: forwardedHeaders(req),
-      signal: AbortSignal.timeout(20_000),
+    const payload = await fetchVenueDirectory({
+      supabase: createClient(),
+      params: { limit: 1000, state, city },
     });
-    if (!response.ok) throw new Error(`Venue API returned ${response.status}`);
-    const payload = await response.json();
     const venues = (Array.isArray(payload.data) ? payload.data : [])
       .map(normalizeVenue)
       .filter(Boolean)
@@ -68,7 +49,7 @@ export async function fetchPokerVenueLocation({ req, state, city }) {
       .sort((a, b) => Number(b.is_featured) - Number(a.is_featured) || b.trust_score - a.trust_score || a.name.localeCompare(b.name));
     return {
       venues,
-      degraded: !!payload.degraded,
+      degraded: false,
       fetchedAt: new Date().toISOString(),
     };
   })();
@@ -79,8 +60,16 @@ export async function fetchPokerVenueLocation({ req, state, city }) {
     locationRequestCache.set(cacheKey, { value, expiresAt: Date.now() + LOCATION_CACHE_TTL_MS });
     return value;
   } catch (error) {
-    locationRequestCache.delete(cacheKey);
-    throw error;
+    const venues = (allVenuesData.venues || [])
+      .filter((venue) => venue?.is_active !== false && venue?.is_suppressed !== true && venue?.id !== 3109)
+      .map(normalizeVenue)
+      .filter(Boolean)
+      .filter((venue) => !state || venue.state === state)
+      .filter((venue) => !city || cityTitleToSlug(venue.city) === cityTitleToSlug(city))
+      .sort((a, b) => Number(b.is_featured) - Number(a.is_featured) || b.trust_score - a.trust_score || a.name.localeCompare(b.name));
+    const value = { venues, degraded: true, fetchedAt: new Date().toISOString() };
+    locationRequestCache.set(cacheKey, { value, expiresAt: Date.now() + 60_000 });
+    return value;
   }
 }
 

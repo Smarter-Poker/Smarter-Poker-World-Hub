@@ -30,6 +30,8 @@ import useTourMapStops from '../../../src/hooks/useTourMapStops';
 import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import DiscoveryStatusRail from '../../../src/components/poker-near-me/DiscoveryStatusRail';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { fetchVenueDirectory } from '../../../src/lib/poker-near-me/venueDirectoryServer';
 const GlobalSearchOverlay = dynamic(
   () => import('../../../src/components/poker-near-me/GlobalSearchOverlay'),
   { ssr: false }
@@ -500,7 +502,7 @@ class TabErrorBoundary extends React.Component {
 }
 
 // ---- Geofence Alert Banner (bottom of screen) ----------------------------
-export default function PokerNearMePage() {
+export default function PokerNearMePage({ initialDirectory = null }) {
   const router = useRouter();
   const { user } = useAvatar();
   const bus = eventBus;
@@ -713,13 +715,14 @@ export default function PokerNearMePage() {
   }, [router.isReady, router.query.pnmTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Data states
-  const [venues, setVenues] = useState([]);
-  const [allVenuesForMap, setAllVenuesForMap] = useState([]);
+  const initialVenues = Array.isArray(initialDirectory?.data) ? initialDirectory.data : [];
+  const [venues, setVenues] = useState(initialVenues);
+  const [allVenuesForMap, setAllVenuesForMap] = useState(initialVenues);
   const [tours, setTours] = useState([]);
   const [series, setSeries] = useState([]);
   const [dailyTournaments, setDailyTournaments] = useState([]);
   const [dbStats, setDbStats] = useState({
-    total: 0,
+    total: Number(initialDirectory?.total) || initialVenues.length,
     tournaments: 0,
     states: 0,
     // Which day `tournaments` was counted for — the day selector lets the user
@@ -779,7 +782,10 @@ export default function PokerNearMePage() {
     if (reviewStatsInFlightRef.current) return undefined;
     const missing = venues
       .map((v) => v.id)
-      .filter((id) => id && !pnmReviewStatsRef.current[String(id)]);
+      // Social-page discovery entries use synthetic `sp-*` identifiers while
+      // venue_reviews.venue_id is an integer FK. Keep those identities out of
+      // the ratings request rather than asking Postgres to coerce them.
+      .filter((id) => /^\d+$/.test(String(id)) && !pnmReviewStatsRef.current[String(id)]);
     if (missing.length === 0) return undefined;
 
     const CHUNK = 50;
@@ -1622,7 +1628,7 @@ export default function PokerNearMePage() {
         });
     };
 
-    fetch('/api/poker/venues?limit=1000&offset=0')
+    fetch('/api/poker/venues?view=directory&limit=1000&offset=0')
       .then(function (r) {
         if (!r.ok) throw new Error(`Venue directory returned ${r.status}`);
         return r.json();
@@ -4048,6 +4054,35 @@ export default function PokerNearMePage() {
                 : dbStats.tournamentsDay
             }
           />
+          {initialVenues.length > 0 && (
+            <section className="pnm-ssr-directory" aria-labelledby="pnm-ssr-directory-title">
+              <div className="pnm-ssr-directory-heading">
+                <div>
+                  <span>National room registry</span>
+                  <h2 id="pnm-ssr-directory-title">Featured poker rooms</h2>
+                </div>
+                <a href="/hub/poker-near-me/in">Browse by state</a>
+              </div>
+              <div className="pnm-ssr-directory-grid">
+                {initialVenues.slice(0, 8).map((venue) => (
+                  <a className="pnm-ssr-venue" href={`/hub/venues/${encodeURIComponent(String(venue.id))}`} key={venue.id}>
+                    <span
+                      className="pnm-ssr-venue-art"
+                      style={venue.cover_photo_url || venue.profile_photo_url
+                        ? { backgroundImage: `url(${JSON.stringify(venue.cover_photo_url || venue.profile_photo_url).slice(1, -1)})` }
+                        : undefined}
+                      aria-hidden="true"
+                    />
+                    <span className="pnm-ssr-venue-copy">
+                      <small>{venue.venue_type?.replace(/_/g, ' ') || 'Poker room'}</small>
+                      <strong>{venue.name}</strong>
+                      <span>{[venue.city, venue.state].filter(Boolean).join(', ') || 'Location pending'}</span>
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         {/* ═══ PRIMARY TAB STRIP ═══
@@ -4553,4 +4588,19 @@ export default function PokerNearMePage() {
       </div>
     </>
   );
+}
+
+export async function getServerSideProps({ res }) {
+  try {
+    const directory = await fetchVenueDirectory({
+      supabase: createClient(),
+      params: { limit: 24, offset: 0 },
+    });
+    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=900');
+    return { props: { initialDirectory: directory } };
+  } catch (error) {
+    console.warn('[poker-near-me] SSR directory unavailable:', error?.message || error);
+    res.setHeader('Cache-Control', 'no-store');
+    return { props: { initialDirectory: null } };
+  }
 }
