@@ -19,9 +19,14 @@
  * Z-INDEX CONTRACT: this bar sits at BOTTOM_NAV_Z (90) — deliberately LOW.
  * Every fixed overlay (sheets, modals, pickers, tours) must render at >= 900
  * so it paints above the bar. Do not raise the bar to fix an overlay bug.
+ *
+ * POSITION CONTRACT: the bar never auto-hides, translates, animates, or follows
+ * page scroll. It remains welded to the viewport bottom on every route that
+ * renders it. Preserve this in the shared component instead of adding
+ * route-specific movement.
  */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Home, Brain, Users, LayoutGrid, Bell, User } from 'lucide-react';
@@ -62,7 +67,7 @@ const TABS = [
   { href: '/hub/profile', label: 'Profile', Icon: User },
 ];
 
-function BottomNavBar({ theme = 'auto', autoHide = 'auto', noSafeArea = false }) {
+function BottomNavBar({ theme = 'auto', noSafeArea = false }) {
   const router = useRouter();
   const path = router.asPath || '';
   const { notificationCount } = useUnreadCount() || {};
@@ -73,50 +78,6 @@ function BottomNavBar({ theme = 'auto', autoHide = 'auto', noSafeArea = false })
       : theme === 'light' ? 'light'
         : isPaSurface ? 'dark' : 'light';
   const c = THEMES[resolvedTheme];
-
-  // ── Reduced motion ────────────────────────────────────────────────────────
-  const [reduceMotion, setReduceMotion] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
-    const m = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const on = () => setReduceMotion(m.matches);
-    on();
-    if (m.addEventListener) m.addEventListener('change', on);
-    else if (m.addListener) m.addListener(on);
-    return () => {
-      if (m.removeEventListener) m.removeEventListener('change', on);
-      else if (m.removeListener) m.removeListener(on);
-    };
-  }, []);
-
-  // ── Scroll-aware auto-hide (reclaims 56px during long PA scrolls) ─────────
-  const autoHideOn = (autoHide === 'auto' ? isPaSurface : !!autoHide) && !reduceMotion;
-  const [hidden, setHidden] = useState(false);
-  const lastY = useRef(0);
-  const ticking = useRef(false);
-
-  useEffect(() => {
-    if (!autoHideOn) { setHidden(false); return undefined; }
-    lastY.current = window.scrollY || 0;
-    const onScroll = () => {
-      if (ticking.current) return;
-      ticking.current = true;
-      window.requestAnimationFrame(() => {
-        ticking.current = false;
-        const y = window.scrollY || 0;
-        const dy = y - lastY.current;
-        if (y < 80) setHidden(false);
-        else if (dy > 8) setHidden(true);
-        else if (dy < -6) setHidden(false);
-        if (Math.abs(dy) > 4) lastY.current = y;
-      });
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [autoHideOn]);
-
-  // Never leave the bar hidden across a route change.
-  useEffect(() => { setHidden(false); }, [path]);
 
   // Determine which tab is active based on current path
   const isActive = useCallback((href) => {
@@ -154,6 +115,8 @@ function BottomNavBar({ theme = 'auto', autoHide = 'auto', noSafeArea = false })
       className="bn-nav"
       style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
+        width: '100%', maxWidth: '100vw', margin: 0,
+        overflow: 'hidden', boxSizing: 'border-box',
         minHeight: 56,
         background: c.bg,
         borderTop: `1px solid ${c.border}`,
@@ -162,8 +125,7 @@ function BottomNavBar({ theme = 'auto', autoHide = 'auto', noSafeArea = false })
         paddingBottom: noSafeArea ? 0 : 'env(safe-area-inset-bottom, 0px)',
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
-        transform: hidden ? 'translateY(110%)' : 'translateY(0)',
-        transition: reduceMotion ? 'none' : 'transform .22s ease',
+        transform: 'none', translate: 'none', transition: 'none', animation: 'none',
         // consumed by the .bn-tab:focus-visible rule in the <style> block below
         ['--bn-active']: c.active,
       }}
