@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { normalizeClubArenaHand } from '../src/lib/training/handAuditEngine.js';
+import { auditParsedHands, normalizeClubArenaHand } from '../src/lib/training/handAuditEngine.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const detect = read('pages/api/assistant/leaks/detect.js');
@@ -17,9 +17,70 @@ const pokerHistory = read('pages/api/poker/engine/hand-history.js');
 const evidenceMigration = read('supabase/migrations/20260827190000_solver_leak_evidence.sql');
 const auditMigration = read('supabase/migrations/20260827191000_hand_audit_solver_decisions.sql');
 
+function auditDb(questionRows = [], error = null) {
+  return {
+    from(table) {
+      assert.equal(table, 'training_question_cache');
+      const query = {
+        select() { return query; },
+        like() { return query; },
+        eq() { return query; },
+        async limit() { return { data: questionRows, error }; },
+      };
+      return query;
+    },
+  };
+}
+
+function solverQuestion(overrides = {}) {
+  const scenario = {
+    street: 'flop',
+    heroPosition: 'BTN',
+    heroHand: 'JTs',
+    nodeType: 'hero_bets_or_checks',
+    tableSize: 6,
+    stackDepth: 100,
+    ...(overrides.scenario || {}),
+  };
+  return {
+    source: 'DETERMINISTIC_SOLVER',
+    dataQuality: 'SOLVER_EXACT',
+    heroCards: ['Jh', 'Th'],
+    boardCards: ['As', 'Ks', '2d'],
+    options: [{ id: 'x', text: 'Check' }],
+    gtoFrequencies: { x: 100 },
+    correctAnswer: 'x',
+    ...overrides,
+    scenario,
+  };
+}
+
+function parsedHand(overrides = {}) {
+  return {
+    id: 'test-hand',
+    format: 'cash',
+    variant: 'holdem',
+    gameType: 'nlh',
+    tableSize: 6,
+    hero: { position: 'BTN', holeCards: ['Jh', 'Th'], stack: 100 },
+    streets: {
+      preflop: { actions: [] },
+      flop: { board: ['As', 'Ks', '2d'], actions: [{ isHero: true, action: 'check', amount: 0 }] },
+      turn: null,
+      river: null,
+    },
+    ...overrides,
+  };
+}
+
+function cachedQuestion(question, id = 'question-1') {
+  return { question_id: id, game_id: 'cash-postflop', question_data: question };
+}
+
 test('Leak Finder consumes canonical training answers and hand audits', () => {
   assert.match(detect, /from\('training_answers'\)/);
   assert.match(detect, /from\('hand_audit_decisions'\)/);
+  assert.match(detect, /like\('solver_source', '%\|hand-audit-v2'\)/);
   assert.match(detect, /aggregateSolverLeaks/);
   assert.doesNotMatch(detect, /classification_counts/);
   assert.doesNotMatch(detect, /combineLiveAndTrainingStats/);
@@ -121,6 +182,138 @@ test('Club Arena live rows normalize stages, board, button and revealed hero car
   assert.equal(hand.streets.preflop.actions.length, 2);
   assert.equal(hand.streets.flop.actions.length, 1);
   assert.equal(hand.streets.preflop.actions[1].isHero, true);
+});
+
+test('exact Club Arena matches are stamped with matcher v2 provenance', async () => {
+  const result = await auditParsedHands(
+    auditDb([cachedQuestion(solverQuestion())]),
+    'hero',
+    [parsedHand()],
+    { persist: false },
+  );
+
+  assert.equal(result.solverVerified, 1);
+  assert.equal(result.complete, true);
+  assert.match(result.analyses[0].decisions[0].solverSource, /\|hand-audit-v2$/);
+});
+
+test('legacy PIO cache prompts infer only an unambiguous postflop node', async () => {
+  const question = solverQuestion({
+    type: 'PIO',
+    source: 'PIO_DATABASE',
+    scenario: { nodeType: undefined, action: 'Villain checks' },
+  });
+  const result = await auditParsedHands(
+    auditDb([cachedQuestion(question)]),
+    'hero',
+    [parsedHand()],
+    { persist: false },
+  );
+
+  assert.equal(result.solverVerified, 1);
+  assert.match(result.analyses[0].decisions[0].solverSource, /^PIO_DATABASE\|hand-audit-v2$/);
+});
+
+test('turn and river order cannot be collapsed into a false exact board match', async () => {
+  const hand = parsedHand({
+    streets: {
+      preflop: { actions: [] },
+      flop: { board: ['As', 'Ks', '2d'], actions: [] },
+      turn: { card: 'Qs', actions: [{ isHero: true, action: 'check', amount: 0 }] },
+      river: null,
+    },
+  });
+  const question = solverQuestion({
+    scenario: { street: 'turn' },
+    boardCards: ['As', 'Ks', 'Qs', '2d'],
+  });
+  const result = await auditParsedHands(auditDb([cachedQuestion(question)]), 'hero', [hand], { persist: false });
+
+  assert.equal(result.solverVerified, 0);
+  assert.equal(result.unpriced, 1);
+});
+
+test('Omaha hands cannot be certified against Holdem ranges', async () => {
+  const hand = parsedHand({
+    variant: 'omaha',
+    gameType: 'plo',
+    hero: { position: 'BTN', holeCards: ['Jh', 'Th', '9h', '8h'], stack: 100 },
+  });
+  const result = await auditParsedHands(
+    auditDb([cachedQuestion(solverQuestion())]),
+    'hero',
+    [hand],
+    { persist: false },
+  );
+
+  assert.equal(result.solverVerified, 0);
+  assert.equal(result.solverMatches, 0);
+});
+
+test('postflop solver matching requires the concrete suited combo', async () => {
+  const hand = parsedHand({ hero: { position: 'BTN', holeCards: ['Js', 'Ts'], stack: 100 } });
+  const result = await auditParsedHands(
+    auditDb([cachedQuestion(solverQuestion({ heroCards: ['Jh', 'Th'] }))]),
+    'hero',
+    [hand],
+    { persist: false },
+  );
+
+  assert.equal(result.solverVerified, 0);
+  assert.equal(result.unpriced, 1);
+});
+
+test('recorded bets without normalized sizing remain unpriced', async () => {
+  const question = solverQuestion({
+    options: [{ id: 'b150', text: 'Bet 150%' }],
+    gtoFrequencies: { b150: 100 },
+    correctAnswer: 'b150',
+  });
+  const hand = parsedHand({
+    streets: {
+      preflop: { actions: [] },
+      flop: { board: ['As', 'Ks', '2d'], actions: [{ isHero: true, action: 'bet', amount: 1 }] },
+      turn: null,
+      river: null,
+    },
+  });
+  const result = await auditParsedHands(auditDb([cachedQuestion(question)]), 'hero', [hand], { persist: false });
+
+  assert.equal(result.solverMatches, 1);
+  assert.equal(result.solverVerified, 0);
+});
+
+test('forced blind postings are excluded from hero decision counts', async () => {
+  const hand = normalizeClubArenaHand({
+    id: 'forced-action-hand',
+    game_variant: 'nlh',
+    button_seat: 1,
+    players: [
+      { userId: 'hero', seat: 1, cards: ['As', 'Kh'], stack: 100 },
+      { userId: 'villain', seat: 2, cards: [null, null], stack: 100 },
+    ],
+    actions: [
+      { userId: 'hero', action: 'small_blind', stage: 'preflop', amount: 0.5 },
+      { userId: 'villain', action: 'raise', stage: 'preflop', amount: 3 },
+      { userId: 'hero', action: 'call', stage: 'preflop', amount: 2.5 },
+    ],
+  }, 'hero');
+  const result = await auditParsedHands(auditDb([]), 'hero', [hand], { persist: false });
+
+  assert.equal(result.decisionsAnalyzed, 1);
+});
+
+test('solver lookup failures are explicit incomplete audits, not clean unpriced results', async () => {
+  const result = await auditParsedHands(
+    auditDb([], { message: 'temporary cache outage' }),
+    'hero',
+    [parsedHand()],
+    { persist: false },
+  );
+
+  assert.equal(result.solverLookupFailures, 1);
+  assert.equal(result.complete, false);
+  assert.equal(result.analyses[0].decisions[0].solverSource, 'hand-audit-v2:lookup-failed');
 });
 
 test('migrations preserve provenance and idempotent hand audits', () => {

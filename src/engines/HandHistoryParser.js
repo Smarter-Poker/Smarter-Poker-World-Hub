@@ -114,6 +114,7 @@ function _parsePSHand(block, heroName) {
     const hand = {
         id: headerMatch[1],
         site: 'pokerstars',
+        variant: /omaha/i.test(headerMatch[2]) ? 'omaha' : 'holdem',
         gameType: headerMatch[3].includes('No') ? 'NL' : headerMatch[3].includes('Pot') ? 'PL' : 'FL',
         format: /tournament/i.test(block) ? 'tournament' : 'cash',
         stakes: '',
@@ -280,6 +281,7 @@ function _parse888Hand(block, heroName) {
     const hand = {
         id: `888_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         site: '888poker',
+        variant: /omaha/i.test(block) ? 'omaha' : 'holdem',
         gameType: 'NL',
         format: /tournament|sit\s*&?\s*go/i.test(block) ? 'tournament' : 'cash',
         stakes: '',

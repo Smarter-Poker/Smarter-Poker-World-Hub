@@ -14,7 +14,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { availabilityFailure, persistedResult } from '../../../../src/lib/personal-assistant/persistenceContract';
-import { normalizeUserLeakRow, toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
+import { leakStatusPersistenceFields, normalizeUserLeakRow, toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
 
 let _supabase = null;
 function getSupabase() {
@@ -35,7 +35,25 @@ const POST_ALLOWED_FIELDS = [
 ];
 
 // Columns a client is allowed to update via PATCH.
-const PATCH_ALLOWED_FIELDS = ['status', 'notes', 'resolved_at'];
+const PATCH_ALLOWED_FIELDS = ['status', 'notes'];
+const PATCH_STATUSES = new Set(['emerging', 'persistent', 'improving', 'resolved']);
+
+async function readCombinedLeakCounts(userId) {
+  const [modernActive, modernResolved, trainingActive, trainingResolved] = await Promise.all([
+    getSupabase().from('user_leaks').select('*', { count: 'exact', head: true }).eq('user_id', userId).or('status.neq.resolved,status.is.null'),
+    getSupabase().from('user_leaks').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'resolved'),
+    getSupabase().from('user_training_leaks').select('*', { count: 'exact', head: true }).eq('user_id', userId).is('fixed_at', null),
+    getSupabase().from('user_training_leaks').select('*', { count: 'exact', head: true }).eq('user_id', userId).not('fixed_at', 'is', null),
+  ]);
+  const results = [modernActive, modernResolved, trainingActive, trainingResolved];
+  const failed = results.find(result => result?.error);
+  if (failed) return { error: failed.error };
+  return {
+    active: (modernActive.count || 0) + (trainingActive.count || 0),
+    resolved: (modernResolved.count || 0) + (trainingResolved.count || 0),
+    error: null,
+  };
+}
 
 export default async function handler(req, res) {
   try {
@@ -135,18 +153,20 @@ export default async function handler(req, res) {
             situation_class: leak.description,
             status: leak.fixed_at ? 'resolved' : 'persistent',
             confidence: leak.count >= 5 ? 'high' : leak.count >= 3 ? 'medium' : 'low',
-            avg_ev_loss_bb: 0.10, // Default EV loss
+            // Memory Matrix records repetition counts, not per-action EV or a
+            // denominator of strategic opportunities. Keep it explicitly
+            // unpriced instead of inventing 0.10 BB and a 50% baseline.
+            avg_ev_loss_bb: null,
+            ev_loss_measured: false,
             occurrence_count: leak.count,
-            optimal_frequency: 50,
-            // Count-based pseudo-frequency, clamped and explicitly flagged as
-            // an estimate so the UI can render it differently
-            current_frequency: Math.min(95, 50 + (leak.count * 5)),
-            frequency_is_estimated: true,
+            optimal_frequency: null,
+            current_frequency: null,
+            frequency_is_estimated: false,
             first_detected_at: leak.detected_at,
             last_detected_at: leak.updated_at || leak.detected_at,
             trend_data: [],
             explanation: leak.description,
-            why_leaking_ev: `Detected ${leak.count} times during Memory Matrix training: ${leak.description}`,
+            why_leaking_ev: `Detected ${leak.count} times during Memory Matrix training. No per-action EV measurement is available for this training signal.`,
             recommended_drill: leak.recommended_drill
           }));
 
@@ -277,8 +297,11 @@ export default async function handler(req, res) {
       PATCH_ALLOWED_FIELDS.forEach(field => {
         if (body[field] !== undefined) updates[field] = body[field];
       });
-      if (updates.status === 'resolved' && updates.resolved_at === undefined) {
-        updates.resolved_at = new Date().toISOString();
+      if (updates.status !== undefined) {
+        updates.status = String(updates.status).trim().toLowerCase();
+        if (!PATCH_STATUSES.has(updates.status)) {
+          return res.status(400).json({ success: false, error: 'Unsupported leak status' });
+        }
       }
 
       if (Object.keys(updates).length === 0) {
@@ -286,10 +309,13 @@ export default async function handler(req, res) {
       }
 
       try {
+        const now = new Date().toISOString();
+        if (updates.status) Object.assign(updates, leakStatusPersistenceFields(updates.status, { now }));
+
         // Ownership enforced: only rows belonging to the JWT user can change
-        const { data, error } = await getSupabase()
+        let { data, error } = await getSupabase()
           .from('user_leaks')
-          .update({ ...updates, updated_at: new Date().toISOString() })
+          .update({ ...updates, updated_at: now })
           .eq('id', id)
           .eq('user_id', userId)
           .select()
@@ -303,38 +329,66 @@ export default async function handler(req, res) {
           throw error;
         }
 
+        let updatedSource = 'user_leaks';
         if (!data) {
-          return res.status(404).json({ success: false, error: 'Leak not found' });
+          // The page combines user_leaks with Memory Matrix's
+          // user_training_leaks. Status controls must therefore transition the
+          // owned row in whichever source produced the card.
+          if (!updates.status) return res.status(404).json({ success: false, error: 'Leak not found' });
+          const trainingResult = await getSupabase()
+            .from('user_training_leaks')
+            .update({ fixed_at: updates.status === 'resolved' ? updates.resolved_at : null, updated_at: now })
+            .eq('id', id)
+            .eq('user_id', userId)
+            .select()
+            .maybeSingle();
+          if (trainingResult.error) {
+            if (trainingResult.error.code === '22P02') return res.status(404).json({ success: false, error: 'Leak not found' });
+            throw trainingResult.error;
+          }
+          if (!trainingResult.data) return res.status(404).json({ success: false, error: 'Leak not found' });
+          const trainingLeak = trainingResult.data;
+          data = normalizeUserLeakRow({
+            ...trainingLeak,
+            leak_category: 'training',
+            situation_class: trainingLeak.description || trainingLeak.leak_name,
+            status: trainingLeak.fixed_at ? 'resolved' : 'persistent',
+            occurrence_count: trainingLeak.count,
+            first_detected_at: trainingLeak.detected_at,
+            last_detected_at: trainingLeak.updated_at || trainingLeak.detected_at,
+            recommended_drill: trainingLeak.recommended_drill,
+            source_system: 'training_arena',
+          });
+          updatedSource = 'user_training_leaks';
         }
 
         // 🚀 NEW BUG #12 FIX: Sync Global PA Stats on Status Change
         let statsSynced = true;
         if (updates.status) {
-          const { data: updatedLeaks } = await getSupabase()
-            .from('user_leaks')
-            .select('status')
-            .eq('user_id', userId);
-
-          const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
-          const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
-
-          const { error: err_user_assistant_stats_s6z72 } = await getSupabase()
-            .from('user_assistant_stats')
-            .upsert({
-              user_id: userId,
-              active_leaks_count: activeLeaks,
-              resolved_leaks_count: resolvedLeaksCount,
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'user_id' });
-
-          if (err_user_assistant_stats_s6z72) {
+          const counts = await readCombinedLeakCounts(userId);
+          if (counts.error) {
             statsSynced = false;
-            console.warn('[Supabase] Secondary stats sync failed in user_assistant_stats:', err_user_assistant_stats_s6z72.message);
+            console.warn('[Supabase] Refusing to overwrite assistant leak counts after recount failed:', counts.error.message);
+          } else {
+            const { error: statsWriteError } = await getSupabase()
+              .from('user_assistant_stats')
+              .upsert({
+                user_id: userId,
+                active_leaks_count: counts.active,
+                resolved_leaks_count: counts.resolved,
+                updated_at: now,
+              }, { onConflict: 'user_id' });
+            if (statsWriteError) {
+              statsSynced = false;
+              console.warn('[Supabase] Secondary stats sync failed in user_assistant_stats:', statsWriteError.message);
+            }
           }
         }
 
-        return res.status(200).json(persistedResult(data, {
-          leak: data,
+        const normalized = normalizeUserLeakRow(data);
+        return res.status(200).json(persistedResult(normalized, {
+          leak: normalized,
+          source: updatedSource,
           partial: !statsSynced,
           statsSynced,
         }));

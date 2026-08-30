@@ -954,7 +954,9 @@ function LeakCardProgress({ progress }) {
 }
 
 function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
-  const ev = Math.abs(num(leak.evLossBB));
+  const priced = leak.evLossBB !== null && leak.evLossBB !== undefined
+    && Number.isFinite(Number(leak.evLossBB));
+  const ev = priced ? Math.abs(Number(leak.evLossBB)) : 0;
   const occ = Math.max(0, num(leak.occurrenceCount));
   const total = ev * occ;
   const meta = statusMeta(leak.status);
@@ -973,7 +975,7 @@ function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
         type="button"
         className="leak-card pa-btn"
         onClick={() => onOpen(leak)}
-        aria-label={`${leak.title}. ${meta.label}. ${ev.toFixed(2)} BB lost per occurrence over ${occ} spots. Open details.`}
+        aria-label={`${leak.title}. ${meta.label}. ${priced ? `${ev.toFixed(2)} BB lost per occurrence` : 'EV unpriced'} over ${occ} spots. Open details.`}
         style={styles.leakCardBody}
       >
         <span style={styles.leakCardHeader}>
@@ -982,10 +984,10 @@ function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
         </span>
 
         <span style={styles.leakCardMetrics}>
-          <span style={styles.leakCardEv}>-{ev.toFixed(2)} BB</span>
-          <span style={styles.leakCardMetricDim}>per spot</span>
+          <span style={styles.leakCardEv}>{priced ? `-${ev.toFixed(2)} BB` : 'Unpriced'}</span>
+          <span style={styles.leakCardMetricDim}>{priced ? 'per spot' : 'no EV claim'}</span>
           <span style={styles.leakCardMetricDim}>{occ} spot{occ === 1 ? '' : 's'}</span>
-          <span style={styles.leakCardMetricStrong}>~{total.toFixed(1)} BB total</span>
+          <span style={styles.leakCardMetricStrong}>{priced ? `~${total.toFixed(1)} BB total` : 'Training signal'}</span>
         </span>
 
         <LeakCardProgress progress={progress} />
@@ -1205,7 +1207,9 @@ function LeakDetail({
 
   const drill = leak.recommendedDrill || null;
   const situation = leak.situationClass || 'these';
-  const ev = Math.abs(num(leak.evLossBB));
+  const priced = leak.evLossBB !== null && leak.evLossBB !== undefined
+    && Number.isFinite(Number(leak.evLossBB));
+  const ev = priced ? Math.abs(Number(leak.evLossBB)) : 0;
   const occ = Math.max(0, num(leak.occurrenceCount));
 
   const sandboxCopy = drill
@@ -1237,9 +1241,9 @@ function LeakDetail({
 
       {/* Stat tiles */}
       <div style={styles.statTileGrid}>
-        <StatTile label="EV / spot" value={`-${ev.toFixed(2)}`} tone={T.danger} />
+        <StatTile label="EV / spot" value={priced ? `-${ev.toFixed(2)}` : 'Unpriced'} tone={priced ? T.danger : T.textMuted} />
         <StatTile label="Occurrences" value={String(occ)} />
-        <StatTile label="Total BB lost" value={`~${(ev * occ).toFixed(1)}`} tone={T.danger} />
+        <StatTile label="Total BB lost" value={priced ? `~${(ev * occ).toFixed(1)}` : 'Unpriced'} tone={priced ? T.danger : T.textMuted} />
       </div>
 
       {/* Progress to resolution — real leaks only; a demo leak has no record */}
@@ -1661,8 +1665,8 @@ export default function LeakFinderPage() {
         return;
       }
       setDetectionSummary({
-        type: 'success',
-        text: `Analysed ${num(result.handsAnalyzed).toLocaleString()} Hands · Synced ${num(result.clubArenaSync?.handsAudited).toLocaleString()} New Club Arena Hands · Graded ${num(result.solverDecisionsAnalyzed).toLocaleString()} Solver Decisions · ${found} Leak${found === 1 ? '' : 's'} Found.`,
+        type: result.partial ? 'info' : 'success',
+        text: `Analysed ${num(result.handsAnalyzed).toLocaleString()} Hands · Synced ${num(result.clubArenaSync?.handsAudited).toLocaleString()} New Club Arena Hands · Graded ${num(result.solverDecisionsAnalyzed).toLocaleString()} Solver Decisions · ${found} Leak${found === 1 ? '' : 's'} Found.${result.partial ? ' Some follow-up evidence could not be synchronized and will be retried.' : ''}`,
       });
     } else {
       setDetectionSummary({ type: 'error', text: friendlyDetectionError(result?.error) });
@@ -1779,6 +1783,12 @@ export default function LeakFinderPage() {
     if (slug) q.leakType = slug;
     if (leak?.recommendedDrill) q.drill = leak.recommendedDrill;
     else if (leak?.leakCategory) q.drill = leak.leakCategory;
+    const exactDrill = leakToDrill(leak);
+    if (exactDrill) {
+      q.drillStreet = exactDrill.street;
+      q.drillPosition = exactDrill.position;
+      q.drillLimit = exactDrill.limit;
+    }
     return q;
   }, []);
 
@@ -2189,7 +2199,7 @@ export default function LeakFinderPage() {
                 <span className={toolStyles.telemetryCell}>
                   <span className={toolStyles.telemetryLabel}>Solver Decisions</span>
                   <strong className={toolStyles.telemetryValue} data-tone="gold">
-                    {num(detectionResult?.solverDecisionsAnalyzed).toLocaleString()}
+                    {detectionResult ? num(detectionResult?.solverDecisionsAnalyzed).toLocaleString() : '—'}
                   </strong>
                 </span>
               </div>

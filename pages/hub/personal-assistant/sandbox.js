@@ -1686,7 +1686,14 @@ export default function VirtualSandbox() {
     const q = router.query;
 
     if (q.leak || q.leakType || q.drill) {
-      setPracticeFocus({ leakId: q.leak || null, leakType: q.leakType || null, drill: q.drill || null });
+      setPracticeFocus({
+        leakId: q.leak || null,
+        leakType: q.leakType || null,
+        drill: q.drill || null,
+        street: q.drillStreet || null,
+        position: q.drillPosition || null,
+        limit: q.drillLimit || null,
+      });
       setCoachMode(true);
       safeLocal.set('sandbox-coach-mode', 'true');
     }
@@ -2850,11 +2857,13 @@ export default function VirtualSandbox() {
   }, []);
 
   const startLeakDrill = useCallback(() => {
-    const street = String(practiceFocus?.drill || '').toLowerCase();
+    const explicitStreet = String(practiceFocus?.street || '').toLowerCase();
     setDrillParams({
-      street: ['preflop', 'flop', 'turn', 'river'].includes(street) ? street : 'flop',
-      position: heroPosition,
-      limit: 10,
+      street: ['preflop', 'flop', 'turn', 'river'].includes(explicitStreet) ? explicitStreet : 'Any',
+      position: POSITIONS.includes(String(practiceFocus?.position || '').toUpperCase())
+        ? String(practiceFocus.position).toUpperCase()
+        : heroPosition,
+      limit: Math.max(1, Math.min(Number(practiceFocus?.limit) || 10, 20)),
     });
     setShowQuickDrill(true);
   }, [practiceFocus, heroPosition]);

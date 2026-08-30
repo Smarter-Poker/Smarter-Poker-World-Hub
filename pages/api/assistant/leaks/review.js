@@ -66,7 +66,7 @@ const EASE_MIN = moduleNumber('MIN_EASE', 1.3);
 const EASE_MAX = moduleNumber('MAX_EASE', 2.8);
 const EASE_DEFAULT = moduleNumber('DEFAULT_EASE', 2.3);
 const HISTORY_MAX = Math.max(1, Math.floor(moduleNumber('HISTORY_LIMIT', 12)));
-const INTERVAL_MAX_DAYS = 365;
+const INTERVAL_MAX_DAYS = Math.max(1, Math.floor(moduleNumber('MAX_INTERVAL_DAYS', 21)));
 const MAX_DRILL_QUESTIONS = 500;
 
 // Leak ids come from two tables (uuid) plus demo/synthetic ids ("demo-1").
@@ -483,6 +483,7 @@ async function handlePost(req, res, userId) {
     // 1. Existing state (best effort — no row, or no table, both mean "new").
     let prev = null;
     let tableAvailable = true;
+    let priorStateReadable = true;
     try {
         const { data, error } = await supabase
             .from(TABLE)
@@ -493,12 +494,29 @@ async function handlePost(req, res, userId) {
 
         if (error) {
             if (isMissingSchema(error)) tableAvailable = false;
-            else console.warn('[leaks/review] prior state read failed:', error.message);
+            else {
+                priorStateReadable = false;
+                console.warn('[leaks/review] prior state read failed:', error.message);
+            }
         } else if (data) {
             prev = mapRow(data, now.getTime());
         }
     } catch (err) {
+        priorStateReadable = false;
         console.warn('[leaks/review] prior state read threw:', err?.message || err);
+    }
+
+    // A missing table is an explicit local-only mode. Any other failed read is
+    // indeterminate: grading from prev=null could overwrite a real streak,
+    // history, retirement state and due date. Keep the completed drill local
+    // and refuse the server mutation until the authoritative row is readable.
+    if (tableAvailable && !priorStateReadable) {
+        return res.status(200).json({
+            success: true,
+            persisted: false,
+            reason: 'prior_read_failed',
+            state: null,
+        });
     }
 
     // 1.5 evDelta — computed HERE, from two detection measurements: the EV

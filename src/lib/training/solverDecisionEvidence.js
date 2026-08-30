@@ -209,7 +209,10 @@ export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, ta
         status: errorRate >= 50 ? 'persistent' : 'emerging',
         source_system: 'solver_engine',
         confidence,
-        avg_ev_loss_bb: +avgMeasuredEV.toFixed(3),
+        // A solver frequency can prove an action error without proving its BB
+        // cost. Null keeps that distinction intact all the way through the
+        // existing user_leaks schema and the Leak Finder UI.
+        avg_ev_loss_bb: group.measuredEVMistakes > 0 ? +avgMeasuredEV.toFixed(3) : null,
         occurrence_count: group.mistakes,
         optimal_frequency: targetErrorRate,
         current_frequency: +errorRate.toFixed(1),
