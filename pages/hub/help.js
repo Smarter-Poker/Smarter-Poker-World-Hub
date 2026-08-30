@@ -8,7 +8,6 @@ import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#0a1628',
@@ -379,7 +378,6 @@ export default function HelpPage() {
                         </div>
                     </div>
                 </div>
-              <BottomNavBar />
             </div>
         </>
     );

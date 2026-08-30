@@ -14,7 +14,6 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import TokeTracker from '../../../src/components/bankroll/TokeTracker';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { supabase } from '../../../src/lib/supabase';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function ShiftTrackerPage() {
     const router = useRouter();
@@ -96,7 +95,6 @@ export default function ShiftTrackerPage() {
                     </HubErrorBoundary>
                 </div>
             </div>
-              <BottomNavBar />
     </PageTransition>
     );
 }

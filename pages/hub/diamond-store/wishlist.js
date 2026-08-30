@@ -14,7 +14,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useRequireAuth } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 import { Heart, RefreshCw, ShoppingBag, Trash2 } from 'lucide-react';
 
@@ -182,7 +181,6 @@ export default function Wishlist() {
           )}
         </MarketplaceSubpageShell>
       </div>
-      <BottomNavBar />
     </PageTransition>
   );
 }

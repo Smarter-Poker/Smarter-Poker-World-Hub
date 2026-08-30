@@ -14,7 +14,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function TriviaStats() {
     useTrainingBus('trivia-stats');
@@ -461,7 +460,6 @@ export default function TriviaStats() {
                         )}
                     </div>
                 </div>
-                  <BottomNavBar />
     </PageTransition>
         </>
         </TriviaErrorBoundary>

@@ -11,7 +11,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function DiamondArenaLeaderboard() {
     const bus = useTrainingBus('diamond-arena-leaderboard');
@@ -127,7 +126,6 @@ export default function DiamondArenaLeaderboard() {
                         </div>
                     </div>
                 </div>
-                  <BottomNavBar />
     </PageTransition>
         </>
     );

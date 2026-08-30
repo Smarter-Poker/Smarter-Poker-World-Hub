@@ -15,7 +15,6 @@ import AvatarGallery from '../../src/components/avatars/AvatarGallery';
 
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 export default function AvatarsPage() {
     const { avatar, user, refreshUser } = useAvatar();
@@ -95,7 +94,6 @@ export default function AvatarsPage() {
                     </div>
                 </div>
             </div>
-              <BottomNavBar />
     </PageTransition>
     );
 }

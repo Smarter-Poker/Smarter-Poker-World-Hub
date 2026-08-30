@@ -31,7 +31,6 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 
 // Roster size requested from /api/trivia/session-start. The 30-second clock
@@ -523,7 +522,6 @@ export default function TimeAttackPage() {
                         </div>
                     )}
                 </div>
-              <BottomNavBar />
             </div>
 
             <style>{`

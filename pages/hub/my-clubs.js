@@ -20,7 +20,6 @@ import { supabase } from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../src/engine/EventBus';
 import SkeletonLight from '../../src/components/ui/SkeletonLight';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { homeGameUrl } from '../../src/lib/home-games/urls';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1121,7 +1120,6 @@ export default function MyClubsPage() {
                             )}
                         </div>
                     )}
-                  <BottomNavBar />
                 </div>
             </div >
         </>

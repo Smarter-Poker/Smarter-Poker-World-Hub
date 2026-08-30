@@ -73,7 +73,6 @@ const rajdhani = Rajdhani({
   preload: false,
 });
 
-
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -97,6 +96,8 @@ import PWAInstallPrompt from '../src/components/ui/PWAInstallPrompt';
 import ServiceWorkerUpdater from '../src/components/ui/ServiceWorkerUpdater';
 import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
+import BottomNavBar, { BottomNavSpacer } from '../src/components/ui/BottomNavBar';
+import bottomNavRoutes from '../src/config/bottom-nav-routes.json';
 import { HubErrorBoundary } from '../src/components/ui/HubErrorBoundary';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
 import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
@@ -104,7 +105,12 @@ import { JarvisPanel } from '../src/world/components/Jarvis/JarvisPanel';
 import { useJarvis } from '../src/world/components/Jarvis/useJarvis';
 import { ToastProvider } from '../src/components/club-arena/ToastProvider';
 import GlobalPiPManager from '../src/components/social/GlobalPiPManager';
-import { advanceScrollLockGeneration, sweepStaleScrollLocks, clearBodyScrollLockIfUnheld, scrollLockCount } from '../src/lib/scrollLock';
+import {
+  advanceScrollLockGeneration,
+  sweepStaleScrollLocks,
+  clearBodyScrollLockIfUnheld,
+  scrollLockCount,
+} from '../src/lib/scrollLock';
 
 const TRAINING_ROUTES_WITH_HEADER = new Set([
   '/hub/training',
@@ -177,9 +183,10 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
 // CACHE BUSTER — Clears stale caches on new deploys
 // Uses build timestamp to detect version changes
 // ═══════════════════════════════════════════════════════════════════════════
-const BUILD_VERSION = process.env.NEXT_PUBLIC_BUILD_ID
-  || (typeof window !== 'undefined' && window.__NEXT_DATA__?.buildId)
-  || 'stable'; // CRITICAL: Never use Date.now() — it changes every load and triggers cache clears every time
+const BUILD_VERSION =
+  process.env.NEXT_PUBLIC_BUILD_ID ||
+  (typeof window !== 'undefined' && window.__NEXT_DATA__?.buildId) ||
+  'stable'; // CRITICAL: Never use Date.now() — it changes every load and triggers cache clears every time
 
 if (typeof window !== 'undefined') {
   const CACHE_VERSION_KEY = 'smarter_poker_cache_version';
@@ -196,12 +203,14 @@ if (typeof window !== 'undefined') {
 
   if (storedVersion && storedVersion !== BUILD_VERSION) {
     console.log('[Cache Buster] New version detected! Clearing caches...');
-    console.log(`[Cache Buster] Old: ${storedVersion.slice(0, 8)}, New: ${BUILD_VERSION.slice(0, 8)}`);
+    console.log(
+      `[Cache Buster] Old: ${storedVersion.slice(0, 8)}, New: ${BUILD_VERSION.slice(0, 8)}`
+    );
 
     // Clear all caches
     if ('caches' in window) {
-      caches.keys().then(names => {
-        names.forEach(name => {
+      caches.keys().then((names) => {
+        names.forEach((name) => {
           console.log(`[Cache Buster] Deleting cache: ${name}`);
           caches.delete(name);
         });
@@ -224,8 +233,8 @@ if (typeof window !== 'undefined') {
     // PushSubscriptionSync repairs the subscription on the next boot.
     // ═══════════════════════════════════════════════════════════════════════
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        registrations.forEach(registration => {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
           // `waiting` MUST be in this chain. A registration that has installed
           // but not yet activated has active === null and installing === null,
           // so the old two-term lookup produced '' and fell through to
@@ -244,8 +253,8 @@ if (typeof window !== 'undefined') {
   } else if (process.env.NODE_ENV === 'development') {
     // ALWAYS aggressively unregister service workers in DEV mode to prevent HMR infinite loops
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        registrations.forEach(registration => {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
           console.log('[DEV PWA BUSTER] Forcing ServiceWorker unregistration');
           registration.unregister();
         });
@@ -256,7 +265,9 @@ if (typeof window !== 'undefined') {
   // Store current version (same storage-blocked hazard as the read above)
   try {
     localStorage.setItem(CACHE_VERSION_KEY, BUILD_VERSION);
-  } catch (e) { /* storage blocked — cache-busting simply no-ops */ }
+  } catch (e) {
+    /* storage blocked — cache-busting simply no-ops */
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SUPABASE ABORT ERROR DEFENSE — Suppress harmless navigator.locks AbortError
@@ -264,14 +275,22 @@ if (typeof window !== 'undefined') {
   // The AbortError from @supabase/auth-js/locks.js is a known non-critical issue
   // that occurs during page transitions when in-flight session refreshes are aborted.
   // ═══════════════════════════════════════════════════════════════════════════
-  window.addEventListener('unhandledrejection', function earlyAbortSuppressor(event) {
-    const msg = String(event?.reason?.message || event?.reason || '').toLowerCase();
-    if (msg.includes('aborterror') || msg.includes('signal is aborted') || msg.includes('aborted without reason')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      // Silently swallow — this is Supabase auth-js lock cleanup, not a real error
-    }
-  }, true); // 'true' = capture phase, fires before React's handler
+  window.addEventListener(
+    'unhandledrejection',
+    function earlyAbortSuppressor(event) {
+      const msg = String(event?.reason?.message || event?.reason || '').toLowerCase();
+      if (
+        msg.includes('aborterror') ||
+        msg.includes('signal is aborted') ||
+        msg.includes('aborted without reason')
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        // Silently swallow — this is Supabase auth-js lock cleanup, not a real error
+      }
+    },
+    true
+  ); // 'true' = capture phase, fires before React's handler
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GLOBAL AUTH FETCH INTERCEPTOR — Auto-inject JWT for all /api/ calls
@@ -294,7 +313,8 @@ if (typeof window !== 'undefined') {
     }
 
     // Only intercept internal /api/ calls (not external Supabase REST calls)
-    const isInternalApi = url.startsWith('/api/') || url.startsWith(window.location.origin + '/api/');
+    const isInternalApi =
+      url.startsWith('/api/') || url.startsWith(window.location.origin + '/api/');
 
     if (isInternalApi) {
       // Check if Authorization header is already present
@@ -306,7 +326,9 @@ if (typeof window !== 'undefined') {
       } else if (Array.isArray(existingHeaders)) {
         hasAuthHeader = existingHeaders.some(([key]) => key.toLowerCase() === 'authorization');
       } else if (typeof existingHeaders === 'object') {
-        hasAuthHeader = Object.keys(existingHeaders || {}).some(k => k.toLowerCase() === 'authorization');
+        hasAuthHeader = Object.keys(existingHeaders || {}).some(
+          (k) => k.toLowerCase() === 'authorization'
+        );
       }
 
       // If no Authorization header, inject one from localStorage
@@ -322,13 +344,15 @@ if (typeof window !== 'undefined') {
                 existingHeaders.set('Authorization', `Bearer ${token}`);
                 init.headers = existingHeaders;
               } else if (typeof existingHeaders === 'object' && !Array.isArray(existingHeaders)) {
-                init.headers = { ...existingHeaders, 'Authorization': `Bearer ${token}` };
+                init.headers = { ...existingHeaders, Authorization: `Bearer ${token}` };
               } else {
-                init.headers = { 'Authorization': `Bearer ${token}` };
+                init.headers = { Authorization: `Bearer ${token}` };
               }
             }
           }
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        } catch (e) {
+          console.warn('[App] Handled exception:', e?.message || e);
+        }
       }
     }
 
@@ -339,41 +363,35 @@ if (typeof window !== 'undefined') {
 
 // Dynamic import to avoid SSR issues with celebration animations
 const CelebrationManager = dynamic(
-  () => import('../src/components/diamonds/CelebrationManager').then(mod => mod.CelebrationManager),
+  () =>
+    import('../src/components/diamonds/CelebrationManager').then((mod) => mod.CelebrationManager),
   { ssr: false }
 );
 
 // Dynamic import for DiamondToast (3-second auto-dismiss popup)
-const DiamondToast = dynamic(
-  () => import('../src/components/diamonds/DiamondToast'),
-  { ssr: false }
-);
+const DiamondToast = dynamic(() => import('../src/components/diamonds/DiamondToast'), {
+  ssr: false,
+});
 
 // Dynamic import for Phone Verification VIP Modal
-const PhoneVerifyVIPModal = dynamic(
-  () => import('../src/components/modals/PhoneVerifyVIPModal'),
-  { ssr: false }
-);
+const PhoneVerifyVIPModal = dynamic(() => import('../src/components/modals/PhoneVerifyVIPModal'), {
+  ssr: false,
+});
 
 // Dynamic import for Global Error Catcher (catches async/event handler errors)
-const GlobalErrorCatcher = dynamic(
-  () => import('../src/components/ui/GlobalErrorCatcher'),
-  { ssr: false }
-);
+const GlobalErrorCatcher = dynamic(() => import('../src/components/ui/GlobalErrorCatcher'), {
+  ssr: false,
+});
 
 // Dynamic import for Chunk Load Recovery (auto-reloads on stale chunks after deploy)
-const ChunkLoadRecovery = dynamic(
-  () => import('../src/components/ui/ChunkLoadRecovery'),
-  { ssr: false }
-);
+const ChunkLoadRecovery = dynamic(() => import('../src/components/ui/ChunkLoadRecovery'), {
+  ssr: false,
+});
 
 // Dynamic import for New User Welcome Modal (500 diamonds + 30-Day VIP announcement)
-const NewUserWelcomeModal = dynamic(
-  () => import('../src/components/gates/NewUserWelcomeModal'),
-  { ssr: false }
-);
-
-
+const NewUserWelcomeModal = dynamic(() => import('../src/components/gates/NewUserWelcomeModal'), {
+  ssr: false,
+});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NAVIGATION GUARD — Prevents loading freeze when pressing back button
@@ -462,7 +480,7 @@ function NavigationGuard({ children }) {
         }
 
         // Remove old Supabase auth keys AFTER migration completes
-        oldKeysToRemove.forEach(key => {
+        oldKeysToRemove.forEach((key) => {
           console.log(`[Auth Migration v6] Removing old key: ${key.substring(0, 20)}...`);
           localStorage.removeItem(key);
         });
@@ -475,7 +493,7 @@ function NavigationGuard({ children }) {
             keysToRemove.push(key);
           }
         }
-        keysToRemove.forEach(key => {
+        keysToRemove.forEach((key) => {
           console.log(`[Auth Migration v6] Removing corrupted key`);
           localStorage.removeItem(key);
         });
@@ -490,13 +508,17 @@ function NavigationGuard({ children }) {
       // their preferences (theme, poker felt, Geeves language, etc.)
       // are restored from profiles.app_settings JSONB.
       // ═══════════════════════════════════════════════════════════════════
-      import('../src/lib/appSettingsSync').then(({ seedLocalStorageFromDB }) => {
-        seedLocalStorageFromDB().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      import('../src/lib/appSettingsSync')
+        .then(({ seedLocalStorageFromDB }) => {
+          seedLocalStorageFromDB().catch((e) =>
+            console.warn('[App] Handled promise rejection:', e?.message || e)
+          );
+        })
+        .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
 
     // Initialize SoundEngine for audio playback
-    SoundEngine.init().catch(err => console.warn('[App] SoundEngine init failed:', err));
+    SoundEngine.init().catch((err) => console.warn('[App] SoundEngine init failed:', err));
 
     // Inject the hiding CSS on mount
     const style = document.createElement('style');
@@ -531,19 +553,29 @@ function NavigationGuard({ children }) {
       document.body.classList.add('page-transitioning');
 
       // Force stop all media SYNCHRONOUSLY
-      document.querySelectorAll('video').forEach(video => {
+      document.querySelectorAll('video').forEach((video) => {
         try {
           video.pause();
           video.currentTime = 0;
           video.src = '';
           video.load();
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        } catch (e) {
+          console.warn('[App] Handled exception:', e?.message || e);
+        }
       });
-      document.querySelectorAll('audio').forEach(audio => {
-        try { audio.pause(); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+      document.querySelectorAll('audio').forEach((audio) => {
+        try {
+          audio.pause();
+        } catch (e) {
+          console.warn('[App] Handled exception:', e?.message || e);
+        }
       });
-      document.querySelectorAll('iframe').forEach(iframe => {
-        try { iframe.src = 'about:blank'; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+      document.querySelectorAll('iframe').forEach((iframe) => {
+        try {
+          iframe.src = 'about:blank';
+        } catch (e) {
+          console.warn('[App] Handled exception:', e?.message || e);
+        }
       });
 
       // roadmap #47: advance the scroll-lock generation BEFORE the incoming
@@ -591,7 +623,7 @@ function NavigationGuard({ children }) {
       document.body.style.position = '';
       document.body.style.width = '';
       document.body.style.touchAction = '';
-      document.body.classList.remove('reels-lock');      // FIX: clear Reels class lock
+      document.body.classList.remove('reels-lock'); // FIX: clear Reels class lock
       // `documentElement` is never used as a lock target by the arena — only
       // Reels sets it — so clearing it unconditionally is safe and is what
       // frees a page Reels stranded.
@@ -613,9 +645,7 @@ function NavigationGuard({ children }) {
   }, [router.events]);
 
   return (
-    <NavigationContext.Provider value={{ isNavigating }}>
-      {children}
-    </NavigationContext.Provider>
+    <NavigationContext.Provider value={{ isNavigating }}>{children}</NavigationContext.Provider>
   );
 }
 
@@ -629,7 +659,7 @@ function NavigationGuard({ children }) {
  *   2. Initializes runtime
  *   3. Connects to Supabase
  *   4. Prints heartbeat proof to console
- * 
+ *
  * If any requirement fails → fail-closed → SystemOffline screen
  */
 // ═══════════════════════════════════════════════════════════════════════════
@@ -740,12 +770,16 @@ export default function App({ Component, pageProps }) {
   const path = router.asPath.split('?')[0];
   const isTrainingRoute = path === '/hub/training' || path.startsWith('/hub/training/');
   const trainingPathLeaf = path.split('/').filter(Boolean).at(-1);
-  const candidateTrainingArtId = typeof router.query.gameId === 'string'
-    ? router.query.gameId
-    : TRAINING_STANDALONE_ART_IDS.has(trainingPathLeaf) ? trainingPathLeaf : null;
-  const trainingArtId = candidateTrainingArtId && /^[a-z0-9-]{3,40}$/.test(candidateTrainingArtId)
-    ? candidateTrainingArtId
-    : null;
+  const candidateTrainingArtId =
+    typeof router.query.gameId === 'string'
+      ? router.query.gameId
+      : TRAINING_STANDALONE_ART_IDS.has(trainingPathLeaf)
+        ? trainingPathLeaf
+        : null;
+  const trainingArtId =
+    candidateTrainingArtId && /^[a-z0-9-]{3,40}$/.test(candidateTrainingArtId)
+      ? candidateTrainingArtId
+      : null;
   const trainingRouteArt = trainingArtId
     ? `/images/training/casino-realism/${trainingArtId}.webp`
     : null;
@@ -755,18 +789,45 @@ export default function App({ Component, pageProps }) {
   // training library has consistent navigation without duplicating headers.
   const trainingPageOwnsHeader = TRAINING_ROUTES_WITH_HEADER.has(router.pathname);
   const hubPageNeedsHeader = HUB_ROUTES_WITHOUT_SHARED_HEADER.has(router.pathname);
+  // `/hub/club-arena` is served by the embedded Club Arena SPA, but Next can
+  // classify it as the dynamic `/hub/[orbId]` page before the static rewrite
+  // takes over. Resolve ownership from the real URL first so the generic orb
+  // footer can never leak onto Club Arena's footerless lobby or double-mount
+  // over its internal routes.
+  const resolvedPath =
+    (router.asPath || router.pathname).split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  const isClubArenaRoute =
+    resolvedPath === '/hub/club-arena' || resolvedPath.startsWith('/hub/club-arena/');
+  const bottomNavConfig = isClubArenaRoute ? null : bottomNavRoutes[router.pathname] || null;
+  const [isEmbedded, setIsEmbedded] = useState(false);
+
+  // Two legacy settings surfaces intentionally suppress platform chrome when
+  // embedded. Evaluate after hydration so server and first client render agree.
+  useEffect(() => {
+    try {
+      setIsEmbedded(window.self !== window.top);
+    } catch (_) {
+      setIsEmbedded(true);
+    }
+  }, []);
+
+  const showBottomNav = Boolean(bottomNavConfig && !(bottomNavConfig.hideInIframe && isEmbedded));
 
   // Do NOT capitalize specific poker/trainer tool screens where exact statistical/range string casing (e.g., AQs, cbet, EV) is mathematically critical
-  const isPokerTool = path.includes('/training') || path.includes('/gto') || path.includes('/solver') || path.includes('/sandbox');
+  const isPokerTool =
+    path.includes('/training') ||
+    path.includes('/gto') ||
+    path.includes('/solver') ||
+    path.includes('/sandbox');
 
   // Apply to Settings, Hub, Commander, Club Arena, and Union screens
-  const shouldCapitalize = (
-    path.includes('/settings') ||
-    path.startsWith('/hub') ||
-    path.startsWith('/commander') ||
-    path.includes('/club') ||
-    path.includes('/union')
-  ) && !isPokerTool;
+  const shouldCapitalize =
+    (path.includes('/settings') ||
+      path.startsWith('/hub') ||
+      path.startsWith('/commander') ||
+      path.includes('/club') ||
+      path.includes('/union')) &&
+    !isPokerTool;
 
   // Global Failsafe: Clear stranded scroll locks on route change.
   // roadmap #47: kept as a second, independent pass because the handler above
@@ -783,7 +844,10 @@ export default function App({ Component, pageProps }) {
 
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
-      <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''}`} style={{ minHeight: '100vh' }}>
+      <div
+        className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''}`}
+        style={{ minHeight: '100vh' }}
+      >
         <>
           {/* PWA Manifest — route-based: Commander gets its own manifest/icon/title */}
           <Head>
@@ -794,11 +858,15 @@ export default function App({ Component, pageProps }) {
                 native-input-chrome bug on /auth/login (oversized fields,
                 focus zoom). Declared once here per Next.js convention
                 (_app, not _document). */}
-            <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1, viewport-fit=cover"
+            />
 
             {shouldCapitalize && (
-              <style dangerouslySetInnerHTML={{
-            __html: `
+              <style
+                dangerouslySetInnerHTML={{
+                  __html: `
               /* Target ONLY structural UI elements, buttons, headers, and discrete labels */
               .capitalize-world .settingLabel,
               .capitalize-world .settingDesc,
@@ -825,23 +893,42 @@ export default function App({ Component, pageProps }) {
               .capitalize-world .no-capitalize * {
                 text-transform: none !important;
               }
-            `
-          }} />
-        )}
+            `,
+                }}
+              />
+            )}
 
             {isCommander ? (
               <>
                 <link rel="manifest" href="/commander-manifest.json" />
-                <link rel="apple-touch-icon" sizes="180x180" href="/icons/commander-apple-touch-icon.png" />
-                <link rel="icon" type="image/png" sizes="192x192" href="/icons/commander-icon-192.png" />
-                <link rel="icon" type="image/png" sizes="512x512" href="/icons/commander-icon-512.png" />
+                <link
+                  rel="apple-touch-icon"
+                  sizes="180x180"
+                  href="/icons/commander-apple-touch-icon.png"
+                />
+                <link
+                  rel="icon"
+                  type="image/png"
+                  sizes="192x192"
+                  href="/icons/commander-icon-192.png"
+                />
+                <link
+                  rel="icon"
+                  type="image/png"
+                  sizes="512x512"
+                  href="/icons/commander-icon-512.png"
+                />
                 <meta name="apple-mobile-web-app-title" content="Club Commander" />
                 <meta name="application-name" content="Club Commander" />
               </>
             ) : (
               <>
                 <link rel="manifest" href="/manifest.json" />
-                <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
+                <link
+                  rel="apple-touch-icon"
+                  sizes="180x180"
+                  href="/icons/apple-touch-icon-180.png"
+                />
                 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
                 <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
                 <meta name="apple-mobile-web-app-title" content="Smarter.Poker" />
@@ -865,7 +952,13 @@ export default function App({ Component, pageProps }) {
                                     className="sp-training-route-shell"
                                     data-training-route={router.pathname}
                                     data-training-art={trainingRouteArt ? trainingArtId : undefined}
-                                    style={trainingRouteArt ? { '--sp-training-route-art': `url("${trainingRouteArt}")` } : undefined}
+                                    style={
+                                      trainingRouteArt
+                                        ? {
+                                            '--sp-training-route-art': `url("${trainingRouteArt}")`,
+                                          }
+                                        : undefined
+                                    }
                                   >
                                     {!trainingPageOwnsHeader && <UniversalHeader pageDepth={2} />}
                                     <div className="sp-training-page-stage">
@@ -879,6 +972,13 @@ export default function App({ Component, pageProps }) {
                                   </>
                                 )}
                               </PageErrorBoundary>
+                              {showBottomNav && <BottomNavSpacer />}
+                              {showBottomNav && (
+                                <BottomNavBar
+                                  theme={bottomNavConfig.theme}
+                                  noSafeArea={bottomNavConfig.noSafeArea}
+                                />
+                              )}
                               <HubErrorBoundary name="Celebrations" fallback={<></>}>
                                 <CelebrationManager />
                               </HubErrorBoundary>
@@ -931,7 +1031,6 @@ export default function App({ Component, pageProps }) {
                                 <HubErrorBoundary name="Easter Egg Watcher" fallback={<></>}>
                                   <EasterEggWatcher />
                                 </HubErrorBoundary>
-
                               </ToastProvider>
                             </WorldThemeProvider>
                           </ActiveIdentityProvider>
@@ -948,9 +1047,6 @@ export default function App({ Component, pageProps }) {
     </SWRConfig>
   );
 }
-
-
-
 
 // Report Web Vitals to Sentry for performance monitoring
 export function reportWebVitals({ id, name, label, value }) {
@@ -971,12 +1067,19 @@ export function reportWebVitals({ id, name, label, value }) {
     // wrapper; unrelated Hub routes remain untouched.
     if (typeof window !== 'undefined') {
       const pathname = window.location?.pathname || '';
-      const isDiscoveryRoute = /^\/hub\/(?:poker-near-me|venues|home-games|poker-series|series|daily-tournaments|events-calendar|poker-tours|tours)(?:\/|$)/.test(pathname);
+      const isDiscoveryRoute =
+        /^\/hub\/(?:poker-near-me|venues|home-games|poker-series|series|daily-tournaments|events-calendar|poker-tours|tours)(?:\/|$)/.test(
+          pathname
+        );
       if (isDiscoveryRoute) {
         import('../src/lib/poker-near-me/activity')
-          .then(({ capturePokerNearMeVital }) => capturePokerNearMeVital({ id, name, label, value }, pathname))
+          .then(({ capturePokerNearMeVital }) =>
+            capturePokerNearMeVital({ id, name, label, value }, pathname)
+          )
           .catch(() => null);
       }
     }
-  } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+  } catch (_) {
+    console.warn('[App] Handled exception:', _?.message || _);
+  }
 }

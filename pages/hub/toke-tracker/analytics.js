@@ -14,7 +14,6 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import TokeDashboard from '../../../src/components/bankroll/TokeDashboard';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { supabase } from '../../../src/lib/supabase';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function TokeAnalyticsPage() {
     const router = useRouter();
@@ -129,7 +128,6 @@ export default function TokeAnalyticsPage() {
                     </HubErrorBoundary>
                 </div>
             </div>
-              <BottomNavBar />
     </PageTransition>
     );
 }

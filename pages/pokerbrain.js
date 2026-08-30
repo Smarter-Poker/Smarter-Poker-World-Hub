@@ -5,7 +5,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import supabase from '../src/lib/supabase';
-import BottomNavBar from '../src/components/ui/BottomNavBar';
 import { analyzeSession, analyzeHand } from '../src/lib/poker-brain/session-audit';
 
 // Lazy-load the HUD launcher — it uses getDisplayMedia (browser-only)
@@ -886,7 +885,6 @@ export default function PokerBrainDashboard() {
         {activeTab === 'settings' && <SettingsTab userId={user.id} />}
       </div>
 
-      <BottomNavBar />
     </div>
   );
 }

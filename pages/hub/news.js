@@ -54,7 +54,6 @@ import {
 const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
-const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
 const NewsBox = dynamic(() => import('../../src/components/news/NewsBox'), { ssr: false });
 const ReelCard = dynamic(() => import('../../src/components/news/ReelCard'), { ssr: false });
@@ -4236,7 +4235,6 @@ export default function NewsHub() {
                     }
                 `}</style>
                 </div>
-                  <BottomNavBar />
     </PageTransition>
 
 

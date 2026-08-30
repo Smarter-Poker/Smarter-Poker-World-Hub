@@ -14,7 +14,6 @@ import { useAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { SOCIAL_COLORS, timeAgo } from '../../../src/lib/socialHelpers';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const C = SOCIAL_COLORS;
 
@@ -687,7 +686,6 @@ export default function SocialPagesHub() {
                     )}
                 </div>
 
-              <BottomNavBar />
             </div>
 
             <style>{`

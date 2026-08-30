@@ -36,7 +36,6 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), {
   ssr: false,
 });
-const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 import {
   Gem,
   Crown,
@@ -4315,7 +4314,6 @@ export default function DiamondStorePage({ initialTab }) {
             </div>
           </main>
         </div>
-        <BottomNavBar />
       </PageTransition>
     </>
   );

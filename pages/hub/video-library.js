@@ -28,7 +28,6 @@ import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
-const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 // ReelsViewer is dynamically loaded to reduce initial bundle size
 const ReelsViewer = dynamic(() => import('../../src/components/social/Reels').then(mod => mod.ReelsViewer), { ssr: false });
 import { findBestGames, buildSandboxUrl, extractCardsFromContext } from '../../src/utils/videoToTrainingMapper';
@@ -2995,7 +2994,6 @@ export default function VideoLibraryPage() {
                     }
                 }
             `}</style>
-              <BottomNavBar theme="dark" />
 
             {/* Reels Modal — full-screen TikTok doom-scroll */}
             {showReelsModal && (

@@ -9,13 +9,13 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: [
-    ['html', { open: 'never' }],
-    ['list'],
-  ],
+  reporter: [['html', { open: 'never' }], ['list']],
   timeout: 30000,
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker',
+    baseURL:
+      process.env.PLAYWRIGHT_BASE_URL ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      'https://smarter.poker',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -42,6 +42,16 @@ export default defineConfig({
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['setup'],
+    },
+    {
+      name: 'footer-chromium',
+      testMatch: /global-footer-visual\.spec\.ts$/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'footer-webkit',
+      testMatch: /global-footer-visual\.spec\.ts$/,
+      use: { ...devices['iPhone 13'] },
     },
   ],
 });

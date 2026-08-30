@@ -20,7 +20,6 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { supabase } from '../../src/lib/supabase';
 
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 // 2026-05-07 — UI-UX-Pro-Max icons (Lucide for tab icons + states)
 import { Trophy, MapPin, Star, Activity, AlertTriangle } from 'lucide-react';
 
@@ -707,7 +706,6 @@ export default function LeaderboardsPage() {
                         </div>
                     </div>
                 )}
-                  <BottomNavBar />
     </PageTransition>
 
             <style dangerouslySetInnerHTML={{ __html: darkShimmerKeyframes }} />

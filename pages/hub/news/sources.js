@@ -11,7 +11,6 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useCallback, useEffect, useState } from 'react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getNewsPreferences, updateNewsPreferences } from '../../../src/services/newsPreferences';
 
@@ -318,7 +317,6 @@ export default function NewsSources() {
                         }
                     `}</style>
                 </div>
-                <BottomNavBar />
             </PageTransition>
         </>
     );
