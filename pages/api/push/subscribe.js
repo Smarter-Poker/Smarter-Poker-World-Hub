@@ -163,6 +163,54 @@ export default async function handler(req, res) {
             } catch { /* never block enrollment on a courtesy notice */ }
         }
 
+        /* ═══ ONE LIVE ENDPOINT PER DEVICE (Dan 2026-08-30) ═══════════════════
+           `replacesEndpoint` below only works while the CLIENT still remembers
+           what it is replacing. It does not after a service-worker reinstall,
+           cleared site data or a PWA re-add — the browser mints a fresh
+           endpoint and the old row is left is_active with nothing referencing
+           it. The push service never 410s it (it is a perfectly valid
+           endpoint), so nothing reaps it, and every send pays for it. Measured
+           2026-08-29: one account, eleven active rows, nine redundant, and one
+           seat offer delivered to the same iPhone twice.
+
+           `deviceId` is a random id the client keeps in localStorage — stable
+           across re-subscribes on one browser profile, different between
+           devices. It is the only safe key here: the endpoint is not stable,
+           and user_agent is not unique (two identical iPhones on one account
+           produce byte-identical strings, and deduping on that would switch
+           off one of the person's real devices).
+
+           This runs BEFORE the upsert, and must: the partial unique index
+           `push_subscriptions_one_active_per_device_uidx` would otherwise
+           reject the insert of a second live row for the same device.
+
+           Validated to the shape the client mints. An unusable value is
+           ignored rather than rejected — a bad device id must never cost
+           somebody their subscription, and without one they simply keep the
+           pre-2026-08-30 behaviour. */
+        const rawDeviceId = typeof body?.deviceId === 'string' ? body.deviceId.trim() : '';
+        const deviceId = /^[A-Za-z0-9-]{8,64}$/.test(rawDeviceId) ? rawDeviceId : null;
+
+        if (deviceId) {
+            const { error: retireErr } = await supabase
+                .from('push_subscriptions')
+                .update({
+                    is_active: false,
+                    last_failure_reason: 'superseded_same_device',
+                    updated_at: nowIso,
+                })
+                .eq('user_id', user.id)
+                .eq('device_id', deviceId)
+                .eq('is_active', true)
+                .neq('endpoint', endpoint);
+            if (retireErr) {
+                // Not fatal on its own, but the upsert below is about to hit
+                // the unique index if a live row really is still there, so the
+                // caller gets a real error rather than a confusing 500 later.
+                console.warn('[push/subscribe] same-device retire failed:', retireErr.message);
+            }
+        }
+
         const { error: upsertErr } = await supabase
             .from('push_subscriptions')
             .upsert(
@@ -173,6 +221,7 @@ export default async function handler(req, res) {
                     auth,
                     user_agent: String(body.userAgent || req.headers['user-agent'] || '').slice(0, 500),
                     device_label: body.deviceLabel ? String(body.deviceLabel).slice(0, 120) : null,
+                    device_id: deviceId,
                     is_active: true,
                     failure_count: 0,
                     last_failure_reason: null,

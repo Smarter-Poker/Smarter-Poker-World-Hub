@@ -104,6 +104,22 @@ export async function sendWebPush(subscription, payload = {}, opts = {}) {
         vibrate: payload.vibrate || [120, 60, 120],
         actions: Array.isArray(payload.actions) ? payload.actions.slice(0, 2) : undefined,
         data: payload.data || undefined,
+        /* Dan 2026-08-30. Only ever forwarded as an explicit FALSE.
+         *
+         * `renotify` decides whether the OS re-alerts on a tag it already has
+         * on screen, and the service worker's default (`renotify: true`
+         * whenever a tag is present) is right for almost everything: a second
+         * seat offer at the same table SHOULD buzz. It is wrong for a
+         * notification that exists to REPLACE another — telling somebody an
+         * offer they already missed has now formally lapsed is a second
+         * interruption carrying strictly less news than the first.
+         *
+         * Sent as `false` rather than omitted-when-true so the service worker
+         * can tell "the sender wants this quiet" from "the sender said
+         * nothing", and so a true here can never trip the Chrome trap where
+         * `renotify` without a `tag` makes showNotification throw and display
+         * nothing at all. */
+        renotify: payload.renotify === false ? false : undefined,
         sentAt: Date.now(),
     };
 
