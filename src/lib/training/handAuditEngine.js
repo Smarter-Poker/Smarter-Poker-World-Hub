@@ -297,6 +297,10 @@ async function findQuestion(db, hand, point) {
     .like('game_id', prefix)
     .eq('question_data->scenario->>street', point.street)
     .eq('question_data->scenario->>heroPosition', point.position)
+    // Filter on the indexed solver signature BEFORE the candidate cap. With
+    // 27k+ cached questions, taking 250 position/street rows first could omit
+    // the requested holding even though its exact solver row existed.
+    .eq('question_data->scenario->>heroHand', notation)
     .limit(250);
   if (error) throw error;
   const requestedBoard = canonicalBoard(point.board);
@@ -343,32 +347,64 @@ async function runWithConcurrency(items, limit, worker) {
   await Promise.all(workers);
 }
 
+const MAX_DECISIONS_PER_HAND = 12;
+const EXISTING_AUDIT_BATCH_SIZE = 40;
+const DEFAULT_UNPRICED_RETRY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Remove decisions that belonged to an older parse of a hand. Upsert alone is
+ * not enough: if a corrected hand history has fewer actions, its old trailing
+ * decision keys otherwise remain verified and continue feeding Leak Finder.
+ */
+async function replacePersistedDecisionEvidence(db, userId, handIds, rows) {
+  // Replacement is one transaction in PostgreSQL. Per-hand advisory locks in
+  // the RPC prevent concurrent manual and Club Arena audits from deleting one
+  // another's freshly written decision evidence.
+  const { data, error } = await db.rpc('replace_hand_audit_decisions', {
+    p_user_id: userId,
+    p_hand_ids: handIds,
+    p_rows: rows,
+  });
+  if (error) return { persisted: false, reconciled: false, removed: 0, error };
+  return {
+    persisted: data?.success !== false,
+    reconciled: data?.success !== false,
+    removed: Number(data?.removed) || 0,
+  };
+}
+
 export async function auditParsedHands(db, userId, hands, {
   maxDecisions = 250,
   persist = true,
   queryConcurrency = 6,
+  reconcileExisting = true,
 } = {}) {
   const rows = [];
   const analyses = [];
   const work = [];
+  const fullyEnumeratedHandIds = [];
   let matched = 0;
   let verified = 0;
   let solverLookupFailures = 0;
   let truncated = false;
 
   for (const [handIndex, hand] of (hands || []).entries()) {
-    const analysis = { handId: hand.id, decisions: [] };
+    const points = getHeroDecisionPoints(hand).slice(0, MAX_DECISIONS_PER_HAND);
+    // A partial hand is not an authoritative replacement. Stop before the
+    // boundary hand so reconciliation never deletes its unenumerated actions.
+    if (work.length + points.length > maxDecisions) { truncated = true; break; }
+    const externalHandId = String(hand.id || `parsed-${handIndex}`).slice(0, 180);
+    const analysis = { handId: externalHandId, decisions: [] };
     analyses.push(analysis);
-    for (const [index, point] of getHeroDecisionPoints(hand).slice(0, 12).entries()) {
-      if (work.length >= maxDecisions) { truncated = true; break; }
+    fullyEnumeratedHandIds.push(externalHandId);
+    for (const [index, point] of points.entries()) {
       const signature = [
         hand.format, hand.gameType, hand.tableSize, hand.hero?.stack,
         point.street, point.position, point.nodeClass, handNotation(point.holeCards),
         canonicalCombo(point.holeCards), canonicalBoard(point.board), point.action, point.amount,
       ].join('|');
-      work.push({ hand, handIndex, index, point, signature });
+      work.push({ hand, handIndex, index, point, signature, externalHandId });
     }
-    if (truncated) break;
   }
 
   // Solver cache lookups are independent. Resolve each unique signature with a
@@ -384,7 +420,7 @@ export async function auditParsedHands(db, userId, hands, {
     }
   });
 
-  for (const { hand, handIndex, index, point, signature } of work) {
+  for (const { hand, handIndex, index, point, signature, externalHandId } of work) {
       const cached = candidateCache.get(signature);
       const lookupFailed = cached === LOOKUP_FAILED_SOURCE;
       const candidate = !lookupFailed && cached ? cached : null;
@@ -397,7 +433,7 @@ export async function auditParsedHands(db, userId, hands, {
       const now = new Date().toISOString();
       const row = {
         user_id: userId,
-        hand_external_id: String(hand.id || `parsed-${analyses.length}`).slice(0, 180),
+        hand_external_id: externalHandId,
         decision_key: `${point.street}:${index}`,
         question_id: candidate?.question_id || null,
         game_id: candidate?.game_id || (hand.format === 'tournament' ? 'mtt-hand-audit' : 'cash-hand-audit'),
@@ -440,19 +476,39 @@ export async function auditParsedHands(db, userId, hands, {
   }
 
   let persisted = true;
-  if (persist && rows.length > 0) {
+  let reconciliation = { reconciled: true, removed: 0 };
+  if (persist && reconcileExisting && fullyEnumeratedHandIds.length > 0) {
+    try {
+      const replacement = await replacePersistedDecisionEvidence(
+        db, userId, fullyEnumeratedHandIds, rows,
+      );
+      persisted = replacement.persisted;
+      reconciliation = replacement;
+      if (!reconciliation.reconciled) {
+        console.warn('[HandAudit] Atomic decision replacement failed:', reconciliation.error?.message || reconciliation.error);
+      }
+    } catch (error) {
+      persisted = false;
+      reconciliation = { reconciled: false, removed: 0, error };
+      console.warn('[HandAudit] Atomic decision replacement threw:', error?.message || error);
+    }
+  } else if (persist && rows.length > 0) {
+    // Explicit opt-out remains available to isolated import tooling and unit
+    // tests. Production callers use the atomic replacement path above.
     const { error } = await db.from('hand_audit_decisions').upsert(rows, { onConflict: 'user_id,hand_external_id,decision_key' });
     if (error) { persisted = false; console.warn('[HandAudit] Decision persistence failed:', error.message); }
   }
   return {
     persisted,
+    evidenceReconciled: reconciliation.reconciled,
+    obsoleteDecisionsRemoved: reconciliation.removed,
     handsParsed: analyses.length,
     decisionsAnalyzed: rows.length,
     solverMatches: matched,
     solverVerified: verified,
     unpriced: rows.length - verified,
     solverLookupFailures,
-    complete: solverLookupFailures === 0 && persisted,
+    complete: !truncated && solverLookupFailures === 0 && persisted && reconciliation.reconciled,
     truncated,
     maxDecisions,
     analyses,
@@ -472,10 +528,6 @@ async function fetchClubHandsForKey(db, userId, key, limit) {
     .order('created_at', { ascending: false })
     .limit(limit);
 }
-
-const MAX_DECISIONS_PER_HAND = 12;
-const EXISTING_AUDIT_BATCH_SIZE = 40;
-const DEFAULT_UNPRICED_RETRY_MS = 24 * 60 * 60 * 1000;
 
 async function fetchExistingAuditRows(db, userId, externalIds) {
   const rows = [];
@@ -528,6 +580,9 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       solverVerified: 0,
       unpriced: 0,
       persisted: true,
+      evidenceReconciled: true,
+      obsoleteDecisionsRemoved: 0,
+      complete: true,
     };
   }
 
@@ -586,6 +641,8 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     solverLookupFailures: result.solverLookupFailures,
     complete: result.complete,
     persisted: result.persisted,
+    evidenceReconciled: result.evidenceReconciled,
+    obsoleteDecisionsRemoved: result.obsoleteDecisionsRemoved,
     truncated: result.truncated,
   };
 }

@@ -330,29 +330,33 @@ function DrillSheetSkeleton() {
 // never resurrect a schedule the account has already moved on from.
 
 const REVIEW_STORE_KEY = `pa-leak-review-v${REVIEW_SCHEMA_VERSION}`;
+const LEGACY_REVIEW_STORE_KEYS = ['pa-leak-review-v2', 'pa-leak-review-v1']
+  .filter(key => key !== REVIEW_STORE_KEY);
 
 /** Local records as an array. Never throws; a corrupt blob reads as empty. */
 function readLocalReviewRecords() {
-  try {
-    const raw = safeStorage.get(REVIEW_STORE_KEY, null);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
-    const map = (parsed.records && typeof parsed.records === 'object' && !Array.isArray(parsed.records))
-      ? parsed.records
-      : parsed;
-    if (!map || typeof map !== 'object' || Array.isArray(map)) return [];
-    return Object.keys(map)
-      .map((key) => {
-        const value = map[key];
-        if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-        return value.leakId ? value : { ...value, leakId: key };
-      })
-      .filter(Boolean);
-  } catch (e) {
-    console.warn('[LeakFinder] local review store unreadable:', e?.message || e);
-    return [];
+  const map = {};
+  for (const key of [...LEGACY_REVIEW_STORE_KEYS].reverse().concat(REVIEW_STORE_KEY)) {
+    try {
+      const raw = safeStorage.get(key, null);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
+      const records = (parsed.records && typeof parsed.records === 'object' && !Array.isArray(parsed.records))
+        ? parsed.records
+        : parsed;
+      if (records && typeof records === 'object' && !Array.isArray(records)) Object.assign(map, records);
+    } catch (e) {
+      console.warn(`[LeakFinder] local review store ${key} unreadable:`, e?.message || e);
+    }
   }
+  return Object.keys(map)
+    .map((key) => {
+      const value = map[key];
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+      return value.leakId ? value : { ...value, leakId: key };
+    })
+    .filter(Boolean);
 }
 
 /**

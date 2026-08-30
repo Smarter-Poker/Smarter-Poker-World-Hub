@@ -99,6 +99,10 @@ await test('uses the shared training question and persists an exact audit decisi
     gtoFrequencies: { raise: 100, fold: 0 },
   };
   const db = {
+    rpc: async (_name, args) => {
+      upserts.push(...args.p_rows);
+      return { data: { success: true, upserted: args.p_rows.length, removed: 0 }, error: null };
+    },
     from(table) {
       if (table === 'training_question_cache') {
         const chain = {
@@ -118,7 +122,7 @@ await test('uses the shared training question and persists an exact audit decisi
     },
   };
   const hand = normalizeClubArenaHand(clubRow, userId);
-  const result = await auditParsedHands(db, userId, [hand]);
+  const result = await auditParsedHands(db, userId, [hand], { reconcileExisting: false });
   assert.equal(result.handsParsed, 1);
   assert.equal(result.decisionsAnalyzed, 1);
   assert.equal(result.solverVerified, 1);
@@ -153,6 +157,7 @@ await test('bounds and parallelizes independent solver-cache lookups', async () 
   let maxActive = 0;
   let lookups = 0;
   const db = {
+    rpc: async () => ({ data: { success: true, upserted: 1, removed: 0 }, error: null }),
     from(table) {
       if (table === 'training_question_cache') {
         const chain = {
@@ -180,7 +185,7 @@ await test('bounds and parallelizes independent solver-cache lookups', async () 
     summary.players[0].holeCards = heroCards;
     return normalizeClubArenaHand({ ...clubRow, id: `parallel-hand-${index}`, summary: JSON.stringify(summary) }, userId);
   });
-  const result = await auditParsedHands(db, userId, hands, { queryConcurrency: 3 });
+  const result = await auditParsedHands(db, userId, hands, { queryConcurrency: 3, reconcileExisting: false });
   assert.equal(result.solverVerified, pairs.length);
   assert.equal(lookups, pairs.length);
   assert.ok(maxActive > 1);
@@ -196,9 +201,9 @@ await test('wires Leak Finder sync before solver evidence aggregation', () => {
   assert.ok(source.includes('clubArenaSync'));
 });
 
-await test('limits automatic leak ingestion to authoritative Club Arena engine rows', () => {
+await test('limits automatic leak ingestion to authoritative Club Arena recorder rows', () => {
   const source = readFileSync(resolve('src/lib/training/handAuditEngine.js'), 'utf8');
-  assert.ok(source.includes(".in('source', ['wh-engine', 'engine-api'])"));
+  assert.ok(source.includes(".in('source', ['manual', 'wh-engine', 'engine-api'])"));
 });
 
 await test('syncs a Club Arena row through normalization, solver grading, and idempotent persistence', async () => {
@@ -212,6 +217,10 @@ await test('syncs a Club Arena row through normalization, solver grading, and id
     gtoFrequencies: { raise: 100, fold: 0 },
   };
   const db = {
+    rpc: async (_name, args) => {
+      upserts.push(...args.p_rows);
+      return { data: { success: true, upserted: args.p_rows.length, removed: 0 }, error: null };
+    },
     from(table) {
       if (table === 'hand_history') {
         let membership = null;
@@ -220,7 +229,7 @@ await test('syncs a Club Arena row through normalization, solver grading, and id
           contains: (_column, value) => { membership = value; return chain; },
           in: (_column, values) => { sourceFilters.push(values); return chain; },
           order: () => chain,
-          limit: async () => ({ data: membership?.[0]?.userId ? [clubRow] : [], error: null }),
+          limit: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [clubRow] : [], error: null }),
         };
         return chain;
       }
@@ -255,8 +264,8 @@ await test('syncs a Club Arena row through normalization, solver grading, and id
   assert.equal(result.persisted, true);
   assert.equal(upserts.length, 1);
   assert.deepEqual(sourceFilters, [
-    ['wh-engine', 'engine-api'],
-    ['wh-engine', 'engine-api'],
+    ['manual', 'wh-engine', 'engine-api'],
+    ['manual', 'wh-engine', 'engine-api'],
   ]);
 });
 
@@ -272,7 +281,7 @@ await test('skips a complete, current Club Arena audit without repeating solver 
           contains: (_column, value) => { membership = value; return chain; },
           in: () => chain,
           order: () => chain,
-          limit: async () => ({ data: membership?.[0]?.userId ? [clubRow] : [], error: null }),
+          limit: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [clubRow] : [], error: null }),
         };
         return chain;
       }
@@ -284,6 +293,8 @@ await test('skips a complete, current Club Arena audit without repeating solver 
             data: [{
               hand_external_id: 'club-arena:hand-42',
               solver_verified: true,
+              solver_source: 'DETERMINISTIC_SOLVER|hand-audit-v2',
+              classification: 'best',
               updated_at: '2026-08-29T12:00:00.000Z',
             }],
             error: null,
@@ -321,6 +332,7 @@ await test('retries a stale unpriced Club Arena audit after the solver refresh w
     gtoFrequencies: { raise: 100 },
   };
   const db = {
+    rpc: async () => ({ data: { success: true, upserted: 1, removed: 0 }, error: null }),
     from(table) {
       if (table === 'hand_history') {
         let membership = null;
@@ -329,7 +341,7 @@ await test('retries a stale unpriced Club Arena audit after the solver refresh w
           contains: (_column, value) => { membership = value; return chain; },
           in: () => chain,
           order: () => chain,
-          limit: async () => ({ data: membership?.[0]?.userId ? [clubRow] : [], error: null }),
+          limit: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [clubRow] : [], error: null }),
         };
         return chain;
       }
