@@ -32,6 +32,15 @@ test('live catalog additions receive an ISR product detail page without a code d
   assert.match(merchDetail, /openGraphType="product"/);
 });
 
+test('merchandise ISR falls back instead of hanging the production build', () => {
+  assert.match(merchDetail, /BUILD_CATALOG_TIMEOUT_MS\s*=\s*5_000/);
+  assert.match(merchDetail, /new AbortController\(\)/);
+  assert.match(merchDetail, /controller\.abort\(\)/);
+  assert.match(merchDetail, /\.abortSignal\(signal\)/);
+  assert.match(merchDetail, /clearTimeout\(timeout\)/);
+  assert.match(merchDetail, /product \|\|= staticProduct/);
+});
+
 test('marketplace carts persist JSON and expose mobile-safe payment controls', () => {
   assert.match(cartStore, /createJSONStorage\(\(\) => getStorage\(\)\)/);
   assert.match(cart, /role="radiogroup"/);
