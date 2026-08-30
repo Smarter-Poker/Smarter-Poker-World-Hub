@@ -6,7 +6,7 @@ import {
   stateSlugToCode,
 } from '../home-games/locationUtils';
 import { createClient } from '../supabaseServerClient';
-import { fetchVenueDirectory } from './venueDirectoryServer';
+import { fetchVenueDirectoryResilient } from './venueDirectoryServer';
 import allVenuesData from '../../../data/all-venues.json';
 
 const SITE_ORIGIN = 'https://smarter.poker';
@@ -37,9 +37,13 @@ export async function fetchPokerVenueLocation({ state, city }) {
   if (cached?.promise) return cached.promise;
 
   const promise = (async () => {
-    const payload = await fetchVenueDirectory({
+    const payload = await fetchVenueDirectoryResilient({
       supabase: createClient(),
       params: { limit: 1000, state, city },
+      fallbackVenues: allVenuesData.venues || [],
+      onFallback: (error) => {
+        console.warn('[poker-near-me] Location directory database unavailable; using snapshot:', error?.message || error);
+      },
     });
     const venues = (Array.isArray(payload.data) ? payload.data : [])
       .map(normalizeVenue)
@@ -49,7 +53,7 @@ export async function fetchPokerVenueLocation({ state, city }) {
       .sort((a, b) => Number(b.is_featured) - Number(a.is_featured) || b.trust_score - a.trust_score || a.name.localeCompare(b.name));
     return {
       venues,
-      degraded: false,
+      degraded: payload.degraded === true,
       fetchedAt: new Date().toISOString(),
     };
   })();
@@ -57,17 +61,14 @@ export async function fetchPokerVenueLocation({ state, city }) {
   locationRequestCache.set(cacheKey, { promise });
   try {
     const value = await promise;
-    locationRequestCache.set(cacheKey, { value, expiresAt: Date.now() + LOCATION_CACHE_TTL_MS });
+    locationRequestCache.set(cacheKey, {
+      value,
+      expiresAt: Date.now() + (value.degraded ? 60_000 : LOCATION_CACHE_TTL_MS),
+    });
     return value;
   } catch (error) {
-    const venues = (allVenuesData.venues || [])
-      .filter((venue) => venue?.is_active !== false && venue?.is_suppressed !== true && venue?.id !== 3109)
-      .map(normalizeVenue)
-      .filter(Boolean)
-      .filter((venue) => !state || venue.state === state)
-      .filter((venue) => !city || cityTitleToSlug(venue.city) === cityTitleToSlug(city))
-      .sort((a, b) => Number(b.is_featured) - Number(a.is_featured) || b.trust_score - a.trust_score || a.name.localeCompare(b.name));
-    const value = { venues, degraded: true, fetchedAt: new Date().toISOString() };
+    console.warn('[poker-near-me] Location directory fallback failed:', error?.message || error);
+    const value = { venues: [], degraded: true, fetchedAt: new Date().toISOString() };
     locationRequestCache.set(cacheKey, { value, expiresAt: Date.now() + 60_000 });
     return value;
   }

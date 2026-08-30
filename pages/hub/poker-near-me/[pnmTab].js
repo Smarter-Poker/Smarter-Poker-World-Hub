@@ -31,7 +31,8 @@ import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import DiscoveryStatusRail from '../../../src/components/poker-near-me/DiscoveryStatusRail';
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { fetchVenueDirectory } from '../../../src/lib/poker-near-me/venueDirectoryServer';
+import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/venueDirectoryServer';
+import allVenuesData from '../../../data/all-venues.json';
 const GlobalSearchOverlay = dynamic(
   () => import('../../../src/components/poker-near-me/GlobalSearchOverlay'),
   { ssr: false }
@@ -718,6 +719,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   const initialVenues = Array.isArray(initialDirectory?.data) ? initialDirectory.data : [];
   const [venues, setVenues] = useState(initialVenues);
   const [allVenuesForMap, setAllVenuesForMap] = useState(initialVenues);
+  const [directorySource, setDirectorySource] = useState(
+    initialDirectory?.data_source || (initialDirectory?.degraded ? 'static_snapshot' : 'supabase')
+  );
   const [tours, setTours] = useState([]);
   const [series, setSeries] = useState([]);
   const [dailyTournaments, setDailyTournaments] = useState([]);
@@ -1625,6 +1629,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         .then(function (json) {
           const snapshot = activeVenues(json.venues || json.data || json || [], true);
           setGlobalVenues(snapshot);
+          setDirectorySource('static_snapshot');
         });
     };
 
@@ -1642,12 +1647,17 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         }
         const activeArr = activeVenues(directory);
         setGlobalVenues(activeArr);
+        setDirectorySource(json.degraded ? 'static_snapshot' : 'supabase');
         scheduleCacheWrite(activeArr);
       })
       .catch(function (error) {
         console.warn('[Poker Near Me] Integrity directory unavailable:', error?.message || error);
-        if (hadCacheHit) return;
+        if (hadCacheHit) {
+          setDirectorySource('browser_cache');
+          return;
+        }
         loadStaticFallback().catch(function () {
+          setDirectorySource('unavailable');
           setFetchError('Unable to load venue data. Check your connection.');
         });
       });
@@ -4054,6 +4064,18 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                 : dbStats.tournamentsDay
             }
           />
+          {directorySource !== 'supabase' && (
+            <div className="pnm-directory-source" role="status" aria-live="polite" data-directory-source={directorySource}>
+              <span>
+                {directorySource === 'unavailable'
+                  ? 'The venue registry is temporarily unavailable.'
+                  : directorySource === 'browser_cache'
+                    ? 'Live registry refresh is unavailable. Showing your most recent verified directory cache.'
+                    : 'Live registry refresh is unavailable. Showing the last published venue snapshot.'}
+              </span>
+              <button type="button" onClick={() => router.reload()}>Retry live registry</button>
+            </div>
+          )}
           {initialVenues.length > 0 && (
             <section className="pnm-ssr-directory" aria-labelledby="pnm-ssr-directory-title">
               <div className="pnm-ssr-directory-heading">
@@ -4307,7 +4329,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         )}
 
         {/* ═══ MAIN CONTENT — full width, no sidebar ═══ */}
-        <div className="pnm-layout">
+        <main className="pnm-layout" aria-label="Poker Near Me discovery results">
           <div className="pnm-main">
             {/* ─── MAIN CONTENT AREA ─── */}
 
@@ -4410,7 +4432,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
             {/* end pnm-content */}
           </div>
           {/* end pnm-main */}
-        </div>
+        </main>
         {/* end pnm-layout */}
 
         {/* Geofence Alert Banner */}
@@ -4592,11 +4614,17 @@ export default function PokerNearMePage({ initialDirectory = null }) {
 
 export async function getServerSideProps({ res }) {
   try {
-    const directory = await fetchVenueDirectory({
+    const directory = await fetchVenueDirectoryResilient({
       supabase: createClient(),
       params: { limit: 24, offset: 0 },
+      fallbackVenues: allVenuesData.venues || [],
+      onFallback: (error) => {
+        console.warn('[poker-near-me] SSR database directory unavailable; using snapshot:', error?.message || error);
+      },
     });
-    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=900');
+    res.setHeader('Cache-Control', directory.degraded
+      ? 'no-store'
+      : 'public, s-maxage=120, stale-while-revalidate=900');
     return { props: { initialDirectory: directory } };
   } catch (error) {
     console.warn('[poker-near-me] SSR directory unavailable:', error?.message || error);
