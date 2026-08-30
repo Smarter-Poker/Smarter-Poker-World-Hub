@@ -22,5 +22,21 @@
 .actions button:disabled { opacity: .48; cursor: wait; }
 .actions .danger { border-color: #ff8b98; background: linear-gradient(#ffc9cf, #c74c5d 54%, #5c1823); color: #210307; }
 .actions button:focus-visible, .actions a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-@media (max-width: 600px) { .page { padding-inline: 12px; } .hero { padding: 22px 18px; } .grid { grid-template-columns: 1fr; } }
+.dialogBackdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 22px; background: rgba(0,3,8,.88); backdrop-filter: blur(12px); }
+.dialog { position: relative; width: min(620px, 100%); max-height: min(780px, calc(100vh - 44px)); overflow-y: auto; padding: 30px; border: 1px solid #8be7ff; background: linear-gradient(145deg, rgba(8,31,51,.99), rgba(1,6,12,.995)); box-shadow: inset 0 0 0 4px #020913, inset 0 0 0 5px rgba(158,225,255,.3), 0 28px 100px #000; }
+.dialog h2 { margin: 10px 42px 8px 0; font-size: clamp(1.45rem, 4vw, 2.2rem); }
+.dialog > p { color: #b8cbd7; line-height: 1.6; }
+.dialogClose { position: absolute; top: 16px; right: 16px; width: 38px; min-height: 38px; display: grid; place-items: center; border: 1px solid #6997ae; background: #06131e; color: #eaf8ff; cursor: pointer; }
+.formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
+.formGrid label { display: grid; gap: 7px; color: #dff5ff; font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.formGrid label span { color: #7895a5; font-size: .68rem; }
+.formGrid input { min-height: 46px; width: 100%; padding: 10px 12px; border: 1px solid #477b94; border-radius: 0; background: #020a11; color: #eefaff; font: inherit; text-transform: none; }
+.formGrid input:focus-visible, .dialogClose:focus-visible, .dialogActions button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.fullField { grid-column: 1 / -1; }
+.dialogActions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.dialogActions button { min-height: 44px; padding: 10px 16px; border: 1px solid #8be7ff; border-radius: 0; background: linear-gradient(#dff9ff, #65b7d6 52%, #17475f); color: #031018; font-weight: 850; cursor: pointer; }
+.dialogActions button:first-child { background: #071722; color: #dff5ff; }
+.dialogActions button:disabled, .dialogClose:disabled { opacity: .48; cursor: wait; }
+.dialogActions .danger { border-color: #ff8b98; background: linear-gradient(#ffc9cf, #c74c5d 54%, #5c1823); color: #210307; }
+@media (max-width: 600px) { .page { padding-inline: 12px; } .hero { padding: 22px 18px; } .grid, .formGrid { grid-template-columns: 1fr; } .fullField { grid-column: auto; } .dialogBackdrop { padding: 10px; } .dialog { max-height: calc(100vh - 20px); padding: 24px 18px; } .dialogActions button { flex: 1 1 100%; } }
 @media (prefers-reduced-motion: reduce) { .actions * { transition: none !important; } }

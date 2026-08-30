@@ -666,16 +666,32 @@ export async function syncClubArenaHandsForAudit(db, userId, {
 
   let handsQueuedForRetry = 0;
   let handsAlreadyCurrent = 0;
+  let handsSkippedNoHeroDecisions = 0;
+  const decisionCounts = new Map(normalized.map(hand => [
+    String(hand.id),
+    Math.min(MAX_DECISIONS_PER_HAND, getHeroDecisionPoints(hand).length),
+  ]));
+  const handsEligible = [...decisionCounts.values()].filter(count => count > 0).length;
   const retryCutoff = nowMs - Math.max(0, Number(retryUnpricedAfterMs) || 0);
   const pending = normalized.filter(hand => {
-    if (existingError) return true;
     const rows = rowsByHand.get(String(hand.id)) || [];
-    if (rows.length === 0) return true;
+    const expectedDecisions = decisionCounts.get(String(hand.id)) || 0;
 
-    const expectedDecisions = Math.min(
-      MAX_DECISIONS_PER_HAND,
-      getHeroDecisionPoints(hand).length,
-    );
+    // A recorder row with no recoverable hero action cannot produce solver
+    // evidence. Re-auditing it on every scan wastes the entire batch and makes
+    // the receipt claim useful work occurred. The one exception is a corrected
+    // hand that still has old decision rows: audit it once so the atomic
+    // replacement RPC removes that obsolete evidence.
+    if (expectedDecisions === 0) {
+      if (rows.length > 0) {
+        handsQueuedForRetry += 1;
+        return true;
+      }
+      handsSkippedNoHeroDecisions += 1;
+      return false;
+    }
+
+    if (existingError || rows.length === 0) return true;
     const partialAudit = rows.length < expectedDecisions;
     const hasUnpricedDecision = rows.some(row => row.solver_verified !== true);
     const hasUntrustedClassification = rows.some(row =>
@@ -698,7 +714,8 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     available: true,
     partial: errors.length > 0,
     handsFound: handRows.length,
-    handsEligible: normalized.length,
+    handsEligible,
+    handsSkippedNoHeroDecisions,
     handsAudited: result.handsParsed,
     handsAlreadyCurrent,
     handsQueuedForRetry,

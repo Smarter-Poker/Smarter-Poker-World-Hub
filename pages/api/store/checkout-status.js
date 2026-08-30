@@ -37,11 +37,12 @@ function publicStatus(session, recordStatus) {
 async function lookupRecord(session) {
   const type = session.metadata?.type;
   if (type === 'diamonds' && session.metadata?.purchase_id) {
-    const { data } = await getSupabase()
+    const { data, error } = await getSupabase()
       .from('diamond_purchases')
       .select('id, package_name, diamonds_amount, bonus_diamonds, price_usd, status, metadata')
       .eq('id', session.metadata.purchase_id)
       .maybeSingle();
+    if (error) throw error;
     return data
       ? {
           status: data.status,
@@ -54,11 +55,12 @@ async function lookupRecord(session) {
   }
 
   if (type === 'merchandise' && session.metadata?.order_id) {
-    const { data } = await getSupabase()
+    const { data, error } = await getSupabase()
       .from('merchandise_orders')
       .select('id, status, total_usd')
       .eq('id', session.metadata.order_id)
       .maybeSingle();
+    if (error) throw error;
     return data ? { status: data.status, label: 'Merchandise Order' } : null;
   }
 
@@ -117,7 +119,9 @@ export default async function handler(req, res) {
   } catch (err) {
     try {
       reportApiError(err, req);
-    } catch (_sentryErr) {}
+    } catch (sentryError) {
+      console.warn('[checkout-status] Error reporting failed:', sentryError?.message || sentryError);
+    }
     if (err?.type === 'StripeInvalidRequestError') {
       return res.status(404).json({ success: false, error: 'Checkout reference not found' });
     }

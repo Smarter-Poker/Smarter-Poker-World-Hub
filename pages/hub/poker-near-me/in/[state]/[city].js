@@ -21,7 +21,7 @@ export async function getServerSideProps({ params, req, res }) {
   } catch (_) {
     res.statusCode = 503;
     res.setHeader('Retry-After', '60');
-    return { props: { venues: [], state, city: requestedCity, degraded: true, fetchedAt: null } };
+    return { props: { venues: [], state, city: requestedCity, degraded: true, dataSource: 'unavailable', dataRevision: null, snapshot: null, fetchedAt: null } };
   }
 }
 export default function PokerCityPage({ state, city, ...props }) {

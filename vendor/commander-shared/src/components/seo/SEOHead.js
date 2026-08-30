@@ -55,22 +55,22 @@ export default function SEOHead({
             )}
 
             {/* Open Graph / SmarterPoker */}
-            <meta property="og:type" content={ogType} />
-            <meta property="og:site_name" content={SITE_NAME} />
-            <meta property="og:title" content={title || SITE_NAME} />
-            {description && <meta property="og:description" content={description} />}
-            {fullCanonical && <meta property="og:url" content={fullCanonical} />}
-            <meta property="og:image" content={ogImageUrl} />
-            <meta property="og:image:width" content="1200" />
-            <meta property="og:image:height" content="630" />
-            <meta property="og:locale" content="en_US" />
+            <meta key="og-type" property="og:type" content={ogType} />
+            <meta key="og-site-name" property="og:site_name" content={SITE_NAME} />
+            <meta key="og-title" property="og:title" content={title || SITE_NAME} />
+            {description && <meta key="og-description" property="og:description" content={description} />}
+            {fullCanonical && <meta key="og-url" property="og:url" content={fullCanonical} />}
+            <meta key="og-image" property="og:image" content={ogImageUrl} />
+            <meta key="og-image-width" property="og:image:width" content="1200" />
+            <meta key="og-image-height" property="og:image:height" content="630" />
+            <meta key="og-locale" property="og:locale" content="en_US" />
 
             {/* Twitter Card */}
-            <meta name="twitter:card" content={twitterCard} />
-            <meta name="twitter:site" content={TWITTER_HANDLE} />
-            <meta name="twitter:title" content={title || SITE_NAME} />
-            {description && <meta name="twitter:description" content={description} />}
-            <meta name="twitter:image" content={ogImageUrl} />
+            <meta key="twitter-card" name="twitter:card" content={twitterCard} />
+            <meta key="twitter-site" name="twitter:site" content={TWITTER_HANDLE} />
+            <meta key="twitter-title" name="twitter:title" content={title || SITE_NAME} />
+            {description && <meta key="twitter-description" name="twitter:description" content={description} />}
+            <meta key="twitter-image" name="twitter:image" content={ogImageUrl} />
 
             {/* JSON-LD Structured Data */}
             {jsonLd && (

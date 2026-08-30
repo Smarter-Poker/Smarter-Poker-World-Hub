@@ -262,6 +262,58 @@ body.world-poker-near-me .pnm-status-rail {
 
 body.world-poker-near-me .pnm-status-rail::-webkit-scrollbar { display: none; }
 
+body.world-poker-near-me .pnm-directory-source {
+    width: fit-content;
+    max-width: min(100%, 760px);
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 10px 9px 13px;
+    border: 1px solid rgba(212, 168, 83, 0.38);
+    border-left: 2px solid var(--pnm-gold);
+    border-radius: 3px;
+    background: rgba(20, 15, 7, 0.88);
+    color: #e6d8bd;
+    font: 650 11px/1.45 var(--font-premium-body);
+    letter-spacing: 0.04em;
+}
+
+body.world-poker-near-me .pnm-directory-source[data-directory-source='supabase'] {
+    border-color: rgba(44, 168, 255, 0.34);
+    border-left-color: var(--pnm-blue);
+    background: rgba(5, 16, 26, 0.9);
+    color: #c9e9ff;
+}
+
+body.world-poker-near-me .pnm-directory-source[data-directory-source='partial_live'] {
+    border-color: rgba(201, 145, 48, 0.42);
+    border-left-color: #d8a343;
+    background: rgba(22, 15, 5, 0.9);
+}
+
+body.world-poker-near-me .pnm-directory-source button {
+    min-height: 44px;
+    flex: 0 0 auto;
+    padding: 0 14px;
+    border: 1px solid rgba(212, 168, 83, 0.42);
+    border-radius: 2px;
+    background: #0a0d11;
+    color: #f0dfbc;
+    font: 750 10px/1 var(--font-premium-body);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+body.world-poker-near-me .pnm-directory-source button:hover,
+body.world-poker-near-me .pnm-directory-source button:focus-visible {
+    border-color: var(--pnm-gold);
+    color: #fff6df;
+    outline: 2px solid rgba(212, 168, 83, 0.35);
+    outline-offset: 2px;
+}
+
 body.world-poker-near-me .pnm-status-rail__item {
     min-width: max-content;
     margin: 0;
@@ -897,6 +949,17 @@ body.world-poker-near-me .skeleton-pulse {
 
     body.world-poker-near-me :is(input, select, textarea, button) {
         min-height: 44px;
+    }
+
+    body.world-poker-near-me .pnm-directory-source {
+        width: 100%;
+        box-sizing: border-box;
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    body.world-poker-near-me .pnm-directory-source button {
+        width: 100%;
     }
 
     body.world-poker-near-me .pnm-status-rail {

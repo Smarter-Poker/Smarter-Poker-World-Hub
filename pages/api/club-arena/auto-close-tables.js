@@ -58,10 +58,33 @@ export default async function handler(req, res) {
       const { clubId } = req.body || {};
 
       try {
-          // Fetch all active/running/waiting tables
+          // CASH TABLES ONLY (2026-08-30). `game_length_hours` is a cash-game
+          // house rule - a cash table retires once it has run its configured
+          // length. It has no meaning for a tournament, whose tables live and
+          // die with the event.
+          //
+          // Without `.is('tournament_id', null)` this swept live tournament
+          // tables too: any table older than game_length_hours (default 12h)
+          // was closed regardless of whether its tournament was mid-flight with
+          // its seats occupied. And it closes with a bare status write, so it
+          // never releases `table_seats` - and because
+          // fn_on_table_status_change deliberately PROTECTS the field of a live
+          // tournament (see 20260830180000, whose own comment names this route
+          // as one of the close paths it has to defend against), every
+          // tournament table this closed left its players stranded on dead
+          // felt, still holding their four-table limit and unable to rejoin.
+          // That is the exact damage shape repaired twice on 2026-08-30
+          // (71 tables, then 47 more).
+          //
+          // Tournament table lifecycle belongs to the Hetzner engine
+          // (TournamentManager / TournamentManagerEliminations), which closes a
+          // table AND releases its seats together. Per World Hub CLAUDE.md 1.1
+          // and Club Arena CLAUDE.md 2, this process must not be a second
+          // writer to that felt.
           let query = getSupabase()
               .from('tables')
               .select('id, name, club_id, status, created_at, settings')
+              .is('tournament_id', null)
               .in('status', ['active', 'running', 'waiting']);
 
           if (clubId) query = query.eq('club_id', clubId);

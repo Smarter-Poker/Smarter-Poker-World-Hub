@@ -57,23 +57,9 @@ export default class MyDocument extends Document {
                     <meta name="author" content="Smarter.Poker" />
                     <meta name="publisher" content="Smarter Software Inc." />
 
-                    {/* Fallback Open Graph — overridden by per-page SEOHead */}
-                    <meta property="og:site_name" content="Smarter.Poker" />
-                    <meta property="og:type" content="website" />
-                    <meta property="og:locale" content="en_US" />
-                    <meta property="og:url" content="https://smarter.poker" />
-                    <meta property="og:title" content="Smarter.Poker | The Future Of The Game" />
-                    <meta property="og:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
-                    <meta property="og:image" content="https://smarter.poker/images/og-default.png" />
-                    <meta property="og:image:width" content="1200" />
-                    <meta property="og:image:height" content="2151" />
-
-                    {/* Fallback Twitter Card */}
-                    <meta name="twitter:card" content="summary_large_image" />
-                    <meta name="twitter:site" content="@SmarterPoker" />
-                    <meta name="twitter:title" content="Smarter.Poker | The Future Of The Game" />
-                    <meta name="twitter:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
-                    <meta name="twitter:image" content="https://smarter.poker/images/og-default.png" />
+                    {/* Open Graph and Twitter defaults live in _app.js. Unlike
+                        _document, next/head can deduplicate and replace those
+                        defaults when a route supplies its own SEOHead values. */}
 
                     {/* PWA settings — manifest/icons are in _app.js for route-based switching */}
 
@@ -150,7 +136,9 @@ export default class MyDocument extends Document {
                     <style dangerouslySetInnerHTML={{
                         __html: `
                         @keyframes forceVisible {
-                            to { visibility: visible !important; opacity: 1 !important; }
+                            /* Priority declarations are invalid inside CSS
+                               keyframes and WebKit discards them entirely. */
+                            to { visibility: visible; opacity: 1; }
                         }
                         #__next > div[style*="visibility:hidden"],
                         #__next > div[style*="visibility: hidden"] {
@@ -159,7 +147,7 @@ export default class MyDocument extends Document {
                         }
                         /* Also override the data-next-hide-fouc body display:none */
                         @keyframes forceDisplay {
-                            to { display: block !important; }
+                            to { display: block; }
                         }
                         body[style*="display:none"],
                         body[style*="display: none"] {

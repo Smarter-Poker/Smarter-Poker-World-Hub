@@ -224,7 +224,14 @@ try {
 
         // --- Bulk stats endpoint for venue cards ---
         if (stats_only === 'true' && venue_ids) {
-          const ids = venue_ids.split(',').map(v => v.trim()).filter(Boolean).slice(0, 50);
+          // This endpoint aggregates the integer poker_venues foreign key.
+          // Discovery also contains synthetic social-page ids (`sp-*`), so
+          // reject them at the API boundary even if a caller forgets to filter.
+          const ids = venue_ids
+            .split(',')
+            .map(v => v.trim())
+            .filter(v => /^\d+$/.test(v))
+            .slice(0, 50);
           if (ids.length === 0) return res.status(200).json({ success: true, stats: {} });
 
           // PostgREST caps a single response at the project max (1000 rows), and

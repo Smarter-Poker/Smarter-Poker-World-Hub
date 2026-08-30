@@ -1337,3 +1337,76 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Systematic browser audit | 107 of 107 game cards clicked one by one; 107 unique artwork URLs; 0px mobile overflow; sharp card geometry verified. |
 
 **Verification:** 439 prebuild checks passed, Training question integrity passed, the new casino-realism catalog suite passed, and the optimized Next.js build completed successfully. Full evidence: `.agent/audits/2026-08-29-training-casino-realism-catalog.md`.
+
+---
+
+## PHASE 59 — Poker Near Me Indexed Operations + SSR Directory (2026-08-30)
+
+| Deliverable | Detail |
+|---|---|
+| Indexed integrity registry | 603 venue rows now carry exact location, completeness, freshness, duplicate, revision, and search state in a protected indexed table. |
+| Operator completion workflow | Server-paged queue, exact rescan, boundary correction, source-backed enrichment, immutable evidence, and safe canonical duplicate retirement are fully wired and MFA-gated. |
+| Safe route preservation | Retired duplicate IDs permanently redirect to their canonical venue while all referenced schedules, reviews, claims, and history remain intact. |
+| Fast public directory | A projection-only `view=directory` path replaces the nationwide rich-enrichment request for first paint and location SSR. |
+| Server-rendered discovery | Dynamic Poker Near Me tab routes render an initial directory, venue links, and structured data before client hydration. |
+| Location family optimization | The location index plus 41 state and 376 city pages query the shared directory directly, with static degraded fallback retained. |
+| Review identity hardening | Synthetic social-page IDs are filtered client-side and rejected at the integer review-stats API boundary, eliminating invalid database casts. |
+| Responsive/accessibility audit | Desktop, mobile, and exact 390×844 checks cover the directory, location pages, and protected admin console with zero page overflow. |
+| Regression gate | Phase 10 source/data contracts, authenticated API/UI coverage, repository prebuild, and production webpack build are green. |
+
+**Production data state:** 603 synchronized rows; 573 active public records; 333 actionable signals; 3 conflicts; 80 missing coordinates; 5 boundary-unavailable; 204 incomplete profiles; 255 stale sources; 0 current duplicate rows.
+
+**Verification:** 491 repository prebuild tests, 12 Phase 8–10 contracts, 6 production-artifact desktop/mobile Playwright journeys, ledger verification for both migrations, and the env-backed webpack production build passed. Full evidence: `.agent/audits/2026-08-30-poker-near-me-phase-10.md`.
+
+---
+
+## PHASE 60 — Poker Near Me Degraded-Mode Resilience + Accessibility (2026-08-30)
+
+| Deliverable | Detail |
+|---|---|
+| Shared public snapshot contract | The public API, dynamic discovery SSR, and all location pages now use one projected, integrity-assessed fallback with live-equivalent filters, ordering, pagination, and viewport rules. |
+| Fail-closed boundary | Only public directory reads degrade. Admin, auth, mutations, operator actions, realtime, and database writes retain strict failure behavior. |
+| Honest provenance | Degraded responses are `no-store`, carry `X-PNM-Data-Source`, and render a visible snapshot/cache signal with a 44px live-retry control. |
+| SSR continuity | A transient Supabase auth disturbance no longer removes the server-rendered Featured Poker Rooms rail or turns the optimized directory into a 500. |
+| Location-family deduplication | The index plus 41 state and 376 city pages inherit the shared builder instead of maintaining a second fallback algorithm. |
+| Accessibility hardening | Lobby and dynamic discovery have named main landmarks; the lobby adds first-focus skip navigation and 44×44 voice/GPS controls. |
+| Permanent regression gate | Phase 10 and 11 contracts now run inside repository prebuild, including projection privacy, invalid-input behavior, fallback provenance, landmarks, retry UI, and touch targets. |
+
+**Current coverage:** 429 directory-driven route URLs (11 discovery plus 418 location URLs), the public directory API, and the cinematic lobby.
+
+**Verification:** 508/508 repository prebuild tests, 9/9 focused Phase 10–11 contracts, 4/4 desktop/mobile Playwright journeys, forced no-database API/SSR smoke, client-bundle dataset exclusion, and the exact webpack production build passed. Full evidence: `.agent/audits/2026-08-30-poker-near-me-phase-11.md`.
+
+---
+
+## PHASE 61 — Poker Near Me Directory Parity + Regional Discovery (2026-08-30)
+
+| Deliverable | Detail |
+|---|---|
+| Exact public snapshot | Dedicated server/browser projections carry generation time, deployment source, public/candidate counts, SHA-256, revision, and source freshness. Current parity is 399 live IDs vs. 399 snapshot IDs with zero drift. |
+| Build-time drift/freshness gate | Prebuild fails on copy mismatch, payload/hash/count mismatch, age over 30 days, degraded refresh sources, or live drift beyond five rows/two percent. |
+| Progressive live hydration | 160-row idle-scheduled pages replace the duplicate nationwide post-SSR request; ID merging, cancellation, revision-aware caching, partial-live recovery, and exact static fallback are wired. |
+| Honest provenance | API revision/snapshot headers, source timestamps, location schema `dateModified`, bounded source telemetry, accurate profile/location language, and visible degraded dates prevent cached data from appearing live. |
+| Regional rendered system | Four purpose-built fictional Pacific, Southwest, Heartland, and Atlantic #SmarterCasinoRealism WebPs propagate to 342 current state/city routes with route-specific social previews. |
+| Accessibility + mobile | Axe, keyboard skip navigation, 390×844, 200% zoom, zero overflow, and effective 44px tutorial/search/retry targets are permanently covered. |
+| False-empty resilience | A live zero projection degrades only when matching snapshot rows exist, eliminating false state-page 404s without inventing genuinely empty locations. |
+| CI transport unblock | Shared CI transport retries only transient failures, including `PGRST303` + `JWT issued at future`; other authentication failures remain fail-fast. Its six-minute wall-clock budget permits recovery after three full schema timeouts, and the enforcing policy-function-grant check now inherits the same 5xx resilience. |
+
+**Current coverage:** 11 discovery routes plus one national, 40 state, and 302 city routes (354 directory-driven URLs), the public directory API, and the cinematic lobby.
+
+**Verification:** 514/514 repository prebuild checks, 18/18 focused Phase 8–12 contracts, 399/399 live parity, TypeScript, 12/12 compiled-production desktop/mobile journeys (including Leaflet runtime), and the exact webpack production build (402 static pages) are green. PR/merge, deployment, and live-production evidence are tracked in `.agent/audits/2026-08-30-poker-near-me-phase-12.md`.
+
+---
+
+## PHASE 62 — Marketplace Completion Phase 1 Of 8: Operator Reporting (2026-08-30)
+
+| Deliverable | Detail |
+|---|---|
+| Server-owned Manage report | World Hub operators now load authenticated item and ledger reporting from `/api/club-arena/manage-shop`; the browser no longer scans commerce tables directly. |
+| Historical-price correctness | Gross, refund, and net values use immutable `price_paid`, never an item's editable current price. |
+| Currency isolation | Current Diamond sales and legacy chip history are separate at report, item, time-series, and buyer rollup boundaries. |
+| Honest scale boundary | Stable paging processes up to 50,000 rows and returns exact processed/total completeness metadata; the UI visibly labels partial reports. |
+| Operator recovery | Database/auth failures render a named alert and 44-pixel retry control instead of plausible zero totals. |
+| Platform economics copy | The UI explicitly identifies Club Shop sales as platform-owned Diamond burns with no club, owner, agent, affiliate, or commission credit. |
+| Regression gate | Phase 21 reporting contracts are included in `test:marketplace` and the Vercel source allowlist. |
+
+**Verification:** 4/4 Phase 21 contracts, 33/33 focused Club Shop contracts, 118/118 marketplace contracts, JSX parsing, strict lint, TypeScript, and the optimized Next.js webpack production build (402 static pages) passed. Full evidence: `.agent/audits/2026-08-30-marketplace-completion-phase-1-operator-reporting.md`.

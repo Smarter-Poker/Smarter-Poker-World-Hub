@@ -112,7 +112,12 @@ async function handler(req, res) {
         // Break 120s Edge Cache bounds when `useVenueRealtime` is asserting live mutations
         res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
       } else {
-        res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
+        // [2026-08-30 DB-load pass] 15s barely collapsed anything: the backing
+        // data changes on scraper cadence (hours), while the ILIKE day-filter
+        // query behind this route runs 1-4s on the DB. Two minutes fresh +
+        // five minutes stale-while-revalidate keeps the page instant and cuts
+        // origin hits by ~8x.
+        res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
       }
     }
 

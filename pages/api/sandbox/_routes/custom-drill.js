@@ -115,6 +115,16 @@ function matchesExactSolverScope(question, leak) {
     }) === type;
 }
 
+// Historical Training Arena rows use both `cash_002` and `cash-002`. Solver
+// grouping deliberately slug-normalizes those into the same evidence scope,
+// but an exact PostgREST equality check does not. Query both storage aliases,
+// then keep the stronger group-key comparison below as the final authority.
+function gameIdAliases(value) {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!/^[a-z0-9][a-z0-9_-]{1,64}$/.test(raw)) return [];
+    return [...new Set([raw, raw.replace(/-/g, '_'), raw.replace(/_/g, '-')])];
+}
+
 /** Unbiased shuffle — sort(() => 0.5 - Math.random()) is not uniform. */
 function shuffle(arr) {
     const out = [...arr];
@@ -213,6 +223,7 @@ export default async function handler(req, res) {
           // that identity through the review handoff instead of serving an
           // unrelated question that only shares street and position.
           const gameId = String(Array.isArray(effectiveGame) ? effectiveGame[0] : (effectiveGame || '')).trim().toLowerCase();
+          const gameIds = gameIdAliases(gameId);
           const buildQuery = () => {
               let query = supabase.from('training_question_cache').select('id, question_data');
               if (effectiveStreet && effectiveStreet !== 'Any') {
@@ -221,7 +232,8 @@ export default async function handler(req, res) {
               if (effectivePosition && effectivePosition !== 'Any') {
                   query = query.ilike('question_data->scenario->>heroPosition', `${String(effectivePosition).slice(0, 20)}%`);
               }
-              if (gameId && /^[a-z0-9][a-z0-9-]{1,64}$/.test(gameId)) query = query.eq('game_id', gameId);
+              if (gameIds.length === 1) query = query.eq('game_id', gameIds[0]);
+              else if (gameIds.length > 1) query = query.in('game_id', gameIds);
               return query.order('id', { ascending: true });
           };
 

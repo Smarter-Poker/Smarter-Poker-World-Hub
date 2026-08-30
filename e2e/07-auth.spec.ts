@@ -7,6 +7,33 @@ import { waitForPageLoad } from './utils';
 // ╚═══════════════════════════════════════════════════════════╝
 
 test.describe('Auth — Login Page', () => {
+  test('login hydrates without replacing the server-rendered page', async ({ page }) => {
+    const hydrationFailures: string[] = [];
+    const isHydrationFailure = (message: string) =>
+      /hydration|text content did not match|server html was replaced|minified react error #(418|423|425)/i.test(
+        message,
+      );
+
+    page.on('console', (message) => {
+      if (message.type() === 'error' && isHydrationFailure(message.text())) {
+        hydrationFailures.push(message.text());
+      }
+    });
+    page.on('pageerror', (error) => {
+      const message = error?.message || String(error);
+      if (isHydrationFailure(message)) hydrationFailures.push(message);
+    });
+
+    // Plain Login deliberately stays on the page even when the shared E2E
+    // storage state already contains a session, so this remains deterministic.
+    await page.goto('/auth/login');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await page.waitForTimeout(500);
+
+    expect(hydrationFailures).toEqual([]);
+  });
+
   test('login form renders with email and password fields', async ({ page }) => {
     await page.goto('/auth/login');
     await page.waitForLoadState('domcontentloaded');

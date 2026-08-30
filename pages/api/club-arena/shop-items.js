@@ -242,7 +242,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'unknown action' });
     } catch (e) {
         console.error('[shop-items] unexpected error:', e);
-        try { reportApiError(e, { route: '/api/club-arena/shop-items' }); } catch (_) {}
+        try {
+            reportApiError(e, { route: '/api/club-arena/shop-items' });
+        } catch (reportError) {
+            console.warn('[shop-items] error reporting failed:', reportError?.message || reportError);
+        }
         return res.status(500).json({ success: false, error: 'internal_error' });
     }
 }

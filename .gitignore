@@ -165,3 +165,6 @@ data/tour-logs/*
 /vip-card.webp
 /sw.ts
 /textarea-calibration-tool.html
+# Generated Playwright output belongs in CI artifacts, never source control.
+playwright-report/
+test-results/

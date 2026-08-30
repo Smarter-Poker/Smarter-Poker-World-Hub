@@ -317,6 +317,14 @@ export async function getServerSideProps({ params, req, res }) {
         .maybeSingle();
       if (error) throw new Error(error.message);
 
+      if (data && data.is_suppressed && data.canonical_venue_id) {
+        return {
+          redirect: {
+            destination: `/hub/venues/${encodeURIComponent(String(data.canonical_venue_id))}`,
+            permanent: true,
+          },
+        };
+      }
       if (data && data.is_suppressed) {
         confirmedMissing = true;
       } else if (data) {

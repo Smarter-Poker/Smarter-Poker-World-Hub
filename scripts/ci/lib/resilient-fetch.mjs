@@ -30,7 +30,8 @@
  *
  * WHAT COUNTS AS TRANSIENT.
  *
- * 5xx, 429, 408, a thrown fetch, an abort, 57014 and PGRST002. PGRST002 arrives
+ * 5xx, 429, 408, a thrown fetch, an abort, 57014, PGRST002, and the narrowly
+ * identified PGRST303 "JWT issued at future" response. PGRST002 arrives
  * as a 503 so the status test already catches it; it is named because it is the
  * most common failure in this estate and the least obviously transient-looking
  * to somebody reading the log for the first time. It is what PostgREST answers
@@ -38,8 +39,11 @@
  * on a schema this size (839 tables) that window is comfortably longer than a
  * naive retry budget.
  *
- * A 4xx that is not 408/429 is us: wrong URL, wrong key, revoked service role.
- * Retrying cannot fix it and only delays an honest failure, so it fails now.
+ * A 4xx that is not 408/429 is normally us: wrong URL, wrong key, revoked
+ * service role. The exception is PGRST303 with "JWT issued at future": the
+ * same service key succeeds in adjacent checks and then fails when a runner
+ * clock and the Supabase verifier briefly disagree. It is safe to retry only
+ * that exact body; other PGRST303 authentication failures still fail now.
  * A FALSE ASSERTION IS NEVER RETRIED - that is the signal, and retrying it
  * would be hiding it. This helper only ever retries transport.
  *
@@ -55,14 +59,17 @@
  * and the step simply sits there.
  *
  * So: a per-attempt AbortSignal ceiling, AND a wall-clock budget across all
- * attempts so seven 60s attempts cannot become seven minutes.
+ * attempts so seven 60s attempts cannot grow without a release-gate ceiling.
+ * The six-minute budget deliberately leaves room for a fifth attempt after
+ * three full schema timeouts plus one fast clock-skew response; the former
+ * four-minute budget expired before that recovery attempt could start.
  */
 
 const ATTEMPTS = 7;
 const STEP_MS = 5_000;
 const MAX_WAIT_MS = 30_000;
 const PER_ATTEMPT_TIMEOUT_MS = 60_000;
-const TOTAL_BUDGET_MS = 240_000;
+const TOTAL_BUDGET_MS = 360_000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -71,7 +78,10 @@ function isTransientStatus(status) {
 }
 
 function isTransientBody(body) {
-  return body.includes('57014') || body.includes('PGRST002');
+  // Keep the auth exception body-specific; a generic 401 must still fail fast.
+  return body.includes('57014')
+    || body.includes('PGRST002')
+    || (body.includes('PGRST303') && body.toLowerCase().includes('jwt issued at future'));
 }
 
 /**

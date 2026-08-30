@@ -55,7 +55,7 @@ test('admin correction surface is role-gated, MFA-gated, atomic, and audit logge
 
   assert.match(api, /ADMIN_ROLES = \['admin', 'superadmin', 'god'\]/);
   assert.match(api, /requireMfaEnrolled/);
-  assert.match(api, /assessVenueLocation\(proposed\)/);
+  assert.match(api, /assessVenueLocation\(\{ \.\.\.current/);
   assert.match(api, /\['verified', 'border'\]\.includes/);
   assert.match(api, /resolve_venue_location_integrity/);
   assert.match(api, /venue_location_integrity_log/);

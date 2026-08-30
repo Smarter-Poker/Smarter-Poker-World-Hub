@@ -279,7 +279,13 @@ echo "CHECK 5: Syntax validation (Babel for JSX-containing .js, node -c for pure
 
 if command -v node &> /dev/null; then
     SYNTAX_ERRORS=0
-    # Locate Babel parser from the project (always available since Next.js requires it)
+    # Files this run could NOT verify because Babel was unavailable and the file
+    # contains JSX (node -c cannot parse JSX). Counted and reported, never fatal.
+    JSX_UNVERIFIED=0
+    JSX_UNVERIFIED_FILES=""
+    # Locate Babel parser from the project. NOT "always available": a git
+    # worktree and a fresh clone both have .git but no node_modules, and this
+    # resolves to empty there. See the fallback in CHECK 5 below.
     BABEL_PARSER="$(node -e "try{require.resolve('@babel/parser');console.log(require.resolve('@babel/parser'))}catch(e){console.log('')}" 2>/dev/null)"
 
     for file in $JS_FILES; do
@@ -368,20 +374,56 @@ try{
                 ERRORS=$((ERRORS + 1))
             fi
         else
-            # Pure .js with no JSX — node -c is fine and faster
-            PARSE_OUTPUT=$(node -c "$file" 2>&1)
-            if [ $? -ne 0 ]; then
-                echo -e "${RED}  ✗ SYNTAX ERROR: ${file}${NC}"
-                echo "    $PARSE_OUTPUT" | head -3
-                echo ""
-                SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
-                ERRORS=$((ERRORS + 1))
+            # ── NO BABEL AVAILABLE ────────────────────────────────────────
+            # Reached ONLY when @babel/parser did not resolve, which is any
+            # checkout without node_modules: a fresh clone, CI before `npm ci`,
+            # and every `git worktree` (a worktree shares .git but NOT
+            # node_modules).
+            #
+            # node -c is JSX-BLIND. It does not merely miss broken JSX, it
+            # REJECTS VALID JSX outright with "Unexpected token '<'". So the old
+            # unconditional fallback turned a missing dev dependency into a hard
+            # push block on perfectly good files.
+            #
+            # Measured 2026-08-30: a push from a worktree failed on
+            # vendor/commander-shared/src/components/seo/SEOHead.js — valid,
+            # unmodified, and nothing to do with the change being pushed. A gate
+            # that blocks correct code is worse than no gate, because the
+            # documented escape is `--no-verify`, which skips every OTHER check
+            # in this file too.
+            #
+            # So: hand a file to node -c only when it plainly contains no JSX.
+            # Anything JSX-shaped is SKIPPED and reported as unverified rather
+            # than failed. The Babel path above is the real gate and still runs
+            # everywhere it matters (developer machines, and CI after install).
+            if grep -qE '(</[A-Za-z]|/>|<[A-Z][A-Za-z0-9]*[[:space:]/>]|<>)' "$file" 2>/dev/null; then
+                JSX_UNVERIFIED=$((JSX_UNVERIFIED + 1))
+                JSX_UNVERIFIED_FILES="${JSX_UNVERIFIED_FILES}
+      ${file}"
+            else
+                PARSE_OUTPUT=$(node -c "$file" 2>&1)
+                if [ $? -ne 0 ]; then
+                    echo -e "${RED}  ✗ SYNTAX ERROR: ${file}${NC}"
+                    echo "    $PARSE_OUTPUT" | head -3
+                    echo ""
+                    SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
+                    ERRORS=$((ERRORS + 1))
+                fi
             fi
         fi
     done
 
     if [ $SYNTAX_ERRORS -eq 0 ]; then
         echo -e "${GREEN}  ✓ All files pass syntax check (Babel for JSX-containing, node -c for pure .js).${NC}"
+    fi
+
+    # Say plainly when the gate could not do its job. Silence here would be the
+    # worst outcome: a run that verified nothing must not look like a clean run.
+    if [ "$JSX_UNVERIFIED" -gt 0 ]; then
+        echo -e "${YELLOW}  ⚠ ${JSX_UNVERIFIED} JSX file(s) NOT syntax-checked — @babel/parser is not installed in this checkout.${NC}"
+        echo -e "${YELLOW}    node -c cannot parse JSX, so these were skipped rather than failed.${NC}"
+        echo -e "${YELLOW}    Run 'npm install' here (a git worktree has no node_modules of its own) to restore full coverage.${NC}"
+        echo -e "${YELLOW}${JSX_UNVERIFIED_FILES}${NC}" | head -11
     fi
 else
     echo -e "${YELLOW}  ⚠ Node.js not found. Skipping syntax validation.${NC}"

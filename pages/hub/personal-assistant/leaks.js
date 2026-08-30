@@ -855,6 +855,7 @@ function BleedSummary({ leaks, isDemo }) {
 function AuditReceipt({ result }) {
   if (!result) return null;
   const sync = result.clubArenaSync || {};
+  const progress = result.auditProgress || {};
   const coverage = result.evidenceCoverage || {};
   const sources = result.evidenceSources || {};
   const audited = num(coverage.auditedThisRun);
@@ -863,9 +864,10 @@ function AuditReceipt({ result }) {
     ? `${verified} / ${audited}`
     : `${num(coverage.verifiedDecisions).toLocaleString()} Total`;
   const cells = [
-    ['Club Hands Found', num(sync.handsFound).toLocaleString()],
+    ['Club Hands Scanned', num(progress.handsScanned ?? sync.handsFound).toLocaleString()],
     ['Eligible Hands', num(sync.handsEligible).toLocaleString()],
-    ['Audited This Run', num(sync.handsAudited).toLocaleString()],
+    ['No Hero Decision', num(sync.handsSkippedNoHeroDecisions).toLocaleString()],
+    ['Audited This Run', num(progress.handsAudited ?? sync.handsAudited).toLocaleString()],
     ['Already Current', num(sync.handsAlreadyCurrent).toLocaleString()],
     ['Retried For Coverage', num(sync.handsQueuedForRetry).toLocaleString()],
     ['Verified Decisions', verificationLabel],
@@ -1521,7 +1523,7 @@ export default function LeakFinderPage() {
     userId,
     ready: !authInitializing,
   });
-  const { runDetection, isDetecting, detectionResult } = useLeakDetection();
+  const { runDetection, isDetecting, detectionResult, detectionProgress } = useLeakDetection();
 
   const safeLeaks = useMemo(() => (Array.isArray(fetchedLeaks) ? fetchedLeaks : []), [fetchedLeaks]);
   const leaks = useMemo(
@@ -1687,7 +1689,7 @@ export default function LeakFinderPage() {
       }
       setDetectionSummary({
         type: result.partial ? 'info' : 'success',
-        text: `Analysed ${num(result.handsAnalyzed).toLocaleString()} Hands · Synced ${num(result.clubArenaSync?.handsAudited).toLocaleString()} New Club Arena Hands · Graded ${num(result.solverDecisionsAnalyzed).toLocaleString()} Solver Decisions · ${found} Leak${found === 1 ? '' : 's'} Found.${result.partial ? ' Some follow-up evidence could not be synchronized and will be retried.' : ''}`,
+        text: `Analysed ${num(result.handsAnalyzed).toLocaleString()} Hands · Scanned ${num(result.auditProgress?.handsScanned ?? result.clubArenaSync?.handsFound).toLocaleString()} Club Arena Hands · Re-Audited ${num(result.auditProgress?.handsAudited ?? result.clubArenaSync?.handsAudited).toLocaleString()} · Graded ${num(result.solverDecisionsAnalyzed).toLocaleString()} Solver Decisions · ${found} Leak${found === 1 ? '' : 's'} Found.${result.partial ? ' Some follow-up evidence could not be synchronized and will be retried.' : ''}`,
       });
     } else {
       setDetectionSummary({ type: 'error', text: friendlyDetectionError(result?.error) });
@@ -2156,7 +2158,9 @@ export default function LeakFinderPage() {
       disabled={isDetecting}
     >
       <Activity size={18} strokeWidth={2} aria-hidden="true" />
-      {isDetecting ? 'Analysing…' : detectionResult?.clubArenaSync?.auditCursor ? 'Continue Leak Audit' : 'Run Leak Detection'}
+      {isDetecting
+        ? `Auditing${detectionProgress?.batchesCompleted ? ` · Batch ${detectionProgress.batchesCompleted + 1}` : '…'}`
+        : detectionResult?.clubArenaSync?.auditCursor ? 'Continue Leak Audit' : 'Run Leak Detection'}
     </button>
   );
 
@@ -2207,7 +2211,9 @@ export default function LeakFinderPage() {
                 <span className={toolStyles.telemetryCell}>
                   <span className={toolStyles.telemetryLabel}>Club Hands Found</span>
                   <strong className={toolStyles.telemetryValue}>
-                    {detectionResult ? num(detectionResult?.clubArenaSync?.handsFound).toLocaleString() : '—'}
+                    {detectionResult
+                      ? num(detectionResult?.auditProgress?.handsScanned ?? detectionProgress?.handsScanned ?? detectionResult?.clubArenaSync?.handsFound).toLocaleString()
+                      : '—'}
                   </strong>
                 </span>
                 <span className={toolStyles.telemetryCell}>
@@ -2342,8 +2348,10 @@ export default function LeakFinderPage() {
                   <div style={{ padding: `0 ${S.md}px ${S.md}px` }} aria-live="polite">
                     <div className="leak-progress"><span /></div>
                     <p style={styles.detectStepText}>
-                      {detectSlow
-                        ? 'Detection is taking longer than expected — it will finish in the background.'
+                      {detectionProgress?.handsScanned > 0
+                        ? `${num(detectionProgress.handsScanned).toLocaleString()} Hands Scanned · ${num(detectionProgress.handsAudited).toLocaleString()} Re-Audited · ${num(detectionProgress.decisionsAnalyzed).toLocaleString()} Decisions Checked`
+                        : detectSlow
+                        ? 'Detection is taking longer than expected — keep this page open while the current batch finishes.'
                         : DETECT_STEPS[detectStep]}
                     </p>
                   </div>

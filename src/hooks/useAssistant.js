@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { getAuthUser, getFreshAccessToken } from '../lib/authUtils';
 import { busEmit } from '../engine/EventBus';
 import { ARCHETYPE_CONFIG } from '../lib/sandbox/VillainArchetypeRanges';
+import { runLeakAuditBatches } from '../lib/personal-assistant/leakAuditRunner';
 
 // Use the platform's lock-free token helper. It reads the canonical stored
 // session, coalesces concurrent refreshes, and refreshes expiring JWTs through
@@ -955,6 +956,7 @@ export function useQuizLeaderboard(limit = 10, authState) {
 export function useLeakDetection() {
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionResult, setDetectionResult] = useState(null);
+  const [detectionProgress, setDetectionProgress] = useState(null);
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
   const abortRef = useRef(null);
@@ -976,31 +978,73 @@ export function useLeakDetection() {
         return { success: false, error: 'Not logged in' };
       }
 
-      const response = await fetch('/api/assistant/leaks/detect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ auditCursor: auditCursorRef.current }),
-        ...(controller ? { signal: controller.signal } : {}),
+      setDetectionProgress({
+        batchesCompleted: 0,
+        handsScanned: 0,
+        handsAudited: 0,
+        decisionsAnalyzed: 0,
+        complete: false,
       });
 
-      const data = await response.json();
+      const data = await runLeakAuditBatches(async (auditCursor, signal) => {
+        const response = await fetch('/api/assistant/leaks/detect', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ auditCursor }),
+          ...(signal ? { signal } : {}),
+        });
+        const payload = await response.json();
+        return {
+          ok: response.ok,
+          status: response.status,
+          data: payload,
+          retryAfter: response.headers.get('Retry-After'),
+        };
+      }, {
+        initialCursor: auditCursorRef.current,
+        signal: controller?.signal,
+        onProgress: progress => {
+          if (requestId === requestIdRef.current) {
+            auditCursorRef.current = progress.latest?.clubArenaSync?.auditCursor || null;
+            setDetectionResult(progress.latest);
+            setDetectionProgress({
+              batchesCompleted: progress.batchesCompleted,
+              handsScanned: progress.handsScanned,
+              handsAudited: progress.handsAudited,
+              decisionsAnalyzed: progress.decisionsAnalyzed,
+              complete: progress.complete,
+            });
+          }
+        },
+      });
       if (requestId !== requestIdRef.current) return { success: false, superseded: true };
 
-      if (!response.ok) {
+      if (!data.success) {
         if (data?.code === 'invalid_audit_cursor') {
           auditCursorRef.current = null;
           setDetectionResult(null);
         }
-        setError(data?.error || `Detection failed (${response.status})`);
-        return { success: false, code: data?.code, error: data?.error || `HTTP ${response.status}` };
+        if (data?.auditCursor) auditCursorRef.current = data.auditCursor;
+        setDetectionResult(previous => ({
+          ...(previous || {}),
+          ...data,
+          clubArenaSync: {
+            ...(previous?.clubArenaSync || {}),
+            ...(data?.clubArenaSync || {}),
+          },
+        }));
+        setDetectionProgress(data?.auditProgress || null);
+        setError(data?.error || `Detection failed (${data?.status || 500})`);
+        return { success: false, code: data?.code, error: data?.error || `HTTP ${data?.status || 500}` };
       }
 
       if (data.success) {
         auditCursorRef.current = data?.clubArenaSync?.auditCursor || null;
         setDetectionResult(data);
+        setDetectionProgress(data?.auditProgress || null);
 
         // 📢 Dispatch BUS LISTENER update (Leak finding affects Stats and Leak lists)
         if (typeof window !== 'undefined') {
@@ -1029,7 +1073,7 @@ export function useLeakDetection() {
     try { abortRef.current?.abort(); } catch (e) { /* already settled */ }
   }, []);
 
-  return { runDetection, isDetecting, detectionResult, error };
+  return { runDetection, isDetecting, detectionResult, detectionProgress, error };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

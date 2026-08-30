@@ -143,6 +143,62 @@ test('both poker and psychology feedback expose canonical question reporting', (
   assert.match(reportApi, /user_id,game_id,question_id,reason/);
 });
 
+test('every poker game reaches the shared Club Arena table surface', () => {
+  const arena = fs.readFileSync(path.join(ROOT, 'src/components/training/GodModeArena.jsx'), 'utf8');
+  const router = fs.readFileSync(path.join(ROOT, 'src/components/training/GameUIRouter.jsx'), 'utf8');
+  const table = fs.readFileSync(
+    path.join(ROOT, 'src/components/training/games/UniversalDynamicTable.jsx'),
+    'utf8'
+  );
+
+  assert.doesNotMatch(arena, /gameId === 'adv-011'|gameId === 'quiz-gauntlet'/);
+  assert.match(router, /<UniversalDynamicTable[\s\S]*gameId=\{gameId\}/);
+  assert.match(table, /data-training-ui="club-arena-table"/);
+});
+
+test('runtime matrix workers claim a game before yielding to page creation', () => {
+  const audit = fs.readFileSync(
+    path.join(ROOT, 'scripts/training-runtime-surface-audit.mjs'),
+    'utf8'
+  );
+  const claimIndex = audit.indexOf('const game = queue.shift()');
+  const pageIndex = audit.indexOf('const page = await context.newPage()', claimIndex);
+
+  assert.ok(claimIndex >= 0, 'runtime matrix must claim a queued game');
+  assert.ok(pageIndex > claimIndex, 'game ownership must be claimed before an awaited page creation');
+  assert.doesNotMatch(audit, /auditGame\(page, queue\.shift\(\)/);
+});
+
+test('mobile arena launch remains tappable above global overlays', () => {
+  const trainingCss = fs.readFileSync(path.join(ROOT, 'src/styles/worlds/training.css'), 'utf8');
+  const notificationPrompt = fs.readFileSync(
+    path.join(ROOT, 'src/components/notifications/FirstRunNotificationPrompt.jsx'),
+    'utf8'
+  );
+
+  assert.match(
+    trainingCss,
+    /sp-arena-lobby__launch[\s\S]*bottom:\s*calc\(56px \+ 10px \+ env\(safe-area-inset-bottom, 0px\)\)/
+  );
+  assert.match(notificationPrompt, /'\/hub\/training\/arena'/);
+  assert.match(notificationPrompt, /'\/hub\/club-arena'/);
+});
+
+test('campaign level maps fail open when remote enrichment stalls', () => {
+  const levelSelector = fs.readFileSync(
+    path.join(ROOT, 'src/components/training/LevelSelector.tsx'),
+    'utf8'
+  );
+
+  assert.match(levelSelector, /const LEVEL_DATA_TIMEOUT_MS = 8_000/);
+  assert.match(levelSelector, /Promise\.race\(\[request\(controller\.signal\), deadline\]\)/);
+  assert.match(levelSelector, /fetch\(`\/api\/games\/\$\{gameId\}`,[\s\S]*?\{ signal \}/);
+  assert.match(levelSelector, /authedFetch\(`\/api\/training\/progress\?userId=\$\{userId\}&gameId=\$\{gameId\}`,[\s\S]*?\{ signal \}/);
+  assert.match(levelSelector, /getGameById\(gameId\)/);
+  assert.match(levelSelector, /Progress fetch failed, showing default levels/);
+  assert.match(levelSelector, /finally \{\s*setLoading\(false\)/);
+});
+
 test('offline packs cache real questions and are consumed by the arena', () => {
   const preloader = fs.readFileSync(path.join(ROOT, 'pages/hub/training/gto-preloader.js'), 'utf8');
   const trainer = fs.readFileSync(path.join(ROOT, 'src/hooks/useGTOTrainer.js'), 'utf8');

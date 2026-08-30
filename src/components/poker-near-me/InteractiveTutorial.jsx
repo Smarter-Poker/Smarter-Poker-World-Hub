@@ -415,7 +415,9 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
             position: 'absolute',
             top: isMobile ? 8 : 12,
             right: isMobile ? 8 : 12,
-            width: 36, height: 36,
+            // The parent spring enters at scale .95. Use 48px so the effective
+            // hit area never drops below 44px while that animation settles.
+            width: 48, height: 48,
             borderRadius: '50%',
             border: '1px solid rgba(200,214,229,0.15)',
             background: 'rgba(200,214,229,0.06)',
@@ -545,6 +547,7 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
               fontSize: isMobile ? 11 : 12, fontWeight: 500, cursor: 'pointer',
               fontFamily: 'inherit', transition: 'color 0.2s',
               whiteSpace: 'nowrap',
+              minWidth: 48, minHeight: 48,
             }}
           >
             Don't Show Again
@@ -560,6 +563,7 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
                 color: 'rgba(200,214,229,0.55)',
                 fontSize: isMobile ? 13 : 15, fontWeight: 600, cursor: 'pointer',
                 fontFamily: 'inherit', transition: 'all 0.2s',
+                minWidth: 48, minHeight: 48,
               }}
             >
               Skip
@@ -575,6 +579,7 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
                 cursor: 'pointer', fontFamily: 'inherit',
                 boxShadow: '0 4px 20px rgba(110,231,239,0.3)',
                 transition: 'all 0.2s',
+                minWidth: 48, minHeight: 48,
               }}
             >
               {currentIndex === totalSteps - 1 ? 'Got It' : 'Next'}

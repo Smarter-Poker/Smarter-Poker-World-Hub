@@ -276,7 +276,11 @@ export default function GTOQuestionCard({
     }
 
     return (
-        <div style={{ ...styles.container, position: 'relative' }}>
+        <div
+            data-training-question-card="true"
+            data-training-option-count={shuffledOptions.length}
+            style={{ ...styles.container, position: 'relative' }}
+        >
             {/* Progress Bar */}
             <div style={styles.progressBar}>
                 <div

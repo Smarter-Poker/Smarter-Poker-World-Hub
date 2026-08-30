@@ -150,4 +150,37 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(page.getByText('Position Leak Map')).toBeVisible();
     await expectHealthyLayout(page);
   });
+
+  test('one Leak Finder action completes every signed audit page and shows cumulative progress', async ({ page }) => {
+    // This case verifies the explicit user action. Leak Finder also performs an
+    // intentional first-visit background audit for eligible empty accounts;
+    // suppress that independent path so an instant route mock cannot finish a
+    // background pass and then count the manual pass as duplicate pagination.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('pa-auto-detect-last', String(Date.now()));
+    });
+
+    const seenCursors: Array<string | null> = [];
+    await page.route('**/api/assistant/leaks/detect', async route => {
+      const body = route.request().postDataJSON() as { auditCursor?: string | null } | null;
+      const cursor = body?.auditCursor || null;
+      seenCursors.push(cursor);
+      const response = cursor === null
+        ? { success: true, auditInProgress: true, clubArenaSync: { auditCursor: 'signed-page-2', handsFound: 200, handsAudited: 5, decisionsAnalyzed: 12 } }
+        : cursor === 'signed-page-2'
+          ? { success: true, auditInProgress: true, clubArenaSync: { auditCursor: 'signed-page-3', handsFound: 200, handsAudited: 4, decisionsAnalyzed: 10 } }
+          : { success: true, persisted: true, handsAnalyzed: 550, solverDecisionsAnalyzed: 30, leaksDetected: 2, leaks: [], clubArenaSync: { handsFound: 150, handsAudited: 3, decisionsAnalyzed: 8 } };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(response) });
+    });
+
+    await page.goto('/hub/personal-assistant/leaks', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: /Run Leak Detection|Continue Leak Audit/i }).click();
+
+    await expect.poll(() => seenCursors.length).toBe(3);
+    expect(seenCursors).toEqual([null, 'signed-page-2', 'signed-page-3']);
+    await expect(page.getByText(/Scanned 550 Club Arena Hands/i)).toBeVisible();
+    await expect(page.getByText('Club Hands Scanned')).toBeVisible();
+    await expect(page.getByText('550', { exact: true }).first()).toBeVisible();
+    await expectHealthyLayout(page);
+  });
 });
