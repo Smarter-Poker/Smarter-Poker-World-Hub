@@ -44,7 +44,7 @@ test('Stripe checkout creation is request-idempotent and pending rows are termin
   assert.match(MERCH, /X-Checkout-Request-ID/);
   assert.match(CHECKOUT, /validateCheckoutRequestId/);
   assert.match(CHECKOUT, /findExistingCheckout/);
-  assert.match(CHECKOUT, /idempotencyKey:\s*checkoutRequestId/);
+  assert.match(CHECKOUT, /`commerce:\$\{type\}:\$\{user\.id\}:\$\{checkoutRequestId\}`/);
   assert.match(CHECKOUT, /Pending diamond cleanup failed/);
   assert.match(CHECKOUT, /Pending merchandise cleanup failed/);
   assert.match(WEBHOOK, /case 'checkout\.session\.expired'/);
@@ -54,7 +54,7 @@ test('Stripe checkout creation is request-idempotent and pending rows are termin
 test('card merchandise orders preserve catalog and variant IDs for stock fulfillment', () => {
   assert.match(CHECKOUT, /id:\s*item\.id,[\s\S]*?variantId:\s*item\.variantId \|\| item\.variant_id/);
   const resolvedIndex = CHECKOUT.indexOf('const resolvedItems = items.map((item) =>');
-  const reuseIndex = CHECKOUT.indexOf('const { resolvedItems, totalUsd } = preparedCheckout');
+  const reuseIndex = CHECKOUT.indexOf('resolvedItems,', resolvedIndex);
   const orderIndex = CHECKOUT.indexOf(".from('merchandise_orders')", resolvedIndex);
   const itemsIndex = CHECKOUT.indexOf('items: resolvedItems', resolvedIndex);
   assert.ok(resolvedIndex > -1 && reuseIndex > resolvedIndex && orderIndex > reuseIndex && itemsIndex > orderIndex);

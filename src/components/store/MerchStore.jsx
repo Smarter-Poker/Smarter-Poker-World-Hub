@@ -49,6 +49,7 @@ import { captureStoreEvent, createCheckoutRequestId } from '../../lib/store/stor
 import MerchPurchaseDialog from './MerchPurchaseDialog';
 import { wishlistService } from '../../services/preferences-service';
 import useCartStore from '../../stores/cartStore';
+import { supabase } from '../../lib/supabase';
 
 // ── Economy constants (mirror of the server) ──────────────────────────────
 // 1 diamond = $0.01 → 100 diamonds per USD. purchase-with-diamonds.js uses the
@@ -275,6 +276,9 @@ function normalizeProduct(raw, index, source) {
     firstBoolean([raw.made_to_order, raw.madeToOrder, raw.metadata?.made_to_order]) === true ||
     fulfillmentProvider === 'printful' ||
     branded?.madeToOrder === true;
+  const requiresShipping =
+    firstBoolean([raw.requires_shipping, raw.requiresShipping])
+    ?? (fulfillmentProvider !== 'digital');
 
   return {
     key: rawId || `${source}-${index}-${name}`,
@@ -300,6 +304,7 @@ function normalizeProduct(raw, index, source) {
     fulfillmentProvider,
     fulfillmentReady: firstBoolean([raw.fulfillment_ready, raw.fulfillmentReady]) === true,
     madeToOrder,
+    requiresShipping,
   };
 }
 
@@ -904,6 +909,7 @@ export default function MerchStore({
   const [wishlistIds, setWishlistIds] = useState(() => new Set());
   const [wishlistBusyKey, setWishlistBusyKey] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [isOperator, setIsOperator] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortMode, setSortMode] = useState('featured');
@@ -914,13 +920,30 @@ export default function MerchStore({
   const busyRef = useRef(false);
   const catalogSourceRef = useRef(null);
   const addCartItem = useCartStore((state) => state.addItem);
+  const setCartOwner = useCartStore((state) => state.setOwner);
 
   const setStoreBusy = useCallback((key) => {
     busyRef.current = key !== null;
     setBusyKey(key);
   }, []);
 
-  const { balance, refreshBalance } = useDiamondBalance(user?.id || null);
+  const { balance, refreshBalance, setBalance } = useDiamondBalance(user?.id || null);
+
+  useEffect(() => {
+    setCartOwner(user?.id || 'guest');
+  }, [setCartOwner, user?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id) {
+      setIsOperator(false);
+      return () => { cancelled = true; };
+    }
+    supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setIsOperator(data?.is_admin === true); })
+      .catch(() => { if (!cancelled) setIsOperator(false); });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1128,7 +1151,7 @@ export default function MerchStore({
         price: firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0,
         diamonds:
           firstFiniteNumber([variant?.priceDiamonds, product.priceDiamonds]) ||
-          Math.ceil(product.priceUsd * DIAMONDS_PER_DOLLAR),
+          Math.ceil((firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0) * DIAMONDS_PER_DOLLAR),
         image: product.image || null,
         variantId: variant?.id || null,
         variantLabel: variant?.label || null,
@@ -1302,7 +1325,7 @@ export default function MerchStore({
         variant,
         quantity,
         cost,
-        requiresShipping: product.madeToOrder || product.fulfillmentProvider === 'printful',
+        requiresShipping: product.requiresShipping !== false,
         purchaseRequestId: createCheckoutRequestId(
           `merch-diamonds-${product.catalogId || product.key}`
         ),
@@ -1387,6 +1410,7 @@ export default function MerchStore({
         }
 
         if (!replayed) busEmit.diamondsSpent(spent, 'Merch Store Purchase');
+        if (data.data?.new_balance != null) setBalance(Number(data.data.new_balance));
         broadcastSync('smarter_poker_diamond_sync', 'refresh');
         broadcastSync('smarter_poker_chips_sync', 'refresh');
         refreshBalance();
@@ -1400,7 +1424,7 @@ export default function MerchStore({
         if (mountedRef.current) setStoreBusy(null);
       }
     },
-    [pendingDiamondPurchase, requireSignedIn, buildLineItem, refreshBalance, setStoreBusy]
+    [pendingDiamondPurchase, requireSignedIn, buildLineItem, refreshBalance, setBalance, setStoreBusy]
   );
 
   // ── Render ────────────────────────────────────────────────────────────
@@ -1463,6 +1487,13 @@ export default function MerchStore({
               >
                 <Gem size={15} color={CYAN} />
                 Your Balance: <span style={{ color: CYAN }}>{fmt(balance)}</span>
+              </div>
+            )}
+            {isOperator && (
+              <div style={{ marginTop: 12 }}>
+                <Link href="/hub/merch-store/fulfillment" style={{ color: CYAN, fontWeight: 800 }}>
+                  Open Protected Fulfillment Command Vault
+                </Link>
               </div>
             )}
           </div>

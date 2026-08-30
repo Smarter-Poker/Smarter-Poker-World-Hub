@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { createHash } from 'node:crypto';
 /**
  * Purchase a VIP MEMBERSHIP with diamonds
  * POST /api/store/purchase-vip-with-diamonds
@@ -26,9 +27,9 @@ import { VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[purchase-vip-with-diamonds] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; writes may be silently blocked by RLS');
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) throw new Error('VIP purchase database is not configured');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -82,7 +83,6 @@ function resolvePlan(planKey) {
 //      so a same-millisecond double-click gets a clean 409 instead of racing
 //      into the DB.
 const IDEMPOTENCY_TTL_MS = 10 * 60 * 1000;
-const AUTO_KEY_WINDOW_MS = 60 * 1000;
 const KEY_PATTERN = /^[A-Za-z0-9._:-]{8,128}$/;
 
 const _submissions = new Map(); // referenceId -> { state, status, body, expiresAt }
@@ -112,9 +112,8 @@ function readClientKey(req) {
  * fall back to a coarse time bucket so a double-click still collapses onto one
  * reference id (and therefore one charge) instead of billing twice.
  */
-function buildReferenceId(userId, planKey, clientKey) {
-    const suffix = clientKey || ('auto-' + Math.floor(Date.now() / AUTO_KEY_WINDOW_MS));
-    return 'vip-diamonds:' + planKey + ':' + userId + ':' + suffix;
+function buildReferenceId(userId, clientKey) {
+    return 'vip-diamonds:' + userId + ':' + clientKey;
 }
 
 export default async function handler(req, res) {
@@ -174,17 +173,28 @@ export default async function handler(req, res) {
 
           // ── Idempotency key ──────────────────────────────────────────────
           const { key: clientKey, invalid: keyInvalid } = readClientKey(req);
-          if (keyInvalid) {
+          if (keyInvalid || !clientKey) {
               return res.status(400).json({
                   success: false,
-                  error: 'Invalid idempotency key (8-128 chars, letters/digits/._:- only)'
+                  error: 'A valid X-Idempotency-Key is required (8-128 chars, letters/digits/._:- only)'
               });
           }
-          referenceId = buildReferenceId(user.id, plan.key, clientKey);
+          referenceId = buildReferenceId(user.id, clientKey);
+          const requestHash = createHash('sha256')
+              .update(JSON.stringify({ plan: plan.key, cost: COST, days: plan.days }))
+              .digest('hex');
 
           // In-memory double-submit guard.
           const prior = _submissions.get(referenceId);
           if (prior && Date.now() < prior.expiresAt) {
+              if (prior.requestHash !== requestHash) {
+                  referenceId = null;
+                  return res.status(409).json({
+                      success: false,
+                      error: 'This idempotency key is already bound to another VIP plan.',
+                      code: 'IDEMPOTENCY_CONFLICT'
+                  });
+              }
               if (prior.state === 'processing') {
                   referenceId = null; // not ours to release
                   return res.status(409).json({
@@ -197,24 +207,25 @@ export default async function handler(req, res) {
               referenceId = null;
               return res.status(prior.status).json(replay);
           }
-          _submissions.set(referenceId, { state: 'processing', status: 0, body: null, expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
+          _submissions.set(referenceId, { requestHash, state: 'processing', status: 0, body: null, expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
 
           const remember = (status, body) => {
               if (!referenceId) return;
-              _submissions.set(referenceId, { state: 'done', status, body, expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
+              _submissions.set(referenceId, { requestHash, state: 'done', status, body, expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
               referenceId = null;
           };
 
           // Debit, ledger insert, tier selection and expiry extension share one
           // database transaction. Concurrent purchases therefore stack rather
           // than racing two read/modify/write cycles and losing an extension.
-          const { data: purchaseResult, error: purchaseError } = await getSupabase().rpc('purchase_vip_with_diamonds_atomic', {
+          const { data: purchaseResult, error: purchaseError } = await getSupabase().rpc('purchase_vip_with_diamonds_atomic_v3', {
               p_user_id: user.id,
               p_cost: COST,
               p_days: plan.days,
               p_plan: plan.key,
               p_description: `${plan.name} (${COST} diamonds)`,
-              p_reference_id: referenceId
+              p_reference_id: referenceId,
+              p_request_hash: requestHash
           });
 
           if (purchaseError) {
@@ -224,9 +235,21 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: 'Failed to process payment' });
           }
           if (!purchaseResult?.success) {
+              if (purchaseResult?.error === 'reference_conflict') {
+                  _submissions.delete(referenceId);
+                  referenceId = null;
+                  return res.status(409).json({
+                      success: false,
+                      error: 'This idempotency key is already bound to another VIP plan.',
+                      code: 'IDEMPOTENCY_CONFLICT'
+                  });
+              }
+              const isLifetime = purchaseResult?.error === 'already_lifetime';
               const body = {
                   success: false,
-                  error: purchaseResult?.error === 'insufficient_diamonds'
+                  error: isLifetime
+                      ? 'Lifetime VIP already includes this membership'
+                      : purchaseResult?.error === 'insufficient_diamonds'
                       ? 'Insufficient diamonds'
                       : (purchaseResult?.error || 'Failed to process payment'),
                   required: COST,
@@ -234,7 +257,7 @@ export default async function handler(req, res) {
               };
               _submissions.delete(referenceId);
               referenceId = null;
-              return res.status(purchaseResult?.error === 'insufficient_diamonds' ? 400 : 500).json(body);
+              return res.status(isLifetime ? 409 : purchaseResult?.error === 'insufficient_diamonds' ? 400 : 500).json(body);
           }
 
           const body = {

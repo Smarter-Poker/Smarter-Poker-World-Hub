@@ -54,9 +54,11 @@ test('cart merchandise checkout supports card and diamonds with shipping and sta
 
 test('diamond checkout accepts a validated client idempotency key', () => {
   assert.match(DIAMOND_PURCHASE, /x-idempotency-key/);
-  assert.match(DIAMOND_PURCHASE, /\^\[a-zA-Z0-9:_-\]\{12,180\}\$/);
-  assert.match(DIAMOND_PURCHASE, /stableRequestFingerprint/);
+  assert.match(DIAMOND_PURCHASE, /KEY_PATTERN = \/\^\[A-Za-z0-9\._:-\]\{12,180\}\$\//);
+  assert.match(DIAMOND_PURCHASE, /buildPurchaseReference/);
+  assert.match(DIAMOND_PURCHASE, /buildRequestHash/);
   assert.match(DIAMOND_PURCHASE, /createHash\('sha256'\)/);
+  assert.match(DIAMOND_PURCHASE, /purchase_merch_with_diamonds_atomic/);
   assert.match(MERCH, /purchaseRequestId: createCheckoutRequestId/);
   assert.match(MERCH, /'X-Idempotency-Key': pendingDiamondPurchase\.purchaseRequestId/);
 });

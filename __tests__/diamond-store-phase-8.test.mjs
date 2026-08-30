@@ -33,13 +33,13 @@ test('realtime order refreshes are latest-request-wins', () => {
 });
 
 test('diamond merchandise retries replay the original recorded order', () => {
-  assert.match(PURCHASE, /findCompletedDiamondMerchOrder/);
-  assert.match(PURCHASE, /purchase_reference: purchaseRef/);
-  assert.match(PURCHASE, /replayPurchaseResponse/);
+  assert.match(PURCHASE, /purchase_merch_with_diamonds_atomic/);
+  assert.match(PURCHASE, /p_purchase_reference: purchaseReference/);
+  assert.match(PURCHASE, /p_request_hash: requestHash/);
   assert.match(PURCHASE, /idempotent: true/);
-  assert.match(PURCHASE, /deductResult\.duplicate/);
-  assert.match(PURCHASE, /PURCHASE_ALREADY_PROCESSING/);
-  assert.match(PURCHASE, /order_id: order\.id/);
+  assert.match(PURCHASE, /result\.duplicate/);
+  assert.match(PURCHASE, /reference_conflict/);
+  assert.match(PURCHASE, /order_id: result\?\.order_id/);
 });
 
 test('wishlist saves are conflict-safe and refreshes cannot commit stale results', () => {

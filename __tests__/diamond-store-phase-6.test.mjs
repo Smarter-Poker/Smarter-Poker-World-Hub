@@ -140,7 +140,8 @@ test('physical merch and Club Shop items expose both card and diamond purchase p
   assert.match(MERCH_PURCHASE, /normalizePrintfulRecipient/);
   assert.match(MERCH_PURCHASE, /createPrintfulOrder/);
   assert.match(STORE, /handleClubCardCheckout/);
-  assert.match(STORE, /smarter_poker_pending_club_card_purchase/);
+  assert.match(STORE, /redemptionIntent: \{ kind: 'club_shop'/);
+  assert.doesNotMatch(STORE, /smarter_poker_pending_club_card_purchase/);
   assert.match(STORE, /<CreditCard size=\{12\}/);
 });
 
@@ -161,9 +162,10 @@ test('Club Shop currency, ownership, refresh, and atomic purchase match the API 
 });
 
 test('diamond merch returns the locked RPC balance and verifies refund business results', () => {
-  assert.match(MERCH_PURCHASE, /typeof deductResult\?\.new_balance === 'number'/);
-  assert.match(MERCH_PURCHASE, /data: refundResult, error: refundErr/);
-  assert.match(MERCH_PURCHASE, /refundResult && refundResult\.success === false/);
+  assert.match(MERCH_PURCHASE, /new_balance: Number\.isFinite\(Number\(result\?\.new_balance\)\)/);
+  assert.match(MERCH_PURCHASE, /purchase_merch_with_diamonds_atomic/);
+  assert.match(MERCH_PURCHASE, /if \(!result\.success\)/);
+  assert.match(MERCH_PURCHASE, /reference_conflict/);
 });
 
 test('store feedback and dialogs remain accessible under failure and reverse-tab navigation', () => {

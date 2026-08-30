@@ -14,8 +14,9 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new Error('VIP membership database is not configured');
     _supabase = createClient(url, key);
   }
   return _supabase;
@@ -70,7 +71,7 @@ export default async function handler(req, res) {
       entitlementIsActive(profile) && !isCardSubscription && profile?.vip_tier !== 'lifetime'
     );
     const isLifetime = profile?.vip_tier === 'lifetime';
-    const tier = subscription?.tier || profile?.vip_tier || null;
+    const tier = isLifetime ? 'lifetime' : subscription?.tier || profile?.vip_tier || null;
     const cancelAtPeriodEnd = Boolean(subscription?.cancel_at_period_end);
 
     res.setHeader('Cache-Control', 'private, no-store');
@@ -80,13 +81,13 @@ export default async function handler(req, res) {
         isVip: entitlementIsActive(profile),
         tier,
         expiresAt: profile?.vip_expires_at || subscription?.current_period_end || null,
-        source: isCardSubscription ? 'card' : isLifetime ? 'lifetime' : isDiamondPass ? 'diamonds' : 'none',
+        source: isLifetime ? 'lifetime' : isCardSubscription ? 'card' : isDiamondPass ? 'diamonds' : 'none',
         subscriptionStatus: subscription?.status || null,
         currentPeriodEnd: subscription?.current_period_end || profile?.vip_expires_at || null,
         cancelAtPeriodEnd,
-        recurring: isCardSubscription,
-        canSwitch: isCardSubscription && !cancelAtPeriodEnd && ['monthly', 'annual'].includes(tier),
-        canCancel: isCardSubscription && !cancelAtPeriodEnd,
+        recurring: !isLifetime && isCardSubscription,
+        canSwitch: !isLifetime && isCardSubscription && !cancelAtPeriodEnd && ['monthly', 'annual'].includes(tier),
+        canCancel: !isLifetime && isCardSubscription && !cancelAtPeriodEnd,
         partial: Boolean(subscriptionResult.error),
       },
     });
