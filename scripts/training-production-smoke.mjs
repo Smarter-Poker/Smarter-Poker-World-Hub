@@ -115,6 +115,7 @@ async function auditSignedOutLogin(browser, viewport) {
   await page.locator('input[type="email"]').waitFor({ state: 'visible', timeout: 30_000 });
   await page.locator('input[type="password"]').waitFor({ state: 'visible', timeout: 30_000 });
   assert.deepEqual(pageErrors, [], `${viewport.name} login: page errors`);
+  assert.deepEqual(consoleErrors, [], `${viewport.name} login: console errors`);
   assert.equal(
     consoleErrors.filter((message) => HYDRATION_ERROR.test(message)).length,
     0,
@@ -255,6 +256,7 @@ try {
     for (const gameId of CAMPAIGNS) result.campaigns.push(await auditCampaign(page, viewport, gameId));
     for (const arena of ARENAS) result.arenas.push(await auditArena(page, viewport, arena));
     assert.deepEqual(pageErrors, [], `${viewport.name}: page errors`);
+    assert.deepEqual(consoleErrors, [], `${viewport.name}: console errors`);
     assert.equal(
       consoleErrors.filter((message) => HYDRATION_ERROR.test(message)).length,
       0,
