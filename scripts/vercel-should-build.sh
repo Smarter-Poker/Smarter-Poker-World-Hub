@@ -9,6 +9,42 @@
 # Added 2026-05-18 to reduce $207/mo Vercel build cost.
 # The 952-page Next.js app was rebuilding on every single push to main.
 
+# ═══════════════════════════════════════════════════════════════════════════
+#  GATE 1 — AN AGENT BRANCH'S PREVIEW MUST NOT QUEUE AHEAD OF PRODUCTION
+#  (Dan 2026-08-30)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Measured on 2026-08-29/30: a Club Arena fix merged to main, synced to this
+# repo at 03:55, and did not reach smarter.poker until ~04:20 — because the
+# build concurrency pool was full of PREVIEW builds for `agent/*` branches
+# pushed by other agents in the same minutes. Worse than slow: the production
+# deploy for the sync commit was CANCELED outright while queued, and the
+# change only shipped by riding a later commit's build.
+#
+# Those previews are pure waste here. An `agent/*` branch is created by
+# scripts/agent-workspace.sh, exists to be squash-merged, and is deleted after.
+# NOBODY OPENS ITS PREVIEW URL. And nothing depends on one: the required
+# checks on this repo are GitHub Actions (see AGENT-PLAYBOOK.md §3) — no
+# Vercel deployment is a required status, so skipping these cannot block a
+# merge.
+#
+# This gate runs BEFORE the file-diff gate below, because the question "is
+# this a throwaway preview" is answered without any diff at all — and the diff
+# is exactly what is unreliable on a shallow preview clone.
+#
+# Production (`VERCEL_ENV=production`, i.e. main) is NEVER skipped here; it
+# falls through to the file-diff gate that has always governed it.
+if [ "$VERCEL_ENV" = "preview" ]; then
+  case "$VERCEL_GIT_COMMIT_REF" in
+    agent/*)
+      echo "[should-build] Preview for agent branch '$VERCEL_GIT_COMMIT_REF' — SKIPPED."
+      echo "[should-build] Agent branches are squash-merged, never browsed; their"
+      echo "[should-build] previews only queue ahead of production deploys."
+      exit 0
+      ;;
+  esac
+fi
+
 CHANGED=$(git diff HEAD~1 HEAD --name-only 2>/dev/null)
 
 if [ -z "$CHANGED" ]; then
