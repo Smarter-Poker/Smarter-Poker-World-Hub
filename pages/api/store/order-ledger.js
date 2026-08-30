@@ -32,7 +32,7 @@ const SOURCES = Object.freeze({
     table: 'merchandise_orders',
     ownerColumn: 'user_id',
     select:
-      'id, user_id, items, total_usd, diamonds_spent, payment_method, status, refunded_amount_cents, metadata, tracking_number, tracking_url, carrier, created_at, updated_at, shipped_at, delivered_at',
+      'id, user_id, items, total_usd, diamonds_spent, payment_method, status, refunded_amount_cents, refunded_diamonds, refunded_at, metadata, tracking_number, tracking_url, carrier, created_at, updated_at, shipped_at, delivered_at',
   },
   vip: {
     table: 'vip_subscriptions',
@@ -206,7 +206,7 @@ function normalizeOrder(source, row) {
     ? Number(row?.diamonds_spent) || 0
     : toCents(row?.total_usd);
   const refundAmount = paidWithDiamonds
-    ? 0
+    ? Math.max(0, Number(row?.refunded_diamonds) || 0)
     : Math.max(0, Number(row?.refunded_amount_cents) || 0);
   const items = (Array.isArray(row?.items) ? row.items : []).map((item) => {
     const quantity = Math.max(1, Number(item?.quantity) || 1);
@@ -234,6 +234,7 @@ function normalizeOrder(source, row) {
     amount,
     refundAmount,
     netAmount: Math.max(0, amount - refundAmount),
+    refundedAt: row?.refunded_at || null,
     recordType: 'settlement',
     trackingNumber: row?.tracking_number || null,
     trackingUrl: safeTrackingUrl(row?.tracking_url),

@@ -59,14 +59,15 @@ test('marketplace JSON-LD cannot terminate its script element', () => {
   assert.match(detailShell, /serializeStructuredData\(structuredData\)/);
 });
 
-test('club item detail closes double-submit windows and clears abandoned checkout intent', () => {
+test('club item detail closes double-submit windows and persists card intent server-side', () => {
   assert.match(clubDetail, /const loadRequestRef = useRef\(0\)/);
   assert.match(clubDetail, /requestId !== loadRequestRef\.current/);
   assert.match(clubDetail, /const processingRef = useRef\(false\)/);
   assert.match(clubDetail, /if \(processingRef\.current\) return/);
   assert.match(clubDetail, /processingRef\.current = true/);
   assert.match(clubDetail, /processingRef\.current = false/);
-  assert.match(clubDetail, /removeItem\('smarter_poker_pending_club_detail_card_purchase'\)/);
+  assert.match(clubDetail, /redemptionIntent: \{ kind: 'club_shop'/);
+  assert.doesNotMatch(clubDetail, /smarter_poker_pending_club_detail_card_purchase/);
   assert.match(clubDetail, /Sign In To Buy This Item/);
   assert.match(clubDetail, /Retry Live Inventory/);
   assert.match(clubDetail, /Review Diamond Purchase/);

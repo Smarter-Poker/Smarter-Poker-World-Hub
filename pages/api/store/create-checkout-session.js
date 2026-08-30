@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { createHash } from 'node:crypto';
 /**
  * Create Stripe Checkout Session
  * POST /api/store/create-checkout-session
@@ -8,6 +9,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { requireEmailVerified, requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 const {
     isPrintfulReady,
     resolvePrintfulMapping,
@@ -16,9 +18,9 @@ const {
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[create-checkout-session] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; writes may be silently blocked by RLS');
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) throw new Error('Store checkout database is not configured');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -167,6 +169,51 @@ function validateCheckoutRequestId(value) {
     return /^[a-z0-9][a-z0-9_-]{11,127}$/i.test(trimmed) ? trimmed : null;
 }
 
+function computeCheckoutIntentHash(type, preparedCheckout, redemptionIntent = null) {
+    let intent;
+    if (type === 'diamonds') {
+        intent = preparedCheckout.resolvedPackages
+            .map(({ key, quantity, diamonds, bonus, price }) => ({
+                key, quantity, diamonds, bonus, price,
+            }))
+            .sort((a, b) => a.key.localeCompare(b.key));
+    } else if (type === 'subscription') {
+        intent = {
+            plan: preparedCheckout.plan.key,
+            unitAmount: preparedCheckout.plan.unitAmount,
+            interval: preparedCheckout.plan.interval,
+        };
+    } else {
+        intent = preparedCheckout.resolvedItems
+            .map(({ id, variantId, quantity, price, providerVariant }) => ({
+                id,
+                variantId: variantId || null,
+                quantity,
+                price,
+                providerVariant: providerVariant || null,
+            }))
+            .sort((a, b) => `${a.id}:${a.variantId || ''}`.localeCompare(`${b.id}:${b.variantId || ''}`));
+    }
+    return createHash('sha256')
+        .update(JSON.stringify({ type, intent, redemptionIntent }))
+        .digest('hex');
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function normalizeRedemptionIntent(type, raw) {
+    if (raw == null) return null;
+    if (type !== 'diamonds' || typeof raw !== 'object' || Array.isArray(raw)) {
+        throw new CheckoutInputError('INVALID_REDEMPTION_INTENT', 'Invalid card-funded redemption target');
+    }
+    if (raw.kind === 'vip_daily') return { kind: 'vip_daily' };
+    if (raw.kind === 'club_shop'
+        && UUID_RE.test(String(raw.clubId || ''))
+        && UUID_RE.test(String(raw.itemId || ''))) {
+        return { kind: 'club_shop', club_id: String(raw.clubId), item_id: String(raw.itemId) };
+    }
+    throw new CheckoutInputError('INVALID_REDEMPTION_INTENT', 'Invalid card-funded redemption target');
+}
+
 /**
  * Resolve and validate every purchasable line before creating a Stripe
  * customer or writing a pending order. Besides removing side effects from bad
@@ -280,6 +327,15 @@ async function prepareCheckout(type, items) {
         variant_id: item.variantId || item.variant_id || null,
         qty: Number(item.quantity ?? 1),
     }));
+    const lineIdentities = stockCheckLines.map(
+        (line) => `${line.id}\u0000${line.variant_id || ''}`
+    );
+    if (new Set(lineIdentities).size !== lineIdentities.length) {
+        throw new CheckoutInputError(
+            'DUPLICATE_LINES',
+            'Combine duplicate merchandise options into one cart line'
+        );
+    }
     const { data: stockRaw, error: stockError } = await getSupabase()
         .rpc('reserve_merch_order', { p_items: stockCheckLines, p_dry_run: true });
     if (stockError) {
@@ -305,18 +361,6 @@ async function prepareCheckout(type, items) {
         );
     }
 
-    // Every physical line must have an immutable provider mapping before a
-    // customer can enter Stripe Checkout. This is the zero-inventory safety
-    // gate: no Printful token, no deliberate auto-confirm switch, or no exact
-    // selected variant mapping means no payment can be accepted.
-    if (!isPrintfulReady()) {
-        throw new CheckoutInputError(
-            'FULFILLMENT_NOT_CONFIGURED',
-            'Made-To-Order Fulfillment Is Being Configured. No Payment Was Taken.',
-            503,
-        );
-    }
-
     const selectedVariantIds = [...new Set(stockCheckLines.map(line => line.variant_id).filter(Boolean))];
     const selectedVariantsById = {};
     if (selectedVariantIds.length > 0) {
@@ -327,11 +371,8 @@ async function prepareCheckout(type, items) {
             .eq('is_active', true);
         if (variantError) {
             console.error('[Checkout] fulfillment variant lookup failed:', variantError.message);
-            throw new CheckoutInputError(
-                'FULFILLMENT_NOT_CONFIGURED',
-                'That Option Cannot Be Sent To Fulfillment Yet. No Payment Was Taken.',
-                503,
-            );
+            // A provider mapping outage must not turn the entire store off.
+            // The paid order enters the audited manual fulfillment queue.
         }
         for (const variant of selectedVariants || []) selectedVariantsById[variant.id] = variant;
     }
@@ -353,13 +394,10 @@ async function prepareCheckout(type, items) {
                 : resolvePrintfulMapping(itemMetadata, null))
             : null;
 
-        if (provider !== 'printful'
-            || (variantId && selectedVariant?.item_id !== item.id)
-            || !providerVariant) {
+        if (variantId && selectedVariant?.item_id !== item.id) {
             throw new CheckoutInputError(
-                'FULFILLMENT_NOT_CONFIGURED',
-                'That Item Or Option Cannot Be Sent To Fulfillment Yet. No Payment Was Taken.',
-                503,
+                'ITEM_NOT_FOUND',
+                'That merchandise option is no longer available',
             );
         }
         return {
@@ -373,9 +411,10 @@ async function prepareCheckout(type, items) {
             image: catalog.image_url || item.image || null,
             description: item.description ? String(item.description).slice(0, 500) : undefined,
             quantity: Number(item.quantity ?? 1),
-            fulfillmentProvider: 'printful',
+            fulfillmentProvider: provider || 'manual',
             providerVariant,
-            madeToOrder: true,
+            madeToOrder: itemMetadata.made_to_order === true || provider === 'printful'
+                || provider === 'provider_pending',
         };
     });
     const totalUsd = resolvedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -383,15 +422,29 @@ async function prepareCheckout(type, items) {
         throw new CheckoutInputError('ORDER_TOO_LARGE', `Maximum order total is $${MAX_ORDER_TOTAL_USD}`);
     }
 
-    return { catalogPrices, resolvedItems, stockCheckLines, totalUsd };
+    const providerNames = [...new Set(resolvedItems.map(
+        (item) => item.fulfillmentProvider || 'manual'
+    ))];
+    const automaticFulfillment = isPrintfulReady()
+        && providerNames.length === 1
+        && providerNames[0] === 'printful'
+        && resolvedItems.every((item) => !!item.providerVariant);
+    return {
+        catalogPrices,
+        resolvedItems,
+        stockCheckLines,
+        totalUsd,
+        fulfillmentMode: automaticFulfillment ? 'automatic' : 'manual',
+        catalogProvider: providerNames.length === 1 ? providerNames[0] : 'mixed',
+    };
 }
 
-async function findExistingCheckout(type, userId, checkoutRequestId) {
+async function findExistingCheckout(type, userId, checkoutRequestId, intentHash) {
     if (!checkoutRequestId || !['diamonds', 'merchandise'].includes(type)) return null;
     const table = type === 'diamonds' ? 'diamond_purchases' : 'merchandise_orders';
     const { data, error } = await getSupabase()
         .from(table)
-        .select('id, status, stripe_checkout_session_id')
+        .select('id, status, stripe_checkout_session_id, metadata')
         .eq('user_id', userId)
         .contains('metadata', { checkout_request_id: checkoutRequestId })
         .order('created_at', { ascending: false })
@@ -403,7 +456,25 @@ async function findExistingCheckout(type, userId, checkoutRequestId) {
         return null;
     }
     if (!data) return null;
-    if (!data.stripe_checkout_session_id) return { initializing: true };
+    const storedHash = data.metadata?.checkout_intent_hash;
+    // Rows created before intent binding cannot prove what the buyer originally
+    // authorized. Never attach a new financial payload to a legacy request id;
+    // the client must generate a fresh checkout request instead.
+    if (!storedHash || storedHash !== intentHash) return { conflict: true };
+    const terminalOrRefunded = ['refunded', 'canceled', 'cancelled'].includes(data.status)
+        || data.metadata?.refund_before_settlement === true
+        || data.metadata?.stock_restore_pending_return === true
+        || ['partial', 'full'].includes(data.metadata?.refund_status);
+    if (terminalOrRefunded) return { conflict: true };
+    if (!data.stripe_checkout_session_id) {
+        if (!['pending', 'failed'].includes(data.status)) return { conflict: true };
+        return {
+            resume: true,
+            recordId: data.id,
+            status: data.status,
+            metadata: data.metadata || {},
+        };
+    }
 
     try {
         const session = await stripe.checkout.sessions.retrieve(data.stripe_checkout_session_id);
@@ -454,6 +525,7 @@ export default async function handler(req, res) {
           console.warn('[Checkout] WARNING: Stripe TEST secret key is being used in production');
       }
 
+      let subscriptionClaim = null;
       try {
           const authHeader = req.headers.authorization;
           if (!authHeader) {
@@ -474,7 +546,13 @@ export default async function handler(req, res) {
               });
           }
 
-          const { type, items, successUrl, cancelUrl } = req.body || {};
+          let emailGate = requireEmailVerified(user);
+          if (!emailGate.ok && typeof user.email_confirmed_at === 'undefined') {
+              emailGate = await requireEmailVerifiedByUserId(getSupabase(), user.id);
+          }
+          if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
+
+          const { type, items, successUrl, cancelUrl, redemptionIntent: rawRedemptionIntent } = req.body || {};
 
           if (!type || !items || !Array.isArray(items) || items.length === 0) {
               return res.status(400).json({
@@ -514,9 +592,17 @@ export default async function handler(req, res) {
                   error: { code: 'INVALID_REQUEST_ID', message: 'Invalid checkout request identifier' }
               });
           }
+          if (type === 'subscription' && !checkoutRequestId) {
+              return res.status(400).json({
+                  success: false,
+                  error: { code: 'REQUEST_ID_REQUIRED', message: 'A checkout request identifier is required' }
+              });
+          }
           let preparedCheckout;
+          let redemptionIntent;
           try {
               preparedCheckout = await prepareCheckout(type, items);
+              redemptionIntent = normalizeRedemptionIntent(type, rawRedemptionIntent);
           } catch (inputError) {
               if (inputError instanceof CheckoutInputError) {
                   return res.status(inputError.status).json({
@@ -526,8 +612,23 @@ export default async function handler(req, res) {
               }
               throw inputError;
           }
+          const checkoutIntentHash = computeCheckoutIntentHash(type, preparedCheckout, redemptionIntent);
 
-          const existingCheckout = await findExistingCheckout(type, user.id, checkoutRequestId);
+          const existingCheckout = await findExistingCheckout(
+              type,
+              user.id,
+              checkoutRequestId,
+              checkoutIntentHash
+          );
+          if (existingCheckout?.conflict) {
+              return res.status(409).json({
+                  success: false,
+                  error: {
+                      code: 'IDEMPOTENCY_CONFLICT',
+                      message: 'This checkout request identifier was already used for different items.'
+                  }
+              });
+          }
           if (existingCheckout?.url) {
               return res.status(200).json({
                   success: true,
@@ -539,27 +640,36 @@ export default async function handler(req, res) {
               });
           }
           if (existingCheckout?.initializing) {
-              return res.status(409).json({
+              return res.status(503).json({
                   success: false,
+                  retryable: true,
                   error: {
-                      code: 'CHECKOUT_INITIALIZING',
-                      message: 'This checkout is already being prepared. Please wait a moment.'
+                      code: 'CHECKOUT_RECOVERY_PENDING',
+                      message: 'Your existing checkout is still being recovered. Retry this same request shortly.'
                   }
               });
           }
-
           // Stripe is initialized at module level above
 
           // Get or create Stripe customer
           let customerId;
           const { data: profile, error: profileReadError } = await getSupabase()
               .from('profiles')
-              .select('stripe_customer_id, email, username')
+              .select('stripe_customer_id, email, username, is_vip, vip_tier')
               .eq('id', user.id)
               .maybeSingle();
           if (profileReadError) throw profileReadError;
 
           if (type === 'subscription') {
+              if (profile?.vip_tier === 'lifetime') {
+                  return res.status(409).json({
+                      success: false,
+                      error: {
+                          code: 'LIFETIME_VIP_ALREADY_OWNED',
+                          message: 'Lifetime VIP already includes every subscription benefit.'
+                      }
+                  });
+              }
               const { data: activeRows, error: activeReadError } = await getSupabase()
                   .from('vip_subscriptions')
                   .select('stripe_subscription_id, status')
@@ -613,7 +723,7 @@ export default async function handler(req, res) {
                           smarter_poker_id: user.id,
                           username: profile?.username
                       }
-                  });
+                  }, { idempotencyKey: `commerce:customer:${user.id}` });
                   customerId = customer.id;
 
                   // Save customer ID to profile.
@@ -660,6 +770,17 @@ export default async function handler(req, res) {
                   limit: 100,
               });
               if (openSessions.data.some((entry) => entry.mode === 'subscription')) {
+                  const matchingSession = openSessions.data.find((entry) => (
+                      entry.mode === 'subscription'
+                      && entry.metadata?.checkout_intent_hash === checkoutIntentHash
+                  ));
+                  if (matchingSession?.url) {
+                      return res.status(200).json({
+                          success: true,
+                          duplicate: true,
+                          data: { session_id: matchingSession.id, url: matchingSession.url }
+                      });
+                  }
                   return res.status(409).json({
                       success: false,
                       error: {
@@ -668,6 +789,39 @@ export default async function handler(req, res) {
                       }
                   });
               }
+
+              const { data: claim, error: claimError } = await getSupabase().rpc(
+                  'claim_vip_subscription_checkout',
+                  {
+                      p_user_id: user.id,
+                      p_request_id: checkoutRequestId,
+                      p_intent_hash: checkoutIntentHash,
+                      p_lease_seconds: 300,
+                  }
+              );
+              if (claimError) throw claimError;
+              if (!claim?.claimed) {
+                  if (claim?.state === 'open' && claim?.session_url) {
+                      return res.status(200).json({
+                          success: true,
+                          duplicate: true,
+                          data: { session_id: claim.session_id, url: claim.session_url }
+                      });
+                  }
+                  return res.status(409).json({
+                      success: false,
+                      retryable: claim?.state === 'initializing',
+                      error: {
+                          code: claim?.state === 'conflict'
+                              ? 'SUBSCRIPTION_CHECKOUT_EXISTS'
+                              : 'CHECKOUT_RECOVERY_PENDING',
+                          message: claim?.state === 'conflict'
+                              ? 'A VIP subscription checkout is already open for this account.'
+                              : 'Your subscription checkout is still being initialized. Retry shortly.'
+                      }
+                  });
+              }
+              subscriptionClaim = { userId: user.id, requestId: checkoutRequestId };
           }
 
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker';
@@ -699,6 +853,7 @@ export default async function handler(req, res) {
               metadata: {
                   user_id: user.id,
                   type: type,
+                  checkout_intent_hash: checkoutIntentHash,
                   ...(checkoutRequestId ? { checkout_request_id: checkoutRequestId } : {})
               }
           };
@@ -738,21 +893,59 @@ export default async function handler(req, res) {
                   .slice(0, 200);
 
               // Create pending purchase record with SERVER-SIDE values
-              const { data: purchase, error: purchaseInsertErr } = await getSupabase()
-                  .from('diamond_purchases')
-                  .insert({
+              const purchaseMutation = existingCheckout?.resume
+                  ? getSupabase().from('diamond_purchases').update({
+                      status: 'pending',
+                      metadata: {
+                          ...existingCheckout.metadata,
+                          ...(checkoutRequestId ? { checkout_request_id: checkoutRequestId } : {}),
+                          checkout_intent_hash: checkoutIntentHash,
+                          ...(redemptionIntent ? { redemption_intent: redemptionIntent } : {}),
+                      },
+                  })
+                      .eq('id', existingCheckout.recordId)
+                      .in('status', ['pending', 'failed'])
+                      .is('stripe_checkout_session_id', null)
+                  : getSupabase().from('diamond_purchases').insert({
                       user_id: user.id,
                       package_name: packageName,
                       diamonds_amount: totalDiamonds,
                       bonus_diamonds: totalBonus,
                       price_usd: totalUsd,
                       status: 'pending',
-                      ...(checkoutRequestId
-                          ? { metadata: { checkout_request_id: checkoutRequestId } }
-                          : {})
-                  })
+                      metadata: {
+                          ...(checkoutRequestId ? {
+                              checkout_request_id: checkoutRequestId,
+                          } : {}),
+                          checkout_intent_hash: checkoutIntentHash,
+                          ...(redemptionIntent ? { redemption_intent: redemptionIntent } : {}),
+                      }
+                  });
+              let { data: purchase, error: purchaseInsertErr } = await purchaseMutation
                   .select()
                   .maybeSingle();
+              if (purchaseInsertErr?.code === '23505' && checkoutRequestId) {
+                  const recovered = await findExistingCheckout(type, user.id, checkoutRequestId, checkoutIntentHash);
+                  if (recovered?.conflict) {
+                      return res.status(409).json({ success: false, error: {
+                          code: 'IDEMPOTENCY_CONFLICT',
+                          message: 'This checkout request identifier was already used for different items.'
+                      } });
+                  }
+                  if (recovered?.url) {
+                      return res.status(200).json({ success: true, duplicate: true, data: {
+                          session_id: recovered.sessionId, url: recovered.url
+                      } });
+                  }
+                  if (recovered?.initializing || !recovered?.resume) {
+                      return res.status(503).json({ success: false, retryable: true, error: {
+                          code: 'CHECKOUT_RECOVERY_PENDING',
+                          message: 'Your checkout is being initialized. Retry this same request shortly.'
+                      } });
+                  }
+                  purchase = { id: recovered.recordId };
+                  purchaseInsertErr = null;
+              }
 
               // CRITICAL: never create a payable session without a correlatable DB record —
               // the webhook requires metadata.purchase_id to credit the diamonds.
@@ -825,7 +1018,12 @@ export default async function handler(req, res) {
               // Catalog identity, stock, quantity, and price were already
               // validated before any Stripe customer or pending-order side
               // effect. Reuse that immutable server-owned result here.
-              const { resolvedItems, totalUsd } = preparedCheckout;
+              const {
+                  resolvedItems,
+                  totalUsd,
+                  fulfillmentMode,
+                  catalogProvider,
+              } = preparedCheckout;
 
               sessionConfig.line_items = resolvedItems.map(item => ({
                   price_data: {
@@ -843,9 +1041,23 @@ export default async function handler(req, res) {
               }));
 
               // Create pending order record (totalUsd already calculated and validated above)
-              const { data: order, error: orderInsertErr } = await getSupabase()
-                  .from('merchandise_orders')
-                  .insert({
+              const merchandiseMutation = existingCheckout?.resume
+                  ? getSupabase().from('merchandise_orders').update({
+                      status: 'pending',
+                      metadata: {
+                          ...existingCheckout.metadata,
+                          ...(checkoutRequestId ? { checkout_request_id: checkoutRequestId } : {}),
+                          checkout_intent_hash: checkoutIntentHash,
+                          fulfillment_provider: fulfillmentMode === 'automatic' ? catalogProvider : 'manual',
+                          catalog_provider: catalogProvider,
+                          fulfillment_mode: fulfillmentMode,
+                          fulfillment_status: 'awaiting_payment',
+                      },
+                  })
+                      .eq('id', existingCheckout.recordId)
+                      .in('status', ['pending', 'failed'])
+                      .is('stripe_checkout_session_id', null)
+                  : getSupabase().from('merchandise_orders').insert({
                       user_id: user.id,
                       items: resolvedItems,
                       total_usd: totalUsd,
@@ -853,16 +1065,45 @@ export default async function handler(req, res) {
                       ...(checkoutRequestId
                           ? { metadata: {
                               checkout_request_id: checkoutRequestId,
-                              fulfillment_provider: 'printful',
+                              checkout_intent_hash: checkoutIntentHash,
+                              fulfillment_provider: fulfillmentMode === 'automatic' ? catalogProvider : 'manual',
+                              catalog_provider: catalogProvider,
+                              fulfillment_mode: fulfillmentMode,
                               fulfillment_status: 'awaiting_payment',
                           } }
                           : { metadata: {
-                              fulfillment_provider: 'printful',
+                              fulfillment_provider: fulfillmentMode === 'automatic' ? catalogProvider : 'manual',
+                              checkout_intent_hash: checkoutIntentHash,
+                              catalog_provider: catalogProvider,
+                              fulfillment_mode: fulfillmentMode,
                               fulfillment_status: 'awaiting_payment',
                           } })
-                  })
+                  });
+              let { data: order, error: orderInsertErr } = await merchandiseMutation
                   .select()
                   .maybeSingle();
+              if (orderInsertErr?.code === '23505' && checkoutRequestId) {
+                  const recovered = await findExistingCheckout(type, user.id, checkoutRequestId, checkoutIntentHash);
+                  if (recovered?.conflict) {
+                      return res.status(409).json({ success: false, error: {
+                          code: 'IDEMPOTENCY_CONFLICT',
+                          message: 'This checkout request identifier was already used for different items.'
+                      } });
+                  }
+                  if (recovered?.url) {
+                      return res.status(200).json({ success: true, duplicate: true, data: {
+                          session_id: recovered.sessionId, url: recovered.url
+                      } });
+                  }
+                  if (recovered?.initializing || !recovered?.resume) {
+                      return res.status(503).json({ success: false, retryable: true, error: {
+                          code: 'CHECKOUT_RECOVERY_PENDING',
+                          message: 'Your checkout is being initialized. Retry this same request shortly.'
+                      } });
+                  }
+                  order = { id: recovered.recordId };
+                  orderInsertErr = null;
+              }
 
               // CRITICAL: never create a payable session without a correlatable DB record —
               // the webhook requires metadata.order_id to confirm the order.
@@ -893,8 +1134,8 @@ export default async function handler(req, res) {
                   ? { idempotencyKey: checkoutRequestId }
                   : {};
               stripeRequestOptions.idempotencyKey = type === 'subscription'
-                  ? `commerce:vip-subscription:${user.id}:${Math.floor(Date.now() / 3600000)}`
-                  : (checkoutRequestId ? `commerce:${type}:${checkoutRequestId}` : undefined);
+                  ? `commerce:vip-subscription:${user.id}:${checkoutRequestId}`
+                  : (checkoutRequestId ? `commerce:${type}:${user.id}:${checkoutRequestId}` : undefined);
               session = await stripe.checkout.sessions.create(
                   sessionConfig,
                   stripeRequestOptions.idempotencyKey ? stripeRequestOptions : undefined
@@ -921,6 +1162,26 @@ export default async function handler(req, res) {
                   else if (!cleanedRows?.length) console.info('[Checkout] Pending merchandise order was already terminal');
               }
               throw sessionError;
+          }
+
+          if (type === 'subscription' && subscriptionClaim) {
+              const { data: completed, error: completionError } = await getSupabase().rpc(
+                  'complete_vip_subscription_checkout',
+                  {
+                      p_user_id: subscriptionClaim.userId,
+                      p_request_id: subscriptionClaim.requestId,
+                      p_session_id: session.id,
+                      p_session_url: session.url,
+                      p_expires_at: session.expires_at
+                          ? new Date(session.expires_at * 1000).toISOString()
+                          : null,
+                  }
+              );
+              if (completionError || completed !== true) {
+                  await stripe.checkout.sessions.expire(session.id).catch(() => {});
+                  throw completionError || new Error('Subscription checkout claim could not be finalized');
+              }
+              subscriptionClaim = null;
           }
 
           // Persist the session immediately instead of waiting for payment.
@@ -964,6 +1225,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
+          if (subscriptionClaim) {
+              await getSupabase().rpc('release_vip_subscription_checkout', {
+                  p_user_id: subscriptionClaim.userId,
+                  p_request_id: subscriptionClaim.requestId,
+              }).catch(() => {});
+              subscriptionClaim = null;
+          }
           console.warn('[Checkout] FATAL ERROR:', {
               type: error.type,
               code: error.code,

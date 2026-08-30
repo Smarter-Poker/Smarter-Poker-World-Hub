@@ -114,7 +114,7 @@ export default async function handler(req, res) {
         }
 
         try {
-            logAudit(getSupabase(), {
+            await logAudit(getSupabase(), {
                 actionType: 'marketplace_refund',
                 userId: user.id,
                 clubId,

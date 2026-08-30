@@ -8,8 +8,9 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new Error('Checkout status database is not configured');
     _supabase = createClient(url, key);
   }
   return _supabase;
@@ -38,7 +39,7 @@ async function lookupRecord(session) {
   if (type === 'diamonds' && session.metadata?.purchase_id) {
     const { data } = await getSupabase()
       .from('diamond_purchases')
-      .select('id, package_name, diamonds_amount, bonus_diamonds, price_usd, status')
+      .select('id, package_name, diamonds_amount, bonus_diamonds, price_usd, status, metadata')
       .eq('id', session.metadata.purchase_id)
       .maybeSingle();
     return data
@@ -46,6 +47,8 @@ async function lookupRecord(session) {
           status: data.status,
           label: data.package_name,
           diamonds: Number(data.diamonds_amount || 0) + Number(data.bonus_diamonds || 0),
+          redemptionStatus: data.metadata?.redemption_status || null,
+          redemptionError: data.metadata?.redemption_error || null,
         }
       : null;
   }
@@ -107,6 +110,8 @@ export default async function handler(req, res) {
         currency: session.currency || 'usd',
         label: record?.label || null,
         diamonds: record?.diamonds || null,
+        redemptionStatus: record?.redemptionStatus || null,
+        redemptionError: record?.redemptionError || null,
       },
     });
   } catch (err) {
