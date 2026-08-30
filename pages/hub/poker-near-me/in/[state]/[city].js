@@ -29,6 +29,7 @@ export default function PokerCityPage({ state, city, ...props }) {
     <PokerNearMeLocationPage
       {...props}
       stateCode={state.code}
+      stateName={state.name}
       city={city}
       title={`Poker Rooms in ${city}, ${state.name}`}
       description={`Find casino poker rooms and cardrooms in ${city}, ${state.name}. Compare venue profiles, schedules, room details, and current discovery signals.`}

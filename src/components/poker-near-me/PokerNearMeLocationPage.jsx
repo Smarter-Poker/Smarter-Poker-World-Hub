@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../seo/SEOHead';
@@ -8,6 +8,7 @@ import PokerNearMeFamilyNav from './PokerNearMeFamilyNav';
 import DeepRouteSignalDeck from './DeepRouteSignalDeck';
 import PokerNearMeRecentRail from './PokerNearMeRecentRail';
 import { rememberPokerPlace, capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
+import { buildLocationDirectorySchema, serializePokerJsonLd } from '../../lib/poker-near-me/structuredData';
 
 const FALLBACK = '/images/pnm-phase-4/venue-signal-fallback-v1.webp';
 
@@ -40,6 +41,7 @@ export default function PokerNearMeLocationPage({
   description,
   canonical,
   stateCode,
+  stateName,
   city,
   venues = [],
   resultCount,
@@ -51,8 +53,9 @@ export default function PokerNearMeLocationPage({
   const [menuOpen, setMenuOpen] = useState(false);
   const trackedRef = useRef(false);
   const currentPath = canonical.replace('https://smarter.poker', '');
-  const placeLabel = city ? `${city}, ${stateCode}` : stateCode || 'United States';
+  const placeLabel = city ? `${city}, ${stateName || stateCode}` : stateName || stateCode || 'United States';
   const directoryCount = Number.isFinite(Number(resultCount)) ? Number(resultCount) : venues.length;
+  const stateCanonical = city ? canonical.slice(0, canonical.lastIndexOf('/')) : canonical;
 
   useEffect(() => {
     if (trackedRef.current) return;
@@ -67,23 +70,24 @@ export default function PokerNearMeLocationPage({
     });
   }, [city, currentPath, directoryCount, stateCode, title]);
 
-  const itemList = venues.length ? {
-    '@context': 'https://schema.org',
-    '@type': 'ItemList',
-    name: title,
-    numberOfItems: venues.length,
-    itemListElement: venues.slice(0, 50).map((venue, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: venue.name,
-      url: `https://smarter.poker/hub/venues/${encodeURIComponent(String(venue.id))}`,
-    })),
-  } : null;
+  const structuredData = useMemo(() => buildLocationDirectorySchema({
+    title,
+    description,
+    canonical,
+    stateCode,
+    stateName,
+    city,
+    venues,
+    states,
+    cities,
+    resultCount: directoryCount,
+    fetchedAt,
+  }), [canonical, cities, city, description, directoryCount, fetchedAt, stateCode, stateName, states, title, venues]);
 
   return (
     <div className="pnm-location-listing">
       <SEOHead title={title} description={description} canonical={canonical} noindex={directoryCount === 0} />
-      {itemList && <Head><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemList).replace(/</g, '\\u003c') }} /></Head>}
+      <Head><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(structuredData) }} /></Head>
       <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
       <PokerNearMeFamilyNav />
       <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
@@ -98,8 +102,8 @@ export default function PokerNearMeLocationPage({
         breadcrumbs={[
           { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
           ...(stateCode ? [{ label: 'United States', href: '/hub/poker-near-me/in' }] : []),
-          ...(city ? [{ label: stateCode, href: `/hub/poker-near-me/in/${stateCode.toLowerCase()}` }] : []),
-          { label: city || stateCode || 'Locations' },
+          ...(city ? [{ label: stateName || stateCode, href: stateCanonical.replace('https://smarter.poker', '') }] : []),
+          { label: city || stateName || stateCode || 'Locations' },
         ]}
         status={degraded ? 'Cached directory mode' : 'Venue directory synchronized'}
         statusTone={degraded ? 'modeled' : 'live'}
@@ -122,7 +126,11 @@ export default function PokerNearMeLocationPage({
 
         {states.length > 0 && (
           <section aria-labelledby="pnm-states-heading">
-            <h2 id="pnm-states-heading" className="sr-only">Browse poker venues by state</h2>
+            <header className="pnm-location-listing__section-head">
+              <span>Regional index</span>
+              <h2 id="pnm-states-heading">Browse poker venues by state</h2>
+              <p>Move from the national network into verified room profiles, city indexes, and live discovery tools.</p>
+            </header>
             <div className="pnm-location-listing__states">
               {states.map((state) => (
                 <Link key={state.code} href={state.href} className="pnm-location-listing__state">
@@ -135,7 +143,11 @@ export default function PokerNearMeLocationPage({
 
         {cities.length > 0 && (
           <section aria-labelledby="pnm-cities-heading">
-            <h2 id="pnm-cities-heading" className="sr-only">Browse poker venues by city</h2>
+            <header className="pnm-location-listing__section-head">
+              <span>City circuits</span>
+              <h2 id="pnm-cities-heading">Browse poker venues by city</h2>
+              <p>Open a focused local directory without losing the wider {stateName || stateCode} network.</p>
+            </header>
             <div className="pnm-location-listing__states">
               {cities.map((entry) => (
                 <Link key={entry.href} href={entry.href} className="pnm-location-listing__state">
@@ -148,7 +160,11 @@ export default function PokerNearMeLocationPage({
 
         {venues.length > 0 && (
           <section aria-labelledby="pnm-venues-heading">
-            <h2 id="pnm-venues-heading" className="sr-only">Poker venues in {placeLabel}</h2>
+            <header className="pnm-location-listing__section-head">
+              <span>Verified room signals</span>
+              <h2 id="pnm-venues-heading">Poker venues in {placeLabel}</h2>
+              <p>Open a room profile for schedules, games, venue details, and current discovery signals.</p>
+            </header>
             <div className="pnm-location-listing__grid">
               {venues.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
             </div>

@@ -18,6 +18,7 @@ import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 import useSWR from 'swr';
 import PokerIdentityMark from '../../src/components/poker-near-me/PokerIdentityMark';
+import { buildSeriesDirectorySchema, serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
 
 // ─── Lazy-load components ───
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.default })), { ssr: false });
@@ -200,6 +201,10 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
     const [isScrolled, setIsScrolled] = useState(false);
     // ─── Data State ───
     const [allSeries, setAllSeries] = useState(initialSeries);
+    const directorySchema = useMemo(
+        () => buildSeriesDirectorySchema(allSeries, initialSeriesMeta?.totalCount || allSeries.length),
+        [allSeries, initialSeriesMeta?.totalCount]
+    );
     const [loading, setLoading] = useState(initialSeries.length === 0);
     const [allVenues, setAllVenues] = useState([]);
     const [lastSuccessfulSync, setLastSuccessfulSync] = useState(initialSeriesMeta?.generatedAt || null);
@@ -717,8 +722,11 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
             <Head>
                 <title>Poker Series — Live Tournament Series Directory | Smarter.Poker</title>
                 <meta name="description" content="Browse all live and upcoming poker tournament series. Filter by tour (WSOP, WPT, MSPT, RGPS), date, buy-in, and location." />
+                <link rel="canonical" href="https://smarter.poker/hub/poker-series" />
                 <meta property="og:title" content="Poker Series Directory | Smarter.Poker" />
                 <meta property="og:description" content="Live and upcoming poker series tracked in real-time. Find your next big tournament." />
+                <meta property="og:url" content="https://smarter.poker/hub/poker-series" />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(directorySchema) }} />
             </Head>
 
             <div className="pnm-page">
@@ -856,7 +864,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                             radiusMiles={distanceFilter !== 'all' ? distanceFilter : undefined}
                             hideLegend={true}
                             uniformColor="#ffffff"
-                            disableClustering={true}
+                            clusterTourStops={true}
                             onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url: safeHref(url), title })}
                         />
                     </MapErrorBoundary>

@@ -926,5 +926,18 @@ export function reportWebVitals({ id, name, label, value }) {
     if (process.env.NODE_ENV === 'development') {
       console.log(`[WebVital] ${name}: ${Math.round(value)}${name === 'CLS' ? '' : 'ms'}`);
     }
+
+    // Poker Near Me owns a route-scoped performance budget. Send only those
+    // public discovery surfaces through the existing consent-aware analytics
+    // wrapper; unrelated Hub routes remain untouched.
+    if (typeof window !== 'undefined') {
+      const pathname = window.location?.pathname || '';
+      const isDiscoveryRoute = /^\/hub\/(?:poker-near-me|venues|home-games|poker-series|series|daily-tournaments|events-calendar|poker-tours|tours)(?:\/|$)/.test(pathname);
+      if (isDiscoveryRoute) {
+        import('../src/lib/poker-near-me/activity')
+          .then(({ capturePokerNearMeVital }) => capturePokerNearMeVital({ id, name, label, value }, pathname))
+          .catch(() => null);
+      }
+    }
   } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
