@@ -13,7 +13,7 @@ import { assessVenueLocation } from '../../../src/lib/poker-near-me/venueIntegri
 import { buildVenueIntegrityQueue, filterVenueIntegrityQueue } from '../../../src/lib/poker-near-me/venueIntegrityOperations';
 
 const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
-const VENUE_FIELDS = 'id,name,venue_type,address,city,state,latitude,longitude,lat,lng,updated_at,data_quality,scrape_status,is_active';
+const VENUE_FIELDS = 'id,name,venue_type,address,city,state,latitude,longitude,lat,lng,location_integrity_revision,data_quality,scrape_status,is_active';
 let _supabase = null;
 
 function getSupabase() {
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
 
       const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
       const id = Number.parseInt(body.id, 10);
-      const expectedUpdatedAt = normalizedString(body.expected_updated_at, 80);
+      const expectedRevision = normalizedString(body.expected_revision, 80);
       const reason = normalizedString(body.reason, 500);
       const address = normalizedString(body.address, 300);
       const city = normalizedString(body.city, 120);
@@ -102,7 +102,7 @@ export default async function handler(req, res) {
       const longitude = Number(body.longitude);
 
       if (!Number.isInteger(id) || id < 1) return res.status(400).json({ success: false, error: 'A valid venue id is required' });
-      if (!expectedUpdatedAt || !Number.isFinite(Date.parse(expectedUpdatedAt))) {
+      if (!expectedRevision || !Number.isFinite(Date.parse(expectedRevision))) {
         return res.status(400).json({ success: false, error: 'The venue revision is required; refresh and try again' });
       }
       if (reason.length < 12) return res.status(400).json({ success: false, error: 'An audit reason of at least 12 characters is required' });
@@ -131,7 +131,9 @@ export default async function handler(req, res) {
 
       const { data, error } = await supabase.rpc('resolve_venue_location_integrity', {
         p_venue_id: id,
-        p_expected_updated_at: expectedUpdatedAt,
+        // Keep the original RPC argument name so CREATE OR REPLACE remains
+        // compatible; its value is the dedicated location revision.
+        p_expected_updated_at: expectedRevision,
         p_address: address || null,
         p_city: city,
         p_state: state,

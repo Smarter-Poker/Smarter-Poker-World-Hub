@@ -10,7 +10,11 @@ export async function getServerSideProps() {
       import('../../data/all-venues.json'),
       import('../../src/lib/poker-near-me/venueIntegrityOperations'),
     ]);
-    const queue = buildVenueIntegrityQueue(snapshot.venues || []);
+    const previewRevision = new Date().toISOString();
+    const queue = buildVenueIntegrityQueue((snapshot.venues || []).map((venue) => ({
+      ...venue,
+      location_integrity_revision: previewRevision,
+    })));
     return {
       props: {
         previewQueue: {
@@ -144,7 +148,7 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
         credentials: 'include',
         body: JSON.stringify({
           id: selected.id,
-          expected_updated_at: selected.updated_at,
+          expected_revision: selected.revision,
           ...form,
         }),
       });
@@ -254,7 +258,7 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
             <aside className={styles.repair} aria-label="Correction workspace">
               <div className={styles.panelHeader}>
                 <div><span>Correction bay</span><strong>{selected ? `Venue ${selected.id}` : 'Standby'}</strong></div>
-                <small>{selected ? formatAge(selected.updated_at) : 'Select a signal'}</small>
+                <small>{selected ? formatAge(selected.revision) : 'Select a signal'}</small>
               </div>
               {!selected && (
                 <div className={styles.repairStandby}>
@@ -289,7 +293,7 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
                   </div>
                   <label><span>Audit reason</span><textarea required minLength={12} maxLength={500} value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="Source checked and reason for correction…" /></label>
                   <div className={styles.safetyNote}><span>Atomic write</span> The venue revision is checked again before coordinates change. Every correction stores before/after evidence and the acting admin.</div>
-                  <button className={styles.commit} type="submit" disabled={saving || form.reason.trim().length < 12 || !selected.updated_at}>
+                  <button className={styles.commit} type="submit" disabled={saving || form.reason.trim().length < 12 || !selected.revision}>
                     {saving ? 'Verifying and applying…' : 'Verify boundary & commit'}
                   </button>
                 </form>

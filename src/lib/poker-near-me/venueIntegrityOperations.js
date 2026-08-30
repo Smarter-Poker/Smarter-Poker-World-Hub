@@ -17,7 +17,7 @@ function issueRecord(venue, issueType, relatedIds = []) {
     state: safeText(venue.state),
     latitude: venue.latitude ?? venue.lat ?? null,
     longitude: venue.longitude ?? venue.lng ?? null,
-    updated_at: venue.updated_at || null,
+    revision: venue.location_integrity_revision || null,
     data_quality: venue.data_quality || null,
     scrape_status: venue.scrape_status || null,
     issue_type: issueType,
