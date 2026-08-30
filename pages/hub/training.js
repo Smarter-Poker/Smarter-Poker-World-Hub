@@ -685,7 +685,6 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
           aria-hidden="true"
           className="sp-card-hud"
         />
-        <span className="sp-card-scanline" aria-hidden="true" />
         <div className="sp-card-badges">
           {tag === 'recommended' && <span className="sp-badge sp-badge-rec"><Sparkles size={11} aria-hidden /> For You</span>}
           {tag === 'mastered'    && <span className="sp-badge sp-badge-mastered"><Check size={11} aria-hidden /> Mastered</span>}
@@ -1414,20 +1413,6 @@ function GlobalStyle() {
         transform-origin: center;
         filter: saturate(1.18) contrast(1.12) drop-shadow(0 0 7px rgba(26,186,255,.32));
       }
-      .sp-card-scanline {
-        position: absolute;
-        z-index: 3;
-        left: 4%;
-        right: 4%;
-        top: 16%;
-        height: 1px;
-        pointer-events: none;
-        background: linear-gradient(90deg, transparent, rgba(150,241,255,.92) 25%, #fff 50%, rgba(80,210,255,.82) 75%, transparent);
-        box-shadow: 0 0 8px rgba(37,202,255,.7), 0 0 18px rgba(37,202,255,.35);
-        opacity: .58;
-        animation: sp-card-scan 5.2s ease-in-out infinite alternate;
-      }
-      @keyframes sp-card-scan { to { transform: translateY(128px); opacity: .28; } }
       .sp-card-badges { top: 15px; left: 16px; right: 16px; z-index: 4; }
       .sp-badge, .sp-cat-pill {
         border-radius: 0;
