@@ -6,6 +6,11 @@ import { chromium } from 'playwright';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE_DIR = join(ROOT, 'pages/hub/training');
 const BASE_URL = String(process.env.TRAINING_AUDIT_BASE_URL || process.argv[2] || 'http://127.0.0.1:3000').replace(/\/$/, '');
+const IS_REMOTE_AUDIT = !/^https?:\/\/(?:127\.0\.0\.1|localhost)(?::|\/|$)/i.test(BASE_URL);
+const AUDIT_CONCURRENCY = Math.max(1, Number(process.env.TRAINING_AUDIT_CONCURRENCY || (IS_REMOTE_AUDIT ? 1 : 4)) || 1);
+const ROUTE_DELAY_MS = Math.max(0, Number(process.env.TRAINING_AUDIT_ROUTE_DELAY_MS || (IS_REMOTE_AUDIT ? 250 : 0)) || 0);
+const REMOTE_BROWSER_ROTATION = Math.max(1, Number(process.env.TRAINING_AUDIT_BROWSER_ROTATION || 20) || 20);
+const REMOTE_MAX_ATTEMPTS = Math.max(1, Number(process.env.TRAINING_AUDIT_MAX_ATTEMPTS || 2) || 2);
 
 function walk(directory, output = []) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -41,8 +46,12 @@ const viewports = [
 const immersiveRoute = (route) => route.startsWith('/hub/training/arena/') || route.startsWith('/hub/training/play/');
 const ignoredConsoleError = (message) => (
   message.includes('/_next/hmr')
-  || /Failed to load resource:.*401 \(Unauthorized\)/.test(message)
+  || /Failed to load resource:.*\b401\b/.test(message)
 );
+const retryableRemoteFailure = (result) => result.failures.some((failure) => (
+  /\b(?:429|502|503|504)\b/.test(failure)
+  || /Target (?:page, context or browser has been closed|closed)/i.test(failure)
+));
 
 async function inspect(page, route, viewport) {
   const consoleErrors = [];
@@ -117,24 +126,64 @@ async function inspect(page, route, viewport) {
   }
 }
 
-const browser = await chromium.launch({ headless: true });
+const launchBrowser = () => chromium.launch({
+  headless: true,
+  args: ['--mute-audio', '--autoplay-policy=user-gesture-required'],
+});
+let browser = await launchBrowser();
 const results = [];
+const contextOptions = (viewport) => ({
+  viewport: { width: viewport.width, height: viewport.height },
+  reducedMotion: 'reduce',
+});
 
 try {
-  for (const viewport of viewports) {
-    const context = await browser.newContext({
-      viewport: { width: viewport.width, height: viewport.height },
-      reducedMotion: 'reduce',
-    });
-    const pending = [...routes];
-    const workers = await Promise.all(Array.from({ length: 4 }, () => context.newPage()));
-    await Promise.all(workers.map(async (page) => {
-      while (pending.length) results.push(await inspect(page, pending.shift(), viewport));
-    }));
-    await context.close();
+  if (IS_REMOTE_AUDIT) {
+    let routesSinceLaunch = 0;
+    for (const viewport of viewports) {
+      for (const route of routes) {
+        if (routesSinceLaunch >= REMOTE_BROWSER_ROTATION) {
+          await browser.close().catch(() => {});
+          browser = await launchBrowser();
+          routesSinceLaunch = 0;
+        }
+        let result;
+        for (let attempt = 1; attempt <= REMOTE_MAX_ATTEMPTS; attempt += 1) {
+          if (!browser.isConnected()) browser = await launchBrowser();
+          const context = await browser.newContext(contextOptions(viewport));
+          try {
+            result = await inspect(await context.newPage(), route, viewport);
+          } finally {
+            await context.close().catch(() => {});
+          }
+          if (!retryableRemoteFailure(result) || attempt === REMOTE_MAX_ATTEMPTS) break;
+          await new Promise((resolve) => setTimeout(resolve, 1_000 * attempt));
+        }
+        results.push(result);
+        routesSinceLaunch += 1;
+        if (ROUTE_DELAY_MS) await new Promise((resolve) => setTimeout(resolve, ROUTE_DELAY_MS));
+      }
+    }
+  } else {
+    for (const viewport of viewports) {
+      const context = await browser.newContext(contextOptions(viewport));
+      const pending = [...routes];
+      const workers = await Promise.all(Array.from(
+        { length: Math.min(AUDIT_CONCURRENCY, pending.length) },
+        () => context.newPage(),
+      ));
+      await Promise.all(workers.map(async (initialPage) => {
+        let page = initialPage;
+        while (pending.length) {
+          results.push(await inspect(page, pending.shift(), viewport));
+          if (page.isClosed() && pending.length) page = await context.newPage();
+        }
+      }));
+      await context.close();
+    }
   }
 } finally {
-  await browser.close();
+  await browser.close().catch(() => {});
 }
 
 results.sort((a, b) => a.route.localeCompare(b.route) || a.viewport.localeCompare(b.viewport));
@@ -144,6 +193,10 @@ process.stdout.write(`${JSON.stringify({
   baseUrl: BASE_URL,
   routesChecked: routes.length,
   viewportChecks: results.length,
+  concurrency: AUDIT_CONCURRENCY,
+  routeDelayMs: ROUTE_DELAY_MS,
+  browserRotation: IS_REMOTE_AUDIT ? REMOTE_BROWSER_ROTATION : null,
+  maxAttempts: IS_REMOTE_AUDIT ? REMOTE_MAX_ATTEMPTS : 1,
   failures: failures.map(({ route, finalPathname, viewport, failures: messages }) => ({
     route,
     finalPathname,

@@ -133,3 +133,14 @@ test('legacy table feedback also requires an explicit Next action', () => {
   assert.match(table, />\s*Next\s*<\/button>/);
   assert.doesNotMatch(table, /Tap anywhere to continue/i);
 });
+
+test('production route audits isolate pages and retry only transient infrastructure failures', () => {
+  const audit = read('scripts/training-browser-route-audit.mjs');
+
+  assert.match(audit, /IS_REMOTE_AUDIT \? 1 : 4/);
+  assert.match(audit, /REMOTE_BROWSER_ROTATION/);
+  assert.match(audit, /browser\.newContext\(contextOptions\(viewport\)\)/);
+  assert.match(audit, /\b(?:429\|502\|503\|504)\b/);
+  assert.match(audit, /REMOTE_MAX_ATTEMPTS/);
+  assert.match(audit, /Failed to load resource:\.\*\\b401\\b/);
+});
