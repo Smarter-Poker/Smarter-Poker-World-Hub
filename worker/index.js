@@ -64,6 +64,55 @@ self.addEventListener('activate', (event) => {
 // ---------------------------------------------------------------------------
 // PUSH. This is the handler that puts a banner on a locked phone.
 // ---------------------------------------------------------------------------
+/**
+ * TITLE CASE, APPLIED WHERE THE NOTIFICATION IS ACTUALLY RENDERED.
+ *
+ * Dan, 2026-08-30: "the first letter of every word should be capitalized
+ * inside the push notifications."
+ *
+ * This is the same house rule Club Arena already applies to popups
+ * (club-arena src/utils/popupStyle.ts, Dan 2026-08-20), and it is enforced the
+ * same way: in the render path, not as a convention call sites are asked to
+ * remember. Push copy is written by BOTH repos plus a dozen crons and database
+ * triggers — the seat offers from the engine, the money notifications from
+ * Postgres, the health alerts from /api/cron/push-health. Every one of those
+ * would have to remember, forever. This function is the single place all of
+ * them pass through.
+ *
+ * Interior capitals are preserved, so the acronyms this platform is made of
+ * survive: NLH, PLO4, VIP, BBJ, MTT, 6-Max come through untouched rather than
+ * being flattened to Nlh / Plo4 / Vip.
+ *
+ * THE `(s)` CARVE-OUT. A plural suffix is not a word. Dan's own screenshot had
+ * "3 zombie subscription(s) across 1 user(s)", and a naive rule that treats
+ * "(" as a word boundary renders that "Subscription(S) ... User(S)", which is
+ * worse than the lowercase it replaced. So an opening bracket only starts a
+ * word when a space starts it too.
+ *
+ * DELIBERATELY NO LOOKBEHIND. `(?<!...)` would express the carve-out in one
+ * regex, and it is supported on Dan's iOS 18.7 — but a regex literal is parsed
+ * when the SERVICE WORKER SCRIPT IS EVALUATED, so on any engine that lacks it
+ * the whole worker fails to install. That is precisely the outage this file
+ * spent 2026-08-29 recovering from: a worker that cannot install takes web push
+ * down for the entire origin, silently. Two plain regexes cost nothing and
+ * cannot do that.
+ */
+const TITLE_CASE_WORD_START = /(^|[\s[{"'‘“-])([a-z])/g;
+const TITLE_CASE_BRACKET_WORD = /(^|\s)\(([a-z])/g;
+
+function toTitleCase(text) {
+    if (typeof text !== 'string' || text === '') return text;
+    try {
+        return text
+            .replace(TITLE_CASE_WORD_START, (_m, lead, letter) => lead + letter.toUpperCase())
+            .replace(TITLE_CASE_BRACKET_WORD, (_m, lead, letter) => lead + '(' + letter.toUpperCase());
+    } catch (e) {
+        // If anything in here ever throws, the notification must still be
+        // shown. Unstyled copy beats no notification.
+        return text;
+    }
+}
+
 self.addEventListener('push', (event) => {
     let data = {};
     try {
@@ -77,11 +126,11 @@ self.addEventListener('push', (event) => {
         }
     }
 
-    const title = data.title || 'Smarter Poker';
+    const title = toTitleCase(data.title || 'Smarter Poker');
     const url = data.url || '/hub';
 
     const options = {
-        body: data.body || '',
+        body: toTitleCase(data.body || ''),
         icon: data.icon || '/notification-icon.png',
         badge: data.badge || '/notification-icon.png',
         // Large hero image. Chrome/Android only; every other platform ignores
