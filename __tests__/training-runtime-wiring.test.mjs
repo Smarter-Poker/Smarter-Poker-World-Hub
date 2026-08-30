@@ -82,6 +82,9 @@ test('runtime uses canonical auth and fails closed on progress API errors', () =
 
   assert.match(levelSelector, /authToken = getSessionToken\(\)/);
   assert.doesNotMatch(levelSelector, /sb-kuklfnapbkmacvwxktbh-auth-token/);
+  assert.match(trainer, /import \{ authedFetch, getAuthUser \} from '\.\.\/lib\/authUtils'/);
+  assert.doesNotMatch(trainer, /\bfetch\(/);
+  assert.match(trainer, /authedFetch\(`\/api\/training\/batch-preload\?\$\{params\}`\)/);
   assert.match(trainer, /if \(!response\.ok \|\| data\?\.success === false\)/);
   assert.match(trainer, /isCustomTrainerConfig\(trainerConfig\)/);
   assert.match(trainer, /level: selectedLevel/);
