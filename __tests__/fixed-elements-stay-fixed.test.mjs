@@ -101,3 +101,22 @@ test('the one deliberate scroller still declares itself', () => {
     );
   }
 });
+
+test('the shared World Hub footer is welded to the viewport and never auto-hides', () => {
+  const nav = fs.readFileSync(
+    path.join(ROOT, 'src/components/ui/BottomNavBar.jsx'),
+    'utf8'
+  );
+
+  assert.match(nav, /position:\s*'fixed',\s*bottom:\s*0,\s*left:\s*0,\s*right:\s*0/);
+  assert.match(
+    nav,
+    /width:\s*'100%',\s*maxWidth:\s*'100vw',\s*margin:\s*0,[\s\S]*?overflow:\s*'hidden',\s*boxSizing:\s*'border-box'/
+  );
+  assert.match(
+    nav,
+    /transform:\s*'none',\s*translate:\s*'none',\s*transition:\s*'none',\s*animation:\s*'none'/
+  );
+
+  assert.doesNotMatch(nav, /autoHide|setHidden|addEventListener\(['"]scroll|translateY\(110%\)/);
+});
