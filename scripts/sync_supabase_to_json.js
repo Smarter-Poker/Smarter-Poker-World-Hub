@@ -58,10 +58,22 @@ async function exportVenues() {
         logo_url: v.website ? `https://icons.duckduckgo.com/ip3/${new URL(v.website).hostname.replace('www.', '')}.ico` : null
     }));
     
+    // Static/offline consumers must receive the same location quarantine
+    // contract as the live API. This also removes complete-record duplicates
+    // without ever blending fields from different source rows.
+    const { applyVenueIntegrity } = await import('../src/lib/poker-near-me/venueIntegrityServer.js');
+    const integrity = applyVenueIntegrity(formattedVenues);
+    const generatedAt = new Date().toISOString();
     const output = {
-        updated_at: new Date().toISOString(),
-        total: formattedVenues.length,
-        venues: formattedVenues
+        venues: integrity.venues,
+        metadata: {
+            total: integrity.venues.length,
+            active: integrity.venues.length,
+            with_logo: integrity.venues.filter((venue) => venue.logo_url).length,
+            generated_at: generatedAt,
+            source: 'supabase:poker_venues',
+            data_integrity: integrity.summary,
+        },
     };
     
     const jsonString = JSON.stringify(output, null, 2);
@@ -76,6 +88,7 @@ async function exportVenues() {
         console.log(`💾 Saved to ${file.split('Smarter-Poker-World-Hub/')[1] || file}`);
     }
     
+    console.log(`🛡️  Integrity: ${integrity.summary.mapped} mapped, ${integrity.summary.held} held, ${integrity.summary.missing} missing, ${integrity.summary.duplicate_count} duplicates removed.`);
     console.log('\n🎉 JSON registries successfully synchronized with backend!');
 }
 
