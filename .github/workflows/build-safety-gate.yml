@@ -741,7 +741,8 @@ jobs:
             __tests__/public-shell-precache.test.mjs \
             __tests__/manifest-icons.test.mjs \
             __tests__/fixed-elements-stay-fixed.test.mjs \
-            __tests__/cashier-push-types.test.mjs
+            __tests__/cashier-push-types.test.mjs \
+            __tests__/vercel-build-queue.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
