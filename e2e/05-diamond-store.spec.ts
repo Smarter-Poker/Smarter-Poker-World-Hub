@@ -289,6 +289,20 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await page.getByRole('combobox', { name: 'Sort Products' }).selectOption('price-high');
   });
 
+  test('marketplace product inspection stays in-page and supports keyboard dismissal', async ({ page }) => {
+    await page.goto('/hub/merch-store/hoodie-neural', { waitUntil: 'domcontentloaded' });
+    const inspect = page.getByRole('button', { name: /Inspect Diamond Altitude Hoodie image full screen/i });
+    await expect(inspect).toBeVisible();
+    await inspect.click();
+    const dialog = page.getByRole('dialog', { name: /Diamond Altitude Hoodie image inspection/i });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Close image inspection' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(inspect).toBeFocused();
+    await expect(page).toHaveURL('/hub/merch-store/hoodie-neural');
+  });
+
   test('VIP daily access exposes verified card and diamond settlement controls', async ({ page }) => {
     await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: /Select VIP Daily Pass/ }).click();

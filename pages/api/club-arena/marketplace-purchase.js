@@ -18,6 +18,10 @@ const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger
 const { requireEmailVerified, requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 
+// Club Shop sales are platform-owned. The buyer's Diamonds are consumed by
+// the purchase RPC and no club, club owner, agent, or affiliate is credited.
+const CLUB_SALE_SETTLEMENT_MODEL = 'platform_owned_diamond_burn';
+
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
@@ -160,6 +164,7 @@ export default async function handler(req, res) {
           itemType: result.item_type,
           purchaseId: result.purchase_id,
           atomic: true,
+          settlementModel: CLUB_SALE_SETTLEMENT_MODEL,
         },
       });
     } catch (auditError) {
