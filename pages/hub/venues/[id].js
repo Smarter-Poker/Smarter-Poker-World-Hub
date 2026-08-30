@@ -132,18 +132,21 @@ function buildVenueJsonLd(venue, canonical, image) {
     url: canonical,
   };
 
-  const address = {};
-  if (venue.address) address.streetAddress = String(venue.address);
-  if (venue.city) address.addressLocality = String(venue.city);
-  if (venue.state) address.addressRegion = String(venue.state);
-  if (venue.zip_code) address.postalCode = String(venue.zip_code);
-  if (Object.keys(address).length > 0) {
-    node.address = Object.assign({ '@type': 'PostalAddress' }, address);
+  const locationConflict = venue?.location_quality?.status === 'conflict';
+  if (!locationConflict) {
+    const address = {};
+    if (venue.address) address.streetAddress = String(venue.address);
+    if (venue.city) address.addressLocality = String(venue.city);
+    if (venue.state) address.addressRegion = String(venue.state);
+    if (venue.zip_code) address.postalCode = String(venue.zip_code);
+    if (Object.keys(address).length > 0) {
+      node.address = Object.assign({ '@type': 'PostalAddress' }, address);
+    }
   }
 
   const lat = parseFloat(venue.latitude);
   const lng = parseFloat(venue.longitude);
-  if (venue.latitude != null && venue.longitude != null && !isNaN(lat) && !isNaN(lng)) {
+  if (!locationConflict && venue.latitude != null && venue.longitude != null && !isNaN(lat) && !isNaN(lng)) {
     node.geo = { '@type': 'GeoCoordinates', latitude: lat, longitude: lng };
   }
 
@@ -356,6 +359,11 @@ export async function getServerSideProps({ params, req, res }) {
   }
 
   if (!venue && confirmedMissing) return { notFound: true };
+
+  if (venue) {
+    const { assessVenueLocation } = await import('../../../src/lib/poker-near-me/venueIntegrityServer.js');
+    venue = Object.assign({}, venue, { location_quality: assessVenueLocation(venue) });
+  }
 
   return {
     props: {
@@ -753,6 +761,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     };
   }, { fallbackData: swrFallback });
   const venue = swrData?.venue || null;
+  const locationConflict = venue?.location_quality?.status === 'conflict';
   const trackedVenueRef = useRef(null);
   const [localFollowerCount, setFollowerCount] = useState(null);
   const followerCount = localFollowerCount !== null ? localFollowerCount : (swrData?.followerCount || 0);
@@ -1115,7 +1124,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
 
   // Fetch nearby venues (once we have venue lat/lng)
   useEffect(function () {
-    if (!venue || !venue.latitude || !venue.longitude) return;
+    if (!venue || locationConflict || !venue.latitude || !venue.longitude) return;
     fetch('/api/poker/venues?lat=' + venue.latitude + '&lng=' + venue.longitude + '&radius=80&limit=6')
       .then(function (r) { return r.json(); })
       .then(function (json) {
@@ -1127,7 +1136,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         }
       })
       .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-  }, [venue, id]);
+  }, [venue, id, locationConflict]);
 
   // Fetch related series (match by venue name)
   useEffect(function () {
@@ -1186,7 +1195,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
 
   // Initialize venue map once Leaflet is ready and venue loaded
   useEffect(function () {
-    if (!mapReady || !venue || !venue.latitude || !venue.longitude) return;
+    if (!mapReady || !venue || locationConflict || !venue.latitude || !venue.longitude) return;
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
 
@@ -1221,7 +1230,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         mapInstanceRef.current = null;
       }
     };
-  }, [mapReady, venue]);
+  }, [mapReady, venue, locationConflict]);
   // Realtime subscription — live updates
   useEffect(() => {
     if (!id) return;
@@ -1698,7 +1707,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
   };
 
   var openNativeMaps = function (mode) {
-    if (!venue) return;
+    if (!venue || locationConflict) return;
     if (mode === 'directions' && venue.latitude && venue.longitude) {
       openNativeMapsUtil({ address: buildVenueAddress(venue), lat: parseFloat(venue.latitude), lng: parseFloat(venue.longitude), mode: 'directions' });
     } else {
@@ -1890,12 +1899,22 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   <button type="button" className={isSaved ? 'is-active' : ''} onClick={handleSaveVenue}>
                     {isSaved ? 'Saved' : 'Save venue'}
                   </button>
-                  <button type="button" onClick={function () { openNativeMaps('directions'); }}>Get directions</button>
+                  {!locationConflict && <button type="button" onClick={function () { openNativeMaps('directions'); }}>Get directions</button>}
                 </>
               )}
             />
 
             <PokerNearMeRecentRail currentHref={'/hub/venues/' + encodeURIComponent(String(id))} />
+
+            {locationConflict && (
+              <section className="venue-location-integrity" role="status" aria-label="Venue location under review">
+                <span className="venue-location-integrity__signal" aria-hidden="true" />
+                <div>
+                  <strong>Location signal held for review</strong>
+                  <p>This venue’s coordinates do not match its listed state. Map placement and directions are paused until the source record is verified.</p>
+                </div>
+              </section>
+            )}
 
             {/* Breadcrumb Navigation */}
             {!isIframeMode && (
@@ -2190,7 +2209,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </div>
                   <div className="info-content">
                     <span className="info-label">Address</span>
-                    {venue.address ? (
+                    {venue.address && !locationConflict ? (
                       <a href="#" onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('search'); }} className="info-value info-link">
                         {venue.address}
                         {venue.city && (', ' + venue.city)}
@@ -2512,7 +2531,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             {/* ============================================ */}
             {/* MAP & DIRECTIONS SECTION                     */}
             {/* ============================================ */}
-            {venue.latitude && venue.longitude && (
+            {venue.latitude && venue.longitude && !locationConflict && (
               <section className="map-section">
                 <h2 className="section-title">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
@@ -3987,6 +4006,40 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           max-width: 900px;
           margin: 8px auto 0;
           padding: 0 24px;
+        }
+        .venue-location-integrity {
+          max-width: 900px;
+          margin: 14px auto 4px;
+          padding: 13px 18px;
+          display: flex;
+          align-items: center;
+          gap: 13px;
+          border: 1px solid rgba(214, 168, 75, 0.42);
+          border-radius: 3px;
+          background: linear-gradient(90deg, rgba(28, 21, 9, 0.96), rgba(7, 10, 14, 0.96));
+          box-shadow: inset 0 1px rgba(255, 255, 255, 0.04), 0 14px 28px rgba(0, 0, 0, 0.28);
+        }
+        .venue-location-integrity__signal {
+          width: 11px;
+          height: 11px;
+          flex: 0 0 11px;
+          transform: rotate(45deg);
+          border: 1px solid #d6a84b;
+          background: #2b210e;
+          box-shadow: 0 0 12px rgba(214, 168, 75, 0.45);
+        }
+        .venue-location-integrity strong {
+          display: block;
+          color: #ead29b;
+          font-size: 11px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+        }
+        .venue-location-integrity p {
+          margin: 4px 0 0;
+          color: #9ca8b2;
+          font-size: 12px;
+          line-height: 1.45;
         }
         .info-grid {
           display: grid;
@@ -5558,6 +5611,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             justify-content: center;
           }
           .venue-header,
+          .venue-location-integrity,
           .info-section,
           .tournaments-section,
           .live-games-section,

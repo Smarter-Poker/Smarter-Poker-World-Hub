@@ -25,6 +25,7 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 import { jitterCoord, publicDistanceToGroup } from '../../../src/lib/home-games/geoPrivacy';
 import { homeGameUrl } from '../../../src/lib/home-games/urls';
 import { isVenueWithinPokerMapBounds, parsePokerMapBounds } from '../../../src/lib/poker-near-me/mapBounds';
+import { applyVenueIntegrity } from '../../../src/lib/poker-near-me/venueIntegrityServer';
 
 let _supabase = null;
 function getSupabase() {
@@ -692,6 +693,7 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
 
 export default async function handler(req, res) {
   let homeGroups = [];
+  let integritySummary = null;
   // Captured as soon as the query string is parsed so the degraded fallback in
   // the catch below can honour the caller's filters instead of answering every
   // failure with the entire nationwide list.
@@ -1779,12 +1781,22 @@ export default async function handler(req, res) {
               }
           }
 
-          // Map-area requests deliberately exclude rows without coordinates: they
-          // cannot be represented inside a viewport. Home-game coordinates have
-          // already passed through the existing stable privacy jitter before this
-          // public filter runs, so the bounds contract never exposes raw addresses.
+          // Assess whole venue records before rendering or pagination capping. A
+          // coordinate/state conflict is held out of maps instead of silently
+          // placing the room in the wrong market. Exact same-name/city/state
+          // duplicates select one complete record; fields from competing sources
+          // are never blended because that can manufacture a false identity.
+          const integrityResult = applyVenueIntegrity(venues);
+          venues = integrityResult.venues;
+          integritySummary = integrityResult.summary;
+
+          // Map-area requests deliberately exclude rows without trustworthy
+          // coordinates. Home-game coordinates have already passed through the
+          // existing stable privacy jitter and are labelled approximate.
           if (viewportBounds) {
-              venues = venues.filter(venue => isVenueWithinPokerMapBounds(venue, viewportBounds));
+              venues = venues.filter(venue =>
+                  venue?.location_quality?.mappable !== false
+                  && isVenueWithinPokerMapBounds(venue, viewportBounds));
           }
 
           // --- Single venue by ID: attach daily tournament schedules + venue news ---
@@ -1817,6 +1829,7 @@ export default async function handler(req, res) {
                       data: venue,
                       total: 1,
                       hasGpsData: hasGps,
+                      data_integrity: integritySummary,
                   });
               }
 
@@ -2299,6 +2312,7 @@ export default async function handler(req, res) {
               hasGpsData: hasGps,
               viewport: viewportBounds,
               offset,
+              data_integrity: integritySummary,
           });
       } catch (error) {
           console.warn('Venues API error:', error);
@@ -2317,8 +2331,12 @@ export default async function handler(req, res) {
           // Now: the caller's filters are honoured, the result is capped, the
           // response is marked degraded, and it is explicitly not cacheable.
           let fallbackVenues = [];
+          let fallbackIntegrity = null;
           try {
-              fallbackVenues = applyFilters(getJsonVenues(), requestFilters || {})
+              const fallbackResult = applyVenueIntegrity(applyFilters(getJsonVenues(), requestFilters || {}));
+              fallbackIntegrity = fallbackResult.summary;
+              fallbackVenues = fallbackResult.venues
+                  .filter(venue => venue?.location_quality?.mappable !== false || !requestViewportBounds)
                   .filter(venue => isVenueWithinPokerMapBounds(venue, requestViewportBounds))
                   .slice(0, requestMaxResults)
                   .map(v => ({ ...v }));
@@ -2336,6 +2354,7 @@ export default async function handler(req, res) {
               total_home_groups: 0,
               hasGpsData: false,
               viewport: requestViewportBounds,
+              data_integrity: fallbackIntegrity,
           });
       }
 
