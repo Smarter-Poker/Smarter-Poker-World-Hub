@@ -81,15 +81,27 @@ async function auditHub(page, viewport, result) {
   assert.equal(await page.locator('.sp-card-scanline').count(), 0, `${viewport.name} hub: scanline count`);
   assert.equal(await page.locator('[data-global-bottom-nav="true"][data-footer-world="training"]').count(), 1);
 
-  await page.evaluate(async () => {
-    const step = Math.max(500, Math.floor(innerHeight * 0.8));
-    for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
-      window.scrollTo(0, y);
-      await new Promise((resolveWait) => setTimeout(resolveWait, 35));
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await page.evaluate(async () => {
+        const step = Math.max(500, Math.floor(innerHeight * 0.8));
+        for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+          window.scrollTo(0, y);
+          await new Promise((resolveWait) => setTimeout(resolveWait, 35));
+        }
+        window.scrollTo(0, document.documentElement.scrollHeight);
+        await new Promise((resolveWait) => setTimeout(resolveWait, 500));
+      });
+      break;
+    } catch (error) {
+      const replacedDocument = /Execution context was destroyed|Cannot find context|most likely because of a navigation/i.test(String(error));
+      if (!replacedDocument || attempt === 2) throw error;
+      await page.waitForLoadState('domcontentloaded', { timeout: 15_000 }).catch(() => undefined);
+      await page.locator('.sp-card').first().waitFor({ state: 'visible', timeout: 60_000 });
+      assert.equal(new URL(page.url()).pathname, '/hub/training', `${viewport.name} hub: document replacement left the hub`);
+      assert.equal(await page.locator('.sp-card').count(), 107, `${viewport.name} hub: card count after document replacement`);
     }
-    window.scrollTo(0, document.documentElement.scrollHeight);
-    await new Promise((resolveWait) => setTimeout(resolveWait, 500));
-  });
+  }
   const incompleteCards = await page.locator('.sp-card img').evaluateAll((images) => images
     .filter((image) => !image.complete || image.naturalWidth === 0)
     .map((image) => image.currentSrc || image.src));
@@ -155,20 +167,58 @@ async function auditArena(page, viewport, arena) {
     const button = document.querySelector('.sp-arena-lobby__start');
     return button instanceof HTMLButtonElement && !button.disabled;
   }, undefined, { timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const launch = document.querySelector('.sp-arena-lobby__launch');
+    if (!(launch instanceof HTMLElement)) return false;
+    const style = getComputedStyle(launch);
+    return Number(style.opacity) >= 0.99 && (style.transform === 'none' || style.transform === 'matrix(1, 0, 0, 1, 0, 0)');
+  }, undefined, { timeout: 10_000 });
 
   if (viewport.name === 'mobile') {
     const startBox = await start.boundingBox();
     const footerBox = await page.locator('[data-global-bottom-nav="true"]').boundingBox();
     assert.ok(startBox && footerBox, `${arena.gameId}: mobile launch/footer geometry missing`);
-    assert.ok(
-      startBox.y + startBox.height <= footerBox.y + 1,
-      `${arena.gameId}: mobile Start button is covered by the footer`
-    );
+    if (startBox.y + startBox.height > footerBox.y + 1) {
+      await page.screenshot({
+        path: `/tmp/training-phase1-mobile-${arena.gameId}-covered-start.png`,
+        fullPage: false,
+      });
+      assert.fail(
+        `${arena.gameId}: mobile Start button is covered by the footer; `
+        + `start=${JSON.stringify(startBox)} footer=${JSON.stringify(footerBox)}`,
+      );
+    }
   }
 
   await start.click();
   const root = page.locator('[data-training-ui]').first();
-  await root.waitFor({ state: 'visible', timeout: 60_000 });
+  try {
+    await root.waitFor({ state: 'visible', timeout: 60_000 });
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => {
+      const startButton = document.querySelector('.sp-arena-lobby__start');
+      return {
+        path: location.pathname,
+        bodyText: (document.body?.innerText || '').slice(0, 4_000),
+        startPresent: Boolean(startButton),
+        startDisabled: startButton instanceof HTMLButtonElement ? startButton.disabled : null,
+        startLabel: startButton?.textContent?.trim() || null,
+        trainingRoots: [...document.querySelectorAll('[data-training-ui]')].map((element) => ({
+          ui: element.getAttribute('data-training-ui'),
+          gameId: element.getAttribute('data-training-game-id'),
+          rect: element.getBoundingClientRect().toJSON(),
+        })),
+      };
+    });
+    await page.screenshot({
+      path: `/tmp/training-phase1-${viewport.name}-${arena.gameId}-mount-timeout.png`,
+      fullPage: false,
+    });
+    throw new Error(
+      `${viewport.name} ${arena.gameId}: gameplay UI did not mount after Start: ${JSON.stringify(diagnostic)}`,
+      { cause: error },
+    );
+  }
   assert.equal(await root.getAttribute('data-training-ui'), arena.expectedUi, `${arena.gameId}: runtime UI`);
   assert.equal(await root.getAttribute('data-training-game-id'), arena.gameId, `${arena.gameId}: runtime game ID`);
   const optionCount = arena.expectedUi === 'psychology-scenario'
