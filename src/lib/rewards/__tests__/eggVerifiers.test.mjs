@@ -27,6 +27,7 @@ import {
     hasVerifier,
     verifiableEggKeys,
     chicagoDate,
+    createEggContext,
 } from '../eggVerifiers.js';
 import { EASTER_EGGS, DAILY_CAP } from '../../../config/diamondRewards.js';
 
@@ -469,6 +470,7 @@ describe('discovery eggs (database-joined)', () => {
                     select: () => chain,
                     eq: () => chain,
                     in: () => chain,
+                    like: () => chain,
                     not: () => chain,
                     lte: () => chain,
                     gt: () => chain,
@@ -514,9 +516,9 @@ describe('discovery eggs (database-joined)', () => {
         assert.equal(await EGG_VERIFIERS.the_collector({ supabase: three, userId: 'u1' }), true);
     });
 
-    test('the_optimizer stays unclaimable until drill answers are server-verified', async () => {
+    test('the_optimizer stays unclaimable until Club Arena recovery is recorder-attested', async () => {
         assert.equal(hasVerifier('the_optimizer'), false);
-        assert.match(UNVERIFIABLE_EGGS.the_optimizer, /server-verified/i);
+        assert.match(UNVERIFIABLE_EGGS.the_optimizer, /server-recorder-attested/);
         const result = await verifyEgg('the_optimizer', ctxOf());
         assert.equal(result.verified, false);
         assert.equal(result.reason, 'no_verifier');
