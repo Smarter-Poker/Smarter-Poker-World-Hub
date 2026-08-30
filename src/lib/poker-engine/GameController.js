@@ -186,9 +186,54 @@ class GameController {
     // Recover active tournaments from DB
     await this._recoverTournaments();
 
-    // Start background tasks
-    this._snapshotInterval = setInterval(() => this._saveAllSnapshots(), STATE_SNAPSHOT_INTERVAL_MS);
-    this._staleCheckInterval = setInterval(() => this._cleanupStaleTables(), STALE_TABLE_CHECK_MS);
+    /**
+     * ═══════════════════════════════════════════════════════════════════════
+     *  THE TWO BACKGROUND WRITERS ARE OFF (Dan 2026-08-30, incident)
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * These two intervals are what actually destroyed the 20K GTD Sunday $200
+     * Deep Stack. `_recoverTables` was merely the door they came in through,
+     * and closing that door was not enough: `connectToClubTable()` also fills
+     * `lobby.tables`, and it is reachable from sixteen deployed API routes
+     * (`/api/poker/engine/state`, `/seat`, `/action`, `/tables`, and even
+     * `/api/club-arena/manage-table`). One GET on any of them with a live
+     * tournament table id re-armed both timers against that table.
+     *
+     * WHAT THEY DID, measured in production:
+     *
+     *   `_saveAllSnapshots` every 30s wrote `status` and a wholesale
+     *   replacement of the `settings` JSONB for every table in the lobby map,
+     *   filtered on `.eq('id', ...)` and nothing else. 90,022 UPDATEs on
+     *   `tables` in 27 minutes — 154 table-row writes per hand actually dealt,
+     *   each firing eight triggers against a 101,159-row relation. That is why
+     *   the whole platform fell to about one hand a minute; 804 tournament
+     *   tables still carried its `_snapshot` key when this was written.
+     *
+     *   `_cleanupStaleTables` every 60s closed any lobby table whose LEGACY
+     *   in-memory seat array was empty and which was claimed more than
+     *   MAX_EMPTY_TABLE_AGE_MS ago. For a Hetzner-owned table that array is
+     *   empty by construction — the real players are seated in the database and
+     *   never reach this process — so the test is not "is it empty", it is
+     *   "has it been ten minutes". Every claimed tournament table was closed on
+     *   a timer, and `trg_on_table_status_change` then released its entire
+     *   field.
+     *
+     * Neither has a job left to do. Per World Hub CLAUDE.md section 1.1 and
+     * Club Arena CLAUDE.md section 2, all game logic runs on the Hetzner
+     * engine, which persists its own state and reaps its own tables. This
+     * process persisting a competing snapshot of a felt it does not deal is not
+     * a stale feature, it is a second writer fighting the first.
+     *
+     * The database now refuses the specific kill (a table close no longer
+     * unseats a live tournament — see the migration of the same date), but a
+     * guard is not a licence: 90k writes a minute-and-a-half is still a
+     * platform-wide outage on its own, and the two are removed here at source.
+     *
+     * The methods remain callable so a test can still exercise them; nothing
+     * schedules them.
+     */
+    this._snapshotInterval = null;
+    this._staleCheckInterval = null;
 
     // ─── Anti-Cheat Background Monitor ──────────────────────────────
     // Fully automated. No manual approvals. Scans every 30s, auto-boots.
@@ -201,9 +246,49 @@ class GameController {
       console.warn('[GameController] Horse ID pre-load failed:', err.message);
     });
 
-    // ─── Horse AI Heartbeat — Fully Autonomous Pipeline ──────────────
-    // Runs every 60 seconds to continuously ensure tables and tournaments are populated
-    this._horsePipelineInterval = setInterval(() => this._runHorsePipeline(), 60000);
+    /**
+     * ═══════════════════════════════════════════════════════════════════════
+     *  THE THIRD BACKGROUND WRITER IS OFF TOO (2026-08-30, second incident)
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * This was `setInterval(() => this._runHorsePipeline(), 60000)`, and it is
+     * the same mistake as `_snapshotInterval` and `_staleCheckInterval` above:
+     * a retired engine still writing to a felt it does not deal. It was missed
+     * when those two were removed because it reads like a read loop.
+     *
+     * WHAT IT DID, measured in production:
+     *
+     *   `_runHorsePipeline` walks every table and every tournament and calls
+     *   `fillTableWithHorses` / `autoRegisterHorses`. Both select from
+     *   `club_members` embedding `profiles!inner (...)`. That embed is
+     *   AMBIGUOUS - there is more than one foreign key from `club_members` to
+     *   `profiles` - so PostgREST answers HTTP 300 (PGRST203) and returns no
+     *   rows. Every call. Neither site destructured `error`, so the 300 became
+     *   `data = null`, which became "no horses with sufficient funds", which
+     *   left `occupied < target` true forever. The next tick retried.
+     *
+     *   Because this class is constructed by fifteen deployed API routes, every
+     *   serverless invocation armed another 60s heartbeat. Measured 2026-08-30:
+     *   9,000-14,000 requests per minute to /rest/v1/club_members, every one of
+     *   them a 300, sustained for over ten minutes. That is what saturated
+     *   PostgREST into `FATAL 57P03` and made the club lobby fail to load.
+     *
+     * It has no job left to do. Horse seeding and tournament registration are
+     * the Hetzner engine's (HorseFleetManager, fn_seed_horses_to_floor,
+     * fn_register_horse_for_tournament), per World Hub CLAUDE.md section 1.1
+     * and Club Arena CLAUDE.md section 2. Two writers filling the same seats is
+     * the bug, not the feature.
+     *
+     * Note this never seated a single horse: the query has been answering 300
+     * for as long as the second foreign key has existed. Removing the timer
+     * takes away nothing that was working.
+     *
+     * The method remains callable so a test can still exercise it; nothing
+     * schedules it. The two queries inside it have also been given their
+     * `error` back, so that if anything ever calls them again a broken embed is
+     * loud instead of silently empty.
+     */
+    this._horsePipelineInterval = null;
 
     // ─── Phase 48f: Health Watchdog — Zero-Intervention System Monitor ──
     this.healthWatchdog = new HealthWatchdog({
@@ -1490,18 +1575,42 @@ class GameController {
     const sb = this.supabase;
     let horseProfiles = [];
     if (sb && clubId) {
-      const { data } = await sb
+      // `profiles` is NOT embedded here on purpose. `profiles!inner (...)` is
+      // ambiguous - more than one foreign key runs from club_members to
+      // profiles - so PostgREST answers HTTP 300 (PGRST203) and returns
+      // nothing. This site swallowed that error for as long as the second key
+      // has existed, turning it into "no horses with funds" and a retry storm
+      // (see the constructor note on _horsePipelineInterval). The membership
+      // read and the profile read are now two unambiguous queries, and the
+      // error is surfaced instead of being discarded.
+      const { data, error } = await sb
         .from('club_members')
-        .select(`
-          chip_balance,
-          user_id,
-          profiles!inner ( id, alias, avatar_url )
-        `)
+        .select('chip_balance, user_id')
         .eq('club_id', clubId)
         .gt('chip_balance', minBuyIn)
         .limit(100);
 
+      if (error) {
+        console.warn('[GameController] fillTableWithHorses: club_members read failed:', error.message);
+        return { success: false, error: `club_members read failed: ${error.message}`, seated: 0 };
+      }
+
+      const memberIds = (data || []).map(row => row.user_id).filter(id => horseIds.has(id));
+      let profileById = new Map();
+      if (memberIds.length > 0) {
+        const { data: profs, error: profErr } = await sb
+          .from('profiles')
+          .select('id, alias, avatar_url')
+          .in('id', memberIds);
+        if (profErr) {
+          console.warn('[GameController] fillTableWithHorses: profiles read failed:', profErr.message);
+          return { success: false, error: `profiles read failed: ${profErr.message}`, seated: 0 };
+        }
+        profileById = new Map((profs || []).map(p => [p.id, p]));
+      }
+
       horseProfiles = (data || [])
+        .map(row => ({ ...row, profiles: profileById.get(row.user_id) || null }))
         .filter(row => row.profiles && horseIds.has(row.user_id))
         .map(row => ({
           id: row.user_id,
@@ -1622,18 +1731,38 @@ class GameController {
     let horseProfiles = [];
 
     if (clubId) {
-      const { data } = await sb
+      // Same ambiguous-embed trap as fillTableWithHorses: `profiles!inner(...)`
+      // on club_members returns HTTP 300 (PGRST203), and the discarded `error`
+      // turned that into an empty list every single call. Split into two
+      // unambiguous reads, and surface the error.
+      const { data, error } = await sb
         .from('club_members')
-        .select(`
-        chip_balance,
-        user_id,
-        profiles!inner ( id, alias, avatar_url )
-      `)
+        .select('chip_balance, user_id')
         .eq('club_id', clubId)
         .gte('chip_balance', buyIn)
         .limit(100);
 
+      if (error) {
+        console.warn('[GameController] autoRegisterHorses: club_members read failed:', error.message);
+        return { success: false, error: `club_members read failed: ${error.message}`, registered: 0 };
+      }
+
+      const memberIds = (data || []).map(row => row.user_id).filter(id => horseIds.has(id));
+      let profileById = new Map();
+      if (memberIds.length > 0) {
+        const { data: profs, error: profErr } = await sb
+          .from('profiles')
+          .select('id, alias, avatar_url')
+          .in('id', memberIds);
+        if (profErr) {
+          console.warn('[GameController] autoRegisterHorses: profiles read failed:', profErr.message);
+          return { success: false, error: `profiles read failed: ${profErr.message}`, registered: 0 };
+        }
+        profileById = new Map((profs || []).map(p => [p.id, p]));
+      }
+
       horseProfiles = (data || [])
+        .map(row => ({ ...row, profiles: profileById.get(row.user_id) || null }))
         .filter(row => row.profiles && horseIds.has(row.user_id))
         .map(row => ({
           id: row.user_id,
@@ -2120,8 +2249,66 @@ class GameController {
   // PRIVATE: STATE PERSISTENCE
   // ═══════════════════════════════════════════════════════════════════
 
-  /** @private */
+  /**
+   * 2026-08-30 club-arena retirement, part two: NO-OP.
+   *
+   * ═══════════════════════════════════════════════════════════════════════
+   *  THIS METHOD UNSEATED A LIVE 112-PLAYER TOURNAMENT FIELD
+   * ═══════════════════════════════════════════════════════════════════════
+   *
+   * `_recoverTournaments()` below was neutered on 2026-07-20 with the note
+   * "Tournaments now run exclusively on the Club Arena engine." This method
+   * was the other half of the same retirement and it was missed. What it did,
+   * on 2026-08-30, to the 20K GTD Sunday $200 Deep Stack:
+   *
+   *   1. IT CLAIMED THE TABLES. The query below took the 100 most recently
+   *      created open tables with no `tournament_id` filter and no
+   *      `is_deleted` filter. The tournament's 13 tables, written at
+   *      17:01:19-17:01:21, were the newest rows on the platform, so they were
+   *      claimed the instant they existed. `LobbyManager` then stamped each
+   *      entry `createdAt: now`.
+   *
+   *   2. IT STOMPED THEIR STATUS every 30 seconds (`_saveAllSnapshots`),
+   *      writing its own idea of `status` and a `settings._snapshot` over a
+   *      table Hetzner was mid-hand on. All 13 read `status: 'waiting'` while
+   *      the real engine was dealing. That alone was 90,022 UPDATEs on
+   *      `tables` in 27 minutes — 154 table-row writes per hand actually
+   *      dealt, each firing eight triggers against a 101,159-row relation,
+   *      which is what dragged the whole platform to about one hand a minute.
+   *
+   *   3. TEN MINUTES LATER IT CLOSED THEM. `_cleanupStaleTables()` counts
+   *      players in the LEGACY in-memory Table object, which is empty by
+   *      construction — the real players are seated on Hetzner and never
+   *      reach it. So `playerCount === 0` is always true, and every claimed
+   *      table was closed as "stale and empty" exactly MAX_EMPTY_TABLE_AGE_MS
+   *      after it was claimed.
+   *
+   *   4. THE DATABASE THEN UNSEATED EVERYBODY. `fn_on_table_status_change`
+   *      stamps `left_at` on every seat of a table entering a terminal
+   *      status. 111 seats were released between 17:21:16 and 17:21:58 — one
+   *      per table, in `closeTable()` order. Club Arena's `loadSeatedPlayers`
+   *      ends `.is('left_at', null)`, so the deal loop found zero active
+   *      players and parked in `idle_not_enough_players` forever.
+   *
+   * The player-visible result is a felt showing eight seated players, no
+   * cards, no button, and the word "Spectating" — a tournament that looks
+   * launched and is not playing. Dan, 2026-08-30: "IT LAUNCHED WITH ZERO
+   * FUNCTIONALITY, NO CARDS DEALT, NOBODY PLAYING... IM NOT SITTING OR DEALT
+   * IN."
+   *
+   * There is nothing here to fix and re-enable. Per CLAUDE.md section 2, ALL
+   * game logic lives on the Hetzner engine; this process owns no felt. A
+   * `tournament_id IS NULL` filter would only narrow the blast radius to cash
+   * tables Hetzner also owns. The method returns.
+   *
+   * @private
+   */
   async _recoverTables() {
+    return;
+  }
+
+  /** @private */
+  async _recoverTablesRetired_DO_NOT_CALL() {
     if (!this.supabase) return;
 
     try {
