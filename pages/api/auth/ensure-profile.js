@@ -85,7 +85,7 @@ export default async function handler(req, res) {
           // Step 1: Check if profile exists by user_id
           const { data: existingProfile, error: checkError } = await getSupabase()
               .from('profiles')
-              .select('id, username, full_name, email, created_at')
+              .select('id, username, full_name, email, created_at, last_active, is_online')
               .eq('id', user_id)
               .maybeSingle();
 
@@ -104,16 +104,34 @@ export default async function handler(req, res) {
           }
 
           if (existingProfile) {
-              // Profile exists - optionally update last_login
-              const { error: err_profiles_rzlwk } = await getSupabase()
-                .from('profiles')
-                .update({
-                      last_login: new Date().toISOString(),
-                      last_active: new Date().toISOString(),
-                      is_online: true
-                  })
-                  .eq('id', user_id);
-              if (err_profiles_rzlwk) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_rzlwk.message);
+              // Profile exists - refresh last_login/last_active, THROTTLED.
+              // [2026-08-30 DB-load pass] This route fires on EVERY auth event
+              // (INITIAL_SESSION on each page load, TOKEN_REFRESHED, etc.), and
+              // this UPDATE was measured at 338 calls/min in pg_stat_statements
+              // - ~0.3 CPU cores of pure presence writes. A timestamp that is
+              // minutes old is exactly as useful as one that is seconds old,
+              // so skip the write when last_active is under 10 minutes fresh
+              // AND is_online is already true. Sign-in after a real absence,
+              // first load of a session, and any offline->online transition
+              // still write immediately.
+              const lastActiveMs = existingProfile.last_active
+                  ? new Date(existingProfile.last_active).getTime()
+                  : 0;
+              const presenceFresh =
+                  existingProfile.is_online === true &&
+                  Number.isFinite(lastActiveMs) &&
+                  (Date.now() - lastActiveMs) < 10 * 60 * 1000;
+              if (!presenceFresh) {
+                  const { error: err_profiles_rzlwk } = await getSupabase()
+                    .from('profiles')
+                    .update({
+                          last_login: new Date().toISOString(),
+                          last_active: new Date().toISOString(),
+                          is_online: true
+                      })
+                      .eq('id', user_id);
+                  if (err_profiles_rzlwk) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_rzlwk.message);
+              }
 
               // ── ANTIGRAVITY FIX: Detect if profile was JUST created by the DB trigger ──
               const createdTime = new Date(existingProfile.created_at).getTime();
