@@ -19,10 +19,10 @@ const pageVariants = {
     exit: { opacity: 0, transition: { duration: 0.12 } },
 };
 
-export default function PageTransition({ children, className = '' }) {
+export default function PageTransition({ children, className = '', disableInitialAnimation = false }) {
     return (
         <motion.div
-            initial="initial"
+            initial={disableInitialAnimation ? false : 'initial'}
             animate="animate"
             exit="exit"
             variants={pageVariants}

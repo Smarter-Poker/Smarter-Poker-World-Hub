@@ -128,7 +128,7 @@ results.push(...await Promise.all([
 
 try {
   const startedAt = Date.now();
-  const response = await fetch(`${baseUrl}/api/store/merch-catalog?limit=100`, {
+  const response = await fetch(`${baseUrl}/api/store/merch-catalog`, {
     headers: requestHeaders({ Accept: 'application/json' }),
     signal: AbortSignal.timeout(timeoutMs),
   });
@@ -157,7 +157,7 @@ let readiness = null;
 try {
   const startedAt = Date.now();
   const response = await fetch(`${baseUrl}/api/store/readiness`, {
-    headers: requestHeaders({ Accept: 'application/json', 'Cache-Control': 'no-cache' }),
+    headers: requestHeaders({ Accept: 'application/json' }),
     signal: AbortSignal.timeout(timeoutMs),
   });
   const contentType = response.headers.get('content-type') || '';

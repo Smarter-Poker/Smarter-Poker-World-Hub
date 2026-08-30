@@ -51,6 +51,10 @@ export default function MarketplaceDetailExperience({
   breadcrumbs,
   price,
   diamondPrice,
+  cardLabel = 'Card Settlement',
+  diamondLabel = 'Diamond Settlement',
+  inventoryLabel = 'Inventory Signal',
+  securityCopy = 'Card checkout is handled by Stripe. Diamond settlement uses your verified Smarter.Poker wallet.',
   status = 'Available',
   actions,
   structuredData,
@@ -147,7 +151,7 @@ export default function MarketplaceDetailExperience({
                   height={900}
                   loading="eager"
                   decoding="async"
-                  fetchpriority="high"
+                  fetchPriority="high"
                 />
                 <button
                   type="button"
@@ -215,26 +219,28 @@ export default function MarketplaceDetailExperience({
               <div className={styles.readoutGrid}>
                 {price != null && (
                   <div>
-                    <small>Card Settlement</small>
+                    <small>{cardLabel}</small>
                     <strong>${Number(price).toFixed(2)}</strong>
                   </div>
                 )}
                 {diamondPrice != null && (
                   <div>
-                    <small>Diamond Settlement</small>
+                    <small>{diamondLabel}</small>
                     <strong><Gem size={17} aria-hidden="true" /> {Number(diamondPrice).toLocaleString()}</strong>
                   </div>
                 )}
                 <div>
-                  <small>Inventory Signal</small>
+                  <small>{inventoryLabel}</small>
                   <strong>{status}</strong>
                 </div>
               </div>
 
               <div className={styles.actions}>{actions}</div>
-              <p className={styles.securityCopy}>
-                <Sparkles size={14} aria-hidden="true" /> Card checkout is handled by Stripe. Diamond settlement uses your verified Smarter.Poker wallet.
-              </p>
+              {securityCopy && (
+                <p className={styles.securityCopy}>
+                  <Sparkles size={14} aria-hidden="true" /> {securityCopy}
+                </p>
+              )}
             </div>
           </article>
 
