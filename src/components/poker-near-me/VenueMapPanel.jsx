@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef, useId } from 'react';
 import { radiusToZoom, escapeHtml } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 import { addPokerMapLayers, createPokerClusterOptions, loadPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
+import { appendPokerMapBounds, isVenueWithinPokerMapBounds, pokerMapBoundsFromLeaflet } from '../../lib/poker-near-me/mapBounds';
+import { capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
+import MapCoverageReadout from './MapCoverageReadout';
 
 /**
  * VenueMapPanel — Leaflet map rendering for Poker Near Me venues.
@@ -293,7 +296,9 @@ function createClusterIcon(L, cluster) {
   });
 }
 
-export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect, radiusMiles }) {
+export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect, radiusMiles, enableViewportSearch = false, viewportState }) {
+  const [viewportVenues, setViewportVenues] = useState(null);
+  const activeVenues = viewportVenues || venues;
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersLayerRef = useRef(null);
@@ -302,6 +307,14 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   const leafletRef = useRef(null);
   const onVenueSelectRef = useRef(onVenueSelect);
   const popupClickHandlerRef = useRef(null);
+  const activeVenuesRef = useRef(activeVenues);
+  const baseVenuesRef = useRef(venues);
+  const viewportAbortRef = useRef(null);
+  const viewportBoundsRef = useRef(null);
+  const loadStartedAtRef = useRef(Date.now());
+  const telemetrySentRef = useRef(false);
+  activeVenuesRef.current = activeVenues;
+  baseVenuesRef.current = venues;
   // Signature of the rendered venue set — lets us skip a full marker rebuild + fitBounds
   // when the parent re-renders with a new array holding the same venues.
   const renderedSignatureRef = useRef(null);
@@ -309,8 +322,24 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   const fittedGeoSignatureRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const [clusteringAvailable, setClusteringAvailable] = useState(false);
+  const [viewportCount, setViewportCount] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(userLocation ? 10 : 5);
+  const [mapLoadMs, setMapLoadMs] = useState(null);
+  const [areaSearchAvailable, setAreaSearchAvailable] = useState(false);
+  const [areaSearchBusy, setAreaSearchBusy] = useState(false);
+  const [areaSearchError, setAreaSearchError] = useState('');
   const mapInstructionsId = `pnm-panel-map-instructions-${useId().replace(/:/g, '')}`;
-  const mappedVenueCount = venues.filter(v => v.latitude && v.longitude).length;
+  const mappedVenueCount = activeVenues.filter(v => v.latitude && v.longitude).length;
+  const baseGeoSignature = venues
+    .map(v => `${v.id || v.name || ''}:${v.latitude || ''},${v.longitude || ''}`)
+    .sort()
+    .join('|');
+
+  useEffect(() => {
+    setViewportVenues(null);
+    setAreaSearchAvailable(false);
+    setAreaSearchError('');
+  }, [baseGeoSignature, viewportState]);
 
   // Keep callback ref current without triggering marker re-render
   useEffect(() => { onVenueSelectRef.current = onVenueSelect; }, [onVenueSelect]);
@@ -394,6 +423,25 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       map.on('zoomend', updateLabelVisibility);
       updateLabelVisibility();
 
+      function updateCoverage() {
+        const bounds = map.getBounds();
+        viewportBoundsRef.current = pokerMapBoundsFromLeaflet(bounds);
+        const inFrame = activeVenuesRef.current.filter((venue) => {
+          const lat = Number(venue?.latitude);
+          const lng = Number(venue?.longitude);
+          return Number.isFinite(lat) && Number.isFinite(lng) && bounds.contains([lat, lng]);
+        }).length;
+        setViewportCount(inFrame);
+        setZoomLevel(map.getZoom());
+      }
+      map.on('moveend', updateCoverage);
+      map.on('zoomend', updateCoverage);
+      map.on('dragend', () => {
+        updateCoverage();
+        if (enableViewportSearch) setAreaSearchAvailable(true);
+      });
+      updateCoverage();
+
       mapInstanceRef.current = map;
       setMapReady(true);
 
@@ -430,6 +478,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
 
     return () => {
       mountedRef.current = false;
+      viewportAbortRef.current?.abort();
       const container = mapRef.current;
       if (container && popupClickHandlerRef.current) container.removeEventListener('click', popupClickHandlerRef.current);
       if (mapInstanceRef.current) {
@@ -451,7 +500,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
     const layer = markersLayerRef.current;
     if (!L || !map || !layer) return;
 
-    const validVenues = venues.filter(v => v.latitude && v.longitude);
+    const validVenues = activeVenues.filter(v => v.latitude && v.longitude);
 
     // Parents recompute the venues array inline on every render, so identity changes alone
     // must not rebuild markers or re-fit bounds — that would yank the viewport out from
@@ -585,6 +634,24 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       venueMarkers.push(marker);
     });
     addPokerMapLayers(layer, venueMarkers);
+    const currentBounds = map.getBounds();
+    viewportBoundsRef.current = pokerMapBoundsFromLeaflet(currentBounds);
+    setViewportCount(validVenues.filter((venue) => currentBounds.contains([Number(venue.latitude), Number(venue.longitude)])).length);
+    setZoomLevel(map.getZoom());
+    if (!telemetrySentRef.current) {
+      telemetrySentRef.current = true;
+      const duration = Math.max(0, Date.now() - loadStartedAtRef.current);
+      setMapLoadMs(duration);
+      capturePokerNearMeEvent('map_runtime_ready', {
+        route: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        surface: 'venue_map_panel',
+        result_count: validVenues.length,
+        duration_ms: duration,
+        clustering: clusteringAvailable ? 'available' : 'fallback',
+        runtime_source: 'local',
+        zoom_level: map.getZoom(),
+      });
+    }
 
     // Add user location marker
     if (userLocation) {
@@ -624,10 +691,73 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         ? radiusToZoom(radiusMiles) : 10;
       map.setView([userLocation.lat, userLocation.lng], zoom, { animate: true, duration: 0.6 });
     }
-  }, [venues, userLocation, radiusMiles, mapReady]);
+  }, [activeVenues, userLocation, radiusMiles, mapReady, clusteringAvailable]);
 
   // Dynamic radius zoom is now handled by the Phase 2 markers effect above
   // (venues prop changes when radius filter changes, triggering fitBounds)
+
+  async function searchCurrentMapArea() {
+    const bounds = viewportBoundsRef.current;
+    if (!enableViewportSearch || !bounds || areaSearchBusy) return;
+    viewportAbortRef.current?.abort();
+    const controller = new AbortController();
+    viewportAbortRef.current = controller;
+    setAreaSearchBusy(true);
+    setAreaSearchError('');
+    try {
+      const params = appendPokerMapBounds(new URLSearchParams({ limit: '1000', offset: '0' }), bounds);
+      const normalizedState = String(viewportState || '').toUpperCase();
+      if (/^[A-Z]{2}$/.test(normalizedState)) params.set('state', normalizedState);
+      const response = await fetch(`/api/poker/venues?${params.toString()}`, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json' },
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || payload?.success === false || !Array.isArray(payload?.data)) {
+        throw new Error(payload?.error || `Area search returned ${response.status}`);
+      }
+
+      // API venue results do not always include page-specific tour pins. Preserve
+      // only priority tour stops that genuinely fall inside the selected bounds.
+      const priorityPins = baseVenuesRef.current.filter((venue) =>
+        ['tour_stop', 'poker_tour'].includes(venue?.venue_type) && isVenueWithinPokerMapBounds(venue, bounds));
+      const seen = new Set();
+      const merged = [...payload.data, ...priorityPins].filter((venue) => {
+        const key = `${venue?.venue_type || 'venue'}:${venue?.id || venue?.name || ''}`;
+        if (!venue || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      setViewportVenues(merged);
+      setAreaSearchAvailable(false);
+      capturePokerNearMeEvent('map_area_searched', {
+        route: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        surface: 'venue_map_panel',
+        result_count: merged.length,
+        visible_count: merged.length,
+        zoom_level: mapInstanceRef.current?.getZoom(),
+        clustering: clusteringAvailable ? 'available' : 'fallback',
+        source: 'viewport_api',
+      });
+    } catch (error) {
+      if (error?.name !== 'AbortError') setAreaSearchError('Area search unavailable · try again');
+    } finally {
+      if (viewportAbortRef.current === controller) {
+        viewportAbortRef.current = null;
+        setAreaSearchBusy(false);
+      }
+    }
+  }
+
+  function resetMapArea() {
+    viewportAbortRef.current?.abort();
+    viewportAbortRef.current = null;
+    fittedGeoSignatureRef.current = null;
+    setViewportVenues(null);
+    setAreaSearchAvailable(false);
+    setAreaSearchBusy(false);
+    setAreaSearchError('');
+  }
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>
@@ -642,7 +772,11 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         aria-busy={!mapReady}
         data-map-ready={mapReady ? 'true' : 'false'}
         data-map-marker-count={mappedVenueCount}
+        data-map-visible-count={viewportCount}
+        data-map-zoom={Math.round(zoomLevel)}
+        data-map-load-ms={mapLoadMs == null ? '' : mapLoadMs}
         data-map-clustering={clusteringAvailable ? 'available' : 'fallback'}
+        data-map-style-source="local"
         tabIndex={0}
         style={{
           width: '100%', height: '100%', minHeight: 300, borderRadius: 12, overflow: 'hidden',
@@ -660,14 +794,20 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
           LOADING MAP...
         </div>
       )}
-      <div role="status" aria-live="polite" style={{
-        marginTop: 8, fontSize: 12, color: 'rgba(200,214,229,0.4)',
-        textAlign: 'center',
-      }}>
-        {mappedVenueCount} venues on map
-        {mappedVenueCount >= 20 && clusteringAvailable && ' • density clustering active'}
-        {userLocation && ' • GPS active'}
-      </div>
+      <MapCoverageReadout
+        total={mappedVenueCount}
+        visible={viewportCount}
+        zoom={zoomLevel}
+        ready={mapReady}
+        clustering={clusteringAvailable && mappedVenueCount >= 20}
+        gps={!!userLocation}
+        busy={areaSearchBusy}
+        error={areaSearchError}
+        areaSearchAvailable={enableViewportSearch && mapReady && (!viewportVenues || areaSearchAvailable)}
+        areaScoped={!!viewportVenues}
+        onSearchArea={searchCurrentMapArea}
+        onReset={resetMapArea}
+      />
     </div>
   );
 }

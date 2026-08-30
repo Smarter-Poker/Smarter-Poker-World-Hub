@@ -725,6 +725,7 @@ body.world-poker-near-me :is(.gold, .gtd, .guarantee, .schedule-buyin, .ec-gtd) 
 
 /* ─── Map and real venue imagery are the visual content ─── */
 body.world-poker-near-me :is(.hg-map-card, .tours-map-container, .venue-map-wrapper, .ec-map-view, .map-container) {
+    flex-shrink: 0;
     overflow: hidden;
     border: 1px solid rgba(151, 174, 194, 0.34) !important;
     border-radius: 5px !important;
@@ -1229,6 +1230,26 @@ body.world-poker-near-me .pnm-location-listing__state { min-height: 70px; displa
 body.world-poker-near-me .pnm-location-listing__state:hover { border-color: var(--pnm-blue-line); }
 body.world-poker-near-me .pnm-location-listing__state small { color: var(--pnm-muted); }
 
+/* Phase 4 map coverage console — one quiet surveillance-grade signature shared
+   by every discovery map. Counts remain live DOM data, never baked artwork. */
+.pnm-map-coverage { display: flex; align-items: stretch; gap: 10px; width: min(520px, calc(100% - 28px)); min-height: 68px; padding: 9px 10px; border: 1px solid rgba(160, 184, 205, 0.34); border-radius: 3px; background: rgba(3, 7, 11, 0.94); box-shadow: inset 0 1px rgba(255, 255, 255, 0.045), 0 14px 30px rgba(0, 0, 0, 0.42); color: #eaf3fa; backdrop-filter: blur(10px); }
+.pnm-map-coverage--overlay { position: absolute; z-index: 800; left: 14px; bottom: 14px; }
+.pnm-map-coverage__signal { position: relative; flex: 0 0 42px; min-height: 48px; overflow: hidden; border: 1px solid rgba(80, 188, 255, 0.28); border-radius: 2px; background: radial-gradient(circle at center, rgba(52, 190, 255, 0.2) 0 2px, transparent 3px), repeating-radial-gradient(circle at center, rgba(52, 190, 255, 0.1) 0 1px, transparent 1px 8px), #050b10; }
+.pnm-map-coverage__signal::after { content: ''; position: absolute; left: 50%; bottom: 50%; width: 48%; height: 1px; transform-origin: left center; transform: rotate(-25deg); background: linear-gradient(90deg, rgba(72, 202, 255, 0.9), transparent); animation: pnmCoverageSweep 3.6s linear infinite; }
+.pnm-map-coverage__signal span { position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; transform: translate(-50%, -50%); border-radius: 50%; background: #62d3ff; box-shadow: 0 0 12px rgba(76, 205, 255, 0.95); }
+.pnm-map-coverage__copy { min-width: 0; flex: 1; align-self: center; }
+.pnm-map-coverage__copy > span { display: block; color: #52caff; font: 700 8px/1 var(--font-space-grotesk, sans-serif); letter-spacing: 0.17em; text-transform: uppercase; }
+.pnm-map-coverage__copy > div { margin-top: 4px; font: 500 12px/1 var(--font-inter, sans-serif); color: #bac9d5; white-space: nowrap; }
+.pnm-map-coverage__copy strong { color: #fff; font: 500 23px/0.9 var(--font-rajdhani, sans-serif); letter-spacing: 0.03em; }
+.pnm-map-coverage__copy small { color: #778b9c; font-size: 9px; letter-spacing: 0.04em; }
+.pnm-map-coverage__copy p { margin: 5px 0 0; overflow: hidden; color: #7f93a3; font: 600 8px/1.1 var(--font-space-grotesk, sans-serif); letter-spacing: 0.08em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.pnm-map-coverage__actions { display: flex; align-items: center; gap: 5px; }
+.pnm-map-coverage__actions button { min-height: 44px; padding: 0 10px; border: 1px solid rgba(106, 199, 245, 0.32); border-radius: 2px; color: #dceaf3; background: #0a141d; font: 700 9px/1 var(--font-space-grotesk, sans-serif); letter-spacing: 0.05em; cursor: pointer; }
+.pnm-map-coverage__actions button:hover { border-color: rgba(111, 211, 255, 0.65); background: #0d1d29; }
+.pnm-map-coverage__actions button:focus-visible { outline: 2px solid #5acfff; outline-offset: 2px; }
+.pnm-map-coverage__actions button:disabled { cursor: wait; opacity: 0.58; }
+@keyframes pnmCoverageSweep { to { transform: rotate(335deg); } }
+
 @media (max-width: 900px) {
     body.world-poker-near-me .pnm-deep-deck { width: min(100% - 16px, 1480px); min-height: 560px; }
     body.world-poker-near-me .pnm-deep-deck__visual::after { background: linear-gradient(0deg, #030507 0%, rgba(3, 5, 7, 0.76) 62%, rgba(3, 5, 7, 0.34) 100%); }
@@ -1252,6 +1273,14 @@ body.world-poker-near-me .pnm-location-listing__state small { color: var(--pnm-m
     body.world-poker-near-me .pnm-deep-deck__actions { display: grid; grid-template-columns: minmax(0, 1fr); }
     body.world-poker-near-me .pnm-deep-deck__actions :is(a, button) { width: 100%; }
     body.world-poker-near-me .pnm-location-listing__states { grid-template-columns: minmax(0, 1fr); }
+    .pnm-map-coverage { gap: 7px; min-height: 62px; padding: 7px; }
+    .pnm-map-coverage--overlay { left: 8px; bottom: 8px; width: calc(100% - 16px); }
+    .pnm-map-coverage__signal { flex-basis: 36px; min-height: 44px; }
+    .pnm-map-coverage__copy > div { white-space: normal; }
+    .pnm-map-coverage__copy small { display: block; margin-top: 2px; }
+    .pnm-map-coverage__copy p { max-width: 150px; }
+    .pnm-map-coverage__actions { flex-direction: column; align-items: stretch; }
+    .pnm-map-coverage__actions button { min-width: 92px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
