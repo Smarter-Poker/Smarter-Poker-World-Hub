@@ -210,6 +210,16 @@ test('the authenticated E2E gate can finish and report without masking test resu
         'the workflow must explicitly budget enough workers for the authenticated desktop/mobile matrix'
     );
     assert.match(
+        workflow,
+        /npx playwright test --project=chromium --project=mobile-chrome\s*\n/,
+        'the authenticated gate must not duplicate the separately required global-footer projects'
+    );
+    assert.doesNotMatch(
+        workflow.match(/- name: Run Playwright tests[\s\S]*?\n\s+- name: Stop Next\.js server/)?.[0] || '',
+        /--project=footer-/,
+        'the authenticated gate is competing with the dedicated footer gate for the same local server'
+    );
+    assert.match(
         config,
         /process\.env\.PLAYWRIGHT_WORKERS\s*\|\|\s*4/,
         'the Playwright CI default regressed to a serialized worker and cannot finish before the job timeout'

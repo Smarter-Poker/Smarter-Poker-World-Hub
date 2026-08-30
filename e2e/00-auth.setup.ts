@@ -4,6 +4,7 @@ import * as path from 'path';
 const authFile = path.resolve(__dirname, '../playwright/.auth/user.json');
 
 setup('authenticate', async ({ page }) => {
+  setup.setTimeout(90000);
   /**
    * Say what is missing, rather than throwing on undefined.
    *
@@ -31,17 +32,34 @@ setup('authenticate', async ({ page }) => {
 
   await page.goto('/login');
 
-  // Fill in the static test account credentials prescribed in the browser-testing workflow
-  await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
-  await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
-  await page.click('button[type="submit"]');
+  const continueToHub = page.getByRole('button', { name: /continue to hub/i });
+
+  if (await continueToHub.isVisible()) {
+    // The auth client can restore the session before the login page redirects.
+    // Follow the explicit continuation instead of submitting credentials again.
+    await continueToHub.click();
+  } else {
+    // Fill in the static test account credentials prescribed in the browser-testing workflow.
+    await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
+    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
+    await page.click('button[type="submit"]');
+
+    // A successful sign-in may intentionally settle on the signed-in login
+    // state rather than navigating immediately. Observe either success signal,
+    // then follow the continuation when it is the one the UI presents.
+    const success = await Promise.race([
+      page.waitForURL(/.*\/hub/, { timeout: 45000 }).then(() => 'hub'),
+      continueToHub.waitFor({ state: 'visible', timeout: 45000 }).then(() => 'continue'),
+    ]);
+    if (success === 'continue') await continueToHub.click();
+  }
 
   // Verify successful authentication by waiting for the redirection to the hub landing page
   // Profile, VIP, and trusted-device bootstrap can legitimately cross the old
   // 20-second ceiling when the backing services are cold. The credentials had
   // already been accepted, but Playwright closed the page before the session
   // state could be saved, invalidating every dependent test.
-  await expect(page).toHaveURL(/.*\/hub/, { timeout: 60000 });
+  await expect(page).toHaveURL(/.*\/hub/, { timeout: 45000 });
 
   // Allow enough time for local storage/cookies to populate and propagate
   await page.waitForTimeout(1000); 

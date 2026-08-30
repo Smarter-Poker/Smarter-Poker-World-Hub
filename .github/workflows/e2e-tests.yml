@@ -122,7 +122,10 @@ jobs:
           exit 1
 
       - name: Run Playwright tests
-        run: npx playwright test --project=chromium --project=mobile-chrome --project=footer-chromium --project=footer-webkit
+        # Global footer coverage has its own required, cross-browser workflow.
+        # Running it here as well competes with auth setup for the same local
+        # server and duplicates every footer assertion without adding coverage.
+        run: npx playwright test --project=chromium --project=mobile-chrome
         env:
           CI: true
           # e2e/00-auth.setup.ts signs in as the standing test account and every
